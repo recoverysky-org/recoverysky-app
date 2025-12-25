@@ -24,6 +24,7 @@ import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
+import { AuthProvider } from "./context/AuthContext"
 import { MeetingProvider } from "./context/MeetingContext"
 import { DatabaseProvider } from "./db"
 import { initI18n } from "./i18n"
@@ -32,19 +33,28 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { loadDateFnsLocale } from "./utils/formatDate"
+import { logger } from "./utils/logger"
 import * as storage from "./utils/storage"
+
+const log = logger.child({ module: "App" })
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
-// Web linking configuration - simplified, direct to tabs
+// Web linking configuration - matches AppStackParamList with nested Main navigator
 const prefix = Linking.createURL("/")
 const config = {
   screens: {
-    Home: "",
-    Live: "live",
-    Meetings: "meetings",
-    Schedule: "schedule",
-    Profile: "profile",
+    Welcome: "welcome",
+    Login: "login",
+    Main: {
+      screens: {
+        Home: "",
+        Live: "live",
+        Meetings: "meetings",
+        Schedule: "schedule",
+        Profile: "profile",
+      },
+    },
   },
 }
 
@@ -54,6 +64,8 @@ const config = {
  * @returns {JSX.Element} The rendered `App` component.
  */
 export function App() {
+  log.debug("App component initializing")
+
   const {
     initialNavigationState,
     onNavigationStateChange,
@@ -63,10 +75,36 @@ export function App() {
   const [areFontsLoaded, fontLoadError] = useFonts(customFontsToLoad)
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
 
+  // Log state changes
   useEffect(() => {
+    log.debug("Navigation state restored", { isNavigationStateRestored })
+  }, [isNavigationStateRestored])
+
+  useEffect(() => {
+    log.debug("Fonts state", { areFontsLoaded, fontLoadError: !!fontLoadError })
+  }, [areFontsLoaded, fontLoadError])
+
+  useEffect(() => {
+    log.debug("i18n state", { isI18nInitialized })
+  }, [isI18nInitialized])
+
+  useEffect(() => {
+    log.info("Starting i18n initialization")
     initI18n()
-      .then(() => setIsI18nInitialized(true))
-      .then(() => loadDateFnsLocale())
+      .then(() => {
+        log.info("i18n initialized successfully")
+        setIsI18nInitialized(true)
+      })
+      .then(() => {
+        log.info("Loading date-fns locale")
+        return loadDateFnsLocale()
+      })
+      .then(() => {
+        log.info("date-fns locale loaded")
+      })
+      .catch((error) => {
+        log.error("i18n/locale initialization failed", { error: String(error) })
+      })
   }, [])
 
   // Before we show the app, we have to wait for our state to be ready.
@@ -76,8 +114,16 @@ export function App() {
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
   if (!isNavigationStateRestored || !isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
+    log.debug("App waiting for initialization", {
+      isNavigationStateRestored,
+      isI18nInitialized,
+      areFontsLoaded,
+      hasFontError: !!fontLoadError,
+    })
     return null
   }
+
+  log.info("App initialization complete, rendering providers")
 
   const linking = {
     prefixes: [prefix],
@@ -89,15 +135,17 @@ export function App() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
         <DatabaseProvider>
-          <MeetingProvider>
-            <ThemeProvider>
-              <AppNavigator
-                linking={linking}
-                initialState={initialNavigationState}
-                onStateChange={onNavigationStateChange}
-              />
-            </ThemeProvider>
-          </MeetingProvider>
+          <AuthProvider>
+            <MeetingProvider>
+              <ThemeProvider>
+                <AppNavigator
+                  linking={linking}
+                  initialState={initialNavigationState}
+                  onStateChange={onNavigationStateChange}
+                />
+              </ThemeProvider>
+            </MeetingProvider>
+          </AuthProvider>
         </DatabaseProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

@@ -6,7 +6,7 @@
  * then "Seed Db" to populate data.
  */
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import type { SQLiteDatabase } from "expo-sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 import { migrate } from "drizzle-orm/expo-sqlite/migrator"
@@ -14,6 +14,9 @@ import { openDb as openDbProvider } from "./provider"
 import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
 import { migrations } from "@sqlite"
 import type * as schema from "@sqlite"
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "DatabaseProvider" })
 
 type DbStatus = "closed" | "opening" | "open" | "seeding" | "seeded" | "error"
 
@@ -63,6 +66,8 @@ interface DatabaseProviderProps {
  * Renders children immediately. Exposes openDb() and seedDb() for manual control.
  */
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
+  log.debug("DatabaseProvider initializing")
+
   const [status, setStatus] = useState<DbStatus>("closed")
   const [error, setError] = useState<string | null>(null)
   const dbRef = useRef<{
@@ -70,27 +75,38 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     db: ExpoSQLiteDatabase<typeof schema>
   } | null>(null)
 
+  useEffect(() => {
+    log.info("DatabaseProvider mounted", { status })
+    return () => {
+      log.debug("DatabaseProvider unmounting")
+    }
+  }, [])
+
+  useEffect(() => {
+    log.debug("DatabaseProvider status changed", { status, error: error ?? undefined })
+  }, [status, error])
+
   const openDb = useCallback(async () => {
     if (status !== "closed" && status !== "error") {
-      console.log("[DatabaseProvider] Already opened or opening")
+      log.debug("Already opened or opening", { status })
       return
     }
 
     try {
       setStatus("opening")
       setError(null)
-      console.log("[DatabaseProvider] Opening database...")
+      log.info("Opening database...")
 
       // Open the database (this is where expo-sqlite is actually used)
       dbRef.current = await openDbProvider()
+      log.debug("Database opened, running migrations...")
 
-      console.log("[DatabaseProvider] Running migrations...")
       await migrate(dbRef.current.db, migrations)
 
-      console.log("[DatabaseProvider] Migrations complete")
+      log.info("Migrations complete")
       setStatus("open")
     } catch (e) {
-      console.error("[DatabaseProvider] Failed:", e)
+      log.error("Database open failed", { error: String(e) })
       setError(e instanceof Error ? e.message : String(e))
       setStatus("error")
     }
@@ -98,13 +114,13 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
 
   const seedDb = useCallback(async () => {
     if (status !== "open" || !dbRef.current) {
-      console.log("[DatabaseProvider] Database not open, cannot seed")
+      log.warn("Database not open, cannot seed", { status })
       setError("Open database first")
       return
     }
 
     if (isDatabaseSeeded()) {
-      console.log("[DatabaseProvider] Already seeded")
+      log.debug("Database already seeded")
       setStatus("seeded")
       return
     }
@@ -112,18 +128,20 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     try {
       setStatus("seeding")
       setError(null)
-      console.log("[DatabaseProvider] Seeding database...")
+      log.info("Seeding database...")
 
       await seedDatabase(dbRef.current.expoDb)
 
-      console.log("[DatabaseProvider] Seeding complete")
+      log.info("Seeding complete")
       setStatus("seeded")
     } catch (e) {
-      console.error("[DatabaseProvider] Seeding failed:", e)
+      log.error("Seeding failed", { error: String(e) })
       setError(e instanceof Error ? e.message : String(e))
       setStatus("error")
     }
   }, [status])
+
+  log.debug("DatabaseProvider rendering children", { status })
 
   return (
     <DatabaseContext.Provider value={{ status, error, openDb, seedDb }}>

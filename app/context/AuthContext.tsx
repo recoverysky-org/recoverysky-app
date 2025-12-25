@@ -1,5 +1,8 @@
-import { createContext, FC, PropsWithChildren, useCallback, useContext, useMemo } from "react"
+import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useMemo } from "react"
 import { useMMKVString } from "react-native-mmkv"
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "AuthContext" })
 
 export type AuthContextType = {
   isAuthenticated: boolean
@@ -16,10 +19,24 @@ export const AuthContext = createContext<AuthContextType | null>(null)
 export interface AuthProviderProps {}
 
 export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ children }) => {
+  log.debug("AuthProvider initializing")
+
   const [authToken, setAuthToken] = useMMKVString("AuthProvider.authToken")
   const [authEmail, setAuthEmail] = useMMKVString("AuthProvider.authEmail")
 
+  useEffect(() => {
+    log.info("AuthProvider mounted", {
+      hasToken: !!authToken,
+      hasEmail: !!authEmail,
+      isAuthenticated: true, // Always true for now
+    })
+    return () => {
+      log.debug("AuthProvider unmounting")
+    }
+  }, [])
+
   const logout = useCallback(() => {
+    log.info("Logout called")
     setAuthToken(undefined)
     setAuthEmail("")
   }, [setAuthEmail, setAuthToken])
@@ -41,6 +58,7 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
     validationError,
   }
 
+  log.debug("AuthProvider rendering children")
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

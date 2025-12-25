@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react"
 import { meetingRepo, findAllTrexes, useDatabase, type TrexRow } from "@/db"
+import { logger } from "@/utils/logger"
 import {
   isLiveInterval,
   normalize,
@@ -23,6 +24,8 @@ import {
   type meeting,
   Periodicity,
 } from "@common"
+
+const log = logger.child({ module: "MeetingContext" })
 
 // ============================================================================
 // Types
@@ -99,28 +102,38 @@ function isMeetingLive(trexData: trex): boolean {
 }
 
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
+  log.debug("MeetingProvider initializing")
+
   const { status: dbStatus } = useDatabase()
   const [meetings, setMeetings] = useState<MeetingWithTrex[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
+  useEffect(() => {
+    log.info("MeetingProvider mounted", { dbStatus })
+    return () => {
+      log.debug("MeetingProvider unmounting")
+    }
+  }, [])
+
   // Load meetings and trexes from SQLite when database is seeded
   useEffect(() => {
     // Only load when database is seeded
     if (dbStatus !== "seeded") {
-      console.log(`[MeetingProvider] Database not seeded (status: ${dbStatus}), skipping load`)
+      log.debug("Database not seeded, skipping load", { dbStatus })
       return
     }
 
     async function loadData() {
       try {
+        log.info("Loading meetings from SQLite")
         setIsLoading(true)
 
         // Get all meetings
         const meetingsResult = await meetingRepo.findAll()
         if (!meetingsResult.ok) {
-          console.error("[MeetingProvider] Failed to load meetings:", meetingsResult.error)
+          log.error("Failed to load meetings", { error: String(meetingsResult.error) })
           return
         }
 
@@ -163,9 +176,9 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         }))
 
         setMeetings(meetingsWithTrex)
-        console.log(`[MeetingProvider] Loaded ${meetingsWithTrex.length} meetings`)
+        log.info("Loaded meetings", { count: meetingsWithTrex.length })
       } catch (error) {
-        console.error("[MeetingProvider] Error loading data:", error)
+        log.error("Error loading data", { error: String(error) })
       } finally {
         setIsLoading(false)
       }
@@ -185,12 +198,13 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     })
 
     setLastRefresh(new Date())
-    console.log(`[MeetingProvider] Found ${live.length} live meetings`)
+    log.debug("Calculated live meetings", { liveCount: live.length, totalCount: meetings.length })
     return live
   }, [meetings, refreshTrigger])
 
   // Refresh function
   const refresh = useCallback(() => {
+    log.debug("Manual refresh triggered")
     setRefreshTrigger((prev) => prev + 1)
   }, [])
 
@@ -201,6 +215,8 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     lastRefresh,
     refresh,
   }
+
+  log.debug("MeetingProvider rendering children", { meetingCount: meetings.length, isLoading })
 
   return <MeetingContext.Provider value={value}>{children}</MeetingContext.Provider>
 }

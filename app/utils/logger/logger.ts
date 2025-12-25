@@ -81,12 +81,12 @@ class LoggerImpl implements Logger {
       ...(this.spanId && { spanId: this.spanId }),
     }
 
-    // Console output in dev
+    // Console output in dev - stringify attributes for cleaner single-line output
     if (__DEV__ && this.config.consoleInDev) {
       const method = CONSOLE_METHODS[level]
       const fn = console[method] as (...args: unknown[]) => void
       if (Object.keys(record.attributes).length > 0) {
-        fn(`[${level.toUpperCase()}] ${message}`, record.attributes)
+        fn(`[${level.toUpperCase()}] ${message} ${JSON.stringify(record.attributes)}`)
       } else {
         fn(`[${level.toUpperCase()}] ${message}`)
       }

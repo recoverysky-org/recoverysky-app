@@ -4,6 +4,7 @@
  * Generally speaking, it will contain an auth flow (registration, login, forgot password)
  * and a "main" flow which the user will use once logged in.
  */
+import { useEffect } from "react"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
@@ -13,10 +14,13 @@ import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { WelcomeScreen } from "@/screens/WelcomeScreen"
 import { useAppTheme } from "@/theme/context"
+import { logger } from "@/utils/logger"
 
 import { MainNavigator } from "./MainNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
+
+const log = logger.child({ module: "AppNavigator" })
 
 /**
  * This is a list of all the route names that will exit the app if the back button
@@ -28,11 +32,25 @@ const exitRoutes = Config.exitRoutes
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
+  log.debug("AppStack initializing")
+
   const { isAuthenticated } = useAuth()
+  log.debug("Auth state retrieved", { isAuthenticated })
 
   const {
     theme: { colors },
   } = useAppTheme()
+  log.debug("Theme retrieved")
+
+  useEffect(() => {
+    log.info("AppStack mounted", { isAuthenticated })
+    return () => {
+      log.debug("AppStack unmounting")
+    }
+  }, [isAuthenticated])
+
+  const initialRoute = isAuthenticated ? "Welcome" : "Login"
+  log.debug("Determining initial route", { initialRoute, isAuthenticated })
 
   return (
     <Stack.Navigator
@@ -43,7 +61,7 @@ const AppStack = () => {
           backgroundColor: colors.background,
         },
       }}
-      initialRouteName={isAuthenticated ? "Welcome" : "Login"}
+      initialRouteName={initialRoute}
     >
       {isAuthenticated ? (
         <>
@@ -64,9 +82,21 @@ const AppStack = () => {
 }
 
 export const AppNavigator = (props: NavigationProps) => {
+  log.debug("AppNavigator initializing")
+
   const { navigationTheme } = useAppTheme()
+  log.debug("Navigation theme retrieved")
 
   useBackButtonHandler((routeName) => exitRoutes.includes(routeName))
+
+  useEffect(() => {
+    log.info("AppNavigator mounted")
+    return () => {
+      log.debug("AppNavigator unmounting")
+    }
+  }, [])
+
+  log.debug("AppNavigator rendering NavigationContainer")
 
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme} {...props}>
