@@ -14,7 +14,7 @@ module.exports = function (api) {
             "@": "./app",
             "@assets": "./assets",
             "@common": path.resolve(__dirname, "../recoverysky-common/lib/browser"),
-            "@common/sqlite": path.resolve(__dirname, "../recoverysky-common/lib/sqlite"),
+            "@sqlite": path.resolve(__dirname, "../recoverysky-common/lib/sqlite"),
           },
         },
       ],

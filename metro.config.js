@@ -9,14 +9,24 @@ const config = getDefaultConfig(__dirname)
 // Path to recoverysky-common (linked package)
 const commonPath = path.resolve(__dirname, "../recoverysky-common")
 
-// Watch the common package for changes
-config.watchFolders = [commonPath]
+// Path to trex-ts (linked via @trex-ts/core symlink)
+const trexPath = path.resolve(__dirname, "../../trex/trex-ts")
 
-// Resolve @common aliases
+// Watch linked packages for changes
+config.watchFolders = [commonPath, trexPath]
+
+// Resolve @common and @sqlite aliases
 config.resolver.extraNodeModules = {
   "@common": path.resolve(commonPath, "lib/browser"),
-  "@common/sqlite": path.resolve(commonPath, "lib/sqlite"),
+  "@sqlite": path.resolve(commonPath, "lib/sqlite"),
 }
+
+// Tell Metro where to find dependencies for linked packages
+config.resolver.nodeModulesPaths = [
+  path.resolve(__dirname, "node_modules"),
+  path.resolve(commonPath, "node_modules"),
+  path.resolve(trexPath, "node_modules"),
+]
 
 config.transformer.getTransformOptions = async () => ({
   transform: {
@@ -43,5 +53,8 @@ config.resolver.sourceExts.push("cjs")
 
 // Add .sql extension for Drizzle ORM migrations
 config.resolver.sourceExts.push("sql")
+
+// Add .wasm extension for expo-sqlite web support (wa-sqlite)
+config.resolver.assetExts.push("wasm")
 
 module.exports = config

@@ -24,7 +24,7 @@ import type {
   SyncQueueRepository,
   SyncQueueItem,
   SyncOperation,
-} from "@common/sqlite"
+} from "@sqlite"
 
 /**
  * Result of a sync operation

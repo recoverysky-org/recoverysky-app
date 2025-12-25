@@ -31,7 +31,11 @@
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",
-    "bundler": "metro"
+    "bundler": "metro",
+    "headers": {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp"
+    }
   },
   "plugins": [
     "expo-localization",
