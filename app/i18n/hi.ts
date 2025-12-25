@@ -41,6 +41,7 @@ const hi: Translations = {
   },
   mainNavigator: {
     homeTab: "होम",
+    liveTab: "लाइव",
     meetingsTab: "मीटिंग्स",
     scheduleTab: "शेड्यूल",
     profileTab: "प्रोफाइल",
@@ -56,6 +57,13 @@ const hi: Translations = {
   scheduleScreen: {
     title: "शेड्यूल",
     placeholder: "शेड्यूल व्यू जल्द आ रहा है",
+  },
+  liveScreen: {
+    title: "अभी लाइव",
+    noMeetings: "अभी कोई मीटिंग लाइव नहीं है",
+    lastRefresh: "अंतिम जांच: {{time}}",
+    joinMeeting: "जुड़ें",
+    meetingCount: "{{count}} मीटिंग्स लाइव",
   },
   profileScreen: {
     title: "प्रोफाइल",

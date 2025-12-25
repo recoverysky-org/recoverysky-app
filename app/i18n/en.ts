@@ -43,6 +43,7 @@ const en = {
   // Main Navigation
   mainNavigator: {
     homeTab: "Home",
+    liveTab: "Live",
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
     profileTab: "Profile",
@@ -59,6 +60,13 @@ const en = {
   scheduleScreen: {
     title: "Schedule",
     placeholder: "Schedule view coming soon",
+  },
+  liveScreen: {
+    title: "Live Now",
+    noMeetings: "No meetings are live right now",
+    lastRefresh: "Last checked: {{time}}",
+    joinMeeting: "Join",
+    meetingCount: "{{count}} meetings live",
   },
   profileScreen: {
     title: "Profile",

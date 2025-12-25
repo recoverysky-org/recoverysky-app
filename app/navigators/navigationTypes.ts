@@ -10,6 +10,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 // Main Tab Navigator types
 export type MainTabParamList = {
   Home: undefined
+  Live: undefined
   Meetings: undefined
   Schedule: undefined
   Profile: undefined

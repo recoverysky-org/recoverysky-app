@@ -43,6 +43,7 @@ const ar: Translations = {
   },
   mainNavigator: {
     homeTab: "الرئيسية",
+    liveTab: "مباشر",
     meetingsTab: "الاجتماعات",
     scheduleTab: "الجدول",
     profileTab: "الملف الشخصي",
@@ -58,6 +59,13 @@ const ar: Translations = {
   scheduleScreen: {
     title: "الجدول",
     placeholder: "عرض الجدول قريباً",
+  },
+  liveScreen: {
+    title: "مباشر الآن",
+    noMeetings: "لا توجد اجتماعات مباشرة الآن",
+    lastRefresh: "آخر تحقق: {{time}}",
+    joinMeeting: "انضم",
+    meetingCount: "{{count}} اجتماعات مباشرة",
   },
   profileScreen: {
     title: "الملف الشخصي",

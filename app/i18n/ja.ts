@@ -41,6 +41,7 @@ const ja: Translations = {
   },
   mainNavigator: {
     homeTab: "ホーム",
+    liveTab: "ライブ",
     meetingsTab: "ミーティング",
     scheduleTab: "スケジュール",
     profileTab: "プロフィール",
@@ -56,6 +57,13 @@ const ja: Translations = {
   scheduleScreen: {
     title: "スケジュール",
     placeholder: "スケジュールビューは近日公開",
+  },
+  liveScreen: {
+    title: "今すぐライブ",
+    noMeetings: "現在ライブのミーティングはありません",
+    lastRefresh: "最終確認: {{time}}",
+    joinMeeting: "参加",
+    meetingCount: "{{count}}件のミーティングがライブ中",
   },
   profileScreen: {
     title: "プロフィール",

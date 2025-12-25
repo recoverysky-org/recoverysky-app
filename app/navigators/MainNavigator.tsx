@@ -5,14 +5,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Icon } from "@/components/Icon"
 import { translate } from "@/i18n"
 import { HomeScreen } from "@/screens/HomeScreen"
+import { LiveScreen } from "@/screens/LiveScreen"
 // import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
 import { ProfileScreen } from "@/screens/ProfileScreen"
-import { ScheduleScreen } from "@/screens/ScheduleScreen"
+// import { ScheduleScreen } from "@/screens/ScheduleScreen"  // Hidden for now
 import { useAppTheme } from "@/theme/context"
 import { AppStackParamList, AppStackScreenProps } from "./navigationTypes"
 
 export type MainTabParamList = {
   Home: undefined
+  Live: undefined
   Meetings: undefined
   Schedule: undefined
   Profile: undefined
@@ -33,11 +35,14 @@ const Tab = createBottomTabNavigator<MainTabParamList>()
 /**
  * MainNavigator - Primary tab navigation for authenticated users
  *
- * 4-tab structure:
+ * 3-tab structure (MVP):
  * - Home: Dashboard/landing page
+ * - Live: Live meetings currently in progress
+ * - Profile: User profile and settings
+ *
+ * Hidden tabs (for future):
  * - Meetings: Meeting list and discovery
  * - Schedule: Schedule view and management
- * - Profile: User profile and settings
  */
 export function MainNavigator() {
   const { bottom } = useSafeAreaInsets()
@@ -75,7 +80,17 @@ export function MainNavigator() {
           ),
         }}
       />
-      {/* Meetings tab hidden for now - focusing on Schedules
+      <Tab.Screen
+        name="Live"
+        component={LiveScreen}
+        options={{
+          tabBarLabel: translate("mainNavigator:liveTab"),
+          tabBarIcon: ({ focused }) => (
+            <Icon icon="heart" color={focused ? colors.tint : colors.textDim} size={24} />
+          ),
+        }}
+      />
+      {/* Meetings and Schedule tabs hidden for now - focusing on Live
       <Tab.Screen
         name="Meetings"
         component={MeetingsScreen}
@@ -86,7 +101,6 @@ export function MainNavigator() {
           ),
         }}
       />
-      */}
       <Tab.Screen
         name="Schedule"
         component={ScheduleScreen}
@@ -97,6 +111,7 @@ export function MainNavigator() {
           ),
         }}
       />
+      */}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}

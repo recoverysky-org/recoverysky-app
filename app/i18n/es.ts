@@ -41,6 +41,7 @@ const es: Translations = {
   },
   mainNavigator: {
     homeTab: "Inicio",
+    liveTab: "En vivo",
     meetingsTab: "Reuniones",
     scheduleTab: "Horario",
     profileTab: "Perfil",
@@ -56,6 +57,13 @@ const es: Translations = {
   scheduleScreen: {
     title: "Horario",
     placeholder: "Vista de horario próximamente",
+  },
+  liveScreen: {
+    title: "En vivo ahora",
+    noMeetings: "No hay reuniones en vivo ahora",
+    lastRefresh: "Última verificación: {{time}}",
+    joinMeeting: "Unirse",
+    meetingCount: "{{count}} reuniones en vivo",
   },
   profileScreen: {
     title: "Perfil",

@@ -25,6 +25,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { AuthProvider } from "./context/AuthContext"
+import { MeetingProvider } from "./context/MeetingContext"
+import { DatabaseProvider } from "./db"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -46,6 +48,7 @@ const config = {
     Main: {
       screens: {
         Home: "home",
+        Live: "live",
         Meetings: "meetings",
         Schedule: "schedule",
         Profile: "profile",
@@ -94,15 +97,19 @@ export function App() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <AppNavigator
-              linking={linking}
-              initialState={initialNavigationState}
-              onStateChange={onNavigationStateChange}
-            />
-          </ThemeProvider>
-        </AuthProvider>
+        <DatabaseProvider>
+          <AuthProvider>
+            <MeetingProvider>
+              <ThemeProvider>
+                <AppNavigator
+                  linking={linking}
+                  initialState={initialNavigationState}
+                  onStateChange={onNavigationStateChange}
+                />
+              </ThemeProvider>
+            </MeetingProvider>
+          </AuthProvider>
+        </DatabaseProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
   )

@@ -20,6 +20,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { Text, View, ActivityIndicator, StyleSheet } from "react-native"
 import { expoDb } from "./provider"
+import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
 
 // Import SQLite schemas for table creation
 import {
@@ -155,6 +156,27 @@ async function initializeTables(): Promise<void> {
     )
   `)
 
+  // Create trexes table
+  expoDb.execSync(`
+    CREATE TABLE IF NOT EXISTS trexes (
+      id TEXT PRIMARY KEY NOT NULL,
+      coordinate INTEGER NOT NULL DEFAULT 0,
+      coordinate_end INTEGER NOT NULL DEFAULT 0,
+      timezone TEXT NOT NULL DEFAULT '',
+      periodicity INTEGER NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      dtstart TEXT NOT NULL DEFAULT '',
+      dtend TEXT,
+      rrule_str TEXT NOT NULL DEFAULT '',
+      rrule_json TEXT NOT NULL,
+      hour INTEGER,
+      minute INTEGER,
+      dow INTEGER,
+      dom INTEGER,
+      month INTEGER
+    )
+  `)
+
   // Create indexes for better query performance
   expoDb.execSync(`
     CREATE INDEX IF NOT EXISTS idx_meetings_sid ON meetings(sid);
@@ -166,6 +188,8 @@ async function initializeTables(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_schedule_meetings_meeting_id ON schedule_meetings(meeting_id);
     CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status);
     CREATE INDEX IF NOT EXISTS idx_sync_queue_table_record ON sync_queue(table_name, record_id);
+    CREATE INDEX IF NOT EXISTS idx_trexes_periodicity ON trexes(periodicity);
+    CREATE INDEX IF NOT EXISTS idx_trexes_dow ON trexes(dow);
   `)
 }
 
@@ -177,11 +201,19 @@ async function initializeTables(): Promise<void> {
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
   const [isReady, setIsReady] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [loadingMessage, setLoadingMessage] = useState("Initializing database...")
 
   useEffect(() => {
     async function init() {
       try {
         await initializeTables()
+
+        // Seed database on first launch
+        if (!isDatabaseSeeded()) {
+          setLoadingMessage("Loading meeting data...")
+          await seedDatabase(expoDb)
+        }
+
         setIsReady(true)
       } catch (e) {
         console.error("[DatabaseProvider] Failed to initialize database:", e)
@@ -204,7 +236,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Initializing database...</Text>
+        <Text style={styles.loadingText}>{loadingMessage}</Text>
       </View>
     )
   }

@@ -24,4 +24,12 @@
 
 export { db, expoDb } from "./provider"
 export { DatabaseProvider, useDatabaseReady } from "./DatabaseProvider"
-export { meetingRepo, scheduleRepo, syncQueueRepo } from "./repositories"
+export {
+  meetingRepo,
+  scheduleRepo,
+  syncQueueRepo,
+  findAllTrexes,
+  findTrexById,
+  findTrexesByIds,
+  type TrexRow,
+} from "./repositories"

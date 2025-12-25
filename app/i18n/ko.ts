@@ -41,6 +41,7 @@ const ko: Translations = {
   },
   mainNavigator: {
     homeTab: "홈",
+    liveTab: "라이브",
     meetingsTab: "미팅",
     scheduleTab: "일정",
     profileTab: "프로필",
@@ -56,6 +57,13 @@ const ko: Translations = {
   scheduleScreen: {
     title: "일정",
     placeholder: "일정 보기 곧 제공 예정",
+  },
+  liveScreen: {
+    title: "지금 라이브",
+    noMeetings: "현재 진행 중인 미팅이 없습니다",
+    lastRefresh: "마지막 확인: {{time}}",
+    joinMeeting: "참여",
+    meetingCount: "{{count}}개 미팅 진행 중",
   },
   profileScreen: {
     title: "프로필",
