@@ -22,6 +22,10 @@ DerivedData
 *.xcuserstate
 ios/.xcode.env.local
 
+# build outputs
+build*.tar.gz
+recoveryskyhybrid.app/
+
 # Android/IntelliJ
 #
 *.apk
@@ -100,3 +104,4 @@ web-build/
 # Dependency Graph Visualizations
 app-dependency-graph.svg
 app-dependency-graph.png*.apk
+.expo/

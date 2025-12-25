@@ -9,7 +9,6 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import type { SQLiteDatabase } from "expo-sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
-import { migrate } from "drizzle-orm/expo-sqlite/migrator"
 import { openDb as openDbProvider } from "./provider"
 import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
 import { migrations } from "@sqlite"
@@ -101,6 +100,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
       dbRef.current = await openDbProvider()
       log.debug("Database opened, running migrations...")
 
+      // Dynamically import migrator to avoid loading expo-sqlite at startup
+      const { migrate } = await import("drizzle-orm/expo-sqlite/migrator")
       await migrate(dbRef.current.db, migrations)
 
       log.info("Migrations complete")
