@@ -84,3 +84,6 @@ type RecursiveKeyOfHandleValue<
       ? Text | `${Text}:${RecursiveKeyOfInner<TValue>}`
       : Text | `${Text}.${RecursiveKeyOfInner<TValue>}`
     : Text
+
+// Re-export translate function
+export { translate } from "./translate"

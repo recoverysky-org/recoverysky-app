@@ -116,6 +116,9 @@ importers:
       setimmediate:
         specifier: ^1.0.5
         version: 1.0.5
+      trex-ts:
+        specifier: link:../../../trex/trex-ts
+        version: link:../../../trex/trex-ts
     devDependencies:
       '@babel/core':
         specifier: ^7.20.0
