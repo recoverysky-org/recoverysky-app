@@ -1,9 +1,21 @@
 /* eslint-env node */
 // Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require("expo/metro-config")
+const path = require("path")
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname)
+
+// Path to recoverysky-common (linked package)
+const commonPath = path.resolve(__dirname, "../recoverysky-common")
+
+// Watch the common package for changes
+config.watchFolders = [commonPath]
+
+// Resolve @common alias to browser-compatible entry
+config.resolver.extraNodeModules = {
+  "@common": path.resolve(commonPath, "lib/browser"),
+}
 
 config.transformer.getTransformOptions = async () => ({
   transform: {

@@ -29,6 +29,12 @@
       ],
       "@assets/*": [
         "./assets/*"
+      ],
+      "@common": [
+        "../recoverysky-common/lib/browser"
+      ],
+      "@common/*": [
+        "../recoverysky-common/lib/*"
       ]
     },
     "typeRoots": [

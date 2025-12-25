@@ -37,6 +37,7 @@ pnpm build:android:sim  # Android emulator
 ### Path Aliases
 - `@/*` → `./app/*`
 - `@assets/*` → `./assets/*`
+- `@common` → `../recoverysky-common/lib/browser` (browser-safe exports only)
 
 ### State Management
 Uses React Context + MMKV for persistence:
@@ -100,6 +101,36 @@ Ignite CLI uses comment anchors for code generation. Preserve these:
 ```typescript
 // IGNITE_GENERATOR_ANCHOR_*
 ```
+
+### Shared Common Library
+The `@common` alias imports from `@recoverysky-org/common/browser` (React Native compatible):
+```typescript
+import {
+  meeting, schedule, trex,           // Data models (plain interfaces)
+  Fellowship, MeetingStatus,         // Enums
+  validateMeeting, validateSchedule, // Zod validation
+  meetingZodSchema,                  // Direct Zod schema access
+} from "@common"
+```
+
+**Not available** in mobile (Node.js only): `Meeting` class, repositories, TREX executor, Drizzle ORM.
+
+### Logging
+OTLP-compatible logger in `app/utils/logger/`:
+```typescript
+import { logger, useLogger } from "@/utils/logger"
+
+// Direct logging (services, utils)
+logger.info("User logged in", { userId: "123" })
+
+// In React components
+const log = useLogger("ScreenName")
+log.error("API failed", { endpoint: "/users" })
+```
+
+Configure via environment when Alloy collector is online:
+- `EXPO_PUBLIC_OTLP_ENDPOINT`: Collector URL
+- `EXPO_PUBLIC_OTLP_API_KEY`: Auth key
 
 ## Development Tools
 
