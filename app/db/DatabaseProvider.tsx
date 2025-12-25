@@ -2,7 +2,7 @@
  * Database Provider Component
  *
  * Wraps the app to ensure the database is ready before rendering children.
- * Handles schema creation and migrations using Drizzle ORM.
+ * Uses Drizzle ORM migrations from @common/sqlite for schema management.
  *
  * @example
  * // In app/_layout.tsx or App.tsx
@@ -19,18 +19,10 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { Text, View, ActivityIndicator, StyleSheet } from "react-native"
-import { expoDb } from "./provider"
+import { useMigrations } from "drizzle-orm/expo-sqlite/migrator"
+import { db, expoDb } from "./provider"
 import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
-
-// Import SQLite schemas for table creation
-import {
-  meetings,
-  schedules,
-  meetingTypes,
-  meetingTags,
-  scheduleMeetings,
-  syncQueue,
-} from "@common/sqlite"
+import { migrations } from "@common/sqlite"
 
 interface DatabaseContextValue {
   isReady: boolean
@@ -54,185 +46,58 @@ interface DatabaseProviderProps {
 }
 
 /**
- * Create tables using raw SQL
- * This is a simple approach that creates tables if they don't exist
- */
-async function initializeTables(): Promise<void> {
-  // Create meetings table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS meetings (
-      id TEXT PRIMARY KEY NOT NULL DEFAULT '',
-      iid TEXT NOT NULL DEFAULT '',
-      uid TEXT NOT NULL DEFAULT '',
-      zid TEXT NOT NULL DEFAULT '',
-      sid TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL,
-      verified TEXT NOT NULL,
-      locked INTEGER NOT NULL DEFAULT 0,
-      created TEXT NOT NULL DEFAULT '',
-      updated TEXT NOT NULL DEFAULT '',
-      version INTEGER NOT NULL DEFAULT 0,
-      url TEXT NOT NULL DEFAULT '',
-      password TEXT NOT NULL DEFAULT '',
-      passwordEnc TEXT NOT NULL DEFAULT '',
-      fellowship TEXT NOT NULL,
-      language TEXT NOT NULL DEFAULT '',
-      closed INTEGER NOT NULL DEFAULT 0,
-      requiresLogin INTEGER NOT NULL DEFAULT 0,
-      restricted INTEGER NOT NULL DEFAULT 0,
-      restrictedDescription TEXT NOT NULL DEFAULT '',
-      description TEXT NOT NULL DEFAULT '',
-      email TEXT NOT NULL DEFAULT '',
-      name TEXT NOT NULL DEFAULT '',
-      phone TEXT NOT NULL DEFAULT '',
-      website TEXT NOT NULL DEFAULT '',
-      conferencePhone TEXT NOT NULL DEFAULT '',
-      location TEXT NOT NULL DEFAULT '',
-      sha256 TEXT NOT NULL DEFAULT ''
-    )
-  `)
-
-  // Create meeting_types junction table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS meeting_types (
-      id TEXT PRIMARY KEY NOT NULL,
-      meeting_id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
-      UNIQUE(meeting_id, type)
-    )
-  `)
-
-  // Create meeting_tags junction table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS meeting_tags (
-      id TEXT PRIMARY KEY NOT NULL,
-      meeting_id TEXT NOT NULL,
-      tag TEXT NOT NULL,
-      FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
-      UNIQUE(meeting_id, tag)
-    )
-  `)
-
-  // Create schedules table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS schedules (
-      id TEXT PRIMARY KEY NOT NULL DEFAULT '',
-      status TEXT NOT NULL,
-      zids TEXT NOT NULL,
-      name TEXT NOT NULL DEFAULT '',
-      fellowship TEXT NOT NULL,
-      created TEXT NOT NULL DEFAULT '',
-      updated TEXT NOT NULL DEFAULT '',
-      version INTEGER NOT NULL DEFAULT 0,
-      sha256 TEXT NOT NULL DEFAULT ''
-    )
-  `)
-
-  // Create schedule_meetings junction table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS schedule_meetings (
-      schedule_id TEXT NOT NULL,
-      meeting_id TEXT NOT NULL,
-      PRIMARY KEY (schedule_id, meeting_id),
-      FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-      FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE
-    )
-  `)
-
-  // Create sync_queue table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS sync_queue (
-      id TEXT PRIMARY KEY NOT NULL,
-      table_name TEXT NOT NULL,
-      record_id TEXT NOT NULL,
-      operation TEXT NOT NULL,
-      payload TEXT,
-      created_at TEXT NOT NULL,
-      synced_at TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      error_message TEXT,
-      retry_count INTEGER DEFAULT 0
-    )
-  `)
-
-  // Create trexes table
-  expoDb.execSync(`
-    CREATE TABLE IF NOT EXISTS trexes (
-      id TEXT PRIMARY KEY NOT NULL,
-      coordinate INTEGER NOT NULL DEFAULT 0,
-      coordinate_end INTEGER NOT NULL DEFAULT 0,
-      timezone TEXT NOT NULL DEFAULT '',
-      periodicity INTEGER NOT NULL,
-      duration_ms INTEGER NOT NULL DEFAULT 0,
-      dtstart TEXT NOT NULL DEFAULT '',
-      dtend TEXT,
-      rrule_str TEXT NOT NULL DEFAULT '',
-      rrule_json TEXT NOT NULL,
-      hour INTEGER,
-      minute INTEGER,
-      dow INTEGER,
-      dom INTEGER,
-      month INTEGER
-    )
-  `)
-
-  // Create indexes for better query performance
-  expoDb.execSync(`
-    CREATE INDEX IF NOT EXISTS idx_meetings_sid ON meetings(sid);
-    CREATE INDEX IF NOT EXISTS idx_meetings_status ON meetings(status);
-    CREATE INDEX IF NOT EXISTS idx_meetings_fellowship ON meetings(fellowship);
-    CREATE INDEX IF NOT EXISTS idx_meeting_types_meeting_id ON meeting_types(meeting_id);
-    CREATE INDEX IF NOT EXISTS idx_meeting_tags_meeting_id ON meeting_tags(meeting_id);
-    CREATE INDEX IF NOT EXISTS idx_schedule_meetings_schedule_id ON schedule_meetings(schedule_id);
-    CREATE INDEX IF NOT EXISTS idx_schedule_meetings_meeting_id ON schedule_meetings(meeting_id);
-    CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status);
-    CREATE INDEX IF NOT EXISTS idx_sync_queue_table_record ON sync_queue(table_name, record_id);
-    CREATE INDEX IF NOT EXISTS idx_trexes_periodicity ON trexes(periodicity);
-    CREATE INDEX IF NOT EXISTS idx_trexes_dow ON trexes(dow);
-  `)
-}
-
-/**
  * Database Provider Component
  *
- * Initializes the database schema and provides loading/error states.
+ * Runs Drizzle migrations from @common/sqlite, then seeds data on first launch.
  */
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
-  const [isReady, setIsReady] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-  const [loadingMessage, setLoadingMessage] = useState("Initializing database...")
+  const { success: migrationSuccess, error: migrationError } = useMigrations(db, migrations)
+  const [isSeeded, setIsSeeded] = useState(false)
+  const [seedError, setSeedError] = useState<Error | null>(null)
+  const [loadingMessage, setLoadingMessage] = useState("Running migrations...")
 
+  // After migrations succeed, seed database if needed
   useEffect(() => {
-    async function init() {
-      try {
-        await initializeTables()
+    if (!migrationSuccess) return
 
-        // Seed database on first launch
+    async function runSeeding() {
+      try {
         if (!isDatabaseSeeded()) {
           setLoadingMessage("Loading meeting data...")
           await seedDatabase(expoDb)
         }
-
-        setIsReady(true)
+        setIsSeeded(true)
       } catch (e) {
-        console.error("[DatabaseProvider] Failed to initialize database:", e)
-        setError(e instanceof Error ? e : new Error(String(e)))
+        console.error("[DatabaseProvider] Failed to seed database:", e)
+        setSeedError(e instanceof Error ? e : new Error(String(e)))
       }
     }
-    init()
-  }, [])
 
-  if (error) {
+    runSeeding()
+  }, [migrationSuccess])
+
+  // Handle migration error
+  if (migrationError) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Database Error</Text>
-        <Text style={styles.errorMessage}>{error.message}</Text>
+        <Text style={styles.errorText}>Migration Error</Text>
+        <Text style={styles.errorMessage}>{migrationError.message}</Text>
       </View>
     )
   }
 
-  if (!isReady) {
+  // Handle seed error
+  if (seedError) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Database Error</Text>
+        <Text style={styles.errorMessage}>{seedError.message}</Text>
+      </View>
+    )
+  }
+
+  // Show loading while migrations or seeding in progress
+  if (!migrationSuccess || !isSeeded) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -242,7 +107,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
   }
 
   return (
-    <DatabaseContext.Provider value={{ isReady, error }}>
+    <DatabaseContext.Provider value={{ isReady: true, error: null }}>
       {children}
     </DatabaseContext.Provider>
   )
