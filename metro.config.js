@@ -12,9 +12,10 @@ const commonPath = path.resolve(__dirname, "../recoverysky-common")
 // Watch the common package for changes
 config.watchFolders = [commonPath]
 
-// Resolve @common alias to browser-compatible entry
+// Resolve @common aliases
 config.resolver.extraNodeModules = {
   "@common": path.resolve(commonPath, "lib/browser"),
+  "@common/sqlite": path.resolve(commonPath, "lib/sqlite"),
 }
 
 config.transformer.getTransformOptions = async () => ({
@@ -39,5 +40,8 @@ config.resolver.unstable_conditionNames = ["require", "default", "browser"]
 // This helps support certain popular third-party libraries
 // such as Firebase that use the extension cjs.
 config.resolver.sourceExts.push("cjs")
+
+// Add .sql extension for Drizzle ORM migrations
+config.resolver.sourceExts.push("sql")
 
 module.exports = config
