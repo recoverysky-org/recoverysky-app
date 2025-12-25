@@ -1,51 +1,65 @@
 /**
  * Repository instances for the app
  *
- * Pre-instantiated repositories using the app's database connection.
- * Import these directly for data access throughout the app.
+ * Lazily-initialized repositories - only work after openDb() is called.
  *
  * @example
- * import { meetingRepo, syncQueueRepo, findAllTrexes } from "@/db"
+ * import { meetingRepo, findAllTrexes } from "@/db"
  *
- * // Find all meetings
+ * // Find all meetings (after db is opened)
  * const meetings = await meetingRepo.findAll()
  *
  * // Get all trexes
  * const trexes = findAllTrexes()
- *
- * // Queue an offline operation
- * await syncQueueRepo.enqueue({
- *   tableName: "meetings",
- *   recordId: "123",
- *   operation: "create",
- *   payload: JSON.stringify(meetingData),
- * })
  */
 
 import {
   MeetingSqliteRepository,
   ScheduleSqliteRepository,
   SyncQueueRepository,
-} from "@common/sqlite"
-import { db, expoDb } from "./provider"
+} from "@sqlite"
+import { getDb } from "./provider"
+
+// Lazy repository instances - created on first access after db is opened
+let _meetingRepo: MeetingSqliteRepository | null = null
+let _scheduleRepo: ScheduleSqliteRepository | null = null
+let _syncQueueRepo: SyncQueueRepository | null = null
 
 /**
- * Meeting repository instance
- * Handles CRUD operations for meetings with junction tables
+ * Meeting repository instance (lazy)
  */
-export const meetingRepo = new MeetingSqliteRepository(db as any)
+export const meetingRepo = {
+  findAll: async () => {
+    const { db } = getDb()
+    if (!db) throw new Error("Database not opened")
+    if (!_meetingRepo) _meetingRepo = new MeetingSqliteRepository(db as any)
+    return _meetingRepo.findAll()
+  },
+}
 
 /**
- * Schedule repository instance
- * Handles CRUD operations for schedules with meeting relationships
+ * Schedule repository instance (lazy)
  */
-export const scheduleRepo = new ScheduleSqliteRepository(db as any)
+export const scheduleRepo = {
+  findAll: async () => {
+    const { db } = getDb()
+    if (!db) throw new Error("Database not opened")
+    if (!_scheduleRepo) _scheduleRepo = new ScheduleSqliteRepository(db as any)
+    return _scheduleRepo.findAll()
+  },
+}
 
 /**
- * Sync queue repository instance
- * Manages offline operation queue for server synchronization
+ * Sync queue repository instance (lazy)
  */
-export const syncQueueRepo = new SyncQueueRepository(db as any)
+export const syncQueueRepo = {
+  enqueue: async (data: any) => {
+    const { db } = getDb()
+    if (!db) throw new Error("Database not opened")
+    if (!_syncQueueRepo) _syncQueueRepo = new SyncQueueRepository(db as any)
+    return _syncQueueRepo.enqueue(data)
+  },
+}
 
 // ============================================================================
 // TREX Queries (simple functions, no full repository needed for MVP)
@@ -74,6 +88,8 @@ export interface TrexRow {
  * Find all trexes using raw SQL
  */
 export function findAllTrexes(): TrexRow[] {
+  const { expoDb } = getDb()
+  if (!expoDb) return []
   return expoDb.getAllSync<TrexRow>("SELECT * FROM trexes")
 }
 
@@ -81,6 +97,8 @@ export function findAllTrexes(): TrexRow[] {
  * Find a trex by ID using raw SQL
  */
 export function findTrexById(id: string): TrexRow | undefined {
+  const { expoDb } = getDb()
+  if (!expoDb) return undefined
   const result = expoDb.getFirstSync<TrexRow>("SELECT * FROM trexes WHERE id = ?", [id])
   return result ?? undefined
 }

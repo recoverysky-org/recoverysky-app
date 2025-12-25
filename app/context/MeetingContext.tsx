@@ -14,7 +14,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react"
-import { meetingRepo, findAllTrexes, type TrexRow } from "@/db"
+import { meetingRepo, findAllTrexes, useDatabase, type TrexRow } from "@/db"
 import {
   isLiveInterval,
   normalize,
@@ -99,13 +99,20 @@ function isMeetingLive(trexData: trex): boolean {
 }
 
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
+  const { status: dbStatus } = useDatabase()
   const [meetings, setMeetings] = useState<MeetingWithTrex[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Load meetings and trexes from SQLite
+  // Load meetings and trexes from SQLite when database is seeded
   useEffect(() => {
+    // Only load when database is seeded
+    if (dbStatus !== "seeded") {
+      console.log(`[MeetingProvider] Database not seeded (status: ${dbStatus}), skipping load`)
+      return
+    }
+
     async function loadData() {
       try {
         setIsLoading(true)
@@ -165,7 +172,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     }
 
     loadData()
-  }, [])
+  }, [dbStatus])
 
   // Calculate live meetings
   const liveMeetings = useMemo(() => {

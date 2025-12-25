@@ -32,7 +32,7 @@ export const AuthProvider: FC<PropsWithChildren<AuthProviderProps>> = ({ childre
   }, [authEmail])
 
   const value = {
-    isAuthenticated: !!authToken,
+    isAuthenticated: true, // TODO: Re-enable auth when backend is ready - was: !!authToken
     authToken,
     authEmail,
     setAuthToken,

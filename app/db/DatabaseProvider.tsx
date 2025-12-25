@@ -1,44 +1,56 @@
 /**
  * Database Provider Component
  *
- * Wraps the app to ensure the database is ready before rendering children.
- * Uses Drizzle ORM migrations from @common/sqlite for schema management.
- *
- * @example
- * // In app/_layout.tsx or App.tsx
- * import { DatabaseProvider } from "@/db"
- *
- * export default function RootLayout() {
- *   return (
- *     <DatabaseProvider>
- *       <AppNavigator />
- *     </DatabaseProvider>
- *   )
- * }
+ * Provides manual database control via context.
+ * App boots immediately - user clicks "Open Db" to run migrations,
+ * then "Seed Db" to populate data.
  */
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { Text, View, ActivityIndicator, StyleSheet } from "react-native"
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator"
-import { db, expoDb } from "./provider"
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react"
+import type { SQLiteDatabase } from "expo-sqlite"
+import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
+import { migrate } from "drizzle-orm/expo-sqlite/migrator"
+import { openDb as openDbProvider } from "./provider"
 import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
-import { migrations } from "@common/sqlite"
+import { migrations } from "@sqlite"
+import type * as schema from "@sqlite"
+
+type DbStatus = "closed" | "opening" | "open" | "seeding" | "seeded" | "error"
 
 interface DatabaseContextValue {
-  isReady: boolean
-  error: Error | null
+  /** Current database status */
+  status: DbStatus
+  /** Error message if status is "error" */
+  error: string | null
+  /** Run migrations to create tables */
+  openDb: () => Promise<void>
+  /** Seed the database with initial data */
+  seedDb: () => Promise<void>
 }
 
 const DatabaseContext = createContext<DatabaseContextValue>({
-  isReady: false,
+  status: "closed",
   error: null,
+  openDb: async () => {},
+  seedDb: async () => {},
 })
 
 /**
- * Hook to check if the database is ready
+ * Hook to access database controls
  */
-export function useDatabaseReady(): DatabaseContextValue {
+export function useDatabase(): DatabaseContextValue {
   return useContext(DatabaseContext)
+}
+
+/**
+ * @deprecated Use useDatabase() instead
+ */
+export function useDatabaseReady(): { isReady: boolean; error: Error | null } {
+  const { status, error } = useDatabase()
+  return {
+    isReady: status === "open" || status === "seeded",
+    error: error ? new Error(error) : null,
+  }
 }
 
 interface DatabaseProviderProps {
@@ -48,93 +60,74 @@ interface DatabaseProviderProps {
 /**
  * Database Provider Component
  *
- * Runs Drizzle migrations from @common/sqlite, then seeds data on first launch.
+ * Renders children immediately. Exposes openDb() and seedDb() for manual control.
  */
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
-  const { success: migrationSuccess, error: migrationError } = useMigrations(db, migrations)
-  const [isSeeded, setIsSeeded] = useState(false)
-  const [seedError, setSeedError] = useState<Error | null>(null)
-  const [loadingMessage, setLoadingMessage] = useState("Running migrations...")
+  const [status, setStatus] = useState<DbStatus>("closed")
+  const [error, setError] = useState<string | null>(null)
+  const dbRef = useRef<{
+    expoDb: SQLiteDatabase
+    db: ExpoSQLiteDatabase<typeof schema>
+  } | null>(null)
 
-  // After migrations succeed, seed database if needed
-  useEffect(() => {
-    if (!migrationSuccess) return
-
-    async function runSeeding() {
-      try {
-        if (!isDatabaseSeeded()) {
-          setLoadingMessage("Loading meeting data...")
-          await seedDatabase(expoDb)
-        }
-        setIsSeeded(true)
-      } catch (e) {
-        console.error("[DatabaseProvider] Failed to seed database:", e)
-        setSeedError(e instanceof Error ? e : new Error(String(e)))
-      }
+  const openDb = useCallback(async () => {
+    if (status !== "closed" && status !== "error") {
+      console.log("[DatabaseProvider] Already opened or opening")
+      return
     }
 
-    runSeeding()
-  }, [migrationSuccess])
+    try {
+      setStatus("opening")
+      setError(null)
+      console.log("[DatabaseProvider] Opening database...")
 
-  // Handle migration error
-  if (migrationError) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Migration Error</Text>
-        <Text style={styles.errorMessage}>{migrationError.message}</Text>
-      </View>
-    )
-  }
+      // Open the database (this is where expo-sqlite is actually used)
+      dbRef.current = await openDbProvider()
 
-  // Handle seed error
-  if (seedError) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Database Error</Text>
-        <Text style={styles.errorMessage}>{seedError.message}</Text>
-      </View>
-    )
-  }
+      console.log("[DatabaseProvider] Running migrations...")
+      await migrate(dbRef.current.db, migrations)
 
-  // Show loading while migrations or seeding in progress
-  if (!migrationSuccess || !isSeeded) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>{loadingMessage}</Text>
-      </View>
-    )
-  }
+      console.log("[DatabaseProvider] Migrations complete")
+      setStatus("open")
+    } catch (e) {
+      console.error("[DatabaseProvider] Failed:", e)
+      setError(e instanceof Error ? e.message : String(e))
+      setStatus("error")
+    }
+  }, [status])
+
+  const seedDb = useCallback(async () => {
+    if (status !== "open" || !dbRef.current) {
+      console.log("[DatabaseProvider] Database not open, cannot seed")
+      setError("Open database first")
+      return
+    }
+
+    if (isDatabaseSeeded()) {
+      console.log("[DatabaseProvider] Already seeded")
+      setStatus("seeded")
+      return
+    }
+
+    try {
+      setStatus("seeding")
+      setError(null)
+      console.log("[DatabaseProvider] Seeding database...")
+
+      await seedDatabase(dbRef.current.expoDb)
+
+      console.log("[DatabaseProvider] Seeding complete")
+      setStatus("seeded")
+    } catch (e) {
+      console.error("[DatabaseProvider] Seeding failed:", e)
+      setError(e instanceof Error ? e.message : String(e))
+      setStatus("error")
+    }
+  }, [status])
 
   return (
-    <DatabaseContext.Provider value={{ isReady: true, error: null }}>
+    <DatabaseContext.Provider value={{ status, error, openDb, seedDb }}>
       {children}
     </DatabaseContext.Provider>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: "#666",
-  },
-  errorText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#ff3b30",
-    marginBottom: 8,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    paddingHorizontal: 32,
-  },
-})

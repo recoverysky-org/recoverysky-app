@@ -24,7 +24,6 @@ import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
-import { AuthProvider } from "./context/AuthContext"
 import { MeetingProvider } from "./context/MeetingContext"
 import { DatabaseProvider } from "./db"
 import { initI18n } from "./i18n"
@@ -37,23 +36,15 @@ import * as storage from "./utils/storage"
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
-// Web linking configuration
+// Web linking configuration - simplified, direct to tabs
 const prefix = Linking.createURL("/")
 const config = {
   screens: {
-    Login: {
-      path: "",
-    },
-    Welcome: "welcome",
-    Main: {
-      screens: {
-        Home: "home",
-        Live: "live",
-        Meetings: "meetings",
-        Schedule: "schedule",
-        Profile: "profile",
-      },
-    },
+    Home: "",
+    Live: "live",
+    Meetings: "meetings",
+    Schedule: "schedule",
+    Profile: "profile",
   },
 }
 
@@ -98,17 +89,15 @@ export function App() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
         <DatabaseProvider>
-          <AuthProvider>
-            <MeetingProvider>
-              <ThemeProvider>
-                <AppNavigator
-                  linking={linking}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
-              </ThemeProvider>
-            </MeetingProvider>
-          </AuthProvider>
+          <MeetingProvider>
+            <ThemeProvider>
+              <AppNavigator
+                linking={linking}
+                initialState={initialNavigationState}
+                onStateChange={onNavigationStateChange}
+              />
+            </ThemeProvider>
+          </MeetingProvider>
         </DatabaseProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

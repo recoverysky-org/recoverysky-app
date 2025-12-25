@@ -22,8 +22,8 @@
  * })
  */
 
-export { db, expoDb } from "./provider"
-export { DatabaseProvider, useDatabaseReady } from "./DatabaseProvider"
+export { getDb, openDb } from "./provider"
+export { DatabaseProvider, useDatabase, useDatabaseReady } from "./DatabaseProvider"
 export {
   meetingRepo,
   scheduleRepo,

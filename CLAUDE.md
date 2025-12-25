@@ -11,6 +11,7 @@ RecoverySky Hybrid is a React Native app built with Ignite v11.3.2 template, tar
 ```bash
 # Development
 pnpm start              # Start Expo dev client
+pnpm start --clear      # Start with Metro cache cleared (use after config changes)
 pnpm ios                # Run on iOS
 pnpm android            # Run on Android
 pnpm web                # Run web version
@@ -37,18 +38,35 @@ pnpm build:android:sim  # Android emulator
 ### Path Aliases
 - `@/*` → `./app/*`
 - `@assets/*` → `./assets/*`
-- `@common` → `../recoverysky-common/lib/browser` (browser-safe exports only)
+- `@common` → `../recoverysky-common/lib/browser` (browser-safe exports)
+- `@sqlite` → `../recoverysky-common/lib/sqlite` (SQLite/Drizzle exports)
+
+**Important:** `@common` and `@sqlite` are separate aliases. Do NOT use `@common/sqlite` - it causes prefix-matching conflicts with babel-plugin-module-resolver.
+
+### Linked Packages (pnpm)
+Metro has poor symlink support. The `metro.config.js` includes workarounds:
+- `watchFolders`: Includes `recoverysky-common` and `trex-ts` paths
+- `nodeModulesPaths`: Tells Metro where to find linked package dependencies
+- After modifying linked packages, restart Metro with `--clear`
 
 ### State Management
 Uses React Context + MMKV for persistence:
-- **AuthContext** (`app/context/AuthContext.tsx`): Authentication state, tokens, email validation
-- **EpisodeContext** (`app/context/EpisodeContext.tsx`): Podcast data and favorites
+- **MeetingContext** (`app/context/MeetingContext.tsx`): Meeting data with live detection via `isLiveInterval()`
 - **ThemeContext** (`app/theme/context.tsx`): Light/dark/system theme with design tokens
 
+### Database Layer
+SQLite with Drizzle ORM in `app/db/`:
+- **DatabaseProvider**: Runs Drizzle migrations on startup, seeds data on first launch
+- **provider.ts**: Creates expo-sqlite database and Drizzle instance
+- **repositories.ts**: Pre-instantiated repositories for meetings, schedules, sync queue
+- **seedDatabase.ts**: Loads JSON seed data into SQLite (MMKV flag `db_seeded_v1`)
+
+Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
+
 ### Navigation
-React Navigation v7 with two-level structure:
-- **AppNavigator**: Auth-based routing (Login → Welcome → Demo tabs)
-- **DemoNavigator**: Bottom tabs for main authenticated screens
+Simplified React Navigation v7 structure - app starts directly on Home:
+- **AppNavigator**: Wraps MainNavigator with NavigationContainer and ErrorBoundary
+- **MainNavigator**: Bottom tabs (Home, Live, Profile)
 - Route types defined in `app/navigators/navigationTypes.ts`
 
 ### API Layer
@@ -103,17 +121,25 @@ Ignite CLI uses comment anchors for code generation. Preserve these:
 ```
 
 ### Shared Common Library
-The `@common` alias imports from `@recoverysky-org/common/browser` (React Native compatible):
+The `@common` alias imports browser-safe exports from recoverysky-common:
 ```typescript
 import {
   meeting, schedule, trex,           // Data models (plain interfaces)
   Fellowship, MeetingStatus,         // Enums
   validateMeeting, validateSchedule, // Zod validation
-  meetingZodSchema,                  // Direct Zod schema access
+  isLiveInterval, normalize,         // TREX live detection
+  DateTime,                          // Luxon DateTime
 } from "@common"
 ```
 
-**Not available** in mobile (Node.js only): `Meeting` class, repositories, TREX executor, Drizzle ORM.
+The `@sqlite` alias imports SQLite/Drizzle exports:
+```typescript
+import {
+  migrations,                        // Drizzle migrations for useMigrations hook
+  MeetingSqliteRepository,           // Repository classes
+  meetings, schedules, trexes,       // Drizzle table schemas
+} from "@sqlite"
+```
 
 ### Logging
 OTLP-compatible logger in `app/utils/logger/`:
