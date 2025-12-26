@@ -84,6 +84,7 @@ const en = {
     pronounHeHim: "He/Him",
     pronounSheHer: "She/Her",
     pronounTheyThem: "They/Them",
+    pronounEmErs: "Em/Ers",
     cleanDaysFormat: "{{count}}d",
     // Recovery Section
     recoverySection: "Recovery",
@@ -97,8 +98,8 @@ const en = {
     subscriptionPremium: "Premium",
     expires: "Expires",
     userId: "User ID",
-    deleteAccountData: "Delete Account Data",
-    deleteAccountConfirm: "Are you sure you want to delete all your account data? This cannot be undone.",
+    deleteUserData: "Delete User Data",
+    deleteUserDataConfirm: "Are you sure you want to delete all your user data? This cannot be undone.",
     // App Settings Section
     appSettingsSection: "App Settings",
     language: "Language",

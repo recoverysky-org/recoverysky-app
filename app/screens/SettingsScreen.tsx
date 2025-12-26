@@ -11,6 +11,7 @@ import {
   Pressable,
   Platform,
 } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
 
 import { Button } from "@/components/Button"
@@ -31,7 +32,7 @@ import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 
-type Pronouns = "he/him" | "she/her" | "they/them" | null
+type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
 
 /**
  * SettingsScreen - User profile, account, and app settings
@@ -71,9 +72,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [fellowship] = useState("AA")
 
-  // Format date for display
+  // Format date for display (local timezone, not UTC)
   const formatDate = (date: Date): string => {
-    return date.toISOString().split("T")[0] // YYYY-MM-DD format
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
   }
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -109,6 +113,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         return translate("settingsScreen:pronounSheHer")
       case "they/them":
         return translate("settingsScreen:pronounTheyThem")
+      case "em/ers":
+        return translate("settingsScreen:pronounEmErs")
       default:
         return translate("settingsScreen:selectPronouns")
     }
@@ -138,10 +144,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
     setThemeContextOverride(value ? "dark" : "light")
   }
 
-  const handleDeleteAccountData = () => {
+  const handleDeleteUserData = () => {
     Alert.alert(
-      translate("settingsScreen:deleteAccountData"),
-      translate("settingsScreen:deleteAccountConfirm"),
+      translate("settingsScreen:deleteUserData"),
+      translate("settingsScreen:deleteUserDataConfirm"),
       [
         { text: translate("common:cancel"), style: "cancel" },
         { text: translate("common:ok"), style: "destructive", onPress: () => {} },
@@ -250,7 +256,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
           <View style={themed($modalContent)}>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
-            {(["he/him", "she/her", "they/them"] as Pronouns[]).map((p) => (
+            {(["he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
               <TouchableOpacity
                 key={p}
                 style={[themed($modalOption), pronouns === p && themed($modalOptionSelected)]}
@@ -339,6 +345,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
                 display="spinner"
                 onChange={handleDateChange}
                 maximumDate={new Date()}
+                style={$datePickerSpinner}
               />
             </View>
           ) : (
@@ -380,11 +387,20 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         />
         <TouchableOpacity
           style={themed($deleteRow)}
-          onPress={handleDeleteAccountData}
+          onPress={handleDeleteUserData}
           accessibilityRole="button"
         >
           <Icon icon="x" size={18} color={themed($dangerColor).color} />
-          <Text style={themed($deleteText)} tx="settingsScreen:deleteAccountData" />
+          <Text style={themed($deleteText)} tx="settingsScreen:deleteUserData" />
+          <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[themed($deleteRow), themed($lastRow)]}
+          onPress={handleLogout}
+          accessibilityRole="button"
+        >
+          <Icon icon="back" size={18} color={themed($dangerColor).color} style={themed($logoutRowIcon)} />
+          <Text style={themed($deleteText)} tx="settingsScreen:logout" />
           <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
         </TouchableOpacity>
       </View>
@@ -403,7 +419,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
           accessibilityRole="button"
         >
           <View style={$styles.row}>
-            <Icon icon="debug" size={18} color={themed($appSettingsIconColor).color} style={themed($rowIcon)} />
+            <Ionicons name="globe-outline" size={18} color={themed($appSettingsIconColor).color} style={themed($rowIcon)} />
             <Text style={themed($rowLabel)} tx="settingsScreen:language" />
           </View>
           <View style={$styles.row}>
@@ -415,7 +431,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         {/* Dark Mode Toggle */}
         <View style={themed($settingsRow)}>
           <View style={$styles.row}>
-            <Icon icon="view" size={18} color={themed($dimColor).color} style={themed($rowIcon)} />
+            <Ionicons
+              name={isDarkMode ? "moon-outline" : "sunny-outline"}
+              size={18}
+              color={themed($dimColor).color}
+              style={themed($rowIcon)}
+            />
             <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
           </View>
           <Switch
@@ -438,18 +459,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
           </View>
         </TouchableOpacity>
       </View>
-
-      {/* Logout Button */}
-      <Button
-        tx="settingsScreen:logout"
-        preset="default"
-        style={themed($logoutButton)}
-        textStyle={themed($logoutText)}
-        LeftAccessory={() => (
-          <Icon icon="back" size={18} color={themed($dangerColor).color} style={themed($logoutIcon)} />
-        )}
-        onPress={handleLogout}
-      />
     </Screen>
   )
 }
@@ -485,7 +494,7 @@ const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 })
 
 const $section: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.background,
+  backgroundColor: colors.card,
   borderRadius: 12,
   borderWidth: 1,
   borderColor: colors.border,
@@ -548,6 +557,11 @@ const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
   flex: 1,
   fontSize: 14,
   color: colors.error,
+})
+
+const $logoutRowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
+  marginRight: spacing.xs,
+  transform: [{ rotate: "180deg" }],
 })
 
 const $premiumText: ThemedStyle<TextStyle> = () => ({
@@ -707,3 +721,8 @@ const $datePickerDone: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "600",
   color: colors.tint,
 })
+
+// Non-themed style for iOS date picker spinner (needs explicit height)
+const $datePickerSpinner: ViewStyle = {
+  height: 180,
+}

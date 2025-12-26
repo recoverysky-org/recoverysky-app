@@ -1,38 +1,38 @@
 const palette = {
   neutral100: "#FFFFFF",
-  neutral200: "#F4F2F1",
-  neutral300: "#D7CEC9",
-  neutral400: "#B6ACA6",
-  neutral500: "#978F8A",
-  neutral600: "#564E4A",
-  neutral700: "#3C3836",
-  neutral800: "#191015",
+  neutral200: "#F5F5F7",
+  neutral300: "#E5E5EA",
+  neutral400: "#C7C7CC",
+  neutral500: "#8E8E93",
+  neutral600: "#636366",
+  neutral700: "#48484A",
+  neutral800: "#1C1C1E",
   neutral900: "#000000",
 
-  primary100: "#F4E0D9",
-  primary200: "#E8C1B4",
-  primary300: "#DDA28E",
-  primary400: "#D28468",
-  primary500: "#C76542",
-  primary600: "#A54F31",
+  primary100: "#E3F2FD",
+  primary200: "#90CAF9",
+  primary300: "#64B5F6",
+  primary400: "#42A5F5",
+  primary500: "#2196F3",
+  primary600: "#1976D2",
 
-  secondary100: "#DCDDE9",
-  secondary200: "#BCC0D6",
-  secondary300: "#9196B9",
-  secondary400: "#626894",
-  secondary500: "#41476E",
+  secondary100: "#E8F5E9",
+  secondary200: "#A5D6A7",
+  secondary300: "#81C784",
+  secondary400: "#66BB6A",
+  secondary500: "#4CAF50",
 
-  accent100: "#FFEED4",
-  accent200: "#FFE1B2",
-  accent300: "#FDD495",
-  accent400: "#FBC878",
-  accent500: "#FFBB50",
+  accent100: "#FFF3E0",
+  accent200: "#FFCC80",
+  accent300: "#FFB74D",
+  accent400: "#FFA726",
+  accent500: "#FF9800",
 
-  angry100: "#F2D6CD",
-  angry500: "#C03403",
+  angry100: "#FFEBEE",
+  angry500: "#F44336",
 
-  overlay20: "rgba(25, 16, 21, 0.2)",
-  overlay50: "rgba(25, 16, 21, 0.5)",
+  overlay20: "rgba(0, 0, 0, 0.2)",
+  overlay50: "rgba(0, 0, 0, 0.5)",
 } as const
 
 export const colors = {
@@ -59,9 +59,13 @@ export const colors = {
    */
   background: palette.neutral200,
   /**
+   * Card/section background (slightly different from screen).
+   */
+  card: palette.neutral100,
+  /**
    * The default border color.
    */
-  border: palette.neutral400,
+  border: palette.neutral300,
   /**
    * The main tinting color.
    */
@@ -69,7 +73,7 @@ export const colors = {
   /**
    * The inactive tinting color.
    */
-  tintInactive: palette.neutral300,
+  tintInactive: palette.neutral400,
   /**
    * A subtle color used for lines.
    */

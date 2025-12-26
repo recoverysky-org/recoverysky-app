@@ -81,6 +81,7 @@ const es: Translations = {
     pronounHeHim: "Él",
     pronounSheHer: "Ella",
     pronounTheyThem: "Elle",
+    pronounEmErs: "Em/Ers",
     cleanDaysFormat: "{{count}}d",
     // Recovery Section
     recoverySection: "Recuperación",
@@ -93,8 +94,8 @@ const es: Translations = {
     subscriptionPremium: "Premium",
     expires: "Expira",
     userId: "ID de Usuario",
-    deleteAccountData: "Eliminar Datos de Cuenta",
-    deleteAccountConfirm: "¿Estás seguro de que deseas eliminar todos los datos de tu cuenta? Esta acción no se puede deshacer.",
+    deleteUserData: "Eliminar Datos de Usuario",
+    deleteUserDataConfirm: "¿Estás seguro de que deseas eliminar todos los datos de usuario? Esta acción no se puede deshacer.",
     appSettingsSection: "Configuración de la App",
     language: "Idioma",
     selectLanguage: "Seleccionar Idioma",
