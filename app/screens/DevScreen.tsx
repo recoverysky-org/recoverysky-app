@@ -14,8 +14,8 @@ import { Button } from "@/components/Button"
 import { ListItem } from "@/components/ListItem"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useAuth } from "@/context/AuthContext"
 import { isRTL } from "@/i18n"
+import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -38,7 +38,7 @@ const usingHermes = typeof HermesInternal === "object" && HermesInternal !== nul
  */
 export const DevScreen: FC = function DevScreen() {
   const { setThemeContextOverride, themeContext, themed } = useAppTheme()
-  const { logout } = useAuth()
+  const { logout } = useZitadelAuth()
 
   // @ts-expect-error
   const usingFabric = global.nativeFabricUIManager != null

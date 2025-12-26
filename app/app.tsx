@@ -24,7 +24,6 @@ import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
-import { AuthProvider } from "./context/AuthContext"
 import { MeetingProvider } from "./context/MeetingContext"
 import { DatabaseProvider } from "./db"
 import { initI18n } from "./i18n"
@@ -155,17 +154,15 @@ export function App() {
       <KeyboardProvider>
         <RootStoreProvider value={rootStore}>
           <DatabaseProvider>
-            <AuthProvider>
-              <MeetingProvider>
-                <ThemeProvider>
-                  <AppNavigator
-                    linking={linking}
-                    initialState={initialNavigationState}
-                    onStateChange={onNavigationStateChange}
-                  />
-                </ThemeProvider>
-              </MeetingProvider>
-            </AuthProvider>
+            <MeetingProvider>
+              <ThemeProvider>
+                <AppNavigator
+                  linking={linking}
+                  initialState={initialNavigationState}
+                  onStateChange={onNavigationStateChange}
+                />
+              </ThemeProvider>
+            </MeetingProvider>
           </DatabaseProvider>
         </RootStoreProvider>
       </KeyboardProvider>

@@ -7,9 +7,10 @@
 import { useEffect } from "react"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
+import { observer } from "mobx-react-lite"
 
 import Config from "@/config"
-import { useAuth } from "@/context/AuthContext"
+import { useAuthenticationStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { WelcomeScreen } from "@/screens/WelcomeScreen"
@@ -31,10 +32,11 @@ const exitRoutes = Config.exitRoutes
 // Documentation: https://reactnavigation.org/docs/stack-navigator/
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
-const AppStack = () => {
+const AppStack = observer(function AppStack() {
   log.debug("AppStack initializing")
 
-  const { isAuthenticated } = useAuth()
+  const authStore = useAuthenticationStore()
+  const isAuthenticated = authStore.isAuthenticated
   log.debug("Auth state retrieved", { isAuthenticated })
 
   const {
@@ -79,7 +81,7 @@ const AppStack = () => {
       {/* IGNITE_GENERATOR_ANCHOR_APP_STACK_SCREENS */}
     </Stack.Navigator>
   )
-}
+})
 
 export const AppNavigator = (props: NavigationProps) => {
   log.debug("AppNavigator initializing")

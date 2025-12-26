@@ -19,7 +19,6 @@ import { Icon } from "@/components/Icon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import { useAuth } from "@/context/AuthContext"
 import {
   translate,
   getAvailableLanguages,
@@ -29,6 +28,7 @@ import {
 } from "@/i18n"
 import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -47,7 +47,7 @@ type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
  */
 export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(function SettingsScreen(_props) {
   const { themed, themeContext, setThemeContextOverride } = useAppTheme()
-  const { logout } = useAuth()
+  const { logout } = useZitadelAuth()
 
   // MST Stores - reactive!
   const profileStore = useProfileStore()
