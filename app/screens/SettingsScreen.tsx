@@ -1,4 +1,4 @@
-import { FC, useState, useMemo } from "react"
+import { FC, useState } from "react"
 import {
   View,
   ViewStyle,
@@ -13,8 +13,8 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
+import { observer } from "mobx-react-lite"
 
-import { Button } from "@/components/Button"
 import { Icon } from "@/components/Icon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -27,6 +27,7 @@ import {
   changeLanguage,
   languageNames,
 } from "@/i18n"
+import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -44,21 +45,21 @@ type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
  * - App Settings: Dark mode, theme color
  * - Logout
  */
-export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function SettingsScreen(_props) {
+export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(function SettingsScreen(_props) {
   const { themed, themeContext, setThemeContextOverride } = useAppTheme()
   const { logout } = useAuth()
 
-  // Profile state
-  const [shortName, setShortName] = useState("Joe B.")
-  const [showCleanDate, setShowCleanDate] = useState(true)
-  const [showCleanDays, setShowCleanDays] = useState(true)
-  const [showPronouns, setShowPronouns] = useState(true)
-  const [pronouns, setPronouns] = useState<Pronouns>("he/him")
-  const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
+  // MST Stores - reactive!
+  const profileStore = useProfileStore()
+  const authStore = useAuthenticationStore()
 
-  // Language state
-  const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
+  // UI-only state (modals, pickers)
+  const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [languageModalVisible, setLanguageModalVisible] = useState(false)
+
+  // Language state (not persisted in MST for now)
+  const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
   const availableLanguages = getAvailableLanguages()
 
   const handleLanguageChange = async (langCode: string) => {
@@ -67,42 +68,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
     setLanguageModalVisible(false)
   }
 
-  // Recovery state
-  const [recoveryDate, setRecoveryDate] = useState(new Date("2023-10-15"))
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [fellowship] = useState("AA")
-
-  // Format date for display (local timezone, not UTC)
-  const formatDate = (date: Date): string => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
-  }
-
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === "android") {
       setShowDatePicker(false)
     }
     if (selectedDate) {
-      setRecoveryDate(selectedDate)
+      profileStore.setRecoveryDate(selectedDate)
     }
   }
 
-  // Account state
-  const [subscription] = useState("Premium")
-  const [expiresDate] = useState("2024-12-31")
-  const [userId] = useState("USR-123456789")
-
   const isDarkMode = themeContext === "dark"
-
-  // Calculate clean days from recovery date
-  const cleanDays = useMemo(() => {
-    const today = new Date()
-    const diffTime = Math.abs(today.getTime() - recoveryDate.getTime())
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }, [recoveryDate])
 
   // Helper to get translated pronoun label
   const getPronounsLabel = (p: Pronouns): string => {
@@ -119,26 +94,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         return translate("settingsScreen:selectPronouns")
     }
   }
-
-  // Generate display name based on toggles
-  const generatedDisplayName = useMemo(() => {
-    const parts: string[] = []
-
-    if (showPronouns && pronouns) {
-      parts.push(getPronounsLabel(pronouns))
-    }
-    if (showCleanDate) {
-      parts.push(formatDate(recoveryDate))
-    }
-    if (showCleanDays) {
-      parts.push(translate("settingsScreen:cleanDaysFormat", { count: cleanDays }))
-    }
-
-    if (parts.length > 0) {
-      return `${shortName} (${parts.join(" ")})`
-    }
-    return shortName
-  }, [shortName, showPronouns, pronouns, showCleanDate, recoveryDate, showCleanDays, cleanDays])
 
   const handleDarkModeToggle = (value: boolean) => {
     setThemeContextOverride(value ? "dark" : "light")
@@ -183,18 +138,18 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
           <Text style={themed($sectionTitle)} tx="settingsScreen:profileSection" />
         </View>
 
-        {/* Generated Display Name (read-only) */}
+        {/* Generated Display Name (read-only) - computed from MST store */}
         <SettingsRow
           label={translate("settingsScreen:displayName")}
-          value={generatedDisplayName}
+          value={profileStore.displayName}
         />
 
         {/* Editable Short Name */}
         <View style={themed($settingsRow)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:shortName" />
           <TextField
-            value={shortName}
-            onChangeText={setShortName}
+            value={profileStore.shortName}
+            onChangeText={profileStore.setShortName}
             placeholder={translate("settingsScreen:shortNamePlaceholder")}
             style={themed($shortNameInput)}
             inputWrapperStyle={themed($shortNameInputWrapper)}
@@ -205,8 +160,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         <View style={themed($settingsRow)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDate" />
           <Switch
-            value={showCleanDate}
-            onValueChange={setShowCleanDate}
+            value={profileStore.showCleanDate}
+            onValueChange={profileStore.setShowCleanDate}
             trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
             thumbColor="#FFFFFF"
           />
@@ -216,8 +171,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         <View style={themed($settingsRow)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDays" />
           <Switch
-            value={showCleanDays}
-            onValueChange={setShowCleanDays}
+            value={profileStore.showCleanDays}
+            onValueChange={profileStore.setShowCleanDays}
             trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
             thumbColor="#FFFFFF"
           />
@@ -227,18 +182,18 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         <View style={themed($settingsRow)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:showPronouns" />
           <View style={$styles.row}>
-            {showPronouns && (
+            {profileStore.showPronouns && (
               <TouchableOpacity
                 onPress={() => setPronounsModalVisible(true)}
                 style={themed($pronounsButton)}
               >
-                <Text style={themed($pronounsButtonText)}>{getPronounsLabel(pronouns)}</Text>
+                <Text style={themed($pronounsButtonText)}>{getPronounsLabel(profileStore.pronouns)}</Text>
                 <Icon icon="caretRight" size={14} color={themed($dimColor).color} />
               </TouchableOpacity>
             )}
             <Switch
-              value={showPronouns}
-              onValueChange={setShowPronouns}
+              value={profileStore.showPronouns}
+              onValueChange={profileStore.setShowPronouns}
               trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
               thumbColor="#FFFFFF"
             />
@@ -259,18 +214,18 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
             {(["he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
               <TouchableOpacity
                 key={p}
-                style={[themed($modalOption), pronouns === p && themed($modalOptionSelected)]}
+                style={[themed($modalOption), profileStore.pronouns === p && themed($modalOptionSelected)]}
                 onPress={() => {
-                  setPronouns(p)
+                  profileStore.setPronouns(p)
                   setPronounsModalVisible(false)
                 }}
               >
                 <Text
-                  style={[themed($modalOptionText), pronouns === p && themed($modalOptionTextSelected)]}
+                  style={[themed($modalOptionText), profileStore.pronouns === p && themed($modalOptionTextSelected)]}
                 >
                   {getPronounsLabel(p)}
                 </Text>
-                {pronouns === p && <Icon icon="check" size={18} color={themed($tintColor).color} />}
+                {profileStore.pronouns === p && <Icon icon="check" size={18} color={themed($tintColor).color} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -313,7 +268,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
       {/* Recovery Section */}
       <View style={themed($section)}>
         <View style={themed($sectionHeader)}>
-          <Icon icon="heart" size={20} color={themed($recoveryIconColor).color} />
+          <Ionicons name="shield-checkmark-outline" size={20} color={themed($recoveryIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:recoverySection" />
         </View>
 
@@ -325,7 +280,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:recoveryDate" />
           <View style={$styles.row}>
-            <Text style={themed($rowValue)}>{formatDate(recoveryDate)}</Text>
+            <Text style={themed($rowValue)}>{profileStore.recoveryDate}</Text>
             <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
           </View>
         </TouchableOpacity>
@@ -340,7 +295,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
                 </TouchableOpacity>
               </View>
               <DateTimePicker
-                value={recoveryDate}
+                value={profileStore.recoveryDateAsDate}
                 mode="date"
                 display="spinner"
                 onChange={handleDateChange}
@@ -350,7 +305,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
             </View>
           ) : (
             <DateTimePicker
-              value={recoveryDate}
+              value={profileStore.recoveryDateAsDate}
               mode="date"
               display="default"
               onChange={handleDateChange}
@@ -361,7 +316,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
 
         <SettingsRow
           label={translate("settingsScreen:recoveryFellowship")}
-          value={fellowship}
+          value={profileStore.fellowship}
           isLast
         />
       </View>
@@ -374,16 +329,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
         </View>
         <SettingsRow
           label={translate("settingsScreen:subscription")}
-          value={subscription}
-          valueStyle={themed($premiumText)}
+          value={profileStore.subscription}
+          valueStyle={profileStore.isPremium ? themed($premiumText) : undefined}
         />
         <SettingsRow
           label={translate("settingsScreen:expires")}
-          value={expiresDate}
+          value={profileStore.subscriptionExpires ?? "-"}
         />
         <SettingsRow
           label={translate("settingsScreen:userId")}
-          value={userId}
+          value={authStore.userId ?? "Not logged in"}
         />
         <TouchableOpacity
           style={themed($deleteRow)}
@@ -461,7 +416,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = function Setti
       </View>
     </Screen>
   )
-}
+})
 
 // Settings Row Component
 interface SettingsRowProps {

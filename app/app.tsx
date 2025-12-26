@@ -28,6 +28,7 @@ import { AuthProvider } from "./context/AuthContext"
 import { MeetingProvider } from "./context/MeetingContext"
 import { DatabaseProvider } from "./db"
 import { initI18n } from "./i18n"
+import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ThemeProvider } from "./theme/context"
@@ -74,6 +75,7 @@ export function App() {
 
   const [areFontsLoaded, fontLoadError] = useFonts(customFontsToLoad)
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
+  const [rootStore, setRootStore] = useState<RootStore | undefined>(undefined)
 
   // Log state changes
   useEffect(() => {
@@ -107,16 +109,33 @@ export function App() {
       })
   }, [])
 
+  // Initialize MST RootStore with persistence
+  useEffect(() => {
+    log.info("Initializing MST RootStore")
+    const _rootStore = RootStoreModel.create({})
+    setupRootStore(_rootStore)
+      .then(() => {
+        log.info("RootStore initialized and hydrated from storage")
+        setRootStore(_rootStore)
+      })
+      .catch((error) => {
+        log.error("RootStore initialization failed", { error: String(error) })
+        // Still set the store even if hydration fails
+        setRootStore(_rootStore)
+      })
+  }, [])
+
   // Before we show the app, we have to wait for our state to be ready.
   // In the meantime, don't render anything. This will be the background
   // color set in native by rootView's background color.
   // In iOS: application:didFinishLaunchingWithOptions:
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
-  if (!isNavigationStateRestored || !isI18nInitialized || (!areFontsLoaded && !fontLoadError)) {
+  if (!isNavigationStateRestored || !isI18nInitialized || !rootStore || (!areFontsLoaded && !fontLoadError)) {
     log.debug("App waiting for initialization", {
       isNavigationStateRestored,
       isI18nInitialized,
+      hasRootStore: !!rootStore,
       areFontsLoaded,
       hasFontError: !!fontLoadError,
     })
@@ -134,19 +153,21 @@ export function App() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
-        <DatabaseProvider>
-          <AuthProvider>
-            <MeetingProvider>
-              <ThemeProvider>
-                <AppNavigator
-                  linking={linking}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
-              </ThemeProvider>
-            </MeetingProvider>
-          </AuthProvider>
-        </DatabaseProvider>
+        <RootStoreProvider value={rootStore}>
+          <DatabaseProvider>
+            <AuthProvider>
+              <MeetingProvider>
+                <ThemeProvider>
+                  <AppNavigator
+                    linking={linking}
+                    initialState={initialNavigationState}
+                    onStateChange={onNavigationStateChange}
+                  />
+                </ThemeProvider>
+              </MeetingProvider>
+            </AuthProvider>
+          </DatabaseProvider>
+        </RootStoreProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
   )
