@@ -1,77 +1,126 @@
-# Welcome to your new ignited app!
+# RecoverySky Hybrid
 
-> The latest and greatest boilerplate for Infinite Red opinions
+A cross-platform recovery meeting finder built with React Native and Expo.
 
-This is the boilerplate that [Infinite Red](https://infinite.red) uses as a way to test bleeding-edge changes to our React Native stack.
+## Overview
 
-- [Quick start documentation](https://github.com/infinitered/ignite/blob/master/docs/boilerplate/Boilerplate.md)
-- [Full documentation](https://github.com/infinitered/ignite/blob/master/docs/README.md)
+RecoverySky helps people in recovery find meetings. The app features:
+
+- **Live Meetings**: Real-time display of currently active meetings with auto-refresh
+- **Offline-First**: SQLite database with Drizzle ORM for offline data access
+- **Profile Settings**: Customizable display name, pronouns, recovery date tracking
+- **Multi-Language**: English and Spanish support with runtime switching
+- **Dark Mode**: Professional iOS-style theme with automatic system detection
+
+## Tech Stack
+
+- **React Native 0.81** with New Architecture enabled
+- **Expo 54** with dev client for iOS, Android, and Web
+- **MobX-State-Tree** for reactive state management with MMKV persistence
+- **SQLite + Drizzle ORM** for offline-first data layer
+- **React Navigation v7** with bottom tab navigation
+- **i18next** for internationalization
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js >= 20.0.0
+- Xcode (for iOS development)
+- Android Studio (for Android development)
+
+### Installation
+
 ```bash
-pnpm install
-pnpm run start
+npm install
 ```
 
-To make things work on your local simulator, or on your phone, you need first to [run `eas build`](https://github.com/infinitered/ignite/blob/master/docs/expo/EAS.md). We have many shortcuts on `package.json` to make it easier:
+### Development
 
 ```bash
-pnpm run build:ios:sim # build for ios simulator
-pnpm run build:ios:device # build for ios device
-pnpm run build:ios:prod # build for ios device
+# Start Expo dev client
+npm start
+
+# Run on specific platform
+npm run ios
+npm run android
+npm run web
 ```
 
-### `./assets` directory
+> **Note**: After installing native modules, you must rebuild the dev client:
+> ```bash
+> npm run build:ios:sim    # iOS simulator
+> npm run build:android:sim # Android emulator
+> ```
 
-This directory is designed to organize and store various assets, making it easy for you to manage and use them in your application. The assets are further categorized into subdirectories, including `icons` and `images`:
+### Build Commands
 
-```tree
-assets
-├── icons
-└── images
+```bash
+# Development builds (local)
+npm run build:ios:sim        # iOS simulator
+npm run build:ios:device     # iOS physical device
+npm run build:android:sim    # Android emulator
+npm run build:android:device # Android physical device
+
+# Production builds
+npm run build:ios:prod
+npm run build:android:prod
 ```
 
-**icons**
-This is where your icon assets will live. These icons can be used for buttons, navigation elements, or any other UI components. The recommended format for icons is PNG, but other formats can be used as well.
+## App Structure
 
-Ignite comes with a built-in `Icon` component. You can find detailed usage instructions in the [docs](https://github.com/infinitered/ignite/blob/master/docs/boilerplate/app/components/Icon.md).
+### Screens
 
-**images**
-This is where your images will live, such as background images, logos, or any other graphics. You can use various formats such as PNG, JPEG, or GIF for your images.
+| Screen | Description |
+|--------|-------------|
+| **Home** | Dashboard with database status (dev mode) |
+| **Live** | Currently active meetings with pull-to-refresh |
+| **Settings** | Profile, recovery tracking, account, and app preferences |
 
-Another valuable built-in component within Ignite is the `AutoImage` component. You can find detailed usage instructions in the [docs](https://github.com/infinitered/ignite/blob/master/docs/Components-AutoImage.md).
+### Navigation
 
-How to use your `icon` or `image` assets:
+3-tab bottom navigation (Home, Live, Settings) with 2 hidden tabs (Meetings, Schedule) for future use.
 
-```typescript
-import { Image } from 'react-native';
+## State Management
 
-const MyComponent = () => {
-  return (
-    <Image source={require('assets/images/my_image.png')} />
-  );
-};
+The app uses **MobX-State-Tree** for reactive state:
+
+- **AuthenticationStore**: Auth token, email, user ID
+- **ProfileStore**: Display name, pronouns, recovery date, visibility toggles
+- **NetworkStore**: Online/offline tracking
+
+All stores auto-persist to MMKV storage.
+
+## Database
+
+SQLite with Drizzle ORM provides offline-first data access:
+
+- Migrations run automatically on startup
+- Seed data loaded on first launch
+- Meeting data joined with TREX recurrence data for live detection
+
+## Linked Packages
+
+This app links to local packages in the monorepo:
+
+- `@common` → `recoverysky-common/lib/browser` (data models, validation)
+- `@sqlite` → `recoverysky-common/lib/sqlite` (Drizzle schemas, migrations)
+
+After modifying linked packages, restart Metro with cache clear:
+```bash
+npm start -- --clear
 ```
 
-## Running Maestro end-to-end tests
+## Quality Checks
 
-Follow our [Maestro Setup](https://ignitecookbook.com/docs/recipes/MaestroSetup) recipe.
+```bash
+npm run compile      # TypeScript check
+npm run lint         # ESLint with auto-fix
+npm run lint:check   # ESLint check only
+npm run lint:deps    # Dependency validation
+npm test             # Jest tests
+```
 
-## Next Steps
+## License
 
-### Ignite Cookbook
-
-[Ignite Cookbook](https://ignitecookbook.com/) is an easy way for developers to browse and share code snippets (or “recipes”) that actually work.
-
-### Upgrade Ignite boilerplate
-
-Read our [Upgrade Guide](https://ignitecookbook.com/docs/recipes/UpdatingIgnite) to learn how to upgrade your Ignite project.
-
-## Community
-
-⭐️ Help us out by [starring on GitHub](https://github.com/infinitered/ignite), filing bug reports in [issues](https://github.com/infinitered/ignite/issues) or [ask questions](https://github.com/infinitered/ignite/discussions).
-
-💬 Join us on [Slack](https://join.slack.com/t/infiniteredcommunity/shared_invite/zt-1f137np4h-zPTq_CbaRFUOR_glUFs2UA) to discuss.
-
-📰 Make our Editor-in-chief happy by [reading the React Native Newsletter](https://reactnativenewsletter.com/).
+Private - RecoverySky Organization

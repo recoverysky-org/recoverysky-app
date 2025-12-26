@@ -10,27 +10,28 @@ RecoverySky Hybrid is a React Native app built with Ignite v11.3.2 template, tar
 
 ```bash
 # Development
-pnpm start              # Start Expo dev client
-pnpm start --clear      # Start with Metro cache cleared (use after config changes)
-pnpm ios                # Run on iOS
-pnpm android            # Run on Android
-pnpm web                # Run web version
+npm start              # Start Expo dev client
+npm start -- --clear   # Start with Metro cache cleared (use after config changes)
+npm run ios            # Run on iOS
+npm run android        # Run on Android
+npm run web            # Run web version
 
 # Code Quality
-pnpm compile            # TypeScript type check
-pnpm lint               # ESLint with auto-fix
-pnpm lint:check         # ESLint check only
-pnpm depcruise          # Dependency validation
+npm run compile        # TypeScript type check
+npm run lint           # ESLint with auto-fix
+npm run lint:check     # ESLint check only
+npm run lint:deps      # Dependency validation (depcruise)
 
 # Testing
-pnpm test               # Run Jest tests
-pnpm test:watch         # Jest watch mode
-pnpm test:maestro       # Maestro e2e tests
+npm test               # Run Jest tests
+npm run test:watch     # Jest watch mode
+npm test -- path/to/file.test.ts  # Run single test file
+npm run test:maestro   # Maestro e2e tests
 
-# Building (EAS local builds)
-pnpm build:ios:sim      # iOS simulator
-pnpm build:ios:device   # iOS physical device
-pnpm build:android:sim  # Android emulator
+# Building (EAS local builds - requires native module changes)
+npm run build:ios:sim      # iOS simulator
+npm run build:ios:device   # iOS physical device
+npm run build:android:sim  # Android emulator
 ```
 
 ## Architecture
@@ -43,16 +44,42 @@ pnpm build:android:sim  # Android emulator
 
 **Important:** `@common` and `@sqlite` are separate aliases. Do NOT use `@common/sqlite` - it causes prefix-matching conflicts with babel-plugin-module-resolver.
 
-### Linked Packages (pnpm)
+### Linked Packages
 Metro has poor symlink support. The `metro.config.js` includes workarounds:
 - `watchFolders`: Includes `recoverysky-common` and `trex-ts` paths
 - `nodeModulesPaths`: Tells Metro where to find linked package dependencies
 - After modifying linked packages, restart Metro with `--clear`
 
-### State Management
-Uses React Context + MMKV for persistence:
-- **MeetingContext** (`app/context/MeetingContext.tsx`): Meeting data with live detection via `isLiveInterval()`
-- **ThemeContext** (`app/theme/context.tsx`): Light/dark/system theme with design tokens
+### State Management (MobX-State-Tree)
+MST with MMKV persistence in `app/models/`:
+- **RootStore**: Combines all stores, initialized in `app.tsx`
+- **AuthenticationStore**: Auth token, email, userId, `isAuthenticated` computed
+- **ProfileStore**: User profile settings with computed `displayName`, `cleanDays`, `isPremium`
+- **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
+
+```typescript
+// Access stores in components (wrap with observer())
+import { observer } from "mobx-react-lite"
+import { useProfileStore, useNetworkStore } from "@/models"
+
+const MyComponent = observer(() => {
+  const profileStore = useProfileStore()
+  return <Text>{profileStore.displayName}</Text>  // Auto-updates when store changes
+})
+```
+
+Persistence is automatic via `onSnapshot` → MMKV in `helpers/setupRootStore.ts`.
+
+### React Context Providers
+Alongside MST, two React Context providers exist in `app/context/`:
+- **AuthContext**: Authentication state with MMKV-backed token/email (temporary until backend ready)
+- **MeetingContext**: Loads meetings from SQLite, joins with TREX data, filters live meetings
+
+```typescript
+// Access meeting data
+import { useMeetings } from "@/context/MeetingContext"
+const { meetings, liveMeetings, isLoading, refresh } = useMeetings()
+```
 
 ### Database Layer
 SQLite with Drizzle ORM in `app/db/`:
@@ -64,9 +91,9 @@ SQLite with Drizzle ORM in `app/db/`:
 Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
 
 ### Navigation
-Simplified React Navigation v7 structure - app starts directly on Home:
+React Navigation v7 with bottom tabs:
 - **AppNavigator**: Wraps MainNavigator with NavigationContainer and ErrorBoundary
-- **MainNavigator**: Bottom tabs (Home, Live, Profile)
+- **MainNavigator**: 3 active tabs (Home, Live, Settings), 2 hidden tabs (Meetings, Schedule)
 - Route types defined in `app/navigators/navigationTypes.ts`
 
 ### API Layer
@@ -78,12 +105,14 @@ Apisauce wrapper in `app/services/api/`:
 Design token system in `app/theme/`:
 - Use `themed()` function for responsive styling
 - Access via `useAppTheme()` hook
-- Colors, spacing, typography defined as tokens
+- Colors include `card` for elevated surfaces (distinct from `background`)
+- Professional dark mode with iOS-style greys
 
 ### Internationalization
-i18next in `app/i18n/` with 7+ languages:
+i18next in `app/i18n/` with English and Spanish:
 - Use `tx` prop on Text components, never hardcode strings
-- RTL support for Arabic/Hebrew
+- Use `useTranslation()` hook for reactive translations in navigators
+- Language switching via `changeLanguage()` from i18n exports
 
 ## Code Conventions
 
@@ -97,7 +126,7 @@ i18next in `app/i18n/` with 7+ languages:
 1. React
 2. React Native
 3. Expo packages
-4. External packages
+4. External packages (mobx-react-lite, etc.)
 5. Internal `@/` imports
 6. Relative imports
 
@@ -105,6 +134,7 @@ i18next in `app/i18n/` with 7+ languages:
 - Base components in `app/components/` wrap RN primitives with theming and i18n
 - `Screen` component handles safe area, keyboard avoiding, scrolling
 - Use `tx` and `txOptions` props for translations
+- Wrap MST-consuming components with `observer()` from mobx-react-lite
 - Unused variables must be prefixed with `_`
 
 ### Storage
@@ -112,6 +142,8 @@ Use `app/utils/storage/` helpers (MMKV-backed), not AsyncStorage:
 ```typescript
 import { loadString, saveString, load, save, remove, clear } from "@/utils/storage"
 ```
+
+MST stores auto-persist - prefer store actions over direct storage access.
 
 ## Generator Anchors
 
@@ -154,11 +186,8 @@ const log = useLogger("ScreenName")
 log.error("API failed", { endpoint: "/users" })
 ```
 
-Configure via environment when Alloy collector is online:
-- `EXPO_PUBLIC_OTLP_ENDPOINT`: Collector URL
-- `EXPO_PUBLIC_OTLP_API_KEY`: Auth key
-
 ## Development Tools
 
 - **Reactotron**: Dev-only debugging (auto-configured)
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
+- **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
