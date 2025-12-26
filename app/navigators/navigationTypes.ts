@@ -13,7 +13,7 @@ export type MainTabParamList = {
   Live: undefined
   Meetings: undefined
   Schedule: undefined
-  Profile: undefined
+  Settings: undefined
 }
 
 // App Stack Navigator types

@@ -46,7 +46,7 @@ const en = {
     liveTab: "Live",
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
-    profileTab: "Profile",
+    settingsTab: "Settings",
   },
   // Main Screens
   homeScreen: {
@@ -68,9 +68,34 @@ const en = {
     joinMeeting: "Join",
     meetingCount: "{{count}} meetings live",
   },
-  profileScreen: {
-    title: "Profile",
-    placeholder: "Profile settings coming soon",
+  settingsScreen: {
+    title: "Settings",
+    subtitle: "Manage your account and preferences",
+    // Profile Section
+    profileSection: "Profile",
+    displayName: "Display Name",
+    displayNamePlaceholder: "Enter your name",
+    // Recovery Section
+    recoverySection: "Recovery",
+    lastRecoveryDate: "Last Recovery Date",
+    recoveryFellowship: "Recovery Fellowship",
+    selectFellowship: "Select fellowship",
+    // Account Section
+    accountSection: "Account",
+    subscription: "Subscription",
+    subscriptionFree: "Free",
+    subscriptionPremium: "Premium",
+    expires: "Expires",
+    userId: "User ID",
+    deleteAccountData: "Delete Account Data",
+    deleteAccountConfirm: "Are you sure you want to delete all your account data? This cannot be undone.",
+    // App Settings Section
+    appSettingsSection: "App Settings",
+    darkMode: "Dark Mode",
+    themeColor: "Theme Color",
+    // Actions
+    logout: "Logout",
+    logoutConfirm: "Are you sure you want to log out?",
   },
   // Dev Screen (hidden)
   devScreen: {

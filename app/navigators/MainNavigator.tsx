@@ -7,7 +7,7 @@ import { translate } from "@/i18n"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { LiveScreen } from "@/screens/LiveScreen"
 // import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
-import { ProfileScreen } from "@/screens/ProfileScreen"
+import { SettingsScreen } from "@/screens/SettingsScreen"
 // import { ScheduleScreen } from "@/screens/ScheduleScreen"  // Hidden for now
 import { useAppTheme } from "@/theme/context"
 import { AppStackParamList, AppStackScreenProps } from "./navigationTypes"
@@ -17,7 +17,7 @@ export type MainTabParamList = {
   Live: undefined
   Meetings: undefined
   Schedule: undefined
-  Profile: undefined
+  Settings: undefined
 }
 
 /**
@@ -38,7 +38,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>()
  * 3-tab structure (MVP):
  * - Home: Dashboard/landing page
  * - Live: Live meetings currently in progress
- * - Profile: User profile and settings
+ * - Settings: User profile, account, and app settings
  *
  * Hidden tabs (for future):
  * - Meetings: Meeting list and discovery
@@ -113,10 +113,10 @@ export function MainNavigator() {
       />
       */}
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Settings"
+        component={SettingsScreen}
         options={{
-          tabBarLabel: translate("mainNavigator:profileTab"),
+          tabBarLabel: translate("mainNavigator:settingsTab"),
           tabBarIcon: ({ focused }) => (
             <Icon icon="settings" color={focused ? colors.tint : colors.textDim} size={24} />
           ),

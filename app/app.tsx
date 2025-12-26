@@ -52,7 +52,7 @@ const config = {
         Live: "live",
         Meetings: "meetings",
         Schedule: "schedule",
-        Profile: "profile",
+        Settings: "settings",
       },
     },
   },
