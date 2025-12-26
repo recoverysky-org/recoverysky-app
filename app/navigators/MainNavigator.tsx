@@ -1,9 +1,9 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { CompositeScreenProps } from "@react-navigation/native"
+import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
-import { translate } from "@/i18n"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { LiveScreen } from "@/screens/LiveScreen"
 // import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
@@ -46,6 +46,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>()
  */
 export function MainNavigator() {
   const { bottom } = useSafeAreaInsets()
+  const { t } = useTranslation()
   const {
     theme: { colors },
   } = useAppTheme()
@@ -74,7 +75,7 @@ export function MainNavigator() {
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarLabel: translate("mainNavigator:homeTab"),
+          tabBarLabel: t("mainNavigator:homeTab"),
           tabBarIcon: ({ focused }) => (
             <Icon icon="components" color={focused ? colors.tint : colors.textDim} size={24} />
           ),
@@ -84,7 +85,7 @@ export function MainNavigator() {
         name="Live"
         component={LiveScreen}
         options={{
-          tabBarLabel: translate("mainNavigator:liveTab"),
+          tabBarLabel: t("mainNavigator:liveTab"),
           tabBarIcon: ({ focused }) => (
             <Icon icon="heart" color={focused ? colors.tint : colors.textDim} size={24} />
           ),
@@ -95,7 +96,7 @@ export function MainNavigator() {
         name="Meetings"
         component={MeetingsScreen}
         options={{
-          tabBarLabel: translate("mainNavigator:meetingsTab"),
+          tabBarLabel: t("mainNavigator:meetingsTab"),
           tabBarIcon: ({ focused }) => (
             <Icon icon="community" color={focused ? colors.tint : colors.textDim} size={24} />
           ),
@@ -105,7 +106,7 @@ export function MainNavigator() {
         name="Schedule"
         component={ScheduleScreen}
         options={{
-          tabBarLabel: translate("mainNavigator:scheduleTab"),
+          tabBarLabel: t("mainNavigator:scheduleTab"),
           tabBarIcon: ({ focused }) => (
             <Icon icon="menu" color={focused ? colors.tint : colors.textDim} size={24} />
           ),
@@ -116,7 +117,7 @@ export function MainNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          tabBarLabel: translate("mainNavigator:settingsTab"),
+          tabBarLabel: t("mainNavigator:settingsTab"),
           tabBarIcon: ({ focused }) => (
             <Icon icon="settings" color={focused ? colors.tint : colors.textDim} size={24} />
           ),

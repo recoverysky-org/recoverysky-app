@@ -15,6 +15,23 @@ const systemLocales = Localization.getLocales()
 const resources = { en, es }
 const supportedTags = Object.keys(resources)
 
+// Language display names (in their native language)
+export const languageNames: Record<string, string> = {
+  en: "English",
+  es: "Español",
+}
+
+// Get list of available languages
+export const getAvailableLanguages = () => supportedTags
+
+// Get current language
+export const getCurrentLanguage = () => i18n.language?.split("-")[0] ?? "en"
+
+// Change language
+export const changeLanguage = async (languageCode: string) => {
+  await i18n.changeLanguage(languageCode)
+}
+
 // Checks to see if the device locale matches any of the supported locales
 // Device locale may be more specific and still match (e.g., en-US matches en)
 const systemTagMatchesSupportedTags = (deviceTag: string) => {

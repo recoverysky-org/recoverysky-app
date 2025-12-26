@@ -74,10 +74,20 @@ const en = {
     // Profile Section
     profileSection: "Profile",
     displayName: "Display Name",
-    displayNamePlaceholder: "Enter your name",
+    shortName: "Short Name",
+    shortNamePlaceholder: "e.g., Joe B.",
+    showCleanDate: "Clean Date",
+    showCleanDays: "Clean Days",
+    showPronouns: "Pronouns",
+    pronouns: "Pronouns",
+    selectPronouns: "Select Pronouns",
+    pronounHeHim: "He/Him",
+    pronounSheHer: "She/Her",
+    pronounTheyThem: "They/Them",
+    cleanDaysFormat: "{{count}}d",
     // Recovery Section
     recoverySection: "Recovery",
-    lastRecoveryDate: "Last Recovery Date",
+    recoveryDate: "Recovery Date",
     recoveryFellowship: "Recovery Fellowship",
     selectFellowship: "Select fellowship",
     // Account Section
@@ -91,6 +101,8 @@ const en = {
     deleteAccountConfirm: "Are you sure you want to delete all your account data? This cannot be undone.",
     // App Settings Section
     appSettingsSection: "App Settings",
+    language: "Language",
+    selectLanguage: "Select Language",
     darkMode: "Dark Mode",
     themeColor: "Theme Color",
     // Actions

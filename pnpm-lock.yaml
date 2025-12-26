@@ -14,6 +14,9 @@ importers:
       '@expo/metro-runtime':
         specifier: ~6.1.2
         version: 6.1.2(expo@54.0.30)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@react-native-community/datetimepicker':
+        specifier: ^8.5.1
+        version: 8.5.1(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@react-navigation/bottom-tabs':
         specifier: ^7.2.0
         version: 7.9.0(@react-navigation/native@7.1.26(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-safe-area-context@5.6.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-screens@4.16.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -24,8 +27,8 @@ importers:
         specifier: ^7.2.0
         version: 7.9.0(@react-navigation/native@7.1.26(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-safe-area-context@5.6.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-screens@4.16.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@recoverysky-org/common':
-        specifier: ^1.5.3
-        version: 1.5.3(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3))
+        specifier: ^1.5.4
+        version: 1.5.4(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3))
       '@trex-ts/core':
         specifier: ^1.5.2
         version: 1.5.2
@@ -2204,6 +2207,19 @@ packages:
   '@protobufjs/utf8@1.1.0':
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
 
+  '@react-native-community/datetimepicker@8.5.1':
+    resolution: {integrity: sha512-TuwM1ORbxCjOp1GOtONj0QnpDpVfq0F4UlfKZYPxL/vmriaLHt2Kgvw63Bv0Bpep4eOkslVVSS1IRfRI6d392g==}
+    peerDependencies:
+      expo: '>=52.0.0'
+      react: '*'
+      react-native: '*'
+      react-native-windows: '*'
+    peerDependenciesMeta:
+      expo:
+        optional: true
+      react-native-windows:
+        optional: true
+
   '@react-native/assets-registry@0.81.5':
     resolution: {integrity: sha512-705B6x/5Kxm1RKRvSv0ADYWm5JOnoiQ1ufW7h8uu2E6G9Of/eE6hP/Ivw3U5jI16ERqZxiKQwk34VJbB0niX9w==}
     engines: {node: '>= 20.19.4'}
@@ -2313,8 +2329,8 @@ packages:
   '@react-navigation/routers@7.5.3':
     resolution: {integrity: sha512-1tJHg4KKRJuQ1/EvJxatrMef3NZXEPzwUIUZ3n1yJ2t7Q97siwRtbynRpQG9/69ebbtiZ8W3ScOZF/OmhvM4Rg==}
 
-  '@recoverysky-org/common@1.5.3':
-    resolution: {integrity: sha512-3ElVF+sqQ6rPmQ/N2MJPYtY7cDPDgAHwYAQ6thDQ6j6dRd4jz4JlYrdUAZttfebr2jdSBhtdVuP+AV/Wm2Tdng==, tarball: https://git.rso/api/packages/recoverysky-org/npm/%40recoverysky-org%2Fcommon/-/1.5.3/common-1.5.3.tgz}
+  '@recoverysky-org/common@1.5.4':
+    resolution: {integrity: sha512-bl8SxTEme/mogVilD2AqLvIVo/q/Q7q1Cz3wrVA6Ov41HB/tJxnakmPGTekwtw14Kh3tiq86MZSVQTp3cgACnw==, tarball: https://git.rso/api/packages/recoverysky-org/npm/%40recoverysky-org%2Fcommon/-/1.5.4/common-1.5.4.tgz}
     peerDependencies:
       drizzle-orm: ^0.45
 
@@ -8949,6 +8965,14 @@ snapshots:
 
   '@protobufjs/utf8@1.1.0': {}
 
+  '@react-native-community/datetimepicker@8.5.1(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      invariant: 2.2.4
+      react: 19.1.0
+      react-native: 0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
+    optionalDependencies:
+      expo: 54.0.30(@babel/core@7.28.5)(@expo/metro-runtime@6.1.2)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+
   '@react-native/assets-registry@0.81.5': {}
 
   '@react-native/babel-plugin-codegen@0.81.5(@babel/core@7.28.5)':
@@ -9133,7 +9157,7 @@ snapshots:
     dependencies:
       nanoid: 3.3.11
 
-  '@recoverysky-org/common@1.5.3(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3))':
+  '@recoverysky-org/common@1.5.4(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3))':
     dependencies:
       '@jenova-marie/ts-rust-result': 2.2.16(zod@4.2.1)
       '@jenova-marie/wonder-logger': 2.0.16(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
