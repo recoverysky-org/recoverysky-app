@@ -29,6 +29,9 @@ export const ProfileStoreModel = types
     // Account info
     subscription: "Free",
     subscriptionExpires: types.maybeNull(types.string),
+
+    // Appearance
+    themeColor: types.optional(types.string, ""), // empty = use default tint
   })
   .views((self) => ({
     /**
@@ -137,6 +140,10 @@ export const ProfileStoreModel = types
       self.subscription = value
     },
 
+    setThemeColor(value: string) {
+      self.themeColor = value
+    },
+
     /**
      * Reset profile to defaults
      */
@@ -150,6 +157,7 @@ export const ProfileStoreModel = types
       self.fellowship = "AA"
       self.subscription = "Free"
       self.subscriptionExpires = null
+      self.themeColor = ""
     },
   }))
 
