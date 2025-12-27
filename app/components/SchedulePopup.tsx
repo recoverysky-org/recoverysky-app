@@ -154,27 +154,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   const duration = meeting?.trex ? formatDuration(meeting.trex.duration_ms) : null
 
   const handleJoin = async () => {
-    console.log("=== HANDLE JOIN CLICKED ===")
-    console.log(`[SchedulePopup] Meeting URL: ${meeting?.url}`)
-    console.log(`[SchedulePopup] Meeting name: ${meeting?.name}`)
-    console.log(`[SchedulePopup] SDK Ready: ${isSDKReady}`)
-
-    if (!meeting?.url) {
-      console.warn("[SchedulePopup] No meeting URL available")
-      return
-    }
+    if (!meeting?.url) return
 
     // Extract meeting number and password from URL
-    // Note: Override ZID is handled in ZoomMeetingProvider for both JWT and join
     const meetingNumber = extractZoomMeetingNumber(meeting.url)
     const password = extractZoomPassword(meeting.url) || meeting.password || ""
 
-    console.log(`[SchedulePopup] Extracted meeting number: ${meetingNumber}`)
-    console.log(`[SchedulePopup] Has password: ${!!password}`)
-    console.log(`[SchedulePopup] Note: EXPO_PUBLIC_JOIN_MEETING_ZID override handled in ZoomMeetingProvider`)
-
     if (!meetingNumber) {
-      console.warn("[SchedulePopup] Could not extract meeting number, opening URL directly")
       // Fallback for non-Zoom URLs
       const { Linking } = await import("react-native")
       await Linking.openURL(meeting.url)
@@ -182,14 +168,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
     }
 
     try {
-      const result = await joinMeeting({
+      await joinMeeting({
+        meetingId: meeting.id,
         meetingNumber,
         userName: "RecoverySky User", // TODO: Get from user profile
         password,
       })
-      console.log(`[SchedulePopup] Join result:`, result)
-    } catch (err) {
-      console.error("[SchedulePopup] Failed to join meeting:", err)
+    } catch {
+      // Error handling done in provider
     }
   }
 

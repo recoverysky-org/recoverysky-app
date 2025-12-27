@@ -131,16 +131,12 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig): Promise<ZoomJoinResult> => {
-      console.log("=== JOIN MEETING REQUEST ===")
-      console.log(`[useZoomMeeting] Meeting: ${config.meetingNumber}`)
-      console.log(`[useZoomMeeting] User: ${config.userName}`)
-      console.log(`[useZoomMeeting] SDK Ready: ${isSDKReady}`)
-      console.log(`[useZoomMeeting] Context available: ${!!zoomContext}`)
-
-      log.info("Joining Zoom meeting", {
-        meetingNumber: config.meetingNumber,
+      log.info("Join meeting request", {
+        mid: config.meetingId,
+        zid: config.meetingNumber,
         userName: config.userName,
-        usingSDK: isSDKReady,
+        sdkReady: isSDKReady,
+        ts: Date.now(),
       })
 
       setState("joining")
@@ -149,27 +145,22 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
       try {
         // Try native SDK first if available
         if (isSDKReady && zoomContext) {
-          console.log("[useZoomMeeting] ✓ Using NATIVE Zoom SDK")
-          log.info("Using native Zoom SDK")
+          log.info("Using native Zoom SDK", { mid: config.meetingId })
           await zoomContext.joinMeeting(config)
           setState("inMeeting")
-          console.log("[useZoomMeeting] ✓ Joined via native SDK")
-          console.log("============================")
           return { success: true }
         }
 
         // Fallback to external Zoom app
-        console.log("[useZoomMeeting] ⚠️ SDK not ready, using EXTERNAL app fallback")
-        log.info("Native SDK not available, falling back to external app")
+        log.info("SDK not available, using external app", { mid: config.meetingId })
         const zoomUrl = `https://zoom.us/j/${config.meetingNumber}${config.password ? `?pwd=${config.password}` : ""}`
-        console.log(`[useZoomMeeting] Opening URL: ${zoomUrl}`)
         await openInZoomApp(zoomUrl)
 
         setState("idle")
         return { success: true }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error"
-        log.error("Failed to join meeting", { error: errorMessage })
+        log.error("Failed to join meeting", { mid: config.meetingId, error: errorMessage })
         setError(errorMessage)
         setState("error")
         return { success: false, error: errorMessage }

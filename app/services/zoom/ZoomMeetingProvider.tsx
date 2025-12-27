@@ -6,13 +6,17 @@
  * - SDK initialization
  * - Meeting join functionality
  * - Native SDK event subscriptions
+ * - Attendance tracking data collection
  *
  * Falls back gracefully when SDK keys are not configured.
  */
 
-import { FC, ReactNode, useState, useEffect, createContext, useContext, useCallback } from "react"
+import { FC, ReactNode, useState, useEffect, createContext, useContext, useCallback, useRef } from "react"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
+import * as Crypto from "expo-crypto"
 
+import { attendanceRepo, type AttendanceEvent } from "@/db"
+import { useAuthenticationStore } from "@/models"
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"
@@ -28,6 +32,21 @@ import {
 import type { ZoomInitState, ZoomJoinConfig } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeetingProvider" })
+
+/** Minimum credit time in milliseconds (5 minutes) */
+const MIN_CREDIT_MS = 5 * 60 * 1000
+
+/** Current meeting context for attendance tracking */
+interface MeetingContext {
+  attendanceId: string // SQLite attendance record ID
+  uid: string // User ID
+  mid: string // Our internal meeting ID
+  zid: string // Zoom meeting ID
+  userName: string
+  joinedAt: number // Timestamp when join was initiated
+  inMeetingAt: number | null // Timestamp when actually in meeting
+  events: AttendanceEvent[] // Buffered events
+}
 
 /**
  * Context value provided by ZoomMeetingProvider
@@ -66,96 +85,179 @@ export const useZoomContext = (): ZoomContextValue => {
  */
 const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
   const zoom = useZoom()
+  const authStore = useAuthenticationStore()
   const [error, setError] = useState<string | null>(null)
   const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
   const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
 
+  // Track current meeting context for attendance
+  const meetingContextRef = useRef<MeetingContext | null>(null)
+
+  // Helper to create an attendance event
+  const createEvent = (message: string, data: Record<string, unknown>): AttendanceEvent => ({
+    timestamp: Date.now(),
+    message,
+    json: JSON.stringify(data),
+  })
+
+  // Helper to add event to context and persist async
+  const addEvent = (message: string, data: Record<string, unknown>) => {
+    const ctx = meetingContextRef.current
+    if (!ctx) return
+
+    const event = createEvent(message, data)
+    ctx.events.push(event)
+
+    // Persist event async (fire and forget)
+    attendanceRepo.addEvent(ctx.attendanceId, event).catch(() => {
+      // Silently fail - events are also in memory
+    })
+  }
+
+  // Process attendance record when meeting ends
+  const processAttendance = async () => {
+    const ctx = meetingContextRef.current
+    if (!ctx) return
+
+    const now = Date.now()
+    const start = ctx.inMeetingAt || ctx.joinedAt
+    const end = now
+    const credit = end - start
+    const valid = credit >= MIN_CREDIT_MS
+    const creditMins = Math.round(credit / 60000)
+
+    log.info("Processing attendance", { creditMins, valid, events: ctx.events.length })
+
+    try {
+      await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
+      log.info("Attendance saved", { valid, creditMins })
+    } catch (err) {
+      log.error("Attendance save failed", { error: String(err) })
+    }
+  }
+
   // Subscribe to native SDK events
   useZoomEvents({
     onMeetingStateChange: (event: ZoomMeetingStateEvent) => {
-      console.log(`[ZoomSDKConsumer] 📡 Meeting state: ${event.stateName} (${event.state})`)
-      log.info("Meeting state changed", { state: event.stateName, code: event.state })
+      log.info("Meeting state", { state: event.stateName, code: event.state })
+      addEvent("Meeting state", { state: event.stateName, code: event.state })
       setMeetingState(event.stateName)
+
+      // Track when we actually enter the meeting
+      if (event.stateName === "inMeeting" && meetingContextRef.current) {
+        meetingContextRef.current.inMeetingAt = Date.now()
+      }
+
+      // Process and clear when meeting ends
+      if (event.stateName === "ended" || event.stateName === "idle") {
+        if (meetingContextRef.current) {
+          processAttendance().finally(() => {
+            meetingContextRef.current = null
+          })
+        }
+      }
     },
     onMeetingError: (event: ZoomMeetingErrorEvent) => {
-      console.log(`[ZoomSDKConsumer] ❌ Meeting error: ${event.errorCode} - ${event.message}`)
-      log.error("Meeting error from SDK", { errorCode: event.errorCode, message: event.message })
-      setLastMeetingError(event)
-      setError(event.message)
+      // Error code 0 means success - don't log as error
+      if (event.errorCode === 0) {
+        log.info("Meeting status", { code: event.errorCode })
+        addEvent("Meeting status", { code: event.errorCode, message: event.message })
+      } else {
+        log.error("Meeting error", { code: event.errorCode, message: event.message })
+        addEvent("Meeting error", { code: event.errorCode, message: event.message })
+        setLastMeetingError(event)
+        setError(event.message)
+      }
     },
     onMeetingJoinConfirmed: () => {
-      console.log(`[ZoomSDKConsumer] ✓ Meeting join confirmed`)
-      log.info("Meeting join confirmed by SDK")
+      log.info("Join confirmed")
+      addEvent("Join confirmed", {})
     },
     onMeetingEndedReason: (event: ZoomMeetingEndedEvent) => {
-      console.log(`[ZoomSDKConsumer] 📡 Meeting ended: ${event.reasonName} (${event.reason})`)
       log.info("Meeting ended", { reason: event.reasonName, code: event.reason })
+      addEvent("Meeting ended", { reason: event.reasonName, code: event.reason })
       setMeetingState("idle")
     },
     onAuthReturn: (event: ZoomAuthEvent) => {
-      console.log(`[ZoomSDKConsumer] 🔐 Auth: ${event.success ? "✓" : "❌"} ${event.message}`)
-      log.info("Auth event", { success: event.success, message: event.message })
+      log.info("Auth", { success: event.success })
+      addEvent("Auth", { success: event.success, message: event.message })
     },
   })
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig) => {
-      // Check for override meeting ID
+      // Check for override meeting ID (for testing)
       const overrideZid = process.env.EXPO_PUBLIC_JOIN_MEETING_ZID
-      const meetingToJoin = overrideZid || config.meetingNumber
+      const zidToJoin = overrideZid || config.meetingNumber
+      const now = Date.now()
+      const uid = authStore.userId || "anonymous"
 
-      console.log("=== ZOOM SDK JOIN ===")
-      console.log(`[ZoomSDKConsumer] Original meeting number: ${config.meetingNumber}`)
-      console.log(`[ZoomSDKConsumer] Override ZID (env): ${overrideZid || "NOT SET"}`)
-      console.log(`[ZoomSDKConsumer] ACTUAL meeting to join: ${meetingToJoin}`)
+      // Create attendance record in SQLite
+      const attendanceId = Crypto.randomUUID()
+      try {
+        const result = await attendanceRepo.create({
+          id: attendanceId,
+          uid,
+          mid: config.meetingId,
+          zid: zidToJoin,
+          created: now,
+          events: [createEvent("Join initiated", { userName: config.userName })],
+        })
+        if (!result.ok) throw new Error("Failed to create attendance record")
+        log.info("Attendance created", { id: attendanceId })
+      } catch (err) {
+        log.error("Attendance create failed", { error: String(err) })
+      }
 
-      log.info("Joining meeting via native SDK", {
-        meetingNumber: meetingToJoin,
+      // Set up meeting context for attendance tracking
+      meetingContextRef.current = {
+        attendanceId,
+        uid,
+        mid: config.meetingId,
+        zid: zidToJoin,
         userName: config.userName,
-      })
+        joinedAt: now,
+        inMeetingAt: null,
+        events: [],
+      }
+
+      log.info("Joining meeting", { zid: zidToJoin, userName: config.userName })
+      addEvent("Calling SDK", { zid: zidToJoin })
 
       try {
-        // Generate fresh JWT for this specific meeting
-        console.log(`[ZoomSDKConsumer] Generating JWT for meeting: ${meetingToJoin}`)
-        const freshJwt = await generateZoomJwt(meetingToJoin, 0)
-        console.log(`[ZoomSDKConsumer] JWT generated (first 50 chars): ${freshJwt.slice(0, 50)}...`)
-        console.log(`[ZoomSDKConsumer] Full JWT for decoding:`)
-        console.log(freshJwt)
+        await generateZoomJwt(zidToJoin, 0)
 
-        console.log(`[ZoomSDKConsumer] Calling zoom.joinMeeting with ZID: ${meetingToJoin}`)
         const statusCode = await zoom.joinMeeting({
-          meetingNumber: meetingToJoin,
+          meetingNumber: zidToJoin,
           userName: config.userName,
           password: config.password || "",
         })
 
-        console.log(`[ZoomSDKConsumer] joinMeeting returned status code: ${statusCode}`)
-        log.info("joinMeeting returned", { statusCode })
+        log.info("Join sent", { statusCode: statusCode ?? 0 })
+        addEvent("Join sent", { statusCode: statusCode ?? 0 })
 
-        // Status code 0 or undefined = success (native bridge sometimes doesn't pass the value)
-        // Non-zero values are errors
         if (statusCode !== undefined && statusCode !== 0) {
-          const errorMsg = `Zoom SDK returned error code: ${statusCode}`
-          console.error(`[ZoomSDKConsumer] ❌ ${errorMsg}`)
+          const errorMsg = `SDK error: ${statusCode}`
+          log.error("Join failed", { statusCode })
+          addEvent("Join failed", { statusCode })
           setError(errorMsg)
           throw new Error(errorMsg)
         }
 
-        console.log("[ZoomSDKConsumer] ✓ Join request accepted by SDK")
-        console.log("[ZoomSDKConsumer] ℹ️  If meeting closes immediately, check Xcode console for:")
-        console.log("   - onMeetingStateChange: X (state codes)")
-        console.log("   - onMeetingError: X (error codes)")
-        console.log("   - Common issues: meeting ended, invalid meeting, auth required")
-        log.info("Successfully joined meeting")
+        log.info("Join accepted")
+        addEvent("Join accepted", {})
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to join meeting"
-        console.error("[ZoomSDKConsumer] ❌ Exception:", errorMessage)
-        log.error("Failed to join meeting via SDK", { error: errorMessage })
+        const errorMessage = err instanceof Error ? err.message : "Failed to join"
+        log.error("Join exception", { error: errorMessage })
+        addEvent("Join exception", { error: errorMessage })
         setError(errorMessage)
+
+        await processAttendance()
+        meetingContextRef.current = null
         throw err
       }
     },
-    [zoom]
+    [zoom, authStore.userId]
   )
 
   const contextValue: ZoomContextValue = {

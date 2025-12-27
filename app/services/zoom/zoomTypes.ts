@@ -6,6 +6,8 @@
  * Configuration for joining a Zoom meeting
  */
 export interface ZoomJoinConfig {
+  /** Our internal meeting ID (for attendance tracking) */
+  meetingId: string
   /** The Zoom meeting number/ID */
   meetingNumber: string
   /** Display name for the user in the meeting */

@@ -25,13 +25,16 @@ import {
 import { getDb } from "./provider"
 
 /**
- * SDK event recorded during meeting attendance
+ * Event recorded during meeting attendance
+ * Each event captures a moment in the attendance lifecycle with full context.
  */
 export interface AttendanceEvent {
+  /** Unix timestamp in milliseconds */
   timestamp: number
-  SdkEvent: string
-  SdkCode: string
-  SdkMessage: string
+  /** Human-readable event description */
+  message: string
+  /** Full event data as JSON string for audit trail */
+  json: string
 }
 
 // Lazy repository instances - created on first access after db is opened
