@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite"
 import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { useMeetings } from "@/context/MeetingContext"
 import { useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
@@ -19,6 +20,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
   const { login, logout, isLoading: authLoading, error: authError, clearError } = useZitadelAuth()
+  const { apiStatus, liveSource, liveMeetings, lastRefresh } = useMeetings()
 
   const handleAuthPress = async () => {
     clearError()
@@ -36,6 +38,44 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       contentContainerStyle={[$styles.container, themed($container)]}
     >
       <Text preset="heading" tx="homeScreen:title" />
+
+      {/* API Status */}
+      <View style={themed($statusContainer)}>
+        <Text style={themed($statusLabel)}>API Status:</Text>
+        <View style={$statusRow}>
+          <View
+            style={[
+              $statusDot,
+              {
+                backgroundColor:
+                  apiStatus === "connected"
+                    ? "#22c55e"
+                    : apiStatus === "disconnected"
+                      ? "#ef4444"
+                      : "#f59e0b",
+              },
+            ]}
+          />
+          <Text style={themed($statusValue)}>
+            {apiStatus === "connected"
+              ? "Connected"
+              : apiStatus === "disconnected"
+                ? "Disconnected"
+                : "Unknown"}
+          </Text>
+        </View>
+        <Text style={themed($sourceText)}>
+          Live source: {liveSource === "api" ? "API" : "Local calculation"}
+        </Text>
+        <Text style={themed($sourceText)}>
+          Live meetings: {liveMeetings.length}
+        </Text>
+        {lastRefresh && (
+          <Text style={themed($sourceText)}>
+            Last refresh: {lastRefresh.toLocaleTimeString()}
+          </Text>
+        )}
+      </View>
 
       {/* Auth Status */}
       <View style={themed($statusContainer)}>
@@ -88,9 +128,27 @@ const $statusLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
 })
 
-const $statusValue: ThemedStyle<TextStyle> = ({ spacing }) => ({
+const $statusRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  marginTop: 4,
+}
+
+const $statusDot: ViewStyle = {
+  width: 10,
+  height: 10,
+  borderRadius: 5,
+}
+
+const $statusValue: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
+})
+
+const $sourceText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  fontSize: 13,
   marginTop: spacing.xs,
 })
 
