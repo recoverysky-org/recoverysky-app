@@ -1,15 +1,16 @@
-import { FC, useCallback } from "react"
+import { FC, useCallback, useState } from "react"
 import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
 
+import { LiveMeetingRow } from "@/components/LiveMeetingRow"
+import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { MeetingCard } from "@/components/MeetingCard"
+import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { useLivePolling } from "@/hooks/useLivePolling"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
-import { useLivePolling } from "@/hooks/useLivePolling"
 
 /**
  * LiveScreen - Shows currently live meetings
@@ -21,6 +22,9 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
 
+  // State for schedule popup
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+
   // Auto-poll every 30 seconds
   useLivePolling({
     interval: 30000,
@@ -28,9 +32,20 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
     onRefresh: refresh,
   })
 
+  const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
+    setSelectedMeeting(meeting)
+    // TODO: Open SchedulePopup
+  }, [])
+
+  const handleClosePopup = useCallback(() => {
+    setSelectedMeeting(null)
+  }, [])
+
   const renderItem = useCallback(
-    ({ item }: { item: MeetingWithTrex }) => <MeetingCard meeting={item} />,
-    []
+    ({ item }: { item: MeetingWithTrex }) => (
+      <LiveMeetingRow meeting={item} onPress={() => handleMeetingPress(item)} />
+    ),
+    [handleMeetingPress]
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -51,12 +66,11 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
         {liveMeetings.length > 0 && (
           <Text style={themed($countText)}>
             {liveMeetings.length} {liveMeetings.length === 1 ? "meeting" : "meetings"} live
+            {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
         )}
-        {lastRefresh && (
-          <Text style={themed($refreshText)}>
-            Last checked: {lastRefresh.toLocaleTimeString()}
-          </Text>
+        {liveMeetings.length === 0 && lastRefresh && (
+          <Text style={themed($countText)}>({lastRefresh.toLocaleTimeString()})</Text>
         )}
       </View>
     ),
@@ -81,6 +95,12 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
         }
         showsVerticalScrollIndicator={false}
       />
+
+      <SchedulePopup
+        visible={selectedMeeting !== null}
+        meeting={selectedMeeting}
+        onClose={handleClosePopup}
+      />
     </Screen>
   )
 }
@@ -94,14 +114,7 @@ const $countText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
   color: colors.textDim,
 })
 
-const $refreshText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
-  marginTop: spacing.xxs,
-  fontSize: 12,
-  color: colors.textDim,
-})
-
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.md,
   paddingBottom: spacing.xxl,
 })
 
