@@ -8,13 +8,22 @@
 import { ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
+import { logger } from "@/utils/logger"
 
-import { getGeneralApiProblem } from "./apiProblem"
+import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"
 import type { ApiConfig } from "./types"
 
 // Re-export for convenience
 export { GeneralApiProblem, getGeneralApiProblem } from "./apiProblem"
 export type { ApiConfig } from "./types"
+
+const log = logger.child({ module: "Api" })
+
+/** RecoverySky API base URL */
+const RECOVERYSKY_API_URL = "https://api.recoverysky.app"
+
+/** API key for anonymous users (X-API-Key header) */
+const AUTH_KEY = "92d79cf5747931470a49293878d6bb65f24ac42e57503d6943acd571398bdac7"
 
 /**
  * Configuring the apisauce instance.
@@ -32,6 +41,9 @@ export class Api {
   apisauce: ApisauceInstance
   config: ApiConfig
 
+  /** Dedicated instance for RecoverySky API */
+  private recoverySkyApi: ApisauceInstance
+
   /**
    * Set up our API instance. Keep this lightweight!
    */
@@ -44,18 +56,130 @@ export class Api {
         Accept: "application/json",
       },
     })
+
+    // Create dedicated instance for RecoverySky API
+    this.recoverySkyApi = create({
+      baseURL: RECOVERYSKY_API_URL,
+      timeout: 10000,
+      headers: {
+        Accept: "application/json",
+      },
+    })
+
+    // Set default auth to anonymous API key
+    this.setAnonymousAuth()
   }
 
-  // Add your API methods here
-  // Example:
-  // async getUser(id: string): Promise<{ kind: "ok"; user: User } | GeneralApiProblem> {
-  //   const response = await this.apisauce.get(`/users/${id}`)
-  //   if (!response.ok) {
-  //     const problem = getGeneralApiProblem(response)
-  //     if (problem) return problem
-  //   }
-  //   return { kind: "ok", user: response.data }
-  // }
+  /**
+   * Set authorization header for authenticated users (OAuth token)
+   */
+  setAuthToken(token: string) {
+    log.debug("Setting Bearer token auth")
+    this.recoverySkyApi.deleteHeader("X-API-Key")
+    this.recoverySkyApi.setHeader("Authorization", `Bearer ${token}`)
+  }
+
+  /**
+   * Set X-API-Key header for anonymous users
+   */
+  setAnonymousAuth() {
+    log.debug("Setting X-API-Key auth")
+    this.recoverySkyApi.deleteHeader("Authorization")
+    this.recoverySkyApi.setHeader("X-API-Key", AUTH_KEY)
+  }
+
+  /**
+   * Update auth based on current authentication state
+   * Call this when auth state changes
+   */
+  updateAuth(isAnonymous: boolean, accessToken?: string) {
+    if (isAnonymous || !accessToken) {
+      this.setAnonymousAuth()
+    } else {
+      this.setAuthToken(accessToken)
+    }
+  }
+
+  /**
+   * Check API status/health
+   * GET /status
+   */
+  async getStatus(): Promise<{ kind: "ok"; status: string } | GeneralApiProblem> {
+    log.debug("Checking API status")
+
+    const response = await this.recoverySkyApi.get<{ status: string }>("/status")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("API status check failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.debug("API status OK", { status: response.data?.status })
+    return { kind: "ok", status: response.data?.status || "ok" }
+  }
+
+  /**
+   * Get live meeting IDs from the RecoverySky API
+   *
+   * Returns array of meeting IDs that are currently live.
+   * Falls back to local calculation if API fails.
+   */
+  async getLiveMeetingIds(): Promise<{ kind: "ok"; ids: string[]; count: number } | GeneralApiProblem> {
+    log.debug("Fetching live meeting IDs from API")
+
+    const response = await this.recoverySkyApi.get<{
+      timestamp: string
+      count: number
+      ids: string[]
+    }>("/meetings/live/ids")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("API request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    // Validate response data
+    if (!response.data || !Array.isArray(response.data.ids)) {
+      log.warn("Invalid response data format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received live meeting IDs", { count: response.data.count, timestamp: response.data.timestamp })
+    return { kind: "ok", ids: response.data.ids, count: response.data.count }
+  }
+
+  /**
+   * Get Zoom JWT token from the backend
+   *
+   * The backend generates the JWT using Zoom SDK credentials (kept secure server-side).
+   * @param zid - The Zoom meeting ID to join
+   */
+  async getZoomJwt(zid: string): Promise<{ kind: "ok"; jwt: string } | GeneralApiProblem> {
+    log.debug("Fetching Zoom JWT from API", { zid })
+
+    const response = await this.recoverySkyApi.post<{ jwt: string }>("/zoom/jwt", {
+      zid,
+    })
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Zoom JWT request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || typeof response.data.jwt !== "string") {
+      log.warn("Invalid Zoom JWT response format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received Zoom JWT")
+    return { kind: "ok", jwt: response.data.jwt }
+  }
 }
 
 // Singleton instance of the API for convenience
