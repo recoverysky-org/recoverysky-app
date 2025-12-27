@@ -19,6 +19,7 @@ import { Icon } from "@/components/Icon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import {
   translate,
   getAvailableLanguages,
@@ -46,7 +47,7 @@ type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
  * - Logout
  */
 export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(function SettingsScreen(_props) {
-  const { themed, themeContext, setThemeContextOverride } = useAppTheme()
+  const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
   const { logout } = useZitadelAuth()
 
   // MST Stores - reactive!
@@ -57,6 +58,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [languageModalVisible, setLanguageModalVisible] = useState(false)
+  const [colorPickerVisible, setColorPickerVisible] = useState(false)
 
   // Language state (not persisted in MST for now)
   const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
@@ -162,7 +164,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           <Switch
             value={profileStore.showCleanDate}
             onValueChange={profileStore.setShowCleanDate}
-            trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -173,7 +175,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           <Switch
             value={profileStore.showCleanDays}
             onValueChange={profileStore.setShowCleanDays}
-            trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -194,7 +196,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             <Switch
               value={profileStore.showPronouns}
               onValueChange={profileStore.setShowPronouns}
-              trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -301,6 +303,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 onChange={handleDateChange}
                 maximumDate={new Date()}
                 style={$datePickerSpinner}
+                themeVariant={isDarkMode ? "dark" : "light"}
               />
             </View>
           ) : (
@@ -310,6 +313,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               display="default"
               onChange={handleDateChange}
               maximumDate={new Date()}
+              themeVariant={isDarkMode ? "dark" : "light"}
             />
           )
         )}
@@ -377,10 +381,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           onPress={() => setLanguageModalVisible(true)}
           accessibilityRole="button"
         >
-          <View style={$styles.row}>
-            <Ionicons name="globe-outline" size={18} color={themed($appSettingsIconColor).color} style={themed($rowIcon)} />
-            <Text style={themed($rowLabel)} tx="settingsScreen:language" />
-          </View>
+          <Text style={themed($rowLabel)} tx="settingsScreen:language" />
           <View style={$styles.row}>
             <Text style={themed($rowValue)}>{languageNames[currentLang]}</Text>
             <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
@@ -389,35 +390,31 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         {/* Dark Mode Toggle */}
         <View style={themed($settingsRow)}>
-          <View style={$styles.row}>
-            <Ionicons
-              name={isDarkMode ? "moon-outline" : "sunny-outline"}
-              size={18}
-              color={themed($dimColor).color}
-              style={themed($rowIcon)}
-            />
-            <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
-          </View>
+          <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
           <Switch
             value={isDarkMode}
             onValueChange={handleDarkModeToggle}
-            trackColor={{ false: "#E5E5E5", true: "#4CAF50" }}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
           />
         </View>
 
         {/* Theme Color */}
-        <TouchableOpacity style={[themed($settingsRow), themed($lastRow)]} accessibilityRole="button">
+        <TouchableOpacity
+          style={[themed($settingsRow), themed($lastRow)]}
+          accessibilityRole="button"
+          onPress={() => setColorPickerVisible(true)}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
           <View style={$styles.row}>
-            <Icon icon="components" size={18} color={themed($appSettingsIconColor).color} style={themed($rowIcon)} />
-            <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
-          </View>
-          <View style={$styles.row}>
-            <View style={themed($colorPreview)} />
+            <View style={[$colorPreviewSwatch, { backgroundColor: themeColor || theme.colors.tint }]} />
             <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* Theme Color Picker Modal */}
+      <ThemeColorPicker visible={colorPickerVisible} onClose={() => setColorPickerVisible(false)} />
     </Screen>
   )
 })
@@ -497,7 +494,7 @@ const $rowLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $rowValue: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   fontWeight: "500",
-  color: colors.text,
+  color: colors.tint,
 })
 
 const $rowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
@@ -527,6 +524,13 @@ const $premiumText: ThemedStyle<TextStyle> = () => ({
   color: "#2196F3",
   fontWeight: "600",
 })
+
+const $colorPreviewSwatch: ViewStyle = {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  marginRight: 4,
+}
 
 const $colorPreview: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   width: 24,
