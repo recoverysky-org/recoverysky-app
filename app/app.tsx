@@ -24,12 +24,16 @@ import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
+import { reaction } from "mobx"
+
 import { MeetingProvider } from "./context/MeetingContext"
 import { DatabaseProvider, DatabaseLoadingOverlay } from "./db"
 import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
+import { api } from "./services/api"
+import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { getDeviceId } from "./utils/deviceId"
@@ -122,6 +126,22 @@ export function App() {
         _rootStore.authenticationStore.setDeviceId(deviceId)
         log.info("Device ID initialized", { deviceId: deviceId.slice(0, 8) + "..." })
 
+        // Set initial API auth based on current state
+        const authStore = _rootStore.authenticationStore
+        api.updateAuth(authStore.isAnonymous, authStore.accessToken)
+
+        // React to auth state changes and update API headers
+        reaction(
+          () => ({
+            isAnonymous: authStore.isAnonymous,
+            accessToken: authStore.accessToken,
+          }),
+          ({ isAnonymous, accessToken }) => {
+            log.debug("Auth state changed, updating API headers", { isAnonymous, hasToken: !!accessToken })
+            api.updateAuth(isAnonymous, accessToken)
+          }
+        )
+
         setRootStore(_rootStore)
       })
       .catch((error) => {
@@ -163,12 +183,14 @@ export function App() {
           <DatabaseProvider>
             <MeetingProvider>
               <ThemeProvider>
-                <DatabaseLoadingOverlay />
-                <AppNavigator
-                  linking={linking}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
+                <ZoomMeetingProvider>
+                  <DatabaseLoadingOverlay />
+                  <AppNavigator
+                    linking={linking}
+                    initialState={initialNavigationState}
+                    onStateChange={onNavigationStateChange}
+                  />
+                </ZoomMeetingProvider>
               </ThemeProvider>
             </MeetingProvider>
           </DatabaseProvider>
