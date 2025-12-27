@@ -78,8 +78,9 @@ buck-out/
 # Expo
 .expo/*
 bin/Exponent.app
-/android
-/ios
+# Include as there is customization within these folders
+# /android
+# /ios
 expo-env.d.ts
 
 ## Secrets
