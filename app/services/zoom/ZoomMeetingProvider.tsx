@@ -5,6 +5,7 @@
  * - JWT token generation and refresh
  * - SDK initialization
  * - Meeting join functionality
+ * - Native SDK event subscriptions
  *
  * Falls back gracefully when SDK keys are not configured.
  */
@@ -16,6 +17,14 @@ import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"
 import { getZoomConfig, isZoomConfigured } from "./zoomConfig"
+import {
+  useZoomEvents,
+  type ZoomMeetingStateName,
+  type ZoomMeetingStateEvent,
+  type ZoomMeetingErrorEvent,
+  type ZoomMeetingEndedEvent,
+  type ZoomAuthEvent,
+} from "./zoomEvents"
 import type { ZoomInitState, ZoomJoinConfig } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeetingProvider" })
@@ -32,6 +41,10 @@ export interface ZoomContextValue {
   isReady: boolean
   /** Join a Zoom meeting using native SDK */
   joinMeeting: (config: ZoomJoinConfig) => Promise<void>
+  /** Current meeting state from native SDK events */
+  meetingState: ZoomMeetingStateName
+  /** Last meeting error from native SDK */
+  lastMeetingError: ZoomMeetingErrorEvent | null
 }
 
 const ZoomContext = createContext<ZoomContextValue | null>(null)
@@ -54,6 +67,36 @@ export const useZoomContext = (): ZoomContextValue => {
 const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
   const zoom = useZoom()
   const [error, setError] = useState<string | null>(null)
+  const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
+  const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
+
+  // Subscribe to native SDK events
+  useZoomEvents({
+    onMeetingStateChange: (event: ZoomMeetingStateEvent) => {
+      console.log(`[ZoomSDKConsumer] 📡 Meeting state: ${event.stateName} (${event.state})`)
+      log.info("Meeting state changed", { state: event.stateName, code: event.state })
+      setMeetingState(event.stateName)
+    },
+    onMeetingError: (event: ZoomMeetingErrorEvent) => {
+      console.log(`[ZoomSDKConsumer] ❌ Meeting error: ${event.errorCode} - ${event.message}`)
+      log.error("Meeting error from SDK", { errorCode: event.errorCode, message: event.message })
+      setLastMeetingError(event)
+      setError(event.message)
+    },
+    onMeetingJoinConfirmed: () => {
+      console.log(`[ZoomSDKConsumer] ✓ Meeting join confirmed`)
+      log.info("Meeting join confirmed by SDK")
+    },
+    onMeetingEndedReason: (event: ZoomMeetingEndedEvent) => {
+      console.log(`[ZoomSDKConsumer] 📡 Meeting ended: ${event.reasonName} (${event.reason})`)
+      log.info("Meeting ended", { reason: event.reasonName, code: event.reason })
+      setMeetingState("idle")
+    },
+    onAuthReturn: (event: ZoomAuthEvent) => {
+      console.log(`[ZoomSDKConsumer] 🔐 Auth: ${event.success ? "✓" : "❌"} ${event.message}`)
+      log.info("Auth event", { success: event.success, message: event.message })
+    },
+  })
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig) => {
@@ -120,6 +163,8 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     error,
     isReady: true,
     joinMeeting,
+    meetingState,
+    lastMeetingError,
   }
 
   return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
@@ -142,6 +187,8 @@ const ZoomFallbackProvider: FC<{
     error,
     isReady: false,
     joinMeeting,
+    meetingState: "idle",
+    lastMeetingError: null,
   }
 
   return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
