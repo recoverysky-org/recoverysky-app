@@ -438,7 +438,7 @@ function SettingsRow({ label, value, valueStyle, isLast }: SettingsRowProps) {
   )
 }
 
-// Styles
+// Styles - Clean flat design matching Live screen
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.xxl,
 })
@@ -449,19 +449,13 @@ const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.lg,
 })
 
-const $section: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.card,
-  borderRadius: 12,
-  borderWidth: 1,
-  borderColor: colors.border,
-  marginBottom: spacing.md,
-  overflow: "hidden",
+const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.lg,
 })
 
 const $sectionHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  paddingHorizontal: spacing.md,
   paddingVertical: spacing.sm,
   gap: spacing.xs,
 })
@@ -476,10 +470,9 @@ const $settingsRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingHorizontal: spacing.md,
   paddingVertical: spacing.sm,
-  borderTopWidth: 1,
-  borderTopColor: colors.border,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
 })
 
 const $lastRow: ThemedStyle<ViewStyle> = () => ({
@@ -501,12 +494,13 @@ const $rowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
   marginRight: spacing.xs,
 })
 
-const $deleteRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $deleteRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  paddingHorizontal: spacing.md,
   paddingVertical: spacing.sm,
   gap: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
 })
 
 const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -592,9 +586,10 @@ const $shortNameInput: ThemedStyle<ViewStyle> = () => ({
 
 const $shortNameInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   minHeight: 36,
-  paddingHorizontal: 8,
-  backgroundColor: colors.background,
+  paddingHorizontal: 12,
+  backgroundColor: colors.card,
   borderColor: colors.border,
+  borderRadius: 8,
 })
 
 // Pronouns Button
@@ -622,10 +617,12 @@ const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
 
 const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.background,
-  borderRadius: 12,
-  padding: spacing.md,
-  minWidth: 280,
-  maxWidth: "80%",
+  borderRadius: 16,
+  padding: spacing.lg,
+  minWidth: 300,
+  maxWidth: "85%",
+  borderWidth: 1,
+  borderColor: colors.border,
 })
 
 const $modalTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
@@ -640,17 +637,14 @@ const $modalOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.md,
   paddingHorizontal: spacing.sm,
-  borderRadius: 8,
-  marginBottom: spacing.xs,
-  borderWidth: 1,
-  borderColor: colors.border,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
 })
 
 const $modalOptionSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.tint + "20",
-  borderColor: colors.tint,
+  backgroundColor: colors.tint + "15",
 })
 
 const $modalOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -664,17 +658,18 @@ const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 // Date Picker Styles
-const $datePickerContainer: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  borderTopWidth: 1,
-  borderTopColor: colors.border,
-  backgroundColor: colors.background,
+const $datePickerContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginTop: spacing.sm,
+  borderRadius: 12,
+  backgroundColor: colors.card,
+  overflow: "hidden",
 })
 
 const $datePickerHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   justifyContent: "flex-end",
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.xs,
   borderBottomWidth: 1,
   borderBottomColor: colors.border,
 })
