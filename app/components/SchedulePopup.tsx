@@ -242,12 +242,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             )}
           </View>
 
-          {/* Meeting types + Favorite */}
+          {/* Meeting tags + Favorite */}
           <View style={themed($tagsAndFavRow)}>
             <View style={themed($tagsRow)}>
-              {meeting.meetingTypes?.map((type, idx) => (
+              {[...(meeting.tags || []), ...(meeting.meetingTypes || [])].map((tag, idx) => (
                 <View key={idx} style={themed($tag)}>
-                  <Text style={themed($tagText)}>{type}</Text>
+                  <Text style={themed($tagText)}>{tag}</Text>
                 </View>
               ))}
             </View>
