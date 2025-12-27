@@ -33,8 +33,8 @@ import type { ZoomInitState, ZoomJoinConfig } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeetingProvider" })
 
-/** Minimum credit time in milliseconds (5 minutes) */
-const MIN_CREDIT_MS = 5 * 60 * 1000
+/** Minimum credit time in milliseconds (1 minute for testing) */
+const MIN_CREDIT_MS = 1 * 60 * 1000
 
 /** Current meeting context for attendance tracking */
 interface MeetingContext {
