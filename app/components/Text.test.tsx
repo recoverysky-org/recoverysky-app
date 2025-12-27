@@ -4,9 +4,9 @@ import { render } from "@testing-library/react-native"
 import { Text } from "./Text"
 import { ThemeProvider } from "../theme/context"
 
-/* This is an example component test using react-native-testing-library. For more
- * information on how to write your own, see the documentation here:
- * https://callstack.github.io/react-native-testing-library/ */
+/* This is a React Native component test using jest-expo and @testing-library/react-native.
+ * Run with: npm run test:component
+ * For more information, see: https://callstack.github.io/react-native-testing-library/ */
 const testText = "Test string"
 
 describe("Text", () => {
