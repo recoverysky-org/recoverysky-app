@@ -34,7 +34,9 @@ import type {
 export type ThemeContextType = {
   navigationTheme: NavTheme
   setThemeContextOverride: (newTheme: ThemeContextModeT) => void
+  setThemeColor: (color: string | undefined) => void
   theme: Theme
+  themeColor: string | undefined
   themeContext: ImmutableThemeContextModeT
   themed: ThemedFnT
 }
@@ -64,6 +66,8 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   const systemColorScheme = useColorScheme()
   // Our saved theme context: can be "light", "dark", or undefined (system theme)
   const [themeScheme, setThemeScheme] = useMMKVString("ignite.themeScheme", storage)
+  // Custom theme color (tint override)
+  const [themeColor, setThemeColorValue] = useMMKVString("ignite.themeColor", storage)
 
   useEffect(() => {
     log.info("ThemeProvider mounted", {
@@ -90,6 +94,16 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   )
 
   /**
+   * Set a custom theme color (tint). Pass undefined to reset to default.
+   */
+  const setThemeColor = useCallback(
+    (color: string | undefined) => {
+      setThemeColorValue(color)
+    },
+    [setThemeColorValue],
+  )
+
+  /**
    * initialContext is the theme context passed in from the app.tsx file and always takes precedence.
    * themeScheme is the value from MMKV. If undefined, we fall back to the system theme
    * systemColorScheme is the value from the device. If undefined, we fall back to "light"
@@ -109,13 +123,21 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   }, [themeContext])
 
   const theme: Theme = useMemo(() => {
-    switch (themeContext) {
-      case "dark":
-        return darkTheme
-      default:
-        return lightTheme
+    const baseTheme = themeContext === "dark" ? darkTheme : lightTheme
+
+    // Apply custom tint color if set
+    if (themeColor) {
+      return {
+        ...baseTheme,
+        colors: {
+          ...baseTheme.colors,
+          tint: themeColor,
+        },
+      } as Theme
     }
-  }, [themeContext])
+
+    return baseTheme
+  }, [themeContext, themeColor])
 
   useEffect(() => {
     log.debug("Theme changed, setting imperative theming", { themeContext })
@@ -140,9 +162,11 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
 
   const value = {
     navigationTheme,
-    theme,
-    themeContext,
     setThemeContextOverride,
+    setThemeColor,
+    theme,
+    themeColor,
+    themeContext,
     themed,
   }
 

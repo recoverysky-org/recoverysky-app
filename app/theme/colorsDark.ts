@@ -6,9 +6,9 @@ const palette = {
   neutral600: "#AEAEB2",
   neutral500: "#8E8E93",
   neutral400: "#48484A",
-  neutral300: "#2C2C2E",
-  neutral200: "#1C1C1E",
-  neutral100: "#121214",
+  neutral300: "#1A1A1C", // cards - subtle elevation
+  neutral200: "#141416",
+  neutral100: "#0D0D0D", // 95% black
 
   primary600: "#E3F2FD",
   primary500: "#64B5F6",
@@ -41,10 +41,10 @@ export const colors = {
   transparent: "rgba(0, 0, 0, 0)",
   text: palette.neutral800,
   textDim: palette.neutral600,
-  background: palette.neutral200,
+  background: palette.neutral100,
   card: palette.neutral300,
   border: palette.neutral400,
-  tint: palette.primary500,
+  tint: "#FF10F0", // Electric Pink
   tintInactive: palette.neutral400,
   separator: palette.neutral400,
   error: palette.angry500,
