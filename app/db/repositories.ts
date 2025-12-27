@@ -17,13 +17,28 @@ import {
   MeetingSqliteRepository,
   ScheduleSqliteRepository,
   SyncQueueRepository,
+  AttendanceSqliteRepository,
+  type AttendanceCreateInput,
+  type AttendanceUpdateInput,
+  type AttendanceRecord,
 } from "@sqlite"
 import { getDb } from "./provider"
+
+/**
+ * SDK event recorded during meeting attendance
+ */
+export interface AttendanceEvent {
+  timestamp: number
+  SdkEvent: string
+  SdkCode: string
+  SdkMessage: string
+}
 
 // Lazy repository instances - created on first access after db is opened
 let _meetingRepo: MeetingSqliteRepository | null = null
 let _scheduleRepo: ScheduleSqliteRepository | null = null
 let _syncQueueRepo: SyncQueueRepository | null = null
+let _attendanceRepo: AttendanceSqliteRepository | null = null
 
 /**
  * Meeting repository instance (lazy)
@@ -67,6 +82,85 @@ export const syncQueueRepo = {
     return _syncQueueRepo.enqueue(data)
   },
 }
+
+// ============================================================================
+// Attendance Repository
+// ============================================================================
+
+function getAttendanceRepo(): AttendanceSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_attendanceRepo) _attendanceRepo = new AttendanceSqliteRepository(db as any)
+  return _attendanceRepo
+}
+
+/**
+ * Attendance repository instance (lazy)
+ *
+ * Tracks meeting attendance records with SDK events.
+ */
+export const attendanceRepo = {
+  /** Create a new attendance record */
+  create: async (input: AttendanceCreateInput) => {
+    return getAttendanceRepo().create(input)
+  },
+
+  /** Find attendance by ID */
+  findById: async (id: string) => {
+    return getAttendanceRepo().findById(id)
+  },
+
+  /** Find all attendance records for a user */
+  findByUserId: async (uid: string) => {
+    return getAttendanceRepo().findByUserId(uid)
+  },
+
+  /** Find attendance by meeting ID */
+  findByMeetingId: async (mid: string) => {
+    return getAttendanceRepo().findByMeetingId(mid)
+  },
+
+  /** Find valid attendance records for a user */
+  findValidByUserId: async (uid: string) => {
+    return getAttendanceRepo().findValidByUserId(uid)
+  },
+
+  /** Find unprocessed attendance records */
+  findUnprocessed: async () => {
+    return getAttendanceRepo().findUnprocessed()
+  },
+
+  /** Add an event to an attendance record */
+  addEvent: async (id: string, event: AttendanceEvent) => {
+    return getAttendanceRepo().addEvent(id, event)
+  },
+
+  /** Update an attendance record */
+  update: async (id: string, input: AttendanceUpdateInput) => {
+    return getAttendanceRepo().update(id, input)
+  },
+
+  /** Mark attendance as processed with calculated values */
+  markProcessed: async (
+    id: string,
+    data: { start: number; end: number; credit: number; valid: boolean },
+  ) => {
+    return getAttendanceRepo().markProcessed(id, data)
+  },
+
+  /** Get total credit for a user */
+  getTotalCreditForUser: async (uid: string) => {
+    return getAttendanceRepo().getTotalCreditForUser(uid)
+  },
+
+  /** Delete an attendance record */
+  delete: async (id: string) => {
+    return getAttendanceRepo().delete(id)
+  },
+}
+
+// Re-export types for convenience
+export type { AttendanceCreateInput, AttendanceUpdateInput, AttendanceRecord }
 
 // ============================================================================
 // TREX Queries (simple functions, no full repository needed for MVP)

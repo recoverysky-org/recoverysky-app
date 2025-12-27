@@ -29,8 +29,13 @@ export {
   meetingRepo,
   scheduleRepo,
   syncQueueRepo,
+  attendanceRepo,
   findAllTrexes,
   findTrexById,
   findTrexesByIds,
   type TrexRow,
+  type AttendanceCreateInput,
+  type AttendanceUpdateInput,
+  type AttendanceRecord,
+  type AttendanceEvent,  // SDK event interface
 } from "./repositories"

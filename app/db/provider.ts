@@ -7,7 +7,7 @@
 
 import type { SQLiteDatabase } from "expo-sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
-import * as FileSystem from "expo-file-system"
+import { Paths, File } from "expo-file-system"
 import * as schema from "@sqlite"
 
 const DATABASE_NAME = "recoverysky.db"
@@ -20,12 +20,11 @@ let db: ExpoSQLiteDatabase<typeof schema> | null = null
  * Delete the database file for a clean reseed
  */
 async function deleteDatabase(): Promise<void> {
-  const dbPath = `${FileSystem.documentDirectory}SQLite/${DATABASE_NAME}`
   try {
-    const info = await FileSystem.getInfoAsync(dbPath)
-    if (info.exists) {
+    const dbFile = new File(Paths.document, "SQLite", DATABASE_NAME)
+    if (dbFile.exists) {
       console.log("[provider] Deleting database for reseed...")
-      await FileSystem.deleteAsync(dbPath, { idempotent: true })
+      dbFile.delete()
       console.log("[provider] Database deleted")
     }
   } catch (error) {
