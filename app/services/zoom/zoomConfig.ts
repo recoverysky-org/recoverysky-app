@@ -33,8 +33,17 @@ export function getZoomConfig(): ZoomSDKConfig {
   const sdkKey = process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""
   const sdkSecret = process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""
 
+  // Always log config status at startup for debugging
+  console.log("=== ZOOM SDK CONFIG ===")
+  console.log(`SDK Key: ${sdkKey ? `${sdkKey.slice(0, 8)}...` : "NOT SET"}`)
+  console.log(`SDK Secret: ${sdkSecret ? "SET (hidden)" : "NOT SET"}`)
+  console.log(`Configured: ${Boolean(sdkKey && sdkSecret)}`)
+  console.log("=======================")
+
   if (!sdkKey || !sdkSecret) {
     log.warn("Zoom SDK keys not configured - SDK features will be unavailable")
+    console.warn("[ZoomConfig] ⚠️  EXPO_PUBLIC_ZOOM_SDK_KEY and/or EXPO_PUBLIC_ZOOM_SDK_SECRET not set!")
+    console.warn("[ZoomConfig] ⚠️  Add them to your .env file to enable native Zoom SDK")
   }
 
   return {
