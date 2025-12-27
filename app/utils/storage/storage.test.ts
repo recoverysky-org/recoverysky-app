@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from "vitest"
 import { load, loadString, save, saveString, clear, remove, storage } from "."
 
 const VALUE_OBJECT = { x: 1 }

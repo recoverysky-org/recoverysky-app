@@ -51,4 +51,6 @@ export interface Logger {
   clearTraceContext(): void
   /** Create a child logger with additional attributes */
   child(attributes: LogAttributes): Logger
+  /** Cleanup resources - call on app unmount */
+  destroy(): void
 }
