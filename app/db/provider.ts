@@ -7,6 +7,7 @@
 
 import type { SQLiteDatabase } from "expo-sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
+import * as FileSystem from "expo-file-system"
 import * as schema from "@sqlite"
 
 const DATABASE_NAME = "recoverysky.db"
@@ -16,11 +17,33 @@ let expoDb: SQLiteDatabase | null = null
 let db: ExpoSQLiteDatabase<typeof schema> | null = null
 
 /**
+ * Delete the database file for a clean reseed
+ */
+async function deleteDatabase(): Promise<void> {
+  const dbPath = `${FileSystem.documentDirectory}SQLite/${DATABASE_NAME}`
+  try {
+    const info = await FileSystem.getInfoAsync(dbPath)
+    if (info.exists) {
+      console.log("[provider] Deleting database for reseed...")
+      await FileSystem.deleteAsync(dbPath, { idempotent: true })
+      console.log("[provider] Database deleted")
+    }
+  } catch (error) {
+    console.warn("[provider] Failed to delete database:", error)
+  }
+}
+
+/**
  * Open the database. Called when user clicks "Open Db".
  * Dynamically imports expo-sqlite to avoid loading native module at startup.
  */
 export async function openDb(): Promise<{ expoDb: SQLiteDatabase; db: ExpoSQLiteDatabase<typeof schema> }> {
   if (!expoDb) {
+    // Delete database if reseed is requested
+    if (process.env.EXPO_PUBLIC_RESEED_DB === "true") {
+      await deleteDatabase()
+    }
+
     console.log("[provider] Loading expo-sqlite...")
     const { openDatabaseSync } = await import("expo-sqlite")
     const { drizzle } = await import("drizzle-orm/expo-sqlite")

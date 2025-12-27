@@ -2,13 +2,23 @@
  * Database Seeding
  *
  * Loads initial data from bundled JSON files into SQLite.
+ * Transforms denormalized JSON into normalized SQLite tables.
  * Only runs on first launch (tracked via MMKV flag).
  */
 
 import { SQLiteDatabase } from "expo-sqlite"
-import { loadString, saveString } from "@/utils/storage"
+import { loadString, saveString, remove } from "@/utils/storage"
 
-const SEED_FLAG_KEY = "db_seeded_v1"
+const SEED_FLAG_KEY = "db_seeded_v2"
+
+/**
+ * Force re-seed if EXPO_PUBLIC_RESEED_DB=true
+ * Set this in .env or run: EXPO_PUBLIC_RESEED_DB=true npm start
+ */
+if (process.env.EXPO_PUBLIC_RESEED_DB === "true") {
+  console.log("[seedDatabase] EXPO_PUBLIC_RESEED_DB=true, clearing seed flag...")
+  remove(SEED_FLAG_KEY)
+}
 
 /**
  * Check if database has been seeded
@@ -25,49 +35,78 @@ function markDatabaseSeeded(): void {
   saveString(SEED_FLAG_KEY, "true")
 }
 
-/**
- * Seed the database with data from JSON files
- * Uses batch inserts with transactions for performance
- */
-export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
-  if (isDatabaseSeeded()) {
-    console.log("[seedDatabase] Already seeded, skipping...")
-    return
-  }
+// ============================================================================
+// Raw JSON Types (denormalized source data)
+// ============================================================================
 
-  console.log("[seedDatabase] Starting database seeding...")
-  const startTime = Date.now()
-
-  try {
-    // Load JSON files
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const meetingsData = require("../data/meetings.json") as MeetingRow[]
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const schedulesData = require("../data/schedules.json") as ScheduleRow[]
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const trexesData = require("../data/trexes.json") as TrexRow[]
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const scheduleMeetingsData = require("../data/schedule_meetings.json") as ScheduleMeetingRow[]
-
-    console.log(`[seedDatabase] Loaded: ${meetingsData.length} meetings, ${schedulesData.length} schedules, ${trexesData.length} trexes`)
-
-    // Insert in order (respect foreign keys)
-    await insertSchedules(db, schedulesData)
-    await insertMeetings(db, meetingsData)
-    await insertTrexes(db, trexesData)
-    await insertScheduleMeetings(db, scheduleMeetingsData)
-
-    markDatabaseSeeded()
-
-    const elapsed = Date.now() - startTime
-    console.log(`[seedDatabase] Seeding complete in ${elapsed}ms`)
-  } catch (error) {
-    console.error("[seedDatabase] Seeding failed:", error)
-    throw error
-  }
+interface RawMeeting {
+  id: string
+  iid: string
+  uid: string
+  zid: string
+  sid: string
+  status: string
+  verified: string
+  locked: boolean
+  created: string
+  updated: string
+  version: number
+  url: string
+  password: string
+  passwordEnc: string
+  fellowship: string
+  language: string
+  closed: boolean
+  requiresLogin: boolean
+  restricted: boolean
+  restrictedDescription: string
+  description: string
+  email: string
+  name: string
+  phone: string
+  website: string
+  conferencePhone: string
+  location: string
+  sha256: string
+  meetingTypes: string[]
+  tags: string[]
 }
 
-// Type definitions for JSON data
+interface RawSchedule {
+  id: string
+  status: string
+  name: string
+  fellowship: string
+  created: string
+  updated: string
+  version: number
+  sha256: string
+  mids: string[]
+  zids: string[]
+}
+
+interface RawTrex {
+  id: string
+  coordinate: number
+  coordinate_end: number
+  timezone: string
+  periodicity: number
+  duration_ms: number
+  dtstart: string
+  dtend: string | null
+  rrule_str: string
+  rrule_json: Record<string, unknown>
+  hour: number | null
+  minute: number | null
+  dow: number | null
+  dom: number | null
+  month: number | null
+}
+
+// ============================================================================
+// Normalized SQLite Row Types
+// ============================================================================
+
 interface MeetingRow {
   id: string
   iid: string
@@ -102,7 +141,7 @@ interface MeetingRow {
 interface ScheduleRow {
   id: string
   status: string
-  zids: string
+  zids: string // JSON stringified
   name: string
   fellowship: string
   created: string
@@ -121,7 +160,7 @@ interface TrexRow {
   dtstart: string
   dtend: string | null
   rrule_str: string
-  rrule_json: string
+  rrule_json: string // JSON stringified
   hour: number | null
   minute: number | null
   dow: number | null
@@ -129,10 +168,118 @@ interface TrexRow {
   month: number | null
 }
 
+interface MeetingTypeRow {
+  meeting_id: string
+  type: string
+}
+
+interface MeetingTagRow {
+  meeting_id: string
+  tag: string
+}
+
 interface ScheduleMeetingRow {
   schedule_id: string
   meeting_id: string
 }
+
+// ============================================================================
+// Transform Functions
+// ============================================================================
+
+function transformMeeting(raw: RawMeeting): {
+  meeting: MeetingRow
+  types: MeetingTypeRow[]
+  tags: MeetingTagRow[]
+} {
+  return {
+    meeting: {
+      id: raw.id,
+      iid: raw.iid,
+      uid: raw.uid,
+      zid: raw.zid,
+      sid: raw.sid,
+      status: raw.status,
+      verified: raw.verified,
+      locked: raw.locked ? 1 : 0,
+      created: raw.created,
+      updated: raw.updated,
+      version: raw.version,
+      url: raw.url,
+      password: raw.password,
+      passwordEnc: raw.passwordEnc,
+      fellowship: raw.fellowship,
+      language: raw.language,
+      closed: raw.closed ? 1 : 0,
+      requiresLogin: raw.requiresLogin ? 1 : 0,
+      restricted: raw.restricted ? 1 : 0,
+      restrictedDescription: raw.restrictedDescription,
+      description: raw.description,
+      email: raw.email,
+      name: raw.name,
+      phone: raw.phone,
+      website: raw.website,
+      conferencePhone: raw.conferencePhone,
+      location: raw.location,
+      sha256: raw.sha256,
+    },
+    types: raw.meetingTypes.map((type) => ({
+      meeting_id: raw.id,
+      type,
+    })),
+    tags: raw.tags.map((tag) => ({
+      meeting_id: raw.id,
+      tag,
+    })),
+  }
+}
+
+function transformSchedule(raw: RawSchedule): {
+  schedule: ScheduleRow
+  scheduleMeetings: ScheduleMeetingRow[]
+} {
+  return {
+    schedule: {
+      id: raw.id,
+      status: raw.status,
+      zids: JSON.stringify(raw.zids),
+      name: raw.name,
+      fellowship: raw.fellowship,
+      created: raw.created,
+      updated: raw.updated,
+      version: raw.version,
+      sha256: raw.sha256,
+    },
+    scheduleMeetings: raw.mids.map((mid) => ({
+      schedule_id: raw.id,
+      meeting_id: mid,
+    })),
+  }
+}
+
+function transformTrex(raw: RawTrex): TrexRow {
+  return {
+    id: raw.id,
+    coordinate: raw.coordinate,
+    coordinate_end: raw.coordinate_end,
+    timezone: raw.timezone,
+    periodicity: raw.periodicity,
+    duration_ms: raw.duration_ms,
+    dtstart: raw.dtstart,
+    dtend: raw.dtend,
+    rrule_str: raw.rrule_str,
+    rrule_json: JSON.stringify(raw.rrule_json),
+    hour: raw.hour,
+    minute: raw.minute,
+    dow: raw.dow,
+    dom: raw.dom,
+    month: raw.month,
+  }
+}
+
+// ============================================================================
+// Batch Insert Functions
+// ============================================================================
 
 const BATCH_SIZE = 500
 
@@ -166,7 +313,9 @@ async function insertMeetings(db: SQLiteDatabase, data: MeetingRow[]): Promise<v
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
-    const placeholders = batch.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")
+    const placeholders = batch
+      .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .join(", ")
     const values = batch.flatMap((m) => [
       m.id,
       m.iid,
@@ -236,6 +385,35 @@ async function insertTrexes(db: SQLiteDatabase, data: TrexRow[]): Promise<void> 
   }
 }
 
+async function insertMeetingTypes(db: SQLiteDatabase, data: MeetingTypeRow[]): Promise<void> {
+  console.log(`[seedDatabase] Inserting ${data.length} meeting_types...`)
+
+  for (let i = 0; i < data.length; i += BATCH_SIZE) {
+    const batch = data.slice(i, i + BATCH_SIZE)
+    const placeholders = batch.map(() => "(?, ?)").join(", ")
+    const values = batch.flatMap((mt) => [mt.meeting_id, mt.type])
+
+    db.runSync(`INSERT OR REPLACE INTO meeting_types (meeting_id, type) VALUES ${placeholders}`, values)
+  }
+}
+
+async function insertMeetingTags(db: SQLiteDatabase, data: MeetingTagRow[]): Promise<void> {
+  if (data.length === 0) {
+    console.log(`[seedDatabase] No meeting_tags to insert`)
+    return
+  }
+
+  console.log(`[seedDatabase] Inserting ${data.length} meeting_tags...`)
+
+  for (let i = 0; i < data.length; i += BATCH_SIZE) {
+    const batch = data.slice(i, i + BATCH_SIZE)
+    const placeholders = batch.map(() => "(?, ?)").join(", ")
+    const values = batch.flatMap((mt) => [mt.meeting_id, mt.tag])
+
+    db.runSync(`INSERT OR REPLACE INTO meeting_tags (meeting_id, tag) VALUES ${placeholders}`, values)
+  }
+}
+
 async function insertScheduleMeetings(db: SQLiteDatabase, data: ScheduleMeetingRow[]): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} schedule_meetings...`)
 
@@ -244,9 +422,81 @@ async function insertScheduleMeetings(db: SQLiteDatabase, data: ScheduleMeetingR
     const placeholders = batch.map(() => "(?, ?)").join(", ")
     const values = batch.flatMap((sm) => [sm.schedule_id, sm.meeting_id])
 
-    db.runSync(
-      `INSERT OR REPLACE INTO schedule_meetings (schedule_id, meeting_id) VALUES ${placeholders}`,
-      values
+    db.runSync(`INSERT OR REPLACE INTO schedule_meetings (schedule_id, meeting_id) VALUES ${placeholders}`, values)
+  }
+}
+
+// ============================================================================
+// Main Seed Function
+// ============================================================================
+
+/**
+ * Seed the database with data from JSON files
+ * Transforms denormalized JSON into normalized SQLite tables
+ */
+export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
+  if (isDatabaseSeeded()) {
+    console.log("[seedDatabase] Already seeded, skipping...")
+    return
+  }
+
+  console.log("[seedDatabase] Starting database seeding...")
+  const startTime = Date.now()
+
+  try {
+    // Load raw JSON files from assets/db/
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rawMeetings = require("@assets/db/meetings.json") as RawMeeting[]
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rawSchedules = require("@assets/db/schedules.json") as RawSchedule[]
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const rawTrexes = require("@assets/db/trexes.json") as RawTrex[]
+
+    console.log(
+      `[seedDatabase] Loaded: ${rawMeetings.length} meetings, ${rawSchedules.length} schedules, ${rawTrexes.length} trexes`
     )
+
+    // Transform all data
+    const meetingRows: MeetingRow[] = []
+    const meetingTypeRows: MeetingTypeRow[] = []
+    const meetingTagRows: MeetingTagRow[] = []
+
+    for (const raw of rawMeetings) {
+      const transformed = transformMeeting(raw)
+      meetingRows.push(transformed.meeting)
+      meetingTypeRows.push(...transformed.types)
+      meetingTagRows.push(...transformed.tags)
+    }
+
+    const scheduleRows: ScheduleRow[] = []
+    const scheduleMeetingRows: ScheduleMeetingRow[] = []
+
+    for (const raw of rawSchedules) {
+      const transformed = transformSchedule(raw)
+      scheduleRows.push(transformed.schedule)
+      scheduleMeetingRows.push(...transformed.scheduleMeetings)
+    }
+
+    const trexRows = rawTrexes.map(transformTrex)
+
+    console.log(
+      `[seedDatabase] Transformed: ${meetingTypeRows.length} meeting_types, ${meetingTagRows.length} meeting_tags, ${scheduleMeetingRows.length} schedule_meetings`
+    )
+
+    // Insert in FK order
+    await insertSchedules(db, scheduleRows)
+    await insertMeetings(db, meetingRows)
+    await insertTrexes(db, trexRows)
+    await insertMeetingTypes(db, meetingTypeRows)
+    await insertMeetingTags(db, meetingTagRows)
+    await insertScheduleMeetings(db, scheduleMeetingRows)
+
+    markDatabaseSeeded()
+
+    const elapsed = Date.now() - startTime
+    console.log(`[seedDatabase] Seeding complete in ${elapsed}ms`)
+  } catch (error) {
+    console.error("[seedDatabase] Seeding failed:", error)
+    throw error
   }
 }

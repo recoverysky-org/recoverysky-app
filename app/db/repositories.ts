@@ -35,6 +35,13 @@ export const meetingRepo = {
     if (!_meetingRepo) _meetingRepo = new MeetingSqliteRepository(db as any)
     return _meetingRepo.findAll()
   },
+
+  findByIds: async (ids: string[]) => {
+    const { db } = getDb()
+    if (!db) throw new Error("Database not opened")
+    if (!_meetingRepo) _meetingRepo = new MeetingSqliteRepository(db as any)
+    return _meetingRepo.findByIds(ids)
+  },
 }
 
 /**
