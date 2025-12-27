@@ -4,6 +4,38 @@ import * as ReactNative from "react-native"
 
 import mockFile from "./mockFile"
 
+// Mock the icon registry to avoid asset loading issues
+jest.mock("../app/components/Icon", () => {
+  const actual = jest.requireActual("../app/components/Icon")
+  return {
+    ...actual,
+    iconRegistry: {
+      back: 1,
+      bell: 2,
+      caretLeft: 3,
+      caretRight: 4,
+      check: 5,
+      clap: 6,
+      community: 7,
+      components: 8,
+      debug: 9,
+      github: 10,
+      heart: 11,
+      hidden: 12,
+      ladybug: 13,
+      lock: 14,
+      menu: 15,
+      more: 16,
+      pin: 17,
+      podcast: 18,
+      settings: 19,
+      slack: 20,
+      view: 21,
+      x: 22,
+    },
+  }
+})
+
 // libraries to mock
 jest.doMock("react-native", () => {
   // Extend ReactNative
