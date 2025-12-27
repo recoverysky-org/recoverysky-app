@@ -422,7 +422,7 @@ index ac6e2e4..1b34fb7 100644
    // -----------------------------------------------------------------------------------------------
    // endregion
 diff --git a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-index b01c1fd..31b8459 100644
+index b01c1fd..b353f65 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 +++ b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 @@ -11,6 +11,11 @@ - (dispatch_queue_t)methodQueue
@@ -447,7 +447,7 @@ index b01c1fd..31b8459 100644
          params = [[MobileRTCMeetingJoinParam alloc] init];
          params.meetingNumber = [config valueForKey:@"meetingNumber"];
          params.password = [config valueForKey:@"password"];
-@@ -171,31 +179,354 @@ - (dispatch_queue_t)methodQueue
+@@ -171,31 +179,346 @@ - (dispatch_queue_t)methodQueue
      });
  }
  
@@ -579,21 +579,13 @@ index b01c1fd..31b8459 100644
 +    dispatch_async(dispatch_get_main_queue(), ^{
 +        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
 +        if (meetService && [meetService getMeetingState] == MobileRTCMeetingState_InMeeting) {
-+            // Get meeting number as unsigned long long and convert to string
-+            unsigned long long meetingNum = [meetService currentMeetingNumber];
-+            NSString *meetingNumber = [NSString stringWithFormat:@"%llu", meetingNum];
-+
-+            // These methods may not be available in all SDK versions
-+            NSString *meetingPassword = @"";
-+            if ([meetService respondsToSelector:@selector(meetingPassword)]) {
-+                meetingPassword = [meetService performSelector:@selector(meetingPassword)] ?: @"";
-+            }
-+
++            // Meeting number not directly accessible on iOS - must be stored from join params
++            NSString *meetingPassword = [meetService getMeetingPassword] ?: @"";
 +            BOOL isHost = [meetService isMeetingHost];
 +            BOOL isCoHost = [meetService isMeetingCoHost];
 +
 +            resolve(@{
-+                @"meetingNumber": meetingNumber,
++                @"meetingNumber": @"", // Not accessible on iOS after join
 +                @"topic": @"", // Not easily accessible
 +                @"hostName": @"", // Not easily accessible
 +                @"password": meetingPassword,
@@ -771,7 +763,7 @@ index b01c1fd..31b8459 100644
 +        @"state": @(state),
 +        @"stateName": stateName
 +    }];
-+}
+ }
 +
 +- (void)onMeetingEndedReason:(MobileRTCMeetingEndReason)reason {
 +    NSLog(@"[RNZoomSDK] onMeetingEndedReason: %u", reason);
@@ -810,6 +802,6 @@ index b01c1fd..31b8459 100644
 +        @"reason": @(reason),
 +        @"reasonName": reasonName
 +    }];
- }
++}
 +
  @end

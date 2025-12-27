@@ -8,11 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		1FCB326C231242D1A8D8A9F9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C6353AAF69B14C72858D9E07 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4381BB037B97E0B68BB7CC0F /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F44A2599EE6AE584B87981 /* ExpoModulesProvider.swift */; };
-		8EC689BF77F76F2FDB112966 /* libPods-recoveryskyhybrid.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BD7A7C353FB489440844B7A8 /* libPods-recoveryskyhybrid.a */; };
+		55EDED34E0ED8A2545949559 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD35D11E0B364D75B786BF1 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		C419081321104012A827786C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B928B96F93E043CF93D5F11C /* PrivacyInfo.xcprivacy */; };
+		C6CCF69C9489D3F73FE9F670 /* libPods-recoveryskyhybrid.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B108722EB2117AC83D00A19 /* libPods-recoveryskyhybrid.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* recoveryskyhybrid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = recoveryskyhybrid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = recoveryskyhybrid/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = recoveryskyhybrid/Info.plist; sourceTree = "<group>"; };
-		89F44A2599EE6AE584B87981 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-recoveryskyhybrid/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		A0D1C154D67D18260C02A248 /* Pods-recoveryskyhybrid.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-recoveryskyhybrid.debug.xcconfig"; path = "Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid.debug.xcconfig"; sourceTree = "<group>"; };
+		4B108722EB2117AC83D00A19 /* libPods-recoveryskyhybrid.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-recoveryskyhybrid.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = recoveryskyhybrid/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B928B96F93E043CF93D5F11C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = PrivacyInfo.xcprivacy; path = recoveryskyhybrid/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BD7A7C353FB489440844B7A8 /* libPods-recoveryskyhybrid.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-recoveryskyhybrid.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C361CBC2FCA267B698929E47 /* Pods-recoveryskyhybrid.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-recoveryskyhybrid.release.xcconfig"; path = "Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid.release.xcconfig"; sourceTree = "<group>"; };
+		BEFFA7CB082074CD5B55DBD0 /* Pods-recoveryskyhybrid.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-recoveryskyhybrid.release.xcconfig"; path = "Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid.release.xcconfig"; sourceTree = "<group>"; };
+		C6353AAF69B14C72858D9E07 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = PrivacyInfo.xcprivacy; path = recoveryskyhybrid/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		CFD35D11E0B364D75B786BF1 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-recoveryskyhybrid/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		DB3FFC0B34DB21D78F50FA96 /* Pods-recoveryskyhybrid.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-recoveryskyhybrid.debug.xcconfig"; path = "Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = recoveryskyhybrid/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* recoveryskyhybrid-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "recoveryskyhybrid-Bridging-Header.h"; path = "recoveryskyhybrid/recoveryskyhybrid-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8EC689BF77F76F2FDB112966 /* libPods-recoveryskyhybrid.a in Frameworks */,
+				C6CCF69C9489D3F73FE9F670 /* libPods-recoveryskyhybrid.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,36 +53,28 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				B928B96F93E043CF93D5F11C /* PrivacyInfo.xcprivacy */,
+				C6353AAF69B14C72858D9E07 /* PrivacyInfo.xcprivacy */,
 			);
 			name = recoveryskyhybrid;
-			sourceTree = "<group>";
-		};
-		28E1F962DE585D85CB769AF9 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				A0D1C154D67D18260C02A248 /* Pods-recoveryskyhybrid.debug.xcconfig */,
-				C361CBC2FCA267B698929E47 /* Pods-recoveryskyhybrid.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				BD7A7C353FB489440844B7A8 /* libPods-recoveryskyhybrid.a */,
+				4B108722EB2117AC83D00A19 /* libPods-recoveryskyhybrid.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		78DB8D5FB53F3F8B4A682BC6 /* ExpoModulesProviders */ = {
+		3D15EC7DF1C62F7F60E5C180 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				8F02EC4EB7A4C7DD8872253C /* recoveryskyhybrid */,
+				DB3FFC0B34DB21D78F50FA96 /* Pods-recoveryskyhybrid.debug.xcconfig */,
+				BEFFA7CB082074CD5B55DBD0 /* Pods-recoveryskyhybrid.release.xcconfig */,
 			);
-			name = ExpoModulesProviders;
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -99,8 +91,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				28E1F962DE585D85CB769AF9 /* Pods */,
-				78DB8D5FB53F3F8B4A682BC6 /* ExpoModulesProviders */,
+				3D15EC7DF1C62F7F60E5C180 /* Pods */,
+				DDEFFE8FBEF949BFE3CF5E9A /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -115,14 +107,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8F02EC4EB7A4C7DD8872253C /* recoveryskyhybrid */ = {
-			isa = PBXGroup;
-			children = (
-				89F44A2599EE6AE584B87981 /* ExpoModulesProvider.swift */,
-			);
-			name = recoveryskyhybrid;
-			sourceTree = "<group>";
-		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -130,6 +114,22 @@
 			);
 			name = Supporting;
 			path = recoveryskyhybrid/Supporting;
+			sourceTree = "<group>";
+		};
+		DDEFFE8FBEF949BFE3CF5E9A /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				F5C834D6E34383CA429D813C /* recoveryskyhybrid */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		F5C834D6E34383CA429D813C /* recoveryskyhybrid */ = {
+			isa = PBXGroup;
+			children = (
+				CFD35D11E0B364D75B786BF1 /* ExpoModulesProvider.swift */,
+			);
+			name = recoveryskyhybrid;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "recoveryskyhybrid" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				F18ED6E30D87D939F7496F3F /* [Expo] Configure project */,
+				51A6A9BA59F4208C00C77B31 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				BF97AC8B822A49EC67153CEE /* [CP] Embed Pods Frameworks */,
+				181260B668C47B32997AFB84 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				C419081321104012A827786C /* PrivacyInfo.xcprivacy in Resources */,
+				1FCB326C231242D1A8D8A9F9 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,6 +242,56 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		181260B668C47B32997AFB84 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ZoomMeetingSDK/MobileRTC.framework/MobileRTC",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ZoomMeetingSDK/zoomcml.framework/zoomcml",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/MobileRTC.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/zoomcml.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		51A6A9BA59F4208C00C77B31 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/recoveryskyhybrid/recoveryskyhybrid.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-recoveryskyhybrid/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-recoveryskyhybrid/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-recoveryskyhybrid/expo-configure-project.sh\"\n";
+		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -280,56 +330,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		BF97AC8B822A49EC67153CEE /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ZoomMeetingSDK/MobileRTC.framework/MobileRTC",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ZoomMeetingSDK/zoomcml.framework/zoomcml",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/MobileRTC.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/zoomcml.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-recoveryskyhybrid/Pods-recoveryskyhybrid-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		F18ED6E30D87D939F7496F3F /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/recoveryskyhybrid/recoveryskyhybrid.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-recoveryskyhybrid/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-recoveryskyhybrid/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-recoveryskyhybrid/expo-configure-project.sh\"\n";
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -338,7 +338,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				4381BB037B97E0B68BB7CC0F /* ExpoModulesProvider.swift in Sources */,
+				55EDED34E0ED8A2545949559 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -347,7 +347,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A0D1C154D67D18260C02A248 /* Pods-recoveryskyhybrid.debug.xcconfig */;
+			baseConfigurationReference = DB3FFC0B34DB21D78F50FA96 /* Pods-recoveryskyhybrid.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -383,7 +383,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C361CBC2FCA267B698929E47 /* Pods-recoveryskyhybrid.release.xcconfig */;
+			baseConfigurationReference = BEFFA7CB082074CD5B55DBD0 /* Pods-recoveryskyhybrid.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
