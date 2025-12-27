@@ -1,9 +1,8 @@
 /**
  * Database Provider Component
  *
- * Provides manual database control via context.
- * App boots immediately - user clicks "Open Db" to run migrations,
- * then "Seed Db" to populate data.
+ * Automatically initializes and seeds the database on app startup.
+ * Shows loading overlay during initialization via DatabaseLoadingOverlay.
  */
 
 import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
@@ -62,7 +61,8 @@ interface DatabaseProviderProps {
 /**
  * Database Provider Component
  *
- * Renders children immediately. Exposes openDb() and seedDb() for manual control.
+ * Automatically opens database and runs migrations on mount.
+ * Auto-seeds if not already seeded (checked via MMKV flag).
  */
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
   log.debug("DatabaseProvider initializing")
@@ -141,6 +141,20 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
       setStatus("error")
     }
   }, [status])
+
+  // Auto-initialize database on mount
+  useEffect(() => {
+    log.info("Auto-initializing database...")
+    openDb()
+  }, [openDb])
+
+  // Auto-seed when database is open
+  useEffect(() => {
+    if (status === "open") {
+      log.info("Database open, auto-seeding...")
+      seedDb()
+    }
+  }, [status, seedDb])
 
   log.debug("DatabaseProvider rendering children", { status })
 

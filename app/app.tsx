@@ -25,13 +25,14 @@ import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { MeetingProvider } from "./context/MeetingContext"
-import { DatabaseProvider } from "./db"
+import { DatabaseProvider, DatabaseLoadingOverlay } from "./db"
 import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
+import { getDeviceId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
 import { logger } from "./utils/logger"
 import * as storage from "./utils/storage"
@@ -113,8 +114,14 @@ export function App() {
     log.info("Initializing MST RootStore")
     const _rootStore = RootStoreModel.create({})
     setupRootStore(_rootStore)
-      .then(() => {
+      .then(async () => {
         log.info("RootStore initialized and hydrated from storage")
+
+        // Initialize device ID for user identification
+        const deviceId = await getDeviceId()
+        _rootStore.authenticationStore.setDeviceId(deviceId)
+        log.info("Device ID initialized", { deviceId: deviceId.slice(0, 8) + "..." })
+
         setRootStore(_rootStore)
       })
       .catch((error) => {
@@ -156,6 +163,7 @@ export function App() {
           <DatabaseProvider>
             <MeetingProvider>
               <ThemeProvider>
+                <DatabaseLoadingOverlay />
                 <AppNavigator
                   linking={linking}
                   initialState={initialNavigationState}

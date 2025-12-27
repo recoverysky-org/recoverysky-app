@@ -5,7 +5,6 @@ import { observer } from "mobx-react-lite"
 import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useDatabase } from "@/db"
 import { useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
@@ -15,12 +14,9 @@ import type { ThemedStyle } from "@/theme/types"
 
 /**
  * HomeScreen - Dashboard/home screen
- *
- * Provides manual database control buttons and OAuth login for development.
  */
 export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function HomeScreen(_props) {
   const { themed, theme } = useAppTheme()
-  const { status, error: dbError, openDb, seedDb } = useDatabase()
   const authStore = useAuthenticationStore()
   const { login, logout, isLoading: authLoading, error: authError, clearError } = useZitadelAuth()
 
@@ -41,38 +37,17 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
     >
       <Text preset="heading" tx="homeScreen:title" />
 
-      {/* Database Status */}
-      <View style={themed($statusContainer)}>
-        <Text style={themed($statusLabel)}>Database Status:</Text>
-        <Text style={themed($statusValue)}>{status}</Text>
-        {dbError && <Text style={themed($errorText)}>{dbError}</Text>}
-      </View>
-
-      {/* Database Controls */}
-      <View style={themed($buttonContainer)}>
-        <Button
-          text="Open Db"
-          preset="filled"
-          onPress={openDb}
-          disabled={status !== "closed" && status !== "error"}
-          style={themed($button)}
-        />
-        <Button
-          text="Seed Db"
-          preset="filled"
-          onPress={seedDb}
-          disabled={status !== "open"}
-          style={themed($button)}
-        />
-      </View>
-
       {/* Auth Status */}
       <View style={themed($statusContainer)}>
         <Text style={themed($statusLabel)}>Auth Status:</Text>
         <Text style={themed($statusValue)}>
-          {authStore.isAuthenticated ? "Authenticated" : "Not authenticated"}
+          {authStore.isAuthenticated
+            ? authStore.isAnonymous
+              ? "Anonymous"
+              : "Authenticated"
+            : "Not authenticated"}
         </Text>
-        {authStore.isAuthenticated && authStore.authEmail && (
+        {authStore.isAuthenticated && !authStore.isAnonymous && authStore.authEmail && (
           <Text style={themed($emailText)}>{authStore.authEmail}</Text>
         )}
         {authError && <Text style={themed($errorText)}>{authError}</Text>}
