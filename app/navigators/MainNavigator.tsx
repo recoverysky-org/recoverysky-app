@@ -1,9 +1,12 @@
 import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { CompositeScreenProps } from "@react-navigation/native"
+import { View, Text, StyleSheet } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
+import { useMeetings } from "@/context/MeetingContext"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { LiveScreen } from "@/screens/LiveScreen"
 // import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
@@ -50,6 +53,7 @@ export function MainNavigator() {
   const {
     theme: { colors },
   } = useAppTheme()
+  const { liveMeetings } = useMeetings()
 
   return (
     <Tab.Navigator
@@ -87,7 +91,20 @@ export function MainNavigator() {
         options={{
           tabBarLabel: t("mainNavigator:liveTab"),
           tabBarIcon: ({ focused }) => (
-            <Icon icon="heart" color={focused ? colors.tint : colors.textDim} size={24} />
+            <View style={styles.iconContainer}>
+              <Ionicons
+                name="videocam"
+                size={24}
+                color={focused ? colors.tint : colors.textDim}
+              />
+              {liveMeetings.length > 0 && (
+                <View style={[styles.badge, { backgroundColor: colors.tint }]}>
+                  <Text style={styles.badgeText}>
+                    {liveMeetings.length > 99 ? "99+" : liveMeetings.length}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
@@ -126,3 +143,25 @@ export function MainNavigator() {
     </Tab.Navigator>
   )
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+})
