@@ -133,7 +133,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
     })
 
     return sortedEntries.map(([, row]) =>
-      row.map((dt) => (dt ? dt.toFormat("h:mma").toLowerCase() : null))
+      row.map((dt) => {
+        if (!dt) return null
+        // Format as "12:00p" (no 'm', lowercase)
+        const time = dt.toFormat("h:mm")
+        const period = dt.hour >= 12 ? "p" : "a"
+        return `${time}${period}`
+      })
     )
   }, [scheduleMeetings])
 

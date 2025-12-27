@@ -59,6 +59,11 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
     [themed]
   )
 
+  const ItemSeparatorComponent = useCallback(
+    () => <View style={themed($separator)} />,
+    [themed]
+  )
+
   const ListHeaderComponent = useCallback(
     () => (
       <View style={themed($header)}>
@@ -85,6 +90,7 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmptyComponent}
         ListHeaderComponent={ListHeaderComponent}
+        ItemSeparatorComponent={ItemSeparatorComponent}
         contentContainerStyle={themed($listContent)}
         refreshControl={
           <RefreshControl
@@ -116,6 +122,12 @@ const $countText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
 
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.xxl,
+})
+
+const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  height: 1,
+  backgroundColor: colors.border,
+  marginLeft: 48, // Align with text, after the dot and badge
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

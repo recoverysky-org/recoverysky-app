@@ -78,20 +78,23 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
 
       {/* Time Rows */}
       {scheduleData.map((row, rowIndex) => (
-        <View key={rowIndex} style={themed($timeRow)}>
-          {row.map((time, colIndex) => (
-            <View key={colIndex} style={themed($timeCell)}>
-              {time ? (
-                <View style={themed($timeCellInner)}>
-                  <Text style={[themed($timeText), { color: theme.colors.tint }]}>
-                    {time}
-                  </Text>
-                </View>
-              ) : (
-                <View style={themed($emptyCellInner)} />
-              )}
-            </View>
-          ))}
+        <View key={rowIndex}>
+          {rowIndex > 0 && <View style={themed($separator)} />}
+          <View style={themed($timeRow)}>
+            {row.map((time, colIndex) => (
+              <View key={colIndex} style={themed($timeCell)}>
+                {time ? (
+                  <View style={themed($timeCellInner)}>
+                    <Text style={[themed($timeText), { color: theme.colors.tint }]}>
+                      {time}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={themed($emptyCellInner)} />
+                )}
+              </View>
+            ))}
+          </View>
         </View>
       ))}
     </View>
@@ -123,9 +126,14 @@ const $headerText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
+const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  height: 1,
+  backgroundColor: colors.border,
+  marginVertical: 6,
+})
+
 const $timeRow: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
-  marginBottom: 6,
 })
 
 const $timeCell: ThemedStyle<ViewStyle> = () => ({
@@ -134,9 +142,10 @@ const $timeCell: ThemedStyle<ViewStyle> = () => ({
 })
 
 const $timeCellInner: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: `${colors.tint}20`, // 20 = ~12% opacity
+  backgroundColor: `${colors.tint}20`,
   borderRadius: 8,
-  paddingVertical: 8,
+  paddingVertical: 6,
+  paddingHorizontal: 4,
   alignItems: "center",
 })
 
@@ -145,6 +154,6 @@ const $emptyCellInner: ThemedStyle<ViewStyle> = () => ({
 })
 
 const $timeText: ThemedStyle<TextStyle> = () => ({
-  fontSize: 12,
-  fontWeight: "500",
+  fontSize: 11,
+  fontWeight: "600",
 })
