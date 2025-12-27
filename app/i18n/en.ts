@@ -4,6 +4,7 @@ const en = {
     cancel: "Cancel",
     back: "Back",
     logOut: "Log Out",
+    apply: "Apply",
   },
   welcomeScreen: {
     postscript:
@@ -66,8 +67,10 @@ const en = {
     title: "Live Now",
     noMeetings: "No meetings are live right now",
     lastRefresh: "Last checked: {{time}}",
-    joinMeeting: "Join",
+    joinMeeting: "Join Meeting",
     meetingCount: "{{count}} meetings live",
+    meetings: "{{count}} meetings",
+    password: "Password",
   },
   settingsScreen: {
     title: "Settings",
@@ -108,9 +111,23 @@ const en = {
     selectLanguage: "Select Language",
     darkMode: "Dark Mode",
     themeColor: "Theme Color",
+    currentColor: "Current",
+    pastelColors: "Pastels",
+    vibrantColors: "Vibrant",
+    customColor: "Custom Color",
+    resetToDefault: "Reset to Default",
     // Actions
     logout: "Logout",
     logoutConfirm: "Are you sure you want to log out?",
+  },
+  // Zoom Meeting
+  zoomMeeting: {
+    joining: "Joining meeting...",
+    joinFailed: "Failed to join meeting",
+    retry: "Try Again",
+    openExternal: "Open in Zoom App",
+    permissionRequired: "Camera and microphone access required",
+    joinMeeting: "Join Meeting",
   },
   // Dev Screen (hidden)
   devScreen: {
