@@ -1,7 +1,7 @@
 /**
  * useLivePolling Hook
  *
- * Polls for live meeting updates at a configurable interval.
+ * Polls for live meeting updates at 15-minute clock marks (:00, :15, :30, :45).
  * Pauses when app is backgrounded to save resources.
  */
 
@@ -9,8 +9,6 @@ import { useEffect, useRef } from "react"
 import { AppState, type AppStateStatus } from "react-native"
 
 interface UseLivePollingOptions {
-  /** Polling interval in milliseconds (default: 30000) */
-  interval?: number
   /** Whether polling is enabled (default: true) */
   enabled?: boolean
   /** Callback to run on each poll */
@@ -18,56 +16,76 @@ interface UseLivePollingOptions {
 }
 
 /**
- * Hook that polls for updates at a regular interval
+ * Calculate milliseconds until next 15-minute mark
+ */
+function msUntilNext15MinMark(): number {
+  const now = new Date()
+  const minutes = now.getMinutes()
+  const seconds = now.getSeconds()
+  const ms = now.getMilliseconds()
+
+  // Find next 15-minute mark (0, 15, 30, 45)
+  const nextMark = Math.ceil((minutes + 1) / 15) * 15
+  const minutesUntil = (nextMark - minutes) % 60 || 15 // If exactly on mark, wait 15 min
+
+  // Convert to milliseconds, subtracting current seconds/ms
+  return minutesUntil * 60 * 1000 - seconds * 1000 - ms
+}
+
+/**
+ * Hook that polls for updates at 15-minute clock marks
+ *
+ * Refreshes at :00, :15, :30, :45 of each hour.
+ * Also refreshes immediately when app comes to foreground.
  *
  * @example
  * useLivePolling({
- *   interval: 30000,
  *   enabled: true,
  *   onRefresh: () => refreshLiveMeetings(),
  * })
  */
-export function useLivePolling({
-  interval = 30000,
-  enabled = true,
-  onRefresh,
-}: UseLivePollingOptions): void {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+export function useLivePolling({ enabled = true, onRefresh }: UseLivePollingOptions): void {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const appStateRef = useRef<AppStateStatus>(AppState.currentState)
 
   useEffect(() => {
     if (!enabled) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
       }
       return
     }
 
-    // Start polling
-    const startPolling = () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+    // Schedule next refresh at 15-minute mark
+    const scheduleNextRefresh = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
       }
-      intervalRef.current = setInterval(() => {
+
+      const msUntilNext = msUntilNext15MinMark()
+      console.log(`[useLivePolling] Next refresh in ${Math.round(msUntilNext / 1000 / 60)} minutes`)
+
+      timeoutRef.current = setTimeout(() => {
         onRefresh()
-      }, interval)
+        scheduleNextRefresh() // Schedule next one
+      }, msUntilNext)
     }
 
     // Stop polling
     const stopPolling = () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
       }
     }
 
     // Handle app state changes
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === "active") {
-        // App came to foreground - refresh immediately and restart polling
+        // App came to foreground - refresh immediately and reschedule
         onRefresh()
-        startPolling()
+        scheduleNextRefresh()
       } else if (nextAppState.match(/inactive|background/)) {
         // App went to background - stop polling
         stopPolling()
@@ -78,13 +96,13 @@ export function useLivePolling({
     // Subscribe to app state changes
     const subscription = AppState.addEventListener("change", handleAppStateChange)
 
-    // Start polling immediately
-    startPolling()
+    // Schedule first refresh (don't refresh immediately on mount)
+    scheduleNextRefresh()
 
     // Cleanup
     return () => {
       stopPolling()
       subscription.remove()
     }
-  }, [enabled, interval, onRefresh])
+  }, [enabled, onRefresh])
 }

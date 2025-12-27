@@ -25,9 +25,8 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
-  // Auto-poll every 30 seconds
+  // Auto-refresh at 15-minute marks (:00, :15, :30, :45)
   useLivePolling({
-    interval: 30000,
     enabled: true,
     onRefresh: refresh,
   })
