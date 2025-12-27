@@ -22,7 +22,15 @@
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
     "allowBackup": false,
-    "edgeToEdgeEnabled": true
+    "edgeToEdgeEnabled": true,
+    "permissions": [
+      "android.permission.CAMERA",
+      "android.permission.RECORD_AUDIO",
+      "android.permission.BLUETOOTH",
+      "android.permission.BLUETOOTH_ADMIN",
+      "android.permission.MODIFY_AUDIO_SETTINGS",
+      "android.permission.FOREGROUND_SERVICE"
+    ]
   },
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
@@ -39,7 +47,10 @@
       ]
     },
     "infoPlist": {
-      "ITSAppUsesNonExemptEncryption": false
+      "ITSAppUsesNonExemptEncryption": false,
+      "NSCameraUsageDescription": "Camera access is needed for video meetings",
+      "NSMicrophoneUsageDescription": "Microphone access is needed for audio in meetings",
+      "NSBluetoothPeripheralUsageDescription": "Bluetooth is used for headset connectivity"
     }
   },
   "web": {
