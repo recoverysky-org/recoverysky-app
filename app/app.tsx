@@ -21,10 +21,16 @@ import "./utils/gestureHandler"
 import { useEffect, useState } from "react"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
+import * as SplashScreen from "expo-splash-screen"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { reaction } from "mobx"
+
+// Prevent splash screen from auto-hiding before we're ready
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore errors - splash screen might already be hidden
+})
 
 import { MeetingProvider } from "./context/MeetingContext"
 import { DatabaseProvider, DatabaseLoadingOverlay } from "./db"
@@ -151,13 +157,26 @@ export function App() {
       })
   }, [])
 
+  // Check if app is ready
+  const isAppReady = isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
+
+  // Hide splash screen when app is ready
+  useEffect(() => {
+    if (isAppReady) {
+      log.info("App ready, hiding splash screen")
+      SplashScreen.hideAsync().catch((err) => {
+        log.warn("Failed to hide splash screen", { error: String(err) })
+      })
+    }
+  }, [isAppReady])
+
   // Before we show the app, we have to wait for our state to be ready.
   // In the meantime, don't render anything. This will be the background
   // color set in native by rootView's background color.
   // In iOS: application:didFinishLaunchingWithOptions:
   // In Android: https://stackoverflow.com/a/45838109/204044
   // You can replace with your own loading component if you wish.
-  if (!isNavigationStateRestored || !isI18nInitialized || !rootStore || (!areFontsLoaded && !fontLoadError)) {
+  if (!isAppReady) {
     log.debug("App waiting for initialization", {
       isNavigationStateRestored,
       isI18nInitialized,
