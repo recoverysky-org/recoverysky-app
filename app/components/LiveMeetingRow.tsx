@@ -68,7 +68,7 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
   meeting,
   onPress,
 }) => {
-  const { themed } = useAppTheme()
+  const { themed, theme } = useAppTheme()
 
   const startTime = useMemo(() => getStartTime(meeting.trex), [meeting.trex])
 
@@ -81,12 +81,11 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
       style={themed($container)}
       onPress={() => onPress?.(meeting)}
     >
-      {/* Live Dot */}
-      <View style={$liveDot} />
-
       {/* Fellowship Badge */}
-      <View style={[$fellowshipBadge, { backgroundColor: fellowshipColor }]}>
-        <Text style={$fellowshipText}>{meeting.fellowship || "?"}</Text>
+      <View style={[$fellowshipBadge, { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
+        <Text style={[$fellowshipText, { color: fellowshipColor }]}>
+          {meeting.fellowship || "?"}
+        </Text>
       </View>
 
       {/* Meeting Name */}
@@ -119,23 +118,21 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.xs,
 })
 
-const $liveDot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-  backgroundColor: "#22c55e",
-}
-
 const $fellowshipBadge: ViewStyle = {
   paddingHorizontal: 8,
   paddingVertical: 2,
   borderRadius: 10,
   minWidth: 32,
   alignItems: "center",
+  backgroundColor: "#000",
+  borderWidth: 1.5,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
+  shadowRadius: 6,
+  elevation: 8,
 }
 
 const $fellowshipText: TextStyle = {
-  color: "#fff",
   fontSize: 11,
   fontWeight: "700",
 }

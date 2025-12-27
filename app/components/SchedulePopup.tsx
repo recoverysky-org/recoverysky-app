@@ -20,7 +20,6 @@ import {
   TextStyle,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
@@ -100,6 +99,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const [isFavorite, setIsFavorite] = useState(false)
   const [rating, setRating] = useState(0)
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
   // Get all meetings for this schedule (from pre-loaded cache)
   const scheduleMeetings = useMemo(() => {
@@ -209,8 +209,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             </Text>
 
             {/* Fellowship badge */}
-            <View style={[$fellowshipBadge, { backgroundColor: fellowshipColor }]}>
-              <Text style={$fellowshipBadgeText}>{meeting.fellowship || "?"}</Text>
+            <View style={[$fellowshipBadge, { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
+              <Text style={[$fellowshipBadgeText, { color: fellowshipColor }]}>
+                {meeting.fellowship || "?"}
+              </Text>
             </View>
 
             {/* Close button */}
@@ -262,47 +264,60 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             </Pressable>
           </View>
 
-          <ScrollView style={themed($scrollContent)} showsVerticalScrollIndicator={false}>
-            {/* Join button and Rating row */}
-            <View style={themed($actionRow)}>
-              {/* Join button */}
-              {meeting.url && (
-                <Pressable
-                  onPress={handleJoin}
-                  style={[themed($joinButton), isJoining && { opacity: 0.7 }]}
-                  disabled={isJoining}
-                >
-                  <Text style={$joinButtonText}>
-                    {isJoining ? "Joining..." : "Join Meeting"}
-                  </Text>
+          {/* Join button and Rating row */}
+          <View style={themed($actionRow)}>
+            {/* Join button */}
+            {meeting.url && (
+              <Pressable
+                onPress={handleJoin}
+                style={[themed($joinButton), isJoining && { opacity: 0.7 }]}
+                disabled={isJoining}
+              >
+                <Text style={themed($joinButtonText)}>
+                  {isJoining ? "Joining..." : "Join Meeting"}
+                </Text>
+                <Ionicons
+                  name={isSDKReady ? "videocam" : "open-outline"}
+                  size={16}
+                  color={theme.colors.tint}
+                />
+              </Pressable>
+            )}
+
+            {/* Rating stars (UI only) */}
+            <View style={themed($ratingContainer)}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Pressable key={star} onPress={() => setRating(star)}>
                   <Ionicons
-                    name={isSDKReady ? "videocam" : "open-outline"}
-                    size={16}
-                    color="#fff"
+                    name={star <= rating ? "star" : "star-outline"}
+                    size={20}
+                    color={star <= rating ? "#fbbf24" : theme.colors.textDim}
                   />
                 </Pressable>
-              )}
-
-              {/* Rating stars (UI only) */}
-              <View style={themed($ratingContainer)}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Pressable key={star} onPress={() => setRating(star)}>
-                    <Ionicons
-                      name={star <= rating ? "star" : "star-outline"}
-                      size={20}
-                      color={star <= rating ? "#fbbf24" : theme.colors.textDim}
-                    />
-                  </Pressable>
-                ))}
-              </View>
+              ))}
             </View>
+          </View>
 
-            {/* Schedule Grid */}
-            <ScheduleGrid
-              scheduleData={scheduleGridData}
-              currentDow={currentDow}
-            />
-          </ScrollView>
+          {/* Description - tap to expand */}
+          {meeting.description ? (
+            <Pressable onPress={() => setDescriptionExpanded(!descriptionExpanded)}>
+              <Text
+                style={themed($description)}
+                numberOfLines={descriptionExpanded ? undefined : 5}
+              >
+                {meeting.description}
+              </Text>
+              {!descriptionExpanded && meeting.description.length > 200 && (
+                <Text style={themed($readMore)}>Tap to read more...</Text>
+              )}
+            </Pressable>
+          ) : null}
+
+          {/* Schedule Grid */}
+          <ScheduleGrid
+            scheduleData={scheduleGridData}
+            currentDow={currentDow}
+          />
         </View>
       </View>
     </Modal>
@@ -364,10 +379,15 @@ const $fellowshipBadge: ViewStyle = {
   paddingHorizontal: 10,
   paddingVertical: 4,
   borderRadius: 12,
+  backgroundColor: "#000",
+  borderWidth: 1.5,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
+  shadowRadius: 6,
+  elevation: 8,
 }
 
 const $fellowshipBadgeText: TextStyle = {
-  color: "#fff",
   fontSize: 12,
   fontWeight: "700",
 }
@@ -393,6 +413,19 @@ const $metaItem: ViewStyle = {
 const $metaText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   color: colors.textDim,
+})
+
+const $description: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 14,
+  color: colors.textDim,
+  lineHeight: 20,
+  marginBottom: spacing.xs,
+})
+
+const $readMore: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 13,
+  color: colors.tint,
+  marginBottom: spacing.sm,
 })
 
 const $tagsAndFavRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -422,10 +455,6 @@ const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
-const $scrollContent: ThemedStyle<ViewStyle> = () => ({
-  flexGrow: 0,
-})
-
 const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
@@ -436,18 +465,25 @@ const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $joinButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  backgroundColor: colors.tint,
+  backgroundColor: "#000",
+  borderWidth: 1.5,
+  borderColor: colors.tint,
   paddingVertical: spacing.sm,
   paddingHorizontal: spacing.lg,
   borderRadius: 10,
   gap: spacing.xs,
+  shadowColor: colors.tint,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
+  shadowRadius: 8,
+  elevation: 8,
 })
 
-const $joinButtonText: TextStyle = {
-  color: "#fff",
+const $joinButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
   fontSize: 16,
   fontWeight: "600",
-}
+})
 
 const $ratingContainer: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
