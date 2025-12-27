@@ -29,15 +29,17 @@ const es: Translations = {
   errors: {
     invalidEmail: "Dirección de correo inválida.",
   },
+  database: {
+    initializing: "Inicializando base de datos...",
+    seeding: "Cargando datos...",
+    error: "Error de base de datos",
+  },
   loginScreen: {
     logIn: "Iniciar sesión",
-    enterDetails: "Ingresa tus datos abajo para desbloquear información secreta.",
-    emailFieldLabel: "Correo",
-    passwordFieldLabel: "Contraseña",
-    emailFieldPlaceholder: "Ingresa tu correo electrónico",
-    passwordFieldPlaceholder: "Contraseña súper secreta aquí",
-    tapToLogIn: "¡Toca para iniciar sesión!",
-    hint: "Pista: puedes usar cualquier correo y tu contraseña favorita :)",
+    enterDetails: "Inicia sesión para sincronizar tus datos, o continúa de forma anónima.",
+    loginButton: "Iniciar sesión",
+    continueAnonymously: "Continuar Anónimamente",
+    openingBrowser: "Abriendo navegador para autenticación...",
   },
   mainNavigator: {
     homeTab: "Inicio",
@@ -94,6 +96,7 @@ const es: Translations = {
     subscriptionPremium: "Premium",
     expires: "Expira",
     userId: "ID de Usuario",
+    anonymousUser: "Anónimo",
     deleteUserData: "Eliminar Datos de Usuario",
     deleteUserDataConfirm: "¿Estás seguro de que deseas eliminar todos los datos de usuario? Esta acción no se puede deshacer.",
     appSettingsSection: "Configuración de la App",

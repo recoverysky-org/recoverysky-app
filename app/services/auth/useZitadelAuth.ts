@@ -36,6 +36,8 @@ const STORAGE_KEYS = {
 export interface UseZitadelAuthResult {
   /** Initiate the OAuth login flow */
   login: () => Promise<void>
+  /** Login as anonymous user (no OAuth) */
+  loginAnonymously: () => void
   /** Logout and clear all tokens */
   logout: () => Promise<void>
   /** Refresh the access token using refresh token */
@@ -126,6 +128,9 @@ export function useZitadelAuth(): UseZitadelAuthResult {
         expiresAt
       )
 
+      // Ensure OAuth login clears anonymous status
+      authStore.setProp("isAnonymous", false)
+
       if (userInfo) {
         authStore.setUserId(userInfo.sub)
         if (userInfo.email) {
@@ -208,6 +213,14 @@ export function useZitadelAuth(): UseZitadelAuthResult {
     log.info("Starting OAuth login flow")
     await promptAsync()
   }, [request, promptAsync])
+
+  /**
+   * Login as anonymous user (no OAuth required)
+   */
+  const loginAnonymously = useCallback(() => {
+    log.info("Anonymous login")
+    authStore.loginAnonymously()
+  }, [authStore])
 
   /**
    * Logout and clear all tokens
@@ -304,6 +317,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
 
   return {
     login,
+    loginAnonymously,
     logout,
     refreshTokens,
     isLoading,

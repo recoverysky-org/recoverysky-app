@@ -15,15 +15,24 @@ export const AuthenticationStoreModel = types
     expiresAt: types.maybe(types.number),
     /** User's email address */
     authEmail: "",
-    /** User ID from OAuth provider (sub claim) */
+    /** User ID from OAuth provider (sub claim) or deviceId for anonymous users */
     userId: types.maybe(types.string),
+    /** Unique device identifier, captured on app start */
+    deviceId: types.maybe(types.string),
+    /** Whether user is using anonymous login (no OAuth) */
+    isAnonymous: types.optional(types.boolean, false),
   })
   .views((store) => ({
     /**
-     * Whether the user is authenticated
-     * Checks for valid, non-expired access token
+     * Whether the user is authenticated.
+     * Returns true for:
+     * - Anonymous users (isAnonymous=true with deviceId)
+     * - OAuth users (valid, non-expired access token)
      */
     get isAuthenticated() {
+      // Anonymous users are authenticated
+      if (store.isAnonymous && store.deviceId) return true
+      // OAuth users need valid token
       if (!store.accessToken) return false
       if (store.expiresAt && store.expiresAt < Date.now()) return false
       return true
@@ -90,6 +99,20 @@ export const AuthenticationStoreModel = types
       store.userId = value
     },
     /**
+     * Set device ID (captured on app start)
+     */
+    setDeviceId(id: string) {
+      store.deviceId = id
+    },
+    /**
+     * Login as anonymous user
+     * Uses deviceId as userId for tracking
+     */
+    loginAnonymously() {
+      store.isAnonymous = true
+      store.userId = store.deviceId
+    },
+    /**
      * Logout - clear all auth state
      */
     logout() {
@@ -99,6 +122,8 @@ export const AuthenticationStoreModel = types
       store.expiresAt = undefined
       store.authEmail = ""
       store.userId = undefined
+      store.isAnonymous = false
+      // Note: deviceId is NOT cleared - it persists across sessions
     },
   }))
 

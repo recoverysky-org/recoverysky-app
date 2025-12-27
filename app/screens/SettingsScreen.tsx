@@ -338,7 +338,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         />
         <SettingsRow
           label={translate("settingsScreen:userId")}
-          value={authStore.userId ?? "Not logged in"}
+          value={
+            authStore.isAnonymous
+              ? translate("settingsScreen:anonymousUser")
+              : authStore.authEmail || authStore.userId || "Not logged in"
+          }
         />
         <TouchableOpacity
           style={themed($deleteRow)}

@@ -20,7 +20,7 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
  */
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
-  const { login, isLoading, error, clearError } = useZitadelAuth()
+  const { login, loginAnonymously, isLoading, error, clearError } = useZitadelAuth()
 
   const handleLogin = async () => {
     clearError()
@@ -52,7 +52,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         <Button
           testID="login-button"
-          text="Login with Zitadel"
+          tx="loginScreen:loginButton"
           style={themed($loginButton)}
           preset="filled"
           onPress={handleLogin}
@@ -70,8 +70,17 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           }
         />
 
+        <Button
+          testID="anonymous-button"
+          tx="loginScreen:continueAnonymously"
+          style={themed($anonymousButton)}
+          preset="default"
+          onPress={loginAnonymously}
+          disabled={isLoading}
+        />
+
         {isLoading && (
-          <Text style={themed($loadingText)}>Opening browser for authentication...</Text>
+          <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
         )}
       </View>
     </Screen>
@@ -117,6 +126,10 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 const $loginButton: ThemedStyle<ViewStyle> = () => ({
+  width: "100%",
+})
+
+const $anonymousButton: ThemedStyle<ViewStyle> = () => ({
   width: "100%",
 })
 
