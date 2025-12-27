@@ -21,7 +21,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Linking,
   StyleSheet,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
@@ -29,6 +28,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import {
@@ -97,6 +97,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
 }) {
   const { themed, theme } = useAppTheme()
   const { getMeetingsForSchedule } = useMeetings()
+  const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const [isFavorite, setIsFavorite] = useState(false)
   const [rating, setRating] = useState(0)
 
@@ -147,11 +148,42 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   const duration = meeting?.trex ? formatDuration(meeting.trex.duration_ms) : null
 
   const handleJoin = async () => {
-    if (!meeting?.url) return
-    try {
+    console.log("=== HANDLE JOIN CLICKED ===")
+    console.log(`[SchedulePopup] Meeting URL: ${meeting?.url}`)
+    console.log(`[SchedulePopup] Meeting name: ${meeting?.name}`)
+    console.log(`[SchedulePopup] SDK Ready: ${isSDKReady}`)
+
+    if (!meeting?.url) {
+      console.warn("[SchedulePopup] No meeting URL available")
+      return
+    }
+
+    // Extract meeting number and password from URL
+    // Note: Override ZID is handled in ZoomMeetingProvider for both JWT and join
+    const meetingNumber = extractZoomMeetingNumber(meeting.url)
+    const password = extractZoomPassword(meeting.url) || meeting.password || ""
+
+    console.log(`[SchedulePopup] Extracted meeting number: ${meetingNumber}`)
+    console.log(`[SchedulePopup] Has password: ${!!password}`)
+    console.log(`[SchedulePopup] Note: EXPO_PUBLIC_JOIN_MEETING_ZID override handled in ZoomMeetingProvider`)
+
+    if (!meetingNumber) {
+      console.warn("[SchedulePopup] Could not extract meeting number, opening URL directly")
+      // Fallback for non-Zoom URLs
+      const { Linking } = await import("react-native")
       await Linking.openURL(meeting.url)
+      return
+    }
+
+    try {
+      const result = await joinMeeting({
+        meetingNumber,
+        userName: "RecoverySky User", // TODO: Get from user profile
+        password,
+      })
+      console.log(`[SchedulePopup] Join result:`, result)
     } catch (err) {
-      console.error("Failed to open meeting URL:", err)
+      console.error("[SchedulePopup] Failed to join meeting:", err)
     }
   }
 
@@ -243,9 +275,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             <View style={themed($actionRow)}>
               {/* Join button */}
               {meeting.url && (
-                <Pressable onPress={handleJoin} style={themed($joinButton)}>
-                  <Text style={$joinButtonText}>Join Meeting</Text>
-                  <Ionicons name="open-outline" size={16} color="#fff" />
+                <Pressable
+                  onPress={handleJoin}
+                  style={[themed($joinButton), isJoining && { opacity: 0.7 }]}
+                  disabled={isJoining}
+                >
+                  <Text style={$joinButtonText}>
+                    {isJoining ? "Joining..." : "Join Meeting"}
+                  </Text>
+                  <Ionicons
+                    name={isSDKReady ? "videocam" : "open-outline"}
+                    size={16}
+                    color="#fff"
+                  />
                 </Pressable>
               )}
 
