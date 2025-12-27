@@ -422,7 +422,7 @@ index ac6e2e4..1b34fb7 100644
    // -----------------------------------------------------------------------------------------------
    // endregion
 diff --git a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-index b01c1fd..bde3d62 100644
+index b01c1fd..31b8459 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 +++ b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 @@ -11,6 +11,11 @@ - (dispatch_queue_t)methodQueue
@@ -447,7 +447,7 @@ index b01c1fd..bde3d62 100644
          params = [[MobileRTCMeetingJoinParam alloc] init];
          params.meetingNumber = [config valueForKey:@"meetingNumber"];
          params.password = [config valueForKey:@"password"];
-@@ -171,31 +179,352 @@ - (dispatch_queue_t)methodQueue
+@@ -171,31 +179,354 @@ - (dispatch_queue_t)methodQueue
      });
  }
  
@@ -464,7 +464,7 @@ index b01c1fd..bde3d62 100644
 +        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
 +        if (meetService) {
 +            if (endMeeting) {
-+                [meetService leaveMeetingWithCmd:LeaveMeetingCmd_EndMeeting];
++                [meetService leaveMeetingWithCmd:LeaveMeetingCmd_End];
 +            } else {
 +                [meetService leaveMeetingWithCmd:LeaveMeetingCmd_Leave];
 +            }
@@ -505,13 +505,9 @@ index b01c1fd..bde3d62 100644
 +    dispatch_async(dispatch_get_main_queue(), ^{
 +        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
 +        if (meetService) {
-+            MobileRTCVideoError result = [meetService muteMyVideo:muted];
-+            NSLog(@"[RNZoomSDK] muteMyVideo: %@, result: %ld", muted ? @"YES" : @"NO", (long)result);
-+            if (result == MobileRTCVideoError_Success) {
-+                resolve(@(YES));
-+            } else {
-+                reject(@"video_error", [NSString stringWithFormat:@"Video error: %ld", (long)result], nil);
-+            }
++            BOOL result = [meetService muteMyVideo:muted];
++            NSLog(@"[RNZoomSDK] muteMyVideo: %@, result: %@", muted ? @"YES" : @"NO", result ? @"YES" : @"NO");
++            resolve(@(result));
 +        } else {
 +            reject(@"no_meeting", @"No active meeting", nil);
 +        }
@@ -583,17 +579,23 @@ index b01c1fd..bde3d62 100644
 +    dispatch_async(dispatch_get_main_queue(), ^{
 +        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
 +        if (meetService && [meetService getMeetingState] == MobileRTCMeetingState_InMeeting) {
-+            NSString *meetingNumber = [meetService getMeetingNumber] ?: @"";
-+            NSString *meetingTopic = [meetService getMeetingTopic] ?: @"";
-+            NSString *meetingHost = [meetService getMeetingHostName] ?: @"";
-+            NSString *meetingPassword = [meetService getMeetingPassword] ?: @"";
++            // Get meeting number as unsigned long long and convert to string
++            unsigned long long meetingNum = [meetService currentMeetingNumber];
++            NSString *meetingNumber = [NSString stringWithFormat:@"%llu", meetingNum];
++
++            // These methods may not be available in all SDK versions
++            NSString *meetingPassword = @"";
++            if ([meetService respondsToSelector:@selector(meetingPassword)]) {
++                meetingPassword = [meetService performSelector:@selector(meetingPassword)] ?: @"";
++            }
++
 +            BOOL isHost = [meetService isMeetingHost];
 +            BOOL isCoHost = [meetService isMeetingCoHost];
 +
 +            resolve(@{
 +                @"meetingNumber": meetingNumber,
-+                @"topic": meetingTopic,
-+                @"hostName": meetingHost,
++                @"topic": @"", // Not easily accessible
++                @"hostName": @"", // Not easily accessible
 +                @"password": meetingPassword,
 +                @"isHost": @(isHost),
 +                @"isCoHost": @(isCoHost),
@@ -643,7 +645,7 @@ index b01c1fd..bde3d62 100644
 +                    @"userId": @(myUserId),
 +                    @"userName": userInfo.userName ?: @"",
 +                    @"isHost": @(userInfo.isHost),
-+                    @"isCoHost": @(userInfo.isCoHost),
++                    @"isCoHost": @(userInfo.isCohost),
 +                    @"isAudioMuted": @(userInfo.audioStatus.isMuted),
 +                    @"isVideoOn": @(userInfo.videoStatus.isSending),
 +                    @"inMeeting": @(YES)
@@ -769,7 +771,7 @@ index b01c1fd..bde3d62 100644
 +        @"state": @(state),
 +        @"stateName": stateName
 +    }];
- }
++}
 +
 +- (void)onMeetingEndedReason:(MobileRTCMeetingEndReason)reason {
 +    NSLog(@"[RNZoomSDK] onMeetingEndedReason: %u", reason);
@@ -808,6 +810,6 @@ index b01c1fd..bde3d62 100644
 +        @"reason": @(reason),
 +        @"reasonName": reasonName
 +    }];
-+}
+ }
 +
  @end
