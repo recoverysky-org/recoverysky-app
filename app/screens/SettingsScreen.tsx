@@ -10,6 +10,8 @@ import {
   Modal,
   Pressable,
   Platform,
+  Linking,
+  ActivityIndicator,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
@@ -20,6 +22,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
+import { useSubscription } from "@/context/SubscriptionContext"
 import {
   translate,
   getAvailableLanguages,
@@ -33,8 +36,18 @@ import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { Fellowship } from "@common"
 
 type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
+
+/** Fellowships available for user selection */
+const SELECTABLE_FELLOWSHIPS = [
+  Fellowship.AA,
+  Fellowship.NA,
+  Fellowship.CMA,
+  Fellowship.MA,
+  Fellowship.RD,
+] as const
 
 /**
  * SettingsScreen - User profile, account, and app settings
@@ -46,378 +59,586 @@ type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
  * - App Settings: Dark mode, theme color
  * - Logout
  */
-export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(function SettingsScreen(_props) {
-  const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
-  const { logout } = useZitadelAuth()
+export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
+  function SettingsScreen(_props) {
+    const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
+    const { logout } = useZitadelAuth()
 
-  // MST Stores - reactive!
-  const profileStore = useProfileStore()
-  const authStore = useAuthenticationStore()
+    // MST Stores - reactive!
+    const profileStore = useProfileStore()
+    const authStore = useAuthenticationStore()
 
-  // UI-only state (modals, pickers)
-  const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [languageModalVisible, setLanguageModalVisible] = useState(false)
-  const [colorPickerVisible, setColorPickerVisible] = useState(false)
+    // Subscription state from RevenueCat
+    const {
+      isPro,
+      isLoading: isSubscriptionLoading,
+      subscriptionInfo,
+      showPaywall,
+      restore,
+    } = useSubscription()
 
-  // Language state (not persisted in MST for now)
-  const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
-  const availableLanguages = getAvailableLanguages()
+    // UI-only state (modals, pickers)
+    const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
+    const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
+    const [showDatePicker, setShowDatePicker] = useState(false)
+    const [languageModalVisible, setLanguageModalVisible] = useState(false)
+    const [colorPickerVisible, setColorPickerVisible] = useState(false)
 
-  const handleLanguageChange = async (langCode: string) => {
-    await changeLanguage(langCode)
-    setCurrentLang(langCode)
-    setLanguageModalVisible(false)
-  }
+    // Language state (not persisted in MST for now)
+    const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
+    const availableLanguages = getAvailableLanguages()
 
-  const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false)
+    const handleLanguageChange = async (langCode: string) => {
+      await changeLanguage(langCode)
+      setCurrentLang(langCode)
+      setLanguageModalVisible(false)
     }
-    if (selectedDate) {
-      profileStore.setRecoveryDate(selectedDate)
+
+    const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowDatePicker(false)
+      }
+      if (selectedDate) {
+        profileStore.setRecoveryDate(selectedDate)
+      }
     }
-  }
 
-  const isDarkMode = themeContext === "dark"
+    const isDarkMode = themeContext === "dark"
 
-  // Helper to get translated pronoun label
-  const getPronounsLabel = (p: Pronouns): string => {
-    switch (p) {
-      case "he/him":
-        return translate("settingsScreen:pronounHeHim")
-      case "she/her":
-        return translate("settingsScreen:pronounSheHer")
-      case "they/them":
-        return translate("settingsScreen:pronounTheyThem")
-      case "em/ers":
-        return translate("settingsScreen:pronounEmErs")
-      default:
-        return translate("settingsScreen:selectPronouns")
+    // Helper to get translated pronoun label
+    const getPronounsLabel = (p: Pronouns): string => {
+      switch (p) {
+        case "he/him":
+          return translate("settingsScreen:pronounHeHim")
+        case "she/her":
+          return translate("settingsScreen:pronounSheHer")
+        case "they/them":
+          return translate("settingsScreen:pronounTheyThem")
+        case "em/ers":
+          return translate("settingsScreen:pronounEmErs")
+        default:
+          return translate("settingsScreen:selectPronouns")
+      }
     }
-  }
 
-  const handleDarkModeToggle = (value: boolean) => {
-    setThemeContextOverride(value ? "dark" : "light")
-  }
+    // Helper to get fellowship label
+    const getFellowshipLabel = (f: string): string => {
+      switch (f) {
+        case Fellowship.AA:
+          return "Alcoholics Anonymous (AA)"
+        case Fellowship.NA:
+          return "Narcotics Anonymous (NA)"
+        case Fellowship.CMA:
+          return "Crystal Meth Anonymous (CMA)"
+        case Fellowship.MA:
+          return "Marijuana Anonymous (MA)"
+        case Fellowship.RD:
+          return "Recovery Dharma (RD)"
+        default:
+          return translate("settingsScreen:selectFellowship")
+      }
+    }
 
-  const handleDeleteUserData = () => {
-    Alert.alert(
-      translate("settingsScreen:deleteUserData"),
-      translate("settingsScreen:deleteUserDataConfirm"),
-      [
-        { text: translate("common:cancel"), style: "cancel" },
-        { text: translate("common:ok"), style: "destructive", onPress: () => {} },
-      ]
-    )
-  }
+    const handleDarkModeToggle = (value: boolean) => {
+      setThemeContextOverride(value ? "dark" : "light")
+    }
 
-  const handleLogout = () => {
-    Alert.alert(
-      translate("settingsScreen:logout"),
-      translate("settingsScreen:logoutConfirm"),
-      [
+    const handleDeleteUserData = () => {
+      Alert.alert(
+        translate("settingsScreen:deleteUserData"),
+        translate("settingsScreen:deleteUserDataConfirm"),
+        [
+          { text: translate("common:cancel"), style: "cancel" },
+          { text: translate("common:ok"), style: "destructive", onPress: () => {} },
+        ],
+      )
+    }
+
+    const handleLogout = () => {
+      Alert.alert(translate("settingsScreen:logout"), translate("settingsScreen:logoutConfirm"), [
         { text: translate("common:cancel"), style: "cancel" },
         { text: translate("common:ok"), onPress: logout },
-      ]
-    )
-  }
+      ])
+    }
 
-  return (
-    <Screen
-      preset="scroll"
-      safeAreaEdges={["top"]}
-      contentContainerStyle={[$styles.container, themed($container)]}
-    >
-      {/* Header */}
-      <Text preset="heading" tx="settingsScreen:title" />
-      <Text style={themed($subtitle)} tx="settingsScreen:subtitle" />
+    const handleUpgrade = async () => {
+      const purchased = await showPaywall()
+      if (purchased) {
+        Alert.alert(
+          translate("settingsScreen:subscriptionSuccess"),
+          translate("settingsScreen:subscriptionSuccessMessage"),
+        )
+      }
+    }
 
-      {/* Profile Section */}
-      <View style={themed($section)}>
-        <View style={themed($sectionHeader)}>
-          <Icon icon="community" size={20} color={themed($iconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:profileSection" />
-        </View>
+    const handleRestorePurchases = async () => {
+      const restored = await restore()
+      if (restored) {
+        Alert.alert(
+          translate("settingsScreen:restoreSuccess"),
+          translate("settingsScreen:restoreSuccessMessage"),
+        )
+      } else {
+        Alert.alert(
+          translate("settingsScreen:restoreNoSubscription"),
+          translate("settingsScreen:restoreNoSubscriptionMessage"),
+        )
+      }
+    }
 
-        {/* Generated Display Name (read-only) - computed from MST store */}
-        <SettingsRow
-          label={translate("settingsScreen:displayName")}
-          value={profileStore.displayName}
-        />
+    const handleManageSubscription = () => {
+      if (subscriptionInfo?.managementUrl) {
+        Linking.openURL(subscriptionInfo.managementUrl)
+      } else {
+        // Fallback to App Store/Play Store subscription settings
+        if (Platform.OS === "ios") {
+          Linking.openURL("https://apps.apple.com/account/subscriptions")
+        } else {
+          Linking.openURL("https://play.google.com/store/account/subscriptions")
+        }
+      }
+    }
 
-        {/* Editable Short Name */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:shortName" />
-          <TextField
-            value={profileStore.shortName}
-            onChangeText={profileStore.setShortName}
-            placeholder={translate("settingsScreen:shortNamePlaceholder")}
-            style={themed($shortNameInput)}
-            inputWrapperStyle={themed($shortNameInputWrapper)}
+    // Format expiration date for display
+    const formatExpirationDate = (): string => {
+      if (!subscriptionInfo?.expirationDate) return "-"
+      return subscriptionInfo.expirationDate.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    }
+
+    // Get subscription status text
+    const getSubscriptionStatus = (): string => {
+      if (isSubscriptionLoading) return "..."
+      if (isPro) {
+        if (subscriptionInfo?.isInTrial) return "Pro (Trial)"
+        return "Pro"
+      }
+      return "Free"
+    }
+
+    return (
+      <Screen
+        preset="scroll"
+        safeAreaEdges={["top"]}
+        contentContainerStyle={[$styles.container, themed($container)]}
+      >
+        {/* Header */}
+        <Text preset="heading" tx="settingsScreen:title" />
+        <Text style={themed($subtitle)} tx="settingsScreen:subtitle" />
+
+        {/* Profile Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Icon icon="community" size={20} color={themed($iconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:profileSection" />
+          </View>
+
+          {/* Generated Display Name (read-only) - computed from MST store */}
+          <SettingsRow
+            label={translate("settingsScreen:displayName")}
+            value={profileStore.displayName}
           />
-        </View>
 
-        {/* Clean Date Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDate" />
-          <Switch
-            value={profileStore.showCleanDate}
-            onValueChange={profileStore.setShowCleanDate}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-          />
-        </View>
+          {/* Editable Short Name */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:shortName" />
+            <TextField
+              value={profileStore.shortName}
+              onChangeText={profileStore.setShortName}
+              placeholder={translate("settingsScreen:shortNamePlaceholder")}
+              style={themed($shortNameInput)}
+              inputWrapperStyle={themed($shortNameInputWrapper)}
+            />
+          </View>
 
-        {/* Clean Days Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDays" />
-          <Switch
-            value={profileStore.showCleanDays}
-            onValueChange={profileStore.setShowCleanDays}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-          />
-        </View>
-
-        {/* Pronouns Toggle + Picker */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:showPronouns" />
-          <View style={$styles.row}>
-            {profileStore.showPronouns && (
-              <TouchableOpacity
-                onPress={() => setPronounsModalVisible(true)}
-                style={themed($pronounsButton)}
-              >
-                <Text style={themed($pronounsButtonText)}>{getPronounsLabel(profileStore.pronouns)}</Text>
-                <Icon icon="caretRight" size={14} color={themed($dimColor).color} />
-              </TouchableOpacity>
-            )}
+          {/* Clean Date Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDate" />
             <Switch
-              value={profileStore.showPronouns}
-              onValueChange={profileStore.setShowPronouns}
+              value={profileStore.showCleanDate}
+              onValueChange={profileStore.setShowCleanDate}
               trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
               thumbColor="#FFFFFF"
             />
           </View>
-        </View>
-      </View>
 
-      {/* Pronouns Modal */}
-      <Modal
-        visible={pronounsModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPronounsModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
-          <View style={themed($modalContent)}>
-            <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
-            {(["he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[themed($modalOption), profileStore.pronouns === p && themed($modalOptionSelected)]}
-                onPress={() => {
-                  profileStore.setPronouns(p)
-                  setPronounsModalVisible(false)
-                }}
-              >
-                <Text
-                  style={[themed($modalOptionText), profileStore.pronouns === p && themed($modalOptionTextSelected)]}
+          {/* Clean Days Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDays" />
+            <Switch
+              value={profileStore.showCleanDays}
+              onValueChange={profileStore.setShowCleanDays}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Pronouns Toggle + Picker */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:showPronouns" />
+            <View style={$styles.row}>
+              {profileStore.showPronouns && (
+                <TouchableOpacity
+                  onPress={() => setPronounsModalVisible(true)}
+                  style={themed($pronounsButton)}
                 >
-                  {getPronounsLabel(p)}
-                </Text>
-                {profileStore.pronouns === p && <Icon icon="check" size={18} color={themed($tintColor).color} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Language Modal */}
-      <Modal
-        visible={languageModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLanguageModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
-          <View style={themed($modalContent)}>
-            <Text style={themed($modalTitle)} tx="settingsScreen:selectLanguage" />
-            {availableLanguages.map((lang) => (
-              <TouchableOpacity
-                key={lang}
-                style={[themed($modalOption), currentLang === lang && themed($modalOptionSelected)]}
-                onPress={() => handleLanguageChange(lang)}
-              >
-                <Text
-                  style={[
-                    themed($modalOptionText),
-                    currentLang === lang && themed($modalOptionTextSelected),
-                  ]}
-                >
-                  {languageNames[lang]}
-                </Text>
-                {currentLang === lang && (
-                  <Icon icon="check" size={18} color={themed($tintColor).color} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Recovery Section */}
-      <View style={themed($section)}>
-        <View style={themed($sectionHeader)}>
-          <Ionicons name="shield-checkmark-outline" size={20} color={themed($recoveryIconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:recoverySection" />
-        </View>
-
-        {/* Recovery Date Picker */}
-        <TouchableOpacity
-          style={themed($settingsRow)}
-          onPress={() => setShowDatePicker(true)}
-          accessibilityRole="button"
-        >
-          <Text style={themed($rowLabel)} tx="settingsScreen:recoveryDate" />
-          <View style={$styles.row}>
-            <Text style={themed($rowValue)}>{profileStore.recoveryDate}</Text>
-            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Date Picker - iOS shows inline, Android shows modal */}
-        {showDatePicker && (
-          Platform.OS === "ios" ? (
-            <View style={themed($datePickerContainer)}>
-              <View style={themed($datePickerHeader)}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={themed($datePickerDone)} tx="common:ok" />
+                  <Text style={themed($pronounsButtonText)}>
+                    {getPronounsLabel(profileStore.pronouns)}
+                  </Text>
+                  <Icon icon="caretRight" size={14} color={themed($dimColor).color} />
                 </TouchableOpacity>
+              )}
+              <Switch
+                value={profileStore.showPronouns}
+                onValueChange={profileStore.setShowPronouns}
+                trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Pronouns Modal */}
+        <Modal
+          visible={pronounsModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPronounsModalVisible(false)}
+        >
+          <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
+            <View style={themed($modalContent)}>
+              <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
+              {(["he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
+                <TouchableOpacity
+                  key={p}
+                  style={[
+                    themed($modalOption),
+                    profileStore.pronouns === p && themed($modalOptionSelected),
+                  ]}
+                  onPress={() => {
+                    profileStore.setPronouns(p)
+                    setPronounsModalVisible(false)
+                  }}
+                >
+                  <Text
+                    style={[
+                      themed($modalOptionText),
+                      profileStore.pronouns === p && themed($modalOptionTextSelected),
+                    ]}
+                  >
+                    {getPronounsLabel(p)}
+                  </Text>
+                  {profileStore.pronouns === p && (
+                    <Icon icon="check" size={18} color={themed($tintColor).color} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+
+        {/* Fellowship Modal */}
+        <Modal
+          visible={fellowshipModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setFellowshipModalVisible(false)}
+        >
+          <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
+            <View style={themed($modalContent)}>
+              <Text style={themed($modalTitle)} tx="settingsScreen:selectFellowship" />
+              {SELECTABLE_FELLOWSHIPS.map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    themed($modalOption),
+                    profileStore.fellowship === f && themed($modalOptionSelected),
+                  ]}
+                  onPress={() => {
+                    profileStore.setFellowship(f)
+                    setFellowshipModalVisible(false)
+                  }}
+                >
+                  <Text
+                    style={[
+                      themed($modalOptionText),
+                      profileStore.fellowship === f && themed($modalOptionTextSelected),
+                    ]}
+                  >
+                    {getFellowshipLabel(f)}
+                  </Text>
+                  {profileStore.fellowship === f && (
+                    <Icon icon="check" size={18} color={themed($tintColor).color} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+
+        {/* Language Modal */}
+        <Modal
+          visible={languageModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setLanguageModalVisible(false)}
+        >
+          <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
+            <View style={themed($modalContent)}>
+              <Text style={themed($modalTitle)} tx="settingsScreen:selectLanguage" />
+              {availableLanguages.map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  style={[
+                    themed($modalOption),
+                    currentLang === lang && themed($modalOptionSelected),
+                  ]}
+                  onPress={() => handleLanguageChange(lang)}
+                >
+                  <Text
+                    style={[
+                      themed($modalOptionText),
+                      currentLang === lang && themed($modalOptionTextSelected),
+                    ]}
+                  >
+                    {languageNames[lang]}
+                  </Text>
+                  {currentLang === lang && (
+                    <Icon icon="check" size={18} color={themed($tintColor).color} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+
+        {/* Recovery Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={20}
+              color={themed($recoveryIconColor).color}
+            />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:recoverySection" />
+          </View>
+
+          {/* Recovery Date Picker */}
+          <TouchableOpacity
+            style={themed($settingsRow)}
+            onPress={() => setShowDatePicker(true)}
+            accessibilityRole="button"
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:recoveryDate" />
+            <View style={$styles.row}>
+              <Text style={themed($rowValue)}>{profileStore.recoveryDate}</Text>
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Date Picker - iOS shows inline, Android shows modal */}
+          {showDatePicker &&
+            (Platform.OS === "ios" ? (
+              <View style={themed($datePickerContainer)}>
+                <View style={themed($datePickerHeader)}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={themed($datePickerDone)} tx="common:ok" />
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={profileStore.recoveryDateAsDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
+                  maximumDate={new Date()}
+                  style={$datePickerSpinner}
+                  themeVariant={isDarkMode ? "dark" : "light"}
+                />
               </View>
+            ) : (
               <DateTimePicker
                 value={profileStore.recoveryDateAsDate}
                 mode="date"
-                display="spinner"
+                display="default"
                 onChange={handleDateChange}
                 maximumDate={new Date()}
-                style={$datePickerSpinner}
                 themeVariant={isDarkMode ? "dark" : "light"}
               />
+            ))}
+
+          <TouchableOpacity
+            style={[themed($settingsRow), themed($lastRow)]}
+            onPress={() => setFellowshipModalVisible(true)}
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:recoveryFellowship" />
+            <View style={$styles.row}>
+              <Text style={themed($rowValue)}>{getFellowshipLabel(profileStore.fellowship)}</Text>
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </View>
-          ) : (
-            <DateTimePicker
-              value={profileStore.recoveryDateAsDate}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              themeVariant={isDarkMode ? "dark" : "light"}
+          </TouchableOpacity>
+        </View>
+
+        {/* Subscription Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:subscriptionSection" />
+          </View>
+
+          {/* Subscription Status */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:subscription" />
+            <View style={$styles.row}>
+              {isSubscriptionLoading && (
+                <ActivityIndicator size="small" color={theme.colors.tint} style={{ marginRight: 8 }} />
+              )}
+              <Text style={[themed($rowValue), isPro && themed($premiumText)]}>
+                {getSubscriptionStatus()}
+              </Text>
+            </View>
+          </View>
+
+          {/* Expiration Date (only show if Pro) */}
+          {isPro && (
+            <SettingsRow
+              label={translate("settingsScreen:expires")}
+              value={formatExpirationDate()}
             />
-          )
-        )}
+          )}
 
-        <SettingsRow
-          label={translate("settingsScreen:recoveryFellowship")}
-          value={profileStore.fellowship}
-          isLast
-        />
-      </View>
+          {/* Upgrade Button (only show if not Pro) */}
+          {!isPro && (
+            <TouchableOpacity
+              style={themed($upgradeButton)}
+              onPress={handleUpgrade}
+              accessibilityRole="button"
+            >
+              <Ionicons name="rocket" size={18} color="#FFFFFF" />
+              <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
+            </TouchableOpacity>
+          )}
 
-      {/* Account Section */}
-      <View style={themed($section)}>
-        <View style={themed($sectionHeader)}>
-          <Icon icon="lock" size={20} color={themed($accountIconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:accountSection" />
-        </View>
-        <SettingsRow
-          label={translate("settingsScreen:subscription")}
-          value={profileStore.subscription}
-          valueStyle={profileStore.isPremium ? themed($premiumText) : undefined}
-        />
-        <SettingsRow
-          label={translate("settingsScreen:expires")}
-          value={profileStore.subscriptionExpires ?? "-"}
-        />
-        <SettingsRow
-          label={translate("settingsScreen:userId")}
-          value={
-            authStore.isAnonymous
-              ? translate("settingsScreen:anonymousUser")
-              : authStore.authEmail || authStore.userId || "Not logged in"
-          }
-        />
-        <TouchableOpacity
-          style={themed($deleteRow)}
-          onPress={handleDeleteUserData}
-          accessibilityRole="button"
-        >
-          <Icon icon="x" size={18} color={themed($dangerColor).color} />
-          <Text style={themed($deleteText)} tx="settingsScreen:deleteUserData" />
-          <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[themed($deleteRow), themed($lastRow)]}
-          onPress={handleLogout}
-          accessibilityRole="button"
-        >
-          <Icon icon="back" size={18} color={themed($dangerColor).color} style={themed($logoutRowIcon)} />
-          <Text style={themed($deleteText)} tx="settingsScreen:logout" />
-          <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
-        </TouchableOpacity>
-      </View>
+          {/* Manage Subscription (only show if Pro) */}
+          {isPro && (
+            <TouchableOpacity
+              style={themed($settingsRow)}
+              onPress={handleManageSubscription}
+              accessibilityRole="button"
+            >
+              <Text style={themed($rowLabel)} tx="settingsScreen:manageSubscription" />
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </TouchableOpacity>
+          )}
 
-      {/* App Settings Section */}
-      <View style={themed($section)}>
-        <View style={themed($sectionHeader)}>
-          <Icon icon="settings" size={20} color={themed($appSettingsIconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:appSettingsSection" />
-        </View>
-
-        {/* Language Picker */}
-        <TouchableOpacity
-          style={themed($settingsRow)}
-          onPress={() => setLanguageModalVisible(true)}
-          accessibilityRole="button"
-        >
-          <Text style={themed($rowLabel)} tx="settingsScreen:language" />
-          <View style={$styles.row}>
-            <Text style={themed($rowValue)}>{languageNames[currentLang]}</Text>
+          {/* Restore Purchases */}
+          <TouchableOpacity
+            style={[themed($settingsRow), themed($lastRow)]}
+            onPress={handleRestorePurchases}
+            accessibilityRole="button"
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
             <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
-        {/* Dark Mode Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
-          <Switch
-            value={isDarkMode}
-            onValueChange={handleDarkModeToggle}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
+        {/* Account Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Icon icon="lock" size={20} color={themed($accountIconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:accountSection" />
+          </View>
+          <SettingsRow
+            label={translate("settingsScreen:userId")}
+            value={
+              authStore.isAnonymous
+                ? translate("settingsScreen:anonymousUser")
+                : authStore.authEmail || authStore.userId || "Not logged in"
+            }
           />
+          <TouchableOpacity
+            style={themed($deleteRow)}
+            onPress={handleDeleteUserData}
+            accessibilityRole="button"
+          >
+            <Icon icon="x" size={18} color={themed($dangerColor).color} />
+            <Text style={themed($deleteText)} tx="settingsScreen:deleteUserData" />
+            <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[themed($deleteRow), themed($lastRow)]}
+            onPress={handleLogout}
+            accessibilityRole="button"
+          >
+            <Icon
+              icon="back"
+              size={18}
+              color={themed($dangerColor).color}
+              style={themed($logoutRowIcon)}
+            />
+            <Text style={themed($deleteText)} tx="settingsScreen:logout" />
+            <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
+          </TouchableOpacity>
         </View>
 
-        {/* Theme Color */}
-        <TouchableOpacity
-          style={[themed($settingsRow), themed($lastRow)]}
-          accessibilityRole="button"
-          onPress={() => setColorPickerVisible(true)}
-        >
-          <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
-          <View style={$styles.row}>
-            <View style={[$colorPreviewSwatch, { backgroundColor: themeColor || theme.colors.tint }]} />
-            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        {/* App Settings Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Icon icon="settings" size={20} color={themed($appSettingsIconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:appSettingsSection" />
           </View>
-        </TouchableOpacity>
-      </View>
 
-      {/* Theme Color Picker Modal */}
-      <ThemeColorPicker visible={colorPickerVisible} onClose={() => setColorPickerVisible(false)} />
-    </Screen>
-  )
-})
+          {/* Language Picker */}
+          <TouchableOpacity
+            style={themed($settingsRow)}
+            onPress={() => setLanguageModalVisible(true)}
+            accessibilityRole="button"
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:language" />
+            <View style={$styles.row}>
+              <Text style={themed($rowValue)}>{languageNames[currentLang]}</Text>
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Dark Mode Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleDarkModeToggle}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Theme Color */}
+          <TouchableOpacity
+            style={[themed($settingsRow), themed($lastRow)]}
+            accessibilityRole="button"
+            onPress={() => setColorPickerVisible(true)}
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
+            <View style={$styles.row}>
+              <View
+                style={[$colorPreviewSwatch, { backgroundColor: themeColor || theme.colors.tint }]}
+              />
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Theme Color Picker Modal */}
+        <ThemeColorPicker
+          visible={colorPickerVisible}
+          onClose={() => setColorPickerVisible(false)}
+        />
+      </Screen>
+    )
+  },
+)
 
 // Settings Row Component
 interface SettingsRowProps {
@@ -517,6 +738,30 @@ const $logoutRowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
 const $premiumText: ThemedStyle<TextStyle> = () => ({
   color: "#2196F3",
   fontWeight: "600",
+})
+
+const $upgradeButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.tint,
+  paddingVertical: spacing.md,
+  paddingHorizontal: spacing.lg,
+  borderRadius: 12,
+  marginTop: spacing.sm,
+  marginBottom: spacing.sm,
+  gap: spacing.xs,
+  shadowColor: colors.tint,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 4,
+})
+
+const $upgradeButtonText: ThemedStyle<TextStyle> = () => ({
+  color: "#FFFFFF",
+  fontSize: 16,
+  fontWeight: "700",
 })
 
 const $colorPreviewSwatch: ViewStyle = {
