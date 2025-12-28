@@ -126,7 +126,7 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
   height: 1,
   backgroundColor: colors.border,
-  marginLeft: 48, // Align with text, after the dot and badge
+  marginLeft: 40, // Align with text, after the badge
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

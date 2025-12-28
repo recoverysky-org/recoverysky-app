@@ -114,7 +114,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.md,
   gap: spacing.xs,
 })
 

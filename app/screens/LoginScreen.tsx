@@ -1,8 +1,7 @@
 import { FC } from "react"
-import { View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
+import { View, ViewStyle, TextStyle, ActivityIndicator, Pressable } from "react-native"
 import { observer } from "mobx-react-lite"
 
-import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
@@ -50,34 +49,38 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           </View>
         )}
 
-        <Button
+        <Pressable
           testID="login-button"
-          tx="loginScreen:loginButton"
-          style={themed($loginButton)}
-          preset="filled"
+          style={[
+            themed($button),
+            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            isLoading && { opacity: 0.7 },
+          ]}
           onPress={handleLogin}
           disabled={isLoading}
-          RightAccessory={
-            isLoading
-              ? () => (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.background}
-                    style={themed($spinner)}
-                  />
-                )
-              : undefined
-          }
-        />
+        >
+          <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="loginScreen:loginButton" />
+          {isLoading && (
+            <ActivityIndicator
+              size="small"
+              color={theme.colors.tint}
+              style={themed($spinner)}
+            />
+          )}
+        </Pressable>
 
-        <Button
+        <Pressable
           testID="anonymous-button"
-          tx="loginScreen:continueAnonymously"
-          style={themed($anonymousButton)}
-          preset="default"
+          style={[
+            themed($button),
+            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            isLoading && { opacity: 0.7 },
+          ]}
           onPress={loginAnonymously}
           disabled={isLoading}
-        />
+        >
+          <Text style={[themed($buttonText), { color: theme.colors.textDim }]} tx="loginScreen:continueAnonymously" />
+        </Pressable>
 
         {isLoading && (
           <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
@@ -125,12 +128,24 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
   textAlign: "center",
 })
 
-const $loginButton: ThemedStyle<ViewStyle> = () => ({
-  width: "100%",
+const $button: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: colors.background,
+  borderWidth: 1.5,
+  paddingVertical: spacing.md,
+  paddingHorizontal: spacing.xl,
+  borderRadius: 12,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.5,
+  shadowRadius: 8,
+  elevation: 8,
 })
 
-const $anonymousButton: ThemedStyle<ViewStyle> = () => ({
-  width: "100%",
+const $buttonText: ThemedStyle<TextStyle> = () => ({
+  fontSize: 18,
+  fontWeight: "600",
 })
 
 const $spinner: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -6,7 +6,7 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings } from "@/context/MeetingContext"
-import { useAuthenticationStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
@@ -19,6 +19,7 @@ import type { ThemedStyle } from "@/theme/types"
 export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function HomeScreen(_props) {
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
+  const profileStore = useProfileStore()
   const { logout, error: authError, clearError } = useZitadelAuth()
   const { apiStatus, liveSource, liveMeetings, lastRefresh } = useMeetings()
   const [debugExpanded, setDebugExpanded] = useState(false)
@@ -109,6 +110,17 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
                 <Text style={themed($emailText)}>{authStore.authEmail}</Text>
               )}
               {authError && <Text style={themed($errorText)}>{authError}</Text>}
+            </View>
+
+            {/* Debug Actions */}
+            <View style={themed($statusSection)}>
+              <Text style={themed($statusLabel)}>Actions:</Text>
+              <Pressable
+                style={themed($debugButton)}
+                onPress={() => profileStore.resetOnboarding()}
+              >
+                <Text style={{ color: theme.colors.tint }}>Reset Onboarding</Text>
+              </Pressable>
             </View>
           </View>
         )}
@@ -201,4 +213,14 @@ const $errorText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
   color: colors.error,
   marginTop: spacing.xs,
   fontSize: 13,
+})
+
+const $debugButton: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  marginTop: spacing.sm,
+  paddingVertical: spacing.xs,
+  paddingHorizontal: spacing.sm,
+  borderWidth: 1,
+  borderColor: colors.tint,
+  borderRadius: 6,
+  alignSelf: "flex-start",
 })
