@@ -1,5 +1,6 @@
-import { FC, useCallback, useState } from "react"
+import { FC, useCallback, useState, useMemo } from "react"
 import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
+import { observer } from "mobx-react-lite"
 
 import { LiveMeetingRow } from "@/components/LiveMeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
@@ -7,6 +8,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
 import { useLivePolling } from "@/hooks/useLivePolling"
+import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -15,12 +17,21 @@ import type { ThemedStyle } from "@/theme/types"
 /**
  * LiveScreen - Shows currently live meetings
  *
- * Displays meetings that are currently in progress, with auto-refresh
- * every 30 seconds and pull-to-refresh support.
+ * Displays meetings that are currently in progress, filtered by the user's
+ * selected fellowship. Includes auto-refresh and pull-to-refresh support.
  */
-export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_props) {
+export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function LiveScreen(_props) {
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
+  const profileStore = useProfileStore()
+
+  // Filter meetings by user's selected fellowship
+  // If no fellowship set (empty string), show all meetings
+  const filteredMeetings = useMemo(() => {
+    const userFellowship = profileStore.fellowship
+    if (!userFellowship || userFellowship === "") return liveMeetings
+    return liveMeetings.filter((m) => m.fellowship === userFellowship)
+  }, [liveMeetings, profileStore.fellowship])
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -67,24 +78,24 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
     () => (
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
-        {liveMeetings.length > 0 && (
+        {filteredMeetings.length > 0 && (
           <Text style={themed($countText)}>
-            {liveMeetings.length} {liveMeetings.length === 1 ? "meeting" : "meetings"} live
+            {filteredMeetings.length} {filteredMeetings.length === 1 ? "meeting" : "meetings"} live
             {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
         )}
-        {liveMeetings.length === 0 && lastRefresh && (
+        {filteredMeetings.length === 0 && lastRefresh && (
           <Text style={themed($countText)}>({lastRefresh.toLocaleTimeString()})</Text>
         )}
       </View>
     ),
-    [themed, liveMeetings.length, lastRefresh]
+    [themed, filteredMeetings.length, lastRefresh]
   )
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
       <FlatList
-        data={liveMeetings}
+        data={filteredMeetings}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmptyComponent}
@@ -108,7 +119,7 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
       />
     </Screen>
   )
-}
+})
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.md,
