@@ -45,6 +45,7 @@ const es: Translations = {
   mainNavigator: {
     homeTab: "Inicio",
     liveTab: "En vivo",
+    attendanceTab: "Asistencia",
     meetingsTab: "Reuniones",
     scheduleTab: "Horario",
     settingsTab: "Perfil",
@@ -69,6 +70,14 @@ const es: Translations = {
     meetingCount: "{{count}} reuniones en vivo",
     meetings: "{{count}} reuniones",
     password: "Contraseña",
+  },
+  attendanceScreen: {
+    title: "Asistencia",
+    noRecords: "No hay registros de asistencia pendientes",
+    noRecordsSubtext: "Tu asistencia aparecerá aquí después de unirte a reuniones",
+    addToReport: "Agregar al Informe",
+    credit: "crédito",
+    minutes: "min",
   },
   settingsScreen: {
     title: "Configuración",
@@ -114,6 +123,47 @@ const es: Translations = {
     resetToDefault: "Restablecer por Defecto",
     logout: "Cerrar Sesión",
     logoutConfirm: "¿Estás seguro de que deseas cerrar sesión?",
+  },
+  onboarding: {
+    // Screen 0: Welcome
+    welcomeTitle: "¡Bienvenido a RecoverySky!",
+    welcomeSubtitle: "Te deseamos lo mejor en tu camino de recuperación.",
+    getStarted: "Comenzar",
+    // Screen 1: Profile
+    profileTitle: "Cuéntanos sobre ti",
+    profileSubtitle: "Esto ayuda a personalizar tu experiencia",
+    shortName: "Nombre Corto",
+    shortNamePlaceholder: "ej., Juan P.",
+    pronouns: "Pronombres",
+    selectPronouns: "Seleccionar pronombres",
+    // Screen 2: Recovery
+    recoveryTitle: "Tu Recuperación",
+    recoverySubtitle: "Opcional - puedes agregarlo después",
+    fellowship: "Grupo",
+    selectFellowship: "Selecciona tu grupo",
+    recoveryDate: "Fecha de Recuperación",
+    otherFellowship: "Otro / Ninguno",
+    // Screen 3: Theme
+    themeTitle: "Personaliza Tu App",
+    themeSubtitle: "Hazla tuya",
+    darkMode: "Modo Oscuro",
+    themeColor: "Color del Tema",
+    // Screen 4: Privacy
+    privacyTitle: "Tu Privacidad Importa",
+    privacySubtitle: "Nos tomamos tu privacidad en serio",
+    dataOnDevice: "Tus datos nunca salen de tu dispositivo",
+    noTracking: "Sin análisis, sin rastreo, sin Google",
+    totalAnonymity: "Privacidad y anonimato completos",
+    minimalNetwork: "El único tráfico de red es para listas de reuniones en vivo",
+    encryptedStorage: "Almacenamiento SQL local 100% encriptado",
+    hipaaCompliant: "Red y almacenamiento compatibles con HIPAA",
+    openSource: "Código abierto - disponible para revisión y pruebas de seguridad",
+    privacyPolicy: "Política de Privacidad",
+    termsOfService: "Términos de Servicio",
+    // Common
+    next: "Siguiente",
+    finish: "Finalizar",
+    skipForNow: "Omitir por ahora",
   },
   zoomMeeting: {
     joining: "Uniéndose a la reunión...",

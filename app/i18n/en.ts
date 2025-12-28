@@ -46,6 +46,7 @@ const en = {
   mainNavigator: {
     homeTab: "Home",
     liveTab: "Live",
+    attendanceTab: "Attendance",
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
     settingsTab: "Settings",
@@ -71,6 +72,14 @@ const en = {
     meetingCount: "{{count}} meetings live",
     meetings: "{{count}} meetings",
     password: "Password",
+  },
+  attendanceScreen: {
+    title: "Attendance",
+    noRecords: "No pending attendance records",
+    noRecordsSubtext: "Your attendance will appear here after joining meetings",
+    addToReport: "Add to Report",
+    credit: "credit",
+    minutes: "min",
   },
   settingsScreen: {
     title: "Settings",
@@ -119,6 +128,48 @@ const en = {
     // Actions
     logout: "Logout",
     logoutConfirm: "Are you sure you want to log out?",
+  },
+  // Onboarding
+  onboarding: {
+    // Screen 0: Welcome
+    welcomeTitle: "Welcome to RecoverySky!",
+    welcomeSubtitle: "We wish you the best in your recovery journey.",
+    getStarted: "Get Started",
+    // Screen 1: Profile
+    profileTitle: "Tell us about yourself",
+    profileSubtitle: "This helps personalize your experience",
+    shortName: "Short Name",
+    shortNamePlaceholder: "e.g., Joe B.",
+    pronouns: "Pronouns",
+    selectPronouns: "Select pronouns",
+    // Screen 2: Recovery
+    recoveryTitle: "Your Recovery",
+    recoverySubtitle: "Optional - you can add this later",
+    fellowship: "Fellowship",
+    selectFellowship: "Select your fellowship",
+    recoveryDate: "Recovery Date",
+    otherFellowship: "Other / None",
+    // Screen 3: Theme
+    themeTitle: "Customize Your App",
+    themeSubtitle: "Make it yours",
+    darkMode: "Dark Mode",
+    themeColor: "Theme Color",
+    // Screen 4: Privacy
+    privacyTitle: "Your Privacy Matters",
+    privacySubtitle: "We take your privacy seriously",
+    dataOnDevice: "Your data never leaves your device",
+    noTracking: "No analytics, no tracking, no Google",
+    totalAnonymity: "Complete privacy and anonymity",
+    minimalNetwork: "Only network traffic is for live meeting lists",
+    encryptedStorage: "100% local encrypted SQL storage",
+    hipaaCompliant: "HIPAA compliant network and storage",
+    openSource: "Open source - available for review and security testing",
+    privacyPolicy: "Privacy Policy",
+    termsOfService: "Terms of Service",
+    // Common
+    next: "Next",
+    finish: "Finish",
+    skipForNow: "Skip for now",
   },
   // Zoom Meeting
   zoomMeeting: {
