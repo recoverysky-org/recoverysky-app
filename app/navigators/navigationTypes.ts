@@ -11,15 +11,26 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 export type MainTabParamList = {
   Home: undefined
   Live: undefined
+  Attendance: undefined
   Meetings: undefined
   Schedule: undefined
   Settings: undefined
+}
+
+// Onboarding Stack Navigator types
+export type OnboardingParamList = {
+  OnboardingWelcome: undefined
+  OnboardingProfile: undefined
+  OnboardingRecovery: undefined
+  OnboardingTheme: undefined
+  OnboardingPrivacy: undefined
 }
 
 // App Stack Navigator types
 export type AppStackParamList = {
   Welcome: undefined
   Login: undefined
+  Onboarding: NavigatorScreenParams<OnboardingParamList>
   Main: NavigatorScreenParams<MainTabParamList>
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
@@ -33,6 +44,11 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, T>,
   AppStackScreenProps<keyof AppStackParamList>
+>
+
+export type OnboardingScreenProps<T extends keyof OnboardingParamList> = NativeStackScreenProps<
+  OnboardingParamList,
+  T
 >
 
 export interface NavigationProps extends Partial<

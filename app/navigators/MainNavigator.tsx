@@ -7,8 +7,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
 import { useMeetings } from "@/context/MeetingContext"
+import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { LiveScreen } from "@/screens/LiveScreen"
+import { AttendanceScreen } from "@/screens/AttendanceScreen"
 // import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
 import { SettingsScreen } from "@/screens/SettingsScreen"
 // import { ScheduleScreen } from "@/screens/ScheduleScreen"  // Hidden for now
@@ -18,6 +20,7 @@ import { AppStackParamList, AppStackScreenProps } from "./navigationTypes"
 export type MainTabParamList = {
   Home: undefined
   Live: undefined
+  Attendance: undefined
   Meetings: undefined
   Schedule: undefined
   Settings: undefined
@@ -54,6 +57,7 @@ export function MainNavigator() {
     theme: { colors },
   } = useAppTheme()
   const { liveMeetings } = useMeetings()
+  const { validUnproducedCount } = useAttendanceBadge()
 
   return (
     <Tab.Navigator
@@ -101,6 +105,29 @@ export function MainNavigator() {
                 <View style={[styles.badge, { backgroundColor: colors.tint }]}>
                   <Text style={styles.badgeText}>
                     {liveMeetings.length > 99 ? "99+" : liveMeetings.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Attendance"
+        component={AttendanceScreen}
+        options={{
+          tabBarLabel: t("mainNavigator:attendanceTab"),
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.iconContainer}>
+              <Ionicons
+                name="clipboard"
+                size={24}
+                color={focused ? colors.tint : colors.textDim}
+              />
+              {validUnproducedCount > 0 && (
+                <View style={[styles.badge, { backgroundColor: colors.tint }]}>
+                  <Text style={styles.badgeText}>
+                    {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
                   </Text>
                 </View>
               )}
