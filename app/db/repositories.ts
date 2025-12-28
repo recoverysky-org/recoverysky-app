@@ -201,6 +201,11 @@ export const feedbackRepo = {
     return getFeedbackRepo().findByMid(mid)
   },
 
+  /** Find feedback for multiple meeting IDs */
+  findByMids: async (mids: string[]) => {
+    return getFeedbackRepo().findByMids(mids)
+  },
+
   /** Toggle love status for a meeting, returns new state */
   toggleLove: async (mid: string) => {
     return getFeedbackRepo().toggleLove(mid)

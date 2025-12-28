@@ -1,4 +1,4 @@
-import { FC, useCallback, useState, useMemo } from "react"
+import { FC, useCallback, useState, useMemo, useEffect } from "react"
 import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
 import { observer } from "mobx-react-lite"
 
@@ -7,12 +7,23 @@ import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { feedbackRepo, useDatabaseReady, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+
+/**
+ * Get sort priority based on rating
+ * 4-5 stars = 1 (top), 3 stars = 2 (middle), 0-2 stars = 3 (bottom)
+ */
+function getRatingPriority(rating: number): number {
+  if (rating >= 4) return 1
+  if (rating === 3) return 2
+  return 3
+}
 
 /**
  * LiveScreen - Shows currently live meetings
@@ -24,6 +35,29 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const profileStore = useProfileStore()
+  const isDbReady = useDatabaseReady()
+
+  // State for feedback data (keyed by meeting ID)
+  const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackRecord>>(new Map())
+
+  // Load feedback for all live meetings
+  useEffect(() => {
+    if (!isDbReady || liveMeetings.length === 0) return
+
+    const loadFeedback = async () => {
+      const mids = liveMeetings.map((m) => m.id)
+      const result = await feedbackRepo.findByMids(mids)
+      if (result.ok && result.value) {
+        const map = new Map<string, FeedbackRecord>()
+        for (const fb of result.value) {
+          map.set(fb.mid, fb)
+        }
+        setFeedbackMap(map)
+      }
+    }
+
+    void loadFeedback()
+  }, [isDbReady, liveMeetings])
 
   // Filter meetings by user's selected fellowship
   // If no fellowship set (empty string), show all meetings
@@ -32,6 +66,29 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
     if (!userFellowship || userFellowship === "") return liveMeetings
     return liveMeetings.filter((m) => m.fellowship === userFellowship)
   }, [liveMeetings, profileStore.fellowship])
+
+  // Sort meetings: favorites first, then by rating (4-5 top, 3 middle, 0-2 bottom)
+  const sortedMeetings = useMemo(() => {
+    return [...filteredMeetings].sort((a, b) => {
+      const fbA = feedbackMap.get(a.id)
+      const fbB = feedbackMap.get(b.id)
+
+      // Favorites (loved) always come first
+      const lovedA = fbA?.loves ? 1 : 0
+      const lovedB = fbB?.loves ? 1 : 0
+      if (lovedA !== lovedB) return lovedB - lovedA // Loved first
+
+      // Then sort by rating priority (lower priority number = higher in list)
+      const ratingA = fbA?.rates ?? 0
+      const ratingB = fbB?.rates ?? 0
+      const priorityA = getRatingPriority(ratingA)
+      const priorityB = getRatingPriority(ratingB)
+      if (priorityA !== priorityB) return priorityA - priorityB
+
+      // If same priority, sort by actual rating (higher first)
+      return ratingB - ratingA
+    })
+  }, [filteredMeetings, feedbackMap])
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -78,24 +135,24 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
     () => (
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
-        {filteredMeetings.length > 0 && (
+        {sortedMeetings.length > 0 && (
           <Text style={themed($countText)}>
-            {filteredMeetings.length} {filteredMeetings.length === 1 ? "meeting" : "meetings"} live
+            {sortedMeetings.length} {sortedMeetings.length === 1 ? "meeting" : "meetings"} live
             {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
         )}
-        {filteredMeetings.length === 0 && lastRefresh && (
+        {sortedMeetings.length === 0 && lastRefresh && (
           <Text style={themed($countText)}>({lastRefresh.toLocaleTimeString()})</Text>
         )}
       </View>
     ),
-    [themed, filteredMeetings.length, lastRefresh]
+    [themed, sortedMeetings.length, lastRefresh]
   )
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
       <FlatList
-        data={filteredMeetings}
+        data={sortedMeetings}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmptyComponent}
