@@ -10,14 +10,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
 
 import Config from "@/config"
-import { useAuthenticationStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
-import { WelcomeScreen } from "@/screens/WelcomeScreen"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
 import { MainNavigator } from "./MainNavigator"
+import { OnboardingNavigator } from "./OnboardingNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 
@@ -36,8 +36,10 @@ const AppStack = observer(function AppStack() {
   log.debug("AppStack initializing")
 
   const authStore = useAuthenticationStore()
+  const profileStore = useProfileStore()
   const isAuthenticated = authStore.isAuthenticated
-  log.debug("Auth state retrieved", { isAuthenticated })
+  const needsOnboarding = !profileStore.onboardingCompleted
+  log.debug("Auth state retrieved", { isAuthenticated, needsOnboarding })
 
   const {
     theme: { colors },
@@ -45,14 +47,15 @@ const AppStack = observer(function AppStack() {
   log.debug("Theme retrieved")
 
   useEffect(() => {
-    log.info("AppStack mounted", { isAuthenticated })
+    log.info("AppStack mounted", { isAuthenticated, needsOnboarding })
     return () => {
       log.debug("AppStack unmounting")
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, needsOnboarding])
 
-  const initialRoute = isAuthenticated ? "Welcome" : "Login"
-  log.debug("Determining initial route", { initialRoute, isAuthenticated })
+  // Determine initial route based on auth and onboarding status
+  const initialRoute = !isAuthenticated ? "Login" : needsOnboarding ? "Onboarding" : "Main"
+  log.debug("Determining initial route", { initialRoute, isAuthenticated, needsOnboarding })
 
   return (
     <Stack.Navigator
@@ -66,15 +69,13 @@ const AppStack = observer(function AppStack() {
       initialRouteName={initialRoute}
     >
       {isAuthenticated ? (
-        <>
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-
+        needsOnboarding ? (
+          <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
+        ) : (
           <Stack.Screen name="Main" component={MainNavigator} />
-        </>
+        )
       ) : (
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-        </>
+        <Stack.Screen name="Login" component={LoginScreen} />
       )}
 
       {/** 🔥 Your screens go here */}

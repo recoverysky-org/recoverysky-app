@@ -32,23 +32,29 @@ export const ProfileStoreModel = types
 
     // Appearance
     themeColor: types.optional(types.string, ""), // empty = use default tint
+
+    // Onboarding
+    onboardingCompleted: types.optional(types.boolean, false),
   })
   .views((self) => ({
     /**
      * Calculate clean days from recovery date
      */
     get cleanDays(): number {
-      const recovery = new Date(self.recoveryDate)
+      // Use T12:00:00 to avoid timezone boundary issues
+      const recovery = new Date(self.recoveryDate + "T12:00:00")
       const today = new Date()
+      today.setHours(12, 0, 0, 0) // Normalize to noon for consistent day calculation
       const diffTime = Math.abs(today.getTime() - recovery.getTime())
       return Math.floor(diffTime / (1000 * 60 * 60 * 24))
     },
 
     /**
-     * Get the recovery date as a Date object
+     * Get the recovery date as a Date object (in local timezone)
+     * Note: We append T12:00:00 to avoid timezone boundary issues
      */
     get recoveryDateAsDate(): Date {
-      return new Date(self.recoveryDate)
+      return new Date(self.recoveryDate + "T12:00:00")
     },
 
     /**
@@ -145,6 +151,20 @@ export const ProfileStoreModel = types
     },
 
     /**
+     * Mark onboarding as completed
+     */
+    completeOnboarding() {
+      self.onboardingCompleted = true
+    },
+
+    /**
+     * Reset onboarding (for testing or re-onboarding)
+     */
+    resetOnboarding() {
+      self.onboardingCompleted = false
+    },
+
+    /**
      * Reset profile to defaults
      */
     reset() {
@@ -158,6 +178,7 @@ export const ProfileStoreModel = types
       self.subscription = "Free"
       self.subscriptionExpires = null
       self.themeColor = ""
+      self.onboardingCompleted = false
     },
   }))
 
