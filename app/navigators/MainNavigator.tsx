@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
 import { useMeetings } from "@/context/MeetingContext"
-import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
+// import { useAttendanceBadge } from "@/hooks/useAttendanceBadge" // Disabled - DB timing issue
 import { HomeScreen } from "@/screens/HomeScreen"
 import { LiveScreen } from "@/screens/LiveScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
@@ -57,7 +57,7 @@ export function MainNavigator() {
     theme: { colors },
   } = useAppTheme()
   const { liveMeetings } = useMeetings()
-  const { validUnproducedCount } = useAttendanceBadge()
+  // const { validUnproducedCount } = useAttendanceBadge() // Disabled - DB timing issue
 
   return (
     <Tab.Navigator
@@ -118,23 +118,26 @@ export function MainNavigator() {
         options={{
           tabBarLabel: t("mainNavigator:attendanceTab"),
           tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name="clipboard"
+              size={24}
+              color={focused ? colors.tint : colors.textDim}
+            />
+          ),
+        }}
+      />
+      {/* Badge disabled - DB timing issue. Re-enable with:
+          tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons
-                name="clipboard"
-                size={24}
-                color={focused ? colors.tint : colors.textDim}
-              />
+              <Ionicons name="clipboard" size={24} color={focused ? colors.tint : colors.textDim} />
               {validUnproducedCount > 0 && (
                 <View style={[styles.badge, { backgroundColor: colors.tint }]}>
-                  <Text style={styles.badgeText}>
-                    {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
-                  </Text>
+                  <Text style={styles.badgeText}>{validUnproducedCount > 99 ? "99+" : validUnproducedCount}</Text>
                 </View>
               )}
             </View>
           ),
-        }}
-      />
+      */}
       {/* Meetings and Schedule tabs hidden for now - focusing on Live
       <Tab.Screen
         name="Meetings"
