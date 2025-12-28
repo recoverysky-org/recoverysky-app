@@ -14,7 +14,7 @@ import { ViewStyle, FlatList, RefreshControl, View, TextStyle, Alert } from "rea
 import { AttendanceRow, type AttendanceWithMeeting } from "@/components/AttendanceRow"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { attendanceRepo, meetingRepo, type AttendanceRecord } from "@/db"
+import { attendanceRepo, meetingRepo, useDatabaseReady, type AttendanceRecord } from "@/db"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -28,6 +28,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
   _props,
 ) {
   const { themed, theme } = useAppTheme()
+  const isDbReady = useDatabaseReady()
   const [records, setRecords] = useState<AttendanceWithMeeting[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -43,8 +44,11 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
           meetingsResult.ok ? meetingsResult.value.map((m) => [m.meeting.id, m.meeting.name]) : [],
         )
 
+        // Only show valid records (meetings long enough for credit)
+        const validRecords = result.value.filter((r) => r.valid)
+
         setRecords(
-          result.value.map((r) => ({
+          validRecords.map((r) => ({
             ...r,
             meetingName: meetingMap.get(r.mid) ?? "Unknown Meeting",
           })),
@@ -59,9 +63,12 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
     }
   }, [])
 
+  // Load records when database becomes ready
   useEffect(() => {
-    void loadRecords()
-  }, [loadRecords])
+    if (isDbReady) {
+      void loadRecords()
+    }
+  }, [isDbReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddToReport = useCallback((_record: AttendanceRecord) => {
     // Placeholder - show "Coming soon" toast
@@ -92,9 +99,6 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
     [themed],
   )
 
-  // Count valid unproduced for header display
-  const validCount = records.filter((r) => r.valid).length
-
   const ListHeaderComponent = useCallback(
     () => (
       <View style={themed($header)}>
@@ -102,12 +106,11 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
         {records.length > 0 && (
           <Text style={themed($countText)}>
             {records.length} {records.length === 1 ? "record" : "records"}
-            {validCount > 0 && ` (${validCount} valid)`}
           </Text>
         )}
       </View>
     ),
-    [themed, records.length, validCount],
+    [themed, records.length],
   )
 
   return (

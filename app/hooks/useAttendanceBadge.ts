@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useFocusEffect } from "@react-navigation/native"
 
-import { attendanceRepo } from "@/db"
+import { attendanceRepo, useDatabaseReady } from "@/db"
 import { logger } from "@/utils/logger"
 
 interface AttendanceBadgeState {
@@ -29,10 +29,16 @@ interface AttendanceBadgeState {
  * // Use validUnproducedCount for badge display
  */
 export function useAttendanceBadge(): AttendanceBadgeState {
+  const isDbReady = useDatabaseReady()
   const [validUnproducedCount, setValidUnproducedCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
   const refresh = useCallback(async () => {
+    // Don't try to load if database isn't ready
+    if (!isDbReady) {
+      return
+    }
+
     setIsLoading(true)
     try {
       const result = await attendanceRepo.findUnproduced()
@@ -48,18 +54,22 @@ export function useAttendanceBadge(): AttendanceBadgeState {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [isDbReady])
 
-  // Refresh on mount
+  // Refresh when database becomes ready
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    if (isDbReady) {
+      void refresh()
+    }
+  }, [isDbReady, refresh])
 
-  // Refresh when navigator gains focus
+  // Refresh when navigator gains focus (only if db is ready)
   useFocusEffect(
     useCallback(() => {
-      void refresh()
-    }, [refresh]),
+      if (isDbReady) {
+        void refresh()
+      }
+    }, [isDbReady, refresh]),
   )
 
   return {
