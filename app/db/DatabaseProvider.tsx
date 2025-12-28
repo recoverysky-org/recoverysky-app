@@ -5,11 +5,12 @@
  * Shows loading overlay during initialization via DatabaseLoadingOverlay.
  */
 
-import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from "react"
 import type { SQLiteDatabase } from "expo-sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 import { openDb as openDbProvider } from "./provider"
 import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
+import { feedbackCache } from "./feedbackCache"
 import { migrations } from "@sqlite"
 import type * as schema from "@sqlite"
 import { logger } from "@/utils/logger"
@@ -156,11 +157,29 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     }
   }, [status, seedDb])
 
-  log.debug("DatabaseProvider rendering children", { status })
+  // Load feedback cache when database is seeded
+  useEffect(() => {
+    if (status === "seeded" && !feedbackCache.isLoaded()) {
+      log.info("Database seeded, loading feedback cache...")
+      feedbackCache.loadAll()
+    }
+  }, [status])
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo<DatabaseContextValue>(
+    () => ({ status, error, openDb, seedDb }),
+    [status, error, openDb, seedDb],
+  )
+
+  log.debug("DatabaseProvider rendering", { status })
+
+  // Block children until database is fully ready (seeded)
+  // This prevents "database not ready" errors in child components
+  const isReady = status === "seeded"
 
   return (
-    <DatabaseContext.Provider value={{ status, error, openDb, seedDb }}>
-      {children}
+    <DatabaseContext.Provider value={contextValue}>
+      {isReady ? children : null}
     </DatabaseContext.Provider>
   )
 }

@@ -14,7 +14,7 @@ import { ViewStyle, FlatList, RefreshControl, View, TextStyle, Alert } from "rea
 import { AttendanceRow, type AttendanceWithMeeting } from "@/components/AttendanceRow"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { attendanceRepo, meetingRepo, useDatabaseReady, type AttendanceRecord } from "@/db"
+import { attendanceRepo, meetingRepo, type AttendanceRecord } from "@/db"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -28,7 +28,6 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
   _props,
 ) {
   const { themed, theme } = useAppTheme()
-  const isDbReady = useDatabaseReady()
   const [records, setRecords] = useState<AttendanceWithMeeting[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -63,12 +62,10 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
     }
   }, [])
 
-  // Load records when database becomes ready
+  // Load records on mount (database is guaranteed ready by DatabaseProvider)
   useEffect(() => {
-    if (isDbReady) {
-      void loadRecords()
-    }
-  }, [isDbReady]) // eslint-disable-line react-hooks/exhaustive-deps
+    void loadRecords()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddToReport = useCallback((_record: AttendanceRecord) => {
     // Placeholder - show "Coming soon" toast
