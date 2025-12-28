@@ -196,6 +196,11 @@ function getFeedbackRepo(): FeedbackSqliteRepository {
  * Tracks user preferences (loves, ratings) and engagement (joins) per meeting.
  */
 export const feedbackRepo = {
+  /** Find all feedback records */
+  findAll: async () => {
+    return getFeedbackRepo().findAll()
+  },
+
   /** Find feedback by meeting ID */
   findByMid: async (mid: string) => {
     return getFeedbackRepo().findByMid(mid)

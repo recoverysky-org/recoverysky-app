@@ -38,7 +38,8 @@ export {
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
-  type AttendanceEvent,  // SDK event interface
+  type AttendanceEvent, // SDK event interface
   type FeedbackRecord,
   type FeedbackInput,
 } from "./repositories"
+export { feedbackCache } from "./feedbackCache"
