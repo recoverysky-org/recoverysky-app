@@ -1,9 +1,10 @@
 /**
  * Meeting Context
  *
- * Provides meeting data with lazy loading architecture:
- * - Startup: Load only trexes and schedules (lightweight)
- * - On-demand: Load meetings when needed for display
+ * Provides meeting data with optimized loading:
+ * - Startup: Load trexes, schedules, feedback into memory
+ * - Live: API returns full meeting objects (zero SQLite when online)
+ * - Fallback: Local calculation + SQLite when API fails
  *
  * Key relationship: trex.id === meeting.id (1:1)
  */
@@ -15,10 +16,18 @@ import {
   useEffect,
   useCallback,
   useRef,
+  useMemo,
   type ReactNode,
 } from "react"
-import { meetingRepo, scheduleRepo, findAllTrexes, type TrexRow } from "@/db"
-import { api } from "@/services/api"
+import {
+  meetingRepo,
+  scheduleRepo,
+  findAllTrexes,
+  feedbackCache,
+  type TrexRow,
+  type FeedbackRecord,
+} from "@/db"
+import { api, type LiveMeeting } from "@/services/api"
 import { useDatabase } from "@/db"
 import { logger } from "@/utils/logger"
 import {
@@ -28,6 +37,8 @@ import {
   type trex,
   type meeting,
   Periodicity,
+  MeetingStatus,
+  MeetingVerified,
 } from "@common"
 import type { MeetingWithRelations } from "@sqlite"
 
@@ -39,6 +50,8 @@ const log = logger.child({ module: "MeetingContext" })
 
 export interface MeetingWithTrex extends meeting {
   trex: trex | null
+  /** User's feedback for this meeting (loves, rates, joins) - null if no feedback */
+  feedback: FeedbackRecord | null
 }
 
 /** Schedule with meeting IDs (loaded at startup) */
@@ -55,8 +68,8 @@ export type ApiStatus = "connected" | "disconnected" | "unknown"
 export interface MeetingContextType {
   /** Meetings currently live */
   liveMeetings: MeetingWithTrex[]
-  /** Get all meetings for a schedule (from cache) */
-  getMeetingsForSchedule: (scheduleId: string) => MeetingWithTrex[]
+  /** Get trexes for a schedule (for grid display) - pure memory lookup */
+  getTrexesForSchedule: (scheduleId: string) => trex[]
   /** Loading state */
   isLoading: boolean
   /** Last time live meetings were refreshed */
@@ -128,30 +141,67 @@ function isMeetingLive(trexData: trex): boolean {
       dom: now.day,
       month: now.month,
     },
-    trexData.periodicity as Periodicity
+    trexData.periodicity as Periodicity,
   )
 
   if (!normalizeResult.ok) return false
 
-  return isLiveInterval(
-    trexData.coordinate,
-    trexData.coordinate_end,
-    normalizeResult.value.coordinate
-  )
+  return isLiveInterval(trexData.coordinate, trexData.coordinate_end, normalizeResult.value.coordinate)
 }
 
 /**
- * Convert MeetingWithRelations to MeetingWithTrex
+ * Convert LiveMeeting from API to MeetingWithTrex
  */
-function toMeetingWithTrex(
-  m: MeetingWithRelations,
-  trexMap: Map<string, trex>
-): MeetingWithTrex {
+function toMeetingWithTrexFromApi(m: LiveMeeting, trexMap: Map<string, trex>): MeetingWithTrex {
+  return {
+    // From API
+    id: m.id,
+    sid: m.sid,
+    name: m.name,
+    fellowship: m.fellowship,
+    url: m.url,
+    password: m.password,
+    language: m.language,
+    description: m.description,
+    meetingTypes: m.meetingTypes,
+    tags: m.tags,
+    // Defaults for fields not in API response
+    iid: "",
+    uid: "",
+    zid: "",
+    status: MeetingStatus.ACTIVE,
+    verified: MeetingVerified.NEVER,
+    locked: false,
+    created: "",
+    updated: "",
+    version: 0,
+    passwordEnc: "",
+    closed: false,
+    requiresLogin: false,
+    restricted: false,
+    restrictedDescription: "",
+    email: "",
+    phone: "",
+    website: "",
+    conferencePhone: "",
+    location: "",
+    sha256: "",
+    // Attached from memory
+    trex: trexMap.get(m.id) || null,
+    feedback: feedbackCache.get(m.id),
+  } as MeetingWithTrex
+}
+
+/**
+ * Convert MeetingWithRelations (from SQLite) to MeetingWithTrex
+ */
+function toMeetingWithTrexFromDb(m: MeetingWithRelations, trexMap: Map<string, trex>): MeetingWithTrex {
   return {
     ...(m.meeting as unknown as meeting),
     meetingTypes: m.types,
     tags: m.tags,
     trex: trexMap.get(m.meeting.id) || null,
+    feedback: feedbackCache.get(m.meeting.id),
   }
 }
 
@@ -168,16 +218,12 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
 
   const { status: dbStatus } = useDatabase()
 
-  // Startup data (always loaded)
+  // Startup data (always loaded into memory)
   const [trexMap, setTrexMap] = useState<Map<string, trex>>(new Map())
   const [schedules, setSchedules] = useState<ScheduleWithMeetingIds[]>([])
-  const [meetingToSchedule, setMeetingToSchedule] = useState<Map<string, string>>(new Map())
 
-  // On-demand data (loaded when needed)
+  // On-demand data
   const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
-  const [scheduleMeetingsCache, setScheduleMeetingsCache] = useState<Map<string, MeetingWithTrex[]>>(
-    new Map()
-  )
 
   // Status
   const [isLoading, setIsLoading] = useState(false)
@@ -231,24 +277,14 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
           meetingIds: s.meetingIds,
         }))
 
-        // Build reverse lookup: meetingId → scheduleId
-        const newMeetingToSchedule = new Map<string, string>()
-        for (const schedule of newSchedules) {
-          for (const mid of schedule.meetingIds) {
-            newMeetingToSchedule.set(mid, schedule.id)
-          }
-        }
-
         log.info("Startup data loaded", {
           trexCount: newTrexMap.size,
           scheduleCount: newSchedules.length,
-          meetingMappings: newMeetingToSchedule.size,
         })
 
-        // Batch update state - React will batch these
+        // Batch update state
         setTrexMap(newTrexMap)
         setSchedules(newSchedules)
-        setMeetingToSchedule(newMeetingToSchedule)
         setStartupComplete(true)
         setIsLoading(false)
       } catch (error) {
@@ -279,10 +315,11 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   }, [refreshTrigger])
 
   // ============================================================================
-  // Refresh live meetings (on-demand loading)
+  // Refresh live meetings
+  // API online: Zero SQLite queries (API returns full meetings)
+  // API offline: Fallback to local trex calculation + SQLite
   // ============================================================================
   useEffect(() => {
-    // Only run after startup data is loaded
     if (!startupComplete) {
       return
     }
@@ -292,107 +329,68 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         log.debug("Refreshing live meetings...")
         setIsLoading(true)
 
-        let liveMeetingIds: string[] | null = null
-        let source: "api" | "local" = "local"
-
-        // Try API first
+        // Try API first - returns FULL meeting objects
         if (useApiRef.current) {
           try {
-            const result = await api.getLiveMeetingIds()
+            const result = await api.getLiveMeetings()
 
             if (result.kind === "ok") {
-              liveMeetingIds = result.ids
-              source = "api"
-              log.debug("Got live IDs from API", { count: result.count })
+              // API returns full meetings - NO SQLite needed!
+              const newLiveMeetings = result.meetings.map((m) => toMeetingWithTrexFromApi(m, trexMap))
+
+              setLiveMeetings(newLiveMeetings)
+              setLiveSource("api")
+              setLastRefresh(new Date())
+              setIsLoading(false)
+
+              log.info("✓ Live meetings from API (zero SQLite)", {
+                count: newLiveMeetings.length,
+              })
+              return
             } else {
-              log.warn("✗ API liveIds failed, falling back to local", { kind: result.kind })
+              log.warn("✗ API getLiveMeetings failed, falling back to local", { kind: result.kind })
               useApiRef.current = false
             }
           } catch (error) {
-            log.error("✗ API liveIds error, falling back to local", { error: String(error) })
+            log.error("✗ API getLiveMeetings error, falling back to local", { error: String(error) })
             useApiRef.current = false
           }
         }
 
-        // Fallback: local calculation from trexes
-        if (liveMeetingIds === null) {
-          liveMeetingIds = []
-          for (const [id, trexData] of trexMap) {
-            if (isMeetingLive(trexData)) {
-              liveMeetingIds.push(id) // trex.id === meeting.id
-            }
+        // Fallback: Calculate live from trexes + load from SQLite
+        log.debug("Using local fallback...")
+        const liveMeetingIds: string[] = []
+        for (const [id, trexData] of trexMap) {
+          if (isMeetingLive(trexData)) {
+            liveMeetingIds.push(id)
           }
-          source = "local"
-          log.debug("Calculated live IDs locally", { count: liveMeetingIds.length })
         }
 
-        setLiveSource(source)
-
         if (liveMeetingIds.length === 0) {
-          log.info("No live meetings", { source })
+          log.info("No live meetings (local fallback)")
           setLiveMeetings([])
-          setScheduleMeetingsCache(new Map())
+          setLiveSource("local")
           setLastRefresh(new Date())
           setIsLoading(false)
           return
         }
 
-        // Find unique schedule IDs for live meetings
-        const liveScheduleIds = new Set<string>()
-        for (const mid of liveMeetingIds) {
-          const sid = meetingToSchedule.get(mid)
-          if (sid) liveScheduleIds.add(sid)
-        }
-
-        log.debug("Live schedules", { count: liveScheduleIds.size })
-
-        // Collect ALL meeting IDs for those schedules (for popup)
-        const allMeetingIdsToLoad = new Set<string>()
-        for (const sid of liveScheduleIds) {
-          const schedule = schedules.find((s) => s.id === sid)
-          if (schedule) {
-            for (const mid of schedule.meetingIds) {
-              allMeetingIdsToLoad.add(mid)
-            }
-          }
-        }
-
-        log.debug("Loading meetings for live schedules", { count: allMeetingIdsToLoad.size })
-
-        // Load meetings from SQLite
-        const meetingsResult = await meetingRepo.findByIds([...allMeetingIdsToLoad])
+        // Load only live meetings from SQLite (fallback)
+        const meetingsResult = await meetingRepo.findByIds(liveMeetingIds)
         if (!meetingsResult.ok) {
-          log.error("Failed to load meetings", { error: String(meetingsResult.error) })
+          log.error("Failed to load meetings from SQLite", { error: String(meetingsResult.error) })
           setIsLoading(false)
           return
         }
 
-        // Convert to MeetingWithTrex
-        const meetingsWithTrex = meetingsResult.value.map((m) => toMeetingWithTrex(m, trexMap))
-
-        // Filter to just live ones for display
-        const liveIdSet = new Set(liveMeetingIds)
-        const newLiveMeetings = meetingsWithTrex.filter((m) => liveIdSet.has(m.id))
-
-        // Cache by schedule for popup
-        const cache = new Map<string, MeetingWithTrex[]>()
-        for (const m of meetingsWithTrex) {
-          // Use meeting.sid field to group by schedule
-          const sid = m.sid
-          if (sid) {
-            if (!cache.has(sid)) cache.set(sid, [])
-            cache.get(sid)!.push(m)
-          }
-        }
+        const newLiveMeetings = meetingsResult.value.map((m) => toMeetingWithTrexFromDb(m, trexMap))
 
         setLiveMeetings(newLiveMeetings)
-        setScheduleMeetingsCache(cache)
+        setLiveSource("local")
         setLastRefresh(new Date())
 
-        log.info("✓ Live meetings refreshed", {
-          liveCount: newLiveMeetings.length,
-          cachedSchedules: cache.size,
-          source,
+        log.info("✓ Live meetings from local fallback", {
+          count: newLiveMeetings.length,
         })
       } catch (error) {
         log.error("Error refreshing live meetings", { error: String(error) })
@@ -402,7 +400,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     }
 
     refreshLiveMeetings()
-  }, [startupComplete, refreshTrigger])
+  }, [startupComplete, refreshTrigger, trexMap])
 
   // ============================================================================
   // Public API
@@ -414,22 +412,35 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     setRefreshTrigger((prev) => prev + 1)
   }, [])
 
-  const getMeetingsForSchedule = useCallback(
-    (scheduleId: string): MeetingWithTrex[] => {
-      return scheduleMeetingsCache.get(scheduleId) || []
+  /**
+   * Get trexes for a schedule (pure memory lookup, ZERO SQLite)
+   * Used by SchedulePopup for the schedule grid
+   */
+  const getTrexesForSchedule = useCallback(
+    (scheduleId: string): trex[] => {
+      const schedule = schedules.find((s) => s.id === scheduleId)
+      if (!schedule) return []
+
+      return schedule.meetingIds
+        .map((mid) => trexMap.get(mid))
+        .filter((t): t is trex => t !== undefined)
     },
-    [scheduleMeetingsCache]
+    [schedules, trexMap],
   )
 
-  const value: MeetingContextType = {
-    liveMeetings,
-    getMeetingsForSchedule,
-    isLoading,
-    lastRefresh,
-    refresh,
-    liveSource,
-    apiStatus,
-  }
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo<MeetingContextType>(
+    () => ({
+      liveMeetings,
+      getTrexesForSchedule,
+      isLoading,
+      lastRefresh,
+      refresh,
+      liveSource,
+      apiStatus,
+    }),
+    [liveMeetings, getTrexesForSchedule, isLoading, lastRefresh, refresh, liveSource, apiStatus],
+  )
 
   log.debug("MeetingProvider rendering", { liveCount: liveMeetings.length, isLoading })
 

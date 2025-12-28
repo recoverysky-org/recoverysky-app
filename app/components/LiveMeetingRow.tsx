@@ -2,11 +2,13 @@
  * LiveMeetingRow Component
  *
  * Condensed meeting row for the Live screen.
- * Format: • [Fellowship] [Name]   [start time][language]
+ * Format: • [Fellowship] [Name]   [heart] [start time][language]
+ *                                         [★★★★★]
  */
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
@@ -20,8 +22,12 @@ import {
 } from "@common"
 
 interface LiveMeetingRowProps {
-  /** Meeting data with trex */
+  /** Meeting data with trex and feedback */
   meeting: MeetingWithTrex
+  /** User's rating (0-5 stars) - overrides meeting.feedback.rates for live updates */
+  rating?: number
+  /** Whether user has favorited - overrides meeting.feedback.loves for live updates */
+  isFavorite?: boolean
   /** Callback when row is pressed */
   onPress?: (meeting: MeetingWithTrex) => void
 }
@@ -57,15 +63,20 @@ function getStartTime(trex: MeetingWithTrex["trex"]): string {
 
 /**
  * LiveMeetingRow displays a condensed meeting row.
+ * Props override meeting.feedback values for live UI updates.
  *
  * @example
  * <LiveMeetingRow
  *   meeting={meeting}
+ *   rating={feedback?.rates ?? 0}
+ *   isFavorite={feedback?.loves ?? false}
  *   onPress={(m) => openPopup(m)}
  * />
  */
 export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
   meeting,
+  rating = 0,
+  isFavorite = false,
   onPress,
 }) => {
   const { themed, theme } = useAppTheme()
@@ -93,15 +104,37 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
         {meeting.name}
       </Text>
 
-      {/* Start Time */}
-      <Text style={themed($timeText)}>{startTime}</Text>
-
-      {/* Language */}
-      {meeting.language && (
-        <Text style={themed($languageText)}>
-          {meeting.language.toUpperCase()}
-        </Text>
+      {/* Heart (if favorited) */}
+      {isFavorite && (
+        <Ionicons name="heart" size={16} color="#ef4444" style={$heartIcon} />
       )}
+
+      {/* Right side: Time/Language + Stars */}
+      <View style={$rightSection}>
+        {/* Top row: Time + Language */}
+        <View style={$timeRow}>
+          <Text style={themed($timeText)}>{startTime}</Text>
+          {meeting.language && (
+            <Text style={themed($languageText)}>
+              {meeting.language.toUpperCase()}
+            </Text>
+          )}
+        </View>
+
+        {/* Bottom row: Stars (only if rated) */}
+        {rating > 0 && (
+          <View style={$starsRow}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Ionicons
+                key={star}
+                name={star <= rating ? "star" : "star-outline"}
+                size={10}
+                color={star <= rating ? "#fbbf24" : theme.colors.textDim}
+              />
+            ))}
+          </View>
+        )}
+      </View>
     </Pressable>
   )
 }
@@ -115,6 +148,7 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   paddingVertical: spacing.sm,
   gap: spacing.xs,
+  minHeight: 44,
 })
 
 const $fellowshipBadge: ViewStyle = {
@@ -142,10 +176,28 @@ const $meetingName: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
+const $heartIcon: ViewStyle = {
+  marginRight: 4,
+}
+
+const $rightSection: ViewStyle = {
+  alignItems: "flex-end",
+  marginLeft: "auto",
+}
+
+const $timeRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+}
+
+const $starsRow: ViewStyle = {
+  flexDirection: "row",
+  marginTop: 2,
+}
+
 const $timeText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   color: colors.textDim,
-  marginLeft: "auto",
 })
 
 const $languageText: ThemedStyle<TextStyle> = ({ colors }) => ({

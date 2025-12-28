@@ -27,7 +27,8 @@ import { Ionicons } from "@expo/vector-icons"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
-import { feedbackRepo, type FeedbackRecord } from "@/db"
+import type { trex } from "@common"
+import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -99,10 +100,23 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   onClose,
 }) {
   const { themed, theme } = useAppTheme()
-  const { getMeetingsForSchedule } = useMeetings()
+  const { getTrexesForSchedule } = useMeetings()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
-  const [feedback, setFeedback] = useState<FeedbackRecord | null>(null)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+
+  // Local feedback state - initialized from cache, updated on interactions
+  const [feedback, setFeedback] = useState<FeedbackRecord | null>(null)
+
+  // Load feedback from cache when popup opens (synchronous read)
+  useEffect(() => {
+    if (visible && meeting?.id) {
+      const cached = feedbackCache.get(meeting.id)
+      setFeedback(cached)
+      log.debug("Loaded feedback from cache", { mid: meeting.id, hasValue: !!cached })
+    } else {
+      setFeedback(null)
+    }
+  }, [visible, meeting?.id])
 
   // Derived state from feedback
   const isFavorite = feedback?.loves ?? false
@@ -110,82 +124,45 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   const joinCount = feedback?.joins ?? 0
   const lastJoin = feedback?.lastJoin ?? 0
 
-  // Load feedback when popup opens
-  useEffect(() => {
-    if (visible && meeting?.id) {
-      void feedbackRepo.findByMid(meeting.id).then((result) => {
-        if (result.ok) {
-          setFeedback(result.value)
-          log.debug("Loaded feedback", { mid: meeting.id, hasValue: !!result.value })
-        } else {
-          log.error("Failed to load feedback", { mid: meeting.id, error: String(result.error) })
-        }
-      })
-    } else {
-      // Reset when popup closes
-      setFeedback(null)
-    }
-  }, [visible, meeting?.id])
-
   // Toggle love/favorite
   const handleToggleLove = useCallback(async () => {
     if (!meeting?.id) return
-    const result = await feedbackRepo.toggleLove(meeting.id)
-    if (result.ok) {
-      setFeedback((prev: FeedbackRecord | null) =>
-        prev
-          ? { ...prev, loves: result.value }
-          : { mid: meeting.id, loves: result.value, rates: 0, joins: 0, lastJoin: 0 }
-      )
-      log.debug("Toggled love", { mid: meeting.id, loves: result.value })
-    } else {
-      log.error("Failed to toggle love", { mid: meeting.id, error: String(result.error) })
-    }
+    const newLoves = await feedbackCache.toggleLove(meeting.id)
+    setFeedback((prev: FeedbackRecord | null) =>
+      prev
+        ? { ...prev, loves: newLoves }
+        : { mid: meeting.id, loves: newLoves, rates: 0, joins: 0, lastJoin: 0 },
+    )
+    log.debug("Toggled love", { mid: meeting.id, loves: newLoves })
   }, [meeting?.id])
 
   // Set rating
   const handleSetRating = useCallback(
     async (star: number) => {
       if (!meeting?.id) return
-      const result = await feedbackRepo.setRating(meeting.id, star)
-      if (result.ok) {
-        setFeedback((prev: FeedbackRecord | null) =>
-          prev
-            ? { ...prev, rates: star }
-            : { mid: meeting.id, loves: false, rates: star, joins: 0, lastJoin: 0 }
-        )
-        log.debug("Set rating", { mid: meeting.id, rating: star })
-      } else {
-        log.error("Failed to set rating", { mid: meeting.id, error: String(result.error) })
-      }
+      await feedbackCache.setRating(meeting.id, star)
+      setFeedback((prev: FeedbackRecord | null) =>
+        prev
+          ? { ...prev, rates: star }
+          : { mid: meeting.id, loves: false, rates: star, joins: 0, lastJoin: 0 },
+      )
+      log.debug("Set rating", { mid: meeting.id, rating: star })
     },
-    [meeting?.id]
+    [meeting?.id],
   )
 
-  // Get all meetings for this schedule (from pre-loaded cache)
-  const scheduleMeetings = useMemo(() => {
+  // Get all trexes for this schedule (pure memory lookup, ZERO SQLite)
+  const scheduleTrexes = useMemo(() => {
     if (!meeting?.sid) return []
-    return getMeetingsForSchedule(meeting.sid)
-  }, [getMeetingsForSchedule, meeting?.sid])
+    return getTrexesForSchedule(meeting.sid)
+  }, [getTrexesForSchedule, meeting?.sid])
 
   // Generate schedule grid data using hydrateScheduleGrid from @common
   const scheduleGridData = useMemo(() => {
-    if (scheduleMeetings.length === 0) return []
+    if (scheduleTrexes.length === 0) return []
 
-    // Debug: log input meetings and their trex data
-    console.log("[SchedulePopup] scheduleMeetings:", scheduleMeetings.length)
-    for (const m of scheduleMeetings.slice(0, 5)) {
-      console.log(`  - ${m.name}: trex.dow=${m.trex?.dow}, hour=${m.trex?.hour}, min=${m.trex?.minute}`)
-    }
-
-    const gridMap = hydrateScheduleGrid(scheduleMeetings)
-
-    // Debug: log the grid map
-    console.log("[SchedulePopup] gridMap size:", gridMap.size)
-    for (const [timeKey, row] of gridMap) {
-      const filled = row.map((dt, i) => dt ? `${i}:${dt.toFormat("ccc h:mma")}` : null).filter(Boolean)
-      console.log(`  ${timeKey}: [${filled.join(", ")}]`)
-    }
+    // Wrap trexes in objects as expected by hydrateScheduleGrid
+    const gridMap = hydrateScheduleGrid(scheduleTrexes.map((t) => ({ trex: t })))
 
     // Convert Map to array format expected by ScheduleGrid
     // Sort by time, then convert DateTime to formatted string
@@ -200,9 +177,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
         const time = dt.toFormat("h:mm")
         const period = dt.hour >= 12 ? "p" : "a"
         return `${time}${period}`
-      })
+      }),
     )
-  }, [scheduleMeetings])
+  }, [scheduleTrexes])
 
   // Current day for highlighting
   const currentDow = DateTime.now().weekday
@@ -218,18 +195,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
     if (!meeting?.url || !meeting?.id) return
 
     // Record the join in feedback BEFORE joining
-    const recordResult = await feedbackRepo.recordJoin(meeting.id)
-    if (recordResult.ok) {
-      const now = Date.now()
-      setFeedback((prev: FeedbackRecord | null) =>
-        prev
-          ? { ...prev, joins: prev.joins + 1, lastJoin: now }
-          : { mid: meeting.id, loves: false, rates: 0, joins: 1, lastJoin: now }
-      )
-      log.info("Recorded join", { mid: meeting.id, joins: (feedback?.joins ?? 0) + 1 })
-    } else {
-      log.error("Failed to record join", { mid: meeting.id, error: String(recordResult.error) })
-    }
+    await feedbackCache.recordJoin(meeting.id)
+    const now = Date.now()
+    setFeedback((prev: FeedbackRecord | null) =>
+      prev
+        ? { ...prev, joins: prev.joins + 1, lastJoin: now }
+        : { mid: meeting.id, loves: false, rates: 0, joins: 1, lastJoin: now },
+    )
+    log.info("Recorded join", { mid: meeting.id, joins: (feedback?.joins ?? 0) + 1 })
 
     // Extract meeting number and password from URL
     const meetingNumber = extractZoomMeetingNumber(meeting.url)
@@ -306,7 +279,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             {duration && <Text style={themed($metaText)}>{duration}</Text>}
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
-              <Text style={themed($metaText)}>{scheduleMeetings.length} meetings</Text>
+              <Text style={themed($metaText)}>{scheduleTrexes.length} meetings</Text>
             </View>
             {meeting.language && (
               <View style={$metaItem}>

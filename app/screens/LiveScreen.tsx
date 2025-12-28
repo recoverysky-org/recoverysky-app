@@ -1,13 +1,12 @@
 import { FC, useCallback, useState, useMemo, useEffect } from "react"
 import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
-import { observer } from "mobx-react-lite"
 
 import { LiveMeetingRow } from "@/components/LiveMeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
-import { feedbackRepo, useDatabaseReady, type FeedbackRecord } from "@/db"
+import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -16,48 +15,37 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 
 /**
- * Get sort priority based on rating
- * 4-5 stars = 1 (top), 3 stars = 2 (middle), 0-2 stars = 3 (bottom)
- */
-function getRatingPriority(rating: number): number {
-  if (rating >= 4) return 1
-  if (rating === 3) return 2
-  return 3
-}
-
-/**
  * LiveScreen - Shows currently live meetings
  *
  * Displays meetings that are currently in progress, filtered by the user's
  * selected fellowship. Includes auto-refresh and pull-to-refresh support.
+ *
+ * Feedback data (loves, rates) is attached to each meeting from the cache.
+ * Sort order stays stable until the next refresh to avoid jarring reordering
+ * when the user interacts with feedback controls.
  */
-export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function LiveScreen(_props) {
+export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_props) {
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const profileStore = useProfileStore()
-  const isDbReady = useDatabaseReady()
 
-  // State for feedback data (keyed by meeting ID)
-  const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackRecord>>(new Map())
+  // Live feedback state for DISPLAY only (not sorting)
+  // This updates immediately when user interacts, but doesn't affect sort order
+  const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(
+    () => feedbackCache.getAll(),
+  )
 
-  // Load feedback for all live meetings
+  // Subscribe to feedback changes for live UI updates
   useEffect(() => {
-    if (!isDbReady || liveMeetings.length === 0) return
-
-    const loadFeedback = async () => {
-      const mids = liveMeetings.map((m) => m.id)
-      const result = await feedbackRepo.findByMids(mids)
-      if (result.ok && result.value) {
-        const map = new Map<string, FeedbackRecord>()
-        for (const fb of result.value) {
-          map.set(fb.mid, fb)
-        }
-        setFeedbackMap(map)
-      }
-    }
-
-    void loadFeedback()
-  }, [isDbReady, liveMeetings])
+    const unsubscribe = feedbackCache.subscribe((mid, feedback) => {
+      setDisplayFeedback((prev) => {
+        const next = new Map(prev)
+        next.set(mid, feedback)
+        return next
+      })
+    })
+    return unsubscribe
+  }, [])
 
   // Filter meetings by user's selected fellowship
   // If no fellowship set (empty string), show all meetings
@@ -67,28 +55,35 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
     return liveMeetings.filter((m) => m.fellowship === userFellowship)
   }, [liveMeetings, profileStore.fellowship])
 
-  // Sort meetings: favorites first, then by rating (4-5 top, 3 middle, 0-2 bottom)
+  // Sort meetings: 1) favorites by stars, 2) rated non-favorites, 3) rest
+  // Uses meeting.feedback which is a snapshot from when meetings were loaded,
+  // so sorting only changes on refresh, not when user interacts
   const sortedMeetings = useMemo(() => {
     return [...filteredMeetings].sort((a, b) => {
-      const fbA = feedbackMap.get(a.id)
-      const fbB = feedbackMap.get(b.id)
+      const fbA = a.feedback
+      const fbB = b.feedback
 
-      // Favorites (loved) always come first
-      const lovedA = fbA?.loves ? 1 : 0
-      const lovedB = fbB?.loves ? 1 : 0
-      if (lovedA !== lovedB) return lovedB - lovedA // Loved first
-
-      // Then sort by rating priority (lower priority number = higher in list)
+      const lovedA = fbA?.loves ?? false
+      const lovedB = fbB?.loves ?? false
       const ratingA = fbA?.rates ?? 0
       const ratingB = fbB?.rates ?? 0
-      const priorityA = getRatingPriority(ratingA)
-      const priorityB = getRatingPriority(ratingB)
-      if (priorityA !== priorityB) return priorityA - priorityB
+      const hasFeedbackA = fbA !== null
+      const hasFeedbackB = fbB !== null
 
-      // If same priority, sort by actual rating (higher first)
-      return ratingB - ratingA
+      // 1) Favorites first, sorted by stars descending
+      if (lovedA && !lovedB) return -1
+      if (!lovedA && lovedB) return 1
+      if (lovedA && lovedB) return ratingB - ratingA
+
+      // 2) Non-favorites with feedback, sorted by stars descending
+      if (hasFeedbackA && !hasFeedbackB) return -1
+      if (!hasFeedbackA && hasFeedbackB) return 1
+      if (hasFeedbackA && hasFeedbackB) return ratingB - ratingA
+
+      // 3) Rest (no feedback) - maintain original order
+      return 0
     })
-  }, [filteredMeetings, feedbackMap])
+  }, [filteredMeetings])
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -101,7 +96,6 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
 
   const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
     setSelectedMeeting(meeting)
-    // TODO: Open SchedulePopup
   }, [])
 
   const handleClosePopup = useCallback(() => {
@@ -109,10 +103,19 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
   }, [])
 
   const renderItem = useCallback(
-    ({ item }: { item: MeetingWithTrex }) => (
-      <LiveMeetingRow meeting={item} onPress={() => handleMeetingPress(item)} />
-    ),
-    [handleMeetingPress]
+    ({ item }: { item: MeetingWithTrex }) => {
+      // Use displayFeedback for live UI updates (doesn't affect sort order)
+      const feedback = displayFeedback.get(item.id)
+      return (
+        <LiveMeetingRow
+          meeting={item}
+          rating={feedback?.rates ?? 0}
+          isFavorite={feedback?.loves ?? false}
+          onPress={() => handleMeetingPress(item)}
+        />
+      )
+    },
+    [handleMeetingPress, displayFeedback],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -123,13 +126,10 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
         <Text preset="subheading" tx="liveScreen:noMeetings" style={themed($emptyText)} />
       </View>
     ),
-    [themed]
+    [themed],
   )
 
-  const ItemSeparatorComponent = useCallback(
-    () => <View style={themed($separator)} />,
-    [themed]
-  )
+  const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
   const ListHeaderComponent = useCallback(
     () => (
@@ -146,7 +146,7 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
         )}
       </View>
     ),
-    [themed, sortedMeetings.length, lastRefresh]
+    [themed, sortedMeetings.length, lastRefresh],
   )
 
   return (
@@ -160,11 +160,7 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
         ItemSeparatorComponent={ItemSeparatorComponent}
         contentContainerStyle={themed($listContent)}
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refresh}
-            tintColor={theme.colors.text}
-          />
+          <RefreshControl refreshing={isLoading} onRefresh={refresh} tintColor={theme.colors.text} />
         }
         showsVerticalScrollIndicator={false}
       />
@@ -176,7 +172,7 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = observer(function Live
       />
     </Screen>
   )
-})
+}
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.md,
