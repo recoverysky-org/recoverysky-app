@@ -33,12 +33,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 })
 
 import { MeetingProvider } from "./context/MeetingContext"
+import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { DatabaseProvider, DatabaseLoadingOverlay } from "./db"
 import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
+import { loadStoredAuth } from "./services/auth/useZitadelAuth"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
@@ -127,6 +129,12 @@ export function App() {
       .then(async () => {
         log.info("RootStore initialized and hydrated from storage")
 
+        // Restore OAuth tokens from SecureStore (if any)
+        const authRestored = await loadStoredAuth(_rootStore.authenticationStore)
+        if (authRestored) {
+          log.info("OAuth tokens restored from SecureStore")
+        }
+
         // Initialize device ID for user identification
         const deviceId = await getDeviceId()
         _rootStore.authenticationStore.setDeviceId(deviceId)
@@ -194,25 +202,30 @@ export function App() {
     config,
   }
 
+  // Get userId for RevenueCat (use deviceId for anonymous users, userId for authenticated)
+  const revenueCatUserId = rootStore.authenticationStore.userId ?? rootStore.authenticationStore.deviceId
+
   // otherwise, we're ready to render the app
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
         <RootStoreProvider value={rootStore}>
-          <DatabaseProvider>
-            <MeetingProvider>
-              <ThemeProvider>
-                <ZoomMeetingProvider>
-                  <DatabaseLoadingOverlay />
-                  <AppNavigator
-                    linking={linking}
-                    initialState={initialNavigationState}
-                    onStateChange={onNavigationStateChange}
-                  />
-                </ZoomMeetingProvider>
-              </ThemeProvider>
-            </MeetingProvider>
-          </DatabaseProvider>
+          <SubscriptionProvider appUserId={revenueCatUserId}>
+            <DatabaseProvider>
+              <MeetingProvider>
+                <ThemeProvider>
+                  <ZoomMeetingProvider>
+                    <DatabaseLoadingOverlay />
+                    <AppNavigator
+                      linking={linking}
+                      initialState={initialNavigationState}
+                      onStateChange={onNavigationStateChange}
+                    />
+                  </ZoomMeetingProvider>
+                </ThemeProvider>
+              </MeetingProvider>
+            </DatabaseProvider>
+          </SubscriptionProvider>
         </RootStoreProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
