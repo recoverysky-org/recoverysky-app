@@ -35,6 +35,9 @@ export const ProfileStoreModel = types
 
     // Onboarding
     onboardingCompleted: types.optional(types.boolean, false),
+
+    // User preferences for dialogs
+    dontShowShortMeetingWarning: types.optional(types.boolean, false),
   })
   .views((self) => ({
     /**
@@ -165,6 +168,13 @@ export const ProfileStoreModel = types
     },
 
     /**
+     * Set "don't show short meeting warning" preference
+     */
+    setDontShowShortMeetingWarning(value: boolean) {
+      self.dontShowShortMeetingWarning = value
+    },
+
+    /**
      * Reset profile to defaults
      */
     reset() {
@@ -179,6 +189,7 @@ export const ProfileStoreModel = types
       self.subscriptionExpires = null
       self.themeColor = ""
       self.onboardingCompleted = false
+      self.dontShowShortMeetingWarning = false
     },
   }))
 

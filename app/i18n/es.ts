@@ -172,6 +172,10 @@ const es: Translations = {
     openExternal: "Abrir en Zoom",
     permissionRequired: "Se requiere acceso a cámara y micrófono",
     joinMeeting: "Unirse a Reunión",
+    shortMeetingTitle: "Reunión Muy Corta",
+    shortMeetingMessage:
+      "Tu reunión duró solo {{minutes}} minuto(s). Se requieren al menos {{required}} minuto(s) para recibir crédito de asistencia. Este registro no aparecerá en tu historial de asistencia.",
+    dontShowAgain: "No mostrar de nuevo",
   },
   devScreen: {
     title: "Herramientas de desarrollo",

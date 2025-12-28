@@ -12,11 +12,13 @@
  */
 
 import { FC, ReactNode, useState, useEffect, createContext, useContext, useCallback, useRef } from "react"
+import { Alert } from "react-native"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 import * as Crypto from "expo-crypto"
 
 import { attendanceRepo, type AttendanceEvent } from "@/db"
-import { useAuthenticationStore } from "@/models"
+import { translate } from "@/i18n"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"
@@ -86,6 +88,7 @@ export const useZoomContext = (): ZoomContextValue => {
 const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
   const zoom = useZoom()
   const authStore = useAuthenticationStore()
+  const profileStore = useProfileStore()
   const [error, setError] = useState<string | null>(null)
   const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
   const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
@@ -114,6 +117,28 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     })
   }
 
+  // Show dialog when meeting is too short for credit
+  const showShortMeetingWarning = useCallback(
+    (creditMins: number) => {
+      if (profileStore.dontShowShortMeetingWarning) return
+
+      const minMinutes = Math.ceil(MIN_CREDIT_MS / 60000)
+      Alert.alert(
+        translate("zoomMeeting:shortMeetingTitle"),
+        translate("zoomMeeting:shortMeetingMessage", { minutes: creditMins, required: minMinutes }),
+        [
+          { text: translate("common:ok"), style: "default" },
+          {
+            text: translate("zoomMeeting:dontShowAgain"),
+            style: "cancel",
+            onPress: () => profileStore.setDontShowShortMeetingWarning(true),
+          },
+        ],
+      )
+    },
+    [profileStore],
+  )
+
   // Process attendance record when meeting ends
   const processAttendance = async () => {
     const ctx = meetingContextRef.current
@@ -131,6 +156,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
       log.info("Attendance saved", { valid, creditMins })
+
+      // Show warning dialog if meeting was too short
+      if (!valid) {
+        showShortMeetingWarning(creditMins)
+      }
     } catch (err) {
       log.error("Attendance save failed", { error: String(err) })
     }

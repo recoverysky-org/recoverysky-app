@@ -179,6 +179,10 @@ const en = {
     openExternal: "Open in Zoom App",
     permissionRequired: "Camera and microphone access required",
     joinMeeting: "Join Meeting",
+    shortMeetingTitle: "Meeting Too Short",
+    shortMeetingMessage:
+      "Your meeting was only {{minutes}} minute(s). At least {{required}} minute(s) are required to receive attendance credit. This record will not appear in your attendance history.",
+    dontShowAgain: "Don't show again",
   },
   // Dev Screen (hidden)
   devScreen: {
