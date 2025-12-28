@@ -13,7 +13,7 @@
  * - Weekly schedule grid
  */
 
-import { FC, useMemo, useState } from "react"
+import { FC, useMemo, useState, useEffect, useCallback } from "react"
 import {
   View,
   ViewStyle,
@@ -27,9 +27,11 @@ import { Ionicons } from "@expo/vector-icons"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { feedbackRepo, type FeedbackRecord } from "@/db"
 import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { logger } from "@/utils/logger"
 import {
   FELLOWSHIP_COLORS,
   hydrateNext,
@@ -38,6 +40,8 @@ import {
   type TREXJSON,
   Fellowship,
 } from "@common"
+
+const log = logger.child({ module: "SchedulePopup" })
 
 interface SchedulePopupProps {
   visible: boolean
@@ -97,9 +101,66 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   const { themed, theme } = useAppTheme()
   const { getMeetingsForSchedule } = useMeetings()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [rating, setRating] = useState(0)
+  const [feedback, setFeedback] = useState<FeedbackRecord | null>(null)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+
+  // Derived state from feedback
+  const isFavorite = feedback?.loves ?? false
+  const rating = feedback?.rates ?? 0
+  const joinCount = feedback?.joins ?? 0
+  const lastJoin = feedback?.lastJoin ?? 0
+
+  // Load feedback when popup opens
+  useEffect(() => {
+    if (visible && meeting?.id) {
+      void feedbackRepo.findByMid(meeting.id).then((result) => {
+        if (result.ok) {
+          setFeedback(result.value)
+          log.debug("Loaded feedback", { mid: meeting.id, hasValue: !!result.value })
+        } else {
+          log.error("Failed to load feedback", { mid: meeting.id, error: String(result.error) })
+        }
+      })
+    } else {
+      // Reset when popup closes
+      setFeedback(null)
+    }
+  }, [visible, meeting?.id])
+
+  // Toggle love/favorite
+  const handleToggleLove = useCallback(async () => {
+    if (!meeting?.id) return
+    const result = await feedbackRepo.toggleLove(meeting.id)
+    if (result.ok) {
+      setFeedback((prev: FeedbackRecord | null) =>
+        prev
+          ? { ...prev, loves: result.value }
+          : { mid: meeting.id, loves: result.value, rates: 0, joins: 0, lastJoin: 0 }
+      )
+      log.debug("Toggled love", { mid: meeting.id, loves: result.value })
+    } else {
+      log.error("Failed to toggle love", { mid: meeting.id, error: String(result.error) })
+    }
+  }, [meeting?.id])
+
+  // Set rating
+  const handleSetRating = useCallback(
+    async (star: number) => {
+      if (!meeting?.id) return
+      const result = await feedbackRepo.setRating(meeting.id, star)
+      if (result.ok) {
+        setFeedback((prev: FeedbackRecord | null) =>
+          prev
+            ? { ...prev, rates: star }
+            : { mid: meeting.id, loves: false, rates: star, joins: 0, lastJoin: 0 }
+        )
+        log.debug("Set rating", { mid: meeting.id, rating: star })
+      } else {
+        log.error("Failed to set rating", { mid: meeting.id, error: String(result.error) })
+      }
+    },
+    [meeting?.id]
+  )
 
   // Get all meetings for this schedule (from pre-loaded cache)
   const scheduleMeetings = useMemo(() => {
@@ -154,7 +215,21 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   const duration = meeting?.trex ? formatDuration(meeting.trex.duration_ms) : null
 
   const handleJoin = async () => {
-    if (!meeting?.url) return
+    if (!meeting?.url || !meeting?.id) return
+
+    // Record the join in feedback BEFORE joining
+    const recordResult = await feedbackRepo.recordJoin(meeting.id)
+    if (recordResult.ok) {
+      const now = Date.now()
+      setFeedback((prev: FeedbackRecord | null) =>
+        prev
+          ? { ...prev, joins: prev.joins + 1, lastJoin: now }
+          : { mid: meeting.id, loves: false, rates: 0, joins: 1, lastJoin: now }
+      )
+      log.info("Recorded join", { mid: meeting.id, joins: (feedback?.joins ?? 0) + 1 })
+    } else {
+      log.error("Failed to record join", { mid: meeting.id, error: String(recordResult.error) })
+    }
 
     // Extract meeting number and password from URL
     const meetingNumber = extractZoomMeetingNumber(meeting.url)
@@ -195,8 +270,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
         <View style={themed($content)}>
           {/* Header */}
           <View style={themed($header)}>
-            {/* Live indicator */}
-            <View style={$liveDot} />
+            {/* Fellowship badge */}
+            <View style={[$fellowshipBadge, { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
+              <Text style={[$fellowshipBadgeText, { color: fellowshipColor }]}>
+                {meeting.fellowship || "?"}
+              </Text>
+            </View>
 
             {/* Time */}
             {timeInfo && (
@@ -207,13 +286,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             <Text style={themed($title)} numberOfLines={1}>
               {meeting.name}
             </Text>
-
-            {/* Fellowship badge */}
-            <View style={[$fellowshipBadge, { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
-              <Text style={[$fellowshipBadgeText, { color: fellowshipColor }]}>
-                {meeting.fellowship || "?"}
-              </Text>
-            </View>
 
             {/* Close button */}
             <Pressable onPress={onClose} style={themed($closeButton)}>
@@ -242,29 +314,27 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
                 <Text style={themed($metaText)}>{meeting.language.toUpperCase()}</Text>
               </View>
             )}
+            {joinCount > 0 && (
+              <View style={$metaItem}>
+                <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
+                <Text style={themed($metaText)}>
+                  {joinCount} {joinCount === 1 ? "join" : "joins"}
+                  {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Meeting tags + Favorite */}
-          <View style={themed($tagsAndFavRow)}>
-            <View style={themed($tagsRow)}>
-              {[...(meeting.tags || []), ...(meeting.meetingTypes || [])].map((tag, idx) => (
-                <View key={idx} style={themed($tag)}>
-                  <Text style={themed($tagText)}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Favorite button (UI only) */}
-            <Pressable onPress={() => setIsFavorite(!isFavorite)}>
-              <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
-                size={24}
-                color={isFavorite ? "#ef4444" : theme.colors.textDim}
-              />
-            </Pressable>
+          {/* Meeting tags */}
+          <View style={themed($tagsRow)}>
+            {[...(meeting.tags || []), ...(meeting.meetingTypes || [])].map((tag, idx) => (
+              <View key={idx} style={themed($tag)}>
+                <Text style={themed($tagText)}>{tag}</Text>
+              </View>
+            ))}
           </View>
 
-          {/* Join button and Rating row */}
+          {/* Join button, Heart, and Rating row */}
           <View style={themed($actionRow)}>
             {/* Join button */}
             {meeting.url && (
@@ -284,10 +354,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
               </Pressable>
             )}
 
-            {/* Rating stars (UI only) */}
+            {/* Favorite heart */}
+            <Pressable onPress={handleToggleLove} style={themed($heartButton)}>
+              <Ionicons
+                name={isFavorite ? "heart" : "heart-outline"}
+                size={26}
+                color={isFavorite ? "#ef4444" : theme.colors.textDim}
+              />
+            </Pressable>
+
+            {/* Rating stars */}
             <View style={themed($ratingContainer)}>
               {[1, 2, 3, 4, 5].map((star) => (
-                <Pressable key={star} onPress={() => setRating(star)}>
+                <Pressable key={star} onPress={() => handleSetRating(star)}>
                   <Ionicons
                     name={star <= rating ? "star" : "star-outline"}
                     size={20}
@@ -335,7 +414,7 @@ const $overlay: ThemedStyle<ViewStyle> = () => ({
 
 const $backdrop: ThemedStyle<ViewStyle> = () => ({
   ...StyleSheet.absoluteFillObject,
-  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  backgroundColor: "rgba(0, 0, 0, 0.85)",
 })
 
 const $content: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -354,13 +433,6 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.sm,
   gap: spacing.xs,
 })
-
-const $liveDot: ViewStyle = {
-  width: 10,
-  height: 10,
-  borderRadius: 5,
-  backgroundColor: "#22c55e",
-}
 
 const $headerTime: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
@@ -428,18 +500,11 @@ const $readMore: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.sm,
 })
 
-const $tagsAndFavRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  paddingBottom: spacing.sm,
-})
-
 const $tagsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   flexWrap: "wrap",
   gap: spacing.xs,
-  flex: 1,
+  paddingBottom: spacing.sm,
 })
 
 const $tag: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -458,8 +523,12 @@ const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  justifyContent: "space-between",
+  gap: spacing.md,
   marginBottom: spacing.md,
+})
+
+const $heartButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.xs,
 })
 
 const $joinButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

@@ -30,6 +30,7 @@ export {
   scheduleRepo,
   syncQueueRepo,
   attendanceRepo,
+  feedbackRepo,
   findAllTrexes,
   findTrexById,
   findTrexesByIds,
@@ -38,4 +39,6 @@ export {
   type AttendanceUpdateInput,
   type AttendanceRecord,
   type AttendanceEvent,  // SDK event interface
+  type FeedbackRecord,
+  type FeedbackInput,
 } from "./repositories"

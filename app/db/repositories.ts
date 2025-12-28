@@ -18,9 +18,12 @@ import {
   ScheduleSqliteRepository,
   SyncQueueRepository,
   AttendanceSqliteRepository,
+  FeedbackSqliteRepository,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
+  type FeedbackRecord,
+  type FeedbackInput,
 } from "@sqlite"
 import { getDb } from "./provider"
 
@@ -42,6 +45,7 @@ let _meetingRepo: MeetingSqliteRepository | null = null
 let _scheduleRepo: ScheduleSqliteRepository | null = null
 let _syncQueueRepo: SyncQueueRepository | null = null
 let _attendanceRepo: AttendanceSqliteRepository | null = null
+let _feedbackRepo: FeedbackSqliteRepository | null = null
 
 /**
  * Meeting repository instance (lazy)
@@ -133,6 +137,16 @@ export const attendanceRepo = {
     return getAttendanceRepo().findUnprocessed()
   },
 
+  /** Find unproduced attendance records (not yet included in a report) */
+  findUnproduced: async () => {
+    return getAttendanceRepo().findUnproduced()
+  },
+
+  /** Find all attendance records */
+  findAll: async () => {
+    return getAttendanceRepo().findAll()
+  },
+
   /** Add an event to an attendance record */
   addEvent: async (id: string, event: AttendanceEvent) => {
     return getAttendanceRepo().addEvent(id, event)
@@ -164,6 +178,57 @@ export const attendanceRepo = {
 
 // Re-export types for convenience
 export type { AttendanceCreateInput, AttendanceUpdateInput, AttendanceRecord }
+
+// ============================================================================
+// Feedback Repository
+// ============================================================================
+
+function getFeedbackRepo(): FeedbackSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_feedbackRepo) _feedbackRepo = new FeedbackSqliteRepository(db as any)
+  return _feedbackRepo
+}
+
+/**
+ * Feedback repository instance (lazy)
+ *
+ * Tracks user preferences (loves, ratings) and engagement (joins) per meeting.
+ */
+export const feedbackRepo = {
+  /** Find feedback by meeting ID */
+  findByMid: async (mid: string) => {
+    return getFeedbackRepo().findByMid(mid)
+  },
+
+  /** Toggle love status for a meeting, returns new state */
+  toggleLove: async (mid: string) => {
+    return getFeedbackRepo().toggleLove(mid)
+  },
+
+  /** Set rating for a meeting (0-5) */
+  setRating: async (mid: string, rating: number) => {
+    return getFeedbackRepo().setRating(mid, rating)
+  },
+
+  /** Record a join event (increment joins, update lastJoin) */
+  recordJoin: async (mid: string) => {
+    return getFeedbackRepo().recordJoin(mid)
+  },
+
+  /** Find all loved meetings */
+  findLoved: async () => {
+    return getFeedbackRepo().findLoved()
+  },
+
+  /** Find most recently joined meetings */
+  findRecentlyJoined: async (limit = 10) => {
+    return getFeedbackRepo().findRecentlyJoined(limit)
+  },
+}
+
+// Re-export feedback types
+export type { FeedbackRecord, FeedbackInput }
 
 // ============================================================================
 // TREX Queries (simple functions, no full repository needed for MVP)
