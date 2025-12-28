@@ -37,7 +37,7 @@ const getFellowshipLabel = (f: string): string => {
     case "CMA":
       return "Crystal Meth Anonymous (CMA)"
     case "RD":
-      return "Refuge Dharma (RD)"
+      return "Recovery Dharma (RD)"
     case "Other":
       return translate("onboarding:otherFellowship")
     default:
@@ -78,7 +78,11 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
     }
 
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         {/* Progress dots */}
         <View style={$progress}>
           <View style={[$dot, $dotInactive]} />
@@ -100,9 +104,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
               style={themed($pickerButton)}
               onPress={() => setFellowshipModalVisible(true)}
             >
-              <Text style={themed($pickerText)}>
-                {getFellowshipLabel(profileStore.fellowship)}
-              </Text>
+              <Text style={themed($pickerText)}>{getFellowshipLabel(profileStore.fellowship)}</Text>
               <Ionicons name="chevron-down" size={20} color={theme.colors.textDim} />
             </Pressable>
           </View>
@@ -110,13 +112,8 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
           {/* Recovery Date Picker */}
           <View style={themed($inputSection)}>
             <Text style={themed($label)} tx="onboarding:recoveryDate" />
-            <Pressable
-              style={themed($pickerButton)}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={themed($pickerText)}>
-                {formatDate(profileStore.recoveryDateAsDate)}
-              </Text>
+            <Pressable style={themed($pickerButton)} onPress={() => setShowDatePicker(true)}>
+              <Text style={themed($pickerText)}>{formatDate(profileStore.recoveryDateAsDate)}</Text>
               <Ionicons name="calendar-outline" size={20} color={theme.colors.textDim} />
             </Pressable>
           </View>
@@ -132,10 +129,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
                 maximumDate={new Date()}
                 themeVariant={theme.isDark ? "dark" : "light"}
               />
-              <Pressable
-                style={themed($datePickerDone)}
-                onPress={() => setShowDatePicker(false)}
-              >
+              <Pressable style={themed($datePickerDone)} onPress={() => setShowDatePicker(false)}>
                 <Text style={{ color: theme.colors.tint, fontSize: 16, fontWeight: "600" }}>
                   Done
                 </Text>
@@ -185,10 +179,16 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
         {/* Footer */}
         <View style={themed($footer)}>
           <Pressable
-            style={[themed($button), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+            style={[
+              themed($button),
+              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            ]}
             onPress={handleNext}
           >
-            <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="onboarding:next" />
+            <Text
+              style={[themed($buttonText), { color: theme.colors.tint }]}
+              tx="onboarding:next"
+            />
           </Pressable>
 
           <Pressable onPress={handleSkip} style={$skipButton}>
@@ -197,7 +197,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
         </View>
       </Screen>
     )
-  }
+  },
 )
 
 // ============================================================================
