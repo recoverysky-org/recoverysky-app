@@ -12,6 +12,24 @@ import { logger } from "@/utils/logger"
 
 import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"
 import type { ApiConfig } from "./types"
+import type { Fellowship } from "@common"
+
+/**
+ * Live meeting data returned from /meetings/live API
+ * Subset of meeting fields needed for display
+ */
+export interface LiveMeeting {
+  id: string
+  sid: string
+  name: string
+  fellowship: Fellowship
+  url: string
+  password: string
+  language: string
+  description: string
+  meetingTypes: string[]
+  tags: string[]
+}
 
 // Re-export for convenience
 export { GeneralApiProblem, getGeneralApiProblem } from "./apiProblem"
@@ -150,6 +168,43 @@ export class Api {
 
     log.debug("Received live meeting IDs", { count: response.data.count, timestamp: response.data.timestamp })
     return { kind: "ok", ids: response.data.ids, count: response.data.count }
+  }
+
+  /**
+   * Get live meetings with full meeting data from the RecoverySky API
+   *
+   * Returns full meeting objects that are currently live.
+   * This eliminates the need to load meetings from SQLite.
+   */
+  async getLiveMeetings(): Promise<
+    { kind: "ok"; meetings: LiveMeeting[]; count: number } | GeneralApiProblem
+  > {
+    log.debug("Fetching live meetings from API")
+
+    const response = await this.recoverySkyApi.get<{
+      timestamp: string
+      count: number
+      meetings: LiveMeeting[]
+    }>("/meetings/live")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("API request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    // Validate response data
+    if (!response.data || !Array.isArray(response.data.meetings)) {
+      log.warn("Invalid response data format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received live meetings", {
+      count: response.data.count,
+      timestamp: response.data.timestamp,
+    })
+    return { kind: "ok", meetings: response.data.meetings, count: response.data.count }
   }
 
   /**
