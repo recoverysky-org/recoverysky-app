@@ -10,6 +10,8 @@ import { ApisauceInstance, create } from "apisauce"
 import Config from "@/config"
 import { logger } from "@/utils/logger"
 
+import { type meeting } from "@common"
+
 import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"
 import type { ApiConfig } from "./types"
 
@@ -20,14 +22,16 @@ export type ScheduleDataRow = (string | null)[]
 
 /**
  * Live schedule from /schedules/live API
- * Contains schedule ID, associated meeting ID, and pre-computed grid data
+ * Contains full meeting object and pre-computed grid data
  */
 export interface LiveSchedule {
   /** Schedule ID */
   sid: string
-  /** Meeting ID that caused this schedule to be live */
-  mid: string
-  /** Pre-computed schedule grid data for SchedulePopup */
+  /** Full meeting object */
+  meeting: meeting
+  /** Current meeting time in UTC milliseconds */
+  millis: number
+  /** Pre-computed schedule grid data for SchedulePopup (values are UTC millis) */
   data: ScheduleDataRow[]
 }
 
