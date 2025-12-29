@@ -214,6 +214,46 @@ export class Api {
   }
 
   /**
+   * Get daily schedules for a specific day of week and fellowship
+   *
+   * @param iso_dow - ISO day of week (1=Monday, 7=Sunday)
+   * @param fellowship - Fellowship code (e.g., "AA", "NA", "RD")
+   * @returns Schedules for the specified day/fellowship
+   */
+  async getDailySchedules(
+    iso_dow: number,
+    fellowship: string,
+  ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    log.debug("Fetching daily schedules from API", { iso_dow, fellowship, tz })
+
+    const response = await this.recoverySkyApi.get<{
+      timestamp: string
+      count: number
+      schedules: LiveSchedule[]
+    }>("/schedules/daily", { iso_dow, fellowship, tz })
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("API request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || !Array.isArray(response.data.schedules)) {
+      log.warn("Invalid response data format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received daily schedules", {
+      count: response.data.count,
+      iso_dow,
+      fellowship,
+    })
+    return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
+  }
+
+  /**
    * Get Zoom JWT token from the backend
    *
    * The backend generates the JWT using Zoom SDK credentials (kept secure server-side).
