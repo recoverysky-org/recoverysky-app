@@ -30,6 +30,8 @@ export interface MeetingWithTrex extends meeting {
   feedback: FeedbackRecord | null
   /** Current meeting time in UTC milliseconds */
   millis: number
+  /** Meeting duration in milliseconds */
+  duration_ms: number
   /** Pre-computed schedule grid data from API (values are UTC millis) */
   scheduleData: ScheduleDataRow[] | null
 }
@@ -144,6 +146,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
           ...s.meeting,
           feedback: feedbackCache.get(s.meeting.id),
           millis: s.millis,
+          duration_ms: s.duration_ms ?? 0,
           scheduleData: s.data,
         }))
 

@@ -205,11 +205,11 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
                 <Text style={themed($metaText)}>{formattedTime}</Text>
               </View>
             )}
-            {(meeting as unknown as { duration_ms?: number }).duration_ms ? (
+            {meeting.duration_ms ? (
               <View style={$metaItem}>
                 <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
                 <Text style={themed($metaText)}>
-                  {Math.round((meeting as unknown as { duration_ms: number }).duration_ms / 60000)} min
+                  {Math.round(meeting.duration_ms / 60000)} min
                 </Text>
               </View>
             ) : null}

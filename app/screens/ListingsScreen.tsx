@@ -171,6 +171,7 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
           ...s.meeting,
           feedback: null,
           millis: s.millis,
+          duration_ms: s.duration_ms ?? 0,
           scheduleData: s.data,
         }))
 

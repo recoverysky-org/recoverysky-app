@@ -31,6 +31,8 @@ export interface LiveSchedule {
   meeting: meeting
   /** Current meeting time in UTC milliseconds */
   millis: number
+  /** Meeting duration in milliseconds */
+  duration_ms: number
   /** Pre-computed schedule grid data for SchedulePopup (values are UTC millis) */
   data: ScheduleDataRow[]
 }
