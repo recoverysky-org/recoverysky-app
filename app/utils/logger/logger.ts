@@ -28,8 +28,8 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
 }
 
 const CONSOLE_METHODS: Record<LogLevel, keyof Console> = {
-  trace: "debug",
-  debug: "debug",
+  trace: "log",
+  debug: "log",
   info: "info",
   warn: "warn",
   error: "error",

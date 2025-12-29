@@ -31,6 +31,7 @@ export { useLogger, useSimpleLogger } from "./useLogger"
 export type { Logger, LoggerConfig, LogLevel, LogAttributes } from "./types"
 
 import { createLogger } from "./logger"
+import type { LogLevel } from "./types"
 
 /**
  * Default logger instance
@@ -38,10 +39,14 @@ import { createLogger } from "./logger"
  * Reads config from environment:
  * - EXPO_PUBLIC_OTLP_ENDPOINT: OTLP collector URL (optional until Alloy is online)
  * - EXPO_PUBLIC_OTLP_API_KEY: API key for auth (optional)
+ * - EXPO_PUBLIC_LOG_LEVEL: Minimum log level (trace, debug, info, warn, error, fatal)
  */
+console.log("[Logger] EXPO_PUBLIC_LOG_LEVEL:", process.env.EXPO_PUBLIC_LOG_LEVEL, "__DEV__:", __DEV__)
+
 export const logger = createLogger({
   endpoint: process.env.EXPO_PUBLIC_OTLP_ENDPOINT,
   apiKey: process.env.EXPO_PUBLIC_OTLP_API_KEY,
+  minLevel: (process.env.EXPO_PUBLIC_LOG_LEVEL as LogLevel) || undefined,
   serviceName: "recoverysky-hybrid",
   serviceVersion: require("../../../package.json").version,
 })
