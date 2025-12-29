@@ -39,6 +39,10 @@ export const ProfileStoreModel = types
 
     // User preferences for dialogs
     dontShowShortMeetingWarning: types.optional(types.boolean, false),
+
+    // Attendance settings
+    attendanceEnabled: types.optional(types.boolean, false),
+    reportEmail: types.optional(types.string, ""),
   })
   .views((self) => ({
     /**
@@ -178,6 +182,20 @@ export const ProfileStoreModel = types
     },
 
     /**
+     * Set attendance enabled
+     */
+    setAttendanceEnabled(value: boolean) {
+      self.attendanceEnabled = value
+    },
+
+    /**
+     * Set report export email
+     */
+    setReportEmail(value: string) {
+      self.reportEmail = value
+    },
+
+    /**
      * Reset profile to defaults
      */
     reset() {
@@ -193,6 +211,8 @@ export const ProfileStoreModel = types
       self.themeColor = ""
       self.onboardingCompleted = false
       self.dontShowShortMeetingWarning = false
+      self.attendanceEnabled = false
+      self.reportEmail = ""
     },
   }))
 

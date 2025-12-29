@@ -25,8 +25,12 @@ export interface AttendanceWithMeeting extends AttendanceRecord {
 interface AttendanceRowProps {
   /** Attendance record with optional meeting name */
   record: AttendanceWithMeeting
-  /** Callback when Add to Report is pressed */
-  onAddToReport?: () => void
+  /** Whether this record is selected */
+  isSelected?: boolean
+  /** Callback when selection toggle is pressed */
+  onToggleSelect?: () => void
+  /** Callback when Delete is pressed */
+  onDelete?: () => void
 }
 
 /**
@@ -38,7 +42,12 @@ interface AttendanceRowProps {
  *   onAddToReport={() => handleAdd(attendance.id)}
  * />
  */
-export const AttendanceRow: FC<AttendanceRowProps> = ({ record, onAddToReport }) => {
+export const AttendanceRow: FC<AttendanceRowProps> = ({
+  record,
+  isSelected = false,
+  onToggleSelect,
+  onDelete,
+}) => {
   const { themed, theme } = useAppTheme()
 
   const startDt = useMemo(() => {
@@ -57,12 +66,14 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({ record, onAddToReport })
 
   return (
     <View style={themed($container)}>
-      {/* Valid indicator */}
-      <Ionicons
-        name={record.valid ? "checkmark-circle" : "close-circle"}
-        size={22}
-        color={record.valid ? theme.colors.palette.secondary500 : theme.colors.error}
-      />
+      {/* Selected indicator (only when selected) */}
+      {isSelected && (
+        <Ionicons
+          name="checkmark-circle"
+          size={22}
+          color={theme.colors.palette.secondary500}
+        />
+      )}
 
       {/* Meeting info */}
       <View style={$content}>
@@ -76,16 +87,27 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({ record, onAddToReport })
         </Text>
       </View>
 
-      {/* Add to Report button (only for valid records) */}
-      {record.valid && (
-        <Pressable
-          onPress={onAddToReport}
-          hitSlop={8}
-          style={({ pressed }) => [themed($addButton), pressed && $pressed]}
-        >
-          <Ionicons name="add-circle-outline" size={26} color={theme.colors.tint} />
-        </Pressable>
-      )}
+      {/* Select/Deselect button */}
+      <Pressable
+        onPress={onToggleSelect}
+        hitSlop={8}
+        style={({ pressed }) => [themed($addButton), pressed && $pressed]}
+      >
+        <Ionicons
+          name={isSelected ? "remove-circle-outline" : "add-circle-outline"}
+          size={26}
+          color={isSelected ? theme.colors.error : theme.colors.tint}
+        />
+      </Pressable>
+
+      {/* Delete button */}
+      <Pressable
+        onPress={onDelete}
+        hitSlop={8}
+        style={({ pressed }) => [themed($addButton), pressed && $pressed]}
+      >
+        <Ionicons name="trash-outline" size={22} color={theme.colors.textDim} />
+      </Pressable>
     </View>
   )
 }

@@ -3,13 +3,16 @@ import { CompositeScreenProps } from "@react-navigation/native"
 import { View, Text, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
+import { observer } from "mobx-react-lite"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
 import { useMeetings } from "@/context/MeetingContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
+import { useProfileStore } from "@/models"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { LiveScreen } from "@/screens/LiveScreen"
+import { ListingsScreen } from "@/screens/ListingsScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
 // import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
 import { SettingsScreen } from "@/screens/SettingsScreen"
@@ -20,6 +23,7 @@ import { AppStackParamList, AppStackScreenProps } from "./navigationTypes"
 export type MainTabParamList = {
   Home: undefined
   Live: undefined
+  Listings: undefined
   Attendance: undefined
   Meetings: undefined
   Schedule: undefined
@@ -50,7 +54,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>()
  * - Meetings: Meeting list and discovery
  * - Schedule: Schedule view and management
  */
-export function MainNavigator() {
+export const MainNavigator = observer(function MainNavigator() {
   const { bottom } = useSafeAreaInsets()
   const { t } = useTranslation()
   const {
@@ -58,6 +62,7 @@ export function MainNavigator() {
   } = useAppTheme()
   const { liveMeetings } = useMeetings()
   const { validUnproducedCount } = useAttendanceBadge()
+  const profileStore = useProfileStore()
 
   return (
     <Tab.Navigator
@@ -113,28 +118,44 @@ export function MainNavigator() {
         }}
       />
       <Tab.Screen
-        name="Attendance"
-        component={AttendanceScreen}
+        name="Listings"
+        component={ListingsScreen}
         options={{
-          tabBarLabel: t("mainNavigator:attendanceTab"),
+          tabBarLabel: t("mainNavigator:listingsTab"),
           tabBarIcon: ({ focused }) => (
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="clipboard"
-                size={24}
-                color={focused ? colors.tint : colors.textDim}
-              />
-              {validUnproducedCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.tint }]}>
-                  <Text style={styles.badgeText}>
-                    {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <Ionicons
+              name="list-outline"
+              size={24}
+              color={focused ? colors.tint : colors.textDim}
+            />
           ),
         }}
       />
+      {profileStore.attendanceEnabled && (
+        <Tab.Screen
+          name="Attendance"
+          component={AttendanceScreen}
+          options={{
+            tabBarLabel: t("mainNavigator:attendanceTab"),
+            tabBarIcon: ({ focused }) => (
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name="clipboard"
+                  size={24}
+                  color={focused ? colors.tint : colors.textDim}
+                />
+                {validUnproducedCount > 0 && (
+                  <View style={[styles.badge, { backgroundColor: colors.tint }]}>
+                    <Text style={styles.badgeText}>
+                      {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ),
+          }}
+        />
+      )}
       {/* Meetings and Schedule tabs hidden for now - focusing on Live
       <Tab.Screen
         name="Meetings"
@@ -169,7 +190,7 @@ export function MainNavigator() {
       />
     </Tab.Navigator>
   )
-}
+})
 
 const styles = StyleSheet.create({
   iconContainer: {

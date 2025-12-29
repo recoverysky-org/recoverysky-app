@@ -516,7 +516,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
               onPress={handleUpgrade}
               accessibilityRole="button"
             >
-              <Ionicons name="rocket" size={18} color="#FFFFFF" />
+              <Ionicons name="rocket" size={18} color={theme.colors.tint} />
               <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
             </TouchableOpacity>
           )}
@@ -627,6 +627,50 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
               />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Attendance Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
+          </View>
+
+          {/* Enable Attendance Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:enableAttendance" />
+            <Switch
+              value={profileStore.attendanceEnabled}
+              onValueChange={profileStore.setAttendanceEnabled}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Export Email */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:exportEmail" />
+            <TextField
+              value={profileStore.reportEmail}
+              onChangeText={profileStore.setReportEmail}
+              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={themed($emailInput)}
+              inputWrapperStyle={themed($emailInputWrapper)}
+            />
+          </View>
+
+          {/* Export Button */}
+          <TouchableOpacity
+            style={[themed($exportButton), themed($lastRow)]}
+            onPress={() => Alert.alert("Coming Soon", "Export functionality will be available in a future update.")}
+            accessibilityRole="button"
+          >
+            <Ionicons name="download-outline" size={18} color={theme.colors.tint} />
+            <Text style={themed($exportButtonText)} tx="settingsScreen:exportAttendance" />
           </TouchableOpacity>
         </View>
 
@@ -744,22 +788,24 @@ const $upgradeButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: colors.tint,
+  backgroundColor: "#000",
+  borderWidth: 1.5,
+  borderColor: colors.tint,
   paddingVertical: spacing.md,
   paddingHorizontal: spacing.lg,
-  borderRadius: 12,
+  borderRadius: 10,
   marginTop: spacing.sm,
   marginBottom: spacing.sm,
   gap: spacing.xs,
   shadowColor: colors.tint,
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
   shadowRadius: 8,
-  elevation: 4,
+  elevation: 8,
 })
 
-const $upgradeButtonText: ThemedStyle<TextStyle> = () => ({
-  color: "#FFFFFF",
+const $upgradeButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
   fontSize: 16,
   fontWeight: "700",
 })
@@ -811,6 +857,10 @@ const $appSettingsIconColor: ThemedStyle<{ color: string }> = () => ({
   color: "#9C27B0",
 })
 
+const $attendanceIconColor: ThemedStyle<{ color: string }> = () => ({
+  color: "#FF9800",
+})
+
 const $dangerColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
   color: colors.error,
 })
@@ -835,6 +885,48 @@ const $shortNameInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.card,
   borderColor: colors.border,
   borderRadius: 8,
+})
+
+// Email Input
+const $emailInput: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  minHeight: 0,
+})
+
+const $emailInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  minHeight: 36,
+  minWidth: 200,
+  paddingHorizontal: 12,
+  backgroundColor: colors.card,
+  borderColor: colors.border,
+  borderRadius: 8,
+})
+
+// Export Button
+const $exportButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#000",
+  borderWidth: 1.5,
+  borderColor: colors.tint,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.lg,
+  borderRadius: 10,
+  marginTop: spacing.sm,
+  marginBottom: 16,
+  gap: spacing.xs,
+  shadowColor: colors.tint,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
+  shadowRadius: 8,
+  elevation: 8,
+})
+
+const $exportButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontSize: 14,
+  fontWeight: "600",
 })
 
 // Pronouns Button

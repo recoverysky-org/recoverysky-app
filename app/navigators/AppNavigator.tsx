@@ -12,6 +12,7 @@ import { observer } from "mobx-react-lite"
 import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { AttendanceReportsScreen } from "@/screens/AttendanceReportsScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
@@ -72,7 +73,21 @@ const AppStack = observer(function AppStack() {
         needsOnboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
         ) : (
-          <Stack.Screen name="Main" component={MainNavigator} />
+          <>
+            <Stack.Screen name="Main" component={MainNavigator} />
+            <Stack.Screen
+              name="AttendanceReports"
+              component={AttendanceReportsScreen}
+              options={{
+                headerShown: true,
+                title: "Reports",
+                headerBackTitle: "Back",
+                headerTintColor: colors.tint,
+                headerStyle: { backgroundColor: colors.background },
+                headerTitleStyle: { color: colors.text },
+              }}
+            />
+          </>
         )
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />
