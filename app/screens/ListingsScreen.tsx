@@ -29,6 +29,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { api, LiveSchedule } from "@/services/api"
 import { logger } from "@/utils/logger"
+import { DateTime } from "@common"
 
 const log = logger.child({ module: "ListingsScreen" })
 
@@ -91,8 +92,15 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
           scheduleData: s.data,
         }))
 
-        // Sort by time
-        newMeetings.sort((a, b) => a.millis - b.millis)
+        // Sort by local time (hour:minute), not UTC millis
+        newMeetings.sort((a, b) => {
+          const aLocal = DateTime.fromMillis(a.millis).toLocal()
+          const bLocal = DateTime.fromMillis(b.millis).toLocal()
+          // Compare by hour then minute
+          const aMinutes = aLocal.hour * 60 + aLocal.minute
+          const bMinutes = bLocal.hour * 60 + bLocal.minute
+          return aMinutes - bMinutes
+        })
 
         setMeetings(newMeetings)
         log.debug("Loaded daily schedules", { count: newMeetings.length, day: selectedDay })
