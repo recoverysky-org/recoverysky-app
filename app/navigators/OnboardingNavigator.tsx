@@ -1,12 +1,13 @@
 /**
  * OnboardingNavigator - Stack navigator for user onboarding flow
  *
- * 5-screen wizard:
+ * 6-screen wizard:
  * 1. Welcome - Intro message
  * 2. Profile - Name & Pronouns
  * 3. Recovery - Fellowship & Recovery Date
  * 4. Theme - Dark/Light mode & Color
- * 5. Privacy - Data privacy & documentation links
+ * 5. Attendance - Attendance tracking explanation & toggle
+ * 6. Privacy - Data privacy & documentation links
  */
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
@@ -15,6 +16,7 @@ import {
   OnboardingProfile,
   OnboardingRecovery,
   OnboardingTheme,
+  OnboardingAttendance,
   OnboardingPrivacy,
 } from "@/screens/onboarding"
 import { useAppTheme } from "@/theme/context"
@@ -44,6 +46,7 @@ export function OnboardingNavigator() {
       <Stack.Screen name="OnboardingProfile" component={OnboardingProfile} />
       <Stack.Screen name="OnboardingRecovery" component={OnboardingRecovery} />
       <Stack.Screen name="OnboardingTheme" component={OnboardingTheme} />
+      <Stack.Screen name="OnboardingAttendance" component={OnboardingAttendance} />
       <Stack.Screen name="OnboardingPrivacy" component={OnboardingPrivacy} />
     </Stack.Navigator>
   )

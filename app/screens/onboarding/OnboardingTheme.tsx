@@ -22,7 +22,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
     const [colorPickerVisible, setColorPickerVisible] = useState(false)
 
     const handleNext = () => {
-      navigation.navigate("OnboardingPrivacy")
+      navigation.navigate("OnboardingAttendance")
     }
 
     const handleSkip = () => {
@@ -41,6 +41,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
+          <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
         </View>
 

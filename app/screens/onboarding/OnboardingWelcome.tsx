@@ -37,6 +37,7 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
+          <View style={[$dot, $dotInactive]} />
         </View>
 
         {/* Content */}

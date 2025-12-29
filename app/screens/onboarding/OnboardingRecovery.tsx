@@ -90,6 +90,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
           <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
+          <View style={[$dot, $dotInactive]} />
         </View>
 
         {/* Content */}

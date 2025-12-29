@@ -49,8 +49,9 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
 
     return (
       <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
-        {/* Progress dots - 5th active */}
+        {/* Progress dots - 6th active */}
         <View style={$progress}>
+          <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />
           <View style={[$dot, $dotInactive]} />

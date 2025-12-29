@@ -175,7 +175,16 @@ const es: Translations = {
     themeSubtitle: "Hazla tuya",
     darkMode: "Modo Oscuro",
     themeColor: "Color del Tema",
-    // Screen 4: Privacy
+    // Screen 4: Attendance
+    attendanceTitle: "Asistencia Personal",
+    attendanceSubtitle: "Establece metas, sigue tu progreso y celebra visualmente tu recuperación.",
+    attendanceFreeFeature: "La asistencia se registra automáticamente al unirte a través de la app",
+    attendanceDuration: "La duración se captura para registros precisos y verificables",
+    attendancePrivate: "Los datos permanecen encriptados en tu dispositivo y solo salen cuando exportas",
+    attendancePaidFeature: "Opcional: Informes certificados para padrinos, tribunales o servicios familiares",
+    enableAttendance: "Habilitar Registro de Asistencia",
+    enableAttendanceHint: "Puedes cambiar esto después en Configuración",
+    // Screen 5: Privacy
     privacyTitle: "Tu Privacidad Importa",
     privacySubtitle: "Nos tomamos tu privacidad en serio",
     dataOnDevice: "Tus datos nunca salen de tu dispositivo",

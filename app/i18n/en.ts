@@ -122,7 +122,8 @@ const en = {
     manageSubscription: "Manage Subscription",
     restorePurchases: "Restore Purchases",
     subscriptionSuccess: "Welcome to Pro!",
-    subscriptionSuccessMessage: "Thank you for supporting RecoverySky. Enjoy your premium features!",
+    subscriptionSuccessMessage:
+      "Thank you for supporting RecoverySky. Enjoy your premium features!",
     restoreSuccess: "Purchases Restored",
     restoreSuccessMessage: "Your subscription has been restored successfully.",
     restoreNoSubscription: "No Subscription Found",
@@ -132,7 +133,8 @@ const en = {
     userId: "User ID",
     anonymousUser: "Anonymous",
     deleteUserData: "Delete User Data",
-    deleteUserDataConfirm: "Are you sure you want to delete all your user data? This cannot be undone.",
+    deleteUserDataConfirm:
+      "Are you sure you want to delete all your user data? This cannot be undone.",
     // App Settings Section
     appSettingsSection: "App Settings",
     language: "Language",
@@ -179,7 +181,19 @@ const en = {
     themeSubtitle: "Make it yours",
     darkMode: "Dark Mode",
     themeColor: "Theme Color",
-    // Screen 4: Privacy
+    // Screen 4: Attendance
+    attendanceTitle: "Personal Attendance",
+    attendanceSubtitle: "Set goals, track progress, and visually celebrate your recovery journey.",
+    attendanceFreeFeature:
+      "Meeting attendance is recorded automatically when you join through the app",
+    attendanceDuration: "Duration is captured for accurate, verifiable records",
+    attendancePrivate:
+      "Data stays encrypted on your device and only leaves when you choose to export",
+    attendancePaidFeature:
+      "Optional: Digitally certified reports for sponsors, courts, or family services",
+    enableAttendance: "Enable Attendance Tracking",
+    enableAttendanceHint: "You can change this anytime in Settings",
+    // Screen 5: Privacy
     privacyTitle: "Your Privacy Matters",
     privacySubtitle: "We take your privacy seriously",
     dataOnDevice: "Your data never leaves your device",
