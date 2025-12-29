@@ -24,7 +24,9 @@ import { useTranslation } from "react-i18next"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { LiveMeetingRow } from "@/components/LiveMeetingRow"
+import { SchedulePopup } from "@/components/SchedulePopup"
 import { MeetingWithTrex } from "@/context/MeetingContext"
+import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -64,15 +66,44 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
     // State
     const [selectedDay, setSelectedDay] = useState(getCurrentIsoDow)
     const [dayModalVisible, setDayModalVisible] = useState(false)
+    const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null) // null = all
+    const [languageModalVisible, setLanguageModalVisible] = useState(false)
     const [startHour, setStartHour] = useState(0) // 0-23
     const [endHour, setEndHour] = useState(24) // 1-24 (24 = midnight end)
     const [timePickerVisible, setTimePickerVisible] = useState<"start" | "end" | null>(null)
     const [meetings, setMeetings] = useState<MeetingWithTrex[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+
+    // Live feedback state for display updates
+    const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(
+      () => feedbackCache.getAll(),
+    )
+
+    // Subscribe to feedback changes for live UI updates
+    useEffect(() => {
+      const unsubscribe = feedbackCache.subscribe((mid, feedback) => {
+        setDisplayFeedback((prev) => {
+          const next = new Map(prev)
+          next.set(mid, feedback)
+          return next
+        })
+      })
+      return unsubscribe
+    }, [])
 
     // Get label for selected day
     const selectedDayLabel = ISO_DAYS.find((d) => d.iso === selectedDay)?.label || ""
+
+    // Get unique languages from meetings
+    const availableLanguages = useMemo(() => {
+      const langs = new Set<string>()
+      meetings.forEach((m) => {
+        if (m.language) langs.add(m.language.toUpperCase())
+      })
+      return Array.from(langs).sort()
+    }, [meetings])
 
     // Format hour for display (e.g., "6am", "12pm", "12am")
     const formatHour = (hour: number): string => {
@@ -169,23 +200,40 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
       fetchDailySchedules()
     }, [fetchDailySchedules])
 
-    // Filter meetings by time range
+    // Filter meetings by time range and language
     const filteredMeetings = useMemo(() => {
       return meetings.filter((m) => {
         const localHour = DateTime.fromMillis(m.millis).toLocal().hour
-        return localHour >= startHour && localHour < endHour
+        const inTimeRange = localHour >= startHour && localHour < endHour
+        const matchesLanguage =
+          !selectedLanguage || m.language?.toUpperCase() === selectedLanguage
+        return inTimeRange && matchesLanguage
       })
-    }, [meetings, startHour, endHour])
+    }, [meetings, startHour, endHour, selectedLanguage])
+
+    // Meeting popup handlers
+    const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
+      setSelectedMeeting(meeting)
+    }, [])
+
+    const handleClosePopup = useCallback(() => {
+      setSelectedMeeting(null)
+    }, [])
 
     const renderItem = useCallback(
-      ({ item }: { item: MeetingWithTrex }) => (
-        <LiveMeetingRow
-          meeting={item}
-          rating={item.feedback?.rates ?? 0}
-          isFavorite={item.feedback?.loves ?? false}
-        />
-      ),
-      [],
+      ({ item }: { item: MeetingWithTrex }) => {
+        // Use displayFeedback for live UI updates
+        const feedback = displayFeedback.get(item.id)
+        return (
+          <LiveMeetingRow
+            meeting={item}
+            rating={feedback?.rates ?? 0}
+            isFavorite={feedback?.loves ?? false}
+            onPress={() => handleMeetingPress(item)}
+          />
+        )
+      },
+      [handleMeetingPress, displayFeedback],
     )
 
     const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -224,14 +272,34 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
           )}
         </View>
 
-        {/* Day Selector Button */}
-        <TouchableOpacity
-          style={themed($daySelectorButton)}
-          onPress={() => setDayModalVisible(true)}
-        >
-          <Text style={themed($daySelectorButtonText)}>{selectedDayLabel}</Text>
-          <Ionicons name="chevron-down" size={18} color={theme.colors.tint} />
-        </TouchableOpacity>
+        {/* Day and Language Selector Row */}
+        <View style={themed($selectorRow)}>
+          {/* Day Selector Button */}
+          <TouchableOpacity
+            style={themed($selectorButton)}
+            onPress={() => setDayModalVisible(true)}
+          >
+            <Text style={themed($selectorLabel)}>Day</Text>
+            <View style={$selectorValueRow}>
+              <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
+              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Language Selector Button */}
+          <TouchableOpacity
+            style={themed($selectorButton)}
+            onPress={() => setLanguageModalVisible(true)}
+          >
+            <Text style={themed($selectorLabel)}>Language</Text>
+            <View style={$selectorValueRow}>
+              <Text style={themed($selectorValue)}>
+                {selectedLanguage || "All"}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* Day Selector Modal */}
         <Modal
@@ -264,6 +332,68 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
                     {day.label}
                   </Text>
                   {selectedDay === day.iso && (
+                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+
+        {/* Language Selector Modal */}
+        <Modal
+          visible={languageModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setLanguageModalVisible(false)}
+        >
+          <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
+            <View style={themed($modalContent)}>
+              <Text style={themed($modalTitle)}>Select Language</Text>
+              {/* All option */}
+              <TouchableOpacity
+                style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
+                onPress={() => {
+                  setSelectedLanguage(null)
+                  setLanguageModalVisible(false)
+                  listRef.current?.scrollToOffset({ offset: 0, animated: true })
+                }}
+              >
+                <Text
+                  style={[
+                    themed($modalOptionText),
+                    !selectedLanguage && themed($modalOptionTextSelected),
+                  ]}
+                >
+                  All
+                </Text>
+                {!selectedLanguage && (
+                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                )}
+              </TouchableOpacity>
+              {/* Language options */}
+              {availableLanguages.map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  style={[
+                    themed($modalOption),
+                    selectedLanguage === lang && themed($modalOptionSelected),
+                  ]}
+                  onPress={() => {
+                    setSelectedLanguage(lang)
+                    setLanguageModalVisible(false)
+                    listRef.current?.scrollToOffset({ offset: 0, animated: true })
+                  }}
+                >
+                  <Text
+                    style={[
+                      themed($modalOptionText),
+                      selectedLanguage === lang && themed($modalOptionTextSelected),
+                    ]}
+                  >
+                    {lang}
+                  </Text>
+                  {selectedLanguage === lang && (
                     <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
                   )}
                 </TouchableOpacity>
@@ -370,6 +500,12 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
           }
           showsVerticalScrollIndicator={false}
         />
+
+        <SchedulePopup
+          visible={selectedMeeting !== null}
+          meeting={selectedMeeting}
+          onClose={handleClosePopup}
+        />
       </Screen>
     )
   },
@@ -400,24 +536,41 @@ const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   marginTop: spacing.xs,
 })
 
-const $daySelectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
+  alignItems: "stretch",
   marginHorizontal: spacing.md,
   marginVertical: spacing.sm,
+  gap: spacing.sm,
+})
+
+const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flex: 1,
+  alignItems: "center",
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.xs,
   borderRadius: 8,
   backgroundColor: colors.card,
   borderWidth: 1,
   borderColor: colors.border,
 })
 
-const $daySelectorButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $selectorLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 11,
+  color: colors.textDim,
+  marginBottom: 2,
+})
+
+const $selectorValueRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+}
+
+const $selectorValue: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 16,
   fontWeight: "600",
-  color: colors.text,
+  color: colors.tint,
 })
 
 // Time range styles
