@@ -11,7 +11,16 @@
  * Falls back gracefully when SDK keys are not configured.
  */
 
-import { FC, ReactNode, useState, useEffect, createContext, useContext, useCallback, useRef } from "react"
+import {
+  FC,
+  ReactNode,
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  useCallback,
+  useRef,
+} from "react"
 import { Alert } from "react-native"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 import * as Crypto from "expo-crypto"
@@ -144,14 +153,49 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     const ctx = meetingContextRef.current
     if (!ctx) return
 
-    const now = Date.now()
-    const start = ctx.inMeetingAt || ctx.joinedAt
-    const end = now
+    log.debug("Processing attendance events", { events: ctx.events })
+
+    // Find start event: "Meeting state" with state "inMeeting"
+    const startEvent = ctx.events.find((e) => {
+      if (e.message !== "Meeting state") return false
+      try {
+        const data = JSON.parse(e.json)
+        return data.state === "inMeeting"
+      } catch {
+        return false
+      }
+    })
+
+    // Find end event: "Meeting ended"
+    const endEvent = ctx.events.find((e) => e.message === "Meeting ended")
+
+    // Both events required for valid attendance
+    if (!startEvent || !endEvent) {
+      log.warn("Missing attendance events", {
+        hasStart: !!startEvent,
+        hasEnd: !!endEvent,
+      })
+      try {
+        await attendanceRepo.markProcessed(ctx.attendanceId, {
+          start: startEvent?.timestamp || ctx.joinedAt,
+          end: endEvent?.timestamp || Date.now(),
+          credit: 0,
+          valid: false,
+        })
+        attendanceEvents.emit({ type: "processed", id: ctx.attendanceId })
+      } catch (err) {
+        log.error("Attendance save failed", { error: String(err) })
+      }
+      return
+    }
+
+    const start = startEvent.timestamp
+    const end = endEvent.timestamp
     const credit = end - start
     const valid = credit >= MIN_CREDIT_MS
     const creditMins = Math.round(credit / 60000)
 
-    log.info("Processing attendance", { creditMins, valid, events: ctx.events.length })
+    log.info("Processing attendance", { creditMins, valid, start, end })
 
     try {
       await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
@@ -170,13 +214,14 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
   // Subscribe to native SDK events
   useZoomEvents({
     onMeetingStateChange: (event: ZoomMeetingStateEvent) => {
-      log.info("Meeting state", { state: event.stateName, code: event.state })
+      log.debug("Meeting state", { state: event.stateName, code: event.state })
       addEvent("Meeting state", { state: event.stateName, code: event.state })
       setMeetingState(event.stateName)
 
       // Track when we actually enter the meeting
       if (event.stateName === "inMeeting" && meetingContextRef.current) {
         meetingContextRef.current.inMeetingAt = Date.now()
+        log.debug("inMeeting")
       }
 
       // Process and clear when meeting ends
@@ -191,7 +236,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     onMeetingError: (event: ZoomMeetingErrorEvent) => {
       // Error code 0 means success - don't log as error
       if (event.errorCode === 0) {
-        log.info("Meeting status", { code: event.errorCode })
+        log.info("Meeting status", { code: event.errorCode, message: event.message })
         addEvent("Meeting status", { code: event.errorCode, message: event.message })
       } else {
         log.error("Meeting error", { code: event.errorCode, message: event.message })
@@ -201,11 +246,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
       }
     },
     onMeetingJoinConfirmed: () => {
-      log.info("Join confirmed")
-      addEvent("Join confirmed", {})
+      log.info("Join confirmed", { code: 0 })
+      addEvent("Join confirmed", { code: 0 })
     },
     onMeetingEndedReason: (event: ZoomMeetingEndedEvent) => {
-      log.info("Meeting ended", { reason: event.reasonName, code: event.reason })
+      log.debug("Meeting ended", { reason: event.reasonName, code: event.reason })
       addEvent("Meeting ended", { reason: event.reasonName, code: event.reason })
       setMeetingState("idle")
     },
@@ -262,7 +307,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
         const statusCode = await zoom.joinMeeting({
           meetingNumber: zidToJoin,
           userName: config.userName,
-          password: config.password || "",
+          password: process.env.EXPO_PUBLIC_JOIN_MEETING_PWD || config.password || "",
         })
 
         log.info("Join sent", { statusCode: statusCode ?? 0 })
@@ -289,7 +334,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
         throw err
       }
     },
-    [zoom, authStore.userId]
+    [zoom, authStore.userId],
   )
 
   const contextValue: ZoomContextValue = {
