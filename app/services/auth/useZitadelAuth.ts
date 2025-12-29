@@ -7,12 +7,12 @@
 
 import { useCallback, useEffect, useState } from "react"
 import * as AuthSession from "expo-auth-session"
-import * as SecureStore from "expo-secure-store"
 import * as WebBrowser from "expo-web-browser"
 
 import { useAuthenticationStore } from "@/models"
 import { logger } from "@/utils/logger"
 
+import * as SecureStorage from "./secureStorage"
 import {
   ZITADEL_CONFIG,
   discoveryDocument,
@@ -177,11 +177,11 @@ export function useZitadelAuth(): UseZitadelAuthResult {
     const expiresAt = Date.now() + tokens.expires_in * 1000
 
     await Promise.all([
-      SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, tokens.access_token),
+      SecureStorage.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, tokens.access_token),
       tokens.refresh_token &&
-        SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token),
-      tokens.id_token && SecureStore.setItemAsync(STORAGE_KEYS.ID_TOKEN, tokens.id_token),
-      SecureStore.setItemAsync(STORAGE_KEYS.EXPIRES_AT, expiresAt.toString()),
+        SecureStorage.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, tokens.refresh_token),
+      tokens.id_token && SecureStorage.setItemAsync(STORAGE_KEYS.ID_TOKEN, tokens.id_token),
+      SecureStorage.setItemAsync(STORAGE_KEYS.EXPIRES_AT, expiresAt.toString()),
     ])
   }
 
@@ -190,10 +190,10 @@ export function useZitadelAuth(): UseZitadelAuthResult {
    */
   const clearStoredTokens = async () => {
     await Promise.all([
-      SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
-      SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
-      SecureStore.deleteItemAsync(STORAGE_KEYS.ID_TOKEN),
-      SecureStore.deleteItemAsync(STORAGE_KEYS.EXPIRES_AT),
+      SecureStorage.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
+      SecureStorage.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
+      SecureStorage.deleteItemAsync(STORAGE_KEYS.ID_TOKEN),
+      SecureStorage.deleteItemAsync(STORAGE_KEYS.EXPIRES_AT),
     ])
   }
 
@@ -231,7 +231,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
 
     try {
       // Revoke tokens if we have them
-      const accessToken = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN)
+      const accessToken = await SecureStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN)
       if (accessToken) {
         try {
           await fetch(discoveryDocument.revocationEndpoint, {
@@ -268,7 +268,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
    * Refresh the access token using refresh token
    */
   const refreshTokens = useCallback(async (): Promise<boolean> => {
-    const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN)
+    const refreshToken = await SecureStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN)
 
     if (!refreshToken) {
       log.warn("No refresh token available")
@@ -335,10 +335,10 @@ export async function loadStoredAuth(
 ): Promise<boolean> {
   try {
     const [accessToken, refreshToken, idToken, expiresAtStr] = await Promise.all([
-      SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
-      SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
-      SecureStore.getItemAsync(STORAGE_KEYS.ID_TOKEN),
-      SecureStore.getItemAsync(STORAGE_KEYS.EXPIRES_AT),
+      SecureStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
+      SecureStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
+      SecureStorage.getItemAsync(STORAGE_KEYS.ID_TOKEN),
+      SecureStorage.getItemAsync(STORAGE_KEYS.EXPIRES_AT),
     ])
 
     if (accessToken && expiresAtStr) {
