@@ -22,6 +22,7 @@
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
     "allowBackup": false,
+    "usesCleartextTraffic": true,
     "edgeToEdgeEnabled": true,
     "permissions": [
       "android.permission.INTERNET",
@@ -86,10 +87,9 @@
     [
       "expo-splash-screen",
       {
-        "image": "./assets/images/app-icon-android-adaptive-foreground.png",
-        "imageWidth": 300,
-        "resizeMode": "contain",
-        "backgroundColor": "#191015"
+        "image": "./assets/images/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#0a1628"
       }
     ],
     [
@@ -105,10 +105,13 @@
       "expo-build-properties",
       {
         "android": {
-          "minSdkVersion": 26,
+          "minSdkVersion": 28,
           "targetSdkVersion": 35,
-          "compileSdkVersion": 35
-        }
+          "compileSdkVersion": 35,
+          "extraMavenRepos": [],
+          "extraProguardRules": ""
+        },
+        "extraGradleArgs": ["-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"]
       }
     ]
   ],

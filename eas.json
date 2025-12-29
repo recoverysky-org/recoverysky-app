@@ -6,8 +6,11 @@
     "development": {
       "extends": "production",
       "distribution": "internal",
+      "env": {
+        "GRADLE_OPTS": "-Xmx8192m -XX:MaxMetaspaceSize=1024m"
+      },
       "android": {
-        "gradleCommand": ":app:assembleDebug"
+        "gradleCommand": ":app:assembleDebug -PreactNativeArchitectures=x86_64"
       },
       "ios": {
         "buildConfiguration": "Debug",

@@ -1,5 +1,5 @@
 diff --git a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
-index ac6e2e4..1b34fb7 100644
+index ac6e2e4..a20d07c 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
 +++ b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
 @@ -69,7 +69,7 @@ import us.zoom.sdk.ShareSettingType;
@@ -209,11 +209,11 @@ index ac6e2e4..1b34fb7 100644
 +
 +          if (meetingService != null && meetingService.getMeetingStatus() == MeetingStatus.MEETING_STATUS_INMEETING) {
 +            result.putString("meetingNumber", String.valueOf(meetingService.getCurrentRtcMeetingNumber()));
-+            result.putString("topic", meetingService.getCurrentMeetingTopic() != null ? meetingService.getCurrentMeetingTopic() : "");
-+            result.putString("hostName", ""); // Not easily accessible on Android
-+            result.putString("password", meetingService.getMeetingPassword() != null ? meetingService.getMeetingPassword() : "");
-+            result.putBoolean("isHost", zoomSDK.getInMeetingService() != null && zoomSDK.getInMeetingService().isMyself(zoomSDK.getInMeetingService().getMyUserID()));
-+            result.putBoolean("isCoHost", false); // Would need additional API calls
++            result.putString("topic", ""); // TODO: fix with InMeetingService import
++            result.putString("hostName", "");
++            result.putString("password", ""); // TODO: fix with InMeetingService import
++            result.putBoolean("isHost", zoomSDK.getInMeetingService() != null && zoomSDK.getInMeetingService().isMeetingHost());
++            result.putBoolean("isCoHost", false);
 +            result.putBoolean("inMeeting", true);
 +          } else {
 +            result.putBoolean("inMeeting", false);
@@ -279,7 +279,7 @@ index ac6e2e4..1b34fb7 100644
 +              result.putString("userName", zoomSDK.getInMeetingService().getUserInfoById(myUserId) != null ?
 +                      zoomSDK.getInMeetingService().getUserInfoById(myUserId).getUserName() : "");
 +              result.putBoolean("isHost", zoomSDK.getInMeetingService().isMeetingHost());
-+              result.putBoolean("isCoHost", zoomSDK.getInMeetingService().isMeetingCoHost());
++              result.putBoolean("isCoHost", false); // Not available in this SDK version
 +              result.putBoolean("isAudioMuted", zoomSDK.getInMeetingService().getInMeetingAudioController().isMyAudioMuted());
 +              result.putBoolean("isVideoOn", zoomSDK.getInMeetingService().getInMeetingVideoController().isMyVideoMuted() == false);
 +              result.putBoolean("inMeeting", true);
