@@ -12,23 +12,23 @@ import { logger } from "@/utils/logger"
 
 import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"
 import type { ApiConfig } from "./types"
-import type { Fellowship } from "@common"
 
 /**
- * Live meeting data returned from /meetings/live API
- * Subset of meeting fields needed for display
+ * Schedule data row - 7 columns for Sun-Sat, value is time string or null
  */
-export interface LiveMeeting {
-  id: string
+export type ScheduleDataRow = (string | null)[]
+
+/**
+ * Live schedule from /schedules/live API
+ * Contains schedule ID, associated meeting ID, and pre-computed grid data
+ */
+export interface LiveSchedule {
+  /** Schedule ID */
   sid: string
-  name: string
-  fellowship: Fellowship
-  url: string
-  password: string
-  language: string
-  description: string
-  meetingTypes: string[]
-  tags: string[]
+  /** Meeting ID that caused this schedule to be live */
+  mid: string
+  /** Pre-computed schedule grid data for SchedulePopup */
+  data: ScheduleDataRow[]
 }
 
 // Re-export for convenience
@@ -37,11 +37,11 @@ export type { ApiConfig } from "./types"
 
 const log = logger.child({ module: "Api" })
 
-/** RecoverySky API base URL */
-const RECOVERYSKY_API_URL = "https://api.recoverysky.app"
+/** RecoverySky API base URL - configurable via EXPO_PUBLIC_API_URL */
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app"
 
 /** API key for anonymous users (X-API-Key header) */
-const AUTH_KEY = "92d79cf5747931470a49293878d6bb65f24ac42e57503d6943acd571398bdac7"
+const AUTH_KEY = process.env.EXPO_PUBLIC_AUTH_KEY || ""
 
 /**
  * Configuring the apisauce instance.
@@ -77,7 +77,7 @@ export class Api {
 
     // Create dedicated instance for RecoverySky API
     this.recoverySkyApi = create({
-      baseURL: RECOVERYSKY_API_URL,
+      baseURL: API_BASE_URL,
       timeout: 10000,
       headers: {
         Accept: "application/json",
@@ -171,21 +171,23 @@ export class Api {
   }
 
   /**
-   * Get live meetings with full meeting data from the RecoverySky API
+   * Get live schedules from the RecoverySky API
    *
-   * Returns full meeting objects that are currently live.
-   * This eliminates the need to load meetings from SQLite.
+   * Returns schedules that are currently live with their meeting IDs.
+   * Each schedule includes pre-computed grid data for display.
    */
-  async getLiveMeetings(): Promise<
-    { kind: "ok"; meetings: LiveMeeting[]; count: number } | GeneralApiProblem
+  async getLiveSchedules(): Promise<
+    { kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem
   > {
-    log.debug("Fetching live meetings from API")
+    // Get device timezone in IANA format (e.g., "America/New_York")
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    log.debug("Fetching live schedules from API", { tz })
 
     const response = await this.recoverySkyApi.get<{
       timestamp: string
       count: number
-      meetings: LiveMeeting[]
-    }>("/meetings/live")
+      schedules: LiveSchedule[]
+    }>("/schedules/live", { tz })
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
@@ -195,16 +197,16 @@ export class Api {
     }
 
     // Validate response data
-    if (!response.data || !Array.isArray(response.data.meetings)) {
+    if (!response.data || !Array.isArray(response.data.schedules)) {
       log.warn("Invalid response data format")
       return { kind: "bad-data" }
     }
 
-    log.debug("Received live meetings", {
+    log.debug("Received live schedules", {
       count: response.data.count,
       timestamp: response.data.timestamp,
     })
-    return { kind: "ok", meetings: response.data.meetings, count: response.data.count }
+    return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
   }
 
   /**
