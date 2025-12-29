@@ -18,7 +18,7 @@ import type { ApiConfig } from "./types"
 /**
  * Schedule data row - 7 columns for Sun-Sat, value is time string or null
  */
-export type ScheduleDataRow = (string | null)[]
+export type ScheduleDataRow = (number | null)[]
 
 /**
  * Live schedule from /schedules/live API

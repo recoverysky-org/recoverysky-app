@@ -12,51 +12,11 @@ import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { FELLOWSHIP_COLORS, hydrateNext, type TREXJSON, Fellowship } from "@common"
+import { FELLOWSHIP_COLORS, Fellowship } from "@common"
+import { formatMillisToLocalTime } from "@/utils/formatTime"
 
 interface MeetingCardProps {
   meeting: MeetingWithTrex
-}
-
-/**
- * Format duration in milliseconds to human-readable string
- */
-function formatDuration(ms: number): string {
-  const minutes = Math.round(ms / 60000)
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.floor(minutes / 60)
-  const remaining = minutes % 60
-  return remaining > 0 ? `${hours}h ${remaining}m` : `${hours}h`
-}
-
-/**
- * Get the next occurrence time formatted for display
- */
-function getFormattedTime(trex: MeetingWithTrex["trex"]): string | null {
-  if (!trex) return null
-
-  const trexJson: TREXJSON = {
-    coordinate: trex.coordinate,
-    timezone: trex.timezone,
-    periodicity: trex.periodicity,
-    coordinate_end: trex.coordinate_end,
-    duration_ms: trex.duration_ms,
-    dtstart: trex.dtstart,
-    dtend: trex.dtend,
-    rrule_str: trex.rrule_str,
-    rrule_json: trex.rrule_json,
-    hour: trex.hour,
-    minute: trex.minute,
-    dow: trex.dow,
-    dom: trex.dom,
-    month: trex.month,
-  }
-
-  const result = hydrateNext(trexJson)
-  if (!result.ok) return null
-
-  const dt = result.value.toLocal()
-  return dt.toFormat("ccc h:mma").toLowerCase()
 }
 
 export const MeetingCard: FC<MeetingCardProps> = function MeetingCard({ meeting }) {
@@ -65,8 +25,7 @@ export const MeetingCard: FC<MeetingCardProps> = function MeetingCard({ meeting 
   const fellowshipColor =
     FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
 
-  const formattedTime = getFormattedTime(meeting.trex)
-  const duration = meeting.trex ? formatDuration(meeting.trex.duration_ms) : null
+  const formattedTime = formatMillisToLocalTime(meeting.millis)
 
   const handleJoin = useCallback(() => {
     if (meeting.url) {
@@ -101,12 +60,10 @@ export const MeetingCard: FC<MeetingCardProps> = function MeetingCard({ meeting 
           {meeting.name}
         </Text>
 
-        {/* Time and duration */}
-        {(formattedTime || duration) && (
+        {/* Time */}
+        {formattedTime && (
           <View style={$detailsRow}>
-            {formattedTime && <Text style={themed($detailText)}>{formattedTime}</Text>}
-            {formattedTime && duration && <Text style={themed($detailText)}> · </Text>}
-            {duration && <Text style={themed($detailText)}>{duration}</Text>}
+            <Text style={themed($detailText)}>{formattedTime}</Text>
           </View>
         )}
 

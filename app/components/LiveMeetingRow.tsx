@@ -14,15 +14,11 @@ import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import {
-  FELLOWSHIP_COLORS,
-  hydrateNext,
-  type TREXJSON,
-  Fellowship,
-} from "@common"
+import { FELLOWSHIP_COLORS, Fellowship } from "@common"
+import { formatMillisToLocalTime } from "@/utils/formatTime"
 
 interface LiveMeetingRowProps {
-  /** Meeting data with trex and feedback */
+  /** Meeting data with millis and feedback */
   meeting: MeetingWithTrex
   /** User's rating (0-5 stars) - overrides meeting.feedback.rates for live updates */
   rating?: number
@@ -30,35 +26,6 @@ interface LiveMeetingRowProps {
   isFavorite?: boolean
   /** Callback when row is pressed */
   onPress?: (meeting: MeetingWithTrex) => void
-}
-
-/**
- * Get formatted start time from TREX data
- */
-function getStartTime(trex: MeetingWithTrex["trex"]): string {
-  if (!trex) return ""
-
-  const trexJson: TREXJSON = {
-    coordinate: trex.coordinate,
-    timezone: trex.timezone,
-    periodicity: trex.periodicity,
-    coordinate_end: trex.coordinate_end,
-    duration_ms: trex.duration_ms,
-    dtstart: trex.dtstart,
-    dtend: trex.dtend,
-    rrule_str: trex.rrule_str,
-    rrule_json: trex.rrule_json,
-    hour: trex.hour,
-    minute: trex.minute,
-    dow: trex.dow,
-    dom: trex.dom,
-    month: trex.month,
-  }
-
-  const result = hydrateNext(trexJson)
-  if (!result.ok) return ""
-
-  return result.value.toLocal().toFormat("h:mma").toLowerCase()
 }
 
 /**
@@ -81,7 +48,10 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
 }) => {
   const { themed, theme } = useAppTheme()
 
-  const startTime = useMemo(() => getStartTime(meeting.trex), [meeting.trex])
+  const startTime = useMemo(
+    () => formatMillisToLocalTime(meeting.millis),
+    [meeting.millis],
+  )
 
   const fellowshipColor = useMemo(() => {
     return FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]

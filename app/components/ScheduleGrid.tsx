@@ -11,28 +11,24 @@ import { View, ViewStyle, TextStyle } from "react-native"
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { DateTime } from "@common"
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const
 
 interface ScheduleGridProps {
-  /** Schedule data: array of rows, each row is [Mon, Tue, Wed, Thu, Fri, Sat, Sun] time strings or null */
-  scheduleData: Array<Array<string | null>>
+  /** Schedule data: array of rows, each row is [Mon, Tue, Wed, Thu, Fri, Sat, Sun] UTC millis or null */
+  scheduleData: Array<Array<number | null>>
   /** Current day of week (1-7, ISO weekday where 1=Monday) - used for highlighting */
   currentDow?: number
-  /** Current time key for highlighting active meeting */
-  currentTime?: string
 }
 
 /**
  * ScheduleGrid displays meeting times in a weekly grid format.
+ * Schedule data values are UTC milliseconds, formatted to local time for display.
  *
  * @example
- * const data = hydrateScheduleGrid(meetings)
- * const rows = Array.from(data.entries()).map(([, row]) =>
- *   row.map(dt => dt ? dt.toFormat("h:mma").toLowerCase() : null)
- * )
- * <ScheduleGrid scheduleData={rows} currentDow={DateTime.now().weekday} />
+ * <ScheduleGrid scheduleData={meeting.scheduleData} currentDow={DateTime.now().weekday} />
  */
 export const ScheduleGrid: FC<ScheduleGridProps> = ({
   scheduleData,
@@ -81,12 +77,12 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
         <View key={rowIndex}>
           {rowIndex > 0 && <View style={themed($separator)} />}
           <View style={themed($timeRow)}>
-            {row.map((time, colIndex) => (
+            {row.map((millis, colIndex) => (
               <View key={colIndex} style={themed($timeCell)}>
-                {time ? (
+                {millis ? (
                   <View style={themed($timeCellInner)}>
                     <Text style={[themed($timeText), { color: theme.colors.tint }]}>
-                      {time}
+                      {formatMillisToLocalTime(millis)}
                     </Text>
                   </View>
                 ) : (

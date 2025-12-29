@@ -5,7 +5,7 @@
  * Displays:
  * - Meeting name with live indicator
  * - Fellowship badge (color-coded)
- * - Time, duration, meeting count, language
+ * - Time, meeting count, language
  * - Meeting types (tags)
  * - Join Meeting button
  * - Favorite heart (UI only)
@@ -32,13 +32,8 @@ import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
-import {
-  FELLOWSHIP_COLORS,
-  hydrateNext,
-  DateTime,
-  type TREXJSON,
-  Fellowship,
-} from "@common"
+import { formatMillisToLocalTime } from "@/utils/formatTime"
+import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@common"
 
 const log = logger.child({ module: "SchedulePopup" })
 
@@ -46,50 +41,6 @@ interface SchedulePopupProps {
   visible: boolean
   meeting: MeetingWithTrex | null
   onClose: () => void
-}
-
-/**
- * Format duration in milliseconds to human-readable string
- */
-function formatDuration(ms: number): string {
-  const minutes = Math.round(ms / 60000)
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.floor(minutes / 60)
-  const remaining = minutes % 60
-  return remaining > 0 ? `${hours}h ${remaining}m` : `${hours}h`
-}
-
-/**
- * Get formatted time from TREX data
- */
-function getFormattedTime(trex: MeetingWithTrex["trex"]): { day: string; time: string } | null {
-  if (!trex) return null
-
-  const trexJson: TREXJSON = {
-    coordinate: trex.coordinate,
-    timezone: trex.timezone,
-    periodicity: trex.periodicity,
-    coordinate_end: trex.coordinate_end,
-    duration_ms: trex.duration_ms,
-    dtstart: trex.dtstart,
-    dtend: trex.dtend,
-    rrule_str: trex.rrule_str,
-    rrule_json: trex.rrule_json,
-    hour: trex.hour,
-    minute: trex.minute,
-    dow: trex.dow,
-    dom: trex.dom,
-    month: trex.month,
-  }
-
-  const result = hydrateNext(trexJson)
-  if (!result.ok) return null
-
-  const dt = result.value.toLocal()
-  return {
-    day: dt.toFormat("ccc"),
-    time: dt.toFormat("h:mma").toLowerCase(),
-  }
 }
 
 export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
@@ -148,7 +99,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
     [meeting?.id],
   )
 
-  // Schedule grid data comes directly from API (or null for local fallback)
+  // Schedule grid data comes directly from API
   const scheduleGridData = useMemo(() => {
     return meeting?.scheduleData || []
   }, [meeting?.scheduleData])
@@ -162,15 +113,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
     }, 0)
   }, [scheduleGridData])
 
-  // Current day for highlighting
+  // Current day for highlighting (1=Mon, 7=Sun)
   const currentDow = DateTime.now().weekday
 
   const fellowshipColor = meeting
     ? FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
     : "#888"
 
-  const timeInfo = meeting ? getFormattedTime(meeting.trex) : null
-  const duration = meeting?.trex ? formatDuration(meeting.trex.duration_ms) : null
+  const formattedTime = meeting ? formatMillisToLocalTime(meeting.millis) : null
 
   const handleJoin = async () => {
     if (!meeting?.url || !meeting?.id) return
@@ -232,8 +182,8 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             </View>
 
             {/* Time */}
-            {timeInfo && (
-              <Text style={themed($headerTime)}>{timeInfo.time}</Text>
+            {formattedTime && (
+              <Text style={themed($headerTime)}>{formattedTime}</Text>
             )}
 
             {/* Meeting name */}
@@ -249,15 +199,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
 
           {/* Meta info */}
           <View style={themed($metaRow)}>
-            {timeInfo && (
+            {formattedTime && (
               <View style={$metaItem}>
                 <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>
-                  {timeInfo.day} {timeInfo.time}
-                </Text>
+                <Text style={themed($metaText)}>{formattedTime}</Text>
               </View>
             )}
-            {duration && <Text style={themed($metaText)}>{duration}</Text>}
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
               <Text style={themed($metaText)}>{meetingCount} meetings</Text>

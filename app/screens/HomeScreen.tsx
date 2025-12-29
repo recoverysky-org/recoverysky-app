@@ -21,7 +21,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
   const { logout, error: authError, clearError } = useZitadelAuth()
-  const { apiStatus, liveSource, liveMeetings, lastRefresh } = useMeetings()
+  const { apiStatus, liveMeetings, lastRefresh, error: meetingError } = useMeetings()
   const [debugExpanded, setDebugExpanded] = useState(false)
 
   const handleLogout = async () => {
@@ -84,11 +84,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
                 </Text>
               </View>
               <Text style={themed($sourceText)}>
-                Live source: {liveSource === "api" ? "API" : "Local calculation"}
-              </Text>
-              <Text style={themed($sourceText)}>
                 Live meetings: {liveMeetings.length}
               </Text>
+              {meetingError && (
+                <Text style={themed($errorText)}>Error: {meetingError}</Text>
+              )}
               {lastRefresh && (
                 <Text style={themed($sourceText)}>
                   Last refresh: {lastRefresh.toLocaleTimeString()}
