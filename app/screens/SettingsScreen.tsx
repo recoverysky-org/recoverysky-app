@@ -515,7 +515,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
 
           {/* Theme Color */}
           <TouchableOpacity
-            style={[themed($settingsRow), themed($lastRow)]}
+            style={themed($settingsRow)}
             accessibilityRole="button"
             onPress={() => setColorPickerVisible(true)}
           >
@@ -526,6 +526,19 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
               />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </View>
+          </TouchableOpacity>
+
+          {/* Reset Home Tips */}
+          <TouchableOpacity
+            style={[themed($settingsRow), themed($lastRow)]}
+            accessibilityRole="button"
+            onPress={() => profileStore.resetHomeCards()}
+          >
+            <View>
+              <Text style={themed($rowLabel)} tx="settingsScreen:resetHomeTips" />
+              <Text style={themed($rowHint)} tx="settingsScreen:resetHomeTipsHint" />
+            </View>
+            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
           </TouchableOpacity>
         </View>
 
@@ -748,6 +761,13 @@ const $lastRow: ThemedStyle<ViewStyle> = () => ({
 const $rowLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   color: colors.textDim,
+})
+
+const $rowHint: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  marginTop: 2,
+  opacity: 0.7,
 })
 
 const $rowValue: ThemedStyle<TextStyle> = ({ colors }) => ({

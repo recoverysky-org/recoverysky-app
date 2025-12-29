@@ -43,6 +43,9 @@ export const ProfileStoreModel = types
     // Attendance settings
     attendanceEnabled: types.optional(types.boolean, false),
     reportEmail: types.optional(types.string, ""),
+
+    // Home screen help cards
+    dismissedHomeCards: types.optional(types.array(types.string), []),
   })
   .views((self) => ({
     /**
@@ -196,6 +199,22 @@ export const ProfileStoreModel = types
     },
 
     /**
+     * Dismiss a home screen help card
+     */
+    dismissHomeCard(cardId: string) {
+      if (!self.dismissedHomeCards.includes(cardId)) {
+        self.dismissedHomeCards.push(cardId)
+      }
+    },
+
+    /**
+     * Reset home screen help cards (show all again)
+     */
+    resetHomeCards() {
+      self.dismissedHomeCards.clear()
+    },
+
+    /**
      * Reset profile to defaults
      */
     reset() {
@@ -213,6 +232,7 @@ export const ProfileStoreModel = types
       self.dontShowShortMeetingWarning = false
       self.attendanceEnabled = false
       self.reportEmail = ""
+      self.dismissedHomeCards.clear()
     },
   }))
 

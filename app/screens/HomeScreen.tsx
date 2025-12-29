@@ -1,33 +1,133 @@
-import { FC, useState } from "react"
+import { FC, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
+import { useNavigation } from "@react-navigation/native"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useMeetings } from "@/context/MeetingContext"
+import { HelpCard } from "@/components/HelpCard"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import type { TxKeyPath } from "@/i18n"
+
+// ============================================================================
+// Help Card Definitions
+// ============================================================================
+
+interface HelpCardDef {
+  id: string
+  icon: keyof typeof Ionicons.glyphMap
+  titleTx: TxKeyPath
+  descriptionTx: TxKeyPath
+  actionTx?: TxKeyPath
+  actionTab?: "Live" | "Listings" | "Attendance" | "Settings"
+}
+
+const MAX_VISIBLE_CARDS = 5
+
+const HELP_CARDS: HelpCardDef[] = [
+  {
+    id: "onboarding",
+    icon: "school-outline",
+    titleTx: "homeScreen:onboardingTitle",
+    descriptionTx: "homeScreen:onboardingDescription",
+    actionTx: "homeScreen:restartOnboarding",
+  },
+  {
+    id: "live",
+    icon: "radio-outline",
+    titleTx: "homeScreen:liveTitle",
+    descriptionTx: "homeScreen:liveDescription",
+    actionTx: "homeScreen:goToLive",
+    actionTab: "Live",
+  },
+  {
+    id: "listings",
+    icon: "list-outline",
+    titleTx: "homeScreen:listingsTitle",
+    descriptionTx: "homeScreen:listingsDescription",
+    actionTx: "homeScreen:goToListings",
+    actionTab: "Listings",
+  },
+  {
+    id: "attendance",
+    icon: "clipboard-outline",
+    titleTx: "homeScreen:attendanceTitle",
+    descriptionTx: "homeScreen:attendanceDescription",
+    actionTx: "homeScreen:goToAttendance",
+    actionTab: "Attendance",
+  },
+  {
+    id: "settings",
+    icon: "settings-outline",
+    titleTx: "homeScreen:settingsTitle",
+    descriptionTx: "homeScreen:settingsDescription",
+    actionTx: "homeScreen:goToSettings",
+    actionTab: "Settings",
+  },
+  {
+    id: "favorites",
+    icon: "heart-outline",
+    titleTx: "homeScreen:favoritesTitle",
+    descriptionTx: "homeScreen:favoritesDescription",
+  },
+  {
+    id: "ratings",
+    icon: "star-outline",
+    titleTx: "homeScreen:ratingsTitle",
+    descriptionTx: "homeScreen:ratingsDescription",
+  },
+]
 
 /**
- * HomeScreen - Dashboard/home screen
+ * HomeScreen - Help cards + Dashboard
+ *
+ * Shows dismissible help cards for new users.
+ * After all cards dismissed, shows dashboard with stats.
  */
 export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function HomeScreen(_props) {
-  const { themed, theme } = useAppTheme()
+  const { themed } = useAppTheme()
+  const navigation = useNavigation<MainTabScreenProps<"Home">["navigation"]>()
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
-  const { logout, error: authError, clearError } = useZitadelAuth()
-  const { apiStatus, liveMeetings, lastRefresh, error: meetingError } = useMeetings()
-  const [debugExpanded, setDebugExpanded] = useState(false)
+  const { logout, clearError } = useZitadelAuth()
+
+  // Get undismissed cards (use slice() to get reactive array for dependency)
+  // Show max 5 at a time - new cards appear as others are dismissed
+  const dismissedIds = profileStore.dismissedHomeCards.slice()
+  const visibleCards = HELP_CARDS.filter((card) => !dismissedIds.includes(card.id)).slice(0, MAX_VISIBLE_CARDS)
+
+  const handleDismissCard = useCallback(
+    (cardId: string) => {
+      profileStore.dismissHomeCard(cardId)
+    },
+    [profileStore],
+  )
+
+  const handleCardAction = useCallback(
+    (card: HelpCardDef) => {
+      if (card.id === "onboarding") {
+        // Reset onboarding and navigate to it
+        profileStore.resetOnboarding()
+      } else if (card.actionTab) {
+        // Navigate to the tab
+        navigation.navigate(card.actionTab as never)
+      }
+    },
+    [navigation, profileStore],
+  )
 
   const handleLogout = async () => {
     clearError()
     await logout()
   }
+
+  const showDashboard = visibleCards.length === 0
 
   return (
     <Screen
@@ -35,7 +135,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       safeAreaEdges={["top"]}
       contentContainerStyle={[$styles.container, themed($container)]}
     >
-      {/* Header with title and logout */}
+      {/* Header */}
       <View style={$header}>
         <Text preset="heading" tx="homeScreen:title" />
         {authStore.isAuthenticated && (
@@ -45,90 +145,42 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         )}
       </View>
 
-      {/* Debug Data - Expandable */}
-      <View style={themed($debugContainer)}>
-        <Pressable style={$debugHeader} onPress={() => setDebugExpanded(!debugExpanded)}>
-          <Text style={themed($debugTitle)}>Debug Data</Text>
-          <Ionicons
-            name={debugExpanded ? "chevron-up" : "chevron-down"}
-            size={20}
-            color={theme.colors.textDim}
-          />
-        </Pressable>
-
-        {debugExpanded && (
-          <View style={themed($debugContent)}>
-            {/* API Status */}
-            <View style={themed($statusSection)}>
-              <Text style={themed($statusLabel)}>API Status:</Text>
-              <View style={$statusRow}>
-                <View
-                  style={[
-                    $statusDot,
-                    {
-                      backgroundColor:
-                        apiStatus === "connected"
-                          ? "#22c55e"
-                          : apiStatus === "disconnected"
-                            ? "#ef4444"
-                            : "#f59e0b",
-                    },
-                  ]}
-                />
-                <Text style={themed($statusValue)}>
-                  {apiStatus === "connected"
-                    ? "Connected"
-                    : apiStatus === "disconnected"
-                      ? "Disconnected"
-                      : "Unknown"}
-                </Text>
-              </View>
-              <Text style={themed($sourceText)}>
-                Live meetings: {liveMeetings.length}
-              </Text>
-              {meetingError && (
-                <Text style={themed($errorText)}>Error: {meetingError}</Text>
-              )}
-              {lastRefresh && (
-                <Text style={themed($sourceText)}>
-                  Last refresh: {lastRefresh.toLocaleTimeString()}
-                </Text>
-              )}
-            </View>
-
-            {/* Auth Status */}
-            <View style={themed($statusSection)}>
-              <Text style={themed($statusLabel)}>Auth Status:</Text>
-              <Text style={themed($statusValue)}>
-                {authStore.isAuthenticated
-                  ? authStore.isAnonymous
-                    ? "Anonymous"
-                    : "Authenticated"
-                  : "Not authenticated"}
-              </Text>
-              {authStore.isAuthenticated && !authStore.isAnonymous && authStore.authEmail && (
-                <Text style={themed($emailText)}>{authStore.authEmail}</Text>
-              )}
-              {authError && <Text style={themed($errorText)}>{authError}</Text>}
-            </View>
-
-            {/* Debug Actions */}
-            <View style={themed($statusSection)}>
-              <Text style={themed($statusLabel)}>Actions:</Text>
-              <Pressable
-                style={themed($debugButton)}
-                onPress={() => profileStore.resetOnboarding()}
-              >
-                <Text style={{ color: theme.colors.tint }}>Reset Onboarding</Text>
-              </Pressable>
-            </View>
+      {/* Help Cards or Dashboard */}
+      {showDashboard ? (
+        <View style={themed($dashboardContainer)}>
+          {/* Clean Days Hero */}
+          <View style={themed($cleanDaysCard)}>
+            <Text style={themed($cleanDaysNumber)}>{profileStore.cleanDays}</Text>
+            <Text style={themed($cleanDaysLabel)} tx="homeScreen:cleanDays" />
           </View>
-        )}
-      </View>
 
+          {/* Placeholder for future dashboard widgets */}
+          <Text style={themed($dashboardHint)}>
+            Dashboard coming soon...
+          </Text>
+        </View>
+      ) : (
+        <View style={themed($cardsContainer)}>
+          {visibleCards.map((card) => (
+            <HelpCard
+              key={card.id}
+              icon={card.icon}
+              titleTx={card.titleTx}
+              descriptionTx={card.descriptionTx}
+              actionTx={card.actionTx}
+              onAction={() => handleCardAction(card)}
+              onDismiss={() => handleDismissCard(card.id)}
+            />
+          ))}
+        </View>
+      )}
     </Screen>
   )
 })
+
+// ============================================================================
+// Styles
+// ============================================================================
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.xxl,
@@ -146,81 +198,39 @@ const $logoutLink: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "500",
 })
 
-const $debugContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.xl,
+const $cardsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.lg,
 })
 
-const $debugHeader: ViewStyle = {
-  flexDirection: "row",
-  justifyContent: "space-between",
+const $dashboardContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.lg,
   alignItems: "center",
-  paddingVertical: 8,
-}
+})
 
-const $debugTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  fontSize: 14,
+const $cleanDaysCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.card,
+  borderRadius: 20,
+  paddingVertical: spacing.xl,
+  paddingHorizontal: spacing.xxl,
+  alignItems: "center",
+  marginBottom: spacing.lg,
+})
+
+const $cleanDaysNumber: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 64,
+  fontWeight: "700",
+  color: colors.tint,
+})
+
+const $cleanDaysLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 18,
   fontWeight: "500",
-})
-
-const $debugContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  gap: spacing.md,
-  marginTop: spacing.xs,
-})
-
-const $statusSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  padding: spacing.sm,
-  backgroundColor: "rgba(0,0,0,0.1)",
-  borderRadius: 8,
-})
-
-const $statusLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-  fontSize: 13,
-})
-
-const $statusRow: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
   marginTop: 4,
-}
-
-const $statusDot: ViewStyle = {
-  width: 10,
-  height: 10,
-  borderRadius: 5,
-}
-
-const $statusValue: ThemedStyle<TextStyle> = () => ({
-  fontSize: 16,
-  fontWeight: "600",
 })
 
-const $sourceText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+const $dashboardHint: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
   color: colors.textDim,
-  fontSize: 12,
-  marginTop: spacing.xs,
-})
-
-const $emailText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
-  color: colors.textDim,
-  marginTop: spacing.xs,
-  fontSize: 13,
-})
-
-const $errorText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
-  color: colors.error,
-  marginTop: spacing.xs,
-  fontSize: 13,
-})
-
-const $debugButton: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
-  marginTop: spacing.sm,
-  paddingVertical: spacing.xs,
-  paddingHorizontal: spacing.sm,
-  borderWidth: 1,
-  borderColor: colors.tint,
-  borderRadius: 6,
-  alignSelf: "flex-start",
+  textAlign: "center",
 })

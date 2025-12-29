@@ -54,6 +54,29 @@ const es: Translations = {
   homeScreen: {
     title: "Inicio",
     placeholder: "Contenido del panel próximamente",
+    // Help Cards
+    onboardingTitle: "Bienvenido a RecoverySky",
+    onboardingDescription: "Revisa la introducción de la app en cualquier momento para conocer las funciones y la privacidad.",
+    restartOnboarding: "Reiniciar Introducción",
+    liveTitle: "Reuniones en Vivo",
+    liveDescription: "Encuentra reuniones que están sucediendo ahora. Toca la pestaña En Vivo para ver qué hay.",
+    goToLive: "Ir a En Vivo",
+    listingsTitle: "Listado de Reuniones",
+    listingsDescription: "Explora el horario completo por día y hora. Ideal para planificar.",
+    goToListings: "Ver Listado",
+    attendanceTitle: "Registrar Asistencia",
+    attendanceDescription: "Tu asistencia a reuniones se registra automáticamente. Ve el historial y exporta informes.",
+    goToAttendance: "Ver Asistencia",
+    settingsTitle: "Personaliza Tu App",
+    settingsDescription: "Configura tu fecha de recuperación, tema y preferencias personales.",
+    goToSettings: "Abrir Configuración",
+    // Informational cards
+    favoritesTitle: "Reuniones Favoritas",
+    favoritesDescription: "Toca el corazón para marcar reuniones que te gustan. Los favoritos aparecen primero en tus listas. Tus favoritos son privados y permanecen en tu dispositivo.",
+    ratingsTitle: "Califica Reuniones",
+    ratingsDescription: "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
+    // Dashboard
+    cleanDays: "Días Limpio",
   },
   meetingsScreen: {
     title: "Reuniones",
@@ -147,6 +170,9 @@ const es: Translations = {
     exportEmail: "Correo de Exportación",
     exportEmailPlaceholder: "correo@ejemplo.com",
     exportAttendance: "Exportar Asistencia",
+    // Home Tips
+    resetHomeTips: "Restablecer Consejos de Inicio",
+    resetHomeTipsHint: "Mostrar todas las tarjetas de ayuda de nuevo",
     // Actions
     logout: "Cerrar Sesión",
     logoutConfirm: "¿Estás seguro de que deseas cerrar sesión?",
