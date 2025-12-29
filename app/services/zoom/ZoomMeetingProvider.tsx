@@ -16,7 +16,7 @@ import { Alert } from "react-native"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 import * as Crypto from "expo-crypto"
 
-import { attendanceRepo, type AttendanceEvent } from "@/db"
+import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
@@ -156,6 +156,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
       log.info("Attendance saved", { valid, creditMins })
+      attendanceEvents.emit({ type: "processed", id: ctx.attendanceId })
 
       // Show warning dialog if meeting was too short
       if (!valid) {
@@ -235,6 +236,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
         })
         if (!result.ok) throw new Error("Failed to create attendance record")
         log.info("Attendance created", { id: attendanceId })
+        attendanceEvents.emit({ type: "created", id: attendanceId })
       } catch (err) {
         log.error("Attendance create failed", { error: String(err) })
       }

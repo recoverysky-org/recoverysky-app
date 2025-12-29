@@ -1,0 +1,42 @@
+/**
+ * Attendance Events
+ *
+ * Simple pub/sub for attendance record changes.
+ * Components subscribe to receive real-time updates when attendance is created or processed.
+ */
+
+import type { AttendanceRecord } from "./repositories"
+
+export type AttendanceChangeType = "created" | "processed" | "produced"
+
+export interface AttendanceChange {
+  type: AttendanceChangeType
+  id: string
+  /** The full record (available on 'processed' events) */
+  record?: AttendanceRecord
+}
+
+type AttendanceChangeListener = (event: AttendanceChange) => void
+
+const listeners = new Set<AttendanceChangeListener>()
+
+/**
+ * Emit an attendance change to all subscribers
+ */
+function emit(event: AttendanceChange): void {
+  listeners.forEach((listener) => listener(event))
+}
+
+/**
+ * Subscribe to attendance changes
+ * @returns Unsubscribe function
+ */
+function subscribe(listener: AttendanceChangeListener): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+export const attendanceEvents = {
+  emit,
+  subscribe,
+}

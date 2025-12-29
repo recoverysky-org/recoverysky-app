@@ -14,7 +14,7 @@ import { ViewStyle, FlatList, RefreshControl, View, TextStyle, Alert } from "rea
 import { AttendanceRow, type AttendanceWithMeeting } from "@/components/AttendanceRow"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { attendanceRepo, meetingRepo, type AttendanceRecord } from "@/db"
+import { attendanceRepo, meetingRepo, attendanceEvents, type AttendanceRecord } from "@/db"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -66,6 +66,16 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = function A
   useEffect(() => {
     void loadRecords()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Subscribe to attendance changes for real-time updates
+  useEffect(() => {
+    return attendanceEvents.subscribe((event) => {
+      // Refresh when attendance is processed (has valid flag set)
+      if (event.type === "processed") {
+        void loadRecords()
+      }
+    })
+  }, [loadRecords])
 
   const handleAddToReport = useCallback((_record: AttendanceRecord) => {
     // Placeholder - show "Coming soon" toast

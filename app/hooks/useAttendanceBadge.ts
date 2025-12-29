@@ -6,9 +6,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react"
-import { useFocusEffect } from "@react-navigation/native"
 
-import { attendanceRepo } from "@/db"
+import { attendanceRepo, attendanceEvents } from "@/db"
 import { logger } from "@/utils/logger"
 
 interface AttendanceBadgeState {
@@ -55,12 +54,14 @@ export function useAttendanceBadge(): AttendanceBadgeState {
     void refresh()
   }, [refresh])
 
-  // Refresh when navigator gains focus
-  useFocusEffect(
-    useCallback(() => {
-      void refresh()
-    }, [refresh]),
-  )
+  // Subscribe to attendance changes for real-time badge updates
+  useEffect(() => {
+    return attendanceEvents.subscribe((event) => {
+      if (event.type === "processed") {
+        void refresh()
+      }
+    })
+  }, [refresh])
 
   return {
     validUnproducedCount,
