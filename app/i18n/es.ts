@@ -45,6 +45,7 @@ const es: Translations = {
   mainNavigator: {
     homeTab: "Inicio",
     liveTab: "En vivo",
+    listingsTab: "Listados",
     attendanceTab: "Asistencia",
     meetingsTab: "Reuniones",
     scheduleTab: "Horario",
@@ -70,6 +71,13 @@ const es: Translations = {
     meetingCount: "{{count}} reuniones en vivo",
     meetings: "{{count}} reuniones",
     password: "Contraseña",
+  },
+  listingsScreen: {
+    title: "Listados",
+    emptyState: "No se encontraron reuniones",
+    emptyStateFiltered: "No hay reuniones para {{fellowship}}",
+    selectFellowship: "Selecciona un grupo en Configuración",
+    meetingCount: "{{count}} reuniones",
   },
   attendanceScreen: {
     title: "Asistencia",
@@ -133,6 +141,13 @@ const es: Translations = {
     vibrantColors: "Vibrantes",
     customColor: "Color Personalizado",
     resetToDefault: "Restablecer por Defecto",
+    // Attendance Section
+    attendanceSection: "Asistencia",
+    enableAttendance: "Habilitar Asistencia",
+    exportEmail: "Correo de Exportación",
+    exportEmailPlaceholder: "correo@ejemplo.com",
+    exportAttendance: "Exportar Asistencia",
+    // Actions
     logout: "Cerrar Sesión",
     logoutConfirm: "¿Estás seguro de que deseas cerrar sesión?",
   },

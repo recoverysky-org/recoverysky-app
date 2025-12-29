@@ -153,7 +153,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     const ctx = meetingContextRef.current
     if (!ctx) return
 
-    log.debug("Processing attendance events", { events: ctx.events })
+    log.debug("Processing attendance events", { eventCount: ctx.events.length })
 
     // Find start event: "Meeting state" with state "inMeeting"
     const startEvent = ctx.events.find((e) => {

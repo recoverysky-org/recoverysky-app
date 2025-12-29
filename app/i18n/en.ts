@@ -46,6 +46,7 @@ const en = {
   mainNavigator: {
     homeTab: "Home",
     liveTab: "Live",
+    listingsTab: "Listings",
     attendanceTab: "Attendance",
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
@@ -72,6 +73,13 @@ const en = {
     meetingCount: "{{count}} meetings live",
     meetings: "{{count}} meetings",
     password: "Password",
+  },
+  listingsScreen: {
+    title: "Listings",
+    emptyState: "No meetings found",
+    emptyStateFiltered: "No meetings for {{fellowship}}",
+    selectFellowship: "Select a fellowship in Settings",
+    meetingCount: "{{count}} meetings",
   },
   attendanceScreen: {
     title: "Attendance",
@@ -136,6 +144,12 @@ const en = {
     vibrantColors: "Vibrant",
     customColor: "Custom Color",
     resetToDefault: "Reset to Default",
+    // Attendance Section
+    attendanceSection: "Attendance",
+    enableAttendance: "Enable Attendance",
+    exportEmail: "Export Email",
+    exportEmailPlaceholder: "email@example.com",
+    exportAttendance: "Export Attendance",
     // Actions
     logout: "Logout",
     logoutConfirm: "Are you sure you want to log out?",
