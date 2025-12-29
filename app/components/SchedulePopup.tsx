@@ -26,8 +26,7 @@ import { Ionicons } from "@expo/vector-icons"
 
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
-import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
-import type { trex } from "@common"
+import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
@@ -36,7 +35,6 @@ import { logger } from "@/utils/logger"
 import {
   FELLOWSHIP_COLORS,
   hydrateNext,
-  hydrateScheduleGrid,
   DateTime,
   type TREXJSON,
   Fellowship,
@@ -100,7 +98,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   onClose,
 }) {
   const { themed, theme } = useAppTheme()
-  const { getTrexesForSchedule } = useMeetings()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
@@ -151,35 +148,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
     [meeting?.id],
   )
 
-  // Get all trexes for this schedule (pure memory lookup, ZERO SQLite)
-  const scheduleTrexes = useMemo(() => {
-    if (!meeting?.sid) return []
-    return getTrexesForSchedule(meeting.sid)
-  }, [getTrexesForSchedule, meeting?.sid])
-
-  // Generate schedule grid data using hydrateScheduleGrid from @common
+  // Schedule grid data comes directly from API (or null for local fallback)
   const scheduleGridData = useMemo(() => {
-    if (scheduleTrexes.length === 0) return []
+    return meeting?.scheduleData || []
+  }, [meeting?.scheduleData])
 
-    // Wrap trexes in objects as expected by hydrateScheduleGrid
-    const gridMap = hydrateScheduleGrid(scheduleTrexes.map((t) => ({ trex: t })))
-
-    // Convert Map to array format expected by ScheduleGrid
-    // Sort by time, then convert DateTime to formatted string
-    const sortedEntries = Array.from(gridMap.entries()).sort(([a], [b]) => {
-      return a.localeCompare(b)
-    })
-
-    return sortedEntries.map(([, row]) =>
-      row.map((dt) => {
-        if (!dt) return null
-        // Format as "12:00p" (no 'm', lowercase)
-        const time = dt.toFormat("h:mm")
-        const period = dt.hour >= 12 ? "p" : "a"
-        return `${time}${period}`
-      }),
-    )
-  }, [scheduleTrexes])
+  // Meeting count from schedule data
+  const meetingCount = useMemo(() => {
+    if (!scheduleGridData.length) return 0
+    // Count non-null entries across all rows
+    return scheduleGridData.reduce((count, row) => {
+      return count + row.filter((cell) => cell !== null).length
+    }, 0)
+  }, [scheduleGridData])
 
   // Current day for highlighting
   const currentDow = DateTime.now().weekday
@@ -279,7 +260,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             {duration && <Text style={themed($metaText)}>{duration}</Text>}
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
-              <Text style={themed($metaText)}>{scheduleTrexes.length} meetings</Text>
+              <Text style={themed($metaText)}>{meetingCount} meetings</Text>
             </View>
             {meeting.language && (
               <View style={$metaItem}>

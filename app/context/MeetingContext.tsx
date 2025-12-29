@@ -1,12 +1,12 @@
 /**
  * Meeting Context
  *
- * Provides meeting data with optimized loading:
- * - Startup: Load trexes, schedules, feedback into memory
- * - Live: API returns full meeting objects (zero SQLite when online)
- * - Fallback: Local calculation + SQLite when API fails
+ * Provides live meeting data:
+ * - API returns live schedules with meeting IDs and pre-computed grid data
+ * - Loads only the meetings referenced by live schedules from SQLite
+ * - Falls back to local trex calculation when API fails
  *
- * Key relationship: trex.id === meeting.id (1:1)
+ * Key relationship: schedule.mid === meeting.id (1:1)
  */
 
 import {
@@ -21,13 +21,12 @@ import {
 } from "react"
 import {
   meetingRepo,
-  scheduleRepo,
   findAllTrexes,
   feedbackCache,
   type TrexRow,
   type FeedbackRecord,
 } from "@/db"
-import { api, type LiveMeeting } from "@/services/api"
+import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { useDatabase } from "@/db"
 import { logger } from "@/utils/logger"
 import {
@@ -45,6 +44,56 @@ import type { MeetingWithRelations } from "@sqlite"
 const log = logger.child({ module: "MeetingContext" })
 
 // ============================================================================
+// Helper: Condense Schedule Rows
+// ============================================================================
+
+/**
+ * Condense schedule rows by combining rows where possible.
+ *
+ * Each row has 7 columns (Mon-Sun). A time can be placed in a row
+ * only if that day column is currently null.
+ *
+ * Example:
+ *   Input:  [[8am, null, null, ...], [null, null, 9am, ...], [10am, null, null, ...]]
+ *   Output: [[8am, null, 9am, ...], [10am, null, null, ...]]
+ *
+ * Row 1 and 2 combined because Mon and Wed don't conflict.
+ * Row 3 stays separate because Mon is already occupied in combined row.
+ */
+function condenseScheduleRows(rows: ScheduleDataRow[]): ScheduleDataRow[] {
+  if (rows.length <= 1) return rows
+
+  const result: ScheduleDataRow[] = []
+
+  // Process each cell from input rows
+  for (const inputRow of rows) {
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+      const time = inputRow[dayIndex]
+      if (time === null) continue
+
+      // Try to find an existing output row where this day is empty
+      let placed = false
+      for (const outputRow of result) {
+        if (outputRow[dayIndex] === null) {
+          outputRow[dayIndex] = time
+          placed = true
+          break
+        }
+      }
+
+      // No room in existing rows, create a new one
+      if (!placed) {
+        const newRow: ScheduleDataRow = [null, null, null, null, null, null, null]
+        newRow[dayIndex] = time
+        result.push(newRow)
+      }
+    }
+  }
+
+  return result
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -52,14 +101,8 @@ export interface MeetingWithTrex extends meeting {
   trex: trex | null
   /** User's feedback for this meeting (loves, rates, joins) - null if no feedback */
   feedback: FeedbackRecord | null
-}
-
-/** Schedule with meeting IDs (loaded at startup) */
-interface ScheduleWithMeetingIds {
-  id: string
-  name: string
-  fellowship: string
-  meetingIds: string[]
+  /** Pre-computed schedule grid data from API (for SchedulePopup) */
+  scheduleData: ScheduleDataRow[] | null
 }
 
 /** API connection status */
@@ -68,8 +111,6 @@ export type ApiStatus = "connected" | "disconnected" | "unknown"
 export interface MeetingContextType {
   /** Meetings currently live */
   liveMeetings: MeetingWithTrex[]
-  /** Get trexes for a schedule (for grid display) - pure memory lookup */
-  getTrexesForSchedule: (scheduleId: string) => trex[]
   /** Loading state */
   isLoading: boolean
   /** Last time live meetings were refreshed */
@@ -150,58 +191,20 @@ function isMeetingLive(trexData: trex): boolean {
 }
 
 /**
- * Convert LiveMeeting from API to MeetingWithTrex
- */
-function toMeetingWithTrexFromApi(m: LiveMeeting, trexMap: Map<string, trex>): MeetingWithTrex {
-  return {
-    // From API
-    id: m.id,
-    sid: m.sid,
-    name: m.name,
-    fellowship: m.fellowship,
-    url: m.url,
-    password: m.password,
-    language: m.language,
-    description: m.description,
-    meetingTypes: m.meetingTypes,
-    tags: m.tags,
-    // Defaults for fields not in API response
-    iid: "",
-    uid: "",
-    zid: "",
-    status: MeetingStatus.ACTIVE,
-    verified: MeetingVerified.NEVER,
-    locked: false,
-    created: "",
-    updated: "",
-    version: 0,
-    passwordEnc: "",
-    closed: false,
-    requiresLogin: false,
-    restricted: false,
-    restrictedDescription: "",
-    email: "",
-    phone: "",
-    website: "",
-    conferencePhone: "",
-    location: "",
-    sha256: "",
-    // Attached from memory
-    trex: trexMap.get(m.id) || null,
-    feedback: feedbackCache.get(m.id),
-  } as MeetingWithTrex
-}
-
-/**
  * Convert MeetingWithRelations (from SQLite) to MeetingWithTrex
  */
-function toMeetingWithTrexFromDb(m: MeetingWithRelations, trexMap: Map<string, trex>): MeetingWithTrex {
+function toMeetingWithTrexFromDb(
+  m: MeetingWithRelations,
+  trexMap: Map<string, trex>,
+  scheduleData: ScheduleDataRow[] | null,
+): MeetingWithTrex {
   return {
     ...(m.meeting as unknown as meeting),
     meetingTypes: m.types,
     tags: m.tags,
     trex: trexMap.get(m.meeting.id) || null,
     feedback: feedbackCache.get(m.meeting.id),
+    scheduleData,
   }
 }
 
@@ -214,15 +217,13 @@ interface MeetingProviderProps {
 }
 
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
-  log.debug("MeetingProvider initializing")
-
   const { status: dbStatus } = useDatabase()
+  log.debug("MeetingProvider initializing", { dbStatus })
 
-  // Startup data (always loaded into memory)
+  // Startup data: trexes loaded into memory
   const [trexMap, setTrexMap] = useState<Map<string, trex>>(new Map())
-  const [schedules, setSchedules] = useState<ScheduleWithMeetingIds[]>([])
 
-  // On-demand data
+  // Live meetings data
   const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
 
   // Status
@@ -237,7 +238,8 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   const useApiRef = useRef(true)
 
   // ============================================================================
-  // Startup: Load trexes + schedules only (lightweight)
+  // Startup: Load trexes only (lightweight)
+  // Re-runs when dbStatus changes to ensure we load after seeding completes
   // ============================================================================
   useEffect(() => {
     if (dbStatus !== "seeded") {
@@ -245,15 +247,9 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       return
     }
 
-    if (startupComplete) {
-      log.debug("Startup data already loaded")
-      return
-    }
-
-    async function loadStartupData() {
+    function loadStartupData() {
       try {
-        log.info("Loading startup data (trexes + schedules only)")
-        setIsLoading(true)
+        log.info("Loading startup data (trexes only)")
 
         // Load all trexes
         const trexRows = findAllTrexes()
@@ -262,39 +258,17 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
           newTrexMap.set(row.id, toTrex(row))
         }
 
-        // Load all schedules with their meetingIds
-        const schedulesResult = await scheduleRepo.findAll()
-        if (!schedulesResult.ok) {
-          log.error("Failed to load schedules", { error: String(schedulesResult.error) })
-          setIsLoading(false)
-          return
-        }
+        log.info("Startup data loaded", { trexCount: newTrexMap.size })
 
-        const newSchedules: ScheduleWithMeetingIds[] = schedulesResult.value.map((s) => ({
-          id: s.schedule.id,
-          name: s.schedule.name,
-          fellowship: s.schedule.fellowship,
-          meetingIds: s.meetingIds,
-        }))
-
-        log.info("Startup data loaded", {
-          trexCount: newTrexMap.size,
-          scheduleCount: newSchedules.length,
-        })
-
-        // Batch update state
         setTrexMap(newTrexMap)
-        setSchedules(newSchedules)
         setStartupComplete(true)
-        setIsLoading(false)
       } catch (error) {
         log.error("Error loading startup data", { error: String(error) })
-        setIsLoading(false)
       }
     }
 
     loadStartupData()
-  }, [dbStatus, startupComplete])
+  }, [dbStatus])
 
   // ============================================================================
   // Check API status
@@ -316,7 +290,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
 
   // ============================================================================
   // Refresh live meetings
-  // API online: Zero SQLite queries (API returns full meetings)
+  // API online: Fetches schedules from API, loads meetings by ID from SQLite
   // API offline: Fallback to local trex calculation + SQLite
   // ============================================================================
   useEffect(() => {
@@ -329,30 +303,65 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         log.debug("Refreshing live meetings...")
         setIsLoading(true)
 
-        // Try API first - returns FULL meeting objects
+        // Try API first - returns live schedules with meeting IDs and grid data
         if (useApiRef.current) {
           try {
-            const result = await api.getLiveMeetings()
+            const result = await api.getLiveSchedules()
 
             if (result.kind === "ok") {
-              // API returns full meetings - NO SQLite needed!
-              const newLiveMeetings = result.meetings.map((m) => toMeetingWithTrexFromApi(m, trexMap))
+              const { schedules } = result
+              log.info("API returned schedules", { count: schedules.length })
+
+              // Collect unique meeting IDs and map schedule data by mid
+              // Apply condenseScheduleRows to minimize row count
+              const meetingIds = new Set<string>()
+              const scheduleDataByMid = new Map<string, ScheduleDataRow[]>()
+              for (const s of schedules) {
+                meetingIds.add(s.mid)
+                scheduleDataByMid.set(s.mid, condenseScheduleRows(s.data))
+              }
+
+              const uniqueMids = Array.from(meetingIds)
+              log.info("Unique meeting IDs from schedules", {
+                count: uniqueMids.length,
+                first3: uniqueMids.slice(0, 3).join(", "),
+              })
+
+              // Load just those meetings from SQLite
+              log.debug("Querying SQLite for meetings...")
+              const meetingsResult = await meetingRepo.findByIds(uniqueMids)
+              if (!meetingsResult.ok) {
+                log.error("Failed to load meetings from SQLite", { error: String(meetingsResult.error) })
+                throw new Error("Failed to load meetings")
+              }
+
+              log.info("SQLite returned meetings", {
+                requested: uniqueMids.length,
+                returned: meetingsResult.value.length,
+              })
+
+              // Convert to MeetingWithTrex with scheduleData
+              const newLiveMeetings = meetingsResult.value.map((m) =>
+                toMeetingWithTrexFromDb(m, trexMap, scheduleDataByMid.get(m.meeting.id) || null),
+              )
 
               setLiveMeetings(newLiveMeetings)
               setLiveSource("api")
               setLastRefresh(new Date())
               setIsLoading(false)
 
-              log.info("✓ Live meetings from API (zero SQLite)", {
-                count: newLiveMeetings.length,
+              log.info("✓ Live meetings ready", {
+                schedules: schedules.length,
+                meetings: newLiveMeetings.length,
+                trexMapSize: trexMap.size,
               })
               return
             } else {
-              log.warn("✗ API getLiveMeetings failed, falling back to local", { kind: result.kind })
+              log.warn("✗ API getLiveSchedules failed, falling back to local", { kind: result.kind })
               useApiRef.current = false
             }
           } catch (error) {
-            log.error("✗ API getLiveMeetings error, falling back to local", { error: String(error) })
+            log.error("✗ API getLiveSchedules error, falling back to local", { error: String(error) })
             useApiRef.current = false
           }
         }
@@ -383,7 +392,10 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
           return
         }
 
-        const newLiveMeetings = meetingsResult.value.map((m) => toMeetingWithTrexFromDb(m, trexMap))
+        // No scheduleData in fallback mode - SchedulePopup will compute it
+        const newLiveMeetings = meetingsResult.value.map((m) =>
+          toMeetingWithTrexFromDb(m, trexMap, null),
+        )
 
         setLiveMeetings(newLiveMeetings)
         setLiveSource("local")
@@ -412,34 +424,17 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     setRefreshTrigger((prev) => prev + 1)
   }, [])
 
-  /**
-   * Get trexes for a schedule (pure memory lookup, ZERO SQLite)
-   * Used by SchedulePopup for the schedule grid
-   */
-  const getTrexesForSchedule = useCallback(
-    (scheduleId: string): trex[] => {
-      const schedule = schedules.find((s) => s.id === scheduleId)
-      if (!schedule) return []
-
-      return schedule.meetingIds
-        .map((mid) => trexMap.get(mid))
-        .filter((t): t is trex => t !== undefined)
-    },
-    [schedules, trexMap],
-  )
-
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo<MeetingContextType>(
     () => ({
       liveMeetings,
-      getTrexesForSchedule,
       isLoading,
       lastRefresh,
       refresh,
       liveSource,
       apiStatus,
     }),
-    [liveMeetings, getTrexesForSchedule, isLoading, lastRefresh, refresh, liveSource, apiStatus],
+    [liveMeetings, isLoading, lastRefresh, refresh, liveSource, apiStatus],
   )
 
   log.debug("MeetingProvider rendering", { liveCount: liveMeetings.length, isLoading })

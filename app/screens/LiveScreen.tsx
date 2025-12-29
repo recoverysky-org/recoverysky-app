@@ -6,7 +6,7 @@ import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
-import { feedbackCache, type FeedbackRecord } from "@/db"
+import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -46,6 +46,16 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
     })
     return unsubscribe
   }, [])
+
+  // Subscribe to live events (e.g., fellowship preference changed)
+  useEffect(() => {
+    const unsubscribe = liveEvents.subscribe((event) => {
+      if (event.type === "preferences_changed" || event.type === "refresh_requested") {
+        refresh()
+      }
+    })
+    return unsubscribe
+  }, [refresh])
 
   // Filter meetings by user's selected fellowship
   // If no fellowship set (empty string), show all meetings
