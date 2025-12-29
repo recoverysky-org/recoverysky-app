@@ -1,5 +1,6 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 import { withSetPropAction } from "./helpers/withSetPropAction"
+import { liveEvents } from "@/db"
 import { translate } from "@/i18n"
 
 /**
@@ -143,6 +144,8 @@ export const ProfileStoreModel = types
 
     setFellowship(value: string) {
       self.fellowship = value
+      // Notify Live page to refresh with new fellowship filter
+      liveEvents.preferencesChanged("fellowship")
     },
 
     setSubscription(value: string) {
