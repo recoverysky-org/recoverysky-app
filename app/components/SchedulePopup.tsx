@@ -205,6 +205,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
                 <Text style={themed($metaText)}>{formattedTime}</Text>
               </View>
             )}
+            {(meeting as unknown as { duration_ms?: number }).duration_ms ? (
+              <View style={$metaItem}>
+                <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
+                <Text style={themed($metaText)}>
+                  {Math.round((meeting as unknown as { duration_ms: number }).duration_ms / 60000)} min
+                </Text>
+              </View>
+            ) : null}
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
               <Text style={themed($metaText)}>{meetingCount} meetings</Text>
@@ -213,15 +221,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
               <View style={$metaItem}>
                 <Ionicons name="globe-outline" size={14} color={theme.colors.textDim} />
                 <Text style={themed($metaText)}>{meeting.language.toUpperCase()}</Text>
-              </View>
-            )}
-            {joinCount > 0 && (
-              <View style={$metaItem}>
-                <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>
-                  {joinCount} {joinCount === 1 ? "join" : "joins"}
-                  {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
-                </Text>
               </View>
             )}
           </View>
@@ -235,9 +234,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             ))}
           </View>
 
-          {/* Join button, Heart, and Rating row */}
+          {/* Join button and Feedback row */}
           <View style={themed($actionRow)}>
-            {/* Join button */}
+            {/* Join button (left) */}
             {meeting.url && (
               <Pressable
                 onPress={handleJoin}
@@ -255,26 +254,40 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
               </Pressable>
             )}
 
-            {/* Favorite heart */}
-            <Pressable onPress={handleToggleLove} style={themed($heartButton)}>
-              <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
-                size={26}
-                color={isFavorite ? "#ef4444" : theme.colors.textDim}
-              />
-            </Pressable>
-
-            {/* Rating stars */}
-            <View style={themed($ratingContainer)}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Pressable key={star} onPress={() => handleSetRating(star)}>
+            {/* Feedback section (right) */}
+            <View style={themed($feedbackSection)}>
+              {/* Heart and Stars row */}
+              <View style={themed($heartStarsRow)}>
+                <Pressable onPress={handleToggleLove} style={themed($heartButton)}>
                   <Ionicons
-                    name={star <= rating ? "star" : "star-outline"}
-                    size={20}
-                    color={star <= rating ? "#fbbf24" : theme.colors.textDim}
+                    name={isFavorite ? "heart" : "heart-outline"}
+                    size={26}
+                    color={isFavorite ? "#ef4444" : theme.colors.textDim}
                   />
                 </Pressable>
-              ))}
+                <View style={themed($ratingContainer)}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Pressable key={star} onPress={() => handleSetRating(star)}>
+                      <Ionicons
+                        name={star <= rating ? "star" : "star-outline"}
+                        size={20}
+                        color={star <= rating ? "#fbbf24" : theme.colors.textDim}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* Joins and time ago row */}
+              {joinCount > 0 && (
+                <View style={themed($joinsRow)}>
+                  <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
+                  <Text style={themed($joinsText)}>
+                    {joinCount} {joinCount === 1 ? "join" : "joins"}
+                    {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -423,13 +436,36 @@ const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: spacing.md,
   marginBottom: spacing.md,
 })
 
-const $heartButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.xs,
+const $feedbackSection: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  alignItems: "flex-end",
+})
+
+const $heartStarsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $joinsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+  marginTop: spacing.xs,
+})
+
+const $joinsText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+})
+
+const $heartButton: ThemedStyle<ViewStyle> = () => ({
+  paddingHorizontal: 4,
 })
 
 const $joinButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
