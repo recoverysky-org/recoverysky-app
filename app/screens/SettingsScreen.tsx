@@ -53,11 +53,12 @@ const SELECTABLE_FELLOWSHIPS = [
  * SettingsScreen - User profile, account, and app settings
  *
  * Sections:
- * - Profile: Display name
- * - Recovery: Last recovery date, fellowship
- * - Account: Subscription, user ID, delete data
- * - App Settings: Dark mode, theme color
- * - Logout
+ * 1. Recovery: Fellowship, recovery date
+ * 2. Profile: Display name, pronouns
+ * 3. App Settings: Language, dark mode, theme color
+ * 4. Attendance: Enable tracking, export email
+ * 5. Subscription: Status, upgrade, restore purchases
+ * 6. Account: User ID, delete data, logout
  */
 export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
   function SettingsScreen(_props) {
@@ -228,6 +229,72 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
         {/* Header */}
         <Text preset="heading" tx="settingsScreen:title" />
         <Text style={themed($subtitle)} tx="settingsScreen:subtitle" />
+
+        {/* Recovery Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={20}
+              color={themed($recoveryIconColor).color}
+            />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:recoverySection" />
+          </View>
+
+          {/* Recovery Date Picker */}
+          <TouchableOpacity
+            style={themed($settingsRow)}
+            onPress={() => setShowDatePicker(true)}
+            accessibilityRole="button"
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:recoveryDate" />
+            <View style={$styles.row}>
+              <Text style={themed($rowValue)}>{profileStore.recoveryDate}</Text>
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Date Picker - iOS shows inline, Android shows modal */}
+          {showDatePicker &&
+            (Platform.OS === "ios" ? (
+              <View style={themed($datePickerContainer)}>
+                <View style={themed($datePickerHeader)}>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Text style={themed($datePickerDone)} tx="common:ok" />
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={profileStore.recoveryDateAsDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleDateChange}
+                  maximumDate={new Date()}
+                  style={$datePickerSpinner}
+                  themeVariant={isDarkMode ? "dark" : "light"}
+                />
+              </View>
+            ) : (
+              <DateTimePicker
+                value={profileStore.recoveryDateAsDate}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                themeVariant={isDarkMode ? "dark" : "light"}
+              />
+            ))}
+
+          <TouchableOpacity
+            style={[themed($settingsRow), themed($lastRow)]}
+            onPress={() => setFellowshipModalVisible(true)}
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:recoveryFellowship" />
+            <View style={$styles.row}>
+              <Text style={themed($rowValue)}>{getFellowshipLabel(profileStore.fellowship)}</Text>
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* Profile Section */}
         <View style={themed($section)}>
@@ -415,69 +482,94 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
           </Pressable>
         </Modal>
 
-        {/* Recovery Section */}
+        {/* App Settings Section */}
         <View style={themed($section)}>
           <View style={themed($sectionHeader)}>
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={20}
-              color={themed($recoveryIconColor).color}
-            />
-            <Text style={themed($sectionTitle)} tx="settingsScreen:recoverySection" />
+            <Icon icon="settings" size={20} color={themed($appSettingsIconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:appSettingsSection" />
           </View>
 
-          {/* Recovery Date Picker */}
+          {/* Language Picker */}
           <TouchableOpacity
             style={themed($settingsRow)}
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => setLanguageModalVisible(true)}
             accessibilityRole="button"
           >
-            <Text style={themed($rowLabel)} tx="settingsScreen:recoveryDate" />
+            <Text style={themed($rowLabel)} tx="settingsScreen:language" />
             <View style={$styles.row}>
-              <Text style={themed($rowValue)}>{profileStore.recoveryDate}</Text>
+              <Text style={themed($rowValue)}>{languageNames[currentLang]}</Text>
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </View>
           </TouchableOpacity>
 
-          {/* Date Picker - iOS shows inline, Android shows modal */}
-          {showDatePicker &&
-            (Platform.OS === "ios" ? (
-              <View style={themed($datePickerContainer)}>
-                <View style={themed($datePickerHeader)}>
-                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                    <Text style={themed($datePickerDone)} tx="common:ok" />
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={profileStore.recoveryDateAsDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                  style={$datePickerSpinner}
-                  themeVariant={isDarkMode ? "dark" : "light"}
-                />
-              </View>
-            ) : (
-              <DateTimePicker
-                value={profileStore.recoveryDateAsDate}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-                maximumDate={new Date()}
-                themeVariant={isDarkMode ? "dark" : "light"}
-              />
-            ))}
+          {/* Dark Mode Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleDarkModeToggle}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
 
+          {/* Theme Color */}
           <TouchableOpacity
             style={[themed($settingsRow), themed($lastRow)]}
-            onPress={() => setFellowshipModalVisible(true)}
+            accessibilityRole="button"
+            onPress={() => setColorPickerVisible(true)}
           >
-            <Text style={themed($rowLabel)} tx="settingsScreen:recoveryFellowship" />
+            <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
             <View style={$styles.row}>
-              <Text style={themed($rowValue)}>{getFellowshipLabel(profileStore.fellowship)}</Text>
+              <View
+                style={[$colorPreviewSwatch, { backgroundColor: themeColor || theme.colors.tint }]}
+              />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Attendance Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
+          </View>
+
+          {/* Enable Attendance Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:enableAttendance" />
+            <Switch
+              value={profileStore.attendanceEnabled}
+              onValueChange={profileStore.setAttendanceEnabled}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          {/* Export Email */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:exportEmail" />
+            <TextField
+              value={profileStore.reportEmail}
+              onChangeText={profileStore.setReportEmail}
+              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={themed($emailInput)}
+              inputWrapperStyle={themed($emailInputWrapper)}
+            />
+          </View>
+
+          {/* Export Button */}
+          <TouchableOpacity
+            style={[themed($exportButton), themed($lastRow)]}
+            onPress={() => Alert.alert("Coming Soon", "Export functionality will be available in a future update.")}
+            accessibilityRole="button"
+          >
+            <Ionicons name="download-outline" size={18} color={theme.colors.tint} />
+            <Text style={themed($exportButtonText)} tx="settingsScreen:exportAttendance" />
           </TouchableOpacity>
         </View>
 
@@ -580,97 +672,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
             />
             <Text style={themed($deleteText)} tx="settingsScreen:logout" />
             <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
-          </TouchableOpacity>
-        </View>
-
-        {/* App Settings Section */}
-        <View style={themed($section)}>
-          <View style={themed($sectionHeader)}>
-            <Icon icon="settings" size={20} color={themed($appSettingsIconColor).color} />
-            <Text style={themed($sectionTitle)} tx="settingsScreen:appSettingsSection" />
-          </View>
-
-          {/* Language Picker */}
-          <TouchableOpacity
-            style={themed($settingsRow)}
-            onPress={() => setLanguageModalVisible(true)}
-            accessibilityRole="button"
-          >
-            <Text style={themed($rowLabel)} tx="settingsScreen:language" />
-            <View style={$styles.row}>
-              <Text style={themed($rowValue)}>{languageNames[currentLang]}</Text>
-              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-            </View>
-          </TouchableOpacity>
-
-          {/* Dark Mode Toggle */}
-          <View style={themed($settingsRow)}>
-            <Text style={themed($rowLabel)} tx="settingsScreen:darkMode" />
-            <Switch
-              value={isDarkMode}
-              onValueChange={handleDarkModeToggle}
-              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          {/* Theme Color */}
-          <TouchableOpacity
-            style={[themed($settingsRow), themed($lastRow)]}
-            accessibilityRole="button"
-            onPress={() => setColorPickerVisible(true)}
-          >
-            <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
-            <View style={$styles.row}>
-              <View
-                style={[$colorPreviewSwatch, { backgroundColor: themeColor || theme.colors.tint }]}
-              />
-              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Attendance Section */}
-        <View style={themed($section)}>
-          <View style={themed($sectionHeader)}>
-            <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
-            <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
-          </View>
-
-          {/* Enable Attendance Toggle */}
-          <View style={themed($settingsRow)}>
-            <Text style={themed($rowLabel)} tx="settingsScreen:enableAttendance" />
-            <Switch
-              value={profileStore.attendanceEnabled}
-              onValueChange={profileStore.setAttendanceEnabled}
-              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          {/* Export Email */}
-          <View style={themed($settingsRow)}>
-            <Text style={themed($rowLabel)} tx="settingsScreen:exportEmail" />
-            <TextField
-              value={profileStore.reportEmail}
-              onChangeText={profileStore.setReportEmail}
-              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={themed($emailInput)}
-              inputWrapperStyle={themed($emailInputWrapper)}
-            />
-          </View>
-
-          {/* Export Button */}
-          <TouchableOpacity
-            style={[themed($exportButton), themed($lastRow)]}
-            onPress={() => Alert.alert("Coming Soon", "Export functionality will be available in a future update.")}
-            accessibilityRole="button"
-          >
-            <Ionicons name="download-outline" size={18} color={theme.colors.tint} />
-            <Text style={themed($exportButtonText)} tx="settingsScreen:exportAttendance" />
           </TouchableOpacity>
         </View>
 
