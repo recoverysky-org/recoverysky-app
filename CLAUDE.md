@@ -46,7 +46,7 @@ npm run build:android:sim  # Android emulator
 
 ### Linked Packages
 Metro has poor symlink support. The `metro.config.js` includes workarounds:
-- `watchFolders`: Includes `recoverysky-common` and `trex-ts` paths
+- `watchFolders`: Includes `recoverysky-common` path
 - `nodeModulesPaths`: Tells Metro where to find linked package dependencies
 - After modifying linked packages, restart Metro with `--clear`
 
@@ -159,7 +159,7 @@ import {
   meeting, schedule, trex,           // Data models (plain interfaces)
   Fellowship, MeetingStatus,         // Enums
   validateMeeting, validateSchedule, // Zod validation
-  isLiveInterval, normalize,         // TREX live detection
+  hydrateNext, FELLOWSHIP_COLORS,    // Display helpers
   DateTime,                          // Luxon DateTime
 } from "@common"
 ```
