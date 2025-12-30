@@ -5,10 +5,10 @@
  * Uses dynamic import to avoid loading native module until needed.
  */
 
-import type { SQLiteDatabase } from "expo-sqlite"
-import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 import { Paths, File } from "expo-file-system"
+import type { SQLiteDatabase } from "expo-sqlite"
 import * as schema from "@sqlite"
+import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
 const DATABASE_NAME = "recoverysky.db"
 
@@ -36,7 +36,10 @@ async function deleteDatabase(): Promise<void> {
  * Open the database. Called when user clicks "Open Db".
  * Dynamically imports expo-sqlite to avoid loading native module at startup.
  */
-export async function openDb(): Promise<{ expoDb: SQLiteDatabase; db: ExpoSQLiteDatabase<typeof schema> }> {
+export async function openDb(): Promise<{
+  expoDb: SQLiteDatabase
+  db: ExpoSQLiteDatabase<typeof schema>
+}> {
   if (!expoDb) {
     // Delete database if reseed is requested
     if (process.env.EXPO_PUBLIC_RESEED_DB === "true") {

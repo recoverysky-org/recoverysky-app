@@ -43,9 +43,7 @@ export function DatabaseLoadingOverlay() {
             <ActivityIndicator size="large" color={theme.colors.tint} style={themed($spinner)} />
           )}
           <Text tx={getTxKey()} style={themed($message)} />
-          {status === "error" && error && (
-            <Text style={themed($errorText)}>{error}</Text>
-          )}
+          {status === "error" && error && <Text style={themed($errorText)}>{error}</Text>}
         </View>
       </View>
     </Modal>

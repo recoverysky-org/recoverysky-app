@@ -7,6 +7,7 @@
  */
 
 import { SQLiteDatabase } from "expo-sqlite"
+
 import { loadString, saveString, remove } from "@/utils/storage"
 
 const SEED_FLAG_KEY = "db_seeded_v2"
@@ -303,7 +304,7 @@ async function insertSchedules(db: SQLiteDatabase, data: ScheduleRow[]): Promise
 
     db.runSync(
       `INSERT OR REPLACE INTO schedules (id, status, zids, name, fellowship, created, updated, version, sha256) VALUES ${placeholders}`,
-      values
+      values,
     )
   }
 }
@@ -314,7 +315,10 @@ async function insertMeetings(db: SQLiteDatabase, data: MeetingRow[]): Promise<v
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
     const placeholders = batch
-      .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .map(
+        () =>
+          "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      )
       .join(", ")
     const values = batch.flatMap((m) => [
       m.id,
@@ -349,7 +353,7 @@ async function insertMeetings(db: SQLiteDatabase, data: MeetingRow[]): Promise<v
 
     db.runSync(
       `INSERT OR REPLACE INTO meetings (id, iid, uid, zid, sid, status, verified, locked, created, updated, version, url, password, passwordEnc, fellowship, language, closed, requiresLogin, restricted, restrictedDescription, description, email, name, phone, website, conferencePhone, location, sha256) VALUES ${placeholders}`,
-      values
+      values,
     )
   }
 }
@@ -380,7 +384,7 @@ async function insertTrexes(db: SQLiteDatabase, data: TrexRow[]): Promise<void> 
 
     db.runSync(
       `INSERT OR REPLACE INTO trexes (id, coordinate, coordinate_end, timezone, periodicity, duration_ms, dtstart, dtend, rrule_str, rrule_json, hour, minute, dow, dom, month) VALUES ${placeholders}`,
-      values
+      values,
     )
   }
 }
@@ -393,7 +397,10 @@ async function insertMeetingTypes(db: SQLiteDatabase, data: MeetingTypeRow[]): P
     const placeholders = batch.map(() => "(?, ?)").join(", ")
     const values = batch.flatMap((mt) => [mt.meeting_id, mt.type])
 
-    db.runSync(`INSERT OR REPLACE INTO meeting_types (meeting_id, type) VALUES ${placeholders}`, values)
+    db.runSync(
+      `INSERT OR REPLACE INTO meeting_types (meeting_id, type) VALUES ${placeholders}`,
+      values,
+    )
   }
 }
 
@@ -410,11 +417,17 @@ async function insertMeetingTags(db: SQLiteDatabase, data: MeetingTagRow[]): Pro
     const placeholders = batch.map(() => "(?, ?)").join(", ")
     const values = batch.flatMap((mt) => [mt.meeting_id, mt.tag])
 
-    db.runSync(`INSERT OR REPLACE INTO meeting_tags (meeting_id, tag) VALUES ${placeholders}`, values)
+    db.runSync(
+      `INSERT OR REPLACE INTO meeting_tags (meeting_id, tag) VALUES ${placeholders}`,
+      values,
+    )
   }
 }
 
-async function insertScheduleMeetings(db: SQLiteDatabase, data: ScheduleMeetingRow[]): Promise<void> {
+async function insertScheduleMeetings(
+  db: SQLiteDatabase,
+  data: ScheduleMeetingRow[],
+): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} schedule_meetings...`)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
@@ -422,7 +435,10 @@ async function insertScheduleMeetings(db: SQLiteDatabase, data: ScheduleMeetingR
     const placeholders = batch.map(() => "(?, ?)").join(", ")
     const values = batch.flatMap((sm) => [sm.schedule_id, sm.meeting_id])
 
-    db.runSync(`INSERT OR REPLACE INTO schedule_meetings (schedule_id, meeting_id) VALUES ${placeholders}`, values)
+    db.runSync(
+      `INSERT OR REPLACE INTO schedule_meetings (schedule_id, meeting_id) VALUES ${placeholders}`,
+      values,
+    )
   }
 }
 
@@ -453,7 +469,7 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
     const rawTrexes = require("@assets/db/trexes.json") as RawTrex[]
 
     console.log(
-      `[seedDatabase] Loaded: ${rawMeetings.length} meetings, ${rawSchedules.length} schedules, ${rawTrexes.length} trexes`
+      `[seedDatabase] Loaded: ${rawMeetings.length} meetings, ${rawSchedules.length} schedules, ${rawTrexes.length} trexes`,
     )
 
     // Transform all data
@@ -480,7 +496,7 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
     const trexRows = rawTrexes.map(transformTrex)
 
     console.log(
-      `[seedDatabase] Transformed: ${meetingTypeRows.length} meeting_types, ${meetingTagRows.length} meeting_tags, ${scheduleMeetingRows.length} schedule_meetings`
+      `[seedDatabase] Transformed: ${meetingTypeRows.length} meeting_types, ${meetingTagRows.length} meeting_tags, ${scheduleMeetingRows.length} schedule_meetings`,
     )
 
     // Insert in FK order

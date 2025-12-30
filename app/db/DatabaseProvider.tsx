@@ -5,15 +5,26 @@
  * Shows loading overlay during initialization via DatabaseLoadingOverlay.
  */
 
-import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from "react"
 import type { SQLiteDatabase } from "expo-sqlite"
-import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
-import { openDb as openDbProvider } from "./provider"
-import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
-import { feedbackCache } from "./feedbackCache"
 import { migrations } from "@sqlite"
 import type * as schema from "@sqlite"
+import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
+
 import { logger } from "@/utils/logger"
+
+import { feedbackCache } from "./feedbackCache"
+import { openDb as openDbProvider } from "./provider"
+import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
 
 const log = logger.child({ module: "DatabaseProvider" })
 

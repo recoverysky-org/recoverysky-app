@@ -17,8 +17,9 @@
  * await feedbackCache.toggleLove("meeting-123")
  */
 
-import { feedbackRepo, type FeedbackRecord } from "./repositories"
 import { logger } from "@/utils/logger"
+
+import { feedbackRepo, type FeedbackRecord } from "./repositories"
 
 const log = logger.child({ module: "feedbackCache" })
 
@@ -160,7 +161,11 @@ export const feedbackCache = {
     // Persist to SQLite
     const result = await feedbackRepo.setRating(mid, clampedRating)
     if (!result.ok) {
-      log.error("Failed to persist setRating", { mid, rating: clampedRating, error: String(result.error) })
+      log.error("Failed to persist setRating", {
+        mid,
+        rating: clampedRating,
+        error: String(result.error),
+      })
       // Revert cache on failure
       cache.set(mid, current)
       return

@@ -7,9 +7,9 @@
  */
 
 export type LiveEventType =
-  | "preferences_changed"  // User changed fellowship, language, etc.
-  | "refresh_requested"    // Manual refresh trigger
-  | "data_updated"         // Meeting data was updated
+  | "preferences_changed" // User changed fellowship, language, etc.
+  | "refresh_requested" // Manual refresh trigger
+  | "data_updated" // Meeting data was updated
 
 export interface LiveEvent {
   type: LiveEventType
