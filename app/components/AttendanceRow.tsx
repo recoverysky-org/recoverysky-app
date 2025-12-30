@@ -10,8 +10,8 @@
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
 import { DateTime } from "@common"
+import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
 import type { AttendanceRecord } from "@/db"
@@ -68,11 +68,7 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
     <View style={themed($container)}>
       {/* Selected indicator (only when selected) */}
       {isSelected && (
-        <Ionicons
-          name="checkmark-circle"
-          size={22}
-          color={theme.colors.palette.secondary500}
-        />
+        <Ionicons name="checkmark-circle" size={22} color={theme.colors.palette.secondary500} />
       )}
 
       {/* Meeting info */}

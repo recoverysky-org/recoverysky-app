@@ -8,13 +8,13 @@
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { FELLOWSHIP_COLORS, Fellowship } from "@common"
 import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
+import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { FELLOWSHIP_COLORS, Fellowship } from "@common"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 
 interface LiveMeetingRowProps {
@@ -48,22 +48,21 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
 }) => {
   const { themed, theme } = useAppTheme()
 
-  const startTime = useMemo(
-    () => formatMillisToLocalTime(meeting.millis),
-    [meeting.millis],
-  )
+  const startTime = useMemo(() => formatMillisToLocalTime(meeting.millis), [meeting.millis])
 
   const fellowshipColor = useMemo(() => {
     return FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
   }, [meeting.fellowship])
 
   return (
-    <Pressable
-      style={themed($container)}
-      onPress={() => onPress?.(meeting)}
-    >
+    <Pressable style={themed($container)} onPress={() => onPress?.(meeting)}>
       {/* Fellowship Badge */}
-      <View style={[$fellowshipBadge, { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
+      <View
+        style={[
+          $fellowshipBadge,
+          { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+        ]}
+      >
         <Text style={[$fellowshipText, { color: fellowshipColor }]}>
           {meeting.fellowship || "?"}
         </Text>
@@ -75,9 +74,7 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
       </Text>
 
       {/* Heart (if favorited) */}
-      {isFavorite && (
-        <Ionicons name="heart" size={16} color="#ef4444" style={$heartIcon} />
-      )}
+      {isFavorite && <Ionicons name="heart" size={16} color="#ef4444" style={$heartIcon} />}
 
       {/* Right side: Time/Language + Stars */}
       <View style={$rightSection}>
@@ -85,9 +82,7 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
         <View style={$timeRow}>
           <Text style={themed($timeText)}>{startTime}</Text>
           {meeting.language && (
-            <Text style={themed($languageText)}>
-              {meeting.language.toUpperCase()}
-            </Text>
+            <Text style={themed($languageText)}>{meeting.language.toUpperCase()}</Text>
           )}
         </View>
 

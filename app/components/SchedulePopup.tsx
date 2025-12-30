@@ -14,14 +14,8 @@
  */
 
 import { FC, useMemo, useState, useEffect, useCallback } from "react"
-import {
-  View,
-  ViewStyle,
-  TextStyle,
-  Modal,
-  Pressable,
-  StyleSheet,
-} from "react-native"
+import { View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
+import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@common"
 import { Ionicons } from "@expo/vector-icons"
 
 import { ScheduleGrid } from "@/components/ScheduleGrid"
@@ -31,9 +25,8 @@ import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { logger } from "@/utils/logger"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
-import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@common"
+import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "SchedulePopup" })
 
@@ -175,16 +168,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
           {/* Header */}
           <View style={themed($header)}>
             {/* Fellowship badge */}
-            <View style={[$fellowshipBadge, { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
+            <View
+              style={[
+                $fellowshipBadge,
+                { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+              ]}
+            >
               <Text style={[$fellowshipBadgeText, { color: fellowshipColor }]}>
                 {meeting.fellowship || "?"}
               </Text>
             </View>
 
             {/* Time */}
-            {formattedTime && (
-              <Text style={themed($headerTime)}>{formattedTime}</Text>
-            )}
+            {formattedTime && <Text style={themed($headerTime)}>{formattedTime}</Text>}
 
             {/* Meeting name */}
             <Text style={themed($title)} numberOfLines={1}>
@@ -208,9 +204,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             {meeting.duration_ms ? (
               <View style={$metaItem}>
                 <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>
-                  {Math.round(meeting.duration_ms / 60000)} min
-                </Text>
+                <Text style={themed($metaText)}>{Math.round(meeting.duration_ms / 60000)} min</Text>
               </View>
             ) : null}
             <View style={$metaItem}>
@@ -307,10 +301,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
           ) : null}
 
           {/* Schedule Grid */}
-          <ScheduleGrid
-            scheduleData={scheduleGridData}
-            currentDow={currentDow}
-          />
+          <ScheduleGrid scheduleData={scheduleGridData} currentDow={currentDow} />
         </View>
       </View>
     </Modal>

@@ -7,12 +7,12 @@
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle } from "react-native"
+import { DateTime } from "@common"
 
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
-import { DateTime } from "@common"
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const
 
@@ -30,10 +30,7 @@ interface ScheduleGridProps {
  * @example
  * <ScheduleGrid scheduleData={meeting.scheduleData} currentDow={DateTime.now().weekday} />
  */
-export const ScheduleGrid: FC<ScheduleGridProps> = ({
-  scheduleData,
-  currentDow,
-}) => {
+export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }) => {
   const { themed, theme } = useAppTheme()
 
   // Get current day index (0-6 for Mon-Sun)
@@ -57,7 +54,10 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
             key={day}
             style={[
               themed($headerCell),
-              index === currentDayIndex && { borderBottomColor: theme.colors.tint, borderBottomWidth: 2 },
+              index === currentDayIndex && {
+                borderBottomColor: theme.colors.tint,
+                borderBottomWidth: 2,
+              },
             ]}
           >
             <Text

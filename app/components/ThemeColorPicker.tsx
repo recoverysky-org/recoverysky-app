@@ -42,10 +42,7 @@ interface ThemeColorPickerProps {
  *   onClose={() => setShowPicker(false)}
  * />
  */
-export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
-  visible,
-  onClose,
-}) => {
+export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({ visible, onClose }) => {
   const { themed, theme, setThemeColor, themeColor } = useAppTheme()
   const [showCustomPicker, setShowCustomPicker] = useState(false)
   const [customColor, setCustomColor] = useState(themeColor || theme.colors.tint)
@@ -57,7 +54,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
       setThemeColor(hex)
       onClose()
     },
-    [setThemeColor, onClose]
+    [setThemeColor, onClose],
   )
 
   const handleCustomColorChange = useCallback((color: { hex: string }) => {
@@ -76,12 +73,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
   }, [setThemeColor, onClose])
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={themed($modalOverlay)}>
         <Pressable style={themed($backdropPress)} onPress={onClose} />
 
@@ -102,9 +94,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
                   ]}
                   onPress={() => handlePresetSelect(color.hex)}
                 >
-                  {isSelected && (
-                    <Ionicons name="checkmark" size={20} color="#fff" />
-                  )}
+                  {isSelected && <Ionicons name="checkmark" size={20} color="#fff" />}
                 </Pressable>
               )
             })}
@@ -118,10 +108,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
             </Pressable>
 
             {/* Reset Button */}
-            <Pressable
-              style={[themed($colorCircle), themed($resetButton)]}
-              onPress={handleReset}
-            >
+            <Pressable style={[themed($colorCircle), themed($resetButton)]} onPress={handleReset}>
               <Ionicons name="refresh" size={20} color={theme.colors.textDim} />
             </Pressable>
           </View>
@@ -140,19 +127,14 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
               </ColorPicker>
 
               <View style={themed($modalButtons)}>
-                <Pressable
-                  style={themed($modalButton)}
-                  onPress={() => setShowCustomPicker(false)}
-                >
+                <Pressable style={themed($modalButton)} onPress={() => setShowCustomPicker(false)}>
                   <Text style={themed($modalButtonText)}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   style={[themed($modalButton), { backgroundColor: theme.colors.tint }]}
                   onPress={handleCustomConfirm}
                 >
-                  <Text style={[themed($modalButtonText), { color: "#fff" }]}>
-                    Apply
-                  </Text>
+                  <Text style={[themed($modalButtonText), { color: "#fff" }]}>Apply</Text>
                 </Pressable>
               </View>
             </>
@@ -161,9 +143,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({
           {/* Close button when not in custom picker mode */}
           {!showCustomPicker && (
             <Pressable style={themed($closeButton)} onPress={onClose}>
-              <Text style={[themed($modalButtonText), { color: theme.colors.tint }]}>
-                Done
-              </Text>
+              <Text style={[themed($modalButtonText), { color: theme.colors.tint }]}>Done</Text>
             </Pressable>
           )}
         </View>
