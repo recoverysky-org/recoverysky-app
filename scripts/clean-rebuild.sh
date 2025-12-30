@@ -3,7 +3,10 @@
 # Clears all caches, node_modules, and regenerates native ios/ and android/ folders
 #
 # Usage:
-#   ./scripts/clean-rebuild.sh
+#   ./scripts/clean-rebuild.sh              # Clean + prebuild only
+#   ./scripts/clean-rebuild.sh --ios        # Also build iOS simulator dev client
+#   ./scripts/clean-rebuild.sh --android    # Also build Android emulator dev client
+#   ./scripts/clean-rebuild.sh --all        # Build both platforms
 
 set -e
 
@@ -12,7 +15,29 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$PROJECT_DIR"
 
+# Parse flags
+BUILD_IOS=false
+BUILD_ANDROID=false
+
+for arg in "$@"; do
+  case $arg in
+    --ios|-i)
+      BUILD_IOS=true
+      ;;
+    --android|-a)
+      BUILD_ANDROID=true
+      ;;
+    --all)
+      BUILD_IOS=true
+      BUILD_ANDROID=true
+      ;;
+  esac
+done
+
 echo "🧹 Starting full clean rebuild..."
+if [ "$BUILD_IOS" = true ] || [ "$BUILD_ANDROID" = true ]; then
+  echo "   (with development builds)"
+fi
 echo ""
 
 # 1. Clear node_modules
@@ -53,7 +78,34 @@ npm run patch:splash
 echo "🩹 Running patch:android..."
 npm run patch:android
 
+# 8. Build development clients if requested
+if [ "$BUILD_IOS" = true ]; then
+  echo ""
+  echo "🍎 Building iOS development client (simulator)..."
+  npm run build:ios:sim
+fi
+
+if [ "$BUILD_ANDROID" = true ]; then
+  echo ""
+  echo "🤖 Building Android development client (emulator)..."
+  npm run build:android:sim
+fi
+
 echo ""
 echo "✅ Clean rebuild complete!"
 echo ""
-echo "Run 'npm start -- --clear' to start the dev server"
+
+if [ "$BUILD_IOS" = false ] && [ "$BUILD_ANDROID" = false ]; then
+  echo "Run 'npm start -- --clear' to start the dev server"
+  echo ""
+  echo "To build development clients:"
+  echo "  npm run build:ios:sim      # iOS simulator"
+  echo "  npm run build:android:sim  # Android emulator"
+else
+  echo "Run 'npm start -- --clear' to start the dev server"
+  if [ "$BUILD_IOS" = true ]; then
+    echo ""
+    echo "Install iOS build to simulator:"
+    echo "  npm run install:ios:sim && npm run launch:ios:sim"
+  fi
+fi
