@@ -59,13 +59,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           onPress={handleLogin}
           disabled={isLoading}
         >
-          <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="loginScreen:loginButton" />
+          <Text
+            style={[themed($buttonText), { color: theme.colors.tint }]}
+            tx="loginScreen:loginButton"
+          />
           {isLoading && (
-            <ActivityIndicator
-              size="small"
-              color={theme.colors.tint}
-              style={themed($spinner)}
-            />
+            <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
           )}
         </Pressable>
 
@@ -79,12 +78,13 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           onPress={loginAnonymously}
           disabled={isLoading}
         >
-          <Text style={[themed($buttonText), { color: theme.colors.textDim }]} tx="loginScreen:continueAnonymously" />
+          <Text
+            style={[themed($buttonText), { color: theme.colors.textDim }]}
+            tx="loginScreen:continueAnonymously"
+          />
         </Pressable>
 
-        {isLoading && (
-          <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
-        )}
+        {isLoading && <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />}
       </View>
     </Screen>
   )

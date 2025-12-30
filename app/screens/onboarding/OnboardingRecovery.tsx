@@ -19,11 +19,11 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { translate } from "@/i18n"
 
 const FELLOWSHIPS = ["AA", "NA", "CMA", "RD", "Other"] as const
 type Fellowship = (typeof FELLOWSHIPS)[number]

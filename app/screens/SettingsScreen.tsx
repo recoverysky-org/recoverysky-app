@@ -13,6 +13,7 @@ import {
   Linking,
   ActivityIndicator,
 } from "react-native"
+import { Fellowship } from "@common"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { observer } from "mobx-react-lite"
@@ -36,7 +37,6 @@ import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { Fellowship } from "@common"
 
 type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
 
@@ -545,7 +545,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
         {/* Attendance Section */}
         <View style={themed($section)}>
           <View style={themed($sectionHeader)}>
-            <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
+            <Ionicons
+              name="clipboard-outline"
+              size={20}
+              color={themed($attendanceIconColor).color}
+            />
             <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
           </View>
 
@@ -578,7 +582,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
           {/* Export Button */}
           <TouchableOpacity
             style={[themed($exportButton), themed($lastRow)]}
-            onPress={() => Alert.alert("Coming Soon", "Export functionality will be available in a future update.")}
+            onPress={() =>
+              Alert.alert(
+                "Coming Soon",
+                "Export functionality will be available in a future update.",
+              )
+            }
             accessibilityRole="button"
           >
             <Ionicons name="download-outline" size={18} color={theme.colors.tint} />
@@ -598,7 +607,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
             <Text style={themed($rowLabel)} tx="settingsScreen:subscription" />
             <View style={$styles.row}>
               {isSubscriptionLoading && (
-                <ActivityIndicator size="small" color={theme.colors.tint} style={{ marginRight: 8 }} />
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.tint}
+                  style={{ marginRight: 8 }}
+                />
               )}
               <Text style={[themed($rowValue), isPro && themed($premiumText)]}>
                 {getSubscriptionStatus()}

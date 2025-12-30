@@ -33,7 +33,11 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
     }
 
     return (
-      <Screen preset="scroll" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="scroll"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         {/* Progress dots */}
         <View style={$progress}>
           <View style={[$dot, $dotInactive]} />
@@ -89,10 +93,16 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
         {/* Footer */}
         <View style={themed($footer)}>
           <Pressable
-            style={[themed($button), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+            style={[
+              themed($button),
+              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            ]}
             onPress={handleNext}
           >
-            <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="onboarding:next" />
+            <Text
+              style={[themed($buttonText), { color: theme.colors.tint }]}
+              tx="onboarding:next"
+            />
           </Pressable>
 
           <Pressable onPress={handleSkip} style={$skipButton}>
@@ -101,7 +111,7 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
         </View>
       </Screen>
     )
-  }
+  },
 )
 
 // ============================================================================

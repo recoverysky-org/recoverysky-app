@@ -82,7 +82,9 @@ export const DevScreen: FC = function DevScreen() {
       <Text
         style={themed($reportBugsLink)}
         tx="devScreen:reportBugs"
-        onPress={() => openLinkInBrowser("https://github.com/recoverysky-org/recoverysky-hybrid/issues")}
+        onPress={() =>
+          openLinkInBrowser("https://github.com/recoverysky-org/recoverysky-hybrid/issues")
+        }
       />
 
       <Text style={themed($title)} preset="heading" tx="devScreen:title" />

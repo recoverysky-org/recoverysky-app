@@ -46,66 +46,67 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [isLoading, setIsLoading] = useState(true)
 
-  const loadRecords = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const result = await attendanceRepo.findUnproduced()
-      if (result.ok) {
-        // Join with meeting names
-        const mids = [...new Set(result.value.map((r) => r.mid))]
-        const meetingsResult = await meetingRepo.findByIds(mids)
-        const meetingMap = new Map(
-          meetingsResult.ok ? meetingsResult.value.map((m) => [m.meeting.id, m.meeting.name]) : [],
-        )
+    const loadRecords = useCallback(async () => {
+      setIsLoading(true)
+      try {
+        const result = await attendanceRepo.findUnproduced()
+        if (result.ok) {
+          // Join with meeting names
+          const mids = [...new Set(result.value.map((r) => r.mid))]
+          const meetingsResult = await meetingRepo.findByIds(mids)
+          const meetingMap = new Map(
+            meetingsResult.ok
+              ? meetingsResult.value.map((m) => [m.meeting.id, m.meeting.name])
+              : [],
+          )
 
-        // Only show valid records (meetings long enough for credit)
-        const validRecords = result.value.filter((r) => r.valid)
+          // Only show valid records (meetings long enough for credit)
+          const validRecords = result.value.filter((r) => r.valid)
 
-        setRecords(
-          validRecords.map((r) => ({
-            ...r,
-            meetingName: meetingMap.get(r.mid) ?? "Unknown Meeting",
-          })),
-        )
-      } else {
-        logger.error("Failed to load unproduced attendance", { error: String(result.error) })
+          setRecords(
+            validRecords.map((r) => ({
+              ...r,
+              meetingName: meetingMap.get(r.mid) ?? "Unknown Meeting",
+            })),
+          )
+        } else {
+          logger.error("Failed to load unproduced attendance", { error: String(result.error) })
+        }
+      } catch (error) {
+        logger.error("Error loading attendance", { error: String(error) })
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      logger.error("Error loading attendance", { error: String(error) })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+    }, [])
 
-  // Load records on mount (database is guaranteed ready by DatabaseProvider)
-  useEffect(() => {
-    void loadRecords()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // Load records on mount (database is guaranteed ready by DatabaseProvider)
+    useEffect(() => {
+      void loadRecords()
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Subscribe to attendance changes for real-time updates
-  useEffect(() => {
-    return attendanceEvents.subscribe((event) => {
-      // Refresh when attendance is processed (has valid flag set)
-      if (event.type === "processed") {
-        void loadRecords()
-      }
-    })
-  }, [loadRecords])
+    // Subscribe to attendance changes for real-time updates
+    useEffect(() => {
+      return attendanceEvents.subscribe((event) => {
+        // Refresh when attendance is processed (has valid flag set)
+        if (event.type === "processed") {
+          void loadRecords()
+        }
+      })
+    }, [loadRecords])
 
-  const handleToggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }, [])
+    const handleToggleSelect = useCallback((id: string) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) {
+          next.delete(id)
+        } else {
+          next.add(id)
+        }
+        return next
+      })
+    }, [])
 
-  const handleDelete = useCallback(
-    (record: AttendanceRecord) => {
+    const handleDelete = useCallback((record: AttendanceRecord) => {
       Alert.alert("Remove Attendance", "This will mark this attendance as invalid. Continue?", [
         { text: "Cancel", style: "cancel" },
         {
@@ -124,119 +125,134 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
           },
         },
       ])
-    },
-    [],
-  )
+    }, [])
 
-  const renderItem = useCallback(
-    ({ item }: { item: AttendanceWithMeeting }) => (
-      <AttendanceRow
-        record={item}
-        isSelected={selectedIds.has(item.id)}
-        onToggleSelect={() => handleToggleSelect(item.id)}
-        onDelete={() => handleDelete(item)}
-      />
-    ),
-    [selectedIds, handleToggleSelect, handleDelete],
-  )
+    const renderItem = useCallback(
+      ({ item }: { item: AttendanceWithMeeting }) => (
+        <AttendanceRow
+          record={item}
+          isSelected={selectedIds.has(item.id)}
+          onToggleSelect={() => handleToggleSelect(item.id)}
+          onDelete={() => handleDelete(item)}
+        />
+      ),
+      [selectedIds, handleToggleSelect, handleDelete],
+    )
 
-  const keyExtractor = useCallback((item: AttendanceWithMeeting) => item.id, [])
+    const keyExtractor = useCallback((item: AttendanceWithMeeting) => item.id, [])
 
-  const ListEmptyComponent = useCallback(
-    () => (
-      <View style={themed($emptyContainer)}>
-        <Text preset="subheading" tx="attendanceScreen:noRecords" style={themed($emptyText)} />
-        <Text style={themed($emptySubtext)} tx="attendanceScreen:noRecordsSubtext" />
-      </View>
-    ),
-    [themed],
-  )
-
-  const ItemSeparatorComponent = useCallback(
-    () => <View style={themed($separator)} />,
-    [themed],
-  )
-
-  // Simple email validation
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-
-  const canSendReport = selectedIds.size > 0 && isValidEmail(profileStore.reportEmail)
-
-  const handleSendReport = useCallback(() => {
-    Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
-  }, [])
-
-  const ListHeaderComponent = useCallback(
-    () => (
-      <View style={themed($header)}>
-        <View style={$headerRow}>
-          <Text preset="heading" tx="attendanceScreen:title" />
-          <Pressable
-            style={({ pressed }) => [$reportsLink, pressed && $pressed]}
-            onPress={() => navigation.navigate("AttendanceReports")}
-          >
-            <Text style={{ color: theme.colors.tint }}>Reports</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.tint} />
-          </Pressable>
+    const ListEmptyComponent = useCallback(
+      () => (
+        <View style={themed($emptyContainer)}>
+          <Text preset="subheading" tx="attendanceScreen:noRecords" style={themed($emptyText)} />
+          <Text style={themed($emptySubtext)} tx="attendanceScreen:noRecordsSubtext" />
         </View>
-        {records.length > 0 && (
-          <Text style={themed($countText)}>
-            {records.length} {records.length === 1 ? "record" : "records"}
-          </Text>
-        )}
+      ),
+      [themed],
+    )
 
-        {/* Email Input */}
-        <View style={themed($emailSection)}>
-          <Text style={themed($emailLabel)} text="Report Email" />
-          <TextField
-            value={profileStore.reportEmail}
-            onChangeText={profileStore.setReportEmail}
-            placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            inputWrapperStyle={themed($emailInputWrapper)}
+    const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
+
+    // Simple email validation
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+    const canSendReport = selectedIds.size > 0 && isValidEmail(profileStore.reportEmail)
+
+    const handleSendReport = useCallback(() => {
+      Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
+    }, [])
+
+    const ListHeaderComponent = useCallback(
+      () => (
+        <View style={themed($header)}>
+          <View style={$headerRow}>
+            <Text preset="heading" tx="attendanceScreen:title" />
+            <Pressable
+              style={({ pressed }) => [$reportsLink, pressed && $pressed]}
+              onPress={() => navigation.navigate("AttendanceReports")}
+            >
+              <Text style={{ color: theme.colors.tint }}>Reports</Text>
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.tint} />
+            </Pressable>
+          </View>
+          {records.length > 0 && (
+            <Text style={themed($countText)}>
+              {records.length} {records.length === 1 ? "record" : "records"}
+            </Text>
+          )}
+
+          {/* Email Input */}
+          <View style={themed($emailSection)}>
+            <Text style={themed($emailLabel)} text="Report Email" />
+            <TextField
+              value={profileStore.reportEmail}
+              onChangeText={profileStore.setReportEmail}
+              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              inputWrapperStyle={themed($emailInputWrapper)}
+            />
+          </View>
+
+          {/* Send Report Button */}
+          <TouchableOpacity
+            style={[themed($sendButton), !canSendReport && themed($sendButtonDisabled)]}
+            onPress={handleSendReport}
+            disabled={!canSendReport}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="send"
+              size={18}
+              color={canSendReport ? theme.colors.tint : theme.colors.textDim}
+            />
+            <Text
+              style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)}
+              text="Send Report"
+            />
+          </TouchableOpacity>
+
+          {/* Help Text */}
+          <Text
+            style={themed($helpText)}
+            text="Enter a valid email and select one or more attendance records to send a report."
           />
         </View>
+      ),
+      [
+        themed,
+        theme.colors.tint,
+        records.length,
+        navigation,
+        profileStore.reportEmail,
+        profileStore.setReportEmail,
+        handleSendReport,
+        canSendReport,
+      ],
+    )
 
-        {/* Send Report Button */}
-        <TouchableOpacity
-          style={[themed($sendButton), !canSendReport && themed($sendButtonDisabled)]}
-          onPress={handleSendReport}
-          disabled={!canSendReport}
-          accessibilityRole="button"
-        >
-          <Ionicons name="send" size={18} color={canSendReport ? theme.colors.tint : theme.colors.textDim} />
-          <Text style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)} text="Send Report" />
-        </TouchableOpacity>
-
-        {/* Help Text */}
-        <Text
-          style={themed($helpText)}
-          text="Enter a valid email and select one or more attendance records to send a report."
+    return (
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
+        <FlatList
+          data={records}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ListEmptyComponent={ListEmptyComponent}
+          ListHeaderComponent={ListHeaderComponent}
+          ItemSeparatorComponent={ItemSeparatorComponent}
+          contentContainerStyle={themed($listContent)}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={loadRecords}
+              tintColor={theme.colors.text}
+            />
+          }
+          showsVerticalScrollIndicator={false}
         />
-      </View>
-    ),
-    [themed, theme.colors.tint, records.length, navigation, profileStore.reportEmail, profileStore.setReportEmail, handleSendReport, canSendReport],
-  )
-
-  return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
-      <FlatList
-        data={records}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ListEmptyComponent={ListEmptyComponent}
-        ListHeaderComponent={ListHeaderComponent}
-        ItemSeparatorComponent={ItemSeparatorComponent}
-        contentContainerStyle={themed($listContent)}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={loadRecords} tintColor={theme.colors.text} />
-        }
-        showsVerticalScrollIndicator={false}
-      />
-    </Screen>
-  )
+      </Screen>
+    )
   },
 )
 

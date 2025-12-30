@@ -34,7 +34,11 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
     }
 
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         {/* Progress dots */}
         <View style={$progress}>
           <View style={[$dot, $dotInactive]} />
@@ -62,18 +66,10 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
           </View>
 
           {/* Theme Color */}
-          <Pressable
-            style={themed($settingRow)}
-            onPress={() => setColorPickerVisible(true)}
-          >
+          <Pressable style={themed($settingRow)} onPress={() => setColorPickerVisible(true)}>
             <Text style={themed($settingLabel)} tx="onboarding:themeColor" />
             <View style={$colorPreviewRow}>
-              <View
-                style={[
-                  $colorPreview,
-                  { backgroundColor: theme.colors.tint },
-                ]}
-              />
+              <View style={[$colorPreview, { backgroundColor: theme.colors.tint }]} />
             </View>
           </Pressable>
 
@@ -81,12 +77,20 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
           <View style={themed($previewSection)}>
             <Text style={themed($previewLabel)}>Preview</Text>
             <View style={themed($previewCard)}>
-              <View style={[themed($previewBadge), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}>
+              <View
+                style={[
+                  themed($previewBadge),
+                  { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+                ]}
+              >
                 <Text style={[themed($previewBadgeText), { color: "#3b82f6" }]}>AA</Text>
               </View>
               <Text style={themed($previewText)}>Your app will look like this</Text>
               <Pressable
-                style={[themed($previewButton), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+                style={[
+                  themed($previewButton),
+                  { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+                ]}
               >
                 <Text style={{ color: theme.colors.tint, fontWeight: "600" }}>Sample Button</Text>
               </Pressable>
@@ -103,10 +107,16 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
         {/* Footer */}
         <View style={themed($footer)}>
           <Pressable
-            style={[themed($button), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+            style={[
+              themed($button),
+              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            ]}
             onPress={handleNext}
           >
-            <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="onboarding:next" />
+            <Text
+              style={[themed($buttonText), { color: theme.colors.tint }]}
+              tx="onboarding:next"
+            />
           </Pressable>
 
           <Pressable onPress={handleSkip} style={$skipButton}>
@@ -115,7 +125,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
         </View>
       </Screen>
     )
-  }
+  },
 )
 
 // ============================================================================

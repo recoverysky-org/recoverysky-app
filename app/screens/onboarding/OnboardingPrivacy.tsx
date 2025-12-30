@@ -48,7 +48,11 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
     }
 
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         {/* Progress dots - 6th active */}
         <View style={$progress}>
           <View style={[$dot, $dotInactive]} />
@@ -81,12 +85,18 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
           {/* Links - inline */}
           <View style={themed($linksRow)}>
             <Pressable onPress={openPrivacyPolicy} style={themed($linkButton)}>
-              <Text style={[themed($linkText), { color: theme.colors.tint }]} tx="onboarding:privacyPolicy" />
+              <Text
+                style={[themed($linkText), { color: theme.colors.tint }]}
+                tx="onboarding:privacyPolicy"
+              />
               <Ionicons name="open-outline" size={14} color={theme.colors.tint} />
             </Pressable>
             <Text style={themed($linkSeparator)}>|</Text>
             <Pressable onPress={openTerms} style={themed($linkButton)}>
-              <Text style={[themed($linkText), { color: theme.colors.tint }]} tx="onboarding:termsOfService" />
+              <Text
+                style={[themed($linkText), { color: theme.colors.tint }]}
+                tx="onboarding:termsOfService"
+              />
               <Ionicons name="open-outline" size={14} color={theme.colors.tint} />
             </Pressable>
           </View>
@@ -95,10 +105,16 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         {/* Footer */}
         <View style={themed($footer)}>
           <Pressable
-            style={[themed($button), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+            style={[
+              themed($button),
+              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            ]}
             onPress={handleFinish}
           >
-            <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="onboarding:finish" />
+            <Text
+              style={[themed($buttonText), { color: theme.colors.tint }]}
+              tx="onboarding:finish"
+            />
           </Pressable>
 
           <Pressable onPress={handleSkip} style={$skipButton}>
@@ -107,7 +123,7 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         </View>
       </Screen>
     )
-  }
+  },
 )
 
 // ============================================================================

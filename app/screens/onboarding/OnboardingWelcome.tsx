@@ -29,7 +29,11 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
     }
 
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         {/* Progress dots */}
         <View style={$progress}>
           <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
@@ -51,10 +55,16 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
         {/* Footer */}
         <View style={themed($footer)}>
           <Pressable
-            style={[themed($button), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+            style={[
+              themed($button),
+              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            ]}
             onPress={handleGetStarted}
           >
-            <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="onboarding:getStarted" />
+            <Text
+              style={[themed($buttonText), { color: theme.colors.tint }]}
+              tx="onboarding:getStarted"
+            />
           </Pressable>
 
           <Pressable onPress={handleSkip} style={$skipButton}>

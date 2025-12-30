@@ -4,25 +4,18 @@
  * Short Name and Pronouns selection
  */
 import { FC, useState } from "react"
-import {
-  View,
-  ViewStyle,
-  TextStyle,
-  Pressable,
-  Modal,
-  TouchableOpacity,
-} from "react-native"
+import { View, ViewStyle, TextStyle, Pressable, Modal, TouchableOpacity } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { translate } from "@/i18n"
 
 type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers"
 
@@ -56,7 +49,11 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
     }
 
     return (
-      <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
+      <Screen
+        preset="fixed"
+        safeAreaEdges={["top", "bottom"]}
+        contentContainerStyle={themed($container)}
+      >
         {/* Progress dots */}
         <View style={$progress}>
           <View style={[$dot, $dotInactive]} />
@@ -87,13 +84,8 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
           {/* Pronouns Picker */}
           <View style={themed($inputSection)}>
             <Text style={themed($label)} tx="onboarding:pronouns" />
-            <Pressable
-              style={themed($pickerButton)}
-              onPress={() => setPronounsModalVisible(true)}
-            >
-              <Text style={themed($pickerText)}>
-                {getPronounsLabel(profileStore.pronouns)}
-              </Text>
+            <Pressable style={themed($pickerButton)} onPress={() => setPronounsModalVisible(true)}>
+              <Text style={themed($pickerText)}>{getPronounsLabel(profileStore.pronouns)}</Text>
               <Ionicons name="chevron-down" size={20} color={theme.colors.textDim} />
             </Pressable>
           </View>
@@ -129,10 +121,16 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
         {/* Footer */}
         <View style={themed($footer)}>
           <Pressable
-            style={[themed($button), { borderColor: theme.colors.tint, shadowColor: theme.colors.tint }]}
+            style={[
+              themed($button),
+              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            ]}
             onPress={handleNext}
           >
-            <Text style={[themed($buttonText), { color: theme.colors.tint }]} tx="onboarding:next" />
+            <Text
+              style={[themed($buttonText), { color: theme.colors.tint }]}
+              tx="onboarding:next"
+            />
           </Pressable>
 
           <Pressable onPress={handleSkip} style={$skipButton}>
@@ -141,7 +139,7 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
         </View>
       </Screen>
     )
-  }
+  },
 )
 
 // ============================================================================
