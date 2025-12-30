@@ -22,10 +22,9 @@ import { useEffect, useState } from "react"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
+import { reaction } from "mobx"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
-
-import { reaction } from "mobx"
 
 // Prevent splash screen from auto-hiding before we're ready
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -151,9 +150,12 @@ export function App() {
             accessToken: authStore.accessToken,
           }),
           ({ isAnonymous, accessToken }) => {
-            log.debug("Auth state changed, updating API headers", { isAnonymous, hasToken: !!accessToken })
+            log.debug("Auth state changed, updating API headers", {
+              isAnonymous,
+              hasToken: !!accessToken,
+            })
             api.updateAuth(isAnonymous, accessToken)
-          }
+          },
         )
 
         setRootStore(_rootStore)
@@ -166,7 +168,8 @@ export function App() {
   }, [])
 
   // Check if app is ready
-  const isAppReady = isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
+  const isAppReady =
+    isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
 
   // Hide splash screen when app is ready
   useEffect(() => {
@@ -203,7 +206,8 @@ export function App() {
   }
 
   // Get userId for RevenueCat (use deviceId for anonymous users, userId for authenticated)
-  const revenueCatUserId = rootStore.authenticationStore.userId ?? rootStore.authenticationStore.deviceId
+  const revenueCatUserId =
+    rootStore.authenticationStore.userId ?? rootStore.authenticationStore.deviceId
 
   // otherwise, we're ready to render the app
   return (

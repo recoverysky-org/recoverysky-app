@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest"
 import { exec } from "child_process"
+import { describe, expect, test } from "vitest"
 
 import en from "../app/i18n/en"
 
