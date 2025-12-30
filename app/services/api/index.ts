@@ -5,12 +5,11 @@
  * See the [Backend API Integration](https://docs.infinite.red/ignite-cli/boilerplate/app/services/#backend-api-integration)
  * documentation for more details.
  */
+import { type meeting } from "@common"
 import { ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
 import { logger } from "@/utils/logger"
-
-import { type meeting } from "@common"
 
 import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"
 import type { ApiConfig } from "./types"
@@ -150,7 +149,9 @@ export class Api {
    * Returns array of meeting IDs that are currently live.
    * Falls back to local calculation if API fails.
    */
-  async getLiveMeetingIds(): Promise<{ kind: "ok"; ids: string[]; count: number } | GeneralApiProblem> {
+  async getLiveMeetingIds(): Promise<
+    { kind: "ok"; ids: string[]; count: number } | GeneralApiProblem
+  > {
     log.debug("Fetching live meeting IDs from API")
 
     const response = await this.recoverySkyApi.get<{
@@ -172,7 +173,10 @@ export class Api {
       return { kind: "bad-data" }
     }
 
-    log.debug("Received live meeting IDs", { count: response.data.count, timestamp: response.data.timestamp })
+    log.debug("Received live meeting IDs", {
+      count: response.data.count,
+      timestamp: response.data.timestamp,
+    })
     return { kind: "ok", ids: response.data.ids, count: response.data.count }
   }
 

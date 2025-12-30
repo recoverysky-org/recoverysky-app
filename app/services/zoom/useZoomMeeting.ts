@@ -23,11 +23,7 @@ export function extractZoomMeetingNumber(url: string): string | null {
   if (!url) return null
   if (/^\d+$/.test(url)) return url
 
-  const patterns = [
-    /zoom\.us\/j\/(\d+)/i,
-    /zoom\.us\/my\/(\w+)/i,
-    /\/j\/(\d+)/i,
-  ]
+  const patterns = [/zoom\.us\/j\/(\d+)/i, /zoom\.us\/my\/(\w+)/i, /\/j\/(\d+)/i]
 
   for (const pattern of patterns) {
     const match = url.match(pattern)
@@ -166,7 +162,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
         return { success: false, error: errorMessage }
       }
     },
-    [isSDKReady, zoomContext, openInZoomApp]
+    [isSDKReady, zoomContext, openInZoomApp],
   )
 
   return {

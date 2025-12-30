@@ -67,7 +67,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
       usePKCE: true,
       responseType: AuthSession.ResponseType.Code,
     },
-    discoveryDocument
+    discoveryDocument,
   )
 
   // Handle the auth response
@@ -100,7 +100,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
             code_verifier: request?.codeVerifier || "",
           },
         },
-        discoveryDocument
+        discoveryDocument,
       )
 
       log.info("Token exchange successful")
@@ -125,7 +125,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
         tokenResponse.accessToken,
         tokenResponse.refreshToken,
         tokenResponse.idToken,
-        expiresAt
+        expiresAt,
       )
 
       // Ensure OAuth login clears anonymous status
@@ -283,7 +283,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
           clientId: ZITADEL_CONFIG.clientId,
           refreshToken,
         },
-        discoveryDocument
+        discoveryDocument,
       )
 
       const expiresAt = Date.now() + (tokenResponse.expiresIn || 3600) * 1000
@@ -300,7 +300,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
         tokenResponse.accessToken,
         tokenResponse.refreshToken || refreshToken,
         tokenResponse.idToken,
-        expiresAt
+        expiresAt,
       )
 
       log.info("Token refresh successful")
@@ -331,7 +331,7 @@ export function useZitadelAuth(): UseZitadelAuthResult {
  * Call this from app initialization
  */
 export async function loadStoredAuth(
-  authStore: ReturnType<typeof useAuthenticationStore>
+  authStore: ReturnType<typeof useAuthenticationStore>,
 ): Promise<boolean> {
   try {
     const [accessToken, refreshToken, idToken, expiresAtStr] = await Promise.all([

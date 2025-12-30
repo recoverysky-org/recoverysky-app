@@ -20,11 +20,7 @@
  * }
  */
 
-import type {
-  SyncQueueRepository,
-  SyncQueueItem,
-  SyncOperation,
-} from "@sqlite"
+import type { SyncQueueRepository, SyncQueueItem, SyncOperation } from "@sqlite"
 
 /**
  * Result of a sync operation
@@ -72,11 +68,7 @@ export class SyncService {
   private config: Required<SyncServiceConfig>
   private isSyncing = false
 
-  constructor(
-    syncQueue: SyncQueueRepository,
-    api: SyncApiClient,
-    config: SyncServiceConfig = {},
-  ) {
+  constructor(syncQueue: SyncQueueRepository, api: SyncApiClient, config: SyncServiceConfig = {}) {
     this.syncQueue = syncQueue
     this.api = api
     this.config = {
@@ -178,9 +170,7 @@ export class SyncService {
   /**
    * Call the appropriate API method based on table and operation
    */
-  private async callApi(
-    item: SyncQueueItem,
-  ): Promise<{ ok: boolean; error?: string }> {
+  private async callApi(item: SyncQueueItem): Promise<{ ok: boolean; error?: string }> {
     const payload = item.payload ? JSON.parse(item.payload) : undefined
     const operation = item.operation as SyncOperation
 

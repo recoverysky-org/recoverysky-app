@@ -42,7 +42,9 @@ export function getZoomConfig(): ZoomSDKConfig {
 
   if (!sdkKey || !sdkSecret) {
     log.warn("Zoom SDK keys not configured - SDK features will be unavailable")
-    console.warn("[ZoomConfig] ⚠️  EXPO_PUBLIC_ZOOM_SDK_KEY and/or EXPO_PUBLIC_ZOOM_SDK_SECRET not set!")
+    console.warn(
+      "[ZoomConfig] ⚠️  EXPO_PUBLIC_ZOOM_SDK_KEY and/or EXPO_PUBLIC_ZOOM_SDK_SECRET not set!",
+    )
     console.warn("[ZoomConfig] ⚠️  Add them to your .env file to enable native Zoom SDK")
   }
 

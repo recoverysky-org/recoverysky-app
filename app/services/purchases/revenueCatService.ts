@@ -28,9 +28,7 @@ const log = logger.child({ module: "RevenueCatService" })
 /**
  * RevenueCat Service Result type
  */
-type Result<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: string; code?: PURCHASES_ERROR_CODE }
+type Result<T> = { ok: true; value: T } | { ok: false; error: string; code?: PURCHASES_ERROR_CODE }
 
 /**
  * Subscription info for UI display
@@ -175,9 +173,7 @@ export async function getOfferings(): Promise<Result<PurchasesOffering | null>> 
 /**
  * Purchase a package
  */
-export async function purchasePackage(
-  pkg: PurchasesPackage,
-): Promise<Result<CustomerInfo>> {
+export async function purchasePackage(pkg: PurchasesPackage): Promise<Result<CustomerInfo>> {
   try {
     log.info("Starting purchase", { packageId: pkg.identifier })
     const { customerInfo } = await Purchases.purchasePackage(pkg)
@@ -358,9 +354,7 @@ export async function logoutUser(): Promise<Result<CustomerInfo>> {
  *
  * Use this to react to subscription changes in real-time.
  */
-export function addCustomerInfoListener(
-  listener: (info: CustomerInfo) => void,
-): () => void {
+export function addCustomerInfoListener(listener: (info: CustomerInfo) => void): () => void {
   // The listener returns an EmitterSubscription with a remove method
   // TypeScript types are incorrect, so we cast through unknown
   const subscription = Purchases.addCustomerInfoUpdateListener(listener) as unknown as {

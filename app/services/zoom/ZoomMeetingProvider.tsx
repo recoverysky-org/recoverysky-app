@@ -22,8 +22,8 @@ import {
   useRef,
 } from "react"
 import { Alert } from "react-native"
-import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 import * as Crypto from "expo-crypto"
+import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 
 import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
 import { translate } from "@/i18n"

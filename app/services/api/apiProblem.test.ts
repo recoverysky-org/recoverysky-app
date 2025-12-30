@@ -1,5 +1,5 @@
-import { expect, test } from "vitest"
 import { ApiErrorResponse } from "apisauce"
+import { expect, test } from "vitest"
 
 import { getGeneralApiProblem } from "./apiProblem"
 

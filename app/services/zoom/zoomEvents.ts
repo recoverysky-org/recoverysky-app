@@ -118,7 +118,7 @@ export interface ZoomEventHandlers {
  */
 export function subscribeToZoomEvent<T>(
   eventName: ZoomEventName,
-  handler: (event: T) => void
+  handler: (event: T) => void,
 ): () => void {
   if (!zoomEventEmitter) {
     log.warn("Zoom event emitter not available - native module missing")
@@ -145,14 +145,14 @@ export function subscribeToZoomEvents(handlers: ZoomEventHandlers): () => void {
     cleanupFns.push(
       subscribeToZoomEvent<ZoomMeetingStateEvent>(
         "onMeetingStateChange",
-        handlers.onMeetingStateChange
-      )
+        handlers.onMeetingStateChange,
+      ),
     )
   }
 
   if (handlers.onMeetingError) {
     cleanupFns.push(
-      subscribeToZoomEvent<ZoomMeetingErrorEvent>("onMeetingError", handlers.onMeetingError)
+      subscribeToZoomEvent<ZoomMeetingErrorEvent>("onMeetingError", handlers.onMeetingError),
     )
   }
 
@@ -164,8 +164,8 @@ export function subscribeToZoomEvents(handlers: ZoomEventHandlers): () => void {
     cleanupFns.push(
       subscribeToZoomEvent<ZoomMeetingEndedEvent>(
         "onMeetingEndedReason",
-        handlers.onMeetingEndedReason
-      )
+        handlers.onMeetingEndedReason,
+      ),
     )
   }
 

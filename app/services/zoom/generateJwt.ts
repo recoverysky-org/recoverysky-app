@@ -22,10 +22,7 @@ const log = logger.child({ module: "ZoomJWT" })
  * @returns JWT token string
  * @throws Error if SDK keys are not configured or signing fails
  */
-export async function generateZoomJwt(
-  meetingNumber: string,
-  role: ZoomRole = 0
-): Promise<string> {
+export async function generateZoomJwt(meetingNumber: string, role: ZoomRole = 0): Promise<string> {
   const config = getZoomConfig()
 
   if (!config.sdkKey || !config.sdkSecret) {
@@ -53,7 +50,7 @@ export async function generateZoomJwt(
         exp,
       },
       config.sdkSecret,
-      { alg: "HS256" }
+      { alg: "HS256" },
     )
 
     log.debug("Zoom JWT generated successfully")
