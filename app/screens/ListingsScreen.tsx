@@ -17,23 +17,23 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native"
+import { DateTime } from "@common"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
-import { Screen } from "@/components/Screen"
-import { Text } from "@/components/Text"
 import { LiveMeetingRow } from "@/components/LiveMeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
+import { Screen } from "@/components/Screen"
+import { Text } from "@/components/Text"
 import { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { api, LiveSchedule } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { api, LiveSchedule } from "@/services/api"
 import { logger } from "@/utils/logger"
-import { DateTime } from "@common"
 
 const log = logger.child({ module: "ListingsScreen" })
 
@@ -54,308 +54,330 @@ const getCurrentIsoDow = (): number => {
   return jsDay === 0 ? 7 : jsDay // Convert to ISO (1-7)
 }
 
-export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
-  function ListingsScreen(_props) {
-    const { t } = useTranslation()
-    const { themed, theme } = useAppTheme()
-    const profileStore = useProfileStore()
+/**
+ * ListingsContent - Core content for meeting listings display
+ *
+ * Extracted from ListingsScreen to allow composition in MeetingsScreen.
+ * Contains all the logic for displaying scheduled meetings with filtering.
+ */
+export const ListingsContent: FC = observer(function ListingsContent() {
+  const { t } = useTranslation()
+  const { themed, theme } = useAppTheme()
+  const profileStore = useProfileStore()
 
-    // Refs
-    const listRef = useRef<FlatList>(null)
+  // Refs
+  const listRef = useRef<FlatList>(null)
 
-    // State
-    const [selectedDay, setSelectedDay] = useState(getCurrentIsoDow)
-    const [dayModalVisible, setDayModalVisible] = useState(false)
-    const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null) // null = all
-    const [languageModalVisible, setLanguageModalVisible] = useState(false)
-    const [startHour, setStartHour] = useState(0) // 0-23
-    const [endHour, setEndHour] = useState(24) // 1-24 (24 = midnight end)
-    const [timePickerVisible, setTimePickerVisible] = useState<"start" | "end" | null>(null)
-    const [meetings, setMeetings] = useState<MeetingWithTrex[]>([])
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+  // State
+  const [selectedDay, setSelectedDay] = useState(getCurrentIsoDow)
+  const [dayModalVisible, setDayModalVisible] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null) // null = all
+  const [languageModalVisible, setLanguageModalVisible] = useState(false)
+  const [startHour, setStartHour] = useState(0) // 0-23
+  const [endHour, setEndHour] = useState(24) // 1-24 (24 = midnight end)
+  const [timePickerVisible, setTimePickerVisible] = useState<"start" | "end" | null>(null)
+  const [meetings, setMeetings] = useState<MeetingWithTrex[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
-    // Live feedback state for display updates
-    const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(
-      () => feedbackCache.getAll(),
-    )
+  // Live feedback state for display updates
+  const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(() =>
+    feedbackCache.getAll(),
+  )
 
-    // Subscribe to feedback changes for live UI updates
-    useEffect(() => {
-      const unsubscribe = feedbackCache.subscribe((mid, feedback) => {
-        setDisplayFeedback((prev) => {
-          const next = new Map(prev)
-          next.set(mid, feedback)
-          return next
-        })
+  // Subscribe to feedback changes for live UI updates
+  useEffect(() => {
+    const unsubscribe = feedbackCache.subscribe((mid, feedback) => {
+      setDisplayFeedback((prev) => {
+        const next = new Map(prev)
+        next.set(mid, feedback)
+        return next
       })
-      return unsubscribe
-    }, [])
+    })
+    return unsubscribe
+  }, [])
 
-    // Get label for selected day
-    const selectedDayLabel = ISO_DAYS.find((d) => d.iso === selectedDay)?.label || ""
+  // Get label for selected day
+  const selectedDayLabel = ISO_DAYS.find((d) => d.iso === selectedDay)?.label || ""
 
-    // Get unique languages from meetings
-    const availableLanguages = useMemo(() => {
-      const langs = new Set<string>()
-      meetings.forEach((m) => {
-        if (m.language) langs.add(m.language.toUpperCase())
-      })
-      return Array.from(langs).sort()
-    }, [meetings])
+  // Get unique languages from meetings
+  const availableLanguages = useMemo(() => {
+    const langs = new Set<string>()
+    meetings.forEach((m) => {
+      if (m.language) langs.add(m.language.toUpperCase())
+    })
+    return Array.from(langs).sort()
+  }, [meetings])
 
-    // Format hour for display (e.g., "6am", "12pm", "12am")
-    const formatHour = (hour: number): string => {
-      if (hour === 0 || hour === 24) return "12am"
-      if (hour === 12) return "12pm"
-      if (hour < 12) return `${hour}am`
-      return `${hour - 12}pm`
-    }
+  // Format hour for display (e.g., "6am", "12pm", "12am")
+  const formatHour = (hour: number): string => {
+    if (hour === 0 || hour === 24) return "12am"
+    if (hour === 12) return "12pm"
+    if (hour < 12) return `${hour}am`
+    return `${hour - 12}pm`
+  }
 
-    // Get current hour (top of hour)
-    const getCurrentHour = (): number => new Date().getHours()
+  // Get current hour (top of hour)
+  const getCurrentHour = (): number => new Date().getHours()
 
-    // Handle time selection with auto-adjust for invalid ranges
-    const handleTimeSelect = (hour: number) => {
-      if (timePickerVisible === "start") {
-        setStartHour(hour)
-        // If start >= end, adjust end to start + 1 (wrap at 24)
-        if (hour >= endHour) {
-          setEndHour(Math.min(hour + 1, 24))
-        }
-      } else if (timePickerVisible === "end") {
-        setEndHour(hour)
-        // If end <= start, adjust start to end - 1 (min 0)
-        if (hour <= startHour) {
-          setStartHour(Math.max(hour - 1, 0))
-        }
+  // Handle time selection with auto-adjust for invalid ranges
+  const handleTimeSelect = (hour: number) => {
+    if (timePickerVisible === "start") {
+      setStartHour(hour)
+      // If start >= end, adjust end to start + 1 (wrap at 24)
+      if (hour >= endHour) {
+        setEndHour(Math.min(hour + 1, 24))
       }
-      setTimePickerVisible(null)
-      // Scroll list to top after time change
-      listRef.current?.scrollToOffset({ offset: 0, animated: true })
-    }
-
-    // Generate hours for picker (0-23 for start, 1-24 for end)
-    const getPickerHours = (): number[] => {
-      if (timePickerVisible === "start") {
-        return Array.from({ length: 24 }, (_, i) => i) // 0-23
+    } else if (timePickerVisible === "end") {
+      setEndHour(hour)
+      // If end <= start, adjust start to end - 1 (min 0)
+      if (hour <= startHour) {
+        setStartHour(Math.max(hour - 1, 0))
       }
-      return Array.from({ length: 24 }, (_, i) => i + 1) // 1-24
+    }
+    setTimePickerVisible(null)
+    // Scroll list to top after time change
+    listRef.current?.scrollToOffset({ offset: 0, animated: true })
+  }
+
+  // Generate hours for picker (0-23 for start, 1-24 for end)
+  const getPickerHours = (): number[] => {
+    if (timePickerVisible === "start") {
+      return Array.from({ length: 24 }, (_, i) => i) // 0-23
+    }
+    return Array.from({ length: 24 }, (_, i) => i + 1) // 1-24
+  }
+
+  // Fetch daily schedules
+  const fetchDailySchedules = useCallback(async () => {
+    const fellowship = profileStore.fellowship
+    if (!fellowship) {
+      setMeetings([])
+      setError(null)
+      return
     }
 
-    // Fetch daily schedules
-    const fetchDailySchedules = useCallback(async () => {
-      const fellowship = profileStore.fellowship
-      if (!fellowship) {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const result = await api.getDailySchedules(selectedDay, fellowship)
+
+      if (result.kind !== "ok") {
+        log.error("API getDailySchedules failed", { kind: result.kind })
+        setError(`Error: ${result.kind}`)
         setMeetings([])
-        setError(null)
         return
       }
 
-      setIsLoading(true)
-      setError(null)
+      // Convert LiveSchedule to MeetingWithTrex
+      const newMeetings: MeetingWithTrex[] = result.schedules.map((s: LiveSchedule) => ({
+        ...s.meeting,
+        feedback: null,
+        millis: s.millis,
+        duration_ms: s.duration_ms ?? 0,
+        scheduleData: s.data,
+      }))
 
-      try {
-        const result = await api.getDailySchedules(selectedDay, fellowship)
-
-        if (result.kind !== "ok") {
-          log.error("API getDailySchedules failed", { kind: result.kind })
-          setError(`Error: ${result.kind}`)
-          setMeetings([])
-          return
-        }
-
-        // Convert LiveSchedule to MeetingWithTrex
-        const newMeetings: MeetingWithTrex[] = result.schedules.map((s: LiveSchedule) => ({
-          ...s.meeting,
-          feedback: null,
-          millis: s.millis,
-          duration_ms: s.duration_ms ?? 0,
-          scheduleData: s.data,
-        }))
-
-        // Sort by local time (hour:minute), not UTC millis
-        newMeetings.sort((a, b) => {
-          const aLocal = DateTime.fromMillis(a.millis).toLocal()
-          const bLocal = DateTime.fromMillis(b.millis).toLocal()
-          // Compare by hour then minute
-          const aMinutes = aLocal.hour * 60 + aLocal.minute
-          const bMinutes = bLocal.hour * 60 + bLocal.minute
-          return aMinutes - bMinutes
-        })
-
-        setMeetings(newMeetings)
-        log.debug("Loaded daily schedules", { count: newMeetings.length, day: selectedDay })
-      } catch (err) {
-        log.error("Exception fetching daily schedules", { error: String(err) })
-        setError("Failed to load schedules")
-        setMeetings([])
-      } finally {
-        setIsLoading(false)
-      }
-    }, [selectedDay, profileStore.fellowship])
-
-    // Fetch when day or fellowship changes
-    useEffect(() => {
-      fetchDailySchedules()
-    }, [fetchDailySchedules])
-
-    // Filter meetings by time range and language
-    const filteredMeetings = useMemo(() => {
-      return meetings.filter((m) => {
-        const localHour = DateTime.fromMillis(m.millis).toLocal().hour
-        const inTimeRange = localHour >= startHour && localHour < endHour
-        const matchesLanguage =
-          !selectedLanguage || m.language?.toUpperCase() === selectedLanguage
-        return inTimeRange && matchesLanguage
+      // Sort by local time (hour:minute), not UTC millis
+      newMeetings.sort((a, b) => {
+        const aLocal = DateTime.fromMillis(a.millis).toLocal()
+        const bLocal = DateTime.fromMillis(b.millis).toLocal()
+        // Compare by hour then minute
+        const aMinutes = aLocal.hour * 60 + aLocal.minute
+        const bMinutes = bLocal.hour * 60 + bLocal.minute
+        return aMinutes - bMinutes
       })
-    }, [meetings, startHour, endHour, selectedLanguage])
 
-    // Meeting popup handlers
-    const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
-      setSelectedMeeting(meeting)
-    }, [])
+      setMeetings(newMeetings)
+      log.debug("Loaded daily schedules", { count: newMeetings.length, day: selectedDay })
+    } catch (err) {
+      log.error("Exception fetching daily schedules", { error: String(err) })
+      setError("Failed to load schedules")
+      setMeetings([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedDay, profileStore.fellowship])
 
-    const handleClosePopup = useCallback(() => {
-      setSelectedMeeting(null)
-    }, [])
+  // Fetch when day or fellowship changes
+  useEffect(() => {
+    fetchDailySchedules()
+  }, [fetchDailySchedules])
 
-    const renderItem = useCallback(
-      ({ item }: { item: MeetingWithTrex }) => {
-        // Use displayFeedback for live UI updates
-        const feedback = displayFeedback.get(item.id)
-        return (
-          <LiveMeetingRow
-            meeting={item}
-            rating={feedback?.rates ?? 0}
-            isFavorite={feedback?.loves ?? false}
-            onPress={() => handleMeetingPress(item)}
-          />
-        )
-      },
-      [handleMeetingPress, displayFeedback],
-    )
+  // Filter meetings by time range and language
+  const filteredMeetings = useMemo(() => {
+    return meetings.filter((m) => {
+      const localHour = DateTime.fromMillis(m.millis).toLocal().hour
+      const inTimeRange = localHour >= startHour && localHour < endHour
+      const matchesLanguage = !selectedLanguage || m.language?.toUpperCase() === selectedLanguage
+      return inTimeRange && matchesLanguage
+    })
+  }, [meetings, startHour, endHour, selectedLanguage])
 
-    const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
+  // Meeting popup handlers
+  const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
+    setSelectedMeeting(meeting)
+  }, [])
 
-    const ItemSeparatorComponent = useCallback(
-      () => <View style={themed($separator)} />,
-      [themed],
-    )
+  const handleClosePopup = useCallback(() => {
+    setSelectedMeeting(null)
+  }, [])
 
-    const ListEmptyComponent = useCallback(
-      () => (
-        <View style={themed($emptyContainer)}>
-          {!profileStore.fellowship ? (
-            <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
-          ) : error ? (
-            <Text style={themed($errorText)}>{error}</Text>
-          ) : (
-            <Text style={themed($emptyText)}>
-              {t("listingsScreen:emptyStateFiltered", { fellowship: profileStore.fellowship })}
-            </Text>
-          )}
-        </View>
-      ),
-      [themed, t, profileStore.fellowship, error],
-    )
+  const renderItem = useCallback(
+    ({ item }: { item: MeetingWithTrex }) => {
+      // Use displayFeedback for live UI updates
+      const feedback = displayFeedback.get(item.id)
+      return (
+        <LiveMeetingRow
+          meeting={item}
+          rating={feedback?.rates ?? 0}
+          isFavorite={feedback?.loves ?? false}
+          onPress={() => handleMeetingPress(item)}
+        />
+      )
+    },
+    [handleMeetingPress, displayFeedback],
+  )
 
-    return (
-      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$screenContainer}>
-        {/* Header */}
-        <View style={themed($header)}>
-          <Text preset="heading" style={themed($title)}>
-            {t("listingsScreen:title")}
+  const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
+
+  const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
+
+  const ListEmptyComponent = useCallback(
+    () => (
+      <View style={themed($emptyContainer)}>
+        {!profileStore.fellowship ? (
+          <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
+        ) : error ? (
+          <Text style={themed($errorText)}>{error}</Text>
+        ) : (
+          <Text style={themed($emptyText)}>
+            {t("listingsScreen:emptyStateFiltered", { fellowship: profileStore.fellowship })}
           </Text>
-          {profileStore.fellowship && (
-            <Text style={themed($subtitle)}>{profileStore.fellowship}</Text>
-          )}
-        </View>
+        )}
+      </View>
+    ),
+    [themed, t, profileStore.fellowship, error],
+  )
 
-        {/* Day and Language Selector Row */}
-        <View style={themed($selectorRow)}>
-          {/* Day Selector Button */}
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={() => setDayModalVisible(true)}
-          >
-            <Text style={themed($selectorLabel)}>Day</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+  return (
+    <View style={$screenContainer}>
+      {/* Header */}
+      <View style={themed($header)}>
+        <Text preset="heading" style={themed($title)}>
+          {t("listingsScreen:title")}
+        </Text>
+        {profileStore.fellowship && (
+          <Text style={themed($subtitle)}>{profileStore.fellowship}</Text>
+        )}
+      </View>
 
-          {/* Language Selector Button */}
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={() => setLanguageModalVisible(true)}
-          >
-            <Text style={themed($selectorLabel)}>Language</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)}>
-                {selectedLanguage || "All"}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
-        </View>
+      {/* Day and Language Selector Row */}
+      <View style={themed($selectorRow)}>
+        {/* Day Selector Button */}
+        <TouchableOpacity style={themed($selectorButton)} onPress={() => setDayModalVisible(true)}>
+          <Text style={themed($selectorLabel)}>Day</Text>
+          <View style={$selectorValueRow}>
+            <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
+            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+          </View>
+        </TouchableOpacity>
 
-        {/* Day Selector Modal */}
-        <Modal
-          visible={dayModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setDayModalVisible(false)}
+        {/* Language Selector Button */}
+        <TouchableOpacity
+          style={themed($selectorButton)}
+          onPress={() => setLanguageModalVisible(true)}
         >
-          <Pressable style={themed($modalOverlay)} onPress={() => setDayModalVisible(false)}>
-            <View style={themed($modalContent)}>
-              <Text style={themed($modalTitle)}>Select Day</Text>
-              {ISO_DAYS.map((day) => (
-                <TouchableOpacity
-                  key={day.iso}
-                  style={[
-                    themed($modalOption),
-                    selectedDay === day.iso && themed($modalOptionSelected),
-                  ]}
-                  onPress={() => {
-                    setSelectedDay(day.iso)
-                    setDayModalVisible(false)
-                  }}
-                >
-                  <Text
-                    style={[
-                      themed($modalOptionText),
-                      selectedDay === day.iso && themed($modalOptionTextSelected),
-                    ]}
-                  >
-                    {day.label}
-                  </Text>
-                  {selectedDay === day.iso && (
-                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Pressable>
-        </Modal>
+          <Text style={themed($selectorLabel)}>Language</Text>
+          <View style={$selectorValueRow}>
+            <Text style={themed($selectorValue)}>{selectedLanguage || "All"}</Text>
+            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+          </View>
+        </TouchableOpacity>
+      </View>
 
-        {/* Language Selector Modal */}
-        <Modal
-          visible={languageModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setLanguageModalVisible(false)}
-        >
-          <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
-            <View style={themed($modalContent)}>
-              <Text style={themed($modalTitle)}>Select Language</Text>
-              {/* All option */}
+      {/* Day Selector Modal */}
+      <Modal
+        visible={dayModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDayModalVisible(false)}
+      >
+        <Pressable style={themed($modalOverlay)} onPress={() => setDayModalVisible(false)}>
+          <View style={themed($modalContent)}>
+            <Text style={themed($modalTitle)}>Select Day</Text>
+            {ISO_DAYS.map((day) => (
               <TouchableOpacity
-                style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
+                key={day.iso}
+                style={[
+                  themed($modalOption),
+                  selectedDay === day.iso && themed($modalOptionSelected),
+                ]}
                 onPress={() => {
-                  setSelectedLanguage(null)
+                  setSelectedDay(day.iso)
+                  setDayModalVisible(false)
+                }}
+              >
+                <Text
+                  style={[
+                    themed($modalOptionText),
+                    selectedDay === day.iso && themed($modalOptionTextSelected),
+                  ]}
+                >
+                  {day.label}
+                </Text>
+                {selectedDay === day.iso && (
+                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Language Selector Modal */}
+      <Modal
+        visible={languageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
+          <View style={themed($modalContent)}>
+            <Text style={themed($modalTitle)}>Select Language</Text>
+            {/* All option */}
+            <TouchableOpacity
+              style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
+              onPress={() => {
+                setSelectedLanguage(null)
+                setLanguageModalVisible(false)
+                listRef.current?.scrollToOffset({ offset: 0, animated: true })
+              }}
+            >
+              <Text
+                style={[
+                  themed($modalOptionText),
+                  !selectedLanguage && themed($modalOptionTextSelected),
+                ]}
+              >
+                All
+              </Text>
+              {!selectedLanguage && (
+                <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+              )}
+            </TouchableOpacity>
+            {/* Language options */}
+            {availableLanguages.map((lang) => (
+              <TouchableOpacity
+                key={lang}
+                style={[
+                  themed($modalOption),
+                  selectedLanguage === lang && themed($modalOptionSelected),
+                ]}
+                onPress={() => {
+                  setSelectedLanguage(lang)
                   setLanguageModalVisible(false)
                   listRef.current?.scrollToOffset({ offset: 0, animated: true })
                 }}
@@ -363,150 +385,133 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
                 <Text
                   style={[
                     themed($modalOptionText),
-                    !selectedLanguage && themed($modalOptionTextSelected),
+                    selectedLanguage === lang && themed($modalOptionTextSelected),
                   ]}
                 >
-                  All
+                  {lang}
                 </Text>
-                {!selectedLanguage && (
+                {selectedLanguage === lang && (
                   <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
                 )}
               </TouchableOpacity>
-              {/* Language options */}
-              {availableLanguages.map((lang) => (
-                <TouchableOpacity
-                  key={lang}
-                  style={[
-                    themed($modalOption),
-                    selectedLanguage === lang && themed($modalOptionSelected),
-                  ]}
-                  onPress={() => {
-                    setSelectedLanguage(lang)
-                    setLanguageModalVisible(false)
-                    listRef.current?.scrollToOffset({ offset: 0, animated: true })
-                  }}
-                >
-                  <Text
-                    style={[
-                      themed($modalOptionText),
-                      selectedLanguage === lang && themed($modalOptionTextSelected),
-                    ]}
-                  >
-                    {lang}
-                  </Text>
-                  {selectedLanguage === lang && (
-                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Pressable>
-        </Modal>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
 
-        {/* Time Range Buttons */}
-        <View style={themed($timeRangeRow)}>
-          <TouchableOpacity
-            style={themed($timeButton)}
-            onPress={() => setTimePickerVisible("start")}
-          >
-            <Text style={themed($timeButtonLabel)}>Start</Text>
-            <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
-          </TouchableOpacity>
-          <Text style={themed($timeSeparator)}>to</Text>
-          <TouchableOpacity
-            style={themed($timeButton)}
-            onPress={() => setTimePickerVisible("end")}
-          >
-            <Text style={themed($timeButtonLabel)}>End</Text>
-            <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Time Range Buttons */}
+      <View style={themed($timeRangeRow)}>
+        <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("start")}>
+          <Text style={themed($timeButtonLabel)}>Start</Text>
+          <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
+        </TouchableOpacity>
+        <Text style={themed($timeSeparator)}>to</Text>
+        <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("end")}>
+          <Text style={themed($timeButtonLabel)}>End</Text>
+          <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Time Picker Modal */}
-        <Modal
-          visible={timePickerVisible !== null}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setTimePickerVisible(null)}
-        >
-          <Pressable style={themed($modalOverlay)} onPress={() => setTimePickerVisible(null)}>
-            <View style={themed($timePickerContent)}>
-              <Text style={themed($modalTitle)}>
-                {timePickerVisible === "start" ? "Start Time" : "End Time"}
-              </Text>
-              <FlatList
-                data={getPickerHours()}
-                keyExtractor={(item) => item.toString()}
-                initialScrollIndex={Math.max(0, getCurrentHour() - 2)}
-                getItemLayout={(_, index) => ({ length: 44, offset: 44 * index, index })}
-                renderItem={({ item: hour }) => {
-                  const isSelected =
-                    timePickerVisible === "start" ? hour === startHour : hour === endHour
-                  return (
-                    <TouchableOpacity
-                      style={[themed($modalOption), isSelected && themed($modalOptionSelected)]}
-                      onPress={() => handleTimeSelect(hour)}
-                    >
-                      <Text
-                        style={[
-                          themed($modalOptionText),
-                          isSelected && themed($modalOptionTextSelected),
-                        ]}
-                      >
-                        {formatHour(hour)}
-                      </Text>
-                      {isSelected && (
-                        <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                      )}
-                    </TouchableOpacity>
-                  )
-                }}
-                style={$timePickerList}
-              />
-            </View>
-          </Pressable>
-        </Modal>
-
-        {/* Meeting Count */}
-        {filteredMeetings.length > 0 && (
-          <View style={themed($countContainer)}>
-            <Text style={themed($countText)}>
-              {t("listingsScreen:meetingCount", { count: filteredMeetings.length })}
+      {/* Time Picker Modal */}
+      <Modal
+        visible={timePickerVisible !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTimePickerVisible(null)}
+      >
+        <Pressable style={themed($modalOverlay)} onPress={() => setTimePickerVisible(null)}>
+          <View style={themed($timePickerContent)}>
+            <Text style={themed($modalTitle)}>
+              {timePickerVisible === "start" ? "Start Time" : "End Time"}
             </Text>
-          </View>
-        )}
-
-        {/* Loading Indicator */}
-        {isLoading && meetings.length === 0 && (
-          <View style={themed($loadingContainer)}>
-            <ActivityIndicator size="large" color={theme.colors.tint} />
-          </View>
-        )}
-
-        {/* Meetings List */}
-        <FlatList
-          ref={listRef}
-          data={filteredMeetings}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          ItemSeparatorComponent={ItemSeparatorComponent}
-          ListEmptyComponent={!isLoading ? ListEmptyComponent : null}
-          contentContainerStyle={themed($listContent)}
-          refreshControl={
-            <RefreshControl
-              refreshing={isLoading && filteredMeetings.length > 0}
-              onRefresh={fetchDailySchedules}
-              tintColor={theme.colors.tint}
+            <FlatList
+              data={getPickerHours()}
+              keyExtractor={(item) => item.toString()}
+              initialScrollIndex={Math.max(0, getCurrentHour() - 2)}
+              getItemLayout={(_, index) => ({ length: 44, offset: 44 * index, index })}
+              renderItem={({ item: hour }) => {
+                const isSelected =
+                  timePickerVisible === "start" ? hour === startHour : hour === endHour
+                return (
+                  <TouchableOpacity
+                    style={[themed($modalOption), isSelected && themed($modalOptionSelected)]}
+                    onPress={() => handleTimeSelect(hour)}
+                  >
+                    <Text
+                      style={[
+                        themed($modalOptionText),
+                        isSelected && themed($modalOptionTextSelected),
+                      ]}
+                    >
+                      {formatHour(hour)}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                    )}
+                  </TouchableOpacity>
+                )
+              }}
+              style={$timePickerList}
             />
-          }
-          showsVerticalScrollIndicator={false}
-        />
+          </View>
+        </Pressable>
+      </Modal>
 
-        <SchedulePopup
-          visible={selectedMeeting !== null}
-          meeting={selectedMeeting}
-          onClose={handleClosePopup}
-        />
+      {/* Meeting Count */}
+      {filteredMeetings.length > 0 && (
+        <View style={themed($countContainer)}>
+          <Text style={themed($countText)}>
+            {t("listingsScreen:meetingCount", { count: filteredMeetings.length })}
+          </Text>
+        </View>
+      )}
+
+      {/* Loading Indicator */}
+      {isLoading && meetings.length === 0 && (
+        <View style={themed($loadingContainer)}>
+          <ActivityIndicator size="large" color={theme.colors.tint} />
+        </View>
+      )}
+
+      {/* Meetings List */}
+      <FlatList
+        ref={listRef}
+        data={filteredMeetings}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ItemSeparatorComponent={ItemSeparatorComponent}
+        ListEmptyComponent={!isLoading ? ListEmptyComponent : null}
+        contentContainerStyle={themed($listContent)}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading && filteredMeetings.length > 0}
+            onRefresh={fetchDailySchedules}
+            tintColor={theme.colors.tint}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      />
+
+      <SchedulePopup
+        visible={selectedMeeting !== null}
+        meeting={selectedMeeting}
+        onClose={handleClosePopup}
+      />
+    </View>
+  )
+})
+
+/**
+ * ListingsScreen - Shows meeting listings for selected day (standalone screen)
+ *
+ * Wraps ListingsContent with Screen component for use as a standalone tab.
+ * Kept for backwards compatibility and potential deep linking.
+ */
+export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
+  function ListingsScreen(_props) {
+    return (
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$screenContainer}>
+        <ListingsContent />
       </Screen>
     )
   },

@@ -58,7 +58,8 @@ const en = {
     placeholder: "Dashboard content coming soon",
     // Help Cards
     onboardingTitle: "Welcome to RecoverySky",
-    onboardingDescription: "Review the app introduction anytime to learn about features and privacy.",
+    onboardingDescription:
+      "Review the app introduction anytime to learn about features and privacy.",
     restartOnboarding: "Restart Onboarding",
     liveTitle: "Live Meetings",
     liveDescription: "Find meetings happening right now. Tap the Live tab to see what's streaming.",
@@ -67,22 +68,27 @@ const en = {
     listingsDescription: "Browse the full schedule by day and time. Great for planning ahead.",
     goToListings: "View Listings",
     attendanceTitle: "Track Attendance",
-    attendanceDescription: "Your meeting attendance is tracked automatically. View history and export reports.",
+    attendanceDescription:
+      "Your meeting attendance is tracked automatically. View history and export reports.",
     goToAttendance: "View Attendance",
     settingsTitle: "Customize Your App",
     settingsDescription: "Set your recovery date, theme, and personal preferences.",
     goToSettings: "Open Settings",
     // Informational cards
     favoritesTitle: "Favorite Meetings",
-    favoritesDescription: "Tap the heart to mark meetings you love. Favorites float to the top of your lists. Your favorites are private and stay on your device.",
+    favoritesDescription:
+      "Tap the heart to mark meetings you love. Favorites float to the top of your lists. Your favorites are private and stay on your device.",
     ratingsTitle: "Rate Meetings",
-    ratingsDescription: "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
+    ratingsDescription:
+      "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
     // Dashboard
     cleanDays: "Days Clean",
   },
   meetingsScreen: {
     title: "Meetings",
     placeholder: "Meeting list coming soon",
+    liveSegment: "Live",
+    listingsSegment: "Listings",
   },
   scheduleScreen: {
     title: "Schedule",

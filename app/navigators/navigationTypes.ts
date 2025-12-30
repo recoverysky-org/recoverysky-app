@@ -7,13 +7,16 @@ import {
 } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 
+// Segment options for Meetings tab
+export type MeetingsSegment = "live" | "listings"
+
 // Main Tab Navigator types
 export type MainTabParamList = {
   Home: undefined
   Live: undefined
   Listings: undefined
   Attendance: undefined
-  Meetings: undefined
+  Meetings: { segment?: MeetingsSegment } | undefined
   Schedule: undefined
   Settings: undefined
 }

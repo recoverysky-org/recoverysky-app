@@ -15,24 +15,21 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 
 /**
- * LiveScreen - Shows currently live meetings
+ * LiveContent - Core content for live meetings display
  *
- * Displays meetings that are currently in progress, filtered by the user's
- * selected fellowship. Includes auto-refresh and pull-to-refresh support.
- *
- * Feedback data (loves, rates) is attached to each meeting from the cache.
- * Sort order stays stable until the next refresh to avoid jarring reordering
- * when the user interacts with feedback controls.
+ * Extracted from LiveScreen to allow composition in MeetingsScreen.
+ * Contains all the logic for displaying live meetings with filtering,
+ * sorting, and feedback integration.
  */
-export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_props) {
+export const LiveContent: FC = function LiveContent() {
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const profileStore = useProfileStore()
 
   // Live feedback state for DISPLAY only (not sorting)
   // This updates immediately when user interacts, but doesn't affect sort order
-  const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(
-    () => feedbackCache.getAll(),
+  const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(() =>
+    feedbackCache.getAll(),
   )
 
   // Subscribe to feedback changes for live UI updates
@@ -160,7 +157,7 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
   )
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
+    <View style={$styles.container}>
       <FlatList
         data={sortedMeetings}
         renderItem={renderItem}
@@ -170,7 +167,11 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
         ItemSeparatorComponent={ItemSeparatorComponent}
         contentContainerStyle={themed($listContent)}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refresh} tintColor={theme.colors.text} />
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refresh}
+            tintColor={theme.colors.text}
+          />
         }
         showsVerticalScrollIndicator={false}
       />
@@ -180,6 +181,20 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
         meeting={selectedMeeting}
         onClose={handleClosePopup}
       />
+    </View>
+  )
+}
+
+/**
+ * LiveScreen - Shows currently live meetings (standalone screen)
+ *
+ * Wraps LiveContent with Screen component for use as a standalone tab.
+ * Kept for backwards compatibility and potential deep linking.
+ */
+export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_props) {
+  return (
+    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
+      <LiveContent />
     </Screen>
   )
 }

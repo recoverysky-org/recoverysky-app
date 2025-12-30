@@ -1,38 +1,82 @@
-import { FC } from "react"
-import { ViewStyle } from "react-native"
+import { FC, useState, useCallback, useEffect } from "react"
+import { View, ViewStyle } from "react-native"
+import { useRoute, RouteProp } from "@react-navigation/native"
+import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
-import { Text } from "@/components/Text"
-import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { SegmentedControl } from "@/components/SegmentedControl"
+import { MainTabParamList, MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
-import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 
+import { ListingsContent } from "./ListingsScreen"
+import { LiveContent } from "./LiveScreen"
+
+const SEGMENTS = [
+  { key: "live", tx: "meetingsScreen:liveSegment" as const },
+  { key: "listings", tx: "meetingsScreen:listingsSegment" as const },
+]
+
 /**
- * MeetingsScreen - Meeting list and discovery
+ * MeetingsScreen - Consolidated meetings tab with segment control
  *
- * Displays a list of recovery meetings with search and filtering.
- * Will integrate with MeetingsContext and useMeetings hook.
+ * Combines Live and Listings views into a single tab with iOS-style
+ * SegmentedControl. Both views stay mounted for state preservation
+ * and continued background polling.
  */
-export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = function MeetingsScreen(_props) {
-  const { themed } = useAppTheme()
+export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
+  function MeetingsScreen(_props) {
+    const { themed } = useAppTheme()
+    const route = useRoute<RouteProp<MainTabParamList, "Meetings">>()
 
-  return (
-    <Screen
-      preset="scroll"
-      safeAreaEdges={["top"]}
-      contentContainerStyle={[$styles.container, themed($container)]}
-    >
-      <Text preset="heading" tx="meetingsScreen:title" />
-      <Text style={themed($placeholder)} tx="meetingsScreen:placeholder" />
-    </Screen>
-  )
+    // Initialize segment from route params or default to "live"
+    const initialSegment: MeetingsSegment = route.params?.segment ?? "live"
+    const [activeSegment, setActiveSegment] = useState<MeetingsSegment>(initialSegment)
+
+    // Sync segment when route params change (for deep linking from help cards)
+    useEffect(() => {
+      if (route.params?.segment && route.params.segment !== activeSegment) {
+        setActiveSegment(route.params.segment)
+      }
+    }, [route.params?.segment, activeSegment])
+
+    const handleSegmentChange = useCallback((index: number) => {
+      setActiveSegment(index === 0 ? "live" : "listings")
+    }, [])
+
+    const selectedIndex = activeSegment === "live" ? 0 : 1
+
+    return (
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+        {/* Segment Control */}
+        <View style={themed($header)}>
+          <SegmentedControl
+            segments={SEGMENTS}
+            selectedIndex={selectedIndex}
+            onChange={handleSegmentChange}
+          />
+        </View>
+
+        {/* Content Views - both mounted, inactive one hidden */}
+        <View style={[$content, { display: activeSegment === "live" ? "flex" : "none" }]}>
+          <LiveContent />
+        </View>
+        <View style={[$content, { display: activeSegment === "listings" ? "flex" : "none" }]}>
+          <ListingsContent />
+        </View>
+      </Screen>
+    )
+  },
+)
+
+const $container: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.sm,
+})
+
+const $content: ViewStyle = {
+  flex: 1,
 }
-
-const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingBottom: spacing.xxl,
-})
-
-const $placeholder: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.lg,
-})

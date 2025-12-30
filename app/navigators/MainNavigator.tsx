@@ -1,58 +1,32 @@
-import { BottomTabScreenProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { CompositeScreenProps } from "@react-navigation/native"
 import { View, Text, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { useTranslation } from "react-i18next"
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { observer } from "mobx-react-lite"
+import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
 import { useMeetings } from "@/context/MeetingContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
 import { useProfileStore } from "@/models"
-import { HomeScreen } from "@/screens/HomeScreen"
-import { LiveScreen } from "@/screens/LiveScreen"
-import { ListingsScreen } from "@/screens/ListingsScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
-// import { MeetingsScreen } from "@/screens/MeetingsScreen"  // Hidden for now
+import { HomeScreen } from "@/screens/HomeScreen"
+import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
-// import { ScheduleScreen } from "@/screens/ScheduleScreen"  // Hidden for now
 import { useAppTheme } from "@/theme/context"
-import { AppStackParamList, AppStackScreenProps } from "./navigationTypes"
 
-export type MainTabParamList = {
-  Home: undefined
-  Live: undefined
-  Listings: undefined
-  Attendance: undefined
-  Meetings: undefined
-  Schedule: undefined
-  Settings: undefined
-}
-
-/**
- * Helper for automatically generating navigation prop types for each route.
- *
- * More info: https://reactnavigation.org/docs/typescript/#organizing-types
- */
-export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, T>,
-  AppStackScreenProps<keyof AppStackParamList>
->
+import { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
 /**
  * MainNavigator - Primary tab navigation for authenticated users
  *
- * 3-tab structure (MVP):
+ * Tab structure:
  * - Home: Dashboard/landing page
- * - Live: Live meetings currently in progress
+ * - Meetings: Combined Live + Listings with segment control
+ * - Attendance: (optional) User attendance tracking
  * - Settings: User profile, account, and app settings
- *
- * Hidden tabs (for future):
- * - Meetings: Meeting list and discovery
- * - Schedule: Schedule view and management
  */
 export const MainNavigator = observer(function MainNavigator() {
   const { bottom } = useSafeAreaInsets()
@@ -95,17 +69,13 @@ export const MainNavigator = observer(function MainNavigator() {
         }}
       />
       <Tab.Screen
-        name="Live"
-        component={LiveScreen}
+        name="Meetings"
+        component={MeetingsScreen}
         options={{
-          tabBarLabel: t("mainNavigator:liveTab"),
+          tabBarLabel: t("mainNavigator:meetingsTab"),
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons
-                name="videocam"
-                size={24}
-                color={focused ? colors.tint : colors.textDim}
-              />
+              <Ionicons name="videocam" size={24} color={focused ? colors.tint : colors.textDim} />
               {liveMeetings.length > 0 && (
                 <View style={[styles.badge, { backgroundColor: colors.tint }]}>
                   <Text style={styles.badgeText}>
@@ -114,20 +84,6 @@ export const MainNavigator = observer(function MainNavigator() {
                 </View>
               )}
             </View>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Listings"
-        component={ListingsScreen}
-        options={{
-          tabBarLabel: t("mainNavigator:listingsTab"),
-          tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name="list-outline"
-              size={24}
-              color={focused ? colors.tint : colors.textDim}
-            />
           ),
         }}
       />
@@ -156,28 +112,6 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
-      {/* Meetings and Schedule tabs hidden for now - focusing on Live
-      <Tab.Screen
-        name="Meetings"
-        component={MeetingsScreen}
-        options={{
-          tabBarLabel: t("mainNavigator:meetingsTab"),
-          tabBarIcon: ({ focused }) => (
-            <Icon icon="community" color={focused ? colors.tint : colors.textDim} size={24} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Schedule"
-        component={ScheduleScreen}
-        options={{
-          tabBarLabel: t("mainNavigator:scheduleTab"),
-          tabBarIcon: ({ focused }) => (
-            <Icon icon="menu" color={focused ? colors.tint : colors.textDim} size={24} />
-          ),
-        }}
-      />
-      */}
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
@@ -193,23 +127,23 @@ export const MainNavigator = observer(function MainNavigator() {
 })
 
 const styles = StyleSheet.create({
-  iconContainer: {
-    position: "relative",
-  },
   badge: {
-    position: "absolute",
-    top: -6,
-    right: -10,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
     alignItems: "center",
+    borderRadius: 9,
+    height: 18,
     justifyContent: "center",
+    minWidth: 18,
     paddingHorizontal: 4,
+    position: "absolute",
+    right: -10,
+    top: -6,
   },
   badgeText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  iconContainer: {
+    position: "relative",
   },
 })

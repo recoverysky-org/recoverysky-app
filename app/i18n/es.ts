@@ -16,7 +16,8 @@ const es: Translations = {
   },
   errorScreen: {
     title: "¡Algo salió mal!",
-    friendlySubtitle: "Esta es la pantalla que tus usuarios verán en producción cuando ocurra un error.",
+    friendlySubtitle:
+      "Esta es la pantalla que tus usuarios verán en producción cuando ocurra un error.",
     reset: "REINICIAR APP",
     traceTitle: "Error de la pila %{name}",
   },
@@ -56,31 +57,38 @@ const es: Translations = {
     placeholder: "Contenido del panel próximamente",
     // Help Cards
     onboardingTitle: "Bienvenido a RecoverySky",
-    onboardingDescription: "Revisa la introducción de la app en cualquier momento para conocer las funciones y la privacidad.",
+    onboardingDescription:
+      "Revisa la introducción de la app en cualquier momento para conocer las funciones y la privacidad.",
     restartOnboarding: "Reiniciar Introducción",
     liveTitle: "Reuniones en Vivo",
-    liveDescription: "Encuentra reuniones que están sucediendo ahora. Toca la pestaña En Vivo para ver qué hay.",
+    liveDescription:
+      "Encuentra reuniones que están sucediendo ahora. Toca la pestaña En Vivo para ver qué hay.",
     goToLive: "Ir a En Vivo",
     listingsTitle: "Listado de Reuniones",
     listingsDescription: "Explora el horario completo por día y hora. Ideal para planificar.",
     goToListings: "Ver Listado",
     attendanceTitle: "Registrar Asistencia",
-    attendanceDescription: "Tu asistencia a reuniones se registra automáticamente. Ve el historial y exporta informes.",
+    attendanceDescription:
+      "Tu asistencia a reuniones se registra automáticamente. Ve el historial y exporta informes.",
     goToAttendance: "Ver Asistencia",
     settingsTitle: "Personaliza Tu App",
     settingsDescription: "Configura tu fecha de recuperación, tema y preferencias personales.",
     goToSettings: "Abrir Configuración",
     // Informational cards
     favoritesTitle: "Reuniones Favoritas",
-    favoritesDescription: "Toca el corazón para marcar reuniones que te gustan. Los favoritos aparecen primero en tus listas. Tus favoritos son privados y permanecen en tu dispositivo.",
+    favoritesDescription:
+      "Toca el corazón para marcar reuniones que te gustan. Los favoritos aparecen primero en tus listas. Tus favoritos son privados y permanecen en tu dispositivo.",
     ratingsTitle: "Califica Reuniones",
-    ratingsDescription: "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
+    ratingsDescription:
+      "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
     // Dashboard
     cleanDays: "Días Limpio",
   },
   meetingsScreen: {
     title: "Reuniones",
     placeholder: "Lista de reuniones próximamente",
+    liveSegment: "En vivo",
+    listingsSegment: "Listados",
   },
   scheduleScreen: {
     title: "Horario",
@@ -143,7 +151,8 @@ const es: Translations = {
     manageSubscription: "Gestionar Suscripción",
     restorePurchases: "Restaurar Compras",
     subscriptionSuccess: "¡Bienvenido a Pro!",
-    subscriptionSuccessMessage: "Gracias por apoyar a RecoverySky. ¡Disfruta de tus funciones premium!",
+    subscriptionSuccessMessage:
+      "Gracias por apoyar a RecoverySky. ¡Disfruta de tus funciones premium!",
     restoreSuccess: "Compras Restauradas",
     restoreSuccessMessage: "Tu suscripción ha sido restaurada exitosamente.",
     restoreNoSubscription: "No se Encontró Suscripción",
@@ -153,7 +162,8 @@ const es: Translations = {
     userId: "ID de Usuario",
     anonymousUser: "Anónimo",
     deleteUserData: "Eliminar Datos de Usuario",
-    deleteUserDataConfirm: "¿Estás seguro de que deseas eliminar todos los datos de usuario? Esta acción no se puede deshacer.",
+    deleteUserDataConfirm:
+      "¿Estás seguro de que deseas eliminar todos los datos de usuario? Esta acción no se puede deshacer.",
     appSettingsSection: "Configuración de la App",
     language: "Idioma",
     selectLanguage: "Seleccionar Idioma",
@@ -206,8 +216,10 @@ const es: Translations = {
     attendanceSubtitle: "Establece metas, sigue tu progreso y celebra visualmente tu recuperación.",
     attendanceFreeFeature: "La asistencia se registra automáticamente al unirte a través de la app",
     attendanceDuration: "La duración se captura para registros precisos y verificables",
-    attendancePrivate: "Los datos permanecen encriptados en tu dispositivo y solo salen cuando exportas",
-    attendancePaidFeature: "Opcional: Informes certificados para padrinos, tribunales o servicios familiares",
+    attendancePrivate:
+      "Los datos permanecen encriptados en tu dispositivo y solo salen cuando exportas",
+    attendancePaidFeature:
+      "Opcional: Informes certificados para padrinos, tribunales o servicios familiares",
     enableAttendance: "Habilitar Registro de Asistencia",
     enableAttendanceHint: "Puedes cambiar esto después en Configuración",
     // Screen 5: Privacy

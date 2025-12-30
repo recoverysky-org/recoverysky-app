@@ -1,19 +1,19 @@
 import { FC, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { observer } from "mobx-react-lite"
 import { useNavigation } from "@react-navigation/native"
+import { observer } from "mobx-react-lite"
 
+import { HelpCard } from "@/components/HelpCard"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { HelpCard } from "@/components/HelpCard"
+import type { TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
-import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import type { TxKeyPath } from "@/i18n"
 
 // ============================================================================
 // Help Card Definitions
@@ -25,7 +25,8 @@ interface HelpCardDef {
   titleTx: TxKeyPath
   descriptionTx: TxKeyPath
   actionTx?: TxKeyPath
-  actionTab?: "Live" | "Listings" | "Attendance" | "Settings"
+  actionTab?: "Meetings" | "Attendance" | "Settings"
+  actionParams?: { segment?: MeetingsSegment }
 }
 
 const MAX_VISIBLE_CARDS = 5
@@ -44,7 +45,8 @@ const HELP_CARDS: HelpCardDef[] = [
     titleTx: "homeScreen:liveTitle",
     descriptionTx: "homeScreen:liveDescription",
     actionTx: "homeScreen:goToLive",
-    actionTab: "Live",
+    actionTab: "Meetings",
+    actionParams: { segment: "live" },
   },
   {
     id: "listings",
@@ -52,7 +54,8 @@ const HELP_CARDS: HelpCardDef[] = [
     titleTx: "homeScreen:listingsTitle",
     descriptionTx: "homeScreen:listingsDescription",
     actionTx: "homeScreen:goToListings",
-    actionTab: "Listings",
+    actionTab: "Meetings",
+    actionParams: { segment: "listings" },
   },
   {
     id: "attendance",
@@ -100,7 +103,10 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   // Get undismissed cards (use slice() to get reactive array for dependency)
   // Show max 5 at a time - new cards appear as others are dismissed
   const dismissedIds = profileStore.dismissedHomeCards.slice()
-  const visibleCards = HELP_CARDS.filter((card) => !dismissedIds.includes(card.id)).slice(0, MAX_VISIBLE_CARDS)
+  const visibleCards = HELP_CARDS.filter((card) => !dismissedIds.includes(card.id)).slice(
+    0,
+    MAX_VISIBLE_CARDS,
+  )
 
   const handleDismissCard = useCallback(
     (cardId: string) => {
@@ -115,8 +121,9 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         // Reset onboarding and navigate to it
         profileStore.resetOnboarding()
       } else if (card.actionTab) {
-        // Navigate to the tab
-        navigation.navigate(card.actionTab as never)
+        // Navigate to the tab with optional params
+        // @ts-expect-error - Navigation params typing is complex with segment params
+        navigation.navigate(card.actionTab, card.actionParams)
       }
     },
     [navigation, profileStore],
@@ -155,9 +162,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
           </View>
 
           {/* Placeholder for future dashboard widgets */}
-          <Text style={themed($dashboardHint)}>
-            Dashboard coming soon...
-          </Text>
+          <Text style={themed($dashboardHint)}>Dashboard coming soon...</Text>
         </View>
       ) : (
         <View style={themed($cardsContainer)}>
