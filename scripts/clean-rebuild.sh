@@ -4,9 +4,9 @@
 #
 # Usage:
 #   ./scripts/clean-rebuild.sh              # Clean + prebuild only
-#   ./scripts/clean-rebuild.sh --ios        # Also build iOS simulator dev client
-#   ./scripts/clean-rebuild.sh --android    # Also build Android emulator dev client
-#   ./scripts/clean-rebuild.sh --all        # Build both platforms
+#   ./scripts/clean-rebuild.sh --ios        # Also build + install iOS simulator dev client
+#   ./scripts/clean-rebuild.sh --android    # Also build + install Android emulator dev client
+#   ./scripts/clean-rebuild.sh --all        # Build + install both platforms
 
 set -e
 
@@ -36,7 +36,7 @@ done
 
 echo "🧹 Starting full clean rebuild..."
 if [ "$BUILD_IOS" = true ] || [ "$BUILD_ANDROID" = true ]; then
-  echo "   (with development builds)"
+  echo "   (with development builds + simulator install)"
 fi
 echo ""
 
@@ -78,34 +78,39 @@ npm run patch:splash
 echo "🩹 Running patch:android..."
 npm run patch:android
 
-# 8. Build development clients if requested
+# 8. Build and install development clients if requested
 if [ "$BUILD_IOS" = true ]; then
   echo ""
   echo "🍎 Building iOS development client (simulator)..."
   npm run build:ios:sim
+
+  echo ""
+  echo "📲 Installing iOS app to simulator..."
+  npm run install:ios:sim
+
+  echo "🚀 Launching iOS app..."
+  npm run launch:ios:sim
 fi
 
 if [ "$BUILD_ANDROID" = true ]; then
   echo ""
   echo "🤖 Building Android development client (emulator)..."
   npm run build:android:sim
+
+  echo ""
+  echo "📲 Installing Android app to emulator..."
+  # Find the most recent APK and install it
+  APK_FILE=$(ls -t build*.apk 2>/dev/null | head -1)
+  if [ -n "$APK_FILE" ]; then
+    adb install -r "$APK_FILE"
+    echo "🚀 Launching Android app..."
+    adb shell am start -n com.recoveryskyhybrid/.MainActivity
+  else
+    echo "⚠️  No APK found. You may need to install manually."
+  fi
 fi
 
 echo ""
 echo "✅ Clean rebuild complete!"
 echo ""
-
-if [ "$BUILD_IOS" = false ] && [ "$BUILD_ANDROID" = false ]; then
-  echo "Run 'npm start -- --clear' to start the dev server"
-  echo ""
-  echo "To build development clients:"
-  echo "  npm run build:ios:sim      # iOS simulator"
-  echo "  npm run build:android:sim  # Android emulator"
-else
-  echo "Run 'npm start -- --clear' to start the dev server"
-  if [ "$BUILD_IOS" = true ]; then
-    echo ""
-    echo "Install iOS build to simulator:"
-    echo "  npm run install:ios:sim && npm run launch:ios:sim"
-  fi
-fi
+echo "Run 'npm start -- --clear' to start the dev server"
