@@ -28,7 +28,6 @@ import {
   translate,
   getAvailableLanguages,
   getCurrentLanguage,
-  changeLanguage,
   languageNames,
 } from "@/i18n"
 import { useProfileStore, useAuthenticationStore } from "@/models"
@@ -85,13 +84,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
     const [languageModalVisible, setLanguageModalVisible] = useState(false)
     const [colorPickerVisible, setColorPickerVisible] = useState(false)
 
-    // Language state (not persisted in MST for now)
-    const [currentLang, setCurrentLang] = useState(getCurrentLanguage())
+    // Language state from MST (persisted)
+    const currentLang = profileStore.language || getCurrentLanguage()
     const availableLanguages = getAvailableLanguages()
 
-    const handleLanguageChange = async (langCode: string) => {
-      await changeLanguage(langCode)
-      setCurrentLang(langCode)
+    const handleLanguageChange = (langCode: string) => {
+      profileStore.setLanguage(langCode)
       setLanguageModalVisible(false)
     }
 
@@ -214,10 +212,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
     const getSubscriptionStatus = (): string => {
       if (isSubscriptionLoading) return "..."
       if (isPro) {
-        if (subscriptionInfo?.isInTrial) return "Pro (Trial)"
-        return "Pro"
+        if (subscriptionInfo?.isInTrial) return translate("settingsScreen:subscriptionProTrial")
+        return translate("settingsScreen:subscriptionPro")
       }
-      return "Free"
+      return translate("settingsScreen:subscriptionFree")
     }
 
     return (
@@ -673,7 +671,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
             value={
               authStore.isAnonymous
                 ? translate("settingsScreen:anonymousUser")
-                : authStore.authEmail || authStore.userId || "Not logged in"
+                : authStore.authEmail || authStore.userId || translate("settingsScreen:notLoggedIn")
             }
           />
           <TouchableOpacity

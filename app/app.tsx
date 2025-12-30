@@ -34,7 +34,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { DatabaseProvider, DatabaseLoadingOverlay } from "./db"
-import { initI18n } from "./i18n"
+import { changeLanguage, initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -157,6 +157,13 @@ export function App() {
             api.updateAuth(isAnonymous, accessToken)
           },
         )
+
+        // Sync stored language preference to i18n
+        const storedLanguage = _rootStore.profileStore.language
+        if (storedLanguage) {
+          log.info("Restoring stored language preference", { language: storedLanguage })
+          await changeLanguage(storedLanguage)
+        }
 
         setRootStore(_rootStore)
       })

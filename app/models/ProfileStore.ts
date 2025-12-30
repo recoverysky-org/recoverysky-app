@@ -1,7 +1,7 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { liveEvents } from "@/db"
-import { translate } from "@/i18n"
+import { changeLanguage, translate } from "@/i18n"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -30,6 +30,7 @@ export const ProfileStoreModel = types
 
     // Appearance
     themeColor: types.optional(types.string, ""), // empty = use default tint
+    language: types.optional(types.string, ""), // empty = use device locale
 
     // Onboarding
     onboardingCompleted: types.optional(types.boolean, false),
@@ -161,6 +162,14 @@ export const ProfileStoreModel = types
     },
 
     /**
+     * Set language and sync to i18n
+     */
+    setLanguage(value: string) {
+      self.language = value
+      changeLanguage(value)
+    },
+
+    /**
      * Mark onboarding as completed
      */
     completeOnboarding() {
@@ -225,6 +234,7 @@ export const ProfileStoreModel = types
       self.subscription = "Free"
       self.subscriptionExpires = null
       self.themeColor = ""
+      self.language = ""
       self.onboardingCompleted = false
       self.dontShowShortMeetingWarning = false
       self.attendanceEnabled = false
