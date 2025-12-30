@@ -58,7 +58,7 @@ export const NetworkStoreModel = types
     setNetworkStatus(
       isConnected: boolean,
       connectionType: "wifi" | "cellular" | "ethernet" | "unknown" | "none",
-      isInternetReachable: boolean | null
+      isInternetReachable: boolean | null,
     ) {
       self.isConnected = isConnected
       self.connectionType = connectionType

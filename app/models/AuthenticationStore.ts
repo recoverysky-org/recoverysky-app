@@ -66,12 +66,7 @@ export const AuthenticationStoreModel = types
     /**
      * Set all OAuth tokens at once
      */
-    setTokens(
-      accessToken: string,
-      refreshToken?: string,
-      idToken?: string,
-      expiresAt?: number
-    ) {
+    setTokens(accessToken: string, refreshToken?: string, idToken?: string, expiresAt?: number) {
       store.accessToken = accessToken
       store.refreshToken = refreshToken
       store.idToken = idToken

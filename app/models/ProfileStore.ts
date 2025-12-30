@@ -1,17 +1,14 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
-import { withSetPropAction } from "./helpers/withSetPropAction"
+
 import { liveEvents } from "@/db"
 import { translate } from "@/i18n"
+
+import { withSetPropAction } from "./helpers/withSetPropAction"
 
 /**
  * Pronoun options as an MST enumeration
  */
-const PronounsEnum = types.enumeration("Pronouns", [
-  "he/him",
-  "she/her",
-  "they/them",
-  "em/ers",
-])
+const PronounsEnum = types.enumeration("Pronouns", ["he/him", "she/her", "they/them", "em/ers"])
 
 export const ProfileStoreModel = types
   .model("ProfileStore")
@@ -102,7 +99,7 @@ export const ProfileStoreModel = types
       if (self.showCleanDays) {
         const days = Math.floor(
           Math.abs(new Date().getTime() - new Date(self.recoveryDate).getTime()) /
-            (1000 * 60 * 60 * 24)
+            (1000 * 60 * 60 * 24),
         )
         parts.push(`${days}d`)
       }

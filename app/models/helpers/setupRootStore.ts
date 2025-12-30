@@ -1,6 +1,8 @@
 import { applySnapshot, onSnapshot, IDisposer } from "mobx-state-tree"
-import { RootStore, RootStoreModel, RootStoreSnapshot } from "../RootStore"
+
 import * as storage from "@/utils/storage"
+
+import { RootStore, RootStoreModel, RootStoreSnapshot } from "../RootStore"
 
 /**
  * The key we use to store the root state in MMKV.
