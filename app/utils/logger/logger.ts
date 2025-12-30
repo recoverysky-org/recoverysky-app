@@ -9,14 +9,8 @@
  * - Child loggers with inherited attributes
  */
 
-import type {
-  Logger,
-  LoggerConfig,
-  LogLevel,
-  LogAttributes,
-  LogRecord,
-} from "./types"
 import { sendToOtlp } from "./otlp"
+import type { Logger, LoggerConfig, LogLevel, LogAttributes, LogRecord } from "./types"
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   trace: 0,
@@ -65,11 +59,7 @@ class LoggerImpl implements Logger {
     return LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.config.minLevel]
   }
 
-  private log(
-    level: LogLevel,
-    message: string,
-    attributes: LogAttributes = {},
-  ): void {
+  private log(level: LogLevel, message: string, attributes: LogAttributes = {}): void {
     if (!this.shouldLog(level)) return
 
     const record: LogRecord = {

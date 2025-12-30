@@ -18,8 +18,6 @@ import { useMMKVString } from "react-native-mmkv"
 import { logger } from "@/utils/logger"
 import { storage } from "@/utils/storage"
 
-const log = logger.child({ module: "ThemeContext" })
-
 import { setImperativeTheming } from "./context.utils"
 import { darkTheme, lightTheme } from "./theme"
 import type {
@@ -30,6 +28,8 @@ import type {
   ThemedFnT,
   ThemedStyle,
 } from "./types"
+
+const log = logger.child({ module: "ThemeContext" })
 
 export type ThemeContextType = {
   navigationTheme: NavTheme

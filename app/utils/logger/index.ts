@@ -26,12 +26,12 @@
  * - Until configured, logs go to console (dev) or are dropped (prod)
  */
 
+import { createLogger } from "./logger"
+import type { LogLevel } from "./types"
+
 export { createLogger } from "./logger"
 export { useLogger, useSimpleLogger } from "./useLogger"
 export type { Logger, LoggerConfig, LogLevel, LogAttributes } from "./types"
-
-import { createLogger } from "./logger"
-import type { LogLevel } from "./types"
 
 /**
  * Default logger instance
@@ -41,7 +41,12 @@ import type { LogLevel } from "./types"
  * - EXPO_PUBLIC_OTLP_API_KEY: API key for auth (optional)
  * - EXPO_PUBLIC_LOG_LEVEL: Minimum log level (trace, debug, info, warn, error, fatal)
  */
-console.log("[Logger] EXPO_PUBLIC_LOG_LEVEL:", process.env.EXPO_PUBLIC_LOG_LEVEL, "__DEV__:", __DEV__)
+console.log(
+  "[Logger] EXPO_PUBLIC_LOG_LEVEL:",
+  process.env.EXPO_PUBLIC_LOG_LEVEL,
+  "__DEV__:",
+  __DEV__,
+)
 
 export const logger = createLogger({
   endpoint: process.env.EXPO_PUBLIC_OTLP_ENDPOINT,

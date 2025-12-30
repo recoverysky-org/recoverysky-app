@@ -102,10 +102,7 @@ interface SubscriptionProviderProps {
  * Wraps the app to provide subscription state.
  * Initializes RevenueCat and listens for subscription changes.
  */
-export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({
-  children,
-  appUserId,
-}) => {
+export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, appUserId }) => {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isPro, setIsPro] = useState(false)
@@ -275,8 +272,6 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({
   )
 
   return (
-    <SubscriptionContext.Provider value={contextValue}>
-      {children}
-    </SubscriptionContext.Provider>
+    <SubscriptionContext.Provider value={contextValue}>{children}</SubscriptionContext.Provider>
   )
 }

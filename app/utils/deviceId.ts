@@ -5,11 +5,11 @@
  * Used to identify users across both anonymous and authenticated states.
  */
 
-import * as Application from "expo-application"
 import { Platform } from "react-native"
+import * as Application from "expo-application"
 
-import { loadString, saveString } from "./storage"
 import { logger } from "./logger"
+import { loadString, saveString } from "./storage"
 
 const log = logger.child({ module: "deviceId" })
 

@@ -21,8 +21,9 @@
 import { useMemo, useEffect, useRef } from "react"
 import { useRoute } from "@react-navigation/native"
 
-import { logger } from "./index"
 import type { Logger, LogAttributes } from "./types"
+
+import { logger } from "./index"
 
 interface UseLoggerOptions {
   /** Additional attributes to include with every log */
@@ -56,10 +57,7 @@ interface UseLoggerOptions {
  *   attributes: { itemId: item.id }
  * })
  */
-export function useLogger(
-  componentName?: string,
-  options: UseLoggerOptions = {},
-): Logger {
+export function useLogger(componentName?: string, options: UseLoggerOptions = {}): Logger {
   const { attributes = {}, logLifecycle = false, useRouteName = true } = options
 
   // Try to get route name from React Navigation
@@ -108,10 +106,7 @@ export function useLogger(
  * Lightweight hook when you don't need React Navigation integration
  * Avoids the try/catch overhead if you know you're not in a navigator
  */
-export function useSimpleLogger(
-  name: string,
-  attributes: LogAttributes = {},
-): Logger {
+export function useSimpleLogger(name: string, attributes: LogAttributes = {}): Logger {
   return useMemo(() => {
     return logger.child({ component: name, ...attributes })
   }, [name, JSON.stringify(attributes)])

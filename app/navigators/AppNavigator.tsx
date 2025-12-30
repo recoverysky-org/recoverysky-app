@@ -11,16 +11,16 @@ import { observer } from "mobx-react-lite"
 
 import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
-import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { AttendanceReportsScreen } from "@/screens/AttendanceReportsScreen"
+import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
 import { MainNavigator } from "./MainNavigator"
-import { OnboardingNavigator } from "./OnboardingNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
+import { OnboardingNavigator } from "./OnboardingNavigator"
 
 const log = logger.child({ module: "AppNavigator" })
 

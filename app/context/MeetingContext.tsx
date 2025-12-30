@@ -14,10 +14,11 @@ import {
   useMemo,
   type ReactNode,
 } from "react"
+import { type meeting } from "@common"
+
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { api, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
-import { type meeting } from "@common"
 
 const log = logger.child({ module: "MeetingContext" })
 

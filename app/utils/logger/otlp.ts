@@ -55,10 +55,7 @@ interface OtlpLogsPayload {
 /**
  * Convert internal log records to OTLP format
  */
-export function toOtlpPayload(
-  records: LogRecord[],
-  config: LoggerConfig,
-): OtlpLogsPayload {
+export function toOtlpPayload(records: LogRecord[], config: LoggerConfig): OtlpLogsPayload {
   const otlpRecords: OtlpLogRecord[] = records.map((record) => ({
     timeUnixNano: (record.timestamp * 1_000_000).toString(),
     severityNumber: SEVERITY_NUMBER[record.level],
