@@ -17,6 +17,7 @@ import { FC, useMemo, useState, useEffect, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@common"
 import { Ionicons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
@@ -41,6 +42,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
   meeting,
   onClose,
 }) {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
@@ -164,7 +166,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
-        <View style={themed($content)}>
+        <Pressable style={themed($content)} onPress={onClose}>
           {/* Header */}
           <View style={themed($header)}>
             {/* Fellowship badge */}
@@ -204,12 +206,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             {meeting.duration_ms ? (
               <View style={$metaItem}>
                 <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>{Math.round(meeting.duration_ms / 60000)} min</Text>
+                <Text style={themed($metaText)}>{Math.round(meeting.duration_ms / 60000)} {t("liveScreen:min")}</Text>
               </View>
             ) : null}
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
-              <Text style={themed($metaText)}>{meetingCount} meetings</Text>
+              <Text style={themed($metaText)}>{meetingCount === 1 ? t("liveScreen:meeting", { count: meetingCount }) : t("liveScreen:meetings", { count: meetingCount })}</Text>
             </View>
             {meeting.language && (
               <View style={$metaItem}>
@@ -238,7 +240,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
                 disabled={isJoining}
               >
                 <Text style={themed($joinButtonText)}>
-                  {isJoining ? "Joining..." : "Join Meeting"}
+                  {isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
                 </Text>
                 <Ionicons
                   name={isSDKReady ? "videocam" : "open-outline"}
@@ -277,7 +279,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
                 <View style={themed($joinsRow)}>
                   <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
                   <Text style={themed($joinsText)}>
-                    {joinCount} {joinCount === 1 ? "join" : "joins"}
+                    {joinCount} {joinCount === 1 ? t("liveScreen:join") : t("liveScreen:joins")}
                     {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
                   </Text>
                 </View>
@@ -295,14 +297,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
                 {meeting.description}
               </Text>
               {!descriptionExpanded && meeting.description.length > 200 && (
-                <Text style={themed($readMore)}>Tap to read more...</Text>
+                <Text style={themed($readMore)}>{t("liveScreen:tapToReadMore")}</Text>
               )}
             </Pressable>
           ) : null}
 
           {/* Schedule Grid */}
           <ScheduleGrid scheduleData={scheduleGridData} currentDow={currentDow} />
-        </View>
+        </Pressable>
       </View>
     </Modal>
   )

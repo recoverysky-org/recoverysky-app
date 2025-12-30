@@ -1,4 +1,4 @@
-import { FC, useState, useCallback, useEffect } from "react"
+import { FC, useState, useCallback, useEffect, useRef } from "react"
 import { View, ViewStyle } from "react-native"
 import { useRoute, RouteProp } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
@@ -30,15 +30,21 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
     const route = useRoute<RouteProp<MainTabParamList, "Meetings">>()
 
     // Initialize segment from route params or default to "live"
-    const initialSegment: MeetingsSegment = route.params?.segment ?? "live"
-    const [activeSegment, setActiveSegment] = useState<MeetingsSegment>(initialSegment)
+    const [activeSegment, setActiveSegment] = useState<MeetingsSegment>(
+      route.params?.segment ?? "live",
+    )
 
-    // Sync segment when route params change (for deep linking from help cards)
+    // Track last route param to detect navigation-triggered changes
+    const lastRouteSegment = useRef(route.params?.segment)
+
+    // Sync segment only when route params change from navigation (not local state)
     useEffect(() => {
-      if (route.params?.segment && route.params.segment !== activeSegment) {
-        setActiveSegment(route.params.segment)
+      const newSegment = route.params?.segment
+      if (newSegment && newSegment !== lastRouteSegment.current) {
+        lastRouteSegment.current = newSegment
+        setActiveSegment(newSegment)
       }
-    }, [route.params?.segment, activeSegment])
+    }, [route.params?.segment])
 
     const handleSegmentChange = useCallback((index: number) => {
       setActiveSegment(index === 0 ? "live" : "listings")

@@ -17,7 +17,7 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native"
-import { DateTime } from "@common"
+import { DateTime, Fellowship } from "@common"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
@@ -37,16 +37,25 @@ import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ListingsScreen" })
 
-// ISO day of week: 1=Monday, 7=Sunday
+// ISO day of week: 1=Monday, 7=Sunday (with translation keys)
 const ISO_DAYS = [
-  { iso: 1, label: "Mon" },
-  { iso: 2, label: "Tue" },
-  { iso: 3, label: "Wed" },
-  { iso: 4, label: "Thu" },
-  { iso: 5, label: "Fri" },
-  { iso: 6, label: "Sat" },
-  { iso: 7, label: "Sun" },
+  { iso: 1, tx: "listingsScreen:monday" as const },
+  { iso: 2, tx: "listingsScreen:tuesday" as const },
+  { iso: 3, tx: "listingsScreen:wednesday" as const },
+  { iso: 4, tx: "listingsScreen:thursday" as const },
+  { iso: 5, tx: "listingsScreen:friday" as const },
+  { iso: 6, tx: "listingsScreen:saturday" as const },
+  { iso: 7, tx: "listingsScreen:sunday" as const },
 ]
+
+/** Fellowships available for filtering */
+const SELECTABLE_FELLOWSHIPS = [
+  { value: Fellowship.AA, label: "AA" },
+  { value: Fellowship.NA, label: "NA" },
+  { value: Fellowship.CMA, label: "CMA" },
+  { value: Fellowship.MA, label: "MA" },
+  { value: Fellowship.RD, label: "RD" },
+] as const
 
 // Get current ISO day of week (1=Monday, 7=Sunday)
 const getCurrentIsoDow = (): number => {
@@ -73,6 +82,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   const [dayModalVisible, setDayModalVisible] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null) // null = all
   const [languageModalVisible, setLanguageModalVisible] = useState(false)
+  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
   const [startHour, setStartHour] = useState(0) // 0-23
   const [endHour, setEndHour] = useState(24) // 1-24 (24 = midnight end)
   const [timePickerVisible, setTimePickerVisible] = useState<"start" | "end" | null>(null)
@@ -98,8 +108,10 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     return unsubscribe
   }, [])
 
-  // Get label for selected day
-  const selectedDayLabel = ISO_DAYS.find((d) => d.iso === selectedDay)?.label || ""
+  // Get label for selected day (translated)
+  const selectedDayLabel = ISO_DAYS.find((d) => d.iso === selectedDay)?.tx
+    ? t(ISO_DAYS.find((d) => d.iso === selectedDay)!.tx)
+    : ""
 
   // Get unique languages from meetings
   const availableLanguages = useMemo(() => {
@@ -269,16 +281,27 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <Text preset="heading" style={themed($title)}>
           {t("listingsScreen:title")}
         </Text>
-        {profileStore.fellowship && (
-          <Text style={themed($subtitle)}>{profileStore.fellowship}</Text>
-        )}
       </View>
+
+      {/* Fellowship Selector - single line */}
+      <TouchableOpacity
+        style={themed($fellowshipSelector)}
+        onPress={() => setFellowshipModalVisible(true)}
+      >
+        <Text style={themed($fellowshipLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
+        <View style={$selectorValueRow}>
+          <Text style={themed($selectorValue)}>
+            {profileStore.fellowship || "AA"}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+        </View>
+      </TouchableOpacity>
 
       {/* Day and Language Selector Row */}
       <View style={themed($selectorRow)}>
         {/* Day Selector Button */}
         <TouchableOpacity style={themed($selectorButton)} onPress={() => setDayModalVisible(true)}>
-          <Text style={themed($selectorLabel)}>Day</Text>
+          <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
           <View style={$selectorValueRow}>
             <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
@@ -286,13 +309,10 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         </TouchableOpacity>
 
         {/* Language Selector Button */}
-        <TouchableOpacity
-          style={themed($selectorButton)}
-          onPress={() => setLanguageModalVisible(true)}
-        >
-          <Text style={themed($selectorLabel)}>Language</Text>
+        <TouchableOpacity style={themed($selectorButton)} onPress={() => setLanguageModalVisible(true)}>
+          <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
           <View style={$selectorValueRow}>
-            <Text style={themed($selectorValue)}>{selectedLanguage || "All"}</Text>
+            <Text style={themed($selectorValue)}>{selectedLanguage || t("listingsScreen:allLanguages")}</Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>
         </TouchableOpacity>
@@ -307,7 +327,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setDayModalVisible(false)}>
           <View style={themed($modalContent)}>
-            <Text style={themed($modalTitle)}>Select Day</Text>
+            <Text style={themed($modalTitle)}>{t("listingsScreen:selectDay")}</Text>
             {ISO_DAYS.map((day) => (
               <TouchableOpacity
                 key={day.iso}
@@ -326,7 +346,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                     selectedDay === day.iso && themed($modalOptionTextSelected),
                   ]}
                 >
-                  {day.label}
+                  {t(day.tx)}
                 </Text>
                 {selectedDay === day.iso && (
                   <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
@@ -346,7 +366,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
           <View style={themed($modalContent)}>
-            <Text style={themed($modalTitle)}>Select Language</Text>
+            <Text style={themed($modalTitle)}>{t("listingsScreen:selectLanguage")}</Text>
             {/* All option */}
             <TouchableOpacity
               style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
@@ -362,7 +382,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                   !selectedLanguage && themed($modalOptionTextSelected),
                 ]}
               >
-                All
+                {t("listingsScreen:allLanguages")}
               </Text>
               {!selectedLanguage && (
                 <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
@@ -399,15 +419,54 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         </Pressable>
       </Modal>
 
+      {/* Fellowship Selector Modal */}
+      <Modal
+        visible={fellowshipModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFellowshipModalVisible(false)}
+      >
+        <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
+          <View style={themed($modalContent)}>
+            <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
+            {SELECTABLE_FELLOWSHIPS.map((f) => (
+              <TouchableOpacity
+                key={f.value}
+                style={[
+                  themed($modalOption),
+                  profileStore.fellowship === f.value && themed($modalOptionSelected),
+                ]}
+                onPress={() => {
+                  profileStore.setFellowship(f.value)
+                  setFellowshipModalVisible(false)
+                }}
+              >
+                <Text
+                  style={[
+                    themed($modalOptionText),
+                    profileStore.fellowship === f.value && themed($modalOptionTextSelected),
+                  ]}
+                >
+                  {f.label}
+                </Text>
+                {profileStore.fellowship === f.value && (
+                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+
       {/* Time Range Buttons */}
       <View style={themed($timeRangeRow)}>
         <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("start")}>
-          <Text style={themed($timeButtonLabel)}>Start</Text>
+          <Text style={themed($timeButtonLabel)}>{t("listingsScreen:startLabel")}</Text>
           <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
         </TouchableOpacity>
-        <Text style={themed($timeSeparator)}>to</Text>
+        <Text style={themed($timeSeparator)}>{t("listingsScreen:toSeparator")}</Text>
         <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("end")}>
-          <Text style={themed($timeButtonLabel)}>End</Text>
+          <Text style={themed($timeButtonLabel)}>{t("listingsScreen:endLabel")}</Text>
           <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
         </TouchableOpacity>
       </View>
@@ -422,7 +481,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <Pressable style={themed($modalOverlay)} onPress={() => setTimePickerVisible(null)}>
           <View style={themed($timePickerContent)}>
             <Text style={themed($modalTitle)}>
-              {timePickerVisible === "start" ? "Start Time" : "End Time"}
+              {timePickerVisible === "start" ? t("listingsScreen:startTime") : t("listingsScreen:endTime")}
             </Text>
             <FlatList
               data={getPickerHours()}
@@ -535,11 +594,24 @@ const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
-const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  color: colors.tint,
+// Fellowship selector - single line
+const $fellowshipSelector: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginHorizontal: spacing.md,
+  marginVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.sm,
+  borderRadius: 8,
+  backgroundColor: colors.card,
+  borderWidth: 1,
+  borderColor: colors.border,
+})
+
+const $fellowshipLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
-  fontWeight: "600",
-  marginTop: spacing.xs,
+  color: colors.textDim,
 })
 
 const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -552,9 +624,11 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
+  flexDirection: "row",
   alignItems: "center",
+  justifyContent: "space-between",
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.xs,
+  paddingVertical: spacing.sm,
   borderRadius: 8,
   backgroundColor: colors.card,
   borderWidth: 1,
@@ -562,9 +636,8 @@ const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 })
 
 const $selectorLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 11,
+  fontSize: 14,
   color: colors.textDim,
-  marginBottom: 2,
 })
 
 const $selectorValueRow: ViewStyle = {

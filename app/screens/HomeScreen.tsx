@@ -147,7 +147,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         <Text preset="heading" tx="homeScreen:title" />
         {authStore.isAuthenticated && (
           <Pressable onPress={handleLogout}>
-            <Text style={themed($logoutLink)}>Logout</Text>
+            <Text style={themed($logoutLink)} tx="settingsScreen:logout" />
           </Pressable>
         )}
       </View>

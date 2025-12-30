@@ -8,13 +8,23 @@
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle } from "react-native"
 import { DateTime } from "@common"
+import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const
+// Translation keys for day names
+const DAY_KEYS = [
+  "liveScreen:mon",
+  "liveScreen:tue",
+  "liveScreen:wed",
+  "liveScreen:thu",
+  "liveScreen:fri",
+  "liveScreen:sat",
+  "liveScreen:sun",
+] as const
 
 interface ScheduleGridProps {
   /** Schedule data: array of rows, each row is [Mon, Tue, Wed, Thu, Fri, Sat, Sun] UTC millis or null */
@@ -31,6 +41,7 @@ interface ScheduleGridProps {
  * <ScheduleGrid scheduleData={meeting.scheduleData} currentDow={DateTime.now().weekday} />
  */
 export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }) => {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
 
   // Get current day index (0-6 for Mon-Sun)
@@ -49,9 +60,9 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
     <View style={themed($container)}>
       {/* Header Row */}
       <View style={themed($headerRow)}>
-        {DAYS.map((day, index) => (
+        {DAY_KEYS.map((dayKey, index) => (
           <View
-            key={day}
+            key={dayKey}
             style={[
               themed($headerCell),
               index === currentDayIndex && {
@@ -66,7 +77,7 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
                 index === currentDayIndex && { color: theme.colors.tint },
               ]}
             >
-              {day}
+              {t(dayKey)}
             </Text>
           </View>
         ))}

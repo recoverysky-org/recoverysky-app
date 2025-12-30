@@ -1,5 +1,18 @@
 import { FC, useCallback, useState, useMemo, useEffect } from "react"
-import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
+import {
+  ViewStyle,
+  FlatList,
+  RefreshControl,
+  View,
+  TextStyle,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+} from "react-native"
+import { Fellowship } from "@common"
+import { Ionicons } from "@expo/vector-icons"
+import { observer } from "mobx-react-lite"
+import { useTranslation } from "react-i18next"
 
 import { LiveMeetingRow } from "@/components/LiveMeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
@@ -14,6 +27,15 @@ import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 
+/** Fellowships available for filtering */
+const SELECTABLE_FELLOWSHIPS = [
+  { value: Fellowship.AA, label: "AA" },
+  { value: Fellowship.NA, label: "NA" },
+  { value: Fellowship.CMA, label: "CMA" },
+  { value: Fellowship.MA, label: "MA" },
+  { value: Fellowship.RD, label: "RD" },
+] as const
+
 /**
  * LiveContent - Core content for live meetings display
  *
@@ -21,10 +43,14 @@ import type { ThemedStyle } from "@/theme/types"
  * Contains all the logic for displaying live meetings with filtering,
  * sorting, and feedback integration.
  */
-export const LiveContent: FC = function LiveContent() {
+export const LiveContent: FC = observer(function LiveContent() {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const profileStore = useProfileStore()
+
+  // Fellowship filter modal
+  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
 
   // Live feedback state for DISPLAY only (not sorting)
   // This updates immediately when user interacts, but doesn't affect sort order
@@ -138,32 +164,81 @@ export const LiveContent: FC = function LiveContent() {
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
-  const ListHeaderComponent = useCallback(
-    () => (
+  return (
+    <View style={$screenContainer}>
+      {/* Header - outside FlatList to match Listings layout */}
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
-        {sortedMeetings.length > 0 && (
+      </View>
+
+      {/* Fellowship Selector - single line */}
+      <TouchableOpacity
+        style={themed($selectorButton)}
+        onPress={() => setFellowshipModalVisible(true)}
+      >
+        <Text style={themed($selectorLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
+        <View style={$selectorValueRow}>
+          <Text style={themed($selectorValue)}>
+            {profileStore.fellowship || "AA"}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+        </View>
+      </TouchableOpacity>
+
+      {/* Fellowship Selector Modal */}
+      <Modal
+        visible={fellowshipModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFellowshipModalVisible(false)}
+      >
+        <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
+          <View style={themed($modalContent)}>
+            <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
+            {SELECTABLE_FELLOWSHIPS.map((f) => (
+              <TouchableOpacity
+                key={f.value}
+                style={[
+                  themed($modalOption),
+                  profileStore.fellowship === f.value && themed($modalOptionSelected),
+                ]}
+                onPress={() => {
+                  profileStore.setFellowship(f.value)
+                  setFellowshipModalVisible(false)
+                }}
+              >
+                <Text
+                  style={[
+                    themed($modalOptionText),
+                    profileStore.fellowship === f.value && themed($modalOptionTextSelected),
+                  ]}
+                >
+                  {f.label}
+                </Text>
+                {profileStore.fellowship === f.value && (
+                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Meeting Count - matches Listings style */}
+      {sortedMeetings.length > 0 && (
+        <View style={themed($countContainer)}>
           <Text style={themed($countText)}>
             {sortedMeetings.length} {sortedMeetings.length === 1 ? "meeting" : "meetings"} live
             {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
-        )}
-        {sortedMeetings.length === 0 && lastRefresh && (
-          <Text style={themed($countText)}>({lastRefresh.toLocaleTimeString()})</Text>
-        )}
-      </View>
-    ),
-    [themed, sortedMeetings.length, lastRefresh],
-  )
+        </View>
+      )}
 
-  return (
-    <View style={$styles.container}>
       <FlatList
         data={sortedMeetings}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmptyComponent}
-        ListHeaderComponent={ListHeaderComponent}
         ItemSeparatorComponent={ItemSeparatorComponent}
         contentContainerStyle={themed($listContent)}
         refreshControl={
@@ -183,7 +258,7 @@ export const LiveContent: FC = function LiveContent() {
       />
     </View>
   )
-}
+})
 
 /**
  * LiveScreen - Shows currently live meetings (standalone screen)
@@ -200,22 +275,114 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
 }
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingBottom: spacing.md,
+  paddingHorizontal: spacing.md,
+  paddingTop: spacing.md,
+  paddingBottom: spacing.sm,
 })
 
-const $countText: ThemedStyle<TextStyle> = ({ spacing, colors }) => ({
-  marginTop: spacing.xs,
+const $screenContainer: ViewStyle = {
+  flex: 1,
+}
+
+// Fellowship selector - single line
+const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginHorizontal: spacing.md,
+  marginVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.sm,
+  borderRadius: 8,
+  backgroundColor: colors.card,
+  borderWidth: 1,
+  borderColor: colors.border,
+})
+
+const $selectorLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  color: colors.textDim,
+})
+
+const $selectorValueRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+}
+
+const $selectorValue: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.tint,
+})
+
+// Modal styles
+const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  alignItems: "center",
+})
+
+const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.background,
+  borderRadius: 12,
+  padding: spacing.md,
+  minWidth: 200,
+  maxWidth: "80%",
+})
+
+const $modalTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 18,
+  fontWeight: "700",
+  color: colors.text,
+  marginBottom: spacing.md,
+  textAlign: "center",
+})
+
+const $modalOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.sm,
+  borderRadius: 8,
+})
+
+const $modalOptionSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.card,
+})
+
+const $modalOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  color: colors.text,
+})
+
+const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontWeight: "600",
+})
+
+const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.sm,
+})
+
+const $countText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
   color: colors.textDim,
 })
 
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingBottom: spacing.xxl,
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.xl,
+  flexGrow: 1,
 })
 
 const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
   height: 1,
   backgroundColor: colors.border,
-  marginLeft: 40, // Align with text, after the badge
+  opacity: 0.5,
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
