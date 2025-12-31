@@ -1,37 +1,90 @@
-# RecoverySky Hybrid
+<p align="center">
+  <img src="assets/images/logo.png" alt="RecoverySky Logo" width="120" />
+</p>
 
-A cross-platform recovery meeting finder built with React Native and Expo.
+<h1 align="center">🌤️ RecoverySky Hybrid</h1>
 
-## Overview
+<p align="center">
+  <strong>A cross-platform recovery meeting finder built with React Native & Expo</strong>
+</p>
 
-RecoverySky helps people in recovery find meetings. The app features:
+<p align="center">
+  <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react" alt="React Native" />
+  <img src="https://img.shields.io/badge/Expo-54-000020?logo=expo" alt="Expo" />
+  <img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
+</p>
 
-- **Live Meetings**: Real-time display of currently active meetings with auto-refresh
-- **Offline-First**: SQLite database with Drizzle ORM for offline data access
-- **Profile Settings**: Customizable display name, pronouns, recovery date tracking
-- **Multi-Language**: English and Spanish support with runtime switching
-- **Dark Mode**: Professional iOS-style theme with automatic system detection
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
 
-## Tech Stack
+---
 
-- **React Native 0.81** with New Architecture enabled
-- **Expo 54** with dev client for iOS, Android, and Web
-- **MobX-State-Tree** for reactive state management with MMKV persistence
-- **SQLite + Drizzle ORM** for offline-first data layer
-- **React Navigation v7** with bottom tab navigation
-- **i18next** for internationalization
+## ✨ Features
 
-## Getting Started
+### 🔍 **Find Meetings Fast**
+Discover recovery meetings near you with powerful filtering by fellowship, time, and location. Real-time "Live Now" detection shows meetings currently in session.
+
+### 🤖 **AI-Powered Guide**
+Meet **Sky** — your AI recovery companion. Get instant answers about meetings, recovery resources, literature, and more through natural conversation.
+
+### 🔐 **Privacy-First Design**
+Your data stays yours. SQLCipher encryption protects your local database, with seamless key migration when upgrading from anonymous to authenticated accounts.
+
+### 📱 **Offline-First**
+Works without internet. SQLite + Drizzle ORM ensures your meeting data and personal settings are always available, syncing when you're back online.
+
+### 🌍 **Multi-Language Support**
+Full English and Spanish support with runtime language switching. More languages coming soon!
+
+### 🎨 **Beautiful Dark Mode**
+Professional iOS-style dark theme with automatic system detection. Easy on the eyes for late-night meeting searches.
+
+### 📊 **Track Your Recovery**
+Record attendance, track your clean days, and celebrate milestones. Your recovery journey, beautifully visualized.
+
+### 🔔 **Smart Onboarding**
+Guided setup flow that respects your privacy choices. Navigate with tappable progress dots.
+
+---
+
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **Framework** | React Native 0.81 (New Architecture) |
+| **Platform** | Expo 54 with dev client |
+| **State** | MobX-State-Tree + MMKV persistence |
+| **Database** | SQLite + Drizzle ORM + SQLCipher encryption |
+| **Navigation** | React Navigation v7 (bottom tabs) |
+| **AI** | Vercel AI SDK + Claude |
+| **Auth** | Zitadel OAuth with PKCE |
+| **i18n** | i18next with runtime switching |
+| **UI** | Custom design system with themed components |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Node.js >= 20.0.0
-- Xcode (for iOS development)
-- Android Studio (for Android development)
+- Xcode 15+ (iOS development)
+- Android Studio (Android development)
 
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/recoverysky-org/recoverysky-hybrid.git
+cd recoverysky-hybrid
+
+# Install dependencies
 npm install
 ```
 
@@ -42,14 +95,14 @@ npm install
 npm start
 
 # Run on specific platform
-npm run ios
-npm run android
-npm run web
+npm run ios        # iOS Simulator
+npm run android    # Android Emulator
+npm run web        # Web browser
 ```
 
-> **Note**: After installing native modules, you must rebuild the dev client:
+> 💡 **Tip**: After installing native modules, rebuild the dev client:
 > ```bash
-> npm run build:ios:sim    # iOS simulator
+> npm run build:ios:sim     # iOS simulator
 > npm run build:android:sim # Android emulator
 > ```
 
@@ -67,51 +120,88 @@ npm run build:ios:prod
 npm run build:android:prod
 ```
 
-## App Structure
+---
+
+## 📱 App Structure
 
 ### Screens
 
+| Screen | Icon | Description |
+|--------|------|-------------|
+| **Home** | 🏠 | Dashboard with quick access to features |
+| **Live** | 📡 | Currently active meetings with pull-to-refresh |
+| **Guide** | 🤖 | AI-powered recovery companion chat |
+| **Settings** | ⚙️ | Profile, recovery tracking, and preferences |
+
+### Hidden Screens (for power users)
+
 | Screen | Description |
 |--------|-------------|
-| **Home** | Dashboard with database status (dev mode) |
-| **Live** | Currently active meetings with pull-to-refresh |
-| **Settings** | Profile, recovery tracking, account, and app preferences |
+| **Meetings** | Full meeting directory with search |
+| **Schedule** | Weekly schedule grid view |
+| **Attendance** | Personal attendance history |
 
-### Navigation
+---
 
-3-tab bottom navigation (Home, Live, Settings) with 2 hidden tabs (Meetings, Schedule) for future use.
+## 🏗️ Architecture
 
-## State Management
+### State Management
 
-The app uses **MobX-State-Tree** for reactive state:
+MobX-State-Tree provides reactive, type-safe state:
 
-- **AuthenticationStore**: Auth token, email, user ID
-- **ProfileStore**: Display name, pronouns, recovery date, visibility toggles
-- **NetworkStore**: Online/offline tracking
+```typescript
+// Access stores in components
+import { observer } from "mobx-react-lite"
+import { useProfileStore } from "@/models"
+
+const MyComponent = observer(() => {
+  const profile = useProfileStore()
+  return <Text>{profile.displayName}</Text>  // Auto-updates!
+})
+```
+
+**Available Stores:**
+- 🔐 **AuthenticationStore** — Auth tokens, user identity
+- 👤 **ProfileStore** — Name, pronouns, recovery date, preferences
+- 🌐 **NetworkStore** — Online/offline status
 
 All stores auto-persist to MMKV storage.
 
-## Database
+### Database Layer
 
-SQLite with Drizzle ORM provides offline-first data access:
+SQLite with Drizzle ORM + SQLCipher encryption:
 
-- Migrations run automatically on startup
-- Seed data loaded on first launch
-- Meeting data joined with TREX recurrence data for live detection
+```typescript
+// Encrypted database opens automatically
+const { status } = useDatabase()  // "seeded" when ready
 
-## Linked Packages
+// Repositories for data access
+import { repositories } from "@/db"
+const meetings = await repositories.meeting.findLive()
+```
 
-This app links to local packages in the monorepo:
+**Security Features:**
+- 🔒 256-bit AES encryption via SQLCipher
+- 🔑 Keys stored in iOS Keychain / Android Keystore
+- 🔄 Seamless re-encryption on auth upgrade
 
-- `@common` → `recoverysky-common/lib/browser` (data models, validation)
-- `@sqlite` → `recoverysky-common/lib/sqlite` (Drizzle schemas, migrations)
+### Linked Packages
 
-After modifying linked packages, restart Metro with cache clear:
+This app uses local packages from the monorepo:
+
+| Alias | Package | Description |
+|-------|---------|-------------|
+| `@common` | `recoverysky-common/lib/browser` | Data models, validation |
+| `@sqlite` | `recoverysky-common/lib/sqlite` | Drizzle schemas, migrations |
+
+After modifying linked packages:
 ```bash
 npm start -- --clear
 ```
 
-## Quality Checks
+---
+
+## 🧪 Quality Checks
 
 ```bash
 npm run compile      # TypeScript check
@@ -121,6 +211,33 @@ npm run lint:deps    # Dependency validation
 npm test             # Jest tests
 ```
 
-## License
+---
 
-Private - RecoverySky Organization
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/amazing-feature`
+3. Make your changes
+4. Run quality checks: `npm run compile && npm run lint`
+5. Commit with conventional commits: `git commit -m "✨ feat: add amazing feature"`
+6. Push and open a PR
+
+---
+
+## 📄 License
+
+This project is open source under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  Made with 💜 by the RecoverySky Team
+</p>
+
+<p align="center">
+  <em>One day at a time. 🌤️</em>
+</p>
