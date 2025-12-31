@@ -23,6 +23,86 @@ import { logger } from "@/utils/logger"
 const log = logger.child({ module: "MeetingContext" })
 
 // ============================================================================
+// Retry Configuration
+// ============================================================================
+
+const RETRY_CONFIG = {
+  maxAttempts: 4,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+}
+
+/**
+ * Sleep for specified milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Execute an async function with exponential backoff retry
+ * Only logs error after all retries exhausted
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  isSuccess: (result: T) => boolean,
+  label: string,
+): Promise<{ result: T; attempts: number } | { error: string; attempts: number }> {
+  let lastResult: T | undefined
+  let lastError: string | undefined
+
+  for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
+    try {
+      const result = await fn()
+
+      if (isSuccess(result)) {
+        if (attempt > 1) {
+          log.info(`${label} succeeded after ${attempt} attempts`)
+        }
+        return { result, attempts: attempt }
+      }
+
+      // API returned error response
+      lastResult = result
+      const errorKind = (result as { kind?: string })?.kind ?? "unknown"
+
+      if (attempt < RETRY_CONFIG.maxAttempts) {
+        const delay = Math.min(
+          RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
+          RETRY_CONFIG.maxDelayMs,
+        )
+        log.debug(`${label} attempt ${attempt} failed (${errorKind}), retrying in ${delay}ms...`)
+        await sleep(delay)
+      } else {
+        lastError = errorKind
+      }
+    } catch (err) {
+      lastError = String(err)
+
+      if (attempt < RETRY_CONFIG.maxAttempts) {
+        const delay = Math.min(
+          RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
+          RETRY_CONFIG.maxDelayMs,
+        )
+        log.debug(`${label} attempt ${attempt} threw error, retrying in ${delay}ms...`)
+        await sleep(delay)
+      }
+    }
+  }
+
+  // All retries exhausted
+  log.error(`${label} failed after ${RETRY_CONFIG.maxAttempts} attempts`, {
+    error: lastError,
+  })
+
+  if (lastResult !== undefined) {
+    return { result: lastResult, attempts: RETRY_CONFIG.maxAttempts }
+  }
+
+  return { error: lastError ?? "Unknown error", attempts: RETRY_CONFIG.maxAttempts }
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -94,17 +174,23 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // ============================================================================
-  // Check API status
+  // Check API status (with retry)
   // ============================================================================
   useEffect(() => {
     async function checkApiStatus() {
       log.debug("Checking API status...")
-      const result = await api.getStatus()
-      if (result.kind === "ok") {
-        log.info("✓ API status: connected", { status: result.status })
+
+      const outcome = await retryWithBackoff(
+        () => api.getStatus(),
+        (result) => result.kind === "ok",
+        "API status check",
+      )
+
+      if ("result" in outcome && outcome.result.kind === "ok") {
+        log.info("✓ API status: connected", { status: outcome.result.status })
         setApiStatus("connected")
       } else {
-        log.warn("✗ API status: disconnected", { kind: result.kind })
+        log.warn("✗ API status: disconnected after retries")
         setApiStatus("disconnected")
       }
     }
@@ -112,55 +198,62 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   }, [refreshTrigger])
 
   // ============================================================================
-  // Refresh live meetings from API
+  // Refresh live meetings from API (with retry)
   // ============================================================================
   useEffect(() => {
     async function refreshLiveMeetings() {
-      try {
-        log.debug("Refreshing live meetings from API...")
-        setIsLoading(true)
-        setError(null)
+      log.debug("Refreshing live meetings from API...")
+      setIsLoading(true)
+      setError(null)
 
-        const result = await api.getLiveSchedules()
+      const outcome = await retryWithBackoff(
+        () => api.getLiveSchedules(),
+        (result) => result.kind === "ok",
+        "getLiveSchedules",
+      )
 
-        if (result.kind !== "ok") {
-          log.error("API getLiveSchedules failed", { kind: result.kind })
-          setError(`API error: ${result.kind}`)
-          setLiveMeetings([])
-          setIsLoading(false)
-          return
-        }
-
-        const { schedules } = result
-        log.info("API returned schedules", { count: schedules.length })
-
-        if (schedules.length === 0) {
-          log.info("No live meetings")
-          setLiveMeetings([])
-          setLastRefresh(new Date())
-          setIsLoading(false)
-          return
-        }
-
-        // Convert API schedules to MeetingWithTrex
-        const newLiveMeetings: MeetingWithTrex[] = schedules.map((s) => ({
-          ...s.meeting,
-          feedback: feedbackCache.get(s.meeting.id),
-          millis: s.millis,
-          duration_ms: s.duration_ms ?? 0,
-          scheduleData: s.data,
-        }))
-
-        setLiveMeetings(newLiveMeetings)
-        setLastRefresh(new Date())
-
-        log.info("✓ Live meetings ready", { count: newLiveMeetings.length })
-      } catch (err) {
-        log.error("Error refreshing live meetings", { error: String(err) })
-        setError(String(err))
-      } finally {
+      // Handle retry failure
+      if ("error" in outcome) {
+        setError(`Network error: ${outcome.error}`)
+        setLiveMeetings([])
         setIsLoading(false)
+        return
       }
+
+      // Handle API error response after retries exhausted
+      if (outcome.result.kind !== "ok") {
+        setError(`API error: ${outcome.result.kind}`)
+        setLiveMeetings([])
+        setIsLoading(false)
+        return
+      }
+
+      // Success!
+      const { schedules } = outcome.result
+      log.info("API returned schedules", { count: schedules.length })
+
+      if (schedules.length === 0) {
+        log.info("No live meetings")
+        setLiveMeetings([])
+        setLastRefresh(new Date())
+        setIsLoading(false)
+        return
+      }
+
+      // Convert API schedules to MeetingWithTrex
+      const newLiveMeetings: MeetingWithTrex[] = schedules.map((s) => ({
+        ...s.meeting,
+        feedback: feedbackCache.get(s.meeting.id),
+        millis: s.millis,
+        duration_ms: s.duration_ms ?? 0,
+        scheduleData: s.data,
+      }))
+
+      setLiveMeetings(newLiveMeetings)
+      setLastRefresh(new Date())
+      setIsLoading(false)
+
+      log.info("✓ Live meetings ready", { count: newLiveMeetings.length })
     }
 
     refreshLiveMeetings()
