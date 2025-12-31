@@ -137,7 +137,12 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
                     size={16}
                     color={message.role === "user" ? theme.colors.tint : "#9C27B0"}
                   />
-                  <Text style={themed($messageRole)}>
+                  <Text
+                    style={[
+                      themed($messageRole),
+                      message.role === "user" && $userMessageRole,
+                    ]}
+                  >
                     {message.role === "user" ? "You" : "Sky"}
                   </Text>
                 </View>
@@ -145,7 +150,13 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
                   {message.parts.map((part, index) => {
                     if (part.type === "text") {
                       return (
-                        <Text key={`${message.id}-${index}`} style={themed($messageText)}>
+                        <Text
+                          key={`${message.id}-${index}`}
+                          style={[
+                            themed($messageText),
+                            message.role === "user" && $userMessageText,
+                          ]}
+                        >
                           {part.text}
                         </Text>
                       )
@@ -194,12 +205,13 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
             value={input}
             onChangeText={setInput}
             placeholderTx="guideScreen:inputPlaceholder"
+            containerStyle={$inputContainerInner}
             style={themed($textInput)}
             inputWrapperStyle={themed($inputWrapper)}
             onSubmitEditing={handleSend}
             editable={!isLoading}
             returnKeyType="send"
-            multiline
+            blurOnSubmit={true}
           />
           <Pressable
             onPress={handleSend}
@@ -328,6 +340,15 @@ const $messageRole: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
+// User message styles - light text on dark background
+const $userMessageRole: TextStyle = {
+  color: "rgba(255, 255, 255, 0.7)",
+}
+
+const $userMessageText: TextStyle = {
+  color: "#FFFFFF",
+}
+
 const $messageContent: ThemedStyle<ViewStyle> = () => ({})
 
 const $messageText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -385,25 +406,32 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $inputContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
-  alignItems: "flex-end",
+  alignItems: "center",
   gap: spacing.sm,
-  paddingVertical: spacing.sm,
+  paddingTop: spacing.sm,
+  paddingBottom: spacing.lg,
   borderTopWidth: 1,
   borderTopColor: colors.border,
 })
 
-const $textInput: ThemedStyle<ViewStyle> = () => ({
+const $inputContainerInner: ViewStyle = {
   flex: 1,
-  minHeight: 40,
-  maxHeight: 120,
+}
+
+const $textInput: ThemedStyle<TextStyle> = ({ colors }) => ({
+  flex: 1,
+  color: colors.text,
 })
 
-const $inputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
+const $inputWrapper: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flex: 1,
   backgroundColor: colors.card,
   borderColor: colors.border,
-  borderRadius: 20,
-  paddingHorizontal: 16,
-  paddingVertical: 8,
+  borderWidth: 1,
+  borderRadius: 22,
+  paddingHorizontal: spacing.md,
+  justifyContent: "center",
+  height: 44,
 })
 
 const $sendButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
