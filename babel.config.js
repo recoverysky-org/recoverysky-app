@@ -19,7 +19,7 @@ module.exports = function (api) {
           },
         },
       ],
-      // Enable importing .sql files as strings for Drizzle migrations
+      // Enable importing .sql files as strings
       ["inline-import", { extensions: [".sql"] }],
     ],
   }
