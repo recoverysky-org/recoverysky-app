@@ -10,7 +10,7 @@ import * as AuthSession from "expo-auth-session"
 import * as WebBrowser from "expo-web-browser"
 
 import { useAuthenticationStore } from "@/models"
-import { setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
+import { getCurrentSqliteKey, setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
 import { decodeJwtPayload, extractSqliteKeyFromClaims, type ZitadelIdTokenClaims } from "./jwtUtils"
@@ -35,6 +35,11 @@ const STORAGE_KEYS = {
   EXPIRES_AT: "zitadel_expires_at",
 } as const
 
+export interface UseZitadelAuthOptions {
+  /** Callback when SQLite encryption key from JWT differs from current key */
+  onSqliteKeyChange?: (newKey: string) => Promise<void>
+}
+
 export interface UseZitadelAuthResult {
   /** Initiate the OAuth login flow */
   login: () => Promise<void>
@@ -55,7 +60,8 @@ export interface UseZitadelAuthResult {
 /**
  * Hook for Zitadel OAuth authentication
  */
-export function useZitadelAuth(): UseZitadelAuthResult {
+export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelAuthResult {
+  const { onSqliteKeyChange } = options
   const authStore = useAuthenticationStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -144,12 +150,21 @@ export function useZitadelAuth(): UseZitadelAuthResult {
       if (tokenResponse.idToken) {
         const claims = decodeJwtPayload<ZitadelIdTokenClaims>(tokenResponse.idToken)
         if (claims) {
-          const sqliteKey = extractSqliteKeyFromClaims(claims)
-          if (sqliteKey) {
-            log.info("Found SQLite key in JWT, updating stored key")
-            await setSqliteEncryptionKey(sqliteKey)
-            // Note: Database re-encryption would require app restart
-            // or close/delete/reopen flow - handled separately
+          const jwtSqliteKey = extractSqliteKeyFromClaims(claims)
+          if (jwtSqliteKey) {
+            const currentKey = await getCurrentSqliteKey()
+            if (currentKey !== jwtSqliteKey) {
+              log.info("SQLite key from JWT differs from current key, triggering rekey")
+              // Call rekey callback first (to re-encrypt DB), then update stored key
+              if (onSqliteKeyChange) {
+                await onSqliteKeyChange(jwtSqliteKey)
+              } else {
+                // Fallback: just save the key (requires app restart for rekey)
+                await setSqliteEncryptionKey(jwtSqliteKey)
+              }
+            } else {
+              log.debug("SQLite key from JWT matches current key")
+            }
           }
         }
       }

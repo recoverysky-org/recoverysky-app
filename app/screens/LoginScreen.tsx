@@ -4,6 +4,7 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { useDatabase } from "@/db/DatabaseProvider"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
@@ -19,7 +20,10 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
  */
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
-  const { login, loginAnonymously, isLoading, error, clearError } = useZitadelAuth()
+  const { rekeyDb } = useDatabase()
+  const { login, loginAnonymously, isLoading, error, clearError } = useZitadelAuth({
+    onSqliteKeyChange: rekeyDb,
+  })
 
   const handleLogin = async () => {
     clearError()
@@ -51,18 +55,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         <Pressable
           testID="login-button"
-          style={[
-            themed($button),
-            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
-            isLoading && { opacity: 0.7 },
-          ]}
+          style={[themed($button), isLoading && themed($buttonDisabled)]}
           onPress={handleLogin}
           disabled={isLoading}
         >
-          <Text
-            style={[themed($buttonText), { color: theme.colors.tint }]}
-            tx="loginScreen:loginButton"
-          />
+          <Text style={themed($buttonText)} tx="loginScreen:loginButton" />
           {isLoading && (
             <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
           )}
@@ -70,18 +67,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         <Pressable
           testID="anonymous-button"
-          style={[
-            themed($button),
-            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
-            isLoading && { opacity: 0.7 },
-          ]}
+          style={[themed($button), isLoading && themed($buttonDisabled)]}
           onPress={loginAnonymously}
           disabled={isLoading}
         >
-          <Text
-            style={[themed($buttonText), { color: theme.colors.textDim }]}
-            tx="loginScreen:continueAnonymously"
-          />
+          <Text style={themed($buttonTextSecondary)} tx="loginScreen:continueAnonymously" />
         </Pressable>
 
         {isLoading && <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />}
@@ -134,18 +124,31 @@ const $button: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   justifyContent: "center",
   backgroundColor: colors.background,
   borderWidth: 1.5,
+  borderColor: colors.tint,
   paddingVertical: spacing.md,
   paddingHorizontal: spacing.xl,
   borderRadius: 12,
+  shadowColor: colors.tint,
   shadowOffset: { width: 0, height: 0 },
   shadowOpacity: 0.5,
   shadowRadius: 8,
   elevation: 8,
 })
 
-const $buttonText: ThemedStyle<TextStyle> = () => ({
+const $buttonDisabled: ThemedStyle<ViewStyle> = () => ({
+  opacity: 0.7,
+})
+
+const $buttonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 18,
   fontWeight: "600",
+  color: colors.tint,
+})
+
+const $buttonTextSecondary: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 18,
+  fontWeight: "600",
+  color: colors.textDim,
 })
 
 const $spinner: ThemedStyle<ViewStyle> = ({ spacing }) => ({

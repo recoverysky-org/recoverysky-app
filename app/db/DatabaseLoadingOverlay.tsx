@@ -21,8 +21,9 @@ export function DatabaseLoadingOverlay() {
   const { themed, theme } = useAppTheme()
   const { status, error } = useDatabase()
 
-  // Only show overlay during opening, seeding, or error states
-  const showOverlay = status === "opening" || status === "seeding" || status === "error"
+  // Only show overlay during opening, seeding, reencrypting, or error states
+  const showOverlay =
+    status === "opening" || status === "seeding" || status === "reencrypting" || status === "error"
 
   if (!showOverlay) {
     return null
@@ -32,6 +33,7 @@ export function DatabaseLoadingOverlay() {
   const getTxKey = () => {
     if (status === "error") return "database:error"
     if (status === "seeding") return "database:seeding"
+    if (status === "reencrypting") return "database:reencrypting"
     return "database:initializing"
   }
 

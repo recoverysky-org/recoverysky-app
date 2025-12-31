@@ -21,16 +21,16 @@ import { migrations } from "@sqlite"
 import type * as schema from "@sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
-import { getSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
+import { getSqliteEncryptionKey, setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
 import { feedbackCache } from "./feedbackCache"
-import { openDb as openDbProvider } from "./provider"
+import { openDb as openDbProvider, rekeyDatabase } from "./provider"
 import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
 
 const log = logger.child({ module: "DatabaseProvider" })
 
-type DbStatus = "closed" | "opening" | "open" | "seeding" | "seeded" | "error"
+type DbStatus = "closed" | "opening" | "open" | "seeding" | "seeded" | "reencrypting" | "error"
 
 interface DatabaseContextValue {
   /** Current database status */
@@ -41,6 +41,8 @@ interface DatabaseContextValue {
   openDb: () => Promise<void>
   /** Seed the database with initial data */
   seedDb: () => Promise<void>
+  /** Re-encrypt database with new key (for auth upgrade) */
+  rekeyDb: (newKey: string) => Promise<void>
 }
 
 const DatabaseContext = createContext<DatabaseContextValue>({
@@ -48,6 +50,7 @@ const DatabaseContext = createContext<DatabaseContextValue>({
   error: null,
   openDb: async () => {},
   seedDb: async () => {},
+  rekeyDb: async () => {},
 })
 
 /**
@@ -160,6 +163,35 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     }
   }, [status])
 
+  const rekeyDb = useCallback(
+    async (newKey: string) => {
+      if (status !== "seeded" || !dbRef.current) {
+        log.warn("Database not ready for rekey", { status })
+        setError("Database must be seeded before rekeying")
+        return
+      }
+
+      try {
+        setStatus("reencrypting")
+        setError(null)
+        log.info("Re-encrypting database with new key...")
+
+        await rekeyDatabase(newKey)
+
+        // Update SecureStore with the new key
+        await setSqliteEncryptionKey(newKey)
+
+        log.info("Database re-encrypted successfully")
+        setStatus("seeded")
+      } catch (e) {
+        log.error("Rekey failed", { error: String(e) })
+        setError(e instanceof Error ? e.message : String(e))
+        setStatus("error")
+      }
+    },
+    [status],
+  )
+
   // Auto-initialize database on mount
   useEffect(() => {
     log.info("Auto-initializing database...")
@@ -184,8 +216,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo<DatabaseContextValue>(
-    () => ({ status, error, openDb, seedDb }),
-    [status, error, openDb, seedDb],
+    () => ({ status, error, openDb, seedDb, rekeyDb }),
+    [status, error, openDb, seedDb, rekeyDb],
   )
 
   log.debug("DatabaseProvider rendering", { status })

@@ -106,6 +106,27 @@ export function getCurrentEncryptionKey(): string | null {
 }
 
 /**
+ * Re-encrypt the database with a new key using PRAGMA rekey.
+ * Preserves all data - no need to delete/recreate.
+ *
+ * @param newKey - The new encryption key (64-character hex string)
+ */
+export async function rekeyDatabase(newKey: string): Promise<void> {
+  if (!expoDb) {
+    throw new Error("Database not open, cannot rekey")
+  }
+
+  if (!currentEncryptionKey) {
+    throw new Error("Database not encrypted, cannot rekey")
+  }
+
+  console.log("[provider] Re-encrypting database with new key...")
+  expoDb.execSync(`PRAGMA rekey = '${newKey}'`)
+  currentEncryptionKey = newKey
+  console.log("[provider] Database re-encrypted successfully")
+}
+
+/**
  * Get current database instances (null if not opened)
  */
 export function getDb() {

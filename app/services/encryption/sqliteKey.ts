@@ -87,6 +87,19 @@ export async function hasSqliteEncryptionKey(): Promise<boolean> {
 }
 
 /**
+ * Get the current stored encryption key without generating a new one.
+ * Returns null if no key is stored.
+ */
+export async function getCurrentSqliteKey(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(SQLITE_KEY)
+  } catch (error) {
+    log.error("Failed to get current SQLite encryption key", { error: String(error) })
+    return null
+  }
+}
+
+/**
  * Clear the stored encryption key.
  *
  * WARNING: This will make the encrypted database inaccessible!
