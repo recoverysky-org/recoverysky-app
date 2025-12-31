@@ -1,0 +1,262 @@
+/**
+ * Third-Party Open Source Software Licenses
+ * Last updated: Dec 31, 2024
+ */
+export const ossLicensesText = `THIRD-PARTY SOFTWARE LICENSES
+
+RecoverySky App uses the following open source software:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CORE FRAMEWORK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+React Native
+  License: MIT
+  Copyright: Meta Platforms, Inc. and affiliates
+  https://github.com/facebook/react-native
+
+React
+  License: MIT
+  Copyright: Meta Platforms, Inc. and affiliates
+  https://github.com/facebook/react
+
+Expo
+  License: MIT
+  Copyright: 650 Industries, Inc.
+  https://github.com/expo/expo
+
+TypeScript
+  License: Apache-2.0
+  Copyright: Microsoft Corporation
+  https://github.com/microsoft/TypeScript
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STATE MANAGEMENT & DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MobX-State-Tree
+  License: MIT
+  Copyright: Michel Weststrate
+  https://github.com/mobxjs/mobx-state-tree
+
+MobX
+  License: MIT
+  Copyright: Michel Weststrate
+  https://github.com/mobxjs/mobx
+
+Drizzle ORM
+  License: Apache-2.0
+  Copyright: Drizzle Team
+  https://github.com/drizzle-team/drizzle-orm
+
+react-native-mmkv
+  License: MIT
+  Copyright: Marc Rousavy
+  https://github.com/mrousavy/react-native-mmkv
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+React Navigation
+  License: MIT
+  Copyright: React Navigation contributors
+  https://github.com/react-navigation/react-navigation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NETWORKING & API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Apisauce
+  License: MIT
+  Copyright: Infinite Red, Inc.
+  https://github.com/infinitered/apisauce
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AI & STREAMING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Vercel AI SDK
+  License: Apache-2.0
+  Copyright: Vercel, Inc.
+  https://github.com/vercel/ai
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AUTHENTICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+expo-auth-session
+  License: MIT
+  Copyright: 650 Industries, Inc.
+  https://github.com/expo/expo
+
+expo-secure-store
+  License: MIT
+  Copyright: 650 Industries, Inc.
+  https://github.com/expo/expo
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATABASE & ENCRYPTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+expo-sqlite
+  License: MIT
+  Copyright: 650 Industries, Inc.
+  https://github.com/expo/expo
+
+SQLCipher
+  License: BSD-3-Clause
+  Copyright: Zetetic LLC
+  https://github.com/sqlcipher/sqlcipher
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UI COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+React Native Gesture Handler
+  License: MIT
+  Copyright: Software Mansion
+  https://github.com/software-mansion/react-native-gesture-handler
+
+React Native Reanimated
+  License: MIT
+  Copyright: Software Mansion
+  https://github.com/software-mansion/react-native-reanimated
+
+React Native Screens
+  License: MIT
+  Copyright: Software Mansion
+  https://github.com/software-mansion/react-native-screens
+
+React Native Safe Area Context
+  License: MIT
+  Copyright: Th3rd Wave
+  https://github.com/th3rdwave/react-native-safe-area-context
+
+React Native Keyboard Controller
+  License: MIT
+  Copyright: Kiryl Ziusko
+  https://github.com/kirillzyusko/react-native-keyboard-controller
+
+@expo/vector-icons (Ionicons)
+  License: MIT
+  Copyright: 650 Industries, Inc.
+  https://github.com/expo/vector-icons
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTERNATIONALIZATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+i18next
+  License: MIT
+  Copyright: i18next contributors
+  https://github.com/i18next/i18next
+
+react-i18next
+  License: MIT
+  Copyright: i18next contributors
+  https://github.com/i18next/react-i18next
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATE & TIME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+date-fns
+  License: MIT
+  Copyright: Sasha Koss and Lesha Koss
+  https://github.com/date-fns/date-fns
+
+Luxon
+  License: MIT
+  Copyright: JS Foundation and other contributors
+  https://github.com/moment/luxon
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VIDEO CONFERENCING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Zoom Meeting SDK
+  License: Zoom SDK License
+  Copyright: Zoom Video Communications, Inc.
+  https://developers.zoom.us/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAYMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RevenueCat
+  License: MIT
+  Copyright: RevenueCat, Inc.
+  https://github.com/RevenueCat/purchases-js
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FONTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Space Grotesk
+  License: OFL-1.1 (SIL Open Font License)
+  Copyright: Florian Karsten
+  https://fonts.google.com/specimen/Space+Grotesk
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUILD TOOLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Babel
+  License: MIT
+  Copyright: Sebastian McKenzie and other contributors
+  https://github.com/babel/babel
+
+Metro
+  License: MIT
+  Copyright: Meta Platforms, Inc. and affiliates
+  https://github.com/facebook/metro
+
+ESLint
+  License: MIT
+  Copyright: OpenJS Foundation
+  https://github.com/eslint/eslint
+
+Prettier
+  License: MIT
+  Copyright: James Long and contributors
+  https://github.com/prettier/prettier
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TESTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Jest
+  License: MIT
+  Copyright: Meta Platforms, Inc. and affiliates
+  https://github.com/facebook/jest
+
+Testing Library
+  License: MIT
+  Copyright: Kent C. Dodds and contributors
+  https://github.com/testing-library
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LICENSE SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The majority of dependencies use the MIT License, with some using Apache-2.0,
+BSD-3-Clause, and ISC licenses. All licenses are permissive open source
+licenses that allow commercial use.
+
+Full license texts can be found in the node_modules directory of each
+respective package.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACKNOWLEDGMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+We are grateful to the open source community for making these amazing tools
+available. This app would not be possible without the hard work of thousands
+of contributors around the world.
+
+If you believe any attribution is missing or incorrect, please contact us
+at support@recoverysky.app.
+
+Generated: December 2024
+RecoverySky App v0.1.0`
