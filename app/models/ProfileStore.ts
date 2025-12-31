@@ -1,41 +1,54 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { liveEvents } from "@/db"
+import { profileRepository } from "@/db/repositories"
 import { changeLanguage, translate } from "@/i18n"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
 /**
- * Pronoun options as an MST enumeration
+ * Pronoun options type
  */
-const PronounsEnum = types.enumeration("Pronouns", ["he/him", "she/her", "they/them", "em/ers"])
+type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
+/**
+ * Profile data stored in encrypted SQLite
+ * Only truly sensitive personal data goes here
+ */
+export interface SecureProfileData {
+  shortName?: string
+  pronouns?: Pronouns
+  recoveryDate?: string
+  fellowship?: string
+  language?: string
+}
+
+/**
+ * ProfileStore - User profile and preferences
+ *
+ * SECURITY: Sensitive personal data is stored in `volatile` state (not in snapshots).
+ * - Volatile data is persisted to encrypted SQLite (shortName, pronouns, recoveryDate, fellowship, language)
+ * - Non-sensitive preferences go to MMKV via snapshots (props)
+ */
 export const ProfileStoreModel = types
   .model("ProfileStore")
   .props({
-    // Profile display settings
-    shortName: "Joe B.",
-    pronouns: types.maybeNull(PronounsEnum),
-    showCleanDate: true,
-    showCleanDays: true,
-    showPronouns: true,
+    // === NON-SENSITIVE (stored in MMKV via snapshots) ===
 
-    // Recovery info
-    recoveryDate: types.optional(types.string, new Date().toISOString().split("T")[0]),
-    fellowship: "AA",
+    // Display toggles (preferences, not personal data)
+    showCleanDate: types.optional(types.boolean, true),
+    showCleanDays: types.optional(types.boolean, true),
+    showPronouns: types.optional(types.boolean, true),
 
     // Account info
-    subscription: "Free",
+    subscription: types.optional(types.string, "Free"),
     subscriptionExpires: types.maybeNull(types.string),
 
     // Appearance
     themeColor: types.optional(types.string, ""), // empty = use default tint
-    language: types.optional(types.string, ""), // empty = use device locale
 
-    // Onboarding
+    // Onboarding & UX
     onboardingCompleted: types.optional(types.boolean, false),
-
-    // User preferences for dialogs
     dontShowShortMeetingWarning: types.optional(types.boolean, false),
 
     // Attendance settings
@@ -45,7 +58,25 @@ export const ProfileStoreModel = types
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
   })
+  .volatile(() => ({
+    // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
+    shortName: "Joe B.",
+    pronouns: null as Pronouns,
+    recoveryDate: new Date().toISOString().split("T")[0],
+    fellowship: "AA",
+    language: "", // empty = use device locale
+
+    // Hydration flag
+    _isHydrated: false,
+  }))
   .views((self) => ({
+    /**
+     * Check if secure data has been loaded from SQLite
+     */
+    get isHydrated(): boolean {
+      return self._isHydrated
+    },
+
     /**
      * Calculate clean days from recovery date
      */
@@ -71,6 +102,8 @@ export const ProfileStoreModel = types
      */
     get pronounsLabel(): string {
       switch (self.pronouns) {
+        case "none":
+          return translate("settingsScreen:pronounNone")
         case "he/him":
           return translate("settingsScreen:pronounHeHim")
         case "she/her":
@@ -90,7 +123,7 @@ export const ProfileStoreModel = types
     get displayName(): string {
       const parts: string[] = []
 
-      if (self.showPronouns && self.pronouns) {
+      if (self.showPronouns && self.pronouns && self.pronouns !== "none") {
         // Use the raw pronoun value for display name (not translated)
         parts.push(self.pronouns)
       }
@@ -119,129 +152,179 @@ export const ProfileStoreModel = types
     },
   }))
   .actions(withSetPropAction)
-  .actions((self) => ({
-    setShortName(value: string) {
-      self.shortName = value
-    },
+  .actions((self) => {
+    // Helper to persist sensitive data to SQLite
+    const persistSecure = (data: SecureProfileData) => {
+      // Fire-and-forget - don't await
+      profileRepository.save(data).catch((err) => {
+        console.error("[ProfileStore] Failed to persist to SQLite:", err)
+      })
+    }
 
-    setPronouns(value: "he/him" | "she/her" | "they/them" | "em/ers" | null) {
-      self.pronouns = value
-    },
+    return {
+      /**
+       * Hydrate sensitive data from SQLite on app startup
+       * Called from ProfileHydrator after database is ready
+       */
+      hydrateFromSQLite(data: SecureProfileData) {
+        if (data.shortName !== undefined) self.shortName = data.shortName
+        if (data.pronouns !== undefined) self.pronouns = data.pronouns
+        if (data.recoveryDate !== undefined) self.recoveryDate = data.recoveryDate
+        if (data.fellowship !== undefined) self.fellowship = data.fellowship
+        if (data.language !== undefined) {
+          self.language = data.language
+          // Sync to i18n if a language preference was stored
+          if (data.language) {
+            changeLanguage(data.language)
+          }
+        }
 
-    setShowCleanDate(value: boolean) {
-      self.showCleanDate = value
-    },
+        self._isHydrated = true
+      },
 
-    setShowCleanDays(value: boolean) {
-      self.showCleanDays = value
-    },
+      // === VOLATILE SETTERS (persist to SQLite) ===
 
-    setShowPronouns(value: boolean) {
-      self.showPronouns = value
-    },
+      setShortName(value: string) {
+        self.shortName = value
+        persistSecure({ shortName: value })
+      },
 
-    setRecoveryDate(date: Date) {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, "0")
-      const day = String(date.getDate()).padStart(2, "0")
-      self.recoveryDate = `${year}-${month}-${day}`
-    },
+      setPronouns(value: Pronouns) {
+        self.pronouns = value
+        persistSecure({ pronouns: value })
+      },
 
-    setFellowship(value: string) {
-      self.fellowship = value
-      // Notify Live page to refresh with new fellowship filter
-      liveEvents.preferencesChanged("fellowship")
-    },
+      setRecoveryDate(date: Date) {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, "0")
+        const day = String(date.getDate()).padStart(2, "0")
+        const dateStr = `${year}-${month}-${day}`
+        self.recoveryDate = dateStr
+        persistSecure({ recoveryDate: dateStr })
+      },
 
-    setSubscription(value: string) {
-      self.subscription = value
-    },
+      setFellowship(value: string) {
+        self.fellowship = value
+        persistSecure({ fellowship: value })
+        // Notify Live page to refresh with new fellowship filter
+        liveEvents.preferencesChanged("fellowship")
+      },
 
-    setThemeColor(value: string) {
-      self.themeColor = value
-    },
+      /**
+       * Set language and sync to i18n
+       */
+      setLanguage(value: string) {
+        self.language = value
+        persistSecure({ language: value })
+        changeLanguage(value)
+      },
 
-    /**
-     * Set language and sync to i18n
-     */
-    setLanguage(value: string) {
-      self.language = value
-      changeLanguage(value)
-    },
+      // === PROP SETTERS (auto-persist to MMKV via snapshots) ===
 
-    /**
-     * Mark onboarding as completed
-     */
-    completeOnboarding() {
-      self.onboardingCompleted = true
-    },
+      setShowCleanDate(value: boolean) {
+        self.showCleanDate = value
+      },
 
-    /**
-     * Reset onboarding (for testing or re-onboarding)
-     */
-    resetOnboarding() {
-      self.onboardingCompleted = false
-    },
+      setShowCleanDays(value: boolean) {
+        self.showCleanDays = value
+      },
 
-    /**
-     * Set "don't show short meeting warning" preference
-     */
-    setDontShowShortMeetingWarning(value: boolean) {
-      self.dontShowShortMeetingWarning = value
-    },
+      setShowPronouns(value: boolean) {
+        self.showPronouns = value
+      },
 
-    /**
-     * Set attendance enabled
-     */
-    setAttendanceEnabled(value: boolean) {
-      self.attendanceEnabled = value
-    },
+      setSubscription(value: string) {
+        self.subscription = value
+      },
 
-    /**
-     * Set report export email
-     */
-    setReportEmail(value: string) {
-      self.reportEmail = value
-    },
+      setSubscriptionExpires(value: string | null) {
+        self.subscriptionExpires = value
+      },
 
-    /**
-     * Dismiss a home screen help card
-     */
-    dismissHomeCard(cardId: string) {
-      if (!self.dismissedHomeCards.includes(cardId)) {
-        self.dismissedHomeCards.push(cardId)
-      }
-    },
+      setThemeColor(value: string) {
+        self.themeColor = value
+      },
 
-    /**
-     * Reset home screen help cards (show all again)
-     */
-    resetHomeCards() {
-      self.dismissedHomeCards.clear()
-    },
+      setAttendanceEnabled(value: boolean) {
+        self.attendanceEnabled = value
+      },
 
-    /**
-     * Reset profile to defaults
-     */
-    reset() {
-      self.shortName = "Joe B."
-      self.pronouns = null
-      self.showCleanDate = true
-      self.showCleanDays = true
-      self.showPronouns = true
-      self.recoveryDate = new Date().toISOString().split("T")[0]
-      self.fellowship = "AA"
-      self.subscription = "Free"
-      self.subscriptionExpires = null
-      self.themeColor = ""
-      self.language = ""
-      self.onboardingCompleted = false
-      self.dontShowShortMeetingWarning = false
-      self.attendanceEnabled = false
-      self.reportEmail = ""
-      self.dismissedHomeCards.clear()
-    },
-  }))
+      setReportEmail(value: string) {
+        self.reportEmail = value
+      },
+
+      /**
+       * Mark onboarding as completed
+       */
+      completeOnboarding() {
+        self.onboardingCompleted = true
+      },
+
+      /**
+       * Reset onboarding (for testing or re-onboarding)
+       */
+      resetOnboarding() {
+        self.onboardingCompleted = false
+      },
+
+      /**
+       * Set "don't show short meeting warning" preference
+       */
+      setDontShowShortMeetingWarning(value: boolean) {
+        self.dontShowShortMeetingWarning = value
+      },
+
+      /**
+       * Dismiss a home screen help card
+       */
+      dismissHomeCard(cardId: string) {
+        if (!self.dismissedHomeCards.includes(cardId)) {
+          self.dismissedHomeCards.push(cardId)
+        }
+      },
+
+      /**
+       * Reset home screen help cards (show all again)
+       */
+      resetHomeCards() {
+        self.dismissedHomeCards.clear()
+      },
+
+      /**
+       * Reset profile to defaults
+       */
+      reset() {
+        // Reset volatile (sensitive) data
+        self.shortName = "Joe B."
+        self.pronouns = null
+        self.recoveryDate = new Date().toISOString().split("T")[0]
+        self.fellowship = "AA"
+        self.language = ""
+
+        // Reset props (non-sensitive) data
+        self.showCleanDate = true
+        self.showCleanDays = true
+        self.showPronouns = true
+        self.subscription = "Free"
+        self.subscriptionExpires = null
+        self.themeColor = ""
+        self.onboardingCompleted = false
+        self.dontShowShortMeetingWarning = false
+        self.attendanceEnabled = false
+        self.reportEmail = ""
+        self.dismissedHomeCards.clear()
+
+        // Persist reset to SQLite
+        persistSecure({
+          shortName: self.shortName,
+          pronouns: self.pronouns,
+          recoveryDate: self.recoveryDate,
+          fellowship: self.fellowship,
+          language: self.language,
+        })
+      },
+    }
+  })
 
 export interface ProfileStore extends Instance<typeof ProfileStoreModel> {}
 export interface ProfileStoreSnapshot extends SnapshotOut<typeof ProfileStoreModel> {}

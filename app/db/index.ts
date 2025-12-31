@@ -25,6 +25,7 @@
 export { getDb, openDb } from "./provider"
 export { DatabaseProvider, useDatabase, useDatabaseReady } from "./DatabaseProvider"
 export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
+export { ProfileHydrator } from "./ProfileHydrator"
 export {
   meetingRepo,
   scheduleRepo,

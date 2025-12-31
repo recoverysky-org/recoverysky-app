@@ -13,6 +13,8 @@
  * const trexes = findAllTrexes()
  */
 
+import type { SecureProfileData } from "@/models/ProfileStore"
+
 import {
   MeetingSqliteRepository,
   ScheduleSqliteRepository,
@@ -292,4 +294,49 @@ export function findTrexesByIds(ids: string[]): TrexRow[] {
   const all = findAllTrexes()
   const idSet = new Set(ids)
   return all.filter((t) => idSet.has(t.id))
+}
+
+// ============================================================================
+// Profile Repository (Secure - encrypted SQLite)
+// ============================================================================
+
+/**
+ * Profile repository for secure storage of sensitive user data.
+ *
+ * Stores: shortName, pronouns, recoveryDate, fellowship, language
+ *
+ * TODO: Replace this placeholder with actual SQLite implementation
+ * once the migration and repository are created in recoverysky-common.
+ */
+export const profileRepository = {
+  /**
+   * Load profile data from encrypted SQLite
+   * Returns null if no profile exists yet
+   */
+  load: async (): Promise<SecureProfileData | null> => {
+    // TODO: Replace with actual SQLite query
+    // const { db } = getDb()
+    // if (!db) return null
+    // const repo = new ProfileSqliteRepository(db)
+    // return repo.load()
+
+    // Placeholder: return null (use defaults)
+    console.log("[profileRepository] load() - placeholder, returning null")
+    return null
+  },
+
+  /**
+   * Save profile data to encrypted SQLite
+   * Uses upsert - creates if not exists, updates if exists
+   */
+  save: async (data: SecureProfileData): Promise<void> => {
+    // TODO: Replace with actual SQLite upsert
+    // const { db } = getDb()
+    // if (!db) throw new Error("Database not opened")
+    // const repo = new ProfileSqliteRepository(db)
+    // await repo.save(data)
+
+    // Placeholder: log and no-op
+    console.log("[profileRepository] save() - placeholder", data)
+  },
 }
