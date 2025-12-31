@@ -228,7 +228,7 @@ export const LiveContent: FC = observer(function LiveContent() {
       {sortedMeetings.length > 0 && (
         <View style={themed($countContainer)}>
           <Text style={themed($countText)}>
-            {sortedMeetings.length} {sortedMeetings.length === 1 ? "meeting" : "meetings"} live
+            {t("liveScreen:meetingCount", { count: sortedMeetings.length })}
             {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
         </View>

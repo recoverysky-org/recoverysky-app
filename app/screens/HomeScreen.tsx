@@ -103,10 +103,13 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   // Get undismissed cards (use slice() to get reactive array for dependency)
   // Show max 5 at a time - new cards appear as others are dismissed
   const dismissedIds = profileStore.dismissedHomeCards.slice()
-  const visibleCards = HELP_CARDS.filter((card) => !dismissedIds.includes(card.id)).slice(
-    0,
-    MAX_VISIBLE_CARDS,
-  )
+  const visibleCards = HELP_CARDS.filter((card) => {
+    // Don't show dismissed cards
+    if (dismissedIds.includes(card.id)) return false
+    // Don't show attendance card if attendance tracking is disabled
+    if (card.id === "attendance" && !profileStore.attendanceEnabled) return false
+    return true
+  }).slice(0, MAX_VISIBLE_CARDS)
 
   const handleDismissCard = useCallback(
     (cardId: string) => {

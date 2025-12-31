@@ -37,7 +37,7 @@ import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 
-type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers" | null
+type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
 /** Fellowships available for user selection */
 const SELECTABLE_FELLOWSHIPS = [
@@ -107,6 +107,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
     // Helper to get translated pronoun label
     const getPronounsLabel = (p: Pronouns): string => {
       switch (p) {
+        case "none":
+          return translate("settingsScreen:pronounNone")
         case "he/him":
           return translate("settingsScreen:pronounHeHim")
         case "she/her":
@@ -120,19 +122,19 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
       }
     }
 
-    // Helper to get fellowship label
+    // Helper to get fellowship label (short form)
     const getFellowshipLabel = (f: string): string => {
       switch (f) {
         case Fellowship.AA:
-          return "Alcoholics Anonymous (AA)"
+          return "AA"
         case Fellowship.NA:
-          return "Narcotics Anonymous (NA)"
+          return "NA"
         case Fellowship.CMA:
-          return "Crystal Meth Anonymous (CMA)"
+          return "CMA"
         case Fellowship.MA:
-          return "Marijuana Anonymous (MA)"
+          return "MA"
         case Fellowship.RD:
-          return "Recovery Dharma (RD)"
+          return "RD"
         default:
           return translate("settingsScreen:selectFellowship")
       }
@@ -376,7 +378,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
           <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
             <View style={themed($modalContent)}>
               <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
-              {(["he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
+              {(["none", "he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
                 <TouchableOpacity
                   key={p}
                   style={[
@@ -563,7 +565,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
           </View>
 
           {/* Export Email */}
-          <View style={themed($settingsRow)}>
+          <View style={themed($emailSection)}>
             <Text style={themed($rowLabel)} tx="settingsScreen:exportEmail" />
             <TextField
               value={profileStore.reportEmail}
@@ -572,7 +574,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              style={themed($emailInput)}
               inputWrapperStyle={themed($emailInputWrapper)}
             />
           </View>
@@ -765,6 +766,14 @@ const $settingsRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderBottomColor: colors.border,
 })
 
+// Email section uses vertical layout for full-width input
+const $emailSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  paddingVertical: spacing.sm,
+  gap: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
+})
+
 const $lastRow: ThemedStyle<ViewStyle> = () => ({
   borderBottomWidth: 0,
 })
@@ -919,17 +928,12 @@ const $shortNameInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderRadius: 8,
 })
 
-// Email Input
-const $emailInput: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  minHeight: 0,
-})
-
+// Email Input - full width
 const $emailInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  minHeight: 36,
-  minWidth: 200,
+  minHeight: 40,
   paddingHorizontal: 12,
   backgroundColor: colors.card,
+  borderWidth: 1,
   borderColor: colors.border,
   borderRadius: 8,
 })
