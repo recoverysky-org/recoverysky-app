@@ -37,10 +37,6 @@ interface DatabaseContextValue {
   status: DbStatus
   /** Error message if status is "error" */
   error: string | null
-  /** Run migrations to create tables */
-  openDb: () => Promise<void>
-  /** Seed the database with initial data */
-  seedDb: () => Promise<void>
   /** Re-encrypt database with new key (for auth upgrade) */
   rekeyDb: (newKey: string) => Promise<void>
 }
@@ -48,8 +44,6 @@ interface DatabaseContextValue {
 const DatabaseContext = createContext<DatabaseContextValue>({
   status: "closed",
   error: null,
-  openDb: async () => {},
-  seedDb: async () => {},
   rekeyDb: async () => {},
 })
 
@@ -216,8 +210,8 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo<DatabaseContextValue>(
-    () => ({ status, error, openDb, seedDb, rekeyDb }),
-    [status, error, openDb, seedDb, rekeyDb],
+    () => ({ status, error, rekeyDb }),
+    [status, error, rekeyDb],
   )
 
   log.debug("DatabaseProvider rendering", { status })

@@ -12,6 +12,27 @@ import { loadString, saveString, remove } from "@/utils/storage"
 
 const SEED_FLAG_KEY = "db_seeded_v2"
 
+// ============================================================================
+// Progress Reporting
+// ============================================================================
+
+export interface SeedProgress {
+  /** Current step number (1-based) */
+  step: number
+  /** Total number of steps */
+  totalSteps: number
+  /** Human-readable step name */
+  stepName: string
+  /** i18n key for the step */
+  stepKey: string
+  /** Records inserted in current step */
+  current: number
+  /** Total records to insert in current step */
+  total: number
+}
+
+export type SeedProgressCallback = (progress: SeedProgress) => void
+
 /**
  * Force re-seed if EXPO_PUBLIC_RESEED_DB=true
  * Set this in .env or run: EXPO_PUBLIC_RESEED_DB=true npm start
@@ -284,7 +305,11 @@ function transformTrex(raw: RawTrex): TrexRow {
 
 const BATCH_SIZE = 500
 
-async function insertSchedules(db: SQLiteDatabase, data: ScheduleRow[]): Promise<void> {
+async function insertSchedules(
+  db: SQLiteDatabase,
+  data: ScheduleRow[],
+  onBatch?: (inserted: number) => void,
+): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} schedules...`)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
@@ -306,10 +331,15 @@ async function insertSchedules(db: SQLiteDatabase, data: ScheduleRow[]): Promise
       `INSERT OR REPLACE INTO schedules (id, status, zids, name, fellowship, created, updated, version, sha256) VALUES ${placeholders}`,
       values,
     )
+    onBatch?.(Math.min(i + BATCH_SIZE, data.length))
   }
 }
 
-async function insertMeetings(db: SQLiteDatabase, data: MeetingRow[]): Promise<void> {
+async function insertMeetings(
+  db: SQLiteDatabase,
+  data: MeetingRow[],
+  onBatch?: (inserted: number) => void,
+): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} meetings...`)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
@@ -355,10 +385,15 @@ async function insertMeetings(db: SQLiteDatabase, data: MeetingRow[]): Promise<v
       `INSERT OR REPLACE INTO meetings (id, iid, uid, zid, sid, status, verified, locked, created, updated, version, url, password, passwordEnc, fellowship, language, closed, requiresLogin, restricted, restrictedDescription, description, email, name, phone, website, conferencePhone, location, sha256) VALUES ${placeholders}`,
       values,
     )
+    onBatch?.(Math.min(i + BATCH_SIZE, data.length))
   }
 }
 
-async function insertTrexes(db: SQLiteDatabase, data: TrexRow[]): Promise<void> {
+async function insertTrexes(
+  db: SQLiteDatabase,
+  data: TrexRow[],
+  onBatch?: (inserted: number) => void,
+): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} trexes...`)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
@@ -386,10 +421,15 @@ async function insertTrexes(db: SQLiteDatabase, data: TrexRow[]): Promise<void> 
       `INSERT OR REPLACE INTO trexes (id, coordinate, coordinate_end, timezone, periodicity, duration_ms, dtstart, dtend, rrule_str, rrule_json, hour, minute, dow, dom, month) VALUES ${placeholders}`,
       values,
     )
+    onBatch?.(Math.min(i + BATCH_SIZE, data.length))
   }
 }
 
-async function insertMeetingTypes(db: SQLiteDatabase, data: MeetingTypeRow[]): Promise<void> {
+async function insertMeetingTypes(
+  db: SQLiteDatabase,
+  data: MeetingTypeRow[],
+  onBatch?: (inserted: number) => void,
+): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} meeting_types...`)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
@@ -401,12 +441,18 @@ async function insertMeetingTypes(db: SQLiteDatabase, data: MeetingTypeRow[]): P
       `INSERT OR REPLACE INTO meeting_types (meeting_id, type) VALUES ${placeholders}`,
       values,
     )
+    onBatch?.(Math.min(i + BATCH_SIZE, data.length))
   }
 }
 
-async function insertMeetingTags(db: SQLiteDatabase, data: MeetingTagRow[]): Promise<void> {
+async function insertMeetingTags(
+  db: SQLiteDatabase,
+  data: MeetingTagRow[],
+  onBatch?: (inserted: number) => void,
+): Promise<void> {
   if (data.length === 0) {
     console.log(`[seedDatabase] No meeting_tags to insert`)
+    onBatch?.(0)
     return
   }
 
@@ -421,12 +467,14 @@ async function insertMeetingTags(db: SQLiteDatabase, data: MeetingTagRow[]): Pro
       `INSERT OR REPLACE INTO meeting_tags (meeting_id, tag) VALUES ${placeholders}`,
       values,
     )
+    onBatch?.(Math.min(i + BATCH_SIZE, data.length))
   }
 }
 
 async function insertScheduleMeetings(
   db: SQLiteDatabase,
   data: ScheduleMeetingRow[],
+  onBatch?: (inserted: number) => void,
 ): Promise<void> {
   console.log(`[seedDatabase] Inserting ${data.length} schedule_meetings...`)
 
@@ -439,6 +487,7 @@ async function insertScheduleMeetings(
       `INSERT OR REPLACE INTO schedule_meetings (schedule_id, meeting_id) VALUES ${placeholders}`,
       values,
     )
+    onBatch?.(Math.min(i + BATCH_SIZE, data.length))
   }
 }
 
@@ -446,73 +495,36 @@ async function insertScheduleMeetings(
 // Main Seed Function
 // ============================================================================
 
+/** Seed steps with i18n keys */
+const SEED_STEPS = [
+  { name: "Loading data", key: "database:seedingLoading" },
+  { name: "Schedules", key: "database:seedingSchedules" },
+  { name: "Meetings", key: "database:seedingMeetings" },
+  { name: "Recurrence data", key: "database:seedingTrexes" },
+  { name: "Meeting types", key: "database:seedingTypes" },
+  { name: "Finalizing", key: "database:seedingFinalizing" },
+] as const
+
 /**
- * Seed the database with data from JSON files
- * Transforms denormalized JSON into normalized SQLite tables
+ * Seed the database with initial data.
+ *
+ * NOTE: Currently no data needs seeding - meetings/schedules/trexes come from API.
+ * This function is kept for future use if local seed data is needed.
+ *
+ * @param db - SQLite database instance
+ * @param onProgress - Optional callback for progress updates
  */
-export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
+export async function seedDatabase(
+  _db: SQLiteDatabase,
+  _onProgress?: SeedProgressCallback,
+): Promise<void> {
   if (isDatabaseSeeded()) {
     console.log("[seedDatabase] Already seeded, skipping...")
     return
   }
 
-  console.log("[seedDatabase] Starting database seeding...")
-  const startTime = Date.now()
-
-  try {
-    // Load raw JSON files from assets/db/
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const rawMeetings = require("@assets/db/meetings.json") as RawMeeting[]
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const rawSchedules = require("@assets/db/schedules.json") as RawSchedule[]
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const rawTrexes = require("@assets/db/trexes.json") as RawTrex[]
-
-    console.log(
-      `[seedDatabase] Loaded: ${rawMeetings.length} meetings, ${rawSchedules.length} schedules, ${rawTrexes.length} trexes`,
-    )
-
-    // Transform all data
-    const meetingRows: MeetingRow[] = []
-    const meetingTypeRows: MeetingTypeRow[] = []
-    const meetingTagRows: MeetingTagRow[] = []
-
-    for (const raw of rawMeetings) {
-      const transformed = transformMeeting(raw)
-      meetingRows.push(transformed.meeting)
-      meetingTypeRows.push(...transformed.types)
-      meetingTagRows.push(...transformed.tags)
-    }
-
-    const scheduleRows: ScheduleRow[] = []
-    const scheduleMeetingRows: ScheduleMeetingRow[] = []
-
-    for (const raw of rawSchedules) {
-      const transformed = transformSchedule(raw)
-      scheduleRows.push(transformed.schedule)
-      scheduleMeetingRows.push(...transformed.scheduleMeetings)
-    }
-
-    const trexRows = rawTrexes.map(transformTrex)
-
-    console.log(
-      `[seedDatabase] Transformed: ${meetingTypeRows.length} meeting_types, ${meetingTagRows.length} meeting_tags, ${scheduleMeetingRows.length} schedule_meetings`,
-    )
-
-    // Insert in FK order
-    await insertSchedules(db, scheduleRows)
-    await insertMeetings(db, meetingRows)
-    await insertTrexes(db, trexRows)
-    await insertMeetingTypes(db, meetingTypeRows)
-    await insertMeetingTags(db, meetingTagRows)
-    await insertScheduleMeetings(db, scheduleMeetingRows)
-
-    markDatabaseSeeded()
-
-    const elapsed = Date.now() - startTime
-    console.log(`[seedDatabase] Seeding complete in ${elapsed}ms`)
-  } catch (error) {
-    console.error("[seedDatabase] Seeding failed:", error)
-    throw error
-  }
+  // No data to seed currently - meetings/schedules/trexes come from API
+  // Just mark as seeded immediately
+  console.log("[seedDatabase] No seed data required, marking as seeded...")
+  markDatabaseSeeded()
 }

@@ -180,15 +180,7 @@ export function App() {
   const isAppReady =
     isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
 
-  // Hide splash screen when app is ready
-  useEffect(() => {
-    if (isAppReady) {
-      log.info("App ready, hiding splash screen")
-      SplashScreen.hideAsync().catch((err) => {
-        log.warn("Failed to hide splash screen", { error: String(err) })
-      })
-    }
-  }, [isAppReady])
+  // Note: Splash screen is hidden by DatabaseLoadingOverlay when DB is seeded
 
   // Before we show the app, we have to wait for our state to be ready.
   // In the meantime, don't render anything. This will be the background

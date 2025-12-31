@@ -107,9 +107,9 @@ export class UserProfileSqliteRepository {
         .onConflictDoUpdate({
           target: userProfiles.id as any,
           set: {
-            shortName: sql`excluded.short_name`,
+            shortName: sql`excluded.shortName`,
             pronouns: sql`excluded.pronouns`,
-            recoveryDate: sql`excluded.recovery_date`,
+            recoveryDate: sql`excluded.recoveryDate`,
             fellowship: sql`excluded.fellowship`,
             language: sql`excluded.language`,
           },
