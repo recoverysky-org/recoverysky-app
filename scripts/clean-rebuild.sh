@@ -7,6 +7,8 @@
 #   ./scripts/clean-rebuild.sh --ios        # Also build + install iOS simulator dev client
 #   ./scripts/clean-rebuild.sh --android    # Also build + install Android emulator dev client
 #   ./scripts/clean-rebuild.sh --all        # Build + install both platforms
+#   ./scripts/clean-rebuild.sh --xcode      # Also clear Xcode caches (DerivedData, CocoaPods, uninstall app)
+#   ./scripts/clean-rebuild.sh --xcode --nuke  # Nuclear option: also erase all simulators
 
 set -e
 
@@ -18,6 +20,8 @@ cd "$PROJECT_DIR"
 # Parse flags
 BUILD_IOS=false
 BUILD_ANDROID=false
+CLEAN_XCODE=false
+NUKE_SIMULATORS=false
 
 for arg in "$@"; do
   case $arg in
@@ -31,6 +35,12 @@ for arg in "$@"; do
       BUILD_IOS=true
       BUILD_ANDROID=true
       ;;
+    --xcode|-x)
+      CLEAN_XCODE=true
+      ;;
+    --nuke|-n)
+      NUKE_SIMULATORS=true
+      ;;
   esac
 done
 
@@ -38,7 +48,34 @@ echo "🧹 Starting full clean rebuild..."
 if [ "$BUILD_IOS" = true ] || [ "$BUILD_ANDROID" = true ]; then
   echo "   (with development builds + simulator install)"
 fi
+if [ "$CLEAN_XCODE" = true ]; then
+  echo "   (with Xcode cache cleaning)"
+fi
+if [ "$NUKE_SIMULATORS" = true ] && [ "$CLEAN_XCODE" = true ]; then
+  echo "   (with simulator nuke ☢️)"
+fi
 echo ""
+
+# 0. Clean Xcode caches if requested
+if [ "$CLEAN_XCODE" = true ]; then
+  echo "🍎 Clearing Xcode DerivedData..."
+  rm -rf ~/Library/Developer/Xcode/DerivedData
+
+  echo "🍎 Uninstalling app from simulator..."
+  xcrun simctl uninstall booted com.recoveryskyhybrid 2>/dev/null || true
+
+  echo "🍎 Cleaning CocoaPods cache..."
+  pod cache clean --all 2>/dev/null || true
+  rm -rf ~/Library/Caches/CocoaPods
+
+  # Nuclear option: erase all simulators
+  if [ "$NUKE_SIMULATORS" = true ]; then
+    echo "☢️  Erasing ALL simulators (nuclear option)..."
+    xcrun simctl erase all
+  fi
+
+  echo ""
+fi
 
 # 1. Clear node_modules
 echo "📦 Removing node_modules..."
@@ -66,7 +103,7 @@ rm -rf android
 
 # 6. Reinstall dependencies
 echo "📥 Reinstalling dependencies..."
-npm install
+pnpm install
 
 # 7. Regenerate native folders with prebuild + patches
 echo "🔧 Running expo prebuild --clean..."
@@ -76,26 +113,26 @@ echo "🩹 Running patch:splash..."
 npm run patch:splash
 
 echo "🩹 Running patch:android..."
-npm run patch:android
+pnpm patch:android
 
 # 8. Build and install development clients if requested
 if [ "$BUILD_IOS" = true ]; then
   echo ""
   echo "🍎 Building iOS development client (simulator)..."
-  npm run build:ios:sim
+  pnpm build:ios:sim
 
   echo ""
   echo "📲 Installing iOS app to simulator..."
-  npm run install:ios:sim
+  pnpm install:ios:sim
 
   echo "🚀 Launching iOS app..."
-  npm run launch:ios:sim
+  pnpm launch:ios:sim
 fi
 
 if [ "$BUILD_ANDROID" = true ]; then
   echo ""
   echo "🤖 Building Android development client (emulator)..."
-  npm run build:android:sim
+  pnpm build:android:sim
 
   echo ""
   echo "📲 Installing Android app to emulator..."
