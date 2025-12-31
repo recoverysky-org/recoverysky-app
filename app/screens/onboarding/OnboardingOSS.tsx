@@ -1,10 +1,10 @@
 /**
- * OnboardingPrivacy - Screen 4
+ * OnboardingOSS - Screen 6 (Final)
  *
- * Data privacy assurances and documentation links
+ * Open Source Software explanation and AGPLv3 license info
  */
 import { FC } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Linking } from "react-native"
+import { View, ViewStyle, TextStyle, Pressable, Image, ImageStyle, Linking } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
@@ -17,79 +17,80 @@ import type { ThemedStyle } from "@/theme/types"
 
 import { ProgressDots } from "./ProgressDots"
 
-// Privacy bullet items with icons
-const PRIVACY_ITEMS = [
-  { icon: "finger-print-outline", txKey: "totalAnonymity" },
-  { icon: "phone-portrait-outline", txKey: "dataOnDevice" },
-  { icon: "lock-closed-outline", txKey: "encryptedStorage" },
-  { icon: "shield-checkmark-outline", txKey: "hipaaCompliant" },
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ossImage = require("@assets/images/OSS.png")
+
+// OSS benefit items with icons
+const OSS_BENEFITS = [
+  { icon: "eye-outline", txKey: "ossTransparency" },
+  { icon: "shield-checkmark-outline", txKey: "ossSecurity" },
+  { icon: "code-slash-outline", txKey: "ossReview" },
 ] as const
 
-export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> = observer(
-  function OnboardingPrivacy({ navigation }) {
+export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observer(
+  function OnboardingOSS(_props) {
     const { themed, theme } = useAppTheme()
     const profileStore = useProfileStore()
 
-    const handleNext = () => {
-      navigation.navigate("OnboardingOSS")
+    const handleFinish = () => {
+      profileStore.completeOnboarding()
     }
 
     const handleSkip = () => {
       profileStore.completeOnboarding()
     }
 
-    const openPrivacyPolicy = () => {
-      Linking.openURL("https://recoverysky.org/privacy.html")
+    const openSourceCode = () => {
+      Linking.openURL("https://github.com/recoverysky-org/recoverysky-hybrid")
     }
 
-    const openTerms = () => {
-      Linking.openURL("https://recoverysky.org/tos.html")
+    const openLicense = () => {
+      Linking.openURL("https://www.gnu.org/licenses/agpl-3.0.html")
     }
 
     return (
       <Screen
-        preset="fixed"
+        preset="scroll"
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={5} />
+        <ProgressDots currentIndex={6} />
 
         {/* Content */}
         <View style={$content}>
-          <Text style={themed($title)} tx="onboarding:privacyTitle" />
-          <Text style={themed($subtitle)} tx="onboarding:privacySubtitle" />
+          {/* OSS Image */}
+          <View style={themed($imageContainer)}>
+            <Image source={ossImage} style={$ossImage} resizeMode="contain" />
+          </View>
 
-          {/* Privacy bullets */}
-          <View style={themed($privacyList)}>
-            {PRIVACY_ITEMS.map((item) => (
-              <View key={item.txKey} style={themed($privacyRow)}>
+          <Text style={themed($title)} tx="onboarding:ossTitle" />
+          <Text style={themed($subtitle)} tx="onboarding:ossSubtitle" />
+
+          {/* OSS benefits */}
+          <View style={themed($benefitsList)}>
+            {OSS_BENEFITS.map((item) => (
+              <View key={item.txKey} style={themed($benefitRow)}>
                 <Ionicons
                   name={item.icon as keyof typeof Ionicons.glyphMap}
                   size={22}
                   color={theme.colors.tint}
                 />
-                <Text style={themed($privacyText)} tx={`onboarding:${item.txKey}`} />
+                <Text style={themed($benefitText)} tx={`onboarding:${item.txKey}`} />
               </View>
             ))}
           </View>
 
-          {/* Links - inline */}
+          {/* Links */}
           <View style={themed($linksRow)}>
-            <Pressable onPress={openPrivacyPolicy} style={themed($linkButton)}>
-              <Text
-                style={[themed($linkText), { color: theme.colors.tint }]}
-                tx="onboarding:privacyPolicy"
-              />
-              <Ionicons name="open-outline" size={14} color={theme.colors.tint} />
+            <Pressable onPress={openSourceCode} style={themed($linkButton)}>
+              <Ionicons name="logo-github" size={18} color={theme.colors.tint} />
+              <Text style={themed($linkText)} tx="onboarding:viewSource" />
             </Pressable>
             <Text style={themed($linkSeparator)}>|</Text>
-            <Pressable onPress={openTerms} style={themed($linkButton)}>
-              <Text
-                style={[themed($linkText), { color: theme.colors.tint }]}
-                tx="onboarding:termsOfService"
-              />
-              <Ionicons name="open-outline" size={14} color={theme.colors.tint} />
+            <Pressable onPress={openLicense} style={themed($linkButton)}>
+              <Ionicons name="document-outline" size={18} color={theme.colors.tint} />
+              <Text style={themed($linkText)} tx="onboarding:viewLicense" />
             </Pressable>
           </View>
         </View>
@@ -101,11 +102,11 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
               themed($button),
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
-            onPress={handleNext}
+            onPress={handleFinish}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
-              tx="onboarding:next"
+              tx="onboarding:finish"
             />
           </Pressable>
 
@@ -123,14 +124,24 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
 // ============================================================================
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+  flexGrow: 1,
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
 
 const $content: ViewStyle = {
   flex: 1,
-  paddingTop: 32,
+  paddingTop: 16,
+}
+
+const $imageContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  marginBottom: spacing.md,
+})
+
+const $ossImage: ImageStyle = {
+  width: 120,
+  height: 120,
 }
 
 const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -139,26 +150,29 @@ const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
   lineHeight: 38,
   color: colors.text,
   marginBottom: 8,
+  textAlign: "center",
 })
 
 const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 16,
   color: colors.textDim,
   marginBottom: spacing.lg,
+  textAlign: "center",
 })
 
-const $privacyList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $benefitsList: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
+  marginBottom: spacing.md,
 })
 
-const $privacyRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $benefitRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.sm,
   paddingVertical: spacing.xs,
 })
 
-const $privacyText: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $benefitText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 15,
   color: colors.text,
   flex: 1,
@@ -168,7 +182,7 @@ const $linksRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
-  marginTop: spacing.lg,
+  marginTop: spacing.sm,
   gap: spacing.sm,
 })
 
@@ -183,13 +197,15 @@ const $linkSeparator: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
 })
 
-const $linkText: ThemedStyle<TextStyle> = () => ({
+const $linkText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 15,
   fontWeight: "500",
+  color: colors.tint,
 })
 
 const $footer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.lg,
+  paddingTop: spacing.md,
   gap: spacing.md,
 })
 

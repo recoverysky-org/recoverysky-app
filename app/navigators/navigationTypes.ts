@@ -30,6 +30,7 @@ export type OnboardingParamList = {
   OnboardingTheme: undefined
   OnboardingAttendance: undefined
   OnboardingPrivacy: undefined
+  OnboardingOSS: undefined
 }
 
 // App Stack Navigator types

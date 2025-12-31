@@ -42,6 +42,9 @@ const en = {
     loginButton: "Login",
     continueAnonymously: "Continue Anonymously",
     openingBrowser: "Opening browser for authentication...",
+    euaTitle: "End User Agreement",
+    euaAgree: "I Agree",
+    euaCancel: "Cancel",
   },
   // Main Navigation
   mainNavigator: {
@@ -276,6 +279,17 @@ const en = {
     openSource: "Open source - available for review and security testing",
     privacyPolicy: "Privacy Policy",
     termsOfService: "Terms of Service",
+    // Screen 6: Open Source
+    ossTitle: "Open Source",
+    ossSubtitle: "Built with transparency and trust",
+    ossTransparency: "Complete transparency - see exactly how the app works",
+    ossSecurity: "Security through openness - anyone can audit the code",
+    ossCommunity: "Community-driven development and improvements",
+    ossReview: "Review, modify, or contribute to the codebase",
+    ossLicense:
+      "Licensed under AGPLv3 - you have the freedom to use, study, share, and improve this software.",
+    viewSource: "View Source",
+    viewLicense: "AGPLv3 License",
     // Common
     next: "Next",
     finish: "Finish",

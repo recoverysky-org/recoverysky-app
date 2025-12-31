@@ -15,10 +15,11 @@ const trexPath = path.resolve(__dirname, "../../trex/trex-ts")
 // Watch linked packages for changes
 config.watchFolders = [commonPath, trexPath]
 
-// Resolve @common and @sqlite aliases
+// Resolve @common, @sqlite, and @assets aliases
 config.resolver.extraNodeModules = {
   "@common": path.resolve(commonPath, "lib/browser"),
   "@sqlite": path.resolve(commonPath, "lib/sqlite"),
+  "@assets": path.resolve(__dirname, "assets"),
 }
 
 // Tell Metro where to find dependencies for linked packages

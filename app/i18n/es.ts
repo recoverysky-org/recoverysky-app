@@ -43,6 +43,9 @@ const es: Translations = {
     loginButton: "Iniciar sesión",
     continueAnonymously: "Continuar Anónimamente",
     openingBrowser: "Abriendo navegador para autenticación...",
+    euaTitle: "Acuerdo de Usuario Final",
+    euaAgree: "Acepto",
+    euaCancel: "Cancelar",
   },
   mainNavigator: {
     homeTab: "Inicio",
@@ -275,6 +278,17 @@ const es: Translations = {
     openSource: "Código abierto - disponible para revisión y pruebas de seguridad",
     privacyPolicy: "Política de Privacidad",
     termsOfService: "Términos de Servicio",
+    // Screen 6: Open Source
+    ossTitle: "Código Abierto",
+    ossSubtitle: "Construido con transparencia y confianza",
+    ossTransparency: "Transparencia total - ve exactamente cómo funciona la app",
+    ossSecurity: "Seguridad a través de la apertura - cualquiera puede auditar el código",
+    ossCommunity: "Desarrollo y mejoras impulsados por la comunidad",
+    ossReview: "Revisa, modifica o contribuye al código base",
+    ossLicense:
+      "Licenciado bajo AGPLv3 - tienes la libertad de usar, estudiar, compartir y mejorar este software.",
+    viewSource: "Ver Código",
+    viewLicense: "Licencia AGPLv3",
     // Common
     next: "Siguiente",
     finish: "Finalizar",

@@ -1,5 +1,14 @@
-import { FC } from "react"
-import { View, ViewStyle, TextStyle, ActivityIndicator, Pressable } from "react-native"
+import { FC, useState, useCallback } from "react"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  ActivityIndicator,
+  Pressable,
+  Modal,
+  ScrollView,
+} from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
@@ -10,13 +19,18 @@ import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+// Import EUA text
+import { euaText } from "@assets/content/eua"
+
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
+
+type LoginType = "authenticated" | "anonymous" | null
 
 /**
  * LoginScreen - OAuth login via Zitadel
  *
- * Provides a single "Login with Zitadel" button that initiates
- * the OAuth PKCE flow in a system browser.
+ * Provides login options with EUA agreement requirement.
+ * Shows End User Agreement popup before allowing login.
  */
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
@@ -25,10 +39,37 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     onSqliteKeyChange: rekeyDb,
   })
 
-  const handleLogin = async () => {
+  // EUA modal state
+  const [showEuaModal, setShowEuaModal] = useState(false)
+  const [pendingLoginType, setPendingLoginType] = useState<LoginType>(null)
+
+  const handleLoginPress = useCallback(() => {
+    setPendingLoginType("authenticated")
+    setShowEuaModal(true)
+  }, [])
+
+  const handleAnonymousPress = useCallback(() => {
+    setPendingLoginType("anonymous")
+    setShowEuaModal(true)
+  }, [])
+
+  const handleEuaAgree = useCallback(async () => {
+    setShowEuaModal(false)
     clearError()
-    await login()
-  }
+
+    if (pendingLoginType === "authenticated") {
+      await login()
+    } else if (pendingLoginType === "anonymous") {
+      await loginAnonymously()
+    }
+
+    setPendingLoginType(null)
+  }, [pendingLoginType, login, loginAnonymously, clearError])
+
+  const handleEuaCancel = useCallback(() => {
+    setShowEuaModal(false)
+    setPendingLoginType(null)
+  }, [])
 
   return (
     <Screen
@@ -56,11 +97,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         <Pressable
           testID="login-button"
           style={[themed($button), isLoading && themed($buttonDisabled)]}
-          onPress={handleLogin}
+          onPress={handleLoginPress}
           disabled={isLoading}
         >
           <Text style={themed($buttonText)} tx="loginScreen:loginButton" />
-          {isLoading && (
+          {isLoading && pendingLoginType === "authenticated" && (
             <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
           )}
         </Pressable>
@@ -68,7 +109,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         <Pressable
           testID="anonymous-button"
           style={[themed($button), isLoading && themed($buttonDisabled)]}
-          onPress={loginAnonymously}
+          onPress={handleAnonymousPress}
           disabled={isLoading}
         >
           <Text style={themed($buttonTextSecondary)} tx="loginScreen:continueAnonymously" />
@@ -76,9 +117,56 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         {isLoading && <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />}
       </View>
+
+      {/* EUA Modal */}
+      <Modal
+        visible={showEuaModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleEuaCancel}
+      >
+        <View style={themed($modalContainer)}>
+          {/* Modal Header */}
+          <View style={themed($modalHeader)}>
+            <Text style={themed($modalTitle)} tx="loginScreen:euaTitle" />
+            <Pressable onPress={handleEuaCancel} hitSlop={8}>
+              <Ionicons name="close" size={24} color={theme.colors.text} />
+            </Pressable>
+          </View>
+
+          {/* EUA Content */}
+          <ScrollView
+            style={themed($modalContent)}
+            contentContainerStyle={themed($modalContentInner)}
+            showsVerticalScrollIndicator
+          >
+            <Text style={themed($euaText)}>{euaText}</Text>
+          </ScrollView>
+
+          {/* Modal Footer */}
+          <View style={themed($modalFooter)}>
+            <Pressable style={themed($cancelButton)} onPress={handleEuaCancel}>
+              <Text style={themed($cancelButtonText)} tx="loginScreen:euaCancel" />
+            </Pressable>
+            <Pressable
+              style={[
+                themed($agreeButton),
+                { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+              ]}
+              onPress={handleEuaAgree}
+            >
+              <Text style={[themed($agreeButtonText), { color: theme.colors.tint }]} tx="loginScreen:euaAgree" />
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   )
 })
+
+// ============================================================================
+// Styles
+// ============================================================================
 
 const $screenContentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flex: 1,
@@ -159,4 +247,83 @@ const $loadingText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   textAlign: "center",
   fontSize: 14,
+})
+
+// Modal styles
+const $modalContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flex: 1,
+  backgroundColor: colors.background,
+  paddingTop: spacing.lg,
+})
+
+const $modalHeader: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: spacing.lg,
+  paddingBottom: spacing.md,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
+})
+
+const $modalTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 20,
+  fontWeight: "700",
+  color: colors.text,
+})
+
+const $modalContent: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $modalContentInner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  padding: spacing.lg,
+})
+
+const $euaText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  lineHeight: 22,
+  color: colors.text,
+})
+
+const $modalFooter: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flexDirection: "row",
+  gap: spacing.md,
+  padding: spacing.lg,
+  borderTopWidth: 1,
+  borderTopColor: colors.border,
+})
+
+const $cancelButton: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: spacing.md,
+  borderRadius: 12,
+  backgroundColor: colors.card,
+})
+
+const $cancelButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.textDim,
+})
+
+const $agreeButton: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: spacing.md,
+  borderRadius: 12,
+  backgroundColor: colors.background,
+  borderWidth: 1.5,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
+  shadowRadius: 8,
+  elevation: 8,
+})
+
+const $agreeButtonText: ThemedStyle<TextStyle> = () => ({
+  fontSize: 16,
+  fontWeight: "600",
 })

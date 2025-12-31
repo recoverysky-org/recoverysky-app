@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/logo.png" alt="RecoverySky Logo" width="120" />
+  <img src="assets/images/background.png" alt="RecoverySky Banner" width="100%" />
 </p>
 
 <h1 align="center">🌤️ RecoverySky Hybrid</h1>
@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react" alt="React Native" />
   <img src="https://img.shields.io/badge/Expo-54-000020?logo=expo" alt="Expo" />
   <img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
+  <img src="https://img.shields.io/badge/License-AGPL_v3-blue" alt="License" />
 </p>
 
 <p align="center">
@@ -230,7 +230,9 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-This project is open source under the [MIT License](LICENSE).
+This project is open source under the [GNU Affero General Public License v3.0](LICENSE.md).
+
+This means you're free to use, modify, and distribute the code, but if you run a modified version as a network service, you must make the source code available to users of that service.
 
 ---
 
