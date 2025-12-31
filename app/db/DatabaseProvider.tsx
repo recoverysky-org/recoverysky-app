@@ -3,6 +3,7 @@
  *
  * Automatically initializes and seeds the database on app startup.
  * Shows loading overlay during initialization via DatabaseLoadingOverlay.
+ * Uses encrypted SQLite with key from SecureStore.
  */
 
 import {
@@ -20,6 +21,7 @@ import { migrations } from "@sqlite"
 import type * as schema from "@sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
+import { getSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
 import { feedbackCache } from "./feedbackCache"
@@ -106,10 +108,14 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     try {
       setStatus("opening")
       setError(null)
-      log.info("Opening database...")
 
-      // Open the database (this is where expo-sqlite is actually used)
-      dbRef.current = await openDbProvider()
+      // Get or generate encryption key from SecureStore
+      log.info("Getting SQLite encryption key...")
+      const encryptionKey = await getSqliteEncryptionKey()
+
+      // Open the encrypted database
+      log.info("Opening encrypted database...")
+      dbRef.current = await openDbProvider(encryptionKey)
       log.debug("Database opened, running migrations...")
 
       // Dynamically import migrator to avoid loading expo-sqlite at startup

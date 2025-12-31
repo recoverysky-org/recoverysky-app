@@ -10,8 +10,10 @@ import * as AuthSession from "expo-auth-session"
 import * as WebBrowser from "expo-web-browser"
 
 import { useAuthenticationStore } from "@/models"
+import { setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
+import { decodeJwtPayload, extractSqliteKeyFromClaims, type ZitadelIdTokenClaims } from "./jwtUtils"
 import * as SecureStorage from "./secureStorage"
 import {
   ZITADEL_CONFIG,
@@ -135,6 +137,20 @@ export function useZitadelAuth(): UseZitadelAuthResult {
         authStore.setUserId(userInfo.sub)
         if (userInfo.email) {
           authStore.setAuthEmail(userInfo.email)
+        }
+      }
+
+      // Check for server-side SQLite encryption key in JWT metadata
+      if (tokenResponse.idToken) {
+        const claims = decodeJwtPayload<ZitadelIdTokenClaims>(tokenResponse.idToken)
+        if (claims) {
+          const sqliteKey = extractSqliteKeyFromClaims(claims)
+          if (sqliteKey) {
+            log.info("Found SQLite key in JWT, updating stored key")
+            await setSqliteEncryptionKey(sqliteKey)
+            // Note: Database re-encryption would require app restart
+            // or close/delete/reopen flow - handled separately
+          }
         }
       }
 
