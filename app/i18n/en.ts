@@ -33,6 +33,7 @@ const en = {
   database: {
     initializing: "Initializing database...",
     seeding: "Seeding database...",
+    reencrypting: "Securing your data...",
     error: "Database error",
   },
   loginScreen: {
@@ -50,6 +51,7 @@ const en = {
     attendanceTab: "Attendance",
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
+    guideTab: "Guide",
     settingsTab: "Settings",
   },
   // Main Screens
@@ -308,6 +310,15 @@ const en = {
       "If this doesn't work, ensure the Reactotron desktop app is running and reload app.",
     windowsReactotronHint:
       "If this doesn't work, ensure the Reactotron desktop app is running and reload app.",
+  },
+  // Guide Screen (AI Chat)
+  guideScreen: {
+    title: "Guide",
+    subtitle: "Your AI-powered recovery companion",
+    emptyState: "Ask Sky anything",
+    emptyStateHint: "Get help with recovery resources, meeting information, literature, and more.",
+    inputPlaceholder: "Type your message...",
+    thinking: "Sky is thinking...",
   },
 }
 

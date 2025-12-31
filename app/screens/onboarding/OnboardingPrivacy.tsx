@@ -14,6 +14,7 @@ import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
 import { ProgressDots } from "./ProgressDots"
 
 // Privacy bullet items with icons

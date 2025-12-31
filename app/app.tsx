@@ -10,6 +10,10 @@
  * The app navigation resides in ./app/navigators, so head over there
  * if you're interested in adding screens and navigators.
  */
+
+// Polyfills for Vercel AI SDK streaming (must be first!)
+import "./utils/polyfills"
+
 if (__DEV__) {
   // Load Reactotron in development only.
   // Note that you must be using metro's `inlineRequires` for this to work.
@@ -31,17 +35,17 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore errors - splash screen might already be hidden
 })
 
+import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator } from "./db"
-import { changeLanguage, initI18n } from "./i18n"
+import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
 import { loadStoredAuth } from "./services/auth/useZitadelAuth"
 import { ZoomMeetingProvider } from "./services/zoom"
-import { ToastProvider } from "./components/Toast"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { getDeviceId } from "./utils/deviceId"
@@ -65,6 +69,7 @@ const config = {
         Live: "live",
         Meetings: "meetings",
         Schedule: "schedule",
+        Guide: "guide",
         Settings: "settings",
       },
     },

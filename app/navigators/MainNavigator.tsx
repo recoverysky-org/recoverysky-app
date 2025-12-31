@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from "react-native"
+import { View, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { observer } from "mobx-react-lite"
@@ -6,10 +6,12 @@ import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Icon } from "@/components/Icon"
+import { Text } from "@/components/Text"
 import { useMeetings } from "@/context/MeetingContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
 import { useProfileStore } from "@/models"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
+import { GuideScreen } from "@/screens/GuideScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
@@ -113,6 +115,16 @@ export const MainNavigator = observer(function MainNavigator() {
         />
       )}
       <Tab.Screen
+        name="Guide"
+        component={GuideScreen}
+        options={{
+          tabBarLabel: t("mainNavigator:guideTab"),
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name="help-buoy" size={24} color={focused ? colors.tint : colors.textDim} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
@@ -125,6 +137,9 @@ export const MainNavigator = observer(function MainNavigator() {
     </Tab.Navigator>
   )
 })
+
+// Badge text color constant
+const BADGE_TEXT_COLOR = "#FFFFFF"
 
 const styles = StyleSheet.create({
   badge: {
@@ -139,7 +154,7 @@ const styles = StyleSheet.create({
     top: -6,
   },
   badgeText: {
-    color: "#FFFFFF",
+    color: BADGE_TEXT_COLOR,
     fontSize: 10,
     fontWeight: "bold",
   },

@@ -9,10 +9,11 @@ import { View, ViewStyle, TextStyle, Pressable, Image, ImageStyle } from "react-
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useProfileStore } from "@/models"
-import { ProgressDots } from "./ProgressDots"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
+import { ProgressDots } from "./ProgressDots"
 
 const welcomeImage = require("@assets/images/welcome-face.png")
 

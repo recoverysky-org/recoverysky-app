@@ -1,3 +1,4 @@
+/* eslint-env node */
 const path = require("path")
 
 /** @type {import('@babel/core').TransformOptions} */

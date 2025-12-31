@@ -51,9 +51,7 @@ export const ProgressDots: FC<ProgressDotsProps> = ({ currentIndex }) => {
           <View
             style={[
               $dot,
-              index === currentIndex
-                ? { backgroundColor: theme.colors.tint }
-                : $dotInactive,
+              index === currentIndex ? { backgroundColor: theme.colors.tint } : $dotInactive,
             ]}
           />
         </Pressable>

@@ -64,10 +64,10 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
         </View>
 
         {/* Content Views - both mounted, inactive one hidden */}
-        <View style={[$content, { display: activeSegment === "live" ? "flex" : "none" }]}>
+        <View style={[$content, activeSegment === "live" ? $contentVisible : $contentHidden]}>
           <LiveContent />
         </View>
-        <View style={[$content, { display: activeSegment === "listings" ? "flex" : "none" }]}>
+        <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
           <ListingsContent />
         </View>
       </Screen>
@@ -85,4 +85,12 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $content: ViewStyle = {
   flex: 1,
+}
+
+const $contentVisible: ViewStyle = {
+  display: "flex",
+}
+
+const $contentHidden: ViewStyle = {
+  display: "none",
 }

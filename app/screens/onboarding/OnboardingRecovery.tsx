@@ -24,10 +24,11 @@ import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+
 import { ProgressDots } from "./ProgressDots"
 
 const FELLOWSHIPS = ["AA", "NA", "CMA", "RD", "Other"] as const
-type Fellowship = (typeof FELLOWSHIPS)[number]
+type _Fellowship = (typeof FELLOWSHIPS)[number]
 
 const getFellowshipLabel = (f: string): string => {
   switch (f) {
@@ -125,9 +126,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
                 themeVariant={theme.isDark ? "dark" : "light"}
               />
               <Pressable style={themed($datePickerDone)} onPress={() => setShowDatePicker(false)}>
-                <Text style={{ color: theme.colors.tint, fontSize: 16, fontWeight: "600" }}>
-                  Done
-                </Text>
+                <Text style={themed($datePickerDoneText)}>Done</Text>
               </Pressable>
             </View>
           )}
@@ -262,6 +261,12 @@ const $datePickerContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $datePickerDone: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   paddingVertical: spacing.sm,
+})
+
+const $datePickerDoneText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontSize: 16,
+  fontWeight: "600",
 })
 
 const $modalOverlay: ThemedStyle<ViewStyle> = () => ({

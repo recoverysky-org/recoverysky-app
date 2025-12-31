@@ -22,7 +22,6 @@
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
     "allowBackup": false,
-    "usesCleartextTraffic": true,
     "edgeToEdgeEnabled": true,
     "permissions": [
       "android.permission.INTERNET",

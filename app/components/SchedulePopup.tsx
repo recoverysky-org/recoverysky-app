@@ -206,12 +206,18 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             {meeting.duration_ms ? (
               <View style={$metaItem}>
                 <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>{Math.round(meeting.duration_ms / 60000)} {t("liveScreen:min")}</Text>
+                <Text style={themed($metaText)}>
+                  {Math.round(meeting.duration_ms / 60000)} {t("liveScreen:min")}
+                </Text>
               </View>
             ) : null}
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
-              <Text style={themed($metaText)}>{meetingCount === 1 ? t("liveScreen:meeting", { count: meetingCount }) : t("liveScreen:meetings", { count: meetingCount })}</Text>
+              <Text style={themed($metaText)}>
+                {meetingCount === 1
+                  ? t("liveScreen:meeting", { count: meetingCount })
+                  : t("liveScreen:meetings", { count: meetingCount })}
+              </Text>
             </View>
             {meeting.language && (
               <View style={$metaItem}>
@@ -236,7 +242,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
             {meeting.url && (
               <Pressable
                 onPress={handleJoin}
-                style={[themed($joinButton), isJoining && { opacity: 0.7 }]}
+                style={[themed($joinButton), isJoining && themed($joinButtonDisabled)]}
                 disabled={isJoining}
               >
                 <Text style={themed($joinButtonText)}>
@@ -476,6 +482,10 @@ const $joinButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   shadowOpacity: 0.6,
   shadowRadius: 8,
   elevation: 8,
+})
+
+const $joinButtonDisabled: ThemedStyle<ViewStyle> = () => ({
+  opacity: 0.7,
 })
 
 const $joinButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({

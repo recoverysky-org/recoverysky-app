@@ -43,7 +43,7 @@ export const MeetingCard: FC<MeetingCardProps> = function MeetingCard({ meeting 
         <View style={$headerRow}>
           {/* Pulsing live dot */}
           <View style={$liveDotContainer}>
-            <Animated.View style={[$liveDotPulse, { backgroundColor: "#22c55e" }]} />
+            <Animated.View style={$liveDotPulse} />
             <View style={$liveDot} />
           </View>
 
@@ -83,6 +83,9 @@ export const MeetingCard: FC<MeetingCardProps> = function MeetingCard({ meeting 
   )
 }
 
+// Live indicator green color
+const LIVE_GREEN = "#22c55e"
+
 const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.background,
   borderRadius: 12,
@@ -99,7 +102,7 @@ const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $liveBar: ViewStyle = {
   height: 3,
-  backgroundColor: "#22c55e",
+  backgroundColor: LIVE_GREEN,
 }
 
 const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -125,6 +128,7 @@ const $liveDotPulse: ViewStyle = {
   width: 10,
   height: 10,
   borderRadius: 5,
+  backgroundColor: LIVE_GREEN,
   opacity: 0.5,
 }
 
@@ -132,7 +136,7 @@ const $liveDot: ViewStyle = {
   width: 8,
   height: 8,
   borderRadius: 4,
-  backgroundColor: "#22c55e",
+  backgroundColor: LIVE_GREEN,
 }
 
 const $badge: ViewStyle = {

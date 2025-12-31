@@ -1,9 +1,9 @@
-import { applySnapshot, onSnapshot, IDisposer } from "mobx-state-tree"
+import { applySnapshot, onSnapshot } from "mobx-state-tree"
 
 import { profileRepository } from "@/db/repositories"
 import * as storage from "@/utils/storage"
 
-import { RootStore, RootStoreModel, RootStoreSnapshot } from "../RootStore"
+import { RootStore, RootStoreSnapshot } from "../RootStore"
 
 /**
  * The key we use to store the root state in MMKV.

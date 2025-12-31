@@ -13,8 +13,6 @@
  * const trexes = findAllTrexes()
  */
 
-import type { SecureProfileData } from "@/models/ProfileStore"
-
 import {
   MeetingSqliteRepository,
   ScheduleSqliteRepository,
@@ -27,6 +25,8 @@ import {
   type FeedbackRecord,
   type FeedbackInput,
 } from "@sqlite"
+
+import type { SecureProfileData } from "@/models/ProfileStore"
 
 import { getDb } from "./provider"
 import { UserProfileSqliteRepository } from "./UserProfileSqliteRepository"

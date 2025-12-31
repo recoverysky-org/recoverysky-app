@@ -23,7 +23,7 @@ import type { ThemedStyle } from "@/theme/types"
  */
 export const AttendanceReportsScreen: FC<AppStackScreenProps<"AttendanceReports">> = observer(
   function AttendanceReportsScreen(_props) {
-    const { themed, theme } = useAppTheme()
+    const { themed } = useAppTheme()
     const profileStore = useProfileStore()
 
     const handleSendReport = () => {

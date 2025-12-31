@@ -42,7 +42,7 @@ interface ScheduleGridProps {
  */
 export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }) => {
   const { t } = useTranslation()
-  const { themed, theme } = useAppTheme()
+  const { themed } = useAppTheme()
 
   // Get current day index (0-6 for Mon-Sun)
   const currentDayIndex = useMemo(() => {
@@ -63,19 +63,10 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
         {DAY_KEYS.map((dayKey, index) => (
           <View
             key={dayKey}
-            style={[
-              themed($headerCell),
-              index === currentDayIndex && {
-                borderBottomColor: theme.colors.tint,
-                borderBottomWidth: 2,
-              },
-            ]}
+            style={[themed($headerCell), index === currentDayIndex && themed($headerCellActive)]}
           >
             <Text
-              style={[
-                themed($headerText),
-                index === currentDayIndex && { color: theme.colors.tint },
-              ]}
+              style={[themed($headerText), index === currentDayIndex && themed($headerTextActive)]}
             >
               {t(dayKey)}
             </Text>
@@ -92,9 +83,7 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
               <View key={colIndex} style={themed($timeCell)}>
                 {millis ? (
                   <View style={themed($timeCellInner)}>
-                    <Text style={[themed($timeText), { color: theme.colors.tint }]}>
-                      {formatMillisToLocalTime(millis)}
-                    </Text>
+                    <Text style={themed($timeText)}>{formatMillisToLocalTime(millis)}</Text>
                   </View>
                 ) : (
                   <View style={themed($emptyCellInner)} />
@@ -127,10 +116,19 @@ const $headerCell: ThemedStyle<ViewStyle> = () => ({
   paddingBottom: 4,
 })
 
+const $headerCellActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderBottomColor: colors.tint,
+  borderBottomWidth: 2,
+})
+
 const $headerText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 11,
   fontWeight: "600",
   color: colors.textDim,
+})
+
+const $headerTextActive: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
 })
 
 const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -160,7 +158,8 @@ const $emptyCellInner: ThemedStyle<ViewStyle> = () => ({
   height: 32, // Match height of filled cells
 })
 
-const $timeText: ThemedStyle<TextStyle> = () => ({
+const $timeText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 11,
   fontWeight: "600",
+  color: colors.tint,
 })

@@ -17,9 +17,14 @@ import {
 import { Animated, StyleSheet, ViewStyle, TextStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { Text } from "./Text"
 import { TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
+
+import { Text } from "./Text"
+
+// Color constants for toast styles
+const SHADOW_COLOR = "#000"
+const TEXT_COLOR_WHITE = "#FFFFFF"
 
 /** Toast configuration */
 interface ToastConfig {
@@ -170,7 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#fff",
+    color: TEXT_COLOR_WHITE,
     textAlign: "center",
   } as TextStyle,
 })

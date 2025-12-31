@@ -5,10 +5,9 @@
  * Uses the "default" profile ID since there's only one profile per device.
  */
 
+import { user_profiles as userProfiles } from "@sqlite"
 import { eq, sql } from "drizzle-orm"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
-
-import { user_profiles as userProfiles } from "@sqlite"
 
 /** Profile data stored in SQLite */
 export interface UserProfileRecord {
@@ -39,7 +38,10 @@ export class UserProfileSqliteRepository {
    */
   async findDefault(): Promise<UserProfileRecord | null> {
     try {
-      const rows = await this.db.select().from(userProfiles as any).limit(1)
+      const rows = await this.db
+        .select()
+        .from(userProfiles as any)
+        .limit(1)
       return (rows[0] as UserProfileRecord) || null
     } catch (error) {
       console.error("[UserProfileSqliteRepository] findDefault error:", error)

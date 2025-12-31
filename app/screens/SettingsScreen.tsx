@@ -24,12 +24,7 @@ import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useSubscription } from "@/context/SubscriptionContext"
-import {
-  translate,
-  getAvailableLanguages,
-  getCurrentLanguage,
-  languageNames,
-} from "@/i18n"
+import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
@@ -609,7 +604,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
                 <ActivityIndicator
                   size="small"
                   color={theme.colors.tint}
-                  style={{ marginRight: 8 }}
+                  style={themed($activitySpinner)}
                 />
               )}
               <Text style={[themed($rowValue), isPro && themed($premiumText)]}>
@@ -796,7 +791,7 @@ const $rowValue: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
 })
 
-const $rowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
+const _$rowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
   marginRight: spacing.xs,
 })
 
@@ -823,6 +818,10 @@ const $logoutRowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
 const $premiumText: ThemedStyle<TextStyle> = () => ({
   color: "#2196F3",
   fontWeight: "600",
+})
+
+const $activitySpinner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginRight: spacing.xs,
 })
 
 const $upgradeButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -858,7 +857,7 @@ const $colorPreviewSwatch: ViewStyle = {
   marginRight: 4,
 }
 
-const $colorPreview: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const _$colorPreview: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   width: 24,
   height: 24,
   borderRadius: 12,
@@ -866,17 +865,17 @@ const $colorPreview: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginRight: spacing.xs,
 })
 
-const $logoutButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const _$logoutButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.md,
   backgroundColor: "transparent",
   borderWidth: 0,
 })
 
-const $logoutText: ThemedStyle<TextStyle> = ({ colors }) => ({
+const _$logoutText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.error,
 })
 
-const $logoutIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
+const _$logoutIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
   marginRight: spacing.xs,
   transform: [{ rotate: "180deg" }],
 })

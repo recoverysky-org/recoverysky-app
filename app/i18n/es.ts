@@ -34,6 +34,7 @@ const es: Translations = {
   database: {
     initializing: "Inicializando base de datos...",
     seeding: "Cargando datos...",
+    reencrypting: "Asegurando tus datos...",
     error: "Error de base de datos",
   },
   loginScreen: {
@@ -50,6 +51,7 @@ const es: Translations = {
     attendanceTab: "Asistencia",
     meetingsTab: "Reuniones",
     scheduleTab: "Horario",
+    guideTab: "Guía",
     settingsTab: "Perfil",
   },
   homeScreen: {
@@ -239,7 +241,8 @@ const es: Translations = {
     selectPronouns: "Seleccionar pronombres",
     // Screen 2: Recovery
     recoveryTitle: "Tu Recuperación",
-    recoverySubtitle: "Filtra reuniones por Grupo seleccionado. Muestra fecha/días de recuperación.",
+    recoverySubtitle:
+      "Filtra reuniones por Grupo seleccionado. Muestra fecha/días de recuperación.",
     fellowship: "Grupo",
     selectFellowship: "Selecciona tu grupo",
     recoveryDate: "Fecha de Recuperación",
@@ -299,6 +302,15 @@ const es: Translations = {
     macosReactotronHint: "Si no funciona, asegúrate de que Reactotron esté ejecutándose.",
     webReactotronHint: "Si no funciona, asegúrate de que Reactotron esté ejecutándose.",
     windowsReactotronHint: "Si no funciona, asegúrate de que Reactotron esté ejecutándose.",
+  },
+  guideScreen: {
+    title: "Guía",
+    subtitle: "Tu compañero de recuperación con IA",
+    emptyState: "Pregúntale a Sky lo que sea",
+    emptyStateHint:
+      "Obtén ayuda con recursos de recuperación, información de reuniones, literatura y más.",
+    inputPlaceholder: "Escribe tu mensaje...",
+    thinking: "Sky está pensando...",
   },
 }
 

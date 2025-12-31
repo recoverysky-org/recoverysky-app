@@ -5,8 +5,8 @@
  * Events are emitted from native iOS/Android code via NativeEventEmitter.
  */
 
-import { useEffect, useRef, useCallback } from "react"
-import { NativeEventEmitter, NativeModules, Platform } from "react-native"
+import { useEffect, useRef } from "react"
+import { NativeEventEmitter, NativeModules } from "react-native"
 
 import { logger } from "@/utils/logger"
 

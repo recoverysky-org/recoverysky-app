@@ -18,6 +18,7 @@ export type MainTabParamList = {
   Attendance: undefined
   Meetings: { segment?: MeetingsSegment } | undefined
   Schedule: undefined
+  Guide: undefined
   Settings: undefined
 }
 

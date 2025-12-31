@@ -131,10 +131,12 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({ visible, onClose }
                   <Text style={themed($modalButtonText)}>Cancel</Text>
                 </Pressable>
                 <Pressable
-                  style={[themed($modalButton), { backgroundColor: theme.colors.tint }]}
+                  style={[themed($modalButton), themed($modalButtonPrimary)]}
                   onPress={handleCustomConfirm}
                 >
-                  <Text style={[themed($modalButtonText), { color: "#fff" }]}>Apply</Text>
+                  <Text style={[themed($modalButtonText), themed($modalButtonTextWhite)]}>
+                    Apply
+                  </Text>
                 </Pressable>
               </View>
             </>
@@ -143,7 +145,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({ visible, onClose }
           {/* Close button when not in custom picker mode */}
           {!showCustomPicker && (
             <Pressable style={themed($closeButton)} onPress={onClose}>
-              <Text style={[themed($modalButtonText), { color: theme.colors.tint }]}>Done</Text>
+              <Text style={[themed($modalButtonText), themed($modalButtonTextTint)]}>Done</Text>
             </Pressable>
           )}
         </View>
@@ -263,6 +265,18 @@ const $modalButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 16,
   fontWeight: "600",
   color: colors.text,
+})
+
+const $modalButtonPrimary: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.tint,
+})
+
+const $modalButtonTextWhite: ThemedStyle<TextStyle> = () => ({
+  color: "#FFFFFF",
+})
+
+const $modalButtonTextTint: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
 })
 
 const $closeButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

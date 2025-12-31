@@ -290,9 +290,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       >
         <Text style={themed($fellowshipLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
         <View style={$selectorValueRow}>
-          <Text style={themed($selectorValue)}>
-            {profileStore.fellowship || "AA"}
-          </Text>
+          <Text style={themed($selectorValue)}>{profileStore.fellowship || "AA"}</Text>
           <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
         </View>
       </TouchableOpacity>
@@ -309,10 +307,15 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         </TouchableOpacity>
 
         {/* Language Selector Button */}
-        <TouchableOpacity style={themed($selectorButton)} onPress={() => setLanguageModalVisible(true)}>
+        <TouchableOpacity
+          style={themed($selectorButton)}
+          onPress={() => setLanguageModalVisible(true)}
+        >
           <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
           <View style={$selectorValueRow}>
-            <Text style={themed($selectorValue)}>{selectedLanguage || t("listingsScreen:allLanguages")}</Text>
+            <Text style={themed($selectorValue)}>
+              {selectedLanguage || t("listingsScreen:allLanguages")}
+            </Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>
         </TouchableOpacity>
@@ -481,7 +484,9 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <Pressable style={themed($modalOverlay)} onPress={() => setTimePickerVisible(null)}>
           <View style={themed($timePickerContent)}>
             <Text style={themed($modalTitle)}>
-              {timePickerVisible === "start" ? t("listingsScreen:startTime") : t("listingsScreen:endTime")}
+              {timePickerVisible === "start"
+                ? t("listingsScreen:startTime")
+                : t("listingsScreen:endTime")}
             </Text>
             <FlatList
               data={getPickerHours()}
@@ -726,7 +731,7 @@ const $modalTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   textAlign: "center",
 })
 
-const $modalOption: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $modalOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",

@@ -33,29 +33,29 @@ export function decodeJwtPayload<T = Record<string, unknown>>(token: string): T 
  */
 export interface ZitadelIdTokenClaims {
   /** Subject (user ID) */
-  sub: string
+  "sub": string
   /** Issuer */
-  iss?: string
+  "iss"?: string
   /** Audience */
-  aud?: string | string[]
+  "aud"?: string | string[]
   /** Expiration time */
-  exp?: number
+  "exp"?: number
   /** Issued at */
-  iat?: number
+  "iat"?: number
   /** Email */
-  email?: string
+  "email"?: string
   /** Email verified */
-  email_verified?: boolean
+  "email_verified"?: boolean
   /** Full name */
-  name?: string
+  "name"?: string
   /** Preferred username */
-  preferred_username?: string
+  "preferred_username"?: string
   /** Given name */
-  given_name?: string
+  "given_name"?: string
   /** Family name */
-  family_name?: string
+  "family_name"?: string
   /** Locale */
-  locale?: string
+  "locale"?: string
   /**
    * Zitadel user metadata claim
    * Contains custom key-value pairs set on the user
