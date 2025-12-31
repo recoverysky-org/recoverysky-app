@@ -14,6 +14,7 @@ import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ProgressDots } from "./ProgressDots"
 
 export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendance">> = observer(
   function OnboardingAttendance({ navigation }) {
@@ -39,14 +40,7 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <View style={$progress}>
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
-          <View style={[$dot, $dotInactive]} />
-        </View>
+        <ProgressDots currentIndex={4} />
 
         {/* Content */}
         <View style={$content}>
@@ -55,14 +49,10 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
 
           {/* Info bullets */}
           <View style={themed($bulletList)}>
-            <View style={$bulletItem}>
+            {/* <View style={$bulletItem}>
               <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.tint} />
               <Text style={themed($bulletText)} tx="onboarding:attendanceFreeFeature" />
-            </View>
-            <View style={$bulletItem}>
-              <Ionicons name="time-outline" size={20} color={theme.colors.tint} />
-              <Text style={themed($bulletText)} tx="onboarding:attendanceDuration" />
-            </View>
+            </View> */}
             <View style={$bulletItem}>
               <Ionicons name="lock-closed-outline" size={20} color={theme.colors.tint} />
               <Text style={themed($bulletText)} tx="onboarding:attendancePrivate" />
@@ -75,10 +65,7 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
 
           {/* Enable Toggle */}
           <View style={themed($settingRow)}>
-            <View style={$settingLabelRow}>
-              <Text style={themed($settingLabel)} tx="onboarding:enableAttendance" />
-              <Text style={themed($settingHint)} tx="onboarding:enableAttendanceHint" />
-            </View>
+            <Text style={themed($settingLabel)} tx="onboarding:enableAttendance" />
             <Switch
               value={profileStore.attendanceEnabled}
               onValueChange={toggleAttendance}
@@ -87,8 +74,6 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
             />
           </View>
         </View>
-
-        <View style={{ height: 24 }} />
 
         {/* Footer */}
         <View style={themed($footer)}>
@@ -123,23 +108,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
-
-const $progress: ViewStyle = {
-  flexDirection: "row",
-  justifyContent: "center",
-  gap: 8,
-  paddingVertical: 16,
-}
-
-const $dot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-}
-
-const $dotInactive: ViewStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
-}
 
 const $content: ViewStyle = {
   flex: 1,
@@ -190,21 +158,10 @@ const $settingRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.xl,
 })
 
-const $settingLabelRow: ViewStyle = {
-  flex: 1,
-  marginRight: 16,
-}
-
 const $settingLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 16,
   fontWeight: "600",
   color: colors.text,
-})
-
-const $settingHint: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
-  color: colors.textDim,
-  marginTop: 2,
 })
 
 const $footer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

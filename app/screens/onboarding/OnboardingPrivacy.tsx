@@ -14,16 +14,14 @@ import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ProgressDots } from "./ProgressDots"
 
 // Privacy bullet items with icons
 const PRIVACY_ITEMS = [
-  { icon: "phone-portrait-outline", txKey: "dataOnDevice" },
-  // { icon: "eye-off-outline", txKey: "noTracking" },
   { icon: "finger-print-outline", txKey: "totalAnonymity" },
-  { icon: "cloud-outline", txKey: "minimalNetwork" },
+  { icon: "phone-portrait-outline", txKey: "dataOnDevice" },
   { icon: "lock-closed-outline", txKey: "encryptedStorage" },
   { icon: "shield-checkmark-outline", txKey: "hipaaCompliant" },
-  { icon: "code-outline", txKey: "openSource" },
 ] as const
 
 export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> = observer(
@@ -53,15 +51,8 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={themed($container)}
       >
-        {/* Progress dots - 6th active */}
-        <View style={$progress}>
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
-        </View>
+        {/* Progress dots */}
+        <ProgressDots currentIndex={5} />
 
         {/* Content */}
         <View style={$content}>
@@ -135,23 +126,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
-
-const $progress: ViewStyle = {
-  flexDirection: "row",
-  justifyContent: "center",
-  gap: 8,
-  paddingVertical: 16,
-}
-
-const $dot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-}
-
-const $dotInactive: ViewStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
-}
 
 const $content: ViewStyle = {
   flex: 1,

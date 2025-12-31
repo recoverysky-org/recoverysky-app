@@ -9,6 +9,7 @@ import { View, ViewStyle, TextStyle, Pressable, Image, ImageStyle } from "react-
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useProfileStore } from "@/models"
+import { ProgressDots } from "./ProgressDots"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -35,14 +36,7 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <View style={$progress}>
-          <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-        </View>
+        <ProgressDots currentIndex={0} />
 
         {/* Content */}
         <View style={$content}>
@@ -84,23 +78,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
-
-const $progress: ViewStyle = {
-  flexDirection: "row",
-  justifyContent: "center",
-  gap: 8,
-  paddingVertical: 16,
-}
-
-const $dot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-}
-
-const $dotInactive: ViewStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
-}
 
 const $content: ViewStyle = {
   flex: 1,

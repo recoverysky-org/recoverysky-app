@@ -24,6 +24,7 @@ import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ProgressDots } from "./ProgressDots"
 
 const FELLOWSHIPS = ["AA", "NA", "CMA", "RD", "Other"] as const
 type Fellowship = (typeof FELLOWSHIPS)[number]
@@ -84,14 +85,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <View style={$progress}>
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-        </View>
+        <ProgressDots currentIndex={2} />
 
         {/* Content */}
         <View style={$content}>
@@ -210,23 +204,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
-
-const $progress: ViewStyle = {
-  flexDirection: "row",
-  justifyContent: "center",
-  gap: 8,
-  paddingVertical: 16,
-}
-
-const $dot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-}
-
-const $dotInactive: ViewStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
-}
 
 const $content: ViewStyle = {
   flex: 1,

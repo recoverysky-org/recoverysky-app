@@ -16,11 +16,14 @@ import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ProgressDots } from "./ProgressDots"
 
-type Pronouns = "he/him" | "she/her" | "they/them" | "em/ers"
+type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers"
 
 const getPronounsLabel = (p: Pronouns | null): string => {
   switch (p) {
+    case "none":
+      return translate("settingsScreen:pronounNone")
     case "he/him":
       return translate("settingsScreen:pronounHeHim")
     case "she/her":
@@ -55,14 +58,7 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <View style={$progress}>
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, { backgroundColor: theme.colors.tint }]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-          <View style={[$dot, $dotInactive]} />
-        </View>
+        <ProgressDots currentIndex={1} />
 
         {/* Content */}
         <View style={$content}>
@@ -96,7 +92,7 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
           <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
             <View style={themed($modalContent)}>
               <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
-              {(["he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
+              {(["none", "he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
                 <TouchableOpacity
                   key={p}
                   style={[
@@ -151,23 +147,6 @@ const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
-
-const $progress: ViewStyle = {
-  flexDirection: "row",
-  justifyContent: "center",
-  gap: 8,
-  paddingVertical: 16,
-}
-
-const $dot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-}
-
-const $dotInactive: ViewStyle = {
-  backgroundColor: "rgba(255, 255, 255, 0.3)",
-}
 
 const $content: ViewStyle = {
   flex: 1,
