@@ -29,6 +29,7 @@ import {
 } from "@sqlite"
 
 import { getDb } from "./provider"
+import { UserProfileSqliteRepository } from "./UserProfileSqliteRepository"
 
 /**
  * Event recorded during meeting attendance
@@ -300,43 +301,58 @@ export function findTrexesByIds(ids: string[]): TrexRow[] {
 // Profile Repository (Secure - encrypted SQLite)
 // ============================================================================
 
+let _profileRepo: UserProfileSqliteRepository | null = null
+
+function getProfileRepo(): UserProfileSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_profileRepo) _profileRepo = new UserProfileSqliteRepository(db as any)
+  return _profileRepo
+}
+
 /**
  * Profile repository for secure storage of sensitive user data.
  *
  * Stores: shortName, pronouns, recoveryDate, fellowship, language
- *
- * TODO: Replace this placeholder with actual SQLite implementation
- * once the migration and repository are created in recoverysky-common.
  */
 export const profileRepository = {
   /**
-   * Load profile data from encrypted SQLite
+   * Load profile data from SQLite
    * Returns null if no profile exists yet
    */
   load: async (): Promise<SecureProfileData | null> => {
-    // TODO: Replace with actual SQLite query
-    // const { db } = getDb()
-    // if (!db) return null
-    // const repo = new ProfileSqliteRepository(db)
-    // return repo.load()
+    try {
+      const record = await getProfileRepo().findDefault()
+      if (!record) return null
 
-    // Placeholder: return null (use defaults)
-    console.log("[profileRepository] load() - placeholder, returning null")
-    return null
+      return {
+        shortName: record.shortName || undefined,
+        pronouns: (record.pronouns as SecureProfileData["pronouns"]) || undefined,
+        recoveryDate: record.recoveryDate || undefined,
+        fellowship: record.fellowship || undefined,
+        language: record.language || undefined,
+      }
+    } catch (error) {
+      console.error("[profileRepository] load error:", error)
+      return null
+    }
   },
 
   /**
-   * Save profile data to encrypted SQLite
+   * Save profile data to SQLite
    * Uses upsert - creates if not exists, updates if exists
    */
   save: async (data: SecureProfileData): Promise<void> => {
-    // TODO: Replace with actual SQLite upsert
-    // const { db } = getDb()
-    // if (!db) throw new Error("Database not opened")
-    // const repo = new ProfileSqliteRepository(db)
-    // await repo.save(data)
-
-    // Placeholder: log and no-op
-    console.log("[profileRepository] save() - placeholder", data)
+    try {
+      await getProfileRepo().upsert({
+        shortName: data.shortName,
+        pronouns: data.pronouns,
+        recoveryDate: data.recoveryDate,
+        fellowship: data.fellowship,
+        language: data.language,
+      })
+    } catch (error) {
+      console.error("[profileRepository] save error:", error)
+    }
   },
 }

@@ -32,6 +32,7 @@ export {
   syncQueueRepo,
   attendanceRepo,
   feedbackRepo,
+  profileRepository,
   findAllTrexes,
   findTrexById,
   findTrexesByIds,
