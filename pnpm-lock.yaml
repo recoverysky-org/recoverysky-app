@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@ai-sdk/react':
+        specifier: ^3.0.5
+        version: 3.0.5(react@19.1.0)(zod@4.3.0)
       '@expo-google-fonts/space-grotesk':
         specifier: ^0.4.0
         version: 0.4.1
@@ -27,20 +30,29 @@ importers:
         specifier: ^7.2.0
         version: 7.9.0(@react-navigation/native@7.1.26(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-safe-area-context@5.6.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native-screens@4.16.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@recoverysky-org/common':
-        specifier: '*'
-        version: 1.9.1(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(@types/sql.js@1.4.9)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3)(sql.js@1.13.0))
+        specifier: ^1.10.1
+        version: 1.10.1(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(@types/sql.js@1.4.9)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3)(sql.js@1.13.0))
       '@revenuecat/purchases-js':
         specifier: ^1.23.0
         version: 1.23.0
+      '@stardazed/streams-text-encoding':
+        specifier: ^1.0.2
+        version: 1.0.2
       '@trex-ts/core':
         specifier: '*'
         version: 1.5.4
+      '@ungap/structured-clone':
+        specifier: ^1.3.0
+        version: 1.3.0
       '@zoom/meetingsdk':
         specifier: ^5.0.2
         version: 5.0.2(lodash@4.17.21)(react-dom@19.1.0(react@19.1.0))(react-redux@8.1.2(@types/react@19.1.17)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(redux@4.2.1))(react@19.1.0)(redux-thunk@2.4.2(redux@4.2.1))(redux@4.2.1)
       '@zoom/meetingsdk-react-native':
         specifier: ^6.6.0
         version: 6.6.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      ai:
+        specifier: ^6.0.5
+        version: 6.0.5(zod@4.3.0)
       apisauce:
         specifier: 3.1.1
         version: 3.1.1
@@ -173,6 +185,9 @@ importers:
       tweetnacl-util:
         specifier: ^0.15.1
         version: 0.15.1
+      zod:
+        specifier: ^4.3.0
+        version: 4.3.0
     devDependencies:
       '@babel/core':
         specifier: ^7.20.0
@@ -289,6 +304,28 @@ packages:
 
   '@acemir/cssom@0.9.30':
     resolution: {integrity: sha512-9CnlMCI0LmCIq0olalQqdWrJHPzm0/tw3gzOA9zJSgvFX7Xau3D24mAGa4BtwxwY69nsuJW6kQqqCzf/mEcQgg==}
+
+  '@ai-sdk/gateway@3.0.4':
+    resolution: {integrity: sha512-OlccjNYZ5+4FaNyvs0kb3N5H6U/QCKlKPTGsgUo8IZkqfMQu8ALI1XD6l/BCuTKto+OO9xUPObT/W7JhbqJ5nA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@4.0.2':
+    resolution: {integrity: sha512-KaykkuRBdF/ffpI5bwpL4aSCmO/99p8/ci+VeHwJO8tmvXtiVAb99QeyvvvXmL61e9Zrvv4GBGoajW19xdjkVQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider@3.0.1':
+    resolution: {integrity: sha512-2lR4w7mr9XrydzxBSjir4N6YMGdXD+Np1Sh0RXABh7tWdNFFwIeRI1Q+SaYZMbfL8Pg8RRLcrxQm51yxTLhokg==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/react@3.0.5':
+    resolution: {integrity: sha512-0J9YKeeouG2tg84hEu2p9W6zcv4TRrl0BQq0HmUjqn/Y6arXeX1LNTTG1WhO4y2oPLVGrhzurJIUmMgzJl41yQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: ^18 || ~19.0.1 || ~19.1.2 || ^19.2.1
 
   '@asamuzakjp/css-color@4.1.1':
     resolution: {integrity: sha512-B0Hv6G3gWGMn0xKJ0txEi/jM5iFpT3MfDxmhZFb4W047GvytCf1DHQ1D69W3zHI4yWe2aTZAA0JnbMZ7Xc8DuQ==}
@@ -2467,8 +2504,8 @@ packages:
   '@react-navigation/routers@7.5.3':
     resolution: {integrity: sha512-1tJHg4KKRJuQ1/EvJxatrMef3NZXEPzwUIUZ3n1yJ2t7Q97siwRtbynRpQG9/69ebbtiZ8W3ScOZF/OmhvM4Rg==}
 
-  '@recoverysky-org/common@1.9.1':
-    resolution: {integrity: sha512-ybtMed3IFfr/+RAWvZIj66MlCj+wd64+fw8XGPxbf+dHilv3V1ltKaFfaDeG14UTuXlK5LWE9hVZGHteSLi4AQ==, tarball: https://git.rso/api/packages/recoverysky-org/npm/%40recoverysky-org%2Fcommon/-/1.9.1/common-1.9.1.tgz}
+  '@recoverysky-org/common@1.10.1':
+    resolution: {integrity: sha512-KMK2maMR6ltTYgofbzJd7GYQMOCAhGntRJkg8FQL26HP+RtQ3VUxW76Ima63Qw4YzD1cPM8LpcXATIsObQnG2w==, tarball: https://git.rso/api/packages/recoverysky-org/npm/%40recoverysky-org%2Fcommon/-/1.10.1/common-1.10.1.tgz}
     peerDependencies:
       drizzle-orm: ^0.45
 
@@ -2611,6 +2648,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@stardazed/streams-text-encoding@1.0.2':
+    resolution: {integrity: sha512-f2Z15BId3t44a/u21yYSGXFAkCyKocmAyduoAy7swnZ4xIfbaZlOWsgly/jDNNOuj6hYQN72UaBRe3Z/tOHfqg==}
 
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
@@ -2925,6 +2965,10 @@ packages:
     peerDependencies:
       '@urql/core': ^5.0.0
 
+  '@vercel/oidc@3.0.5':
+    resolution: {integrity: sha512-fnYhv671l+eTTp48gB4zEsTW/YtRgRPnkI2nT7x6qw5rkI1Lq2hTmQIpHPgyThI0znLK+vX2n9XxKdXZ7BUbbw==}
+    engines: {node: '>= 20'}
+
   '@vitest/coverage-v8@4.0.16':
     resolution: {integrity: sha512-2rNdjEIsPRzsdu6/9Eq0AYAzYdpP6Bx9cje9tL3FE5XzXRQF1fNU9pe/1yE8fCrS0HD+fBtt6gLPh6LI57tX7A==}
     peerDependencies:
@@ -3034,6 +3078,12 @@ packages:
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
+
+  ai@6.0.5:
+    resolution: {integrity: sha512-CKL3dDHedWskC6EY67LrULonZBU9vL+Bwa+xQEcprBhJfxpogntG3utjiAkYuy5ZQatyWk+SmWG8HLvcnhvbRg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
 
   ajv@6.12.6:
     resolution: {integrity: sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==}
@@ -4054,6 +4104,10 @@ packages:
   event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
     engines: {node: '>=6'}
+
+  eventsource-parser@3.0.6:
+    resolution: {integrity: sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==}
+    engines: {node: '>=18.0.0'}
 
   exec-async@2.2.0:
     resolution: {integrity: sha512-87OpwcEiMia/DeiKFzaQNBNFeN3XkkpYIh9FyOqq5mS2oKv3CBE67PXoEKcr6nodWdXNogTiQ0jE2NGuoffXPw==}
@@ -5097,6 +5151,9 @@ packages:
 
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
+
+  json-schema@0.4.0:
+    resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
 
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
@@ -6682,6 +6739,11 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
+  swr@2.3.8:
+    resolution: {integrity: sha512-gaCPRVoMq8WGDcWj9p4YWzCMPHzE0WNl6W8ADIx9c3JBEIdMkJGMzW+uzXvxHMltwcYACr9jP+32H8/hgwMR7w==}
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
 
@@ -6734,6 +6796,10 @@ packages:
 
   throat@5.0.0:
     resolution: {integrity: sha512-fcwX4mndzpLQKBS1DVYhGAcYaYt7vsHNIvQV+WXMvnow5cgjPphq5CaayLaGsjRdSCKZFNGt7/GYAuXaNOiYCA==}
+
+  throttleit@2.1.0:
+    resolution: {integrity: sha512-nt6AMGKW1p/70DF/hGBdJB57B8Tspmbp5gfJ8ilhLnt7kkr2ye7hzD6NVG8GGErk2HWF34igrL2CXmNIkzKqKw==}
+    engines: {node: '>=18'}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -7322,14 +7388,42 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@4.2.1:
-    resolution: {integrity: sha512-0wZ1IRqGGhMP76gLqz8EyfBXKk0J2qo2+H3fi4mcUP/KtTocoX08nmIAHl1Z2kJIZbZee8KOpBCSNPRgauucjw==}
+  zod@4.3.0:
+    resolution: {integrity: sha512-dXOXgs5b9ulOPotwXMEsAUoUPL2glchysY0RTJYVqJ7bU0Y5gqE1k3v19eCWrJsczrbae/Dt9+ajrJbr8Ot4uw==}
 
 snapshots:
 
   '@0no-co/graphql.web@1.2.0': {}
 
   '@acemir/cssom@0.9.30': {}
+
+  '@ai-sdk/gateway@3.0.4(zod@4.3.0)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.1
+      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.0)
+      '@vercel/oidc': 3.0.5
+      zod: 4.3.0
+
+  '@ai-sdk/provider-utils@4.0.2(zod@4.3.0)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.1
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.0.6
+      zod: 4.3.0
+
+  '@ai-sdk/provider@3.0.1':
+    dependencies:
+      json-schema: 0.4.0
+
+  '@ai-sdk/react@3.0.5(react@19.1.0)(zod@4.3.0)':
+    dependencies:
+      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.0)
+      ai: 6.0.5(zod@4.3.0)
+      react: 19.1.0
+      swr: 2.3.8(react@19.1.0)
+      throttleit: 2.1.0
+    transitivePeerDependencies:
+      - zod
 
   '@asamuzakjp/css-color@4.1.1':
     dependencies:
@@ -8872,13 +8966,13 @@ snapshots:
 
   '@istanbuljs/schema@0.1.3': {}
 
-  '@jenova-marie/ts-rust-result@2.2.16(zod@4.2.1)':
+  '@jenova-marie/ts-rust-result@2.2.16(zod@4.3.0)':
     dependencies:
-      zod: 4.2.1
+      zod: 4.3.0
 
   '@jenova-marie/wonder-logger@2.0.16(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))':
     dependencies:
-      '@jenova-marie/ts-rust-result': 2.2.16(zod@4.2.1)
+      '@jenova-marie/ts-rust-result': 2.2.16(zod@4.3.0)
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/auto-instrumentations-node': 0.65.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
       '@opentelemetry/exporter-jaeger': 2.2.0(@opentelemetry/api@1.9.0)
@@ -8896,7 +8990,7 @@ snapshots:
       pino-pretty: 13.1.3
       rxjs: 7.8.2
       yaml: 2.8.2
-      zod: 4.2.1
+      zod: 4.3.0
     transitivePeerDependencies:
       - '@opentelemetry/core'
       - encoding
@@ -10068,9 +10162,9 @@ snapshots:
     dependencies:
       nanoid: 3.3.11
 
-  '@recoverysky-org/common@1.9.1(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(@types/sql.js@1.4.9)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3)(sql.js@1.13.0))':
+  '@recoverysky-org/common@1.10.1(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(@types/sql.js@1.4.9)(expo-sqlite@16.0.10(expo@54.0.30)(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(pg@8.16.3)(sql.js@1.13.0))':
     dependencies:
-      '@jenova-marie/ts-rust-result': 2.2.16(zod@4.2.1)
+      '@jenova-marie/ts-rust-result': 2.2.16(zod@4.3.0)
       '@jenova-marie/wonder-logger': 2.0.16(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
       '@trex-ts/core': 1.5.4
       bson-objectid: 2.0.4
@@ -10080,7 +10174,7 @@ snapshots:
       luxon: 3.7.2
       pg: 8.16.3
       uuid: 13.0.0
-      zod: 4.2.1
+      zod: 4.3.0
     transitivePeerDependencies:
       - '@opentelemetry/core'
       - encoding
@@ -10178,6 +10272,8 @@ snapshots:
       '@sinonjs/commons': 3.0.1
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@stardazed/streams-text-encoding@1.0.2': {}
 
   '@testing-library/dom@10.4.1':
     dependencies:
@@ -10516,6 +10612,8 @@ snapshots:
       '@urql/core': 5.2.0
       wonka: 6.3.5
 
+  '@vercel/oidc@3.0.5': {}
+
   '@vitest/coverage-v8@4.0.16(vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@25.0.3)(jsdom@27.4.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
@@ -10635,6 +10733,14 @@ snapshots:
       - supports-color
 
   agent-base@7.1.4: {}
+
+  ai@6.0.5(zod@4.3.0):
+    dependencies:
+      '@ai-sdk/gateway': 3.0.4(zod@4.3.0)
+      '@ai-sdk/provider': 3.0.1
+      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.0)
+      '@opentelemetry/api': 1.9.0
+      zod: 4.3.0
 
   ajv@6.12.6:
     dependencies:
@@ -11878,6 +11984,8 @@ snapshots:
   etag@1.8.1: {}
 
   event-target-shim@5.0.1: {}
+
+  eventsource-parser@3.0.6: {}
 
   exec-async@2.2.0: {}
 
@@ -13291,6 +13399,8 @@ snapshots:
   json-schema-traverse@0.4.1: {}
 
   json-schema-traverse@1.0.0: {}
+
+  json-schema@0.4.0: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
@@ -15055,6 +15165,12 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
+  swr@2.3.8(react@19.1.0):
+    dependencies:
+      dequal: 2.0.3
+      react: 19.1.0
+      use-sync-external-store: 1.6.0(react@19.1.0)
+
   symbol-tree@3.2.4: {}
 
   synckit@0.11.11:
@@ -15112,6 +15228,8 @@ snapshots:
       long: 2.4.0
 
   throat@5.0.0: {}
+
+  throttleit@2.1.0: {}
 
   tinybench@2.9.0: {}
 
@@ -15639,4 +15757,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@4.2.1: {}
+  zod@4.3.0: {}
