@@ -43,7 +43,9 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
     }
 
     const openTerms = () => {
-      Linking.openURL("https://recoverysky.org/tos.html")
+      Linking.openURL(
+        "https://policies.termageddon.com/api/policy/WW5seWRucHJMeTlyVEU5TFoxRTlQUT09",
+      )
     }
 
     return (

@@ -43,7 +43,7 @@ const es: Translations = {
     loginButton: "Iniciar sesión",
     continueAnonymously: "Continuar Anónimamente",
     openingBrowser: "Abriendo navegador para autenticación...",
-    euaTitle: "Acuerdo de Usuario Final",
+    euaTitle: "Términos y Condiciones",
     euaAgree: "Acepto",
     euaCancel: "Cancelar",
   },
@@ -64,7 +64,7 @@ const es: Translations = {
     onboardingTitle: "Bienvenido a RecoverySky",
     onboardingDescription:
       "Revisa la introducción de la app en cualquier momento para conocer las funciones y la privacidad.",
-    restartOnboarding: "Reiniciar Introducción",
+    restartOnboarding: "Reiniciar Cuestionario Inicial",
     liveTitle: "Reuniones en Vivo",
     liveDescription:
       "Encuentra reuniones que están sucediendo ahora. Toca la pestaña En Vivo para ver qué hay.",
@@ -229,6 +229,11 @@ const es: Translations = {
     // Actions
     logout: "Cerrar Sesión",
     logoutConfirm: "¿Estás seguro de que deseas cerrar sesión?",
+    // Legal Section
+    legalSection: "Legal",
+    thirdPartyLicenses: "Licencias de Terceros",
+    thirdPartyLicensesTitle: "Licencias de Código Abierto",
+    close: "Cerrar",
   },
   onboarding: {
     // Screen 0: Welcome
@@ -319,10 +324,10 @@ const es: Translations = {
   },
   guideScreen: {
     title: "Guía",
-    subtitle: "Tu compañero de recuperación con IA",
-    emptyState: "Pregúntale a Sky lo que sea",
+    subtitle: "Tu guía de reuniones de recuperación con IA",
+    emptyState: "Pregúntale a Sky sobre reuniones",
     emptyStateHint:
-      "Obtén ayuda con recursos de recuperación, información de reuniones, literatura y más.",
+      "Obtén ayuda con recursos de recuperación, información de reuniones y literatura de recuperación.",
     inputPlaceholder: "Escribe tu mensaje...",
     thinking: "Sky está pensando...",
   },

@@ -27,7 +27,7 @@ Any controversy or claim arising out of or relating to this End User License Agr
 YOU AND RECOVERYSKY ORG AGREE THAT EACH MAY BRING CLAIMS AGAINST THE OTHER ONLY IN YOUR OR ITS INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY CLASS OR REPRESENTATIVE ACTION.
 
 Changes
-We reserve the right to make changes to this End User License Agreement at any time. We will not provide you with any notice when we make changes to this End User License Agreement.
+We reserve the right to make changes to this End User License Agreement at any time. We will provide you with 7 days notice when we make changes to this End User License Agreement.
 
 Questions
 If you have any questions about this EULA, please contact us at admin@recoverysky.org.`

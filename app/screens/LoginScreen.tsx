@@ -19,7 +19,8 @@ import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
-// Import EUA text
+// Import agreement texts
+import { disclaimerText } from "@assets/content/disclaimer"
 import { euaText } from "@assets/content/eua"
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
@@ -134,13 +135,15 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             </Pressable>
           </View>
 
-          {/* EUA Content */}
+          {/* Agreement Content */}
           <ScrollView
             style={themed($modalContent)}
             contentContainerStyle={themed($modalContentInner)}
             showsVerticalScrollIndicator
           >
-            <Text style={themed($euaText)}>{euaText}</Text>
+            <Text style={themed($agreementText)}>{euaText}</Text>
+            <View style={themed($agreementDivider)} />
+            <Text style={themed($agreementText)}>{disclaimerText}</Text>
           </ScrollView>
 
           {/* Modal Footer */}
@@ -280,10 +283,16 @@ const $modalContentInner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   padding: spacing.lg,
 })
 
-const $euaText: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $agreementText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   lineHeight: 22,
   color: colors.text,
+})
+
+const $agreementDivider: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  height: 1,
+  backgroundColor: colors.border,
+  marginVertical: spacing.xl,
 })
 
 const $modalFooter: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({

@@ -24,7 +24,7 @@ const ossImage = require("@assets/images/OSS.png")
 const OSS_BENEFITS = [
   { icon: "eye-outline", txKey: "ossTransparency" },
   { icon: "shield-checkmark-outline", txKey: "ossSecurity" },
-  { icon: "code-slash-outline", txKey: "ossReview" },
+  // { icon: "code-slash-outline", txKey: "ossReview" },
 ] as const
 
 export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observer(

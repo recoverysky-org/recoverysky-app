@@ -42,7 +42,7 @@ const en = {
     loginButton: "Login",
     continueAnonymously: "Continue Anonymously",
     openingBrowser: "Opening browser for authentication...",
-    euaTitle: "End User Agreement",
+    euaTitle: "Terms & Conditions",
     euaAgree: "I Agree",
     euaCancel: "Cancel",
   },
@@ -65,7 +65,7 @@ const en = {
     onboardingTitle: "Welcome to RecoverySky",
     onboardingDescription:
       "Review the app introduction anytime to learn about features and privacy.",
-    restartOnboarding: "Restart Onboarding",
+    restartOnboarding: "Restart Initial Questionnaire",
     liveTitle: "Live Meetings",
     liveDescription: "Find meetings happening right now. Tap the Live tab to see what's streaming.",
     goToLive: "Go to Live",
@@ -230,6 +230,11 @@ const en = {
     // Actions
     logout: "Logout",
     logoutConfirm: "Are you sure you want to log out?",
+    // Legal Section
+    legalSection: "Legal",
+    thirdPartyLicenses: "Third-Party Licenses",
+    thirdPartyLicensesTitle: "Open Source Licenses",
+    close: "Close",
   },
   // Onboarding
   onboarding: {
@@ -328,9 +333,9 @@ const en = {
   // Guide Screen (AI Chat)
   guideScreen: {
     title: "Guide",
-    subtitle: "Your AI-powered recovery companion",
-    emptyState: "Ask Sky anything",
-    emptyStateHint: "Get help with recovery resources, meeting information, literature, and more.",
+    subtitle: "Your AI-powered recovery meeting guide",
+    emptyState: "Ask Sky about meetings",
+    emptyStateHint: "Get help with recovery resources, meeting information, and recovery literature.",
     inputPlaceholder: "Type your message...",
     thinking: "Sky is thinking...",
   },
