@@ -33,7 +33,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
-import { DatabaseProvider, DatabaseLoadingOverlay } from "./db"
+import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator } from "./db"
 import { changeLanguage, initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
@@ -41,6 +41,7 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
 import { loadStoredAuth } from "./services/auth/useZitadelAuth"
 import { ZoomMeetingProvider } from "./services/zoom"
+import { ToastProvider } from "./components/Toast"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { getDeviceId } from "./utils/deviceId"
@@ -158,12 +159,8 @@ export function App() {
           },
         )
 
-        // Sync stored language preference to i18n
-        const storedLanguage = _rootStore.profileStore.language
-        if (storedLanguage) {
-          log.info("Restoring stored language preference", { language: storedLanguage })
-          await changeLanguage(storedLanguage)
-        }
+        // Note: Language is now hydrated from SQLite via ProfileHydrator
+        // after the database is ready, not from MMKV snapshot
 
         setRootStore(_rootStore)
       })
@@ -223,16 +220,19 @@ export function App() {
         <RootStoreProvider value={rootStore}>
           <SubscriptionProvider appUserId={revenueCatUserId}>
             <DatabaseProvider>
+              <ProfileHydrator />
               <MeetingProvider>
                 <ThemeProvider>
-                  <ZoomMeetingProvider>
-                    <DatabaseLoadingOverlay />
-                    <AppNavigator
-                      linking={linking}
-                      initialState={initialNavigationState}
-                      onStateChange={onNavigationStateChange}
-                    />
-                  </ZoomMeetingProvider>
+                  <ToastProvider>
+                    <ZoomMeetingProvider>
+                      <DatabaseLoadingOverlay />
+                      <AppNavigator
+                        linking={linking}
+                        initialState={initialNavigationState}
+                        onStateChange={onNavigationStateChange}
+                      />
+                    </ZoomMeetingProvider>
+                  </ToastProvider>
                 </ThemeProvider>
               </MeetingProvider>
             </DatabaseProvider>

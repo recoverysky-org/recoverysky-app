@@ -164,7 +164,8 @@ const es: Translations = {
     showCleanDays: "Mostrar Días de Recuperación",
     showPronouns: "Mostrar Pronombres",
     pronouns: "Pronombres",
-    selectPronouns: "Seleccionar Pronombres",
+    selectPronouns: "Seleccionar",
+    pronounNone: "Ninguno",
     pronounHeHim: "Él",
     pronounSheHer: "Ella",
     pronounTheyThem: "Elle",
@@ -231,14 +232,14 @@ const es: Translations = {
     getStarted: "Comenzar",
     // Screen 1: Profile
     profileTitle: "Cuéntanos sobre ti",
-    profileSubtitle: "Esto ayuda a personalizar tu experiencia",
+    profileSubtitle: "Este es tu perfil en reuniones",
     shortName: "Nombre Corto",
     shortNamePlaceholder: "ej., Juan P.",
     pronouns: "Pronombres",
     selectPronouns: "Seleccionar pronombres",
     // Screen 2: Recovery
     recoveryTitle: "Tu Recuperación",
-    recoverySubtitle: "Opcional - puedes agregarlo después",
+    recoverySubtitle: "Filtra reuniones por Grupo seleccionado. Muestra fecha/días de recuperación.",
     fellowship: "Grupo",
     selectFellowship: "Selecciona tu grupo",
     recoveryDate: "Fecha de Recuperación",
@@ -251,12 +252,12 @@ const es: Translations = {
     // Screen 4: Attendance
     attendanceTitle: "Asistencia Personal",
     attendanceSubtitle: "Establece metas, sigue tu progreso y celebra visualmente tu recuperación.",
-    attendanceFreeFeature: "La asistencia se registra automáticamente al unirte a través de la app",
-    attendanceDuration: "La duración se captura para registros precisos y verificables",
+    attendanceFreeFeature:
+      "Si está habilitado, la asistencia se registra automáticamente al unirte a través de la app",
     attendancePrivate:
       "Los datos permanecen encriptados en tu dispositivo y solo salen cuando exportas",
     attendancePaidFeature:
-      "Opcional: Informes certificados para padrinos, tribunales o servicios familiares",
+      "Suscripción: Informes firmados digitalmente para padrinos, tribunales o servicios familiares",
     enableAttendance: "Habilitar Registro de Asistencia",
     enableAttendanceHint: "Puedes cambiar esto después en Configuración",
     // Screen 5: Privacy
@@ -287,6 +288,7 @@ const es: Translations = {
     shortMeetingMessage:
       "Tu reunión duró solo {{minutes}} minuto(s). Se requieren al menos {{required}} minuto(s) para recibir crédito de asistencia. Este registro no aparecerá en tu historial de asistencia.",
     dontShowAgain: "No mostrar de nuevo",
+    attendanceSaved: "Asistencia Guardada",
   },
   devScreen: {
     title: "Herramientas de desarrollo",

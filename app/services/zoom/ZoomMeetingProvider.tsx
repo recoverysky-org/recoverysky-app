@@ -25,6 +25,7 @@ import { Alert } from "react-native"
 import * as Crypto from "expo-crypto"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 
+import { useToast } from "@/components/Toast"
 import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
@@ -98,6 +99,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
   const zoom = useZoom()
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
+  const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
   const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
   const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
@@ -202,8 +204,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
       log.info("Attendance saved", { valid, creditMins })
       attendanceEvents.emit({ type: "processed", id: ctx.attendanceId })
 
-      // Show warning dialog if meeting was too short
-      if (!valid) {
+      if (valid) {
+        // Show success toast for valid attendance
+        showToast({ tx: "zoomMeeting:attendanceSaved", type: "success", duration: 3000 })
+      } else {
+        // Show warning dialog if meeting was too short
         showShortMeetingWarning(creditMins)
       }
     } catch (err) {

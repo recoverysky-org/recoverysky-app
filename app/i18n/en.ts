@@ -165,6 +165,7 @@ const en = {
     showPronouns: "Show Pronouns",
     pronouns: "Pronouns",
     selectPronouns: "Select Pronouns",
+    pronounNone: "None",
     pronounHeHim: "He/Him",
     pronounSheHer: "She/Her",
     pronounTheyThem: "They/Them",
@@ -233,14 +234,14 @@ const en = {
     getStarted: "Get Started",
     // Screen 1: Profile
     profileTitle: "Tell us about yourself",
-    profileSubtitle: "This helps personalize your experience",
+    profileSubtitle: "This is your in-meeting profile",
     shortName: "Short Name",
     shortNamePlaceholder: "e.g., Joe B.",
     pronouns: "Pronouns",
     selectPronouns: "Select pronouns",
     // Screen 2: Recovery
     recoveryTitle: "Your Recovery",
-    recoverySubtitle: "Optional - you can add this later",
+    recoverySubtitle: "Filters meetings to selected Fellowship. Provides clean date/day display.",
     fellowship: "Fellowship",
     selectFellowship: "Select your fellowship",
     recoveryDate: "Recovery Date",
@@ -254,12 +255,11 @@ const en = {
     attendanceTitle: "Personal Attendance",
     attendanceSubtitle: "Set goals, track progress, and visually celebrate your recovery journey.",
     attendanceFreeFeature:
-      "Meeting attendance is recorded automatically when you join through the app",
-    attendanceDuration: "Duration is captured for accurate, verifiable records",
+      "If enabled, meeting attendance is tracked automatically when you join through the app",
     attendancePrivate:
       "Data stays encrypted on your device and only leaves when you choose to export",
     attendancePaidFeature:
-      "Optional: Digitally certified reports for sponsors, courts, or family services",
+      "Subscription: Digitally signed reports for sponsors, courts, or family services",
     enableAttendance: "Enable Attendance Tracking",
     enableAttendanceHint: "You can change this anytime in Settings",
     // Screen 5: Privacy
@@ -291,6 +291,7 @@ const en = {
     shortMeetingMessage:
       "Your meeting was only {{minutes}} minute(s). At least {{required}} minute(s) are required to receive attendance credit. This record will not appear in your attendance history.",
     dontShowAgain: "Don't show again",
+    attendanceSaved: "Attendance Saved",
   },
   // Dev Screen (hidden)
   devScreen: {
