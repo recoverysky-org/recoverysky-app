@@ -695,6 +695,23 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
           </TouchableOpacity>
         </View>
 
+        {/* Legal Section */}
+        <View style={themed($section)}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons name="document-text-outline" size={20} color={themed($legalIconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:legalSection" />
+          </View>
+
+          <TouchableOpacity
+            style={[themed($settingsRow), themed($lastRow)]}
+            onPress={() => Linking.openURL("https://app.recoverysky.org/oss.html")}
+            accessibilityRole="button"
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:thirdPartyLicenses" />
+            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+          </TouchableOpacity>
+        </View>
+
         {/* Theme Color Picker Modal */}
         <ThemeColorPicker
           visible={colorPickerVisible}
@@ -739,11 +756,14 @@ const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.lg,
 })
 
-const $sectionHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   paddingVertical: spacing.sm,
   gap: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
+  marginBottom: spacing.xs,
 })
 
 const $sectionTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -752,21 +772,17 @@ const $sectionTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
-const $settingsRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $settingsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
   paddingVertical: spacing.sm,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.border,
 })
 
 // Email section uses vertical layout for full-width input
-const $emailSection: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $emailSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingVertical: spacing.sm,
   gap: spacing.xs,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.border,
 })
 
 const $lastRow: ThemedStyle<ViewStyle> = () => ({
@@ -795,13 +811,11 @@ const _$rowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
   marginRight: spacing.xs,
 })
 
-const $deleteRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $deleteRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   paddingVertical: spacing.sm,
   gap: spacing.xs,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.border,
 })
 
 const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -1056,3 +1070,8 @@ const $datePickerDone: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $datePickerSpinner: ViewStyle = {
   height: 180,
 }
+
+// Legal Section Icon Color
+const $legalIconColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
+  color: colors.textDim,
+})
