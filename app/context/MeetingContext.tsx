@@ -14,7 +14,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react"
-import { type meeting } from "@common"
+import { type meeting } from "@recoverysky-org/common/browser"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { api, type ScheduleDataRow } from "@/services/api"

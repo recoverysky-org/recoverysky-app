@@ -7,7 +7,7 @@
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle } from "react-native"
-import { DateTime } from "@common"
+import { DateTime } from "@recoverysky-org/common/browser"
 import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"

@@ -17,7 +17,7 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native"
-import { DateTime, Fellowship } from "@common"
+import { DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"

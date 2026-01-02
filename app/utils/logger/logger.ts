@@ -172,7 +172,7 @@ export function createLogger(config: Partial<LoggerConfig> = {}): Logger {
     batchSize: config.batchSize ?? 10,
     flushIntervalMs: config.flushIntervalMs ?? 5000,
     consoleInDev: config.consoleInDev ?? true,
-    serviceName: config.serviceName ?? "recoverysky-hybrid",
+    serviceName: config.serviceName ?? "recoverysky-app",
     serviceVersion: config.serviceVersion ?? "0.0.1",
   }
 

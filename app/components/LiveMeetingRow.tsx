@@ -8,7 +8,7 @@
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
-import { FELLOWSHIP_COLORS, Fellowship } from "@common"
+import { FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"

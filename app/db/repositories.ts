@@ -24,7 +24,7 @@ import {
   type AttendanceRecord,
   type FeedbackRecord,
   type FeedbackInput,
-} from "@sqlite"
+} from "@recoverysky-org/common/sqlite"
 
 import type { SecureProfileData } from "@/models/ProfileStore"
 

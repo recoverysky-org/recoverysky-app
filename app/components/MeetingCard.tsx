@@ -7,7 +7,7 @@
 
 import { FC, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Linking, Animated } from "react-native"
-import { FELLOWSHIP_COLORS, Fellowship } from "@common"
+import { FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"

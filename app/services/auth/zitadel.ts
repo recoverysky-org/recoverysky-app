@@ -8,7 +8,7 @@
 export const ZITADEL_CONFIG = {
   domain: "auth.recoverysky.app",
   clientId: "352715597353582594",
-  redirectUri: "recoverysky-hybrid://oauth-callback",
+  redirectUri: "recoverysky-app://oauth-callback",
   scopes: ["openid", "profile", "email", "offline_access"],
 } as const
 

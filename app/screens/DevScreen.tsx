@@ -83,7 +83,7 @@ export const DevScreen: FC = function DevScreen() {
         style={themed($reportBugsLink)}
         tx="devScreen:reportBugs"
         onPress={() =>
-          openLinkInBrowser("https://github.com/recoverysky-org/recoverysky-hybrid/issues")
+          openLinkInBrowser("https://github.com/recoverysky-org/recoverysky-app/issues")
         }
       />
 

@@ -8,7 +8,7 @@
 
 import { Paths, File } from "expo-file-system"
 import type { SQLiteDatabase } from "expo-sqlite"
-import * as schema from "@sqlite"
+import * as schema from "@recoverysky-org/common/sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
 const DATABASE_NAME = "recoverysky.db"

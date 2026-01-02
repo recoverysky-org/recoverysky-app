@@ -5,7 +5,7 @@
  * Uses the "default" profile ID since there's only one profile per device.
  */
 
-import { user_profiles as userProfiles } from "@sqlite"
+import { user_profiles as userProfiles } from "@recoverysky-org/common/sqlite"
 import { eq, sql } from "drizzle-orm"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 

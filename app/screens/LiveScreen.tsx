@@ -9,7 +9,7 @@ import {
   Modal,
   Pressable,
 } from "react-native"
-import { Fellowship } from "@common"
+import { Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"

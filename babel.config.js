@@ -1,5 +1,4 @@
 /* eslint-env node */
-const path = require("path")
 
 /** @type {import('@babel/core').TransformOptions} */
 module.exports = function (api) {
@@ -14,8 +13,6 @@ module.exports = function (api) {
           alias: {
             "@": "./app",
             "@assets": "./assets",
-            "@common": path.resolve(__dirname, "../recoverysky-common/lib/browser"),
-            "@sqlite": path.resolve(__dirname, "../recoverysky-common/lib/sqlite"),
           },
         },
       ],

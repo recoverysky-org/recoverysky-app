@@ -6,28 +6,10 @@ const path = require("path")
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname)
 
-// Path to recoverysky-common (linked package)
-const commonPath = path.resolve(__dirname, "../recoverysky-common")
-
-// Path to trex-ts (linked via @trex-ts/core symlink)
-const trexPath = path.resolve(__dirname, "../../trex/trex-ts")
-
-// Watch linked packages for changes
-config.watchFolders = [commonPath, trexPath]
-
-// Resolve @common, @sqlite, and @assets aliases
+// Resolve @assets alias (other aliases handled by babel-plugin-module-resolver)
 config.resolver.extraNodeModules = {
-  "@common": path.resolve(commonPath, "lib/browser"),
-  "@sqlite": path.resolve(commonPath, "lib/sqlite"),
   "@assets": path.resolve(__dirname, "assets"),
 }
-
-// Tell Metro where to find dependencies for linked packages
-config.resolver.nodeModulesPaths = [
-  path.resolve(__dirname, "node_modules"),
-  path.resolve(commonPath, "node_modules"),
-  path.resolve(trexPath, "node_modules"),
-]
 
 config.transformer.getTransformOptions = async () => ({
   transform: {

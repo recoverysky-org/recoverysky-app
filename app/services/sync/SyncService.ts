@@ -20,7 +20,11 @@
  * }
  */
 
-import type { SyncQueueRepository, SyncQueueItem, SyncOperation } from "@sqlite"
+import type {
+  SyncQueueRepository,
+  SyncQueueItem,
+  SyncOperation,
+} from "@recoverysky-org/common/sqlite"
 
 /**
  * Result of a sync operation

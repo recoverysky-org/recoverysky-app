@@ -41,7 +41,7 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
     }
 
     const openSourceCode = () => {
-      Linking.openURL("https://github.com/recoverysky-org/recoverysky-hybrid")
+      Linking.openURL("https://github.com/recoverysky-org/recoverysky-app")
     }
 
     const openLicense = () => {

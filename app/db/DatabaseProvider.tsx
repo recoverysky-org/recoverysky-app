@@ -17,8 +17,8 @@ import {
   type ReactNode,
 } from "react"
 import type { SQLiteDatabase } from "expo-sqlite"
-import { migrations } from "@sqlite"
-import type * as schema from "@sqlite"
+import { migrations } from "@recoverysky-org/common/sqlite"
+import type * as schema from "@recoverysky-org/common/sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
 import { getSqliteEncryptionKey, setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"

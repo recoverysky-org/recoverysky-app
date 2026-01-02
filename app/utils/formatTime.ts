@@ -4,7 +4,7 @@
  * Converts UTC milliseconds to local time display strings.
  */
 
-import { DateTime } from "@common"
+import { DateTime } from "@recoverysky-org/common/browser"
 
 /**
  * Format UTC milliseconds to local time string (e.g., "3:30p")

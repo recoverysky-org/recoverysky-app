@@ -13,7 +13,7 @@ import {
   Linking,
   ActivityIndicator,
 } from "react-native"
-import { Fellowship } from "@common"
+import { Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { observer } from "mobx-react-lite"

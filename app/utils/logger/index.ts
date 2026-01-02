@@ -52,6 +52,6 @@ export const logger = createLogger({
   endpoint: process.env.EXPO_PUBLIC_OTLP_ENDPOINT,
   apiKey: process.env.EXPO_PUBLIC_OTLP_API_KEY,
   minLevel: (process.env.EXPO_PUBLIC_LOG_LEVEL as LogLevel) || undefined,
-  serviceName: "recoverysky-hybrid",
+  serviceName: "recoverysky-app",
   serviceVersion: require("../../../package.json").version,
 })
