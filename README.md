@@ -81,8 +81,8 @@ Guided setup flow that respects your privacy choices. Navigate with tappable pro
 
 ```bash
 # Clone the repository
-git clone https://github.com/recoverysky-org/recoverysky-hybrid.git
-cd recoverysky-hybrid
+git clone https://github.com/recoverysky-org/recoverysky-app.git
+cd recoverysky-app
 
 # Install dependencies
 npm install

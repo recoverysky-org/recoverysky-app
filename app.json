@@ -1,7 +1,7 @@
 {
-  "name": "recoverysky-hybrid",
-  "slug": "recoverysky-hybrid",
-  "scheme": "recoverysky-hybrid",
+  "name": "recoverysky-app",
+  "slug": "recoverysky-app",
+  "scheme": "recoverysky-app",
   "version": "1.0.0",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
@@ -16,7 +16,7 @@
   ],
   "android": {
     "icon": "./assets/images/app-icon-android-legacy.png",
-    "package": "com.recoveryskyhybrid",
+    "package": "live.meetingmaker.app.prod",
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
@@ -50,7 +50,7 @@
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
-    "bundleIdentifier": "com.recoveryskyhybrid",
+    "bundleIdentifier": "live.meetingmaker.app.prod",
     "privacyManifests": {
       "NSPrivacyAccessedAPITypes": [
         {
@@ -116,7 +116,9 @@
           "extraMavenRepos": [],
           "extraProguardRules": ""
         },
-        "extraGradleArgs": ["-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"]
+        "extraGradleArgs": [
+          "-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"
+        ]
       }
     ]
   ],
@@ -128,7 +130,8 @@
       "version": "11.3.2"
     },
     "eas": {
-      "projectId": "06383d20-4ccc-4e7e-8277-cb8e207558a8"
+      "projectId": "21c8a3e2-5d0b-4b72-b0eb-5a9a4c973777"
     }
-  }
+  },
+  "owner": "jenova-marie"
 }

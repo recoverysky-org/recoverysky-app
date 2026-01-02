@@ -161,7 +161,7 @@ import {
   validateMeeting, validateSchedule, // Zod validation
   hydrateNext, FELLOWSHIP_COLORS,    // Display helpers
   DateTime,                          // Luxon DateTime
-} from "@common"
+} from "@recoverysky-org/common/browser"
 ```
 
 The `@sqlite` alias imports SQLite/Drizzle exports:
@@ -170,7 +170,7 @@ import {
   migrations,                        // Drizzle migrations for useMigrations hook
   MeetingSqliteRepository,           // Repository classes
   meetings, schedules, trexes,       // Drizzle table schemas
-} from "@sqlite"
+} from "@recoverysky-org/common/sqlite"
 ```
 
 ### Logging
