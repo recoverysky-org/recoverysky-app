@@ -1,13 +1,25 @@
 {
   "cli": {
-    "version": ">= 3.15.1"
+    "version": ">= 3.15.1",
+    "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "env": {
+        "EXPO_PUBLIC_RESEED_DB": "false",
+        "EXPO_PUBLIC_API_URL": "https://api.recoverysky.app",
+        "EXPO_PUBLIC_AGENT_URL": "https://agent.recoverysky.app",
+        "EXPO_PUBLIC_JOIN_MEETING_ZID": "7838704146",
+        "EXPO_PUBLIC_JOIN_MEETING_PWD": "mikki"
+      }
+    },
     "development": {
-      "extends": "production",
+      "extends": "base",
       "distribution": "internal",
       "env": {
-        "GRADLE_OPTS": "-Xmx8192m -XX:MaxMetaspaceSize=1024m"
+        "GRADLE_OPTS": "-Xmx8192m -XX:MaxMetaspaceSize=1024m",
+        "EXPO_NO_CAPABILITY_SYNC": "1",
+        "EXPO_PUBLIC_LOG_LEVEL": "debug"
       },
       "android": {
         "gradleCommand": ":app:assembleDebug -PreactNativeArchitectures=x86_64"
@@ -26,8 +38,11 @@
       }
     },
     "preview": {
-      "extends": "production",
+      "extends": "base",
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_LOG_LEVEL": "info"
+      },
       "ios": { "simulator": true },
       "android": { "buildType": "apk" }
     },
@@ -35,7 +50,21 @@
       "extends": "preview",
       "ios": { "simulator": false }
     },
-    "production": {}
+    "production": {
+      "extends": "base",
+      "env": {
+        "EXPO_PUBLIC_LOG_LEVEL": "warn"
+      },
+      "ios": {
+        "resourceClass": "m-medium",
+        "image": "latest"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "resourceClass": "medium"
+      },
+      "autoIncrement": true
+    }
   },
   "submit": {
     "production": {}
