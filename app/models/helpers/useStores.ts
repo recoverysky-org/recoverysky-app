@@ -30,6 +30,10 @@ export function useAuthenticationStore() {
   return useStores().authenticationStore
 }
 
+export function useConfigStore() {
+  return useStores().configStore
+}
+
 export function useProfileStore() {
   return useStores().profileStore
 }

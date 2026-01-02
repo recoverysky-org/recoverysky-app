@@ -1,9 +1,8 @@
 /**
  * Zoom SDK Configuration
  *
- * SDK keys should be configured via environment variables:
- * - EXPO_PUBLIC_ZOOM_SDK_KEY
- * - EXPO_PUBLIC_ZOOM_SDK_SECRET
+ * SDK keys are provided by ConfigStore (fetched from server).
+ * Falls back to empty strings if not configured.
  */
 
 import { logger } from "@/utils/logger"
@@ -27,25 +26,21 @@ export interface ZoomSDKConfig {
 }
 
 /**
- * Get Zoom SDK configuration from environment variables
+ * Get Zoom SDK configuration
+ *
+ * @param sdkKey - SDK key from ConfigStore
+ * @param sdkSecret - SDK secret from ConfigStore
  */
-export function getZoomConfig(): ZoomSDKConfig {
-  const sdkKey = process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""
-  const sdkSecret = process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""
-
-  // Always log config status at startup for debugging
-  console.log("=== ZOOM SDK CONFIG ===")
-  console.log(`SDK Key: ${sdkKey ? `${sdkKey.slice(0, 8)}...` : "NOT SET"}`)
-  console.log(`SDK Secret: ${sdkSecret ? "SET (hidden)" : "NOT SET"}`)
-  console.log(`Configured: ${Boolean(sdkKey && sdkSecret)}`)
-  console.log("=======================")
+export function getZoomConfig(sdkKey: string = "", sdkSecret: string = ""): ZoomSDKConfig {
+  if (__DEV__) {
+    log.debug("Zoom config", {
+      sdkKey: sdkKey ? `${sdkKey.slice(0, 8)}...` : "NOT SET",
+      sdkSecret: sdkSecret ? "SET" : "NOT SET",
+    })
+  }
 
   if (!sdkKey || !sdkSecret) {
     log.warn("Zoom SDK keys not configured - SDK features will be unavailable")
-    console.warn(
-      "[ZoomConfig] ⚠️  EXPO_PUBLIC_ZOOM_SDK_KEY and/or EXPO_PUBLIC_ZOOM_SDK_SECRET not set!",
-    )
-    console.warn("[ZoomConfig] ⚠️  Add them to your .env file to enable native Zoom SDK")
   }
 
   return {
@@ -60,7 +55,6 @@ export function getZoomConfig(): ZoomSDKConfig {
 /**
  * Check if Zoom SDK is configured with valid credentials
  */
-export function isZoomConfigured(): boolean {
-  const config = getZoomConfig()
-  return Boolean(config.sdkKey && config.sdkSecret)
+export function isZoomConfigured(sdkKey: string = "", sdkSecret: string = ""): boolean {
+  return Boolean(sdkKey && sdkSecret)
 }

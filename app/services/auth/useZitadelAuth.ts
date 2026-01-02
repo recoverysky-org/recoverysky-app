@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react"
 import * as AuthSession from "expo-auth-session"
 import * as WebBrowser from "expo-web-browser"
 
-import { useAuthenticationStore } from "@/models"
+import { useAuthenticationStore, useConfigStore } from "@/models"
 import { getCurrentSqliteKey, setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
@@ -63,6 +63,7 @@ export interface UseZitadelAuthResult {
 export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelAuthResult {
   const { onSqliteKeyChange } = options
   const authStore = useAuthenticationStore()
+  const configStore = useConfigStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -170,6 +171,9 @@ export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelA
       }
 
       log.info("Authentication complete", { userId: userInfo?.sub })
+
+      // Fetch server config after successful auth
+      configStore.fetchConfig()
     } catch (err) {
       log.error("Token exchange failed", { error: String(err) })
       setError("Failed to complete authentication")
@@ -251,7 +255,9 @@ export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelA
   const loginAnonymously = useCallback(() => {
     log.info("Anonymous login")
     authStore.loginAnonymously()
-  }, [authStore])
+    // Fetch server config after anonymous login
+    configStore.fetchConfig()
+  }, [authStore, configStore])
 
   /**
    * Logout and clear all tokens
@@ -363,6 +369,7 @@ export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelA
  */
 export async function loadStoredAuth(
   authStore: ReturnType<typeof useAuthenticationStore>,
+  configStore?: { fetchConfig: () => void },
 ): Promise<boolean> {
   try {
     const [accessToken, refreshToken, idToken, expiresAtStr] = await Promise.all([
@@ -379,6 +386,8 @@ export async function loadStoredAuth(
       if (expiresAt > Date.now()) {
         authStore.setTokens(accessToken, refreshToken || undefined, idToken || undefined, expiresAt)
         log.info("Restored auth from secure storage")
+        // Fetch server config after restoring auth
+        configStore?.fetchConfig()
         return true
       } else {
         log.info("Stored token expired")

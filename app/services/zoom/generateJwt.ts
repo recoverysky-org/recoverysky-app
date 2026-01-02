@@ -9,7 +9,6 @@ import { sign } from "react-native-pure-jwt"
 
 import { logger } from "@/utils/logger"
 
-import { getZoomConfig } from "./zoomConfig"
 import type { ZoomRole } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomJWT" })
@@ -19,13 +18,18 @@ const log = logger.child({ module: "ZoomJWT" })
  *
  * @param meetingNumber - The Zoom meeting number
  * @param role - 0 for participant, 1 for host (default: 0)
+ * @param sdkKey - Zoom SDK key from ConfigStore
+ * @param sdkSecret - Zoom SDK secret from ConfigStore
  * @returns JWT token string
  * @throws Error if SDK keys are not configured or signing fails
  */
-export async function generateZoomJwt(meetingNumber: string, role: ZoomRole = 0): Promise<string> {
-  const config = getZoomConfig()
-
-  if (!config.sdkKey || !config.sdkSecret) {
+export async function generateZoomJwt(
+  meetingNumber: string,
+  role: ZoomRole = 0,
+  sdkKey: string = "",
+  sdkSecret: string = "",
+): Promise<string> {
+  if (!sdkKey || !sdkSecret) {
     throw new Error("Zoom SDK keys not configured")
   }
 
@@ -41,15 +45,15 @@ export async function generateZoomJwt(meetingNumber: string, role: ZoomRole = 0)
   try {
     const token = await sign(
       {
-        sdkKey: config.sdkKey,
-        appKey: config.sdkKey,
+        sdkKey,
+        appKey: sdkKey,
         iat,
         role,
         mn: meetingNumber,
         tokenExp: Math.floor(exp / 1000),
         exp,
       },
-      config.sdkSecret,
+      sdkSecret,
       { alg: "HS256" },
     )
 

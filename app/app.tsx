@@ -135,7 +135,10 @@ export function App() {
         log.info("RootStore initialized and hydrated from storage")
 
         // Restore OAuth tokens from SecureStore (if any)
-        const authRestored = await loadStoredAuth(_rootStore.authenticationStore)
+        const authRestored = await loadStoredAuth(
+          _rootStore.authenticationStore,
+          _rootStore.configStore,
+        )
         if (authRestored) {
           log.info("OAuth tokens restored from SecureStore")
         }

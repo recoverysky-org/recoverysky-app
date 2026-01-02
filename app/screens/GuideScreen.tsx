@@ -18,12 +18,11 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import { useAuthenticationStore } from "@/models"
+import { useAuthenticationStore, useConfigStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { generateApiUrl } from "@/utils/generateApiUrl"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "GuideScreen" })
@@ -40,25 +39,31 @@ const log = logger.child({ module: "GuideScreen" })
 export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function GuideScreen(_props) {
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
+  const configStore = useConfigStore()
   const scrollViewRef = useRef<ScrollView>(null)
 
   // Local state for input (AI SDK v6 manages input internally)
   const [input, setInput] = useState("")
 
-  // Build authorization header
+  // Build authorization headers (Bearer token for authenticated, X-API-Key for anonymous)
   const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {}
     if (authStore.accessToken) {
       headers["Authorization"] = `Bearer ${authStore.accessToken}`
+    } else {
+      // Anonymous users get X-API-Key
+      if (configStore.authKey) {
+        headers["X-API-Key"] = configStore.authKey
+      }
     }
     return headers
-  }, [authStore.accessToken])
+  }, [authStore.accessToken, configStore.authKey])
 
   // Initialize chat with Vercel AI SDK
   const { messages, status, error, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
-      api: generateApiUrl("/api/v1/chat"),
+      api: `${configStore.agentUrl}/api/v1/chat`,
       headers: getAuthHeaders(),
     }),
     onError: (err) => {

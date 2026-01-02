@@ -5,7 +5,7 @@
  * See the [Backend API Integration](https://docs.infinite.red/ignite-cli/boilerplate/app/services/#backend-api-integration)
  * documentation for more details.
  */
-import { type meeting } from "@common"
+import { type meeting } from "@recoverysky-org/common/browser"
 import { ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
@@ -42,11 +42,8 @@ export type { ApiConfig } from "./types"
 
 const log = logger.child({ module: "Api" })
 
-/** RecoverySky API base URL - configurable via EXPO_PUBLIC_API_URL */
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app"
-
-/** API key for anonymous users (X-API-Key header) */
-const AUTH_KEY = process.env.EXPO_PUBLIC_AUTH_KEY || ""
+/** Default API base URL (used before ConfigStore loads) */
+const DEFAULT_API_URL = "https://api.recoverysky.app"
 
 /**
  * Configuring the apisauce instance.
@@ -67,6 +64,9 @@ export class Api {
   /** Dedicated instance for RecoverySky API */
   private recoverySkyApi: ApisauceInstance
 
+  /** Current auth key for anonymous users */
+  private authKey: string = ""
+
   /**
    * Set up our API instance. Keep this lightweight!
    */
@@ -82,15 +82,22 @@ export class Api {
 
     // Create dedicated instance for RecoverySky API
     this.recoverySkyApi = create({
-      baseURL: API_BASE_URL,
+      baseURL: DEFAULT_API_URL,
       timeout: 10000,
       headers: {
         Accept: "application/json",
       },
     })
+  }
 
-    // Set default auth to anonymous API key
-    this.setAnonymousAuth()
+  /**
+   * Update API configuration from ConfigStore
+   * Call this after ConfigStore loads from server
+   */
+  updateConfig(apiUrl: string, authKey: string) {
+    log.debug("Updating API config", { apiUrl: apiUrl.slice(0, 30) })
+    this.recoverySkyApi.setBaseURL(apiUrl)
+    this.authKey = authKey
   }
 
   /**
@@ -108,7 +115,9 @@ export class Api {
   setAnonymousAuth() {
     log.debug("Setting X-API-Key auth")
     this.recoverySkyApi.deleteHeader("Authorization")
-    this.recoverySkyApi.setHeader("X-API-Key", AUTH_KEY)
+    if (this.authKey) {
+      this.recoverySkyApi.setHeader("X-API-Key", this.authKey)
+    }
   }
 
   /**
@@ -286,6 +295,50 @@ export class Api {
 
     log.debug("Received Zoom JWT")
     return { kind: "ok", jwt: response.data.jwt }
+  }
+
+  /**
+   * Get app configuration from server
+   *
+   * Returns URLs and keys that may be updated server-side.
+   */
+  async getConfig(): Promise<
+    | {
+        kind: "ok"
+        config: {
+          API_URL: string
+          AGENT_URL: string
+          ZOOM_SDK_KEY: string
+          ZOOM_SDK_SECRET: string
+          AUTH_KEY: string
+        }
+      }
+    | GeneralApiProblem
+  > {
+    log.debug("Fetching config from API")
+
+    const response = await this.recoverySkyApi.get<{
+      API_URL: string
+      AGENT_URL: string
+      ZOOM_SDK_KEY: string
+      ZOOM_SDK_SECRET: string
+      AUTH_KEY: string
+    }>("/config")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Config request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data) {
+      log.warn("Invalid config response format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received config from server")
+    return { kind: "ok", config: response.data }
   }
 }
 

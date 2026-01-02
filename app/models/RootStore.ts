@@ -1,6 +1,7 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { AuthenticationStoreModel } from "./AuthenticationStore"
+import { ConfigStoreModel } from "./ConfigStore"
 import { NetworkStoreModel } from "./NetworkStore"
 import { ProfileStoreModel } from "./ProfileStore"
 
@@ -9,6 +10,7 @@ import { ProfileStoreModel } from "./ProfileStore"
  */
 export const RootStoreModel = types.model("RootStore").props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
+  configStore: types.optional(ConfigStoreModel, {}),
   profileStore: types.optional(ProfileStoreModel, {}),
   networkStore: types.optional(NetworkStoreModel, {}),
 })

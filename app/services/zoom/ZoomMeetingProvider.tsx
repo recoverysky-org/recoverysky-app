@@ -28,7 +28,7 @@ import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 import { useToast } from "@/components/Toast"
 import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
 import { translate } from "@/i18n"
-import { useAuthenticationStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"
@@ -98,6 +98,7 @@ export const useZoomContext = (): ZoomContextValue => {
 const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
   const zoom = useZoom()
   const authStore = useAuthenticationStore()
+  const configStore = useConfigStore()
   const profileStore = useProfileStore()
   const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
@@ -307,12 +308,12 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
       addEvent("Calling SDK", { zid: zidToJoin })
 
       try {
-        await generateZoomJwt(zidToJoin, 0)
+        await generateZoomJwt(zidToJoin, 0, configStore.zoomSdkKey, configStore.zoomSdkSecret)
 
         const statusCode = await zoom.joinMeeting({
           meetingNumber: zidToJoin,
           userName: config.userName,
-          password: process.env.EXPO_PUBLIC_JOIN_MEETING_PWD || config.password || "",
+          password: config.password || "",
         })
 
         log.info("Join sent", { statusCode: statusCode ?? 0 })
@@ -392,15 +393,18 @@ const ZoomFallbackProvider: FC<{
  * ```
  */
 export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const configStore = useConfigStore()
   const [jwtToken, setJwtToken] = useState<string | null>(null)
   const [initState, setInitState] = useState<ZoomInitState>("idle")
   const [error, setError] = useState<string | null>(null)
+
+  const { zoomSdkKey, zoomSdkSecret } = configStore
 
   useEffect(() => {
     console.log("=== ZOOM SDK INITIALIZATION ===")
 
     // Check if SDK is configured
-    const configured = isZoomConfigured()
+    const configured = isZoomConfigured(zoomSdkKey, zoomSdkSecret)
     console.log(`[ZoomProvider] isZoomConfigured: ${configured}`)
 
     if (!configured) {
@@ -416,7 +420,7 @@ export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) =
     setInitState("initializing")
 
     // Generate initial JWT token (meeting number "0" for initialization)
-    generateZoomJwt("0", 0)
+    generateZoomJwt("0", 0, zoomSdkKey, zoomSdkSecret)
       .then((token) => {
         log.info("Zoom JWT generated, SDK ready")
         console.log("[ZoomProvider] ✓ JWT generated successfully")
@@ -434,7 +438,7 @@ export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) =
         setError(errorMessage)
         setInitState("error")
       })
-  }, [])
+  }, [zoomSdkKey, zoomSdkSecret])
 
   // If SDK not ready, use fallback provider
   if (!jwtToken || initState !== "ready") {
@@ -445,7 +449,7 @@ export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) =
     )
   }
 
-  const config = getZoomConfig()
+  const config = getZoomConfig(zoomSdkKey, zoomSdkSecret)
 
   return (
     <ZoomSDKProvider
