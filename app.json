@@ -2,7 +2,7 @@
   "name": "recoverysky-app",
   "slug": "recoverysky-app",
   "scheme": "recoverysky-app",
-  "version": "3.9.0",
+  "version": "3.9.1",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
@@ -62,7 +62,9 @@
       "NSCameraUsageDescription": "Camera access is needed for video meetings",
       "NSMicrophoneUsageDescription": "Microphone access is needed for audio in meetings",
       "NSBluetoothPeripheralUsageDescription": "Bluetooth is used for headset connectivity",
-      "NSPhotoLibraryUsageDescription": "Photo library access is needed for sharing in meetings"
+      "NSPhotoLibraryUsageDescription": "Photo library access is needed for sharing in meetings",
+      "NSCalendarsUsageDescription": "Calendar access allows adding meetings to your calendar",
+      "NSContactsUsageDescription": "Contacts access enables inviting friends to meetings"
     }
   },
   "web": {
