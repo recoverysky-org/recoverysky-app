@@ -240,23 +240,18 @@ export function enableZoomEventDebugging(): () => void {
 
   return subscribeToZoomEvents({
     onMeetingStateChange: (event) => {
-      console.log(`[ZoomEvent] onMeetingStateChange:`, event)
       log.debug("Meeting state changed", { state: event.state, stateName: event.stateName })
     },
     onMeetingError: (event) => {
-      console.log(`[ZoomEvent] onMeetingError:`, event)
       log.error("Meeting error", { errorCode: event.errorCode, message: event.message })
     },
     onMeetingJoinConfirmed: () => {
-      console.log(`[ZoomEvent] onMeetingJoinConfirmed`)
       log.info("Meeting join confirmed")
     },
     onMeetingEndedReason: (event) => {
-      console.log(`[ZoomEvent] onMeetingEndedReason:`, event)
       log.info("Meeting ended", { reason: event.reason, reasonName: event.reasonName })
     },
     onAuthReturn: (event) => {
-      console.log(`[ZoomEvent] onAuthReturn:`, event)
       log.info("Auth return", { success: event.success, message: event.message })
     },
   })

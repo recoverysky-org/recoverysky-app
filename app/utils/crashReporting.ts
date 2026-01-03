@@ -17,6 +17,10 @@
 // import Bugsnag from "@bugsnag/react-native"
 // import Bugsnag from "@bugsnag/expo"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "CrashReporting" })
+
 /**
  *  This is where you put your crash reporting service initialization code to call in `./app/app.tsx`
  */
@@ -47,14 +51,17 @@ export enum ErrorType {
  * Manually report a handled error.
  */
 export const reportCrash = (error: Error, type: ErrorType = ErrorType.FATAL) => {
-  if (__DEV__) {
-    // Log to console and Reactotron in development
-    const message = error.message || "Unknown"
-    console.error(error)
-    console.log(message, type)
+  const message = error.message || "Unknown"
+
+  // Always log via OTLP
+  if (type === ErrorType.FATAL) {
+    log.fatal("Crash reported", { type, message, stack: error.stack })
   } else {
+    log.error("Error reported", { type, message, stack: error.stack })
+  }
+
+  if (!__DEV__) {
     // In production, utilize crash reporting service of choice below:
-    // RN
     // Sentry.captureException(error)
     // crashlytics().recordError(error)
     // Bugsnag.notify(error)
