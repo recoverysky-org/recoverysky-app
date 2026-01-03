@@ -111,6 +111,7 @@
           "minSdkVersion": 28,
           "targetSdkVersion": 35,
           "compileSdkVersion": 35,
+          "usesCleartextTraffic": true,
           "extraMavenRepos": [],
           "extraProguardRules": ""
         },

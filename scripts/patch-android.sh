@@ -10,6 +10,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 echo "Patching Android configuration..."
 
 MANIFEST="$PROJECT_DIR/android/app/src/main/AndroidManifest.xml"
+RES_DIR="$PROJECT_DIR/android/app/src/main/res"
+XML_DIR="$RES_DIR/xml"
 
 if [ ! -f "$MANIFEST" ]; then
   echo "Error: AndroidManifest.xml not found at $MANIFEST"
@@ -17,12 +19,85 @@ if [ ! -f "$MANIFEST" ]; then
   exit 1
 fi
 
-# Add usesCleartextTraffic for Metro bundler HTTP connection
+# Create network_security_config.xml for cleartext traffic
+mkdir -p "$XML_DIR"
+cat > "$XML_DIR/network_security_config.xml" << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext for Metro bundler and local development -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Production API domains -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">recoverysky.app</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Development domains - allow cleartext for Metro bundler -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">10.0.3.2</domain>
+    </domain-config>
+</network-security-config>
+EOF
+echo "Created network_security_config.xml"
+
+# Add networkSecurityConfig reference to AndroidManifest.xml
+if ! grep -q "networkSecurityConfig" "$MANIFEST"; then
+  sed -i '' 's/android:allowBackup="false"/android:allowBackup="false" android:networkSecurityConfig="@xml\/network_security_config"/' "$MANIFEST"
+  echo "Added networkSecurityConfig to AndroidManifest.xml"
+else
+  echo "networkSecurityConfig already present"
+fi
+
+# Add usesCleartextTraffic for Metro bundler HTTP connection (belt and suspenders)
 if ! grep -q "usesCleartextTraffic" "$MANIFEST"; then
   sed -i '' 's/android:allowBackup="false"/android:allowBackup="false" android:usesCleartextTraffic="true"/' "$MANIFEST"
   echo "Added usesCleartextTraffic to AndroidManifest.xml"
 else
   echo "usesCleartextTraffic already present"
+fi
+
+# Patch debug manifests to override Zoom SDK's networkSecurityConfig
+DEBUG_MANIFEST="$PROJECT_DIR/android/app/src/debug/AndroidManifest.xml"
+DEBUG_OPT_MANIFEST="$PROJECT_DIR/android/app/src/debugOptimized/AndroidManifest.xml"
+
+patch_debug_manifest() {
+  local manifest="$1"
+  if [ -f "$manifest" ]; then
+    # Add networkSecurityConfig and update tools:replace to include it
+    if ! grep -q "networkSecurityConfig" "$manifest"; then
+      sed -i '' 's/android:usesCleartextTraffic="true"/android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml\/network_security_config"/' "$manifest"
+      sed -i '' 's/tools:replace="android:usesCleartextTraffic"/tools:replace="android:usesCleartextTraffic,android:networkSecurityConfig"/' "$manifest"
+      echo "Patched $(basename $(dirname $manifest)) manifest with networkSecurityConfig override"
+    else
+      echo "$(basename $(dirname $manifest)) manifest already patched"
+    fi
+  fi
+}
+
+patch_debug_manifest "$DEBUG_MANIFEST"
+patch_debug_manifest "$DEBUG_OPT_MANIFEST"
+
+# Increase Gradle JVM memory for large builds
+GRADLE_PROPS="$PROJECT_DIR/android/gradle.properties"
+if [ -f "$GRADLE_PROPS" ]; then
+  if grep -q "org.gradle.jvmargs=-Xmx2048m" "$GRADLE_PROPS"; then
+    sed -i '' 's/org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m/org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError/' "$GRADLE_PROPS"
+    echo "Increased Gradle JVM memory to 8GB"
+  elif grep -q "org.gradle.jvmargs=-Xmx8192m" "$GRADLE_PROPS"; then
+    echo "Gradle JVM memory already set to 8GB"
+  else
+    echo "Warning: Could not find expected jvmargs in gradle.properties"
+  fi
 fi
 
 echo "Android patches complete!"

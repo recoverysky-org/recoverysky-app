@@ -34,9 +34,9 @@
     "build:ios:preview": "eas build --profile preview --platform ios --local",
     "build:ios:preview:device": "eas build --profile preview:device --platform ios --local",
     "build:ios:prod": "eas build --profile production --platform ios --local",
-    "build:android:sim": "eas build --profile development --platform android --local",
-    "build:android:device": "eas build --profile development:device --platform android --local",
-    "build:android:preview": "eas build --profile preview --platform android --local",
+    "build:android:sim": "cd android && ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 && cd ..",
+    "build:android:device": "cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a && cd ..",
+    "build:android:preview": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a && cd ..",
     "build:android:prod": "eas build --profile production --platform android --local",
     "submit:ios": "eas submit --platform ios --path $(ls -t build-*.ipa 2>/dev/null | head -1)",
     "submit:android": "eas submit --platform android --path $(ls -t build-*.apk build-*.aab 2>/dev/null | head -1)",
@@ -44,7 +44,10 @@
     "release:android": "eas build --platform android --profile production && eas submit --platform android --latest",
     "install:ios:sim": "tar -xzf $(ls -t build*.tar.gz | head -1) -C /tmp && xcrun simctl install booted /tmp/recoveryskyapp.app",
     "launch:ios:sim": "xcrun simctl launch booted live.meetingmaker.app.prod",
-    "deploy:ios:sim": "npm run install:ios:sim && npm run launch:ios:sim"
+    "deploy:ios:sim": "npm run install:ios:sim && npm run launch:ios:sim",
+    "install:android": "adb install -r $(ls -t android/app/build/outputs/apk/debug/app-debug.apk build-*.apk 2>/dev/null | head -1)",
+    "launch:android": "adb shell am start -n live.meetingmaker.app.prod/.MainActivity",
+    "deploy:android": "npm run install:android && npm run launch:android"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.5",
