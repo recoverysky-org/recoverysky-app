@@ -14,38 +14,43 @@ const log = logger.child({ module: "formatDate" })
 type Options = Parameters<typeof format>[2]
 
 let dateFnsLocale: Locale
+// Helper to safely get locale from require (handles both default and named exports)
+const getLocale = (mod: { default?: Locale } | Locale): Locale => {
+  return "default" in mod && mod.default ? mod.default : (mod as Locale)
+}
+
 export const loadDateFnsLocale = () => {
-  const primaryTag = i18n.language.split("-")[0]
+  const primaryTag = i18n.language?.split("-")[0] ?? "en"
   log.info("loadDateFnsLocale()", { i18nLanguage: i18n.language, primaryTag })
 
   switch (primaryTag) {
     case "en":
-      dateFnsLocale = require("date-fns/locale/en-US").default
+      dateFnsLocale = getLocale(require("date-fns/locale/en-US"))
       break
     case "ar":
-      dateFnsLocale = require("date-fns/locale/ar").default
+      dateFnsLocale = getLocale(require("date-fns/locale/ar"))
       break
     case "ko":
-      dateFnsLocale = require("date-fns/locale/ko").default
+      dateFnsLocale = getLocale(require("date-fns/locale/ko"))
       break
     case "es":
-      dateFnsLocale = require("date-fns/locale/es").default
+      dateFnsLocale = getLocale(require("date-fns/locale/es"))
       break
     case "fr":
-      dateFnsLocale = require("date-fns/locale/fr").default
+      dateFnsLocale = getLocale(require("date-fns/locale/fr"))
       break
     case "hi":
-      dateFnsLocale = require("date-fns/locale/hi").default
+      dateFnsLocale = getLocale(require("date-fns/locale/hi"))
       break
     case "ja":
-      dateFnsLocale = require("date-fns/locale/ja").default
+      dateFnsLocale = getLocale(require("date-fns/locale/ja"))
       break
     default:
-      dateFnsLocale = require("date-fns/locale/en-US").default
+      dateFnsLocale = getLocale(require("date-fns/locale/en-US"))
       break
   }
 
-  log.info("date-fns locale loaded", { locale: dateFnsLocale.code })
+  log.info("date-fns locale loaded", { locale: dateFnsLocale?.code ?? "unknown" })
 }
 
 export const formatDate = (date: string, dateFormat?: string, options?: Options) => {
