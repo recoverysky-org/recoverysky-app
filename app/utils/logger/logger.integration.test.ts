@@ -7,9 +7,9 @@
  * Run with: npm run test:unit -- app/utils/logger/logger.integration.test.ts
  */
 
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import dotenv from "dotenv"
 import path from "path"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
 import { createLogger } from "./logger"
 import { sendToOtlp, toOtlpPayload } from "./otlp"
@@ -215,10 +215,7 @@ describeIfEndpoint("OTLP Integration Tests", () => {
         serviceName: "recoverysky-app-trace-test",
       })
 
-      logger.setTraceContext(
-        "0af7651916cd43dd8448eb211c80319c",
-        "b7ad6b7169203331",
-      )
+      logger.setTraceContext("0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331")
 
       logger.info("E2E test - with trace context", {
         testName: "e2e-trace-context-test",

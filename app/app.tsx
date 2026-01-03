@@ -57,12 +57,12 @@ const log = logger.child({ module: "App" })
 
 // Generate session ID once at module load (persists for app lifecycle)
 const sessionId = generateSessionId()
+const appVersion = require("../package.json").version
 
 // Set initial logger context with session and version (deviceId added after async load)
-logger.setContext({
-  sessionId,
-  appVersion: require("../package.json").version,
-})
+logger.setContext({ sessionId, appVersion })
+
+log.info("App module loaded", { sessionId: sessionId.slice(0, 8) + "...", appVersion })
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
@@ -91,7 +91,7 @@ const config = {
  * @returns {JSX.Element} The rendered `App` component.
  */
 export function App() {
-  log.debug("App component initializing")
+  log.info("App component mounting")
 
   const {
     initialNavigationState,
@@ -103,89 +103,65 @@ export function App() {
   const [isI18nInitialized, setIsI18nInitialized] = useState(false)
   const [rootStore, setRootStore] = useState<RootStore | undefined>(undefined)
 
-  // Log state changes
+  // Initialize i18n and date-fns locale
   useEffect(() => {
-    log.debug("Navigation state restored", { isNavigationStateRestored })
-  }, [isNavigationStateRestored])
-
-  useEffect(() => {
-    log.debug("Fonts state", { areFontsLoaded, fontLoadError: !!fontLoadError })
-  }, [areFontsLoaded, fontLoadError])
-
-  useEffect(() => {
-    log.debug("i18n state", { isI18nInitialized })
-  }, [isI18nInitialized])
-
-  useEffect(() => {
-    log.info("Starting i18n initialization")
-    initI18n()
-      .then(() => {
-        log.info("i18n initialized successfully")
+    ;(async () => {
+      try {
+        // initI18n logs its own params/results
+        await initI18n()
         setIsI18nInitialized(true)
-      })
-      .then(() => {
-        log.info("Loading date-fns locale")
-        return loadDateFnsLocale()
-      })
-      .then(() => {
-        log.info("date-fns locale loaded")
-      })
-      .catch((error) => {
+
+        // loadDateFnsLocale logs its own params/results
+        await loadDateFnsLocale()
+      } catch (error) {
         log.error("i18n/locale initialization failed", { error: String(error) })
-      })
+      }
+    })()
   }, [])
 
   // Initialize MST RootStore with persistence
   useEffect(() => {
-    log.info("Initializing MST RootStore")
-    const _rootStore = RootStoreModel.create({})
-    setupRootStore(_rootStore)
-      .then(async () => {
-        log.info("RootStore initialized and hydrated from storage")
+    ;(async () => {
+      const _rootStore = RootStoreModel.create({})
 
-        // Restore OAuth tokens from SecureStore (if any)
-        const authRestored = await loadStoredAuth(
-          _rootStore.authenticationStore,
-          _rootStore.configStore,
-        )
-        if (authRestored) {
-          log.info("OAuth tokens restored from SecureStore")
-        }
+      try {
+        // setupRootStore logs its own params/results
+        await setupRootStore(_rootStore)
 
-        // Initialize device ID for user identification
+        // loadStoredAuth logs its own params/results
+        await loadStoredAuth(_rootStore.authenticationStore, _rootStore.configStore)
+
+        // getDeviceId logs its own params/results
         const deviceId = await getDeviceId()
         _rootStore.authenticationStore.setDeviceId(deviceId)
-        log.info("Device ID initialized", { deviceId: deviceId.slice(0, 8) + "..." })
 
-        // Set initial API auth based on current state
+        // Set initial API auth
         const authStore = _rootStore.authenticationStore
         api.updateAuth(authStore.isAnonymous, authStore.accessToken)
+        log.debug("API auth configured", {
+          isAnonymous: authStore.isAnonymous,
+          hasToken: !!authStore.accessToken,
+        })
 
-        // React to auth state changes and update API headers
+        // React to auth state changes
         reaction(
           () => ({
             isAnonymous: authStore.isAnonymous,
             accessToken: authStore.accessToken,
           }),
           ({ isAnonymous, accessToken }) => {
-            log.debug("Auth state changed, updating API headers", {
-              isAnonymous,
-              hasToken: !!accessToken,
-            })
+            log.info("Auth state changed", { isAnonymous, hasToken: !!accessToken })
             api.updateAuth(isAnonymous, accessToken)
           },
         )
 
-        // Note: Language is now hydrated from SQLite via ProfileHydrator
-        // after the database is ready, not from MMKV snapshot
-
         setRootStore(_rootStore)
-      })
-      .catch((error) => {
+        log.info("App initialization complete")
+      } catch (error) {
         log.error("RootStore initialization failed", { error: String(error) })
-        // Still set the store even if hydration fails
         setRootStore(_rootStore)
-      })
+      }
+    })()
   }, [])
 
   // Check if app is ready
@@ -193,25 +169,10 @@ export function App() {
     isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
 
   // Note: Splash screen is hidden by DatabaseLoadingOverlay when DB is seeded
-
-  // Before we show the app, we have to wait for our state to be ready.
-  // In the meantime, don't render anything. This will be the background
-  // color set in native by rootView's background color.
-  // In iOS: application:didFinishLaunchingWithOptions:
-  // In Android: https://stackoverflow.com/a/45838109/204044
-  // You can replace with your own loading component if you wish.
   if (!isAppReady) {
-    log.debug("App waiting for initialization", {
-      isNavigationStateRestored,
-      isI18nInitialized,
-      hasRootStore: !!rootStore,
-      areFontsLoaded,
-      hasFontError: !!fontLoadError,
-    })
+    // Only log on first render to avoid spam
     return null
   }
-
-  log.info("App initialization complete, rendering providers")
 
   const linking = {
     prefixes: [prefix],

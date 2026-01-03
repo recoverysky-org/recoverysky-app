@@ -10,7 +10,14 @@
  */
 
 import { sendToOtlp } from "./otlp"
-import type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes, LogRecord } from "./types"
+import type {
+  Logger,
+  LoggerConfig,
+  LoggerContext,
+  LogLevel,
+  LogAttributes,
+  LogRecord,
+} from "./types"
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   trace: 0,
@@ -158,11 +165,7 @@ class LoggerImpl implements Logger {
   }
 
   child(attributes: LogAttributes): Logger {
-    return new LoggerImpl(
-      this.config,
-      { ...this.baseAttributes, ...attributes },
-      this.context,
-    )
+    return new LoggerImpl(this.config, { ...this.baseAttributes, ...attributes }, this.context)
   }
 
   /**

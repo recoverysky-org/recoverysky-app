@@ -1,6 +1,10 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 
+import { logger } from "@/utils/logger"
+
 import { withSetPropAction } from "./helpers/withSetPropAction"
+
+const log = logger.child({ module: "AuthStore" })
 
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
@@ -67,6 +71,12 @@ export const AuthenticationStoreModel = types
      * Set all OAuth tokens at once
      */
     setTokens(accessToken: string, refreshToken?: string, idToken?: string, expiresAt?: number) {
+      const expiresInSec = expiresAt ? Math.round((expiresAt - Date.now()) / 1000) : undefined
+      log.info("setTokens()", {
+        hasRefresh: !!refreshToken,
+        hasIdToken: !!idToken,
+        expiresInSec,
+      })
       store.accessToken = accessToken
       store.refreshToken = refreshToken
       store.idToken = idToken
@@ -76,6 +86,7 @@ export const AuthenticationStoreModel = types
      * Clear all OAuth tokens
      */
     clearTokens() {
+      log.info("clearTokens()")
       store.accessToken = undefined
       store.refreshToken = undefined
       store.idToken = undefined
@@ -85,18 +96,21 @@ export const AuthenticationStoreModel = types
      * Set user email
      */
     setAuthEmail(value: string) {
+      log.debug("setAuthEmail()", { hasEmail: !!value })
       store.authEmail = value.replace(/ /g, "")
     },
     /**
      * Set user ID
      */
     setUserId(value?: string) {
+      log.info("setUserId()", { hasUserId: !!value })
       store.userId = value
     },
     /**
      * Set device ID (captured on app start)
      */
     setDeviceId(id: string) {
+      log.debug("setDeviceId()", { deviceId: id.slice(0, 8) + "..." })
       store.deviceId = id
     },
     /**
@@ -104,6 +118,7 @@ export const AuthenticationStoreModel = types
      * Uses deviceId as userId for tracking
      */
     loginAnonymously() {
+      log.info("loginAnonymously()", { deviceId: store.deviceId?.slice(0, 8) + "..." })
       store.isAnonymous = true
       store.userId = store.deviceId
     },
@@ -111,6 +126,7 @@ export const AuthenticationStoreModel = types
      * Logout - clear all auth state
      */
     logout() {
+      log.info("logout()", { wasAnonymous: store.isAnonymous, hadUserId: !!store.userId })
       store.accessToken = undefined
       store.refreshToken = undefined
       store.idToken = undefined

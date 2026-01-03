@@ -15,8 +15,8 @@
 
 import { FC, useMemo, useState, useEffect, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
-import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
+import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { useTranslation } from "react-i18next"
 
 import { ScheduleGrid } from "@/components/ScheduleGrid"

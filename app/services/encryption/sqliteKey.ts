@@ -26,17 +26,19 @@ const SQLITE_KEY = "sqlite_encryption_key_v1"
  * and stores it in SecureStore. Subsequent calls return the stored key.
  */
 export async function getSqliteEncryptionKey(): Promise<string> {
+  log.info("getSqliteEncryptionKey()")
+
   try {
     // Try to load existing key
     let key = await SecureStore.getItemAsync(SQLITE_KEY)
 
     if (key) {
-      log.debug("Loaded existing SQLite encryption key")
+      log.info("Loaded existing SQLite encryption key from SecureStore")
       return key
     }
 
     // Generate new 32-byte key (256-bit for AES)
-    log.info("Generating new SQLite encryption key")
+    log.info("Generating new SQLite encryption key (first launch)")
     const randomBytes = await Crypto.getRandomBytesAsync(32)
 
     // Convert to hex string (64 characters)
@@ -46,11 +48,11 @@ export async function getSqliteEncryptionKey(): Promise<string> {
 
     // Store in SecureStore
     await SecureStore.setItemAsync(SQLITE_KEY, key)
-    log.info("SQLite encryption key generated and stored")
+    log.info("SQLite encryption key generated and stored in SecureStore")
 
     return key
   } catch (error) {
-    log.error("Failed to get/generate SQLite encryption key", { error: String(error) })
+    log.error("getSqliteEncryptionKey failed", { error: String(error) })
     throw error
   }
 }

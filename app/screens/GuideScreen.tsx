@@ -142,12 +142,7 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
                     size={16}
                     color={message.role === "user" ? theme.colors.tint : "#9C27B0"}
                   />
-                  <Text
-                    style={[
-                      themed($messageRole),
-                      message.role === "user" && $userMessageRole,
-                    ]}
-                  >
+                  <Text style={[themed($messageRole), message.role === "user" && $userMessageRole]}>
                     {message.role === "user" ? "You" : "Sky"}
                   </Text>
                 </View>

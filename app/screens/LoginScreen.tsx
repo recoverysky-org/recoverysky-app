@@ -1,4 +1,4 @@
-import { FC, useState, useCallback } from "react"
+import { FC, useState, useCallback, useEffect } from "react"
 import {
   View,
   ViewStyle,
@@ -11,6 +11,9 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
+import { disclaimerText } from "@assets/content/disclaimer"
+import { euaText } from "@assets/content/eua"
+
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
@@ -18,10 +21,11 @@ import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "LoginScreen" })
 
 // Import agreement texts
-import { disclaimerText } from "@assets/content/disclaimer"
-import { euaText } from "@assets/content/eua"
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
@@ -44,17 +48,32 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   const [showEuaModal, setShowEuaModal] = useState(false)
   const [pendingLoginType, setPendingLoginType] = useState<LoginType>(null)
 
+  useEffect(() => {
+    log.info("LoginScreen mounted")
+    return () => log.debug("LoginScreen unmounted")
+  }, [])
+
+  // Log auth errors when they occur
+  useEffect(() => {
+    if (error) {
+      log.warn("Auth error displayed to user", { error })
+    }
+  }, [error])
+
   const handleLoginPress = useCallback(() => {
+    log.info("Login button pressed", { type: "authenticated" })
     setPendingLoginType("authenticated")
     setShowEuaModal(true)
   }, [])
 
   const handleAnonymousPress = useCallback(() => {
+    log.info("Login button pressed", { type: "anonymous" })
     setPendingLoginType("anonymous")
     setShowEuaModal(true)
   }, [])
 
   const handleEuaAgree = useCallback(async () => {
+    log.info("EUA accepted", { loginType: pendingLoginType ?? "none" })
     setShowEuaModal(false)
     clearError()
 
@@ -68,9 +87,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   }, [pendingLoginType, login, loginAnonymously, clearError])
 
   const handleEuaCancel = useCallback(() => {
+    log.info("EUA cancelled", { loginType: pendingLoginType ?? "none" })
     setShowEuaModal(false)
     setPendingLoginType(null)
-  }, [])
+  }, [pendingLoginType])
 
   return (
     <Screen
@@ -158,7 +178,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
               ]}
               onPress={handleEuaAgree}
             >
-              <Text style={[themed($agreeButtonText), { color: theme.colors.tint }]} tx="loginScreen:euaAgree" />
+              <Text
+                style={[themed($agreeButtonText), { color: theme.colors.tint }]}
+                tx="loginScreen:euaAgree"
+              />
             </Pressable>
           </View>
         </View>

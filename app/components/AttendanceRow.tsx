@@ -10,8 +10,8 @@
 
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
-import { DateTime } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
+import { DateTime } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
 import type { AttendanceRecord } from "@/db"

@@ -15,9 +15,15 @@ export const ConfigStoreModel = types
   .model("ConfigStore")
   .props({
     /** Main API URL */
-    apiUrl: types.optional(types.string, process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app"),
+    apiUrl: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app",
+    ),
     /** Agent API URL */
-    agentUrl: types.optional(types.string, process.env.EXPO_PUBLIC_AGENT_URL || "https://agent.recoverysky.app"),
+    agentUrl: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_AGENT_URL || "https://agent.recoverysky.app",
+    ),
     /** Zoom SDK key */
     zoomSdkKey: types.optional(types.string, process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""),
     /** Zoom SDK secret */
@@ -65,7 +71,9 @@ export const ConfigStoreModel = types
           log.warn("Failed to fetch config, using defaults", { kind: result.kind })
         }
       } catch (error) {
-        log.error("Config fetch error", { error: error instanceof Error ? error.message : String(error) })
+        log.error("Config fetch error", {
+          error: error instanceof Error ? error.message : String(error),
+        })
       } finally {
         store.isLoading = false
       }

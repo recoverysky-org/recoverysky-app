@@ -1,9 +1,12 @@
 import { applySnapshot, onSnapshot } from "mobx-state-tree"
 
 import { profileRepository } from "@/db/repositories"
+import { logger } from "@/utils/logger"
 import * as storage from "@/utils/storage"
 
 import { RootStore, RootStoreSnapshot } from "../RootStore"
+
+const log = logger.child({ module: "RootStore" })
 
 /**
  * The key we use to store the root state in MMKV.
@@ -19,6 +22,8 @@ const ROOT_STATE_STORAGE_KEY = "root-v1"
  * Call hydrateProfileFromSQLite() separately after database is ready.
  */
 export async function setupRootStore(rootStore: RootStore) {
+  log.info("setupRootStore()", { storageKey: ROOT_STATE_STORAGE_KEY })
+
   let restoredState: RootStoreSnapshot | undefined | null
 
   try {
@@ -26,18 +31,22 @@ export async function setupRootStore(rootStore: RootStore) {
     restoredState = storage.load(ROOT_STATE_STORAGE_KEY) as RootStoreSnapshot | null
     if (restoredState) {
       applySnapshot(rootStore, restoredState)
+      log.info("Restored RootStore from MMKV", {
+        hasAuthStore: !!restoredState.authenticationStore,
+        hasProfileStore: !!restoredState.profileStore,
+      })
+    } else {
+      log.info("No stored RootStore snapshot, starting fresh")
     }
   } catch (e) {
-    // If there's any problems loading, start fresh
-    if (__DEV__) {
-      console.error("Error loading root store:", e)
-    }
+    log.error("Failed to load RootStore from MMKV", { error: String(e) })
   }
 
   // Track changes and save to MMKV (sensitive data excluded via volatile)
   const unsubscribe = onSnapshot(rootStore, (snapshot) => {
     storage.save(ROOT_STATE_STORAGE_KEY, snapshot)
   })
+  log.debug("RootStore snapshot listener registered")
 
   return { rootStore, restoredState, unsubscribe }
 }
@@ -50,16 +59,21 @@ export async function setupRootStore(rootStore: RootStore) {
  * @returns true if profile was loaded, false if using defaults
  */
 export async function hydrateProfileFromSQLite(rootStore: RootStore): Promise<boolean> {
+  log.info("hydrateProfileFromSQLite()")
+
   try {
     const secureProfile = await profileRepository.load()
     if (secureProfile) {
       rootStore.profileStore.hydrateFromSQLite(secureProfile)
+      log.info("Profile hydrated from SQLite", {
+        hasRecoveryDate: !!secureProfile.recoveryDate,
+        language: secureProfile.language,
+      })
       return true
     }
+    log.info("No profile in SQLite, using defaults")
   } catch (e) {
-    if (__DEV__) {
-      console.error("Error loading secure profile from SQLite:", e)
-    }
+    log.error("Failed to load profile from SQLite", { error: String(e) })
   }
   return false
 }

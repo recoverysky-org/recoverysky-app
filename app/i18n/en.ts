@@ -335,7 +335,8 @@ const en = {
     title: "Guide",
     subtitle: "Your AI-powered recovery meeting guide",
     emptyState: "Ask Sky about meetings",
-    emptyStateHint: "Get help with recovery resources, meeting information, and recovery literature.",
+    emptyStateHint:
+      "Get help with recovery resources, meeting information, and recovery literature.",
     inputPlaceholder: "Type your message...",
     thinking: "Sky is thinking...",
   },

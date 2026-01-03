@@ -4,9 +4,13 @@ import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 import "intl-pluralrules"
 
+import { logger } from "@/utils/logger"
+
 // if English isn't your default language, move Translations to the appropriate language file.
 import en, { Translations } from "./en"
 import es from "./es"
+
+const log = logger.child({ module: "i18n" })
 
 const fallbackLocale = "en-US"
 
@@ -56,17 +60,26 @@ if (locale?.languageTag && locale?.textDirection === "rtl") {
 }
 
 export const initI18n = async () => {
+  const selectedLocale = locale?.languageTag ?? fallbackLocale
+  log.info("initI18n()", {
+    systemLocale: systemLocales[0]?.languageTag,
+    selectedLocale,
+    supportedLanguages: supportedTags.join(","),
+    isRTL,
+  })
+
   i18n.use(initReactI18next)
 
   await i18n.init({
     resources,
-    lng: locale?.languageTag ?? fallbackLocale,
+    lng: selectedLocale,
     fallbackLng: fallbackLocale,
     interpolation: {
       escapeValue: false,
     },
   })
 
+  log.info("i18n initialized", { language: i18n.language })
   return i18n
 }
 

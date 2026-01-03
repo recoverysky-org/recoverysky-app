@@ -7,11 +7,17 @@ import type { Locale } from "date-fns/locale"
 import { parseISO } from "date-fns/parseISO"
 import i18n from "i18next"
 
+import { logger } from "./logger"
+
+const log = logger.child({ module: "formatDate" })
+
 type Options = Parameters<typeof format>[2]
 
 let dateFnsLocale: Locale
 export const loadDateFnsLocale = () => {
   const primaryTag = i18n.language.split("-")[0]
+  log.info("loadDateFnsLocale()", { i18nLanguage: i18n.language, primaryTag })
+
   switch (primaryTag) {
     case "en":
       dateFnsLocale = require("date-fns/locale/en-US").default
@@ -38,6 +44,8 @@ export const loadDateFnsLocale = () => {
       dateFnsLocale = require("date-fns/locale/en-US").default
       break
   }
+
+  log.info("date-fns locale loaded", { locale: dateFnsLocale.code })
 }
 
 export const formatDate = (date: string, dateFormat?: string, options?: Options) => {

@@ -26,6 +26,10 @@ import type {
   SyncOperation,
 } from "@recoverysky-org/common/sqlite"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "SyncService" })
+
 /**
  * Result of a sync operation
  */
@@ -94,9 +98,11 @@ export class SyncService {
    */
   async syncAll(): Promise<{ ok: true; value: SyncResult } | { ok: false; error: Error }> {
     if (this.isSyncing) {
+      log.warn("syncAll() - already in progress")
       return { ok: false, error: new Error("Sync already in progress") }
     }
 
+    log.info("syncAll()")
     this.isSyncing = true
     const result: SyncResult = { synced: 0, failed: 0, errors: [] }
 
@@ -104,13 +110,20 @@ export class SyncService {
       // Get all pending items
       const pendingResult = await this.syncQueue.getPending(this.config.maxRetries)
       if (!pendingResult.ok) {
+        log.error("Failed to get pending items", { error: pendingResult.error.message })
         return { ok: false, error: new Error(pendingResult.error.message) }
       }
 
       const pending = pendingResult.value
       if (pending.length === 0) {
+        log.info("No pending items to sync")
         return { ok: true, value: result }
       }
+
+      log.info("Processing pending sync items", {
+        count: pending.length,
+        batchSize: this.config.batchSize,
+      })
 
       // Process in batches
       for (let i = 0; i < pending.length; i += this.config.batchSize) {
@@ -134,8 +147,13 @@ export class SyncService {
         }
       }
 
+      log.info("syncAll complete", {
+        synced: result.synced,
+        failed: result.failed,
+      })
       return { ok: true, value: result }
     } catch (error) {
+      log.error("syncAll failed", { error: String(error) })
       return {
         ok: false,
         error: error instanceof Error ? error : new Error(String(error)),
@@ -151,6 +169,13 @@ export class SyncService {
   private async syncItem(
     item: SyncQueueItem,
   ): Promise<{ ok: true } | { ok: false; error: string }> {
+    log.debug("syncItem()", {
+      id: item.id,
+      table: item.tableName,
+      operation: item.operation,
+      recordId: item.recordId,
+    })
+
     // Mark as syncing
     await this.syncQueue.markSyncing(item.id)
 
@@ -159,14 +184,17 @@ export class SyncService {
 
       if (apiResult.ok) {
         await this.syncQueue.markSynced(item.id)
+        log.debug("syncItem success", { id: item.id })
         return { ok: true }
       } else {
         await this.syncQueue.markFailed(item.id, apiResult.error || "Unknown error")
+        log.warn("syncItem failed", { id: item.id, error: apiResult.error })
         return { ok: false, error: apiResult.error || "Unknown error" }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       await this.syncQueue.markFailed(item.id, errorMessage)
+      log.error("syncItem exception", { id: item.id, error: errorMessage })
       return { ok: false, error: errorMessage }
     }
   }
@@ -217,6 +245,8 @@ export class SyncService {
     operation: SyncOperation,
     payload?: unknown,
   ): Promise<{ ok: true; id: string } | { ok: false; error: Error }> {
+    log.debug("queue()", { tableName, recordId, operation, hasPayload: !!payload })
+
     try {
       const result = await this.syncQueue.enqueue({
         tableName,
@@ -226,11 +256,15 @@ export class SyncService {
       })
 
       if (result.ok) {
+        log.debug("Queued sync operation", { id: result.value, tableName, operation })
         return { ok: true, id: result.value }
       } else {
+        log.warn("Failed to queue sync operation", { tableName, operation, error: result.error.message })
         return { ok: false, error: new Error(result.error.message) }
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      log.error("queue() exception", { tableName, operation, error: errorMessage })
       return {
         ok: false,
         error: error instanceof Error ? error : new Error(String(error)),
@@ -249,6 +283,9 @@ export class SyncService {
     total: number
   } | null> {
     const result = await this.syncQueue.getStats()
+    if (result.ok) {
+      log.debug("getStats()", result.value)
+    }
     return result.ok ? result.value : null
   }
 
@@ -256,16 +293,22 @@ export class SyncService {
    * Clear successfully synced items older than specified days
    */
   async clearSynced(olderThanDays = 7): Promise<number> {
+    log.info("clearSynced()", { olderThanDays })
     const result = await this.syncQueue.clearSynced(olderThanDays)
-    return result.ok ? result.value : 0
+    const cleared = result.ok ? result.value : 0
+    log.info("Cleared synced items", { count: cleared })
+    return cleared
   }
 
   /**
    * Reset all failed items to pending for retry
    */
   async resetFailed(): Promise<number> {
+    log.info("resetFailed()")
     const result = await this.syncQueue.resetFailed()
-    return result.ok ? result.value : 0
+    const reset = result.ok ? result.value : 0
+    log.info("Reset failed items to pending", { count: reset })
+    return reset
   }
 
   /**

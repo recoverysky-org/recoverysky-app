@@ -13,9 +13,9 @@ import {
   Linking,
   ActivityIndicator,
 } from "react-native"
-import { Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
+import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 
 import { Icon } from "@/components/Icon"
@@ -698,7 +698,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(
         {/* Legal Section */}
         <View style={themed($section)}>
           <View style={themed($sectionHeader)}>
-            <Ionicons name="document-text-outline" size={20} color={themed($legalIconColor).color} />
+            <Ionicons
+              name="document-text-outline"
+              size={20}
+              color={themed($legalIconColor).color}
+            />
             <Text style={themed($sectionTitle)} tx="settingsScreen:legalSection" />
           </View>
 

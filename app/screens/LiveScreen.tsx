@@ -9,8 +9,8 @@ import {
   Modal,
   Pressable,
 } from "react-native"
-import { Fellowship } from "@recoverysky-org/common/browser"
 import { Ionicons } from "@expo/vector-icons"
+import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -26,6 +26,9 @@ import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "LiveScreen" })
 
 /** Fellowships available for filtering */
 const SELECTABLE_FELLOWSHIPS = [
@@ -48,6 +51,15 @@ export const LiveContent: FC = observer(function LiveContent() {
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const profileStore = useProfileStore()
+
+  // Log mount/unmount
+  useEffect(() => {
+    log.info("LiveContent mounted", {
+      liveMeetingsCount: liveMeetings.length,
+      fellowship: profileStore.fellowship || "all",
+    })
+    return () => log.debug("LiveContent unmounted")
+  }, [])
 
   // Fellowship filter modal
   const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
@@ -128,6 +140,7 @@ export const LiveContent: FC = observer(function LiveContent() {
   })
 
   const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
+    log.debug("Meeting pressed", { meetingId: meeting.id, name: meeting.name })
     setSelectedMeeting(meeting)
   }, [])
 
@@ -201,6 +214,7 @@ export const LiveContent: FC = observer(function LiveContent() {
                   profileStore.fellowship === f.value && themed($modalOptionSelected),
                 ]}
                 onPress={() => {
+                  log.info("Fellowship filter changed", { from: profileStore.fellowship, to: f.value })
                   profileStore.setFellowship(f.value)
                   setFellowshipModalVisible(false)
                 }}

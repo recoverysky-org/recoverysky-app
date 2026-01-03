@@ -1,5 +1,9 @@
 import { MMKV } from "react-native-mmkv"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "storage" })
+
 export const storage = new MMKV()
 
 /**
@@ -69,7 +73,9 @@ export function save(key: string, value: unknown): boolean {
 export function remove(key: string): void {
   try {
     storage.delete(key)
-  } catch {}
+  } catch (e) {
+    log.debug("storage.remove failed", { key, error: String(e) })
+  }
 }
 
 /**
@@ -78,5 +84,7 @@ export function remove(key: string): void {
 export function clear(): void {
   try {
     storage.clearAll()
-  } catch {}
+  } catch (e) {
+    log.debug("storage.clear failed", { error: String(e) })
+  }
 }

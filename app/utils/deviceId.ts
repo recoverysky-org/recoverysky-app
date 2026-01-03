@@ -25,32 +25,37 @@ const DEVICE_ID_KEY = "device_id_v1"
  * The ID is cached in MMKV storage for consistency.
  */
 export async function getDeviceId(): Promise<string> {
+  log.info("getDeviceId()", { platform: Platform.OS })
+
   // Check cache first
   const cached = loadString(DEVICE_ID_KEY)
   if (cached) {
-    log.debug("Device ID loaded from cache", { deviceId: cached.slice(0, 8) + "..." })
+    log.info("Device ID loaded from cache", { deviceId: cached.slice(0, 8) + "..." })
     return cached
   }
 
   let deviceId: string
+  let source: string
 
   if (Platform.OS === "ios") {
     const iosId = await Application.getIosIdForVendorAsync()
     deviceId = iosId || generateUUID()
-    log.info("iOS device ID obtained", { source: iosId ? "idForVendor" : "generated" })
+    source = iosId ? "idForVendor" : "generated"
   } else if (Platform.OS === "android") {
     const androidId = Application.getAndroidId()
     deviceId = androidId || generateUUID()
-    log.info("Android device ID obtained", { source: androidId ? "androidId" : "generated" })
+    source = androidId ? "androidId" : "generated"
   } else {
-    // Web: generate and persist UUID
     deviceId = generateUUID()
-    log.info("Web device ID generated")
+    source = "generated"
   }
 
   // Cache for future use
   saveString(DEVICE_ID_KEY, deviceId)
-  log.debug("Device ID cached", { deviceId: deviceId.slice(0, 8) + "..." })
+  log.info("Device ID created", {
+    source,
+    deviceId: deviceId.slice(0, 8) + "...",
+  })
 
   return deviceId
 }

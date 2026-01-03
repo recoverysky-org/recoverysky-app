@@ -371,6 +371,8 @@ export async function loadStoredAuth(
   authStore: ReturnType<typeof useAuthenticationStore>,
   configStore?: { fetchConfig: () => void },
 ): Promise<boolean> {
+  log.info("loadStoredAuth()")
+
   try {
     const [accessToken, refreshToken, idToken, expiresAtStr] = await Promise.all([
       SecureStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
@@ -379,25 +381,38 @@ export async function loadStoredAuth(
       SecureStorage.getItemAsync(STORAGE_KEYS.EXPIRES_AT),
     ])
 
-    if (accessToken && expiresAtStr) {
-      const expiresAt = parseInt(expiresAtStr, 10)
+    const hasStoredTokens = !!(accessToken && expiresAtStr)
+    log.debug("SecureStore tokens loaded", {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      hasIdToken: !!idToken,
+      hasExpiry: !!expiresAtStr,
+    })
 
-      // Check if token is still valid
+    if (hasStoredTokens) {
+      const expiresAt = parseInt(expiresAtStr!, 10)
+      const expiresIn = Math.round((expiresAt - Date.now()) / 1000)
+
       if (expiresAt > Date.now()) {
-        authStore.setTokens(accessToken, refreshToken || undefined, idToken || undefined, expiresAt)
-        log.info("Restored auth from secure storage")
-
-        // Fetch server config after restoring auth
+        authStore.setTokens(
+          accessToken!,
+          refreshToken || undefined,
+          idToken || undefined,
+          expiresAt,
+        )
+        log.info("Auth restored from SecureStore", { expiresInSec: expiresIn })
         configStore?.fetchConfig()
         return true
       } else {
-        log.info("Stored token expired")
+        log.info("Stored token expired", { expiredAgoSec: -expiresIn })
       }
+    } else {
+      log.info("No stored auth tokens found")
     }
 
     return false
   } catch (err) {
-    log.error("Failed to load stored auth", { error: String(err) })
+    log.error("loadStoredAuth failed", { error: String(err) })
     return false
   }
 }

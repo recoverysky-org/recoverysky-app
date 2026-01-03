@@ -8,7 +8,10 @@
 
 import { SQLiteDatabase } from "expo-sqlite"
 
+import { logger } from "@/utils/logger"
 import { loadString, saveString, remove } from "@/utils/storage"
+
+const log = logger.child({ module: "seedDatabase" })
 
 const SEED_FLAG_KEY = "db_seeded_v2"
 
@@ -38,7 +41,7 @@ export type SeedProgressCallback = (progress: SeedProgress) => void
  * Set this in .env or run: EXPO_PUBLIC_RESEED_DB=true npm start
  */
 if (process.env.EXPO_PUBLIC_RESEED_DB === "true") {
-  console.log("[seedDatabase] EXPO_PUBLIC_RESEED_DB=true, clearing seed flag...")
+  log.warn("EXPO_PUBLIC_RESEED_DB=true, clearing seed flag")
   remove(SEED_FLAG_KEY)
 }
 
@@ -310,7 +313,7 @@ async function insertSchedules(
   data: ScheduleRow[],
   onBatch?: (inserted: number) => void,
 ): Promise<void> {
-  console.log(`[seedDatabase] Inserting ${data.length} schedules...`)
+  log.debug("insertSchedules()", { count: data.length })
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
@@ -340,7 +343,7 @@ async function insertMeetings(
   data: MeetingRow[],
   onBatch?: (inserted: number) => void,
 ): Promise<void> {
-  console.log(`[seedDatabase] Inserting ${data.length} meetings...`)
+  log.debug("insertMeetings()", { count: data.length })
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
@@ -394,7 +397,7 @@ async function insertTrexes(
   data: TrexRow[],
   onBatch?: (inserted: number) => void,
 ): Promise<void> {
-  console.log(`[seedDatabase] Inserting ${data.length} trexes...`)
+  log.debug("insertTrexes()", { count: data.length })
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
@@ -430,7 +433,7 @@ async function insertMeetingTypes(
   data: MeetingTypeRow[],
   onBatch?: (inserted: number) => void,
 ): Promise<void> {
-  console.log(`[seedDatabase] Inserting ${data.length} meeting_types...`)
+  log.debug("insertMeetingTypes()", { count: data.length })
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
@@ -451,12 +454,12 @@ async function insertMeetingTags(
   onBatch?: (inserted: number) => void,
 ): Promise<void> {
   if (data.length === 0) {
-    console.log(`[seedDatabase] No meeting_tags to insert`)
+    log.debug("insertMeetingTags() - no data to insert")
     onBatch?.(0)
     return
   }
 
-  console.log(`[seedDatabase] Inserting ${data.length} meeting_tags...`)
+  log.debug("insertMeetingTags()", { count: data.length })
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
@@ -476,7 +479,7 @@ async function insertScheduleMeetings(
   data: ScheduleMeetingRow[],
   onBatch?: (inserted: number) => void,
 ): Promise<void> {
-  console.log(`[seedDatabase] Inserting ${data.length} schedule_meetings...`)
+  log.debug("insertScheduleMeetings()", { count: data.length })
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const batch = data.slice(i, i + BATCH_SIZE)
@@ -518,13 +521,15 @@ export async function seedDatabase(
   _db: SQLiteDatabase,
   _onProgress?: SeedProgressCallback,
 ): Promise<void> {
+  log.info("seedDatabase()")
+
   if (isDatabaseSeeded()) {
-    console.log("[seedDatabase] Already seeded, skipping...")
+    log.info("Database already seeded, skipping")
     return
   }
 
   // No data to seed currently - meetings/schedules/trexes come from API
   // Just mark as seeded immediately
-  console.log("[seedDatabase] No seed data required, marking as seeded...")
+  log.info("No seed data required, marking as seeded")
   markDatabaseSeeded()
 }

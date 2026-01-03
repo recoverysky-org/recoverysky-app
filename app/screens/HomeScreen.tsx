@@ -1,4 +1,4 @@
-import { FC, useCallback } from "react"
+import { FC, useCallback, useEffect } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
@@ -14,6 +14,9 @@ import { useZitadelAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "HomeScreen" })
 
 // ============================================================================
 // Help Card Definitions
@@ -100,6 +103,17 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   const profileStore = useProfileStore()
   const { logout, clearError } = useZitadelAuth()
 
+  // Log mount/unmount
+  useEffect(() => {
+    log.info("HomeScreen mounted", {
+      isAuthenticated: authStore.isAuthenticated,
+      isAnonymous: authStore.isAnonymous,
+      cleanDays: profileStore.cleanDays,
+      dismissedCards: profileStore.dismissedHomeCards.length,
+    })
+    return () => log.debug("HomeScreen unmounted")
+  }, [])
+
   // Get undismissed cards (use slice() to get reactive array for dependency)
   // Show max 5 at a time - new cards appear as others are dismissed
   const dismissedIds = profileStore.dismissedHomeCards.slice()
@@ -113,6 +127,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
 
   const handleDismissCard = useCallback(
     (cardId: string) => {
+      log.debug("Help card dismissed", { cardId })
       profileStore.dismissHomeCard(cardId)
     },
     [profileStore],
@@ -120,6 +135,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
 
   const handleCardAction = useCallback(
     (card: HelpCardDef) => {
+      log.debug("Help card action pressed", { cardId: card.id, actionTab: card.actionTab })
       if (card.id === "onboarding") {
         // Reset onboarding and navigate to it
         profileStore.resetOnboarding()
@@ -133,6 +149,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   )
 
   const handleLogout = async () => {
+    log.info("Logout button pressed")
     clearError()
     await logout()
   }

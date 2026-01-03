@@ -18,9 +18,9 @@
  * Run with: npm run test:unit -- app/utils/logger/logger.e2e.test.ts
  */
 
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import dotenv from "dotenv"
 import path from "path"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
 import { createLogger } from "./logger"
 import type { LoggerConfig } from "./types"
