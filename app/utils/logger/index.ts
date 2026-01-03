@@ -58,4 +58,7 @@ export const logger = createLogger({
   minLevel: (process.env.EXPO_PUBLIC_LOG_LEVEL as LogLevel) || undefined,
   serviceName: "recoverysky-app",
   serviceVersion: require("../../../package.json").version,
+  // Fast flush in dev for easier debugging
+  batchSize: __DEV__ ? 1 : 10,
+  flushIntervalMs: __DEV__ ? 1000 : 5000,
 })
