@@ -3,8 +3,11 @@ import { Instance, SnapshotOut, types } from "mobx-state-tree"
 import { liveEvents } from "@/db"
 import { profileRepository } from "@/db/repositories"
 import { changeLanguage, translate } from "@/i18n"
+import { logger } from "@/utils/logger"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
+
+const log = logger.child({ module: "ProfileStore" })
 
 /**
  * Pronoun options type
@@ -157,7 +160,7 @@ export const ProfileStoreModel = types
     const persistSecure = (data: SecureProfileData) => {
       // Fire-and-forget - don't await
       profileRepository.save(data).catch((err) => {
-        console.error("[ProfileStore] Failed to persist to SQLite:", err)
+        log.error("Failed to persist to SQLite", { error: String(err) })
       })
     }
 

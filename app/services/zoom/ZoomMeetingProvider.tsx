@@ -401,40 +401,34 @@ export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) =
   const { zoomSdkKey, zoomSdkSecret } = configStore
 
   useEffect(() => {
-    console.log("=== ZOOM SDK INITIALIZATION ===")
-
     // Check if SDK is configured
     const configured = isZoomConfigured(zoomSdkKey, zoomSdkSecret)
-    console.log(`[ZoomProvider] isZoomConfigured: ${configured}`)
+    log.info("Zoom SDK init check", {
+      configured,
+      hasKey: !!zoomSdkKey,
+      hasSecret: !!zoomSdkSecret,
+    })
 
     if (!configured) {
-      log.warn("Zoom SDK keys not configured - SDK features disabled")
-      console.warn("[ZoomProvider] ❌ SDK NOT CONFIGURED - will use external Zoom app fallback")
+      log.warn("Zoom SDK not configured - using external app fallback")
       setInitState("error")
       setError("Zoom SDK keys not configured")
       return
     }
 
-    console.log("[ZoomProvider] ✓ SDK keys found, initializing...")
     log.info("Initializing Zoom SDK")
     setInitState("initializing")
 
     // Generate initial JWT token (meeting number "0" for initialization)
     generateZoomJwt("0", 0, zoomSdkKey, zoomSdkSecret)
       .then((token) => {
-        log.info("Zoom JWT generated, SDK ready")
-        console.log("[ZoomProvider] ✓ JWT generated successfully")
-        console.log(`[ZoomProvider] JWT preview: ${token.slice(0, 20)}...`)
+        log.info("Zoom SDK ready", { jwtPreview: token.slice(0, 8) + "..." })
         setJwtToken(token)
         setInitState("ready")
-        console.log("[ZoomProvider] ✓ SDK READY - native meetings enabled")
-        console.log("===============================")
       })
       .catch((err) => {
         const errorMessage = err instanceof Error ? err.message : "JWT generation failed"
         log.error("Zoom SDK initialization failed", { error: errorMessage })
-        console.error("[ZoomProvider] ❌ JWT generation failed:", errorMessage)
-        console.log("===============================")
         setError(errorMessage)
         setInitState("error")
       })

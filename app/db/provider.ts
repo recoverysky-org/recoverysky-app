@@ -11,6 +11,10 @@ import type { SQLiteDatabase } from "expo-sqlite"
 import * as schema from "@recoverysky-org/common/sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "DatabaseProvider" })
+
 const DATABASE_NAME = "recoverysky.db"
 
 // Not initialized until openDb() is called
@@ -25,12 +29,12 @@ export async function deleteDatabase(): Promise<void> {
   try {
     const dbFile = new File(Paths.document, "SQLite", DATABASE_NAME)
     if (dbFile.exists) {
-      console.log("[provider] Deleting database...")
+      log.info("Deleting database")
       dbFile.delete()
-      console.log("[provider] Database deleted")
+      log.info("Database deleted")
     }
   } catch (error) {
-    console.warn("[provider] Failed to delete database:", error)
+    log.warn("Failed to delete database", { error: String(error) })
   }
 }
 
@@ -62,7 +66,7 @@ export async function openDb(encryptionKey?: string): Promise<{
       await deleteDatabase()
     }
 
-    console.log("[provider] Loading expo-sqlite...")
+    log.debug("Loading expo-sqlite")
     const { openDatabaseSync } = await import("expo-sqlite")
     const { drizzle } = await import("drizzle-orm/expo-sqlite")
 
@@ -70,16 +74,16 @@ export async function openDb(encryptionKey?: string): Promise<{
 
     // Set encryption key immediately after opening (required for SQLCipher)
     if (encryptionKey) {
-      console.log("[provider] Setting SQLCipher encryption key...")
+      log.debug("Setting SQLCipher encryption key")
       expoDb.execSync(`PRAGMA key = '${encryptionKey}'`)
       currentEncryptionKey = encryptionKey
-      console.log("[provider] Encrypted database opened")
+      log.info("Database opened", { encrypted: true })
     } else {
-      console.log("[provider] Unencrypted database opened")
+      log.info("Database opened", { encrypted: false })
     }
 
     db = drizzle(expoDb, { schema })
-    console.log("[provider] Database ready")
+    log.debug("Drizzle ORM initialized")
   }
   return { expoDb: expoDb!, db: db! }
 }
@@ -89,12 +93,12 @@ export async function openDb(encryptionKey?: string): Promise<{
  */
 export async function closeDb(): Promise<void> {
   if (expoDb) {
-    console.log("[provider] Closing database...")
+    log.info("Closing database")
     expoDb.closeSync()
     expoDb = null
     db = null
     currentEncryptionKey = null
-    console.log("[provider] Database closed")
+    log.debug("Database closed")
   }
 }
 
@@ -120,10 +124,10 @@ export async function rekeyDatabase(newKey: string): Promise<void> {
     throw new Error("Database not encrypted, cannot rekey")
   }
 
-  console.log("[provider] Re-encrypting database with new key...")
+  log.info("Re-encrypting database with new key")
   expoDb.execSync(`PRAGMA rekey = '${newKey}'`)
   currentEncryptionKey = newKey
-  console.log("[provider] Database re-encrypted successfully")
+  log.info("Database re-encrypted successfully")
 }
 
 /**

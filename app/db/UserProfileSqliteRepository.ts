@@ -9,6 +9,10 @@ import { user_profiles as userProfiles } from "@recoverysky-org/common/sqlite"
 import { eq, sql } from "drizzle-orm"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "UserProfileRepo" })
+
 /** Profile data stored in SQLite */
 export interface UserProfileRecord {
   id: string
@@ -44,7 +48,7 @@ export class UserProfileSqliteRepository {
         .limit(1)
       return (rows[0] as UserProfileRecord) || null
     } catch (error) {
-      console.error("[UserProfileSqliteRepository] findDefault error:", error)
+      log.error("findDefault error", { error: String(error) })
       return null
     }
   }
@@ -67,7 +71,7 @@ export class UserProfileSqliteRepository {
         .returning()) as UserProfileRecord[]
       return rows[0] || null
     } catch (error) {
-      console.error("[UserProfileSqliteRepository] create error:", error)
+      log.error("create error", { error: String(error) })
       return null
     }
   }
@@ -84,7 +88,7 @@ export class UserProfileSqliteRepository {
         .returning()) as UserProfileRecord[]
       return rows[0] || null
     } catch (error) {
-      console.error("[UserProfileSqliteRepository] update error:", error)
+      log.error("update error", { error: String(error) })
       return null
     }
   }
@@ -117,7 +121,7 @@ export class UserProfileSqliteRepository {
         .returning()) as UserProfileRecord[]
       return rows[0] || null
     } catch (error) {
-      console.error("[UserProfileSqliteRepository] upsert error:", error)
+      log.error("upsert error", { error: String(error) })
       return null
     }
   }

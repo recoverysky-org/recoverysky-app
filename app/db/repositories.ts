@@ -27,9 +27,12 @@ import {
 } from "@recoverysky-org/common/sqlite"
 
 import type { SecureProfileData } from "@/models/ProfileStore"
+import { logger } from "@/utils/logger"
 
 import { getDb } from "./provider"
 import { UserProfileSqliteRepository } from "./UserProfileSqliteRepository"
+
+const log = logger.child({ module: "Repositories" })
 
 /**
  * Event recorded during meeting attendance
@@ -333,7 +336,7 @@ export const profileRepository = {
         language: record.language || undefined,
       }
     } catch (error) {
-      console.error("[profileRepository] load error:", error)
+      log.error("profileRepository load error", { error: String(error) })
       return null
     }
   },
@@ -352,7 +355,7 @@ export const profileRepository = {
         language: data.language,
       })
     } catch (error) {
-      console.error("[profileRepository] save error:", error)
+      log.error("profileRepository save error", { error: String(error) })
     }
   },
 }

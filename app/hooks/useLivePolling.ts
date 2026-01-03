@@ -8,6 +8,10 @@
 import { useEffect, useRef } from "react"
 import { AppState, type AppStateStatus } from "react-native"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "LivePolling" })
+
 interface UseLivePollingOptions {
   /** Whether polling is enabled (default: true) */
   enabled?: boolean
@@ -64,7 +68,7 @@ export function useLivePolling({ enabled = true, onRefresh }: UseLivePollingOpti
       }
 
       const msUntilNext = msUntilNext15MinMark()
-      console.log(`[useLivePolling] Next refresh in ${Math.round(msUntilNext / 1000 / 60)} minutes`)
+      log.debug("Scheduled next refresh", { minutesUntil: Math.round(msUntilNext / 1000 / 60) })
 
       timeoutRef.current = setTimeout(() => {
         onRefresh()
