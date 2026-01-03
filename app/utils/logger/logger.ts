@@ -10,7 +10,7 @@
  */
 
 import { sendToOtlp } from "./otlp"
-import type { Logger, LoggerConfig, LogLevel, LogAttributes, LogRecord } from "./types"
+import type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes, LogRecord } from "./types"
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
   trace: 0,
@@ -36,12 +36,15 @@ class LoggerImpl implements Logger {
   private traceId?: string
   private spanId?: string
   private baseAttributes: LogAttributes
+  private context: LoggerContext = {}
 
   constructor(
     private config: LoggerConfig,
     baseAttributes: LogAttributes = {},
+    context: LoggerContext = {},
   ) {
     this.baseAttributes = baseAttributes
+    this.context = context
     this.startFlushTimer()
   }
 
@@ -62,11 +65,16 @@ class LoggerImpl implements Logger {
   private log(level: LogLevel, message: string, attributes: LogAttributes = {}): void {
     if (!this.shouldLog(level)) return
 
+    // Build context attributes, filtering undefined values
+    const contextAttrs: LogAttributes = {}
+    if (this.context.sessionId) contextAttrs.sessionId = this.context.sessionId
+    if (this.context.appVersion) contextAttrs.appVersion = this.context.appVersion
+
     const record: LogRecord = {
       timestamp: Date.now(),
       level,
       message,
-      attributes: { ...this.baseAttributes, ...attributes },
+      attributes: { ...contextAttrs, ...this.baseAttributes, ...attributes },
       ...(this.traceId && { traceId: this.traceId }),
       ...(this.spanId && { spanId: this.spanId }),
     }
@@ -141,11 +149,20 @@ class LoggerImpl implements Logger {
     this.spanId = undefined
   }
 
+  setContext(context: Partial<LoggerContext>): void {
+    this.context = { ...this.context, ...context }
+  }
+
+  clearContext(): void {
+    this.context = {}
+  }
+
   child(attributes: LogAttributes): Logger {
-    return new LoggerImpl(this.config, {
-      ...this.baseAttributes,
-      ...attributes,
-    })
+    return new LoggerImpl(
+      this.config,
+      { ...this.baseAttributes, ...attributes },
+      this.context,
+    )
   }
 
   /**

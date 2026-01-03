@@ -18,6 +18,10 @@
  * // Child logger with context
  * const authLogger = logger.child({ module: "auth" })
  * authLogger.info("Token refreshed")
+ *
+ * // Set persistent context (userId, deviceId, sessionId, appVersion)
+ * logger.setContext({ userId: "user_123", deviceId: "device_abc" })
+ * logger.info("Action") // includes userId and deviceId automatically
  * ```
  *
  * Configuration:
@@ -31,7 +35,7 @@ import type { LogLevel } from "./types"
 
 export { createLogger } from "./logger"
 export { useLogger, useSimpleLogger } from "./useLogger"
-export type { Logger, LoggerConfig, LogLevel, LogAttributes } from "./types"
+export type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes } from "./types"
 
 /**
  * Default logger instance

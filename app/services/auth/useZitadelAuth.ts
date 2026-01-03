@@ -386,6 +386,7 @@ export async function loadStoredAuth(
       if (expiresAt > Date.now()) {
         authStore.setTokens(accessToken, refreshToken || undefined, idToken || undefined, expiresAt)
         log.info("Restored auth from secure storage")
+
         // Fetch server config after restoring auth
         configStore?.fetchConfig()
         return true

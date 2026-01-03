@@ -48,12 +48,21 @@ import { loadStoredAuth } from "./services/auth/useZitadelAuth"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
-import { getDeviceId } from "./utils/deviceId"
+import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
 import { logger } from "./utils/logger"
 import * as storage from "./utils/storage"
 
 const log = logger.child({ module: "App" })
+
+// Generate session ID once at module load (persists for app lifecycle)
+const sessionId = generateSessionId()
+
+// Set initial logger context with session and version (deviceId added after async load)
+logger.setContext({
+  sessionId,
+  appVersion: require("../package.json").version,
+})
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 

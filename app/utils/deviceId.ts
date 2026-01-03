@@ -72,3 +72,13 @@ function generateUUID(): string {
     return v.toString(16)
   })
 }
+
+/**
+ * Generate a new session ID.
+ * Call this once at app launch to track logs within a single session.
+ */
+export function generateSessionId(): string {
+  const sessionId = generateUUID()
+  log.debug("Session ID generated", { sessionId: sessionId.slice(0, 8) + "..." })
+  return sessionId
+}

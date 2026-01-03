@@ -36,6 +36,12 @@ export interface LoggerConfig {
   serviceVersion: string
 }
 
+/** Context attributes that persist across all log calls */
+export interface LoggerContext {
+  sessionId?: string
+  appVersion?: string
+}
+
 export interface Logger {
   trace(message: string, attributes?: LogAttributes): void
   debug(message: string, attributes?: LogAttributes): void
@@ -49,6 +55,10 @@ export interface Logger {
   setTraceContext(traceId: string, spanId: string): void
   /** Clear trace context */
   clearTraceContext(): void
+  /** Set persistent context (userId, deviceId, sessionId, appVersion) */
+  setContext(context: Partial<LoggerContext>): void
+  /** Clear persistent context */
+  clearContext(): void
   /** Create a child logger with additional attributes */
   child(attributes: LogAttributes): Logger
   /** Cleanup resources - call on app unmount */
