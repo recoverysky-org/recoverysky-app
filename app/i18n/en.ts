@@ -54,7 +54,7 @@ const en = {
     attendanceTab: "Attendance",
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
-    guideTab: "Guide",
+    agentTab: "Agent",
     settingsTab: "Settings",
   },
   // Main Screens
@@ -330,10 +330,10 @@ const en = {
     windowsReactotronHint:
       "If this doesn't work, ensure the Reactotron desktop app is running and reload app.",
   },
-  // Guide Screen (AI Chat)
-  guideScreen: {
-    title: "Guide",
-    subtitle: "Your AI-powered recovery meeting guide",
+  // Agent Screen (AI Chat)
+  agentScreen: {
+    title: "Sky Agent",
+    subtitle: "Your AI-powered recovery meeting agent",
     emptyState: "Ask Sky about meetings",
     emptyStateHint:
       "Get help with recovery resources, meeting information, and recovery literature.",

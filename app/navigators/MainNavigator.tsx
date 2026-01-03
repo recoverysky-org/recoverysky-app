@@ -11,7 +11,7 @@ import { useMeetings } from "@/context/MeetingContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
 import { useProfileStore } from "@/models"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
-import { GuideScreen } from "@/screens/GuideScreen"
+import { AgentScreen } from "@/screens/AgentScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
@@ -115,12 +115,12 @@ export const MainNavigator = observer(function MainNavigator() {
         />
       )}
       <Tab.Screen
-        name="Guide"
-        component={GuideScreen}
+        name="Agent"
+        component={AgentScreen}
         options={{
-          tabBarLabel: t("mainNavigator:guideTab"),
+          tabBarLabel: t("mainNavigator:agentTab"),
           tabBarIcon: ({ focused }) => (
-            <Ionicons name="help-buoy" size={24} color={focused ? colors.tint : colors.textDim} />
+            <Ionicons name="sparkles" size={24} color={focused ? colors.tint : colors.textDim} />
           ),
         }}
       />

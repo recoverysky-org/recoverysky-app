@@ -78,7 +78,7 @@ const config = {
         Live: "live",
         Meetings: "meetings",
         Schedule: "schedule",
-        Guide: "guide",
+        Agent: "agent",
         Settings: "settings",
       },
     },

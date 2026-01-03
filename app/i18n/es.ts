@@ -54,7 +54,7 @@ const es: Translations = {
     attendanceTab: "Asistencia",
     meetingsTab: "Reuniones",
     scheduleTab: "Horario",
-    guideTab: "Guía",
+    agentTab: "Agente",
     settingsTab: "Perfil",
   },
   homeScreen: {
@@ -322,9 +322,9 @@ const es: Translations = {
     webReactotronHint: "Si no funciona, asegúrate de que Reactotron esté ejecutándose.",
     windowsReactotronHint: "Si no funciona, asegúrate de que Reactotron esté ejecutándose.",
   },
-  guideScreen: {
-    title: "Guía",
-    subtitle: "Tu guía de reuniones de recuperación con IA",
+  agentScreen: {
+    title: "Sky Agent",
+    subtitle: "Tu agente de reuniones de recuperación con IA",
     emptyState: "Pregúntale a Sky sobre reuniones",
     emptyStateHint:
       "Obtén ayuda con recursos de recuperación, información de reuniones y literatura de recuperación.",

@@ -25,10 +25,10 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
 
-const log = logger.child({ module: "GuideScreen" })
+const log = logger.child({ module: "AgentScreen" })
 
 /**
- * GuideScreen - AI-powered recovery guide and help desk
+ * AgentScreen - Sky Agent, your AI-powered recovery meeting agent
  *
  * Uses Vercel AI SDK to provide streaming chat with the RecoverySky AI agent.
  * Features:
@@ -36,7 +36,7 @@ const log = logger.child({ module: "GuideScreen" })
  * - Message history
  * - Tool calls (recovery resources, meeting info, literature)
  */
-export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function GuideScreen(_props) {
+export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function AgentScreen(_props) {
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
@@ -99,7 +99,7 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
       <View style={themed($header)}>
         <View style={$styles.row}>
           <Ionicons name="help-buoy" size={24} color={theme.colors.tint} />
-          <Text preset="heading" tx="guideScreen:title" style={themed($headerTitle)} />
+          <Text preset="heading" tx="agentScreen:title" style={themed($headerTitle)} />
         </View>
         {messages.length > 0 && (
           <Pressable onPress={handleClearChat} style={themed($clearButton)}>
@@ -107,7 +107,7 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
           </Pressable>
         )}
       </View>
-      <Text style={themed($subtitle)} tx="guideScreen:subtitle" />
+      <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
 
       {/* Chat Messages */}
       <KeyboardAvoidingView
@@ -124,8 +124,8 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
           {messages.length === 0 ? (
             <View style={themed($emptyState)}>
               <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.textDim} />
-              <Text style={themed($emptyStateText)} tx="guideScreen:emptyState" />
-              <Text style={themed($emptyStateHint)} tx="guideScreen:emptyStateHint" />
+              <Text style={themed($emptyStateText)} tx="agentScreen:emptyState" />
+              <Text style={themed($emptyStateHint)} tx="agentScreen:emptyStateHint" />
             </View>
           ) : (
             messages.map((message) => (
@@ -186,7 +186,7 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
           {isLoading && (
             <View style={themed($loadingContainer)}>
               <ActivityIndicator size="small" color={theme.colors.tint} />
-              <Text style={themed($loadingText)} tx="guideScreen:thinking" />
+              <Text style={themed($loadingText)} tx="agentScreen:thinking" />
             </View>
           )}
 
@@ -204,7 +204,7 @@ export const GuideScreen: FC<MainTabScreenProps<"Guide">> = observer(function Gu
           <TextField
             value={input}
             onChangeText={setInput}
-            placeholderTx="guideScreen:inputPlaceholder"
+            placeholderTx="agentScreen:inputPlaceholder"
             containerStyle={$inputContainerInner}
             style={themed($textInput)}
             inputWrapperStyle={themed($inputWrapper)}
