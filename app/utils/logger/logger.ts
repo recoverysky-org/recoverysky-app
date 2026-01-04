@@ -44,6 +44,7 @@ class LoggerImpl implements Logger {
   private spanId?: string
   private baseAttributes: LogAttributes
   private context: LoggerContext = {}
+  private hasLoggedStartup = false
 
   constructor(
     private config: LoggerConfig,
@@ -166,6 +167,18 @@ class LoggerImpl implements Logger {
 
   child(attributes: LogAttributes): Logger {
     return new LoggerImpl(this.config, { ...this.baseAttributes, ...attributes }, this.context)
+  }
+
+  logStartup(): void {
+    if (this.hasLoggedStartup) return
+    this.hasLoggedStartup = true
+
+    this.info("Logger initialized", {
+      instrumentationScope: "recoverysky-logger",
+      instrumentationVersion: "1.0.0",
+      serviceName: this.config.serviceName,
+      serviceVersion: this.config.serviceVersion,
+    })
   }
 
   /**

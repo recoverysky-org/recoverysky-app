@@ -45,13 +45,6 @@ export type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes } fro
  * - EXPO_PUBLIC_OTLP_API_KEY: API key for auth (optional)
  * - EXPO_PUBLIC_LOG_LEVEL: Minimum log level (trace, debug, info, warn, error, fatal)
  */
-console.log(
-  "[Logger] EXPO_PUBLIC_LOG_LEVEL:",
-  process.env.EXPO_PUBLIC_LOG_LEVEL,
-  "__DEV__:",
-  __DEV__,
-)
-
 export const logger = createLogger({
   endpoint: process.env.EXPO_PUBLIC_OTLP_ENDPOINT,
   apiKey: process.env.EXPO_PUBLIC_OTLP_API_KEY,
@@ -62,3 +55,6 @@ export const logger = createLogger({
   batchSize: __DEV__ ? 1 : 10,
   flushIntervalMs: __DEV__ ? 1000 : 5000,
 })
+
+// Log instrumentation scope once at startup
+logger.logStartup()

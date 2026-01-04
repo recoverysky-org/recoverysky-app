@@ -61,6 +61,8 @@ export interface Logger {
   clearContext(): void
   /** Create a child logger with additional attributes */
   child(attributes: LogAttributes): Logger
+  /** Log instrumentation scope info once at startup */
+  logStartup(): void
   /** Cleanup resources - call on app unmount */
   destroy(): void
 }

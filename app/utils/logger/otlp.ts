@@ -46,7 +46,7 @@ interface OtlpLogsPayload {
       }>
     }
     scopeLogs: Array<{
-      scope: { name: string; version: string }
+      scope: { name: string; version?: string }
       logRecords: OtlpLogRecord[]
     }>
   }>
@@ -90,7 +90,7 @@ export function toOtlpPayload(records: LogRecord[], config: LoggerConfig): OtlpL
         },
         scopeLogs: [
           {
-            scope: { name: "recoverysky-logger", version: "1.0.0" },
+            scope: { name: "recoverysky-logger" },
             logRecords: otlpRecords,
           },
         ],
