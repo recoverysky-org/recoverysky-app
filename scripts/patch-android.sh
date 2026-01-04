@@ -66,6 +66,22 @@ else
   echo "usesCleartextTraffic already present"
 fi
 
+# Add tools namespace for manifest merging
+if ! grep -q "xmlns:tools" "$MANIFEST"; then
+  sed -i '' 's|<manifest xmlns:android="http://schemas.android.com/apk/res/android"|<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"|' "$MANIFEST"
+  echo "Added tools namespace to AndroidManifest.xml"
+else
+  echo "tools namespace already present"
+fi
+
+# Add tools:replace to override Zoom SDK manifest attributes
+if ! grep -q "tools:replace" "$MANIFEST"; then
+  sed -i '' 's|android:dataExtractionRules="@xml/secure_store_data_extraction_rules"|android:dataExtractionRules="@xml/secure_store_data_extraction_rules" tools:replace="android:networkSecurityConfig,android:usesCleartextTraffic"|' "$MANIFEST"
+  echo "Added tools:replace to AndroidManifest.xml"
+else
+  echo "tools:replace already present"
+fi
+
 # Patch debug manifests to override Zoom SDK's networkSecurityConfig
 DEBUG_MANIFEST="$PROJECT_DIR/android/app/src/debug/AndroidManifest.xml"
 DEBUG_OPT_MANIFEST="$PROJECT_DIR/android/app/src/debugOptimized/AndroidManifest.xml"
