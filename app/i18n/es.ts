@@ -330,6 +330,10 @@ const es: Translations = {
       "Obtén ayuda con recursos de recuperación, información de reuniones y literatura de recuperación.",
     inputPlaceholder: "Escribe tu mensaje...",
     thinking: "Sky está pensando...",
+    noMeetingsFound: "No se encontraron reuniones",
+    meetingsFound_one: "{{count}} reunión encontrada",
+    meetingsFound_other: "{{count}} reuniones encontradas",
+    tapToViewDetails: "Toca una reunión para ver detalles",
   },
 }
 

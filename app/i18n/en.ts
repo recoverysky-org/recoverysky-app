@@ -339,6 +339,10 @@ const en = {
       "Get help with recovery resources, meeting information, and recovery literature.",
     inputPlaceholder: "Type your message...",
     thinking: "Sky is thinking...",
+    noMeetingsFound: "No meetings found",
+    meetingsFound_one: "{{count}} meeting found",
+    meetingsFound_other: "{{count}} meetings found",
+    tapToViewDetails: "Tap a meeting to view details",
   },
 }
 

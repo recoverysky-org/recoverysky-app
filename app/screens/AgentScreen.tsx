@@ -16,9 +16,12 @@ import { DefaultChatTransport } from "ai"
 import { fetch as expoFetch } from "expo/fetch"
 import { observer } from "mobx-react-lite"
 
+import { ToolResultRenderer } from "@/components/agent"
+import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useAuthenticationStore, useConfigStore, useConversationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -47,6 +50,10 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
   // Local state for input (AI SDK v6 manages input internally)
   const [input, setInput] = useState("")
+
+  // State for meeting popup (shown when user taps a meeting from tool results)
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+  const [activeToolCallId, setActiveToolCallId] = useState<string | null>(null)
 
   // Track which message IDs we've already persisted
   const persistedIdsRef = useRef(new Set<string>())
@@ -175,6 +182,21 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     )
   }, [doClearChat])
 
+  // Handle meeting selection from tool results
+  const handleSelectMeeting = useCallback((meeting: MeetingWithTrex, toolCallId: string) => {
+    setSelectedMeeting(meeting)
+    setActiveToolCallId(toolCallId)
+  }, [])
+
+  // Handle popup close - collapse the tool result
+  const handleClosePopup = useCallback(() => {
+    if (selectedMeeting && activeToolCallId) {
+      conversationStore.collapseToolResult(activeToolCallId, `Selected: ${selectedMeeting.name}`)
+    }
+    setSelectedMeeting(null)
+    setActiveToolCallId(null)
+  }, [selectedMeeting, activeToolCallId, conversationStore])
+
   const isLoading = status === "streaming" || status === "submitted"
 
   return (
@@ -240,9 +262,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                         </Text>
                       )
                     }
-                    // Handle tool calls - show them as informational
-                    if (part.type.startsWith("tool-")) {
-                      const toolName = part.type.replace("tool-", "")
+                    // Handle tool invocations (in-progress)
+                    if (part.type === "tool-invocation") {
+                      const toolPart = part as { toolName?: string }
                       return (
                         <View key={`${message.id}-${index}`} style={themed($toolCall)}>
                           <Ionicons
@@ -250,8 +272,29 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                             size={14}
                             color={theme.colors.textDim}
                           />
-                          <Text style={themed($toolCallText)}>Using {toolName}...</Text>
+                          <Text style={themed($toolCallText)}>
+                            Using {toolPart.toolName ?? "tool"}...
+                          </Text>
                         </View>
+                      )
+                    }
+
+                    // Handle tool results (completed) - render with interactive UI
+                    if (part.type === "tool-result") {
+                      // Cast through unknown to handle AI SDK's complex union type
+                      const toolPart = part as unknown as {
+                        type: "tool-result"
+                        toolCallId: string
+                        toolName: string
+                        result: unknown
+                      }
+                      return (
+                        <ToolResultRenderer
+                          key={`${message.id}-${index}`}
+                          part={toolPart}
+                          messageId={message.id}
+                          onSelectMeeting={handleSelectMeeting}
+                        />
                       )
                     }
                     return null
@@ -319,6 +362,13 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
           <Ionicons name="trash-outline" size={20} color="#FFF" />
         </Pressable>
       )}
+
+      {/* Meeting Detail Popup - shown when user taps a meeting from tool results */}
+      <SchedulePopup
+        visible={selectedMeeting !== null}
+        meeting={selectedMeeting}
+        onClose={handleClosePopup}
+      />
     </Screen>
   )
 })

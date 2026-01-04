@@ -1,10 +1,18 @@
-import { Instance, SnapshotOut, types, flow } from "mobx-state-tree"
 import type { UIMessage } from "ai"
+import { Instance, SnapshotOut, types, flow } from "mobx-state-tree"
 
 import { chatMessageRepo } from "@/db/repositories"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ConversationStore" })
+
+/**
+ * Collapsed tool result state
+ */
+interface CollapsedToolResult {
+  summary: string
+  collapsedAt: number
+}
 
 /**
  * Stored message structure for volatile state
@@ -15,6 +23,8 @@ interface StoredMessage {
   parts: unknown[]
   metadata?: unknown
   createdAt: number
+  /** Collapsed state for tool results in this message, keyed by toolCallId */
+  collapsedToolResults?: Record<string, CollapsedToolResult>
 }
 
 /**
@@ -77,6 +87,19 @@ export const ConversationStoreModel = types
         metadata: msg.metadata as UIMessage["metadata"],
       }))
     },
+
+    /**
+     * Get collapse state for a specific tool call
+     * Searches through messages to find the collapsed state
+     */
+    getCollapseState(toolCallId: string): CollapsedToolResult | null {
+      for (const msg of self.messages) {
+        if (msg.collapsedToolResults?.[toolCallId]) {
+          return msg.collapsedToolResults[toolCallId]
+        }
+      }
+      return null
+    },
   }))
   .actions((self) => ({
     /**
@@ -100,13 +123,38 @@ export const ConversationStoreModel = types
           return
         }
 
-        self.messages = result.value.map((record: { id: string; role: string; parts: unknown[]; metadata?: unknown; createdAt: number }) => ({
-          id: record.id,
-          role: record.role as "user" | "assistant" | "system",
-          parts: record.parts,
-          metadata: record.metadata,
-          createdAt: record.createdAt,
-        }))
+        self.messages = result.value.map(
+          (record: {
+            id: string
+            role: string
+            parts: unknown[]
+            metadata?: unknown
+            createdAt: number
+          }) => {
+            // Extract collapsedToolResults from metadata if present
+            const metadata = record.metadata as Record<string, unknown> | undefined
+            const collapsedToolResults = metadata?.collapsedToolResults as
+              | Record<string, CollapsedToolResult>
+              | undefined
+
+            // Remove collapsedToolResults from metadata to avoid duplication
+            const cleanMetadata =
+              metadata && collapsedToolResults
+                ? Object.fromEntries(
+                    Object.entries(metadata).filter(([k]) => k !== "collapsedToolResults"),
+                  )
+                : metadata
+
+            return {
+              id: record.id,
+              role: record.role as "user" | "assistant" | "system",
+              parts: record.parts,
+              metadata: cleanMetadata,
+              createdAt: record.createdAt,
+              collapsedToolResults,
+            }
+          },
+        )
 
         self.messageCount = self.messages.length
         self._isHydrated = true
@@ -245,7 +293,13 @@ export const ConversationStoreModel = types
               id: msg.id,
               role: msg.role,
               parts: msg.parts,
-              metadata: msg.metadata,
+              // Merge collapsedToolResults into metadata for persistence
+              metadata: msg.collapsedToolResults
+                ? {
+                    ...((msg.metadata as object) || {}),
+                    collapsedToolResults: msg.collapsedToolResults,
+                  }
+                : msg.metadata,
             })),
           )
         }
@@ -258,6 +312,43 @@ export const ConversationStoreModel = types
         self._isSyncing = false
       }
     }),
+
+    /**
+     * Collapse a tool result with a summary
+     * Finds the message containing the tool call and updates its collapsed state
+     */
+    collapseToolResult(toolCallId: string, summary: string) {
+      // Find the message containing this tool result
+      for (const msg of self.messages) {
+        const hasTool = (msg.parts as Array<{ type?: string; toolCallId?: string }>).some(
+          (p) => p.type === "tool-result" && p.toolCallId === toolCallId,
+        )
+
+        if (hasTool) {
+          // Initialize collapsedToolResults if needed
+          if (!msg.collapsedToolResults) {
+            msg.collapsedToolResults = {}
+          }
+
+          // Set collapse state
+          msg.collapsedToolResults[toolCallId] = {
+            summary,
+            collapsedAt: Date.now(),
+          }
+
+          log.debug("Tool result collapsed", { toolCallId, summary: summary.slice(0, 30) })
+
+          // Persist update to SQLite (fire-and-forget via syncToSQLite)
+          // We use syncToSQLite to re-sync the entire message set
+          // This ensures collapsed state is persisted
+          this.syncToSQLite()
+
+          return
+        }
+      }
+
+      log.warn("Could not find message for tool call", { toolCallId })
+    },
   }))
 
 export interface ConversationStore extends Instance<typeof ConversationStoreModel> {}
