@@ -1,6 +1,6 @@
 {
   "name": "recoverysky-app",
-  "version": "3.9.2",
+  "version": "3.9.3",
   "private": true,
   "main": "index.tsx",
   "scripts": {
@@ -47,7 +47,10 @@
     "deploy:ios:sim": "npm run install:ios:sim && npm run launch:ios:sim",
     "install:android": "adb install -r $(ls -t android/app/build/outputs/apk/debug/app-debug.apk build-*.apk 2>/dev/null | head -1)",
     "launch:android": "adb shell am start -n live.meetingmaker.app.prod/.MainActivity",
-    "deploy:android": "npm run install:android && npm run launch:android"
+    "deploy:android": "npm run install:android && npm run launch:android",
+    "patch": "bash scripts/bump-version.sh patch",
+    "minor": "bash scripts/bump-version.sh minor",
+    "major": "bash scripts/bump-version.sh major"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.5",

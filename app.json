@@ -2,7 +2,7 @@
   "name": "recoverysky-app",
   "slug": "recoverysky-app",
   "scheme": "recoverysky-app",
-  "version": "3.9.2",
+  "version": "3.9.3",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
@@ -11,7 +11,9 @@
   },
   "newArchEnabled": true,
   "jsEngine": "hermes",
-  "assetBundlePatterns": ["**/*"],
+  "assetBundlePatterns": [
+    "**/*"
+  ],
   "android": {
     "icon": "./assets/images/app-icon-android-legacy.png",
     "package": "live.meetingmaker.app.prod",
@@ -53,7 +55,9 @@
       "NSPrivacyAccessedAPITypes": [
         {
           "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-          "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          "NSPrivacyAccessedAPITypeReasons": [
+            "CA92.1"
+          ]
         }
       ]
     },
@@ -115,7 +119,9 @@
           "extraMavenRepos": [],
           "extraProguardRules": ""
         },
-        "extraGradleArgs": ["-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"]
+        "extraGradleArgs": [
+          "-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"
+        ]
       }
     ]
   ],
