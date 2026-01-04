@@ -262,9 +262,49 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                         </Text>
                       )
                     }
-                    // Handle tool invocations (in-progress)
-                    if (part.type === "tool-invocation") {
-                      const toolPart = part as { toolName?: string }
+
+                    // Handle tool parts (both static and dynamic)
+                    // Static: type = "tool-{toolName}"
+                    // Dynamic: type = "dynamic-tool" with toolName field
+                    const isStaticTool = part.type.startsWith("tool-")
+                    const isDynamicTool = part.type === "dynamic-tool"
+
+                    if (isStaticTool || isDynamicTool) {
+                      const toolPart = part as unknown as {
+                        type: string
+                        toolCallId: string
+                        toolName?: string
+                        state?: string
+                        input?: unknown
+                        output?: unknown
+                      }
+
+                      // Extract tool name
+                      const toolName = isDynamicTool
+                        ? (toolPart.toolName ?? "tool")
+                        : part.type.replace("tool-", "")
+
+                      // Check if output is available (tool completed)
+                      const hasOutput = toolPart.state === "output-available" && toolPart.output
+
+                      if (hasOutput) {
+                        // Render completed tool results with interactive UI
+                        return (
+                          <ToolResultRenderer
+                            key={`${message.id}-${index}`}
+                            part={{
+                              type: "tool-result",
+                              toolCallId: toolPart.toolCallId,
+                              toolName,
+                              result: toolPart.output,
+                            }}
+                            messageId={message.id}
+                            onSelectMeeting={handleSelectMeeting}
+                          />
+                        )
+                      }
+
+                      // Tool still in progress - show loading badge
                       return (
                         <View key={`${message.id}-${index}`} style={themed($toolCall)}>
                           <Ionicons
@@ -272,31 +312,11 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                             size={14}
                             color={theme.colors.textDim}
                           />
-                          <Text style={themed($toolCallText)}>
-                            Using {toolPart.toolName ?? "tool"}...
-                          </Text>
+                          <Text style={themed($toolCallText)}>Using {toolName}...</Text>
                         </View>
                       )
                     }
 
-                    // Handle tool results (completed) - render with interactive UI
-                    if (part.type === "tool-result") {
-                      // Cast through unknown to handle AI SDK's complex union type
-                      const toolPart = part as unknown as {
-                        type: "tool-result"
-                        toolCallId: string
-                        toolName: string
-                        result: unknown
-                      }
-                      return (
-                        <ToolResultRenderer
-                          key={`${message.id}-${index}`}
-                          part={toolPart}
-                          messageId={message.id}
-                          onSelectMeeting={handleSelectMeeting}
-                        />
-                      )
-                    }
                     return null
                   })}
                 </View>
