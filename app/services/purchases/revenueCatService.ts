@@ -357,8 +357,9 @@ export async function logoutUser(): Promise<Result<CustomerInfo>> {
 export function addCustomerInfoListener(listener: (info: CustomerInfo) => void): () => void {
   // The listener returns an EmitterSubscription with a remove method
   // TypeScript types are incorrect, so we cast through unknown
-  const subscription = Purchases.addCustomerInfoUpdateListener(listener) as unknown as {
-    remove: () => void
-  }
-  return () => subscription.remove()
+  // May return undefined if RevenueCat isn't configured yet
+  const subscription = Purchases.addCustomerInfoUpdateListener(listener) as unknown as
+    | { remove: () => void }
+    | undefined
+  return () => subscription?.remove()
 }

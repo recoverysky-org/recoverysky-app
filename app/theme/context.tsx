@@ -106,10 +106,10 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   /**
    * initialContext is the theme context passed in from the app.tsx file and always takes precedence.
    * themeScheme is the value from MMKV. If undefined, we fall back to the system theme
-   * systemColorScheme is the value from the device. If undefined, we fall back to "light"
+   * systemColorScheme is the value from the device. If undefined, we fall back to "dark"
    */
   const themeContext: ImmutableThemeContextModeT = useMemo(() => {
-    const t = initialContext || themeScheme || (!!systemColorScheme ? systemColorScheme : "light")
+    const t = initialContext || themeScheme || systemColorScheme || "dark"
     return t === "dark" ? "dark" : "light"
   }, [initialContext, themeScheme, systemColorScheme])
 
