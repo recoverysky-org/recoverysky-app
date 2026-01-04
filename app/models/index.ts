@@ -4,6 +4,7 @@ export * from "./RootStore"
 // Individual Stores
 export * from "./AuthenticationStore"
 export * from "./ConfigStore"
+export * from "./ConversationStore"
 export * from "./ProfileStore"
 export * from "./NetworkStore"
 

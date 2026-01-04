@@ -26,12 +26,14 @@ export { getDb, openDb } from "./provider"
 export { DatabaseProvider, useDatabase, useDatabaseReady } from "./DatabaseProvider"
 export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
 export { ProfileHydrator } from "./ProfileHydrator"
+export { ChatHydrator } from "./ChatHydrator"
 export {
   meetingRepo,
   scheduleRepo,
   syncQueueRepo,
   attendanceRepo,
   feedbackRepo,
+  chatMessageRepo,
   profileRepository,
   findAllTrexes,
   findTrexById,
@@ -43,6 +45,8 @@ export {
   type AttendanceEvent, // SDK event interface
   type FeedbackRecord,
   type FeedbackInput,
+  type ChatMessageRecord,
+  type ChatMessageInput,
 } from "./repositories"
 export { feedbackCache } from "./feedbackCache"
 export { attendanceEvents } from "./attendanceEvents"

@@ -38,7 +38,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
-import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator } from "./db"
+import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator, ChatHydrator } from "./db"
 import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
@@ -191,6 +191,7 @@ export function App() {
           <SubscriptionProvider appUserId={revenueCatUserId}>
             <DatabaseProvider>
               <ProfileHydrator />
+              <ChatHydrator />
               <MeetingProvider>
                 <ThemeProvider>
                   <ToastProvider>

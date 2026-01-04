@@ -41,3 +41,7 @@ export function useProfileStore() {
 export function useNetworkStore() {
   return useStores().networkStore
 }
+
+export function useConversationStore() {
+  return useStores().conversationStore
+}

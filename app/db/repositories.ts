@@ -19,11 +19,14 @@ import {
   SyncQueueRepository,
   AttendanceSqliteRepository,
   FeedbackSqliteRepository,
+  ChatMessageSqliteRepository,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
   type FeedbackRecord,
   type FeedbackInput,
+  type ChatMessageRecord,
+  type ChatMessageInput,
 } from "@recoverysky-org/common/sqlite"
 
 import type { SecureProfileData } from "@/models/ProfileStore"
@@ -53,6 +56,7 @@ let _scheduleRepo: ScheduleSqliteRepository | null = null
 let _syncQueueRepo: SyncQueueRepository | null = null
 let _attendanceRepo: AttendanceSqliteRepository | null = null
 let _feedbackRepo: FeedbackSqliteRepository | null = null
+let _chatMessageRepo: ChatMessageSqliteRepository | null = null
 
 /**
  * Meeting repository instance (lazy)
@@ -246,6 +250,68 @@ export const feedbackRepo = {
 
 // Re-export feedback types
 export type { FeedbackRecord, FeedbackInput }
+
+// ============================================================================
+// Chat Message Repository
+// ============================================================================
+
+function getChatMessageRepo(): ChatMessageSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_chatMessageRepo) _chatMessageRepo = new ChatMessageSqliteRepository(db as any)
+  return _chatMessageRepo
+}
+
+/**
+ * Chat message repository instance (lazy)
+ *
+ * Stores AI agent conversation messages for persistence across app restarts.
+ * Messages include tool invocations serialized as JSON for conversation continuity.
+ */
+export const chatMessageRepo = {
+  /** Find all messages ordered by createdAt */
+  findAll: async () => {
+    return getChatMessageRepo().findAll()
+  },
+
+  /** Find message by ID */
+  findById: async (id: string) => {
+    return getChatMessageRepo().findById(id)
+  },
+
+  /** Create a new message */
+  create: async (input: ChatMessageInput) => {
+    return getChatMessageRepo().create(input)
+  },
+
+  /** Create multiple messages (bulk insert) */
+  createMany: async (inputs: ChatMessageInput[]) => {
+    return getChatMessageRepo().createMany(inputs)
+  },
+
+  /** Clear all messages (delete conversation history) */
+  clear: async () => {
+    return getChatMessageRepo().clear()
+  },
+
+  /** Delete messages older than timestamp */
+  deleteOlderThan: async (timestamp: number) => {
+    return getChatMessageRepo().deleteOlderThan(timestamp)
+  },
+
+  /** Delete a specific message */
+  delete: async (id: string) => {
+    return getChatMessageRepo().delete(id)
+  },
+
+  /** Get message count */
+  count: async () => {
+    return getChatMessageRepo().count()
+  },
+}
+
+// Re-export chat message types
+export type { ChatMessageRecord, ChatMessageInput }
 
 // ============================================================================
 // TREX Queries (simple functions, no full repository needed for MVP)

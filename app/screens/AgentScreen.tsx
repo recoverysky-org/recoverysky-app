@@ -1,4 +1,4 @@
-import { FC, useRef, useEffect, useCallback, useState } from "react"
+import { FC, useRef, useEffect, useCallback, useState, useMemo } from "react"
 import {
   View,
   ViewStyle,
@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Pressable,
+  Alert,
 } from "react-native"
 import { useChat } from "@ai-sdk/react"
 import { Ionicons } from "@expo/vector-icons"
@@ -18,7 +19,7 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import { useAuthenticationStore, useConfigStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useConversationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -33,17 +34,25 @@ const log = logger.child({ module: "AgentScreen" })
  * Uses Vercel AI SDK to provide streaming chat with the RecoverySky AI agent.
  * Features:
  * - Streaming responses from Claude
- * - Message history
+ * - Message history persisted to encrypted SQLite
  * - Tool calls (recovery resources, meeting info, literature)
+ * - Conversation survives app restarts
  */
 export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function AgentScreen(_props) {
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
+  const conversationStore = useConversationStore()
   const scrollViewRef = useRef<ScrollView>(null)
 
   // Local state for input (AI SDK v6 manages input internally)
   const [input, setInput] = useState("")
+
+  // Track which message IDs we've already persisted
+  const persistedIdsRef = useRef(new Set<string>())
+
+  // Track previous status to detect streaming completion
+  const prevStatusRef = useRef<string>("")
 
   // Build authorization headers (Bearer token for authenticated, X-API-Key for anonymous)
   const getAuthHeaders = useCallback(() => {
@@ -59,8 +68,23 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     return headers
   }, [authStore.accessToken, configStore.authKey])
 
+  // Initialize useChat with persisted messages from MST store
+  const initialMessages = useMemo(() => {
+    // Only provide initial messages if store is hydrated
+    if (!conversationStore.isHydrated) return undefined
+
+    // Populate persistedIdsRef with already-stored message IDs
+    const storedMessages = conversationStore.uiMessages
+    storedMessages.forEach((msg) => persistedIdsRef.current.add(msg.id))
+
+    log.debug("Initializing with stored messages", { count: storedMessages.length })
+    return storedMessages
+  }, [conversationStore.isHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Initialize chat with Vercel AI SDK
   const { messages, status, error, sendMessage, setMessages } = useChat({
+    // Only set initial messages once hydrated
+    ...(initialMessages ? { messages: initialMessages } : {}),
     transport: new DefaultChatTransport({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: `${configStore.agentUrl}/api/v1/chat`,
@@ -70,6 +94,50 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
       log.error("Chat error", { error: err.message })
     },
   })
+
+  // Effect: Persist new messages when streaming completes
+  useEffect(() => {
+    const prevStatus = prevStatusRef.current
+    prevStatusRef.current = status
+
+    // Only act when transitioning from streaming/submitted to ready
+    const streamingCompleted =
+      (prevStatus === "streaming" || prevStatus === "submitted") && status === "ready"
+
+    if (!streamingCompleted) return
+
+    // Find messages that haven't been persisted yet
+    const newMessages = messages.filter((msg) => !persistedIdsRef.current.has(msg.id))
+
+    if (newMessages.length === 0) return
+
+    log.info("Streaming complete, persisting new messages", {
+      count: newMessages.length,
+      ids: newMessages.map((m) => m.id.slice(0, 8)).join(","),
+    })
+
+    // Mark as persisted immediately to prevent duplicates
+    newMessages.forEach((msg) => persistedIdsRef.current.add(msg.id))
+
+    // Add to store (which persists to SQLite)
+    newMessages.forEach((msg) => {
+      conversationStore.addMessage(msg)
+    })
+  }, [status, messages, conversationStore])
+
+  // Effect: Restore messages to useChat when store hydrates
+  useEffect(() => {
+    if (conversationStore.isHydrated && conversationStore.hasMessages) {
+      const storedMessages = conversationStore.uiMessages
+
+      // Only set if useChat doesn't have messages yet
+      if (messages.length === 0 && storedMessages.length > 0) {
+        log.info("Restoring messages from store", { count: storedMessages.length })
+        storedMessages.forEach((msg) => persistedIdsRef.current.add(msg.id))
+        setMessages(storedMessages)
+      }
+    }
+  }, [conversationStore.isHydrated, conversationStore.hasMessages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -87,9 +155,25 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     sendMessage({ text: message })
   }, [input, setInput, sendMessage])
 
-  const handleClearChat = useCallback(() => {
+  const doClearChat = useCallback(() => {
+    // Clear useChat state
     setMessages([])
-  }, [setMessages])
+    // Clear persisted IDs tracker
+    persistedIdsRef.current.clear()
+    // Clear store (and SQLite)
+    conversationStore.clearHistory()
+  }, [setMessages, conversationStore])
+
+  const handleClearChat = useCallback(() => {
+    Alert.alert(
+      "Clear Conversation",
+      "Are you sure you want to clear the entire conversation? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Clear", style: "destructive", onPress: doClearChat },
+      ],
+    )
+  }, [doClearChat])
 
   const isLoading = status === "streaming" || status === "submitted"
 
@@ -101,11 +185,6 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
           <Ionicons name="help-buoy" size={24} color={theme.colors.tint} />
           <Text preset="heading" tx="agentScreen:title" style={themed($headerTitle)} />
         </View>
-        {messages.length > 0 && (
-          <Pressable onPress={handleClearChat} style={themed($clearButton)}>
-            <Ionicons name="trash-outline" size={20} color={theme.colors.textDim} />
-          </Pressable>
-        )}
       </View>
       <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
 
@@ -233,6 +312,13 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Floating Action Button - Clear Chat */}
+      {messages.length > 0 && !isLoading && (
+        <Pressable onPress={handleClearChat} style={themed($fab)}>
+          <Ionicons name="trash-outline" size={20} color="#FFF" />
+        </Pressable>
+      )}
     </Screen>
   )
 })
@@ -252,10 +338,6 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $headerTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginLeft: spacing.xs,
-})
-
-const $clearButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  padding: spacing.xs,
 })
 
 const $subtitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
@@ -455,4 +537,21 @@ const $sendButtonDisabled: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderColor: colors.border,
   shadowOpacity: 0,
   elevation: 0,
+})
+
+const $fab: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  position: "absolute",
+  top: spacing.lg,
+  right: spacing.md,
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: colors.tint,
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 6,
 })
