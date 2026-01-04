@@ -88,6 +88,15 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     return storedMessages
   }, [conversationStore.isHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Get user's timezone for context-aware responses
+  const timezone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone
+    } catch {
+      return "UTC"
+    }
+  }, [])
+
   // Initialize chat with Vercel AI SDK
   const { messages, status, error, sendMessage, setMessages } = useChat({
     // Only set initial messages once hydrated
@@ -96,6 +105,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: `${configStore.agentUrl}/api/v1/chat`,
       headers: getAuthHeaders(),
+      body: { timezone },
     }),
     onError: (err) => {
       log.error("Chat error", { error: err.message })
