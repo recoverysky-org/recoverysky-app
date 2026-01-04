@@ -21,8 +21,9 @@ import {
   useCallback,
   useRef,
 } from "react"
-import { Alert } from "react-native"
+import { Alert, Platform } from "react-native"
 import * as Crypto from "expo-crypto"
+import * as Device from "expo-device"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 
 import { useToast } from "@/components/Toast"
@@ -47,6 +48,34 @@ const log = logger.child({ module: "ZoomMeetingProvider" })
 
 /** Minimum credit time in milliseconds (1 minute for testing) */
 const MIN_CREDIT_MS = 1 * 60 * 1000
+
+/** Architectures supported by the Zoom SDK */
+const ZOOM_SUPPORTED_ARCHS = ["arm64-v8a", "armeabi-v7a"]
+
+/**
+ * Check if the current device architecture supports the Zoom SDK.
+ * Zoom SDK only ships ARM libraries (no x86_64 for emulators).
+ */
+const isArchitectureSupported = (): boolean => {
+  // iOS always supported
+  if (Platform.OS === "ios") return true
+
+  // Web not supported
+  if (Platform.OS === "web") return false
+
+  // Android: check CPU architecture
+  if (Platform.OS === "android") {
+    const archs = Device.supportedCpuArchitectures || []
+    // Check if any supported arch is available
+    const hasSupported = archs.some((arch) =>
+      ZOOM_SUPPORTED_ARCHS.some((supported) => arch.toLowerCase().includes(supported.toLowerCase())),
+    )
+    log.info("Architecture check", { archs: archs.join(","), hasSupported })
+    return hasSupported
+  }
+
+  return false
+}
 
 /** Current meeting context for attendance tracking */
 interface MeetingContext {
@@ -129,9 +158,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     })
   }
 
-  // Show dialog when meeting is too short for credit
+  // Show dialog when meeting is too short for credit (only if attendance tracking is enabled)
   const showShortMeetingWarning = useCallback(
     (creditMins: number) => {
+      if (!profileStore.attendanceEnabled) return
       if (profileStore.dontShowShortMeetingWarning) return
 
       const minMinutes = Math.ceil(MIN_CREDIT_MS / 60000)
@@ -148,11 +178,14 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
         ],
       )
     },
-    [profileStore],
+    [profileStore.attendanceEnabled, profileStore.dontShowShortMeetingWarning],
   )
 
-  // Process attendance record when meeting ends
+  // Process attendance record when meeting ends (only if attendance tracking is enabled)
   const processAttendance = async () => {
+    // Skip if attendance tracking is disabled
+    if (!profileStore.attendanceEnabled) return
+
     const ctx = meetingContextRef.current
     if (!ctx) return
 
@@ -274,34 +307,37 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
       const now = Date.now()
       const uid = authStore.userId || "anonymous"
 
-      // Create attendance record in SQLite
-      const attendanceId = Crypto.randomUUID()
-      try {
-        const result = await attendanceRepo.create({
-          id: attendanceId,
+      // Only track attendance if user has enabled it
+      if (profileStore.attendanceEnabled) {
+        // Create attendance record in SQLite
+        const attendanceId = Crypto.randomUUID()
+        try {
+          const result = await attendanceRepo.create({
+            id: attendanceId,
+            uid,
+            mid: config.meetingId,
+            zid: zidToJoin,
+            created: now,
+            events: [createEvent("Join initiated", { userName: config.userName })],
+          })
+          if (!result.ok) throw new Error("Failed to create attendance record")
+          log.info("Attendance created", { id: attendanceId })
+          attendanceEvents.emit({ type: "created", id: attendanceId })
+        } catch (err) {
+          log.error("Attendance create failed", { error: String(err) })
+        }
+
+        // Set up meeting context for attendance tracking
+        meetingContextRef.current = {
+          attendanceId,
           uid,
           mid: config.meetingId,
           zid: zidToJoin,
-          created: now,
-          events: [createEvent("Join initiated", { userName: config.userName })],
-        })
-        if (!result.ok) throw new Error("Failed to create attendance record")
-        log.info("Attendance created", { id: attendanceId })
-        attendanceEvents.emit({ type: "created", id: attendanceId })
-      } catch (err) {
-        log.error("Attendance create failed", { error: String(err) })
-      }
-
-      // Set up meeting context for attendance tracking
-      meetingContextRef.current = {
-        attendanceId,
-        uid,
-        mid: config.meetingId,
-        zid: zidToJoin,
-        userName: config.userName,
-        joinedAt: now,
-        inMeetingAt: null,
-        events: [],
+          userName: config.userName,
+          joinedAt: now,
+          inMeetingAt: null,
+          events: [],
+        }
       }
 
       log.info("Joining meeting", { zid: zidToJoin, userName: config.userName })
@@ -340,7 +376,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
         throw err
       }
     },
-    [zoom, authStore.userId],
+    [zoom, authStore.userId, profileStore.attendanceEnabled],
   )
 
   const contextValue: ZoomContextValue = {
@@ -392,7 +428,27 @@ const ZoomFallbackProvider: FC<{
  * </ZoomMeetingProvider>
  * ```
  */
+// Check architecture once at module load time
+const ARCH_SUPPORTED = isArchitectureSupported()
+
 export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  // Early return for unsupported architectures - before any hooks
+  // This prevents ZoomSDKProvider from ever being rendered on unsupported devices
+  if (!ARCH_SUPPORTED) {
+    return (
+      <ZoomFallbackProvider initState="error" error="Zoom SDK not supported on this device architecture">
+        {children}
+      </ZoomFallbackProvider>
+    )
+  }
+
+  return <ZoomMeetingProviderInner>{children}</ZoomMeetingProviderInner>
+}
+
+/**
+ * Inner provider that only renders on supported architectures
+ */
+const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => {
   const configStore = useConfigStore()
   const [jwtToken, setJwtToken] = useState<string | null>(null)
   const [initState, setInitState] = useState<ZoomInitState>("idle")
