@@ -4,6 +4,7 @@
   "private": true,
   "main": "index.tsx",
   "scripts": {
+    "actions": "rm -rf ./.forgejo/actions && git clone --depth 1 https://git.rso/recoverysky-org/forgejo-actions.git ./.forgejo/actions && rm -rf ./.forgejo/actions/.git",
     "postinstall": "patch-package",
     "start": "expo start --dev-client",
     "android": "expo run:android",
