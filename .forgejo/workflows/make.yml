@@ -1,0 +1,121 @@
+name: Build & Push Docker Images to AWS ECR
+
+on:
+  push:
+    branches-ignore:
+      - root
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read
+
+env:
+  ENV: "prod"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  docker-build-and-push:
+    runs-on: hestia
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Upload opt/ to rsync.net
+        run: |
+          set -euxo pipefail
+
+          # Start ssh-agent and load key
+          eval $(ssh-agent -s)
+          echo "${{ secrets.RSYNC_SSH_PRIVATE_KEY }}" | ssh-add -
+          ssh-add -l
+
+          # Setup known_hosts
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan ${{ secrets.RSYNC_HOST }} >> ~/.ssh/known_hosts
+
+          # Rsync upload
+          rsync -avz --times \
+            --exclude='._*' \
+            --exclude='.DS_Store' \
+            --exclude='__MACOSX' \
+            --mkpath \
+            opt/ \
+            ${{ secrets.RSYNC_USER }}@${{ secrets.RSYNC_HOST }}:recoverysky/containers/${{ env.ENV }}/${{ github.event.repository.name }}/
+
+          # Cleanup
+          eval $(ssh-agent -k)
+
+      - name: Check for build relevant file changes
+        id: build_filter
+        uses: ./.forgejo/actions/check-build-changes
+        with:
+          before-ref: ${{ github.event.before }}
+          current-sha: ${{ github.sha }}
+
+      - name: Configure AWS Credentials via OIDC
+        if: steps.build_filter.outputs.build_required == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        if: steps.build_filter.outputs.build_required == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Amazon ECR
+        if: steps.build_filter.outputs.build_required == 'true'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        if: steps.build_filter.outputs.build_required == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.AWS_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.event.repository.name }}
+          tags: |
+            type=raw,value=${{ env.ENV }}
+            type=raw,value=latest
+
+      - name: Build and Push Docker Image
+        if: steps.build_filter.outputs.build_required == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ secrets.AWS_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.event.repository.name }}:cache-${{ github.sha }}
+          cache-to: type=registry,ref=${{ secrets.AWS_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ github.event.repository.name }}:cache-${{ github.sha }},mode=max
+
+      - name: Trigger deployment
+        uses: ./.forgejo/actions/webhook
+        with:
+          webhook_url: https://webhook.rso/webhooks
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          streams: eda
+          type: deploy
+          action: deploy_container
+          instance: athena
+          service: app
+          zone: ${{ env.AWS_REGION }}
+          environment: ${{ env.ENV }}
+
+      - name: Notify build failure
+        if: failure()
+        uses: ./.forgejo/actions/webhook
+        with:
+          webhook_url: https://webhook.rso/webhooks
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          streams: ci
+          type: build
+          action: failure
+          service: app
+          instance: athena
+          environment: ${{ env.ENV }}
