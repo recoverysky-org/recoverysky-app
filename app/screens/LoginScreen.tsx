@@ -115,6 +115,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           </View>
         )}
 
+        {/* TODO: Re-enable when Zitadel auth is ready
         <Pressable
           testID="login-button"
           style={[themed($button), isLoading && themed($buttonDisabled)]}
@@ -126,6 +127,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
           )}
         </Pressable>
+        */}
 
         <Pressable
           testID="anonymous-button"
