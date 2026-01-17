@@ -6,6 +6,38 @@ import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ConversationStore" })
 
+/** Max meetings to store in tool results (reduces context size) */
+const MAX_TOOL_MEETINGS = 10
+
+/**
+ * Truncate meeting arrays in tool result parts to reduce stored data
+ */
+function truncateToolMeetings(parts: unknown[]): unknown[] {
+  return parts.map((part) => {
+    const p = part as Record<string, unknown>
+    // Only process tool results with output
+    if (p.type !== "dynamic-tool" && !String(p.type).startsWith("tool-")) return part
+    if (!p.output || typeof p.output !== "object") return part
+
+    const output = p.output as Record<string, unknown>
+    const meetingsKey = output.meetings ? "meetings" : output.results ? "results" : output.data ? "data" : null
+
+    if (!meetingsKey || !Array.isArray(output[meetingsKey])) return part
+    if (output[meetingsKey].length <= MAX_TOOL_MEETINGS) return part
+
+    // Truncate the meetings array
+    return {
+      ...p,
+      output: {
+        ...output,
+        [meetingsKey]: output[meetingsKey].slice(0, MAX_TOOL_MEETINGS),
+        _truncated: true,
+        _originalCount: output[meetingsKey].length,
+      },
+    }
+  })
+}
+
 /**
  * Collapsed tool result state
  */
@@ -172,10 +204,13 @@ export const ConversationStoreModel = types
      */
     addMessage(message: UIMessage) {
       const now = Date.now()
+      // Truncate meeting arrays in tool results to reduce context size
+      const truncatedParts = truncateToolMeetings(message.parts as unknown[])
+
       const storedMessage: StoredMessage = {
         id: message.id,
         role: message.role,
-        parts: message.parts as unknown[],
+        parts: truncatedParts,
         metadata: message.metadata as unknown,
         createdAt: now,
       }
@@ -189,7 +224,7 @@ export const ConversationStoreModel = types
         .create({
           id: message.id,
           role: message.role,
-          parts: message.parts as unknown[],
+          parts: truncatedParts,
           metadata: message.metadata,
         })
         .then((result) => {

@@ -52,11 +52,14 @@ export const MeetingResultsCard: FC<MeetingResultsCardProps> = ({
   const { themed, theme } = useAppTheme()
   const { t } = useTranslation()
 
-  // Extract meetings from various possible result structures
-  const meetings = useMemo(() => {
+  // Extract meetings from various possible result structures (limit to 10)
+  const MAX_DISPLAY = 10
+  const allMeetings = useMemo(() => {
     if (!result) return []
     return result.meetings ?? result.results ?? result.data ?? []
   }, [result])
+  const meetings = allMeetings.slice(0, MAX_DISPLAY)
+  const hasMore = allMeetings.length > MAX_DISPLAY
 
   // Collapsed view
   if (isCollapsed && collapsedSummary) {
@@ -79,7 +82,9 @@ export const MeetingResultsCard: FC<MeetingResultsCardProps> = ({
       <View style={themed($header)}>
         <Ionicons name="calendar-outline" size={14} color={theme.colors.tint} />
         <Text style={themed($headerText)}>
-          {t("agentScreen:meetingsFound", { count: meetings.length })}
+          {hasMore
+            ? `Showing ${meetings.length} of ${allMeetings.length} meetings`
+            : t("agentScreen:meetingsFound", { count: allMeetings.length })}
         </Text>
       </View>
 

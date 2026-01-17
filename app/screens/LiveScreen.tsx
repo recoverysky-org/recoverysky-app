@@ -214,7 +214,10 @@ export const LiveContent: FC = observer(function LiveContent() {
                   profileStore.fellowship === f.value && themed($modalOptionSelected),
                 ]}
                 onPress={() => {
-                  log.info("Fellowship filter changed", { from: profileStore.fellowship, to: f.value })
+                  log.info("Fellowship filter changed", {
+                    from: profileStore.fellowship,
+                    to: f.value,
+                  })
                   profileStore.setFellowship(f.value)
                   setFellowshipModalVisible(false)
                 }}

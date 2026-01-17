@@ -259,7 +259,11 @@ export class SyncService {
         log.debug("Queued sync operation", { id: result.value, tableName, operation })
         return { ok: true, id: result.value }
       } else {
-        log.warn("Failed to queue sync operation", { tableName, operation, error: result.error.message })
+        log.warn("Failed to queue sync operation", {
+          tableName,
+          operation,
+          error: result.error.message,
+        })
         return { ok: false, error: new Error(result.error.message) }
       }
     } catch (error) {

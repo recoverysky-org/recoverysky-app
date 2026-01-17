@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
+  TextInput,
 } from "react-native"
 import { useChat } from "@ai-sdk/react"
 import { Ionicons } from "@expo/vector-icons"
@@ -22,7 +23,12 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { useAuthenticationStore, useConfigStore, useConversationStore } from "@/models"
+import {
+  useAuthenticationStore,
+  useConfigStore,
+  useConversationStore,
+  useProfileStore,
+} from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -46,7 +52,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
   const conversationStore = useConversationStore()
+  const profileStore = useProfileStore()
   const scrollViewRef = useRef<ScrollView>(null)
+  const inputRef = useRef<TextInput>(null)
 
   // Local state for input (AI SDK v6 manages input internally)
   const [input, setInput] = useState("")
@@ -54,6 +62,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   // State for meeting popup (shown when user taps a meeting from tool results)
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
   const [activeToolCallId, setActiveToolCallId] = useState<string | null>(null)
+
+  // State for FAB menu
+  const [fabMenuOpen, setFabMenuOpen] = useState(false)
 
   // Track which message IDs we've already persisted
   const persistedIdsRef = useRef(new Set<string>())
@@ -105,7 +116,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: `${configStore.agentUrl}/api/v1/chat`,
       headers: getAuthHeaders(),
-      body: { timezone },
+      body: { timezone, fellowship: profileStore.fellowship },
     }),
     onError: (err) => {
       log.error("Chat error", { error: err.message })
@@ -140,6 +151,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     newMessages.forEach((msg) => {
       conversationStore.addMessage(msg)
     })
+
+    // Refocus input after response completes
+    setTimeout(() => inputRef.current?.focus(), 100)
   }, [status, messages, conversationStore])
 
   // Effect: Restore messages to useChat when store hydrates
@@ -209,8 +223,41 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
   const isLoading = status === "streaming" || status === "submitted"
 
+  // Extract debug metadata from last assistant message
+  const debugMetadata = useMemo(() => {
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
+    if (!lastAssistant?.metadata) return null
+
+    const meta = lastAssistant.metadata as {
+      crisisLevel?: number
+      tokensUsed?: { input: number; output: number; total: number }
+      emergency?: boolean
+    }
+
+    if (!meta.tokensUsed) return null
+    return meta
+  }, [messages])
+
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+      {/* Debug Overlay */}
+      {debugMetadata && (
+        <View style={themed($debugOverlay)}>
+          {debugMetadata.emergency && (
+            <Ionicons name="warning" size={14} color="#ef4444" style={{ marginRight: 4 }} />
+          )}
+          <Text style={themed($debugText)}>L{debugMetadata.crisisLevel ?? 0}</Text>
+          <Text style={themed($debugSeparator)}>|</Text>
+          <Text style={themed($debugText)}>
+            ctx: {(debugMetadata.tokensUsed?.input ?? 0).toLocaleString()}
+          </Text>
+          <Text style={themed($debugSeparator)}>|</Text>
+          <Text style={themed($debugText)}>
+            out: {(debugMetadata.tokensUsed?.output ?? 0).toLocaleString()}
+          </Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={themed($header)}>
         <View style={$styles.row}>
@@ -354,6 +401,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
         {/* Input Area */}
         <View style={themed($inputContainer)}>
           <TextField
+            ref={inputRef}
             value={input}
             onChangeText={setInput}
             placeholderTx="agentScreen:inputPlaceholder"
@@ -386,11 +434,36 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
         </View>
       </KeyboardAvoidingView>
 
-      {/* Floating Action Button - Clear Chat */}
+      {/* Floating Action Menu */}
       {messages.length > 0 && !isLoading && (
-        <Pressable onPress={handleClearChat} style={themed($fab)}>
-          <Ionicons name="trash-outline" size={20} color="#FFF" />
-        </Pressable>
+        <View style={themed($fabContainer)}>
+          {/* Menu Items (shown when open) */}
+          {fabMenuOpen && (
+            <View style={themed($fabMenu)}>
+              <Pressable
+                onPress={() => {
+                  setFabMenuOpen(false)
+                  handleClearChat()
+                }}
+                style={themed($fabMenuItem)}
+              >
+                <Ionicons name="trash-outline" size={18} color="#FFF" />
+              </Pressable>
+            </View>
+          )}
+
+          {/* FAB Toggle */}
+          <Pressable
+            onPress={() => setFabMenuOpen(!fabMenuOpen)}
+            style={[themed($fab), fabMenuOpen && themed($fabOpen)]}
+          >
+            <Ionicons
+              name={fabMenuOpen ? "close" : "ellipsis-vertical"}
+              size={20}
+              color="#FFF"
+            />
+          </Pressable>
+        </View>
       )}
 
       {/* Meeting Detail Popup - shown when user taps a meeting from tool results */}
@@ -414,6 +487,33 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "space-between",
   marginTop: spacing.sm,
+})
+
+const $debugOverlay: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  position: "absolute",
+  top: spacing.xs,
+  right: spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: colors.background + "E6",
+  paddingHorizontal: spacing.xs,
+  paddingVertical: 2,
+  borderRadius: 4,
+  borderWidth: 1,
+  borderColor: colors.border,
+  zIndex: 100,
+})
+
+const $debugText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 10,
+  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  color: colors.textDim,
+})
+
+const $debugSeparator: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 10,
+  color: colors.border,
+  marginHorizontal: 4,
 })
 
 const $headerTitle: ThemedStyle<TextStyle> = ({ spacing }) => ({
@@ -619,10 +719,32 @@ const $sendButtonDisabled: ThemedStyle<ViewStyle> = ({ colors }) => ({
   elevation: 0,
 })
 
-const $fab: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $fabContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   position: "absolute",
   top: spacing.lg,
   right: spacing.md,
+  alignItems: "center",
+})
+
+const $fabMenu: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginBottom: spacing.xs,
+})
+
+const $fabMenuItem: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  backgroundColor: colors.error,
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 6,
+})
+
+const $fab: ThemedStyle<ViewStyle> = ({ colors }) => ({
   width: 44,
   height: 44,
   borderRadius: 22,
@@ -634,4 +756,8 @@ const $fab: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   shadowOpacity: 0.25,
   shadowRadius: 4,
   elevation: 6,
+})
+
+const $fabOpen: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.textDim,
 })

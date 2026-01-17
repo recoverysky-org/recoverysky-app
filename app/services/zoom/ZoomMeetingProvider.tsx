@@ -68,7 +68,9 @@ const isArchitectureSupported = (): boolean => {
     const archs = Device.supportedCpuArchitectures || []
     // Check if any supported arch is available
     const hasSupported = archs.some((arch) =>
-      ZOOM_SUPPORTED_ARCHS.some((supported) => arch.toLowerCase().includes(supported.toLowerCase())),
+      ZOOM_SUPPORTED_ARCHS.some((supported) =>
+        arch.toLowerCase().includes(supported.toLowerCase()),
+      ),
     )
     log.info("Architecture check", { archs: archs.join(","), hasSupported })
     return hasSupported
@@ -436,7 +438,10 @@ export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) =
   // This prevents ZoomSDKProvider from ever being rendered on unsupported devices
   if (!ARCH_SUPPORTED) {
     return (
-      <ZoomFallbackProvider initState="error" error="Zoom SDK not supported on this device architecture">
+      <ZoomFallbackProvider
+        initState="error"
+        error="Zoom SDK not supported on this device architecture"
+      >
         {children}
       </ZoomFallbackProvider>
     )
