@@ -33,6 +33,7 @@ import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/model
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"
+import { checkMediaPermissions, requestMediaPermissions } from "./permissions"
 import { getZoomConfig, isZoomConfigured } from "./zoomConfig"
 import {
   useZoomEvents,
@@ -107,6 +108,8 @@ export interface ZoomContextValue {
   meetingState: ZoomMeetingStateName
   /** Last meeting error from native SDK */
   lastMeetingError: ZoomMeetingErrorEvent | null
+  /** Reinitialize the SDK (used after permission changes) */
+  reinitializeSDK: () => void
 }
 
 const ZoomContext = createContext<ZoomContextValue | null>(null)
@@ -126,7 +129,10 @@ export const useZoomContext = (): ZoomContextValue => {
 /**
  * Inner component that consumes the Zoom SDK hook
  */
-const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
+const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> = ({
+  children,
+  reinitializeSDK,
+}) => {
   const zoom = useZoom()
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
@@ -303,6 +309,37 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig) => {
+      // Check and request media permissions BEFORE joining
+      // This prevents the black screen issue when permissions are granted after SDK init
+      const perms = await checkMediaPermissions()
+      log.debug("Pre-join permission check", {
+        camera: perms.camera,
+        audio: perms.audio,
+        anyUndetermined: perms.anyUndetermined,
+      })
+
+      if (perms.anyUndetermined) {
+        log.info("Requesting media permissions before join")
+        const result = await requestMediaPermissions()
+
+        if (result.justGranted) {
+          // Permissions were just granted - SDK needs to reinitialize
+          // to pick up the newly available devices
+          log.info("Permissions just granted - reinitializing SDK")
+          reinitializeSDK()
+          // Wait for SDK to reinitialize
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+
+        if (!result.camera.granted || !result.audio.granted) {
+          log.warn("Media permissions denied", {
+            camera: result.camera.granted,
+            audio: result.audio.granted,
+          })
+          // Continue anyway - user can still join audio-only or with limited features
+        }
+      }
+
       // Check for override meeting ID (for testing)
       const overrideZid = process.env.EXPO_PUBLIC_JOIN_MEETING_ZID
       const zidToJoin = overrideZid || config.meetingNumber
@@ -378,7 +415,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
         throw err
       }
     },
-    [zoom, authStore.userId, profileStore.attendanceEnabled],
+    [zoom, authStore.userId, profileStore.attendanceEnabled, reinitializeSDK],
   )
 
   const contextValue: ZoomContextValue = {
@@ -388,6 +425,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode }> = ({ children }) => {
     joinMeeting,
     meetingState,
     lastMeetingError,
+    reinitializeSDK,
   }
 
   return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
@@ -405,6 +443,10 @@ const ZoomFallbackProvider: FC<{
     throw new Error("Zoom SDK not initialized - use external app fallback")
   }, [])
 
+  const reinitializeSDK = useCallback(() => {
+    // No-op in fallback mode
+  }, [])
+
   const contextValue: ZoomContextValue = {
     initState,
     error,
@@ -412,6 +454,7 @@ const ZoomFallbackProvider: FC<{
     joinMeeting,
     meetingState: "idle",
     lastMeetingError: null,
+    reinitializeSDK,
   }
 
   return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
@@ -458,8 +501,17 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
   const [jwtToken, setJwtToken] = useState<string | null>(null)
   const [initState, setInitState] = useState<ZoomInitState>("idle")
   const [error, setError] = useState<string | null>(null)
+  // SDK version key - incrementing this forces ZoomSDKProvider to remount
+  // Used to reinitialize SDK after permissions are granted
+  const [sdkVersion, setSdkVersion] = useState(0)
 
   const { zoomSdkKey, zoomSdkSecret } = configStore
+
+  // Callback to reinitialize SDK (e.g., after permissions granted)
+  const reinitializeSDK = useCallback(() => {
+    log.info("Reinitializing SDK", { previousVersion: sdkVersion })
+    setSdkVersion((v) => v + 1)
+  }, [sdkVersion])
 
   useEffect(() => {
     // Check if SDK is configured
@@ -508,6 +560,7 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <ZoomSDKProvider
+      key={sdkVersion}
       config={{
         jwtToken,
         domain: config.domain,
@@ -515,7 +568,7 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
         logSize: config.logSize,
       }}
     >
-      <ZoomSDKConsumer>{children}</ZoomSDKConsumer>
+      <ZoomSDKConsumer reinitializeSDK={reinitializeSDK}>{children}</ZoomSDKConsumer>
     </ZoomSDKProvider>
   )
 }
