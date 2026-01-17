@@ -457,11 +457,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
             onPress={() => setFabMenuOpen(!fabMenuOpen)}
             style={[themed($fab), fabMenuOpen && themed($fabOpen)]}
           >
-            <Ionicons
-              name={fabMenuOpen ? "close" : "ellipsis-vertical"}
-              size={20}
-              color="#FFF"
-            />
+            <Ionicons name={fabMenuOpen ? "close" : "ellipsis-vertical"} size={20} color="#FFF" />
           </Pressable>
         </View>
       )}

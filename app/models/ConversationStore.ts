@@ -20,7 +20,13 @@ function truncateToolMeetings(parts: unknown[]): unknown[] {
     if (!p.output || typeof p.output !== "object") return part
 
     const output = p.output as Record<string, unknown>
-    const meetingsKey = output.meetings ? "meetings" : output.results ? "results" : output.data ? "data" : null
+    const meetingsKey = output.meetings
+      ? "meetings"
+      : output.results
+        ? "results"
+        : output.data
+          ? "data"
+          : null
 
     if (!meetingsKey || !Array.isArray(output[meetingsKey])) return part
     if (output[meetingsKey].length <= MAX_TOOL_MEETINGS) return part
