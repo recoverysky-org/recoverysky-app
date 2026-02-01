@@ -96,12 +96,19 @@ export function useZoomAuth(): UseZoomAuthResult {
    */
   const handleDeepLink = useCallback(
     async (url: string) => {
+      log.info("handleDeepLink called", {
+        url,
+        expectedPrefix: ZOOM_OAUTH_CONFIG.appRedirectUri,
+        isMatch: url.startsWith(ZOOM_OAUTH_CONFIG.appRedirectUri),
+      })
+
       // Check if this is our Zoom OAuth callback
       if (!url.startsWith(ZOOM_OAUTH_CONFIG.appRedirectUri)) {
+        log.info("Not a Zoom OAuth callback, ignoring")
         return
       }
 
-      log.info("Received Zoom OAuth callback")
+      log.info("Processing Zoom OAuth callback")
       setIsLoading(true)
 
       try {
@@ -203,17 +210,26 @@ export function useZoomAuth(): UseZoomAuthResult {
 
   // Listen for deep links
   useEffect(() => {
+    log.info("Setting up deep link listener", {
+      expectedRedirectUri: ZOOM_OAUTH_CONFIG.appRedirectUri,
+    })
+
     // Check for initial URL (app was opened via deep link)
     Linking.getInitialURL().then((url) => {
+      log.info("Initial URL check", { url: url || "none" })
       if (url) handleDeepLink(url)
     })
 
     // Listen for deep links while app is running
     const subscription = Linking.addEventListener("url", (event) => {
+      log.info("Deep link received", { url: event.url })
       handleDeepLink(event.url)
     })
 
-    return () => subscription.remove()
+    return () => {
+      log.info("Removing deep link listener")
+      subscription.remove()
+    }
   }, [handleDeepLink])
 
   /**
@@ -244,7 +260,10 @@ export function useZoomAuth(): UseZoomAuthResult {
       // Build OAuth start URL
       const authUrl = buildOAuthStartUrl(encodedState)
 
-      log.info("Opening Zoom OAuth flow")
+      log.info("Opening Zoom OAuth flow", {
+        authUrl,
+        redirectUri: ZOOM_OAUTH_CONFIG.appRedirectUri,
+      })
 
       // Open browser for OAuth
       const result = await WebBrowser.openAuthSessionAsync(
@@ -252,13 +271,22 @@ export function useZoomAuth(): UseZoomAuthResult {
         ZOOM_OAUTH_CONFIG.appRedirectUri,
       )
 
+      log.info("WebBrowser.openAuthSessionAsync returned", {
+        type: result.type,
+        url: "url" in result ? result.url : undefined,
+      })
+
       if (result.type === "cancel") {
         log.info("OAuth cancelled by user")
         await SecureStorage.deleteItemAsync(ZOOM_NONCE_KEY)
       } else if (result.type === "dismiss") {
         log.info("OAuth dismissed")
+      } else if (result.type === "success" && "url" in result) {
+        // WebBrowser may return the URL directly on some platforms
+        log.info("OAuth success with URL from WebBrowser", { url: result.url })
+        handleDeepLink(result.url)
       }
-      // Success case is handled by deep link listener
+      // Success case may also be handled by deep link listener
     } catch (err) {
       log.error("Error starting OAuth flow", { error: String(err) })
       setError("Failed to start Zoom login")
@@ -266,7 +294,7 @@ export function useZoomAuth(): UseZoomAuthResult {
     } finally {
       setIsLoading(false)
     }
-  }, [authStore.deviceId])
+  }, [authStore.deviceId, handleDeepLink])
 
   /**
    * Disconnect Zoom account

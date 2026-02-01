@@ -1,4 +1,4 @@
-import { FC, useState } from "react"
+import { FC, useState, useCallback } from "react"
 import {
   View,
   ViewStyle,
@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import { useFocusEffect } from "@react-navigation/native"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
@@ -59,7 +60,14 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 }) {
   const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
   const { logout } = useZitadelAuth()
-  const { isConnected: zoomConnected, zoomAuth, disconnect: disconnectZoom } = useZoomAuth()
+  const { isConnected: zoomConnected, zoomAuth, disconnect: disconnectZoom, reload: reloadZoomAuth } = useZoomAuth()
+
+  // Reload zoom auth when screen comes into focus (after returning from ZoomLoginScreen)
+  useFocusEffect(
+    useCallback(() => {
+      reloadZoomAuth()
+    }, [reloadZoomAuth]),
+  )
 
   // MST Stores - reactive!
   const profileStore = useProfileStore()
