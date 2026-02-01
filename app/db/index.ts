@@ -35,6 +35,7 @@ export {
   feedbackRepo,
   chatMessageRepo,
   profileRepository,
+  zoomAuthRepo,
   findAllTrexes,
   findTrexById,
   findTrexesByIds,
@@ -47,6 +48,9 @@ export {
   type FeedbackInput,
   type ChatMessageRecord,
   type ChatMessageInput,
+  type ZoomAuthRecord,
+  type ZoomAuthCreateInput,
+  type ZoomAuthUpdateInput,
 } from "./repositories"
 export { feedbackCache } from "./feedbackCache"
 export { attendanceEvents } from "./attendanceEvents"

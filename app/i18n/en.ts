@@ -46,6 +46,16 @@ const en = {
     euaAgree: "I Agree",
     euaCancel: "Cancel",
   },
+  zoomLoginScreen: {
+    title: "Connect Zoom",
+    subtitle: "Sign in with your Zoom account to join meetings with your identity.",
+    connectWithZoom: "Connect with Zoom",
+    continueAnonymously: "Continue Anonymously",
+    openingBrowser: "Opening Zoom login...",
+    or: "or",
+    infoText:
+      "Connecting your Zoom account lets you join meetings with your display name and profile picture. Your credentials are stored securely on your device.",
+  },
   // Main Navigation
   mainNavigator: {
     homeTab: "Home",
@@ -200,6 +210,13 @@ const en = {
     restoreSuccessMessage: "Your subscription has been restored successfully.",
     restoreNoSubscription: "No Subscription Found",
     restoreNoSubscriptionMessage: "We couldn't find any previous purchases to restore.",
+    // Zoom Account Section
+    zoomAccountSection: "Zoom Account",
+    connectZoom: "Connect Zoom Account",
+    zoomConnected: "Connected as",
+    zoomDisconnect: "Disconnect Zoom",
+    zoomDisconnectConfirm: "Are you sure you want to disconnect your Zoom account?",
+    zoomDisconnectSuccess: "Zoom account disconnected",
     // Account Section
     accountSection: "Account",
     userId: "User ID",

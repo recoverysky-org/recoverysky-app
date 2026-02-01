@@ -27,7 +27,7 @@ import * as Device from "expo-device"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 
 import { useToast } from "@/components/Toast"
-import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
+import { attendanceRepo, attendanceEvents, zoomAuthRepo, type AttendanceEvent } from "@/db"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
@@ -385,10 +385,41 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       try {
         await generateZoomJwt(zidToJoin, 0, configStore.zoomSdkKey, configStore.zoomSdkSecret)
 
+        // Check for ZAK token (authenticated Zoom user)
+        let zakToken: string | undefined = config.zak
+        if (!zakToken && authStore.deviceId) {
+          // Try to get ZAK from stored Zoom auth
+          const zoomAuthResult = await zoomAuthRepo.findById(authStore.deviceId)
+          if (zoomAuthResult.ok && zoomAuthResult.value) {
+            const auth = zoomAuthResult.value
+            // Check if token is expired
+            if (!zoomAuthRepo.isExpired(auth)) {
+              // Fetch ZAK from Zoom API
+              try {
+                const zakResponse = await fetch("https://api.zoom.us/v2/users/me/zak", {
+                  headers: { Authorization: `Bearer ${auth.accessToken}` },
+                })
+                if (zakResponse.ok) {
+                  const zakData = await zakResponse.json()
+                  zakToken = zakData.token
+                  log.info("Using ZAK for authenticated join", { zoomEmail: auth.zoomEmail })
+                } else {
+                  log.warn("ZAK fetch failed, joining anonymously", { status: zakResponse.status })
+                }
+              } catch (zakErr) {
+                log.warn("ZAK fetch error, joining anonymously", { error: String(zakErr) })
+              }
+            } else {
+              log.info("Zoom token expired, joining anonymously")
+            }
+          }
+        }
+
         const statusCode = await zoom.joinMeeting({
           meetingNumber: zidToJoin,
           userName: config.userName,
           password: config.password || "",
+          zoomAccessToken: zakToken,
         })
 
         log.info("Join sent", { statusCode: statusCode ?? 0 })

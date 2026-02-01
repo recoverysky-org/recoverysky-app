@@ -14,6 +14,7 @@ import { useAuthenticationStore, useProfileStore } from "@/models"
 import { AttendanceReportsScreen } from "@/screens/AttendanceReportsScreen"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
+import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
@@ -85,6 +86,14 @@ const AppStack = observer(function AppStack() {
                 headerTintColor: colors.tint,
                 headerStyle: { backgroundColor: colors.background },
                 headerTitleStyle: { color: colors.text },
+              }}
+            />
+            <Stack.Screen
+              name="ZoomLogin"
+              component={ZoomLoginScreen}
+              options={{
+                presentation: "modal",
+                headerShown: false,
               }}
             />
           </>

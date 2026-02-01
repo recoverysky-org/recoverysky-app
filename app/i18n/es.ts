@@ -47,6 +47,16 @@ const es: Translations = {
     euaAgree: "Acepto",
     euaCancel: "Cancelar",
   },
+  zoomLoginScreen: {
+    title: "Conectar Zoom",
+    subtitle: "Inicia sesión con tu cuenta de Zoom para unirte a reuniones con tu identidad.",
+    connectWithZoom: "Conectar con Zoom",
+    continueAnonymously: "Continuar Anónimamente",
+    openingBrowser: "Abriendo inicio de sesión de Zoom...",
+    or: "o",
+    infoText:
+      "Conectar tu cuenta de Zoom te permite unirte a reuniones con tu nombre e imagen de perfil. Tus credenciales se almacenan de forma segura en tu dispositivo.",
+  },
   mainNavigator: {
     homeTab: "Inicio",
     liveTab: "En vivo",
@@ -200,6 +210,13 @@ const es: Translations = {
     restoreSuccessMessage: "Tu suscripción ha sido restaurada exitosamente.",
     restoreNoSubscription: "No se Encontró Suscripción",
     restoreNoSubscriptionMessage: "No pudimos encontrar compras anteriores para restaurar.",
+    // Zoom Account Section
+    zoomAccountSection: "Cuenta de Zoom",
+    connectZoom: "Conectar Cuenta de Zoom",
+    zoomConnected: "Conectado como",
+    zoomDisconnect: "Desconectar Zoom",
+    zoomDisconnectConfirm: "¿Estás seguro de que deseas desconectar tu cuenta de Zoom?",
+    zoomDisconnectSuccess: "Cuenta de Zoom desconectada",
     // Account Section
     accountSection: "Cuenta",
     userId: "ID de Usuario",

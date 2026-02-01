@@ -37,6 +37,7 @@ export type OnboardingParamList = {
 export type AppStackParamList = {
   Welcome: undefined
   Login: undefined
+  ZoomLogin: undefined
   Onboarding: NavigatorScreenParams<OnboardingParamList>
   Main: NavigatorScreenParams<MainTabParamList>
   AttendanceReports: undefined

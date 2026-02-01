@@ -14,6 +14,8 @@ export interface ZoomJoinConfig {
   userName: string
   /** Meeting password (if required) */
   password?: string
+  /** ZAK token for authenticated join (optional - joins anonymously if not provided) */
+  zak?: string
 }
 
 /**
