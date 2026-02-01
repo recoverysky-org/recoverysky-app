@@ -13,15 +13,24 @@
  * 6. Server redirects to app with tokens via deep link
  */
 
+import * as Crypto from "expo-crypto"
+
 /**
- * Zoom OAuth configuration
+ * Zoom OAuth configuration (from environment variables)
+ * Note: Expo requires EXPO_PUBLIC_ prefix for runtime access
  */
 export const ZOOM_OAUTH_CONFIG = {
-  /** RecoverySky API server for OAuth endpoints */
-  apiServer: "https://api.recoverysky.app",
+  /** Zoom OAuth client ID (public - safe to embed in app) */
+  clientId: process.env.EXPO_PUBLIC_ZOOM_CLIENT_ID ?? "",
+
+  /** Zoom authorize endpoint */
+  authorizeUrl: process.env.EXPO_PUBLIC_ZOOM_AUTHORIZE_URL ?? "https://zoom.us/oauth/authorize",
+
+  /** Server callback URL (where Zoom sends the auth code) */
+  serverCallbackUrl: process.env.EXPO_PUBLIC_ZOOM_SERVER_CALLBACK_URL ?? "",
 
   /** Deep link for receiving tokens after server-side exchange */
-  appRedirectUri: "recoverysky-app://oauth/zoom/success",
+  appRedirectUri: process.env.EXPO_PUBLIC_ZOOM_APP_REDIRECT_URI ?? "recoverysky-app://oauth/zoom/success",
 
   /** OAuth scopes needed for ZAK token retrieval */
   scopes: ["user:read:zak"],
@@ -32,14 +41,11 @@ export const ZOOM_OAUTH_CONFIG = {
  * These endpoints handle the OAuth flow server-side (where client_secret lives)
  */
 export const ZOOM_ENDPOINTS = {
-  /** Start OAuth flow - redirects to Zoom authorize */
-  oauthStart: `${ZOOM_OAUTH_CONFIG.apiServer}/oauth/zoom/start`,
-
-  /** Token refresh endpoint (optional - can call Zoom directly) */
-  tokenRefresh: `${ZOOM_OAUTH_CONFIG.apiServer}/oauth/zoom/refresh`,
+  /** Token refresh endpoint */
+  tokenRefresh: "https://api.recoverysky.app/oauth/zoom/refresh",
 
   /** ZAK retrieval endpoint (optional - can call Zoom directly) */
-  zakRetrieval: `${ZOOM_OAUTH_CONFIG.apiServer}/zak/me`,
+  zakRetrieval: "https://api.recoverysky.app/zak/me",
 }
 
 /**
@@ -121,11 +127,20 @@ export interface ZoomOAuthCallbackParams {
 export const ZOOM_NONCE_KEY = "zoom_oauth_nonce"
 
 /**
- * Build OAuth start URL with state parameter
+ * Build Zoom OAuth authorize URL
+ *
+ * Goes directly to Zoom's authorize endpoint. The redirect_uri points to
+ * our server's callback, which handles the code→token exchange (where
+ * client_secret is needed) and then redirects to the app with tokens.
  */
 export function buildOAuthStartUrl(state: string): string {
-  const params = new URLSearchParams({ state })
-  return `${ZOOM_ENDPOINTS.oauthStart}?${params.toString()}`
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: ZOOM_OAUTH_CONFIG.clientId,
+    redirect_uri: ZOOM_OAUTH_CONFIG.serverCallbackUrl,
+    state,
+  })
+  return `${ZOOM_OAUTH_CONFIG.authorizeUrl}?${params.toString()}`
 }
 
 /**
@@ -151,7 +166,7 @@ export function decodeOAuthState(encoded: string): ZoomOAuthState | null {
  */
 export function generateNonce(): string {
   const array = new Uint8Array(32)
-  crypto.getRandomValues(array)
+  Crypto.getRandomValues(array)
   return Array.from(array)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")

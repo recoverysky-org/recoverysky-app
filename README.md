@@ -79,12 +79,14 @@ Guided setup flow that respects your privacy choices. Navigate with tappable pro
 
 ### Installation
 
+> **Note**: This project uses **npm** (not pnpm or yarn). Using other package managers may cause dependency resolution issues with native modules.
+
 ```bash
 # Clone the repository
 git clone https://github.com/recoverysky-org/recoverysky-app.git
 cd recoverysky-app
 
-# Install dependencies
+# Install dependencies (use npm, not pnpm/yarn)
 npm install
 ```
 
