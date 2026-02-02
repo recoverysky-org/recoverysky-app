@@ -32,8 +32,8 @@ import {
   type ZoomOAuthState,
   type ZoomOAuthCallbackParams,
   type ZoomUserInfo,
-  type ZoomZakResponse,
 } from "./zoomOAuth"
+import { getZakToken as fetchZakToken } from "../zak"
 
 const log = logger.child({ module: "useZoomAuth" })
 
@@ -323,115 +323,29 @@ export function useZoomAuth(): UseZoomAuthResult {
 
   /**
    * Refresh access token
+   * @deprecated Token refresh is now handled server-side by /zak/me endpoint.
+   * This function is kept for interface compatibility but always returns false.
    */
   const refresh = useCallback(async (): Promise<boolean> => {
-    if (!zoomAuth) {
-      log.warn("No zoom auth to refresh")
-      return false
-    }
-
-    try {
-      log.info("Refreshing Zoom access token")
-
-      // Call Zoom's token endpoint directly (or use server proxy)
-      const response = await fetch(ZOOM_API.tokenRefresh, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          grant_type: "refresh_token",
-          refresh_token: zoomAuth.refreshToken,
-        }).toString(),
-      })
-
-      if (!response.ok) {
-        log.error("Token refresh failed", { status: response.status })
-        return false
-      }
-
-      const data = await response.json()
-      const expiresAt = Date.now() + (data.expires_in || 3600) * 1000
-
-      // Update stored tokens
-      if (!authStore.deviceId) return false
-      const updateResult = await zoomAuthRepo.update(authStore.deviceId, {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token || zoomAuth.refreshToken,
-        expiresAt,
-      })
-
-      if (updateResult.ok) {
-        // Reload to get updated record
-        await loadZoomAuth()
-        log.info("Token refresh successful")
-        return true
-      }
-
-      return false
-    } catch (err) {
-      log.error("Token refresh error", { error: String(err) })
-      return false
-    }
-  }, [zoomAuth, authStore.deviceId, loadZoomAuth])
+    log.warn("refresh() is deprecated - token refresh is handled by /zak/me")
+    return false
+  }, [])
 
   /**
-   * Get ZAK token for meeting join
+   * Get ZAK token for meeting join via /zak/me endpoint.
+   * Uses the standalone zak service which handles both authenticated and anonymous flows.
+   * When zoomAuth is null, the service account is used (anonymous flow).
    */
   const getZakToken = useCallback(async (): Promise<string | null> => {
-    if (!zoomAuth) {
-      log.debug("No zoom auth, cannot get ZAK")
-      return null
-    }
+    const result = await fetchZakToken(zoomAuth, authStore.deviceId ?? undefined)
 
-    // Check if token is expired
-    if (zoomAuthRepo.isExpired(zoomAuth)) {
-      log.info("Access token expired, refreshing")
-      const refreshed = await refresh()
-      if (!refreshed) {
-        log.error("Token refresh failed, cannot get ZAK")
-        return null
-      }
-      // Reload auth after refresh
+    // Reload local state if tokens may have been refreshed
+    if (result && zoomAuth) {
       await loadZoomAuth()
     }
 
-    try {
-      // Get current auth (may have been refreshed)
-      if (!authStore.deviceId) return null
-      const currentResult = await zoomAuthRepo.findById(authStore.deviceId)
-      if (!currentResult.ok || !currentResult.value) {
-        log.error("Failed to get current auth for ZAK request")
-        return null
-      }
-
-      const response = await fetch(ZOOM_API.zak, {
-        headers: {
-          Authorization: `Bearer ${currentResult.value.accessToken}`,
-        },
-      })
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          log.warn("ZAK request unauthorized, token may be invalid")
-          // Try one refresh
-          const refreshed = await refresh()
-          if (refreshed) {
-            return getZakToken() // Retry once
-          }
-        }
-        log.error("ZAK request failed", { status: response.status })
-        return null
-      }
-
-      const data: ZoomZakResponse = await response.json()
-      log.info("ZAK token retrieved")
-      return data.token
-    } catch (err) {
-      log.error("ZAK request error", { error: String(err) })
-      return null
-    }
-  }, [zoomAuth, authStore.deviceId, refresh, loadZoomAuth])
+    return result
+  }, [zoomAuth, authStore.deviceId, loadZoomAuth])
 
   const clearError = useCallback(() => {
     setError(null)

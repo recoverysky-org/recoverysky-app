@@ -37,15 +37,15 @@ export const ZOOM_OAUTH_CONFIG = {
 } as const
 
 /**
- * Server endpoints for Zoom OAuth
- * These endpoints handle the OAuth flow server-side (where client_secret lives)
+ * Server endpoints for Zoom operations
+ * These endpoints handle server-side operations where client_secret lives
  */
 export const ZOOM_ENDPOINTS = {
-  /** Token refresh endpoint */
-  tokenRefresh: "https://api.recoverysky.app/oauth/zoom/refresh",
+  /** Unified ZAK endpoint - handles both authenticated and anonymous users */
+  zakMe: process.env.EXPO_PUBLIC_ZAK_ME_ENDPOINT ?? "",
 
-  /** ZAK retrieval endpoint (optional - can call Zoom directly) */
-  zakRetrieval: "https://api.recoverysky.app/zak/me",
+  /** API key for authenticating with zak service */
+  apiKey: process.env.EXPO_PUBLIC_ZAK_API_KEY ?? "",
 }
 
 /**
@@ -104,6 +104,18 @@ export interface ZoomUserInfo {
  */
 export interface ZoomZakResponse {
   token: string
+}
+
+/**
+ * Response from /zak/me endpoint
+ * Tokens are null when using service account (anonymous flow)
+ */
+export interface ZakMeResponse {
+  zak: string
+  access_token: string | null
+  refresh_token: string | null
+  expires_in: number | null
+  was_refreshed: boolean
 }
 
 /**
