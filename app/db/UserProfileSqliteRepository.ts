@@ -95,31 +95,35 @@ export class UserProfileSqliteRepository {
 
   /**
    * Upsert the default profile (insert or update on conflict)
+   *
+   * IMPORTANT: Only updates fields that are explicitly provided.
+   * Missing fields are NOT reset to defaults on update.
    */
   async upsert(data: UserProfileInput): Promise<UserProfileRecord | null> {
     try {
-      const rows = (await this.db
-        .insert(userProfiles as any)
-        .values({
-          id: DEFAULT_PROFILE_ID,
-          shortName: data.shortName ?? "",
-          pronouns: data.pronouns ?? null,
-          recoveryDate: data.recoveryDate ?? null,
-          fellowship: data.fellowship ?? "AA",
-          language: data.language ?? "",
-        })
-        .onConflictDoUpdate({
-          target: userProfiles.id as any,
-          set: {
-            shortName: sql`excluded.shortName`,
-            pronouns: sql`excluded.pronouns`,
-            recoveryDate: sql`excluded.recoveryDate`,
-            fellowship: sql`excluded.fellowship`,
-            language: sql`excluded.language`,
-          },
-        })
-        .returning()) as UserProfileRecord[]
-      return rows[0] || null
+      // First, try to get existing profile to merge with
+      const existing = await this.findDefault()
+
+      if (existing) {
+        // Profile exists - only update provided fields
+        const updates: Partial<UserProfileInput> = {}
+        if (data.shortName !== undefined) updates.shortName = data.shortName
+        if (data.pronouns !== undefined) updates.pronouns = data.pronouns
+        if (data.recoveryDate !== undefined) updates.recoveryDate = data.recoveryDate
+        if (data.fellowship !== undefined) updates.fellowship = data.fellowship
+        if (data.language !== undefined) updates.language = data.language
+
+        if (Object.keys(updates).length === 0) {
+          return existing // Nothing to update
+        }
+
+        log.debug("Updating profile", { fields: Object.keys(updates) })
+        return await this.update(updates)
+      } else {
+        // No profile exists - create with provided values + defaults
+        log.debug("Creating new profile", { fields: Object.keys(data) })
+        return await this.create(data)
+      }
     } catch (error) {
       log.error("upsert error", { error: String(error) })
       return null

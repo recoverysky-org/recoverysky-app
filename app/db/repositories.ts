@@ -414,10 +414,11 @@ export const profileRepository = {
 
   /**
    * Save profile data to SQLite
-   * Uses upsert - creates if not exists, updates if exists
+   * Uses upsert - creates if not exists, updates only provided fields if exists
    */
   save: async (data: SecureProfileData): Promise<void> => {
     try {
+      log.debug("Saving profile to SQLite", { fields: Object.keys(data) })
       await getProfileRepo().upsert({
         shortName: data.shortName,
         pronouns: data.pronouns,
@@ -425,6 +426,7 @@ export const profileRepository = {
         fellowship: data.fellowship,
         language: data.language,
       })
+      log.debug("Profile saved successfully")
     } catch (error) {
       log.error("profileRepository save error", { error: String(error) })
     }
