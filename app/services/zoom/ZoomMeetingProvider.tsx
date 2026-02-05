@@ -384,12 +384,22 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       addEvent("Calling SDK", { zid: zidToJoin })
 
       try {
+        // Check SDK initialization state
+        const isInit = await zoom.isInitialized()
+        log.debug("SDK init check", { isInitialized: isInit })
+        if (!isInit) {
+          throw new Error("Zoom SDK not initialized")
+        }
+
         await generateZoomJwt(zidToJoin, 0, configStore.zoomSdkKey, configStore.zoomSdkSecret)
+
+        // Check if ZAK usage is enabled via environment variable
+        const useZak = process.env.EXPO_PUBLIC_USE_ZAK !== "false"
 
         // Get ZAK token via unified /zak/me endpoint
         // Handles both authenticated (user's Zoom account) and anonymous (service account) flows
         let zakToken: string | undefined = config.zak
-        if (!zakToken) {
+        if (!zakToken && useZak) {
           // Get stored Zoom auth if available (null for anonymous users)
           let zoomAuth: ZoomAuthRecord | null = null
           if (authStore.deviceId) {
@@ -410,7 +420,18 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           } else {
             log.warn("ZAK fetch failed, joining without ZAK")
           }
+        } else if (!useZak) {
+          log.info("ZAK disabled via EXPO_PUBLIC_USE_ZAK=false")
         }
+
+        log.debug("Calling SDK joinMeeting", {
+          meetingNumber: zidToJoin,
+          userName: config.userName,
+          hasPassword: !!config.password,
+          useZak,
+          hasZak: !!zakToken,
+          zakPreview: zakToken ? zakToken.slice(0, 20) + "..." : "none",
+        })
 
         const statusCode = await zoom.joinMeeting({
           meetingNumber: zidToJoin,
@@ -434,7 +455,8 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         addEvent("Join accepted", {})
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to join"
-        log.error("Join exception", { error: errorMessage })
+        const errorStack = err instanceof Error ? err.stack : undefined
+        log.error("Join exception", { error: errorMessage, stack: errorStack })
         addEvent("Join exception", { error: errorMessage })
         setError(errorMessage)
 

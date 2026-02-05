@@ -21,7 +21,7 @@ import * as Crypto from "expo-crypto"
  */
 export const ZOOM_OAUTH_CONFIG = {
   /** Zoom OAuth client ID (public - safe to embed in app) */
-  clientId: process.env.EXPO_PUBLIC_ZOOM_CLIENT_ID ?? "",
+  clientId: process.env.EXPO_PUBLIC_ZOOM_SDK_KEY ?? "",
 
   /** Zoom authorize endpoint */
   authorizeUrl: process.env.EXPO_PUBLIC_ZOOM_AUTHORIZE_URL ?? "https://zoom.us/oauth/authorize",
@@ -30,7 +30,8 @@ export const ZOOM_OAUTH_CONFIG = {
   serverCallbackUrl: process.env.EXPO_PUBLIC_ZOOM_SERVER_CALLBACK_URL ?? "",
 
   /** Deep link for receiving tokens after server-side exchange */
-  appRedirectUri: process.env.EXPO_PUBLIC_ZOOM_APP_REDIRECT_URI ?? "recoverysky-app://oauth/zoom/success",
+  appRedirectUri:
+    process.env.EXPO_PUBLIC_ZOOM_APP_REDIRECT_URI ?? "recoverysky-app://oauth/zoom/success",
 
   /** OAuth scopes needed for ZAK token retrieval */
   scopes: ["user:read:zak"],
