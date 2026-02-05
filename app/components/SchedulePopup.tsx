@@ -17,12 +17,14 @@ import { FC, useMemo, useState, useEffect, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
+import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
+import { useProfileStore } from "@/models"
 import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -37,13 +39,14 @@ interface SchedulePopupProps {
   onClose: () => void
 }
 
-export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
+export const SchedulePopup: FC<SchedulePopupProps> = observer(function SchedulePopup({
   visible,
   meeting,
   onClose,
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
+  const profileStore = useProfileStore()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
@@ -145,7 +148,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
       await joinMeeting({
         meetingId: meeting.id,
         meetingNumber,
-        userName: "RecoverySky User", // TODO: Get from user profile
+        userName: profileStore.displayName,
         password,
       })
     } catch {
@@ -314,7 +317,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = function SchedulePopup({
       </View>
     </Modal>
   )
-}
+})
 
 // ============================================================================
 // Styles
