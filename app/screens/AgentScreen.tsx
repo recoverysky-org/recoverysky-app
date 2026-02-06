@@ -4,7 +4,6 @@ import {
   ViewStyle,
   TextStyle,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Pressable,
@@ -155,9 +154,6 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     newMessages.forEach((msg) => {
       conversationStore.addMessage(msg)
     })
-
-    // Refocus input after response completes
-    setTimeout(() => inputRef.current?.focus(), 100)
   }, [status, messages, conversationStore])
 
   // Effect: Restore messages to useChat when store hydrates
@@ -272,11 +268,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
       <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
 
       {/* Chat Messages */}
-      <KeyboardAvoidingView
-        style={themed($chatContainer)}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={100}
-      >
+      <View style={themed($chatContainer)}>
         <ScrollView
           ref={scrollViewRef}
           style={themed($messageList)}
@@ -436,7 +428,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
             )}
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Floating Action Menu */}
       {messages.length > 0 && !isLoading && (

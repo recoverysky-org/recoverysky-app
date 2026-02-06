@@ -117,11 +117,11 @@ export class UserProfileSqliteRepository {
           return existing // Nothing to update
         }
 
-        log.debug("Updating profile", { fields: Object.keys(updates) })
+        log.debug("Updating profile", { fields: Object.keys(updates).join(",") })
         return await this.update(updates)
       } else {
         // No profile exists - create with provided values + defaults
-        log.debug("Creating new profile", { fields: Object.keys(data) })
+        log.debug("Creating new profile", { fields: Object.keys(data).join(",") })
         return await this.create(data)
       }
     } catch (error) {
