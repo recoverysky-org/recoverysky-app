@@ -56,6 +56,7 @@ MST with MMKV persistence in `app/models/`:
 - **AuthenticationStore**: Auth token, email, userId, `isAuthenticated` computed
 - **ProfileStore**: User profile settings with computed `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
+- **ConfigStore**: API URLs, Zoom SDK keys, auth key (NOT persisted to MMKV for security)
 
 ```typescript
 // Access stores in components (wrap with observer())
@@ -68,7 +69,7 @@ const MyComponent = observer(() => {
 })
 ```
 
-Persistence is automatic via `onSnapshot` → MMKV in `helpers/setupRootStore.ts`.
+Persistence is automatic via `onSnapshot` → MMKV in `helpers/setupRootStore.ts`. **Note:** ConfigStore is excluded from MMKV persistence (security: SDK secrets shouldn't be in unencrypted storage).
 
 ### React Context Providers
 Alongside MST, two React Context providers exist in `app/context/`:
@@ -185,6 +186,40 @@ logger.info("User logged in", { userId: "123" })
 const log = useLogger("ScreenName")
 log.error("API failed", { endpoint: "/users" })
 ```
+
+## Environment Variables
+
+`EXPO_PUBLIC_*` variables are baked in at build time. For local development:
+
+- **Simulator**: Can use `localhost` URLs in `.env`
+- **Physical device**: Must use your Mac's IP address (e.g., `http://192.168.x.x:4000`)
+- After changing `.env`, restart Metro with `npm start -- --clear`
+
+Key variables in `.env`:
+```bash
+EXPO_PUBLIC_API_URL=http://192.168.x.x:4000     # RecoverySky API
+EXPO_PUBLIC_AGENT_URL=http://192.168.x.x:3333   # AI Agent API
+EXPO_PUBLIC_ZOOM_SDK_KEY=...                     # Zoom SDK client ID
+EXPO_PUBLIC_ZOOM_SDK_SECRET=...                  # Zoom SDK secret
+```
+
+Production values are set in `eas.json` under `build.base.env`.
+
+## AI Agent Integration
+
+The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
+- Connects to `configStore.agentUrl` (from env var or server config)
+- Uses `@ai-sdk/react` `useChat()` hook for streaming responses
+- Supports tool calls (meeting search, recovery resources)
+- Conversation persisted to ConversationStore
+
+## Zoom Integration
+
+Zoom SDK in `app/services/zoom/`:
+- **ZoomMeetingProvider**: Context wrapper for meeting state
+- **useZoomMeeting**: Hook for joining meetings
+- **useZoomAuth**: OAuth flow for authenticated meeting joins (ZAK token)
+- Requires EAS build (native SDK, not Expo Go compatible)
 
 ## Development Tools
 
