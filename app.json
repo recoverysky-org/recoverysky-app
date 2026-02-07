@@ -123,6 +123,13 @@
           "-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"
         ]
       }
+    ],
+    [
+      "react-native-auth0",
+      {
+        "domain": "meetingmaker.us.auth0.com",
+        "customScheme": "recoverysky-app"
+      }
     ]
   ],
   "experiments": {

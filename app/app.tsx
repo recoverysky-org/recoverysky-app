@@ -27,6 +27,7 @@ import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
 import { reaction } from "mobx"
+import { Auth0Provider } from "react-native-auth0"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
@@ -44,7 +45,7 @@ import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
-import { loadStoredAuth } from "./services/auth/useZitadelAuth"
+import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
@@ -128,8 +129,8 @@ export function App() {
         // setupRootStore logs its own params/results
         await setupRootStore(_rootStore)
 
-        // loadStoredAuth logs its own params/results
-        await loadStoredAuth(_rootStore.authenticationStore, _rootStore.configStore)
+        // Auth0 SDK handles token persistence internally
+        // We just need to set up deviceId for anonymous users
 
         // getDeviceId logs its own params/results
         const deviceId = await getDeviceId()
@@ -185,31 +186,33 @@ export function App() {
 
   // otherwise, we're ready to render the app
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-      <KeyboardProvider>
-        <RootStoreProvider value={rootStore}>
-          <SubscriptionProvider appUserId={revenueCatUserId}>
-            <DatabaseProvider>
-              <ProfileHydrator />
-              <ChatHydrator />
-              <MeetingProvider>
-                <ThemeProvider>
-                  <ToastProvider>
-                    <ZoomMeetingProvider>
-                      <DatabaseLoadingOverlay />
-                      <AppNavigator
-                        linking={linking}
-                        initialState={initialNavigationState}
-                        onStateChange={onNavigationStateChange}
-                      />
-                    </ZoomMeetingProvider>
-                  </ToastProvider>
-                </ThemeProvider>
-              </MeetingProvider>
-            </DatabaseProvider>
-          </SubscriptionProvider>
-        </RootStoreProvider>
-      </KeyboardProvider>
-    </SafeAreaProvider>
+    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <KeyboardProvider>
+          <RootStoreProvider value={rootStore}>
+            <SubscriptionProvider appUserId={revenueCatUserId}>
+              <DatabaseProvider>
+                <ProfileHydrator />
+                <ChatHydrator />
+                <MeetingProvider>
+                  <ThemeProvider>
+                    <ToastProvider>
+                      <ZoomMeetingProvider>
+                        <DatabaseLoadingOverlay />
+                        <AppNavigator
+                          linking={linking}
+                          initialState={initialNavigationState}
+                          onStateChange={onNavigationStateChange}
+                        />
+                      </ZoomMeetingProvider>
+                    </ToastProvider>
+                  </ThemeProvider>
+                </MeetingProvider>
+              </DatabaseProvider>
+            </SubscriptionProvider>
+          </RootStoreProvider>
+        </KeyboardProvider>
+      </SafeAreaProvider>
+    </Auth0Provider>
   )
 }

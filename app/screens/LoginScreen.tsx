@@ -18,7 +18,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useZitadelAuth } from "@/services/auth"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -32,7 +32,7 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 type LoginType = "authenticated" | "anonymous" | null
 
 /**
- * LoginScreen - OAuth login via Zitadel
+ * LoginScreen - OAuth login via Auth0
  *
  * Provides login options with EUA agreement requirement.
  * Shows End User Agreement popup before allowing login.
@@ -40,7 +40,7 @@ type LoginType = "authenticated" | "anonymous" | null
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
   const { rekeyDb } = useDatabase()
-  const { login, loginAnonymously, isLoading, error, clearError } = useZitadelAuth({
+  const { login, loginAnonymously, isLoading, error, clearError } = useAuth0Wrapper({
     onSqliteKeyChange: rekeyDb,
   })
 
@@ -115,7 +115,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           </View>
         )}
 
-        {/* TODO: Re-enable when Zitadel auth is ready
+        {/* Auth0 OAuth Login */}
         <Pressable
           testID="login-button"
           style={[themed($button), isLoading && themed($buttonDisabled)]}
@@ -127,7 +127,6 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
           )}
         </Pressable>
-        */}
 
         <Pressable
           testID="anonymous-button"

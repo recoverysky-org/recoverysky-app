@@ -14,8 +14,8 @@ import {
   ActivityIndicator,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect } from "@react-navigation/native"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
+import { useFocusEffect } from "@react-navigation/native"
 import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 
@@ -28,7 +28,8 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { useZitadelAuth, useZoomAuth } from "@/services/auth"
+import { useZoomAuth } from "@/services/auth"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -59,8 +60,13 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   navigation,
 }) {
   const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
-  const { logout } = useZitadelAuth()
-  const { isConnected: zoomConnected, zoomAuth, disconnect: disconnectZoom, reload: reloadZoomAuth } = useZoomAuth()
+  const { logout } = useAuth0Wrapper()
+  const {
+    isConnected: zoomConnected,
+    zoomAuth,
+    disconnect: disconnectZoom,
+    reload: reloadZoomAuth,
+  } = useZoomAuth()
 
   // Reload zoom auth when screen comes into focus (after returning from ZoomLoginScreen)
   useFocusEffect(

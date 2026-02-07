@@ -27,10 +27,16 @@ import * as Device from "expo-device"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 
 import { useToast } from "@/components/Toast"
-import { attendanceRepo, attendanceEvents, zoomAuthRepo, type AttendanceEvent, type ZoomAuthRecord } from "@/db"
-import { getZakToken } from "@/services/zak"
+import {
+  attendanceRepo,
+  attendanceEvents,
+  zoomAuthRepo,
+  type AttendanceEvent,
+  type ZoomAuthRecord,
+} from "@/db"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
+import { getZakToken } from "@/services/zak"
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"

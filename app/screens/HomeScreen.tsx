@@ -10,7 +10,7 @@ import { Text } from "@/components/Text"
 import type { TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
-import { useZitadelAuth } from "@/services/auth"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -101,7 +101,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   const navigation = useNavigation<MainTabScreenProps<"Home">["navigation"]>()
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
-  const { logout, clearError } = useZitadelAuth()
+  const { logout, clearError } = useAuth0Wrapper()
 
   // Log mount/unmount
   useEffect(() => {

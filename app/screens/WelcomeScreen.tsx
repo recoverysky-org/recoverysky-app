@@ -6,7 +6,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { isRTL } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useZitadelAuth } from "@/services/auth"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -22,7 +22,7 @@ export const WelcomeScreen: FC<WelcomeScreenProps> = function WelcomeScreen(_pro
   const { themed, theme } = useAppTheme()
 
   const { navigation } = _props
-  const { logout } = useZitadelAuth()
+  const { logout } = useAuth0Wrapper()
 
   function goNext() {
     navigation.navigate("Main", { screen: "Home" })
