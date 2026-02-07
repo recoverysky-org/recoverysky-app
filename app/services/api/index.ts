@@ -81,8 +81,9 @@ export class Api {
     })
 
     // Create dedicated instance for RecoverySky API
+    // Use config URL (from env) so local dev works, falls back to hardcoded default
     this.recoverySkyApi = create({
-      baseURL: DEFAULT_API_URL,
+      baseURL: this.config.url || DEFAULT_API_URL,
       timeout: 10000,
       headers: {
         Accept: "application/json",

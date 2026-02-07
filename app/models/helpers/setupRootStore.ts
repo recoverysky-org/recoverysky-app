@@ -30,7 +30,9 @@ export async function setupRootStore(rootStore: RootStore) {
     // Load stored state from MMKV (non-sensitive data only)
     restoredState = storage.load(ROOT_STATE_STORAGE_KEY) as RootStoreSnapshot | null
     if (restoredState) {
-      applySnapshot(rootStore, restoredState)
+      // Exclude configStore - it should always use env vars (not cached values)
+      const { configStore: _configStore, ...stateWithoutConfig } = restoredState
+      applySnapshot(rootStore, stateWithoutConfig)
       log.info("Restored RootStore from MMKV", {
         hasAuthStore: !!restoredState.authenticationStore,
         hasProfileStore: !!restoredState.profileStore,
@@ -42,9 +44,11 @@ export async function setupRootStore(rootStore: RootStore) {
     log.error("Failed to load RootStore from MMKV", { error: String(e) })
   }
 
-  // Track changes and save to MMKV (sensitive data excluded via volatile)
+  // Track changes and save to MMKV
+  // Exclude configStore - it should always use env vars or fetch fresh from API
   const unsubscribe = onSnapshot(rootStore, (snapshot) => {
-    storage.save(ROOT_STATE_STORAGE_KEY, snapshot)
+    const { configStore: _configStore, ...snapshotWithoutConfig } = snapshot
+    storage.save(ROOT_STATE_STORAGE_KEY, snapshotWithoutConfig)
   })
   log.debug("RootStore snapshot listener registered")
 

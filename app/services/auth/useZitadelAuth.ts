@@ -172,8 +172,8 @@ export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelA
 
       log.info("Authentication complete", { userId: userInfo?.sub })
 
-      // Fetch server config after successful auth
-      configStore.fetchConfig()
+      // TODO: Re-enable for production when server config differs from env vars
+      // configStore.fetchConfig()
     } catch (err) {
       log.error("Token exchange failed", { error: String(err) })
       setError("Failed to complete authentication")
@@ -255,9 +255,9 @@ export function useZitadelAuth(options: UseZitadelAuthOptions = {}): UseZitadelA
   const loginAnonymously = useCallback(() => {
     log.info("Anonymous login")
     authStore.loginAnonymously()
-    // Fetch server config after anonymous login
-    configStore.fetchConfig()
-  }, [authStore, configStore])
+    // TODO: Re-enable for production when server config differs from env vars
+    // configStore.fetchConfig()
+  }, [authStore])
 
   /**
    * Logout and clear all tokens
@@ -401,7 +401,8 @@ export async function loadStoredAuth(
           expiresAt,
         )
         log.info("Auth restored from SecureStore", { expiresInSec: expiresIn })
-        configStore?.fetchConfig()
+        // TODO: Re-enable for production when server config differs from env vars
+        // configStore?.fetchConfig()
         return true
       } else {
         log.info("Stored token expired", { expiredAgoSec: -expiresIn })
