@@ -56,15 +56,10 @@ export const ConfigStoreModel = types
 
         if (result.kind === "ok") {
           const { config } = result
-          store.apiUrl = config.API_URL
-          store.agentUrl = config.AGENT_URL
-          store.zoomSdkKey = config.ZOOM_SDK_KEY
-          store.zoomSdkSecret = config.ZOOM_SDK_SECRET
-          store.authKey = config.AUTH_KEY
+          // Only override values the server provides (API_URL, AUTH_KEY, ZOOM_SDK_KEY removed from server)
+          if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
+          if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
           store.isLoaded = true
-
-          // Update API singleton with new config
-          api.updateConfig(config.API_URL, config.AUTH_KEY)
 
           log.info("Config loaded from server")
         } else {
