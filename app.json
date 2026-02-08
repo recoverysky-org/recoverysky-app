@@ -69,7 +69,8 @@
       "NSPhotoLibraryUsageDescription": "Photo library access is needed for sharing in meetings",
       "NSCalendarsUsageDescription": "Calendar access allows adding meetings to your calendar",
       "NSContactsUsageDescription": "Contacts access enables inviting friends to meetings"
-    }
+    },
+    "appleTeamId": "75W22YQP29"
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",
