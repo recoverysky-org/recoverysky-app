@@ -22,7 +22,8 @@ if (__DEV__) {
 }
 import "./utils/gestureHandler"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { AppState, AppStateStatus, Platform } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
@@ -45,6 +46,12 @@ import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
+import {
+  attestDevice,
+  isAttestationSupported,
+  isSimulator,
+  preparePlayIntegrity,
+} from "./services/attestation"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
@@ -64,6 +71,94 @@ const appVersion = require("../package.json").version
 logger.setContext({ sessionId, appVersion })
 
 log.info("App module loaded", { sessionId: sessionId.slice(0, 8) + "...", appVersion })
+
+// =============================================================================
+// Device Attestation State (memory-only)
+// =============================================================================
+
+/** Tracks device JWT expiry time for re-attestation on foreground */
+let jwtExpiresAt: number | null = null
+
+/** Whether we're using X-API-Key fallback (simulators) instead of device JWT */
+let usingApiKeyFallback = false
+
+/** Google Cloud project number for Play Integrity (Android only) */
+const GOOGLE_CLOUD_PROJECT_NUMBER = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER || ""
+
+/**
+ * Check if JWT is expired or near expiry (within 5 minutes)
+ */
+function isJwtExpiredOrNearExpiry(): boolean {
+  if (!jwtExpiresAt) return true
+  const FIVE_MINUTES_MS = 5 * 60 * 1000
+  return Date.now() > jwtExpiresAt - FIVE_MINUTES_MS
+}
+
+/**
+ * Perform device attestation and update API headers
+ * Returns true if attestation succeeded, false otherwise
+ */
+async function performAttestation(deviceId: string): Promise<boolean> {
+  if (!isAttestationSupported()) {
+    log.info("Attestation not supported on this platform/device")
+    return false
+  }
+
+  log.info("Performing device attestation")
+  const result = await attestDevice(deviceId)
+
+  if (result.ok) {
+    api.setDeviceJwt(result.data.deviceJwt)
+    jwtExpiresAt = result.data.expiresAt
+    log.info("Device attestation complete", {
+      expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",
+    })
+    return true
+  } else {
+    log.error("Device attestation failed", {
+      code: result.error.code,
+      message: result.error.message,
+    })
+    return false
+  }
+}
+
+/**
+ * Initialize device authorization (called once on cold start)
+ * - Physical devices: Perform attestation to get device JWT
+ * - Simulators: Use X-API-Key fallback
+ */
+async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
+  // Web platform - no attestation
+  if (Platform.OS === "web") {
+    log.info("Web platform, skipping attestation")
+    api.setApiKeyAuth()
+    usingApiKeyFallback = true
+    return
+  }
+
+  // Simulator/emulator - use X-API-Key fallback
+  if (isSimulator()) {
+    log.info("Simulator detected, using X-API-Key fallback")
+    api.setApiKeyAuth()
+    usingApiKeyFallback = true
+    return
+  }
+
+  // Physical device - prepare Play Integrity for Android, then attest
+  if (Platform.OS === "android" && GOOGLE_CLOUD_PROJECT_NUMBER) {
+    await preparePlayIntegrity(GOOGLE_CLOUD_PROJECT_NUMBER)
+  }
+
+  // Perform initial attestation
+  const success = await performAttestation(deviceId)
+  if (!success) {
+    // Fallback to X-API-Key if attestation fails
+    log.warn("Attestation failed, falling back to X-API-Key")
+    api.setApiKeyAuth()
+    usingApiKeyFallback = true
+  }
+}
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
@@ -120,6 +215,9 @@ export function App() {
     })()
   }, [])
 
+  // Track deviceId for foreground re-attestation
+  const deviceIdRef = useRef<string | null>(null)
+
   // Initialize MST RootStore with persistence
   useEffect(() => {
     ;(async () => {
@@ -134,9 +232,14 @@ export function App() {
 
         // getDeviceId logs its own params/results
         const deviceId = await getDeviceId()
+        deviceIdRef.current = deviceId
         _rootStore.authenticationStore.setDeviceId(deviceId)
 
-        // Set initial API auth
+        // Initialize device authorization (attestation or API key fallback)
+        // This blocks until we have valid device credentials
+        await initializeDeviceAuthorization(deviceId)
+
+        // Set initial OAuth auth (user authentication)
         const authStore = _rootStore.authenticationStore
         api.updateAuth(authStore.isAnonymous, authStore.accessToken)
         log.debug("API auth configured", {
@@ -163,6 +266,32 @@ export function App() {
         setRootStore(_rootStore)
       }
     })()
+  }, [])
+
+  // Foreground re-attestation: re-attest when app comes to foreground with expired JWT
+  useEffect(() => {
+    // Skip if using API key fallback (simulator) or on web
+    if (usingApiKeyFallback || Platform.OS === "web") {
+      return
+    }
+
+    let appState = AppState.currentState
+
+    const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      // App coming to foreground from background/inactive
+      if (appState.match(/inactive|background/) && nextState === "active") {
+        if (isJwtExpiredOrNearExpiry() && deviceIdRef.current) {
+          log.info("JWT expired/near-expiry, re-attesting in background")
+          const attestPromise = performAttestation(deviceIdRef.current).then(() => {})
+          api.setAttestationInProgress(attestPromise)
+        }
+      }
+      appState = nextState
+    })
+
+    return () => {
+      subscription.remove()
+    }
   }, [])
 
   // Check if app is ready
