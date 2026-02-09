@@ -584,14 +584,14 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         {/* Export Button */}
         <TouchableOpacity
-          style={[themed($exportButton), themed($lastRow)]}
+          style={[themed($settingsRow), themed($lastRow)]}
           onPress={() =>
             Alert.alert("Coming Soon", "Export functionality will be available in a future update.")
           }
           accessibilityRole="button"
         >
-          <Ionicons name="download-outline" size={18} color={theme.colors.tint} />
-          <Text style={themed($exportButtonText)} tx="settingsScreen:exportAttendance" />
+          <Text style={themed($rowLabel)} tx="settingsScreen:exportAttendance" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
         </TouchableOpacity>
       </View>
 
@@ -698,13 +698,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           </>
         ) : (
           <TouchableOpacity
-            style={[themed($zoomConnectRow), themed($lastRow)]}
+            style={themed($zoomConnectButton)}
             onPress={() => navigation.navigate("ZoomLogin")}
             accessibilityRole="button"
           >
             <Ionicons name="videocam" size={18} color="#2D8CFF" />
-            <Text style={themed($zoomConnectText)} tx="settingsScreen:connectZoom" />
-            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            <Text style={themed($zoomConnectButtonText)} tx="settingsScreen:connectZoom" />
           </TouchableOpacity>
         )}
       </View>
@@ -977,21 +976,30 @@ const $tintColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
 })
 
 // Zoom section styles
-const $zoomConnectRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $zoomConnectButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  justifyContent: "flex-start",
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.md,
-  gap: spacing.sm,
-  backgroundColor: colors.card,
+  justifyContent: "center",
+  backgroundColor: "#000",
+  borderWidth: 1.5,
+  borderColor: "#2D8CFF",
+  paddingVertical: spacing.md,
+  paddingHorizontal: spacing.lg,
+  borderRadius: 10,
+  marginTop: spacing.sm,
+  marginBottom: spacing.sm,
+  gap: spacing.xs,
+  shadowColor: "#2D8CFF",
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.6,
+  shadowRadius: 8,
+  elevation: 8,
 })
 
-const $zoomConnectText: ThemedStyle<TextStyle> = () => ({
-  flex: 1,
+const $zoomConnectButtonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 16,
   color: "#2D8CFF",
-  fontWeight: "500",
+  fontWeight: "700",
 })
 
 // Short Name Input
@@ -1018,32 +1026,6 @@ const $emailInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderRadius: 8,
 })
 
-// Export Button
-const $exportButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#000",
-  borderWidth: 1.5,
-  borderColor: colors.tint,
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.lg,
-  borderRadius: 10,
-  marginTop: spacing.sm,
-  marginBottom: 16,
-  gap: spacing.xs,
-  shadowColor: colors.tint,
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.6,
-  shadowRadius: 8,
-  elevation: 8,
-})
-
-const $exportButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontSize: 14,
-  fontWeight: "600",
-})
 
 // Pronouns Button
 const $pronounsButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
