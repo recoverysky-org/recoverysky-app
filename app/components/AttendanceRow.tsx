@@ -18,13 +18,9 @@ import type { AttendanceRecord } from "@/db"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
-export interface AttendanceWithMeeting extends AttendanceRecord {
-  meetingName?: string
-}
-
 interface AttendanceRowProps {
-  /** Attendance record with optional meeting name */
-  record: AttendanceWithMeeting
+  /** Attendance record */
+  record: AttendanceRecord
   /** Whether this record is selected */
   isSelected?: boolean
   /** Callback when selection toggle is pressed */
@@ -79,7 +75,6 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
         <Text style={themed($meta)}>
           {dateTimeStr}
           {duration > 0 && ` · ${duration} min`}
-          {record.credit > 0 && ` · ${record.credit} credit`}
         </Text>
       </View>
 

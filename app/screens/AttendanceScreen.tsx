@@ -22,11 +22,11 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
-import { AttendanceRow, type AttendanceWithMeeting } from "@/components/AttendanceRow"
+import { AttendanceRow } from "@/components/AttendanceRow"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import { attendanceRepo, meetingRepo, attendanceEvents, type AttendanceRecord } from "@/db"
+import { attendanceRepo, attendanceEvents, type AttendanceRecord } from "@/db"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -42,7 +42,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
   function AttendanceScreen({ navigation }) {
     const { themed, theme } = useAppTheme()
     const profileStore = useProfileStore()
-    const [records, setRecords] = useState<AttendanceWithMeeting[]>([])
+    const [records, setRecords] = useState<AttendanceRecord[]>([])
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [isLoading, setIsLoading] = useState(true)
 
@@ -51,22 +51,13 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       try {
         const result = await attendanceRepo.findUnproduced()
         if (result.ok) {
-          // Join with meeting names
-          const mids = [...new Set(result.value.map((r) => r.mid))]
-          const meetingsResult = await meetingRepo.findByIds(mids)
-          const meetingMap = new Map(
-            meetingsResult.ok
-              ? meetingsResult.value.map((m) => [m.meeting.id, m.meeting.name])
-              : [],
-          )
-
           // Only show valid records (meetings long enough for credit)
           const validRecords = result.value.filter((r) => r.valid)
 
           setRecords(
             validRecords.map((r) => ({
               ...r,
-              meetingName: meetingMap.get(r.mid) ?? "Unknown Meeting",
+              meetingName: r.meetingName || "Unknown Meeting",
             })),
           )
         } else {
@@ -128,7 +119,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
     }, [])
 
     const renderItem = useCallback(
-      ({ item }: { item: AttendanceWithMeeting }) => (
+      ({ item }: { item: AttendanceRecord }) => (
         <AttendanceRow
           record={item}
           isSelected={selectedIds.has(item.id)}
@@ -139,7 +130,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       [selectedIds, handleToggleSelect, handleDelete],
     )
 
-    const keyExtractor = useCallback((item: AttendanceWithMeeting) => item.id, [])
+    const keyExtractor = useCallback((item: AttendanceRecord) => item.id, [])
 
     const ListEmptyComponent = useCallback(
       () => (
