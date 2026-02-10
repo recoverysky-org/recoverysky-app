@@ -87,8 +87,8 @@ export class Api {
   /** Dedicated instance for RecoverySky API */
   private recoverySkyApi: ApisauceInstance
 
-  /** Current auth key for simulator fallback */
-  private authKey: string = ""
+  /** Auth key for simulator fallback (from env var) */
+  private authKey: string = process.env.EXPO_PUBLIC_AUTH_KEY || ""
 
   /** Device JWT for production (physical devices) - kept in memory only */
   private deviceJwt: string | null = null
@@ -175,16 +175,6 @@ export class Api {
       log.debug("Waiting for attestation to complete")
       await this.attestationPromise
     }
-  }
-
-  /**
-   * Update API configuration from ConfigStore
-   * Call this after ConfigStore loads from server
-   */
-  updateConfig(apiUrl: string, authKey: string) {
-    log.debug("Updating API config", { apiUrl: apiUrl.slice(0, 30) })
-    this.recoverySkyApi.setBaseURL(apiUrl)
-    this.authKey = authKey
   }
 
   // ===========================================================================

@@ -235,13 +235,13 @@ export function App() {
         deviceIdRef.current = deviceId
         _rootStore.authenticationStore.setDeviceId(deviceId)
 
-        // Seed Api with ConfigStore defaults (env vars)
-        // This ensures api.authKey is set before simulator fallback needs it
-        api.updateConfig(_rootStore.configStore.apiUrl, _rootStore.configStore.authKey)
-
         // Initialize device authorization (attestation or API key fallback)
         // This blocks until we have valid device credentials
         await initializeDeviceAuthorization(deviceId)
+
+        // Fetch server config (overrides agentUrl, zoomSdkSecret if server provides them)
+        // Non-fatal: falls back to env var defaults on failure
+        await _rootStore.configStore.fetchConfig()
 
         // Set initial OAuth auth (user authentication)
         const authStore = _rootStore.authenticationStore
