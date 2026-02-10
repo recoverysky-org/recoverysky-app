@@ -81,9 +81,11 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
           <View style={themed($timeRow)}>
             {row.map((millis, colIndex) => (
               <View key={colIndex} style={themed($timeCell)}>
-                {millis ? (
+                {millis !== null ? (
                   <View style={themed($timeCellInner)}>
-                    <Text style={themed($timeText)}>{formatMillisToLocalTime(millis)}</Text>
+                    <Text style={themed($timeText)}>
+                      {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
+                    </Text>
                   </View>
                 ) : (
                   <View style={themed($emptyCellInner)} />

@@ -48,7 +48,10 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
 }) => {
   const { themed, theme } = useAppTheme()
 
-  const startTime = useMemo(() => formatMillisToLocalTime(meeting.millis), [meeting.millis])
+  const startTime = useMemo(
+    () => (meeting.millis === 0 ? "24h" : formatMillisToLocalTime(meeting.millis)),
+    [meeting.millis],
+  )
 
   const fellowshipColor = useMemo(() => {
     return FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
