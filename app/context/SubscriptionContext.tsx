@@ -29,6 +29,7 @@ import {
   logoutUser,
   type SubscriptionInfo,
 } from "@/services/purchases"
+import { useConfigStore } from "@/models"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "SubscriptionContext" })
@@ -103,6 +104,7 @@ interface SubscriptionProviderProps {
  * Initializes RevenueCat and listens for subscription changes.
  */
 export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, appUserId }) => {
+  const configStore = useConfigStore()
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isPro, setIsPro] = useState(false)
@@ -130,7 +132,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     const initialize = async () => {
       setIsLoading(true)
 
-      const result = await initializeRevenueCat(appUserId)
+      const result = await initializeRevenueCat(appUserId, configStore.revenueCatApiKey || undefined)
       if (result.ok) {
         setIsInitialized(true)
         await loadSubscriptionInfo()

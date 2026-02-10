@@ -63,6 +63,8 @@ export interface Logger {
   child(attributes: LogAttributes): Logger
   /** Log instrumentation scope info once at startup */
   logStartup(): void
+  /** Update config after initialization (e.g. server-provided API key) */
+  updateConfig(config: Partial<Pick<LoggerConfig, "apiKey" | "endpoint">>): void
   /** Cleanup resources - call on app unmount */
   destroy(): void
 }

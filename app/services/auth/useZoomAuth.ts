@@ -17,7 +17,7 @@ import * as Linking from "expo-linking"
 import * as WebBrowser from "expo-web-browser"
 
 import { zoomAuthRepo, type ZoomAuthRecord } from "@/db"
-import { useAuthenticationStore } from "@/models"
+import { useAuthenticationStore, useConfigStore } from "@/models"
 import { logger } from "@/utils/logger"
 
 import * as SecureStorage from "./secureStorage"
@@ -65,6 +65,7 @@ export interface UseZoomAuthResult {
  */
 export function useZoomAuth(): UseZoomAuthResult {
   const authStore = useAuthenticationStore()
+  const configStore = useConfigStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [zoomAuth, setZoomAuth] = useState<ZoomAuthRecord | null>(null)
@@ -258,7 +259,7 @@ export function useZoomAuth(): UseZoomAuthResult {
       const encodedState = encodeOAuthState(state)
 
       // Build OAuth start URL
-      const authUrl = buildOAuthStartUrl(encodedState)
+      const authUrl = buildOAuthStartUrl(encodedState, configStore.zoomSdkKey)
 
       log.info("Opening Zoom OAuth flow", {
         authUrl,
@@ -337,7 +338,7 @@ export function useZoomAuth(): UseZoomAuthResult {
    * When zoomAuth is null, the service account is used (anonymous flow).
    */
   const getZakToken = useCallback(async (): Promise<string | null> => {
-    const result = await fetchZakToken(zoomAuth, authStore.deviceId ?? undefined)
+    const result = await fetchZakToken(zoomAuth, authStore.deviceId ?? undefined, configStore.zakApiKey)
 
     // Reload local state if tokens may have been refreshed
     if (result && zoomAuth) {
@@ -345,7 +346,7 @@ export function useZoomAuth(): UseZoomAuthResult {
     }
 
     return result
-  }, [zoomAuth, authStore.deviceId, loadZoomAuth])
+  }, [zoomAuth, authStore.deviceId, configStore.zakApiKey, loadZoomAuth])
 
   const clearError = useCallback(() => {
     setError(null)

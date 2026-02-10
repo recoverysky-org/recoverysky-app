@@ -181,6 +181,11 @@ class LoggerImpl implements Logger {
     })
   }
 
+  updateConfig(config: Partial<Pick<LoggerConfig, "apiKey" | "endpoint">>): void {
+    if (config.apiKey !== undefined) this.config.apiKey = config.apiKey
+    if (config.endpoint !== undefined) this.config.endpoint = config.endpoint
+  }
+
   /**
    * Cleanup - call on app unmount
    */

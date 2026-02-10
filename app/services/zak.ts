@@ -22,6 +22,7 @@ const log = logger.child({ module: "zak" })
 export async function getZakToken(
   zoomAuth: ZoomAuthRecord | null,
   deviceId?: string,
+  apiKey?: string,
 ): Promise<string | null> {
   if (!ZOOM_ENDPOINTS.zakMe) {
     log.error("EXPO_PUBLIC_ZAK_ME_ENDPOINT not configured")
@@ -37,7 +38,7 @@ export async function getZakToken(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": ZOOM_ENDPOINTS.apiKey,
+        "X-API-Key": apiKey || ZOOM_ENDPOINTS.apiKey,
       },
       body: JSON.stringify({
         access_token: zoomAuth?.accessToken ?? null,

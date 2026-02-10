@@ -417,7 +417,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           }
 
           // Fetch ZAK from /zak/me endpoint (works for both authenticated and anonymous)
-          const zak = await getZakToken(zoomAuth, authStore.deviceId ?? undefined)
+          const zak = await getZakToken(zoomAuth, authStore.deviceId ?? undefined, configStore.zakApiKey)
           if (zak) {
             zakToken = zak
             log.info("ZAK token obtained", {

@@ -30,6 +30,12 @@ export const ConfigStoreModel = types
     zoomSdkSecret: types.optional(types.string, process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""),
     /** Anonymous auth API key */
     authKey: types.optional(types.string, process.env.EXPO_PUBLIC_AUTH_KEY || ""),
+    /** RevenueCat API key (from server /config) */
+    revenueCatApiKey: types.optional(types.string, ""),
+    /** ZAK service API key (from server /config) */
+    zakApiKey: types.optional(types.string, ""),
+    /** OTLP collector API key (from server /config) */
+    otlpApiKey: types.optional(types.string, ""),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -56,9 +62,12 @@ export const ConfigStoreModel = types
 
         if (result.kind === "ok") {
           const { config } = result
-          // Only override values the server provides (API_URL, AUTH_KEY, ZOOM_SDK_KEY removed from server)
           if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
+          if (config.ZOOM_SDK_KEY) store.zoomSdkKey = config.ZOOM_SDK_KEY
           if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
+          if (config.REVENUE_CAT_API_KEY) store.revenueCatApiKey = config.REVENUE_CAT_API_KEY
+          if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
+          if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
           store.isLoaded = true
 
           log.info("Config loaded from server")
@@ -83,6 +92,9 @@ export const ConfigStoreModel = types
       store.zoomSdkKey = process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""
       store.zoomSdkSecret = process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""
       store.authKey = process.env.EXPO_PUBLIC_AUTH_KEY || ""
+      store.revenueCatApiKey = ""
+      store.zakApiKey = ""
+      store.otlpApiKey = ""
       store.isLoaded = false
     },
   }))

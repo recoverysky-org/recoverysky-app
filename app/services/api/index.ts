@@ -435,6 +435,9 @@ export class Api {
           ZOOM_SDK_KEY: string
           ZOOM_SDK_SECRET: string
           AUTH_KEY: string
+          REVENUE_CAT_API_KEY: string
+          ZAK_API_KEY: string
+          OTLP_API_KEY: string
         }
       }
     | GeneralApiProblem
@@ -447,6 +450,9 @@ export class Api {
       ZOOM_SDK_KEY: string
       ZOOM_SDK_SECRET: string
       AUTH_KEY: string
+      REVENUE_CAT_API_KEY: string
+      ZAK_API_KEY: string
+      OTLP_API_KEY: string
     }>("/config")
 
     if (!response.ok) {

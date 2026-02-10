@@ -146,10 +146,10 @@ export const ZOOM_NONCE_KEY = "zoom_oauth_nonce"
  * our server's callback, which handles the code→token exchange (where
  * client_secret is needed) and then redirects to the app with tokens.
  */
-export function buildOAuthStartUrl(state: string): string {
+export function buildOAuthStartUrl(state: string, clientId?: string): string {
   const params = new URLSearchParams({
     response_type: "code",
-    client_id: ZOOM_OAUTH_CONFIG.clientId,
+    client_id: clientId || ZOOM_OAUTH_CONFIG.clientId,
     redirect_uri: ZOOM_OAUTH_CONFIG.serverCallbackUrl,
     state,
   })

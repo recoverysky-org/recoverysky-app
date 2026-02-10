@@ -54,9 +54,9 @@ export interface SubscriptionInfo {
  * Should be called once at app startup, after the app user ID is known.
  * If appUserId is not provided, RevenueCat will generate an anonymous ID.
  */
-export async function initializeRevenueCat(appUserId?: string): Promise<Result<void>> {
+export async function initializeRevenueCat(appUserId?: string, apiKey?: string): Promise<Result<void>> {
   try {
-    const apiKey = REVENUECAT_CONFIG.getApiKey()
+    const key = apiKey || REVENUECAT_CONFIG.getApiKey()
 
     // Enable debug logs in development
     if (__DEV__) {
@@ -65,7 +65,7 @@ export async function initializeRevenueCat(appUserId?: string): Promise<Result<v
 
     // Configure the SDK
     await Purchases.configure({
-      apiKey,
+      apiKey: key,
       appUserID: appUserId,
     })
 

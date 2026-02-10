@@ -239,9 +239,14 @@ export function App() {
         // This blocks until we have valid device credentials
         await initializeDeviceAuthorization(deviceId)
 
-        // Fetch server config (overrides agentUrl, zoomSdkSecret if server provides them)
-        // Non-fatal: falls back to env var defaults on failure
+        // Fetch server config (keys, secrets, URLs from /config endpoint)
+        // Non-fatal: falls back to defaults on failure
         await _rootStore.configStore.fetchConfig()
+
+        // Update logger with server-provided OTLP key
+        if (_rootStore.configStore.otlpApiKey) {
+          logger.updateConfig({ apiKey: _rootStore.configStore.otlpApiKey })
+        }
 
         // Set initial OAuth auth (user authentication)
         const authStore = _rootStore.authenticationStore
