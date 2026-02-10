@@ -106,8 +106,8 @@ export async function sendToOtlp(
   records: LogRecord[],
   config: LoggerConfig,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!config.endpoint) {
-    return { ok: true } // No endpoint = silent drop
+  if (!config.endpoint || !config.apiKey) {
+    return { ok: true } // No endpoint or API key = silent drop
   }
 
   const payload = toOtlpPayload(records, config)
