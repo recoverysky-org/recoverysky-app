@@ -61,7 +61,8 @@ export const LiveContent: FC = observer(function LiveContent() {
     return () => log.debug("LiveContent unmounted")
   }, [])
 
-  // Fellowship filter modal
+  // Fellowship filter — local state, defaults from saved preference but doesn't write back
+  const [filterFellowship, setFilterFellowship] = useState(profileStore.fellowship)
   const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
 
   // Live feedback state for DISPLAY only (not sorting)
@@ -82,23 +83,24 @@ export const LiveContent: FC = observer(function LiveContent() {
     return unsubscribe
   }, [])
 
-  // Subscribe to live events (e.g., fellowship preference changed)
+  // Subscribe to live events — reset local filter when Settings preference changes
   useEffect(() => {
     const unsubscribe = liveEvents.subscribe((event) => {
-      if (event.type === "preferences_changed" || event.type === "refresh_requested") {
+      if (event.type === "preferences_changed") {
+        setFilterFellowship(profileStore.fellowship)
+        refresh()
+      } else if (event.type === "refresh_requested") {
         refresh()
       }
     })
     return unsubscribe
-  }, [refresh])
+  }, [refresh, profileStore.fellowship])
 
-  // Filter meetings by user's selected fellowship
-  // If no fellowship set (empty string), show all meetings
+  // Filter meetings by local fellowship filter (not the saved preference)
   const filteredMeetings = useMemo(() => {
-    const userFellowship = profileStore.fellowship
-    if (!userFellowship || userFellowship === "") return liveMeetings
-    return liveMeetings.filter((m) => m.fellowship === userFellowship)
-  }, [liveMeetings, profileStore.fellowship])
+    if (!filterFellowship || filterFellowship === "") return liveMeetings
+    return liveMeetings.filter((m) => m.fellowship === filterFellowship)
+  }, [liveMeetings, filterFellowship])
 
   // Sort meetings: 1) favorites by stars, 2) rated non-favorites, 3) rest
   // Uses meeting.feedback which is a snapshot from when meetings were loaded,
@@ -191,7 +193,7 @@ export const LiveContent: FC = observer(function LiveContent() {
       >
         <Text style={themed($selectorLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
         <View style={$selectorValueRow}>
-          <Text style={themed($selectorValue)}>{profileStore.fellowship || "AA"}</Text>
+          <Text style={themed($selectorValue)}>{filterFellowship || "AA"}</Text>
           <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
         </View>
       </TouchableOpacity>
@@ -211,26 +213,26 @@ export const LiveContent: FC = observer(function LiveContent() {
                 key={f.value}
                 style={[
                   themed($modalOption),
-                  profileStore.fellowship === f.value && themed($modalOptionSelected),
+                  filterFellowship === f.value && themed($modalOptionSelected),
                 ]}
                 onPress={() => {
                   log.info("Fellowship filter changed", {
-                    from: profileStore.fellowship,
+                    from: filterFellowship,
                     to: f.value,
                   })
-                  profileStore.setFellowship(f.value)
+                  setFilterFellowship(f.value)
                   setFellowshipModalVisible(false)
                 }}
               >
                 <Text
                   style={[
                     themed($modalOptionText),
-                    profileStore.fellowship === f.value && themed($modalOptionTextSelected),
+                    filterFellowship === f.value && themed($modalOptionTextSelected),
                   ]}
                 >
                   {f.label}
                 </Text>
-                {profileStore.fellowship === f.value && (
+                {filterFellowship === f.value && (
                   <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
                 )}
               </TouchableOpacity>
