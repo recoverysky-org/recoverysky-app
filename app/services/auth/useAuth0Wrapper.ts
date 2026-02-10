@@ -2,21 +2,20 @@
  * useAuth0Wrapper Hook
  *
  * Custom hook that wraps Auth0's useAuth0 hook to:
- * - Provide consistent interface matching useZitadelAuth for easy migration
  * - Sync auth state to MST AuthenticationStore for API layer compatibility
  * - Handle anonymous login (Auth0 doesn't support this natively)
  * - Extract SQLite encryption key from JWT claims if present
  */
 
-import { useCallback, useEffect, useState } from "react"
-import { useAuth0 } from "react-native-auth0"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useAuth0, WebAuthError, WebAuthErrorCodes } from "react-native-auth0"
 
 import { useAuthenticationStore, useConfigStore } from "@/models"
 import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
-import { decodeJwtPayload, extractSqliteKeyFromClaims, type ZitadelIdTokenClaims } from "./jwtUtils"
+import { decodeJwtPayload, extractSqliteKeyFromClaims, type IdTokenClaims } from "./jwtUtils"
 
 const log = logger.child({ module: "useAuth0Wrapper" })
 
@@ -68,9 +67,16 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   const [localLoading, setLocalLoading] = useState(false)
   const isLoading = auth0Loading || localLoading
 
-  // Sync Auth0 error to local state
+  // Guard: prevent user sync from re-populating MST during logout
+  const isLoggingOut = useRef(false)
+
+  // Sync Auth0 error to local state (ignore user-cancelled errors)
   useEffect(() => {
     if (auth0Error) {
+      if (auth0Error instanceof WebAuthError && auth0Error.type === WebAuthErrorCodes.USER_CANCELLED) {
+        log.info("Auth0 operation cancelled by user")
+        return
+      }
       log.error("Auth0 error", { error: auth0Error.message })
       setError(auth0Error.message || "Authentication failed")
     }
@@ -80,6 +86,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   // Note: We intentionally only depend on `user` - other deps are stable refs
   useEffect(() => {
     const syncUserToStore = async () => {
+      if (isLoggingOut.current) return
       if (user) {
         log.info("Syncing Auth0 user to MST store", { sub: user.sub })
 
@@ -131,7 +138,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
    */
   const handleSqliteKeyFromJwt = async (idToken: string) => {
     try {
-      const claims = decodeJwtPayload<ZitadelIdTokenClaims>(idToken)
+      const claims = decodeJwtPayload<IdTokenClaims>(idToken)
       if (claims) {
         const jwtSqliteKey = extractSqliteKeyFromClaims(claims)
         if (jwtSqliteKey) {
@@ -202,14 +209,19 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   }, [authStore])
 
   /**
-   * Logout and clear all tokens
+   * Logout and clear all tokens.
+   *
+   * Uses clearSession to revoke the Auth0 web session (prevents auto-login
+   * on next sign-in). iOS shows a system "Sign In" dialog for this — if the
+   * user cancels it, the logout is aborted gracefully.
    */
   const logout = useCallback(async () => {
     log.info("Logging out")
     setError(null)
+    isLoggingOut.current = true
 
     try {
-      // Only call Auth0 clearSession if user was authenticated via Auth0
+      // Clear Auth0 web session (requires browser redirect on iOS)
       if (user && !authStore.isAnonymous) {
         await clearSession({}, { customScheme: AUTH0_CONFIG.customScheme })
         log.info("Auth0 session cleared")
@@ -219,10 +231,18 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       authStore.logout()
       log.info("Logout complete")
     } catch (err) {
+      // User cancelled the iOS browser dialog — abort logout
+      if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
+        log.info("Logout cancelled by user")
+        return
+      }
+
       const message = err instanceof Error ? err.message : "Logout failed"
       log.error("Logout failed", { error: message })
-      // Still clear local state even if Auth0 logout fails
+      // Still clear local state on unexpected errors
       authStore.logout()
+    } finally {
+      isLoggingOut.current = false
     }
   }, [user, authStore, clearSession])
 

@@ -14,6 +14,19 @@ const log = logger.child({ module: "RootStore" })
 const ROOT_STATE_STORAGE_KEY = "root-v1"
 
 /**
+ * Strip OAuth tokens from the auth store snapshot before persisting to MMKV.
+ * Tokens are managed by the Auth0 SDK (iOS Keychain / Android Keystore) and
+ * re-synced to MST on app launch — no need to duplicate them in unencrypted storage.
+ */
+function stripAuthTokens<T extends Record<string, unknown>>(snapshot: T): T {
+  const authStore = snapshot.authenticationStore as Record<string, unknown> | undefined
+  if (!authStore) return snapshot
+
+  const { accessToken: _, refreshToken: _r, idToken: _i, expiresAt: _e, ...safeAuth } = authStore
+  return { ...snapshot, authenticationStore: safeAuth }
+}
+
+/**
  * Setup the root state.
  * - Loads the stored snapshot from MMKV (non-sensitive data)
  * - Sets up auto-persistence via onSnapshot
@@ -45,10 +58,10 @@ export async function setupRootStore(rootStore: RootStore) {
   }
 
   // Track changes and save to MMKV
-  // Exclude configStore - it should always use env vars or fetch fresh from API
+  // Exclude configStore (uses env vars) and auth tokens (managed by Auth0 SDK securely)
   const unsubscribe = onSnapshot(rootStore, (snapshot) => {
     const { configStore: _configStore, ...snapshotWithoutConfig } = snapshot
-    storage.save(ROOT_STATE_STORAGE_KEY, snapshotWithoutConfig)
+    storage.save(ROOT_STATE_STORAGE_KEY, stripAuthTokens(snapshotWithoutConfig))
   })
   log.debug("RootStore snapshot listener registered")
 

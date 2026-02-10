@@ -3,7 +3,7 @@
  *
  * Manages the encryption key for SQLite database:
  * - Anonymous users: Generate and store a local key in SecureStore
- * - Authenticated users: Use key from Zitadel JWT metadata
+ * - Authenticated users: Use key from JWT custom claims
  *
  * The key is stored in SecureStore which uses:
  * - iOS: Keychain (hardware-backed)
@@ -60,7 +60,7 @@ export async function getSqliteEncryptionKey(): Promise<string> {
 /**
  * Update the SQLite encryption key.
  *
- * Used when an authenticated user has a server-side key from Zitadel.
+ * Used when an authenticated user has a server-side key from JWT claims.
  * This replaces the locally generated key with the user's key.
  *
  * Note: Caller is responsible for re-encrypting the database after this.

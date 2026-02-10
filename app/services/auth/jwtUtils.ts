@@ -29,9 +29,12 @@ export function decodeJwtPayload<T = Record<string, unknown>>(token: string): T 
 }
 
 /**
- * Zitadel ID token claims with custom metadata
+ * Standard OIDC ID token claims with Auth0 custom metadata.
+ *
+ * Auth0 custom claims use a namespaced key to avoid collisions:
+ * https://auth0.com/docs/secure/tokens/json-web-tokens/create-namespaced-custom-claims
  */
-export interface ZitadelIdTokenClaims {
+export interface IdTokenClaims {
   /** Subject (user ID) */
   "sub": string
   /** Issuer */
@@ -57,16 +60,20 @@ export interface ZitadelIdTokenClaims {
   /** Locale */
   "locale"?: string
   /**
-   * Zitadel user metadata claim
-   * Contains custom key-value pairs set on the user
+   * Auth0 custom metadata claim (set via Auth0 Action).
+   * Namespace must match the Action that injects the claim.
    */
-  "urn:zitadel:iam:user:metadata"?: Record<string, string>
+  "https://recoverysky.app/metadata"?: Record<string, string>
 }
 
 /**
- * Extract SQLite encryption key from Zitadel JWT claims
+ * Extract SQLite encryption key from JWT custom claims.
+ *
+ * Looks for `sqliteKey` in the Auth0 custom metadata namespace.
+ * Requires an Auth0 Action to inject `https://recoverysky.app/metadata`
+ * into the ID token with the user's sqliteKey.
  */
-export function extractSqliteKeyFromClaims(claims: ZitadelIdTokenClaims): string | null {
-  const metadata = claims["urn:zitadel:iam:user:metadata"]
+export function extractSqliteKeyFromClaims(claims: IdTokenClaims): string | null {
+  const metadata = claims["https://recoverysky.app/metadata"]
   return metadata?.sqliteKey ?? null
 }
