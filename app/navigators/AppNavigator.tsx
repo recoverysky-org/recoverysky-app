@@ -79,14 +79,7 @@ const AppStack = observer(function AppStack() {
             <Stack.Screen
               name="AttendanceReports"
               component={AttendanceReportsScreen}
-              options={{
-                headerShown: true,
-                title: "Reports",
-                headerBackTitle: "Back",
-                headerTintColor: colors.tint,
-                headerStyle: { backgroundColor: colors.background },
-                headerTitleStyle: { color: colors.text },
-              }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="ZoomLogin"

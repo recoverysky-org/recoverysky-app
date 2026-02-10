@@ -12,6 +12,8 @@ export interface ZoomJoinConfig {
   meetingNumber: string
   /** Display name for the user in the meeting */
   userName: string
+  /** Meeting name (for attendance record display) */
+  meetingName?: string
   /** Meeting password (if required) */
   password?: string
   /** ZAK token for authenticated join (optional - joins anonymously if not provided) */

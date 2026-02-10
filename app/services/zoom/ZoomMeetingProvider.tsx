@@ -363,6 +363,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
             uid,
             mid: config.meetingId,
             zid: zidToJoin,
+            meetingName: config.meetingName ?? "",
             created: now,
             events: [createEvent("Join initiated", { userName: config.userName })],
           })

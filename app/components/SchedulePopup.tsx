@@ -149,6 +149,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         meetingId: meeting.id,
         meetingNumber,
         userName: profileStore.displayName,
+        meetingName: meeting.name,
         password,
       })
     } catch {
