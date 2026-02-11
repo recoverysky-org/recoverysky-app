@@ -418,7 +418,7 @@ export const profileRepository = {
    */
   save: async (data: SecureProfileData): Promise<void> => {
     try {
-      log.debug("Saving profile to SQLite", { fields: Object.keys(data).join(","), ...data })
+      log.debug("Saving profile to SQLite", { fields: Object.keys(data).join(",") })
       await getProfileRepo().upsert({
         shortName: data.shortName,
         pronouns: data.pronouns,
