@@ -243,6 +243,9 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       // Convert API schedules to MeetingWithTrex
       const newLiveMeetings: MeetingWithTrex[] = schedules.map((s) => ({
         ...s.meeting,
+        // Prefer schedule-level password over meeting-level (API provides it per-schedule)
+        password: s.password || s.meeting.password || "",
+        passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
         feedback: feedbackCache.get(s.meeting.id),
         millis: s.millis,
         duration_ms: s.duration_ms ?? 0,

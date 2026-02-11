@@ -9,8 +9,7 @@
         "EXPO_PUBLIC_RESEED_DB": "false",
         "EXPO_PUBLIC_API_URL": "https://api.recoverysky.app",
         "EXPO_PUBLIC_AGENT_URL": "https://agent.recoverysky.app",
-        "EXPO_PUBLIC_JOIN_MEETING_ZID": "7838704146",
-        "EXPO_PUBLIC_JOIN_MEETING_PWD": "mikki"
+        "EXPO_PUBLIC_JOIN_MEETING_ZID": ""
       }
     },
     "development": {

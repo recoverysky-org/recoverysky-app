@@ -57,6 +57,10 @@ export interface LiveSchedule {
   duration_ms: number
   /** Pre-computed schedule grid data for SchedulePopup (values are UTC millis) */
   data: ScheduleDataRow[]
+  /** Plain text meeting password */
+  password?: string
+  /** Encrypted meeting password */
+  passwordEnc?: string
 }
 
 // Re-export for convenience

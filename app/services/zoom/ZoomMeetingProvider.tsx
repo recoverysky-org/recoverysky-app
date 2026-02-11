@@ -206,8 +206,8 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
     log.debug("Processing attendance events", { eventCount: ctx.events.length })
 
-    // Find start event: "Meeting state" with state "inMeeting"
-    const startEvent = ctx.events.find((e) => {
+    // Find start event: last "Meeting state" with state "inMeeting"
+    const startEvent = ctx.events.findLast((e) => {
       if (e.message !== "Meeting state") return false
       try {
         const data = JSON.parse(e.json)
@@ -217,8 +217,9 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       }
     })
 
-    // Find end event: "Meeting ended"
-    const endEvent = ctx.events.find((e) => e.message === "Meeting ended")
+    // Find end event: last "Meeting ended" (must be after start to avoid
+    // picking up stale end events from waiting room cycles)
+    const endEvent = ctx.events.findLast((e) => e.message === "Meeting ended")
 
     // Both events required for valid attendance
     if (!startEvent || !endEvent) {
@@ -281,6 +282,12 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       // Process and clear when meeting ends
       if (event.stateName === "ended" || event.stateName === "idle") {
         if (meetingContextRef.current) {
+          // If user was never actually in the meeting (e.g. waiting room cycle),
+          // keep the context alive for the next SDK cycle instead of processing
+          if (!meetingContextRef.current.inMeetingAt) {
+            log.debug("Meeting ended before inMeeting, keeping context for next cycle")
+            return
+          }
           processAttendance().finally(() => {
             meetingContextRef.current = null
           })
@@ -347,8 +354,9 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         }
       }
 
-      // Check for override meeting ID (for testing)
+      // Optional overrides for testing: join a specific ZID with a specific password
       const overrideZid = process.env.EXPO_PUBLIC_JOIN_MEETING_ZID
+      const overridePw = process.env.EXPO_PUBLIC_JOIN_MEETING_PW
       const zidToJoin = overrideZid || config.meetingNumber
       const now = Date.now()
       const uid = authStore.userId || "anonymous"
@@ -431,10 +439,14 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           log.info("ZAK disabled via EXPO_PUBLIC_USE_ZAK=false")
         }
 
+        // Pass both password and ZAK — they serve different purposes:
+        // ZAK identifies the user, password grants access to the meeting.
+        const sdkPassword = overridePw || config.password || ""
+
         log.debug("Calling SDK joinMeeting", {
           meetingNumber: zidToJoin,
           userName: config.userName,
-          hasPassword: !!config.password,
+          password: sdkPassword || "empty",
           useZak,
           hasZak: !!zakToken,
           zakPreview: zakToken ? zakToken.slice(0, 20) + "..." : "none",
@@ -443,7 +455,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         const statusCode = await zoom.joinMeeting({
           meetingNumber: zidToJoin,
           userName: config.userName,
-          password: config.password || "",
+          password: sdkPassword,
           zoomAccessToken: zakToken,
         })
 

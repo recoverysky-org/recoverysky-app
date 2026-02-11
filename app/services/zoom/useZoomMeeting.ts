@@ -147,9 +147,9 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
           return { success: true }
         }
 
-        // Fallback to external Zoom app
+        // Fallback to external Zoom app (use original URL which has encrypted pwd)
         log.info("SDK not available, using external app", { mid: config.meetingId })
-        const zoomUrl = `https://zoom.us/j/${config.meetingNumber}${config.password ? `?pwd=${config.password}` : ""}`
+        const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
         await openInZoomApp(zoomUrl)
 
         setState("idle")

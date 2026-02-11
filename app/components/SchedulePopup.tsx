@@ -25,7 +25,7 @@ import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
-import { useZoomMeeting, extractZoomMeetingNumber, extractZoomPassword } from "@/services/zoom"
+import { useZoomMeeting, extractZoomMeetingNumber } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
@@ -133,9 +133,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     )
     log.info("Recorded join", { mid: meeting.id, joins: (feedback?.joins ?? 0) + 1 })
 
-    // Extract meeting number and password from URL
+    // Extract meeting number from URL
     const meetingNumber = extractZoomMeetingNumber(meeting.url)
-    const password = extractZoomPassword(meeting.url) || meeting.password || ""
+    // SDK expects the plaintext passcode, not the encrypted pwd from URLs
+    const password = meeting.password || ""
 
     if (!meetingNumber) {
       // Fallback for non-Zoom URLs
@@ -151,6 +152,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         userName: profileStore.displayName,
         meetingName: meeting.name,
         password,
+        meetingUrl: meeting.url,
       })
     } catch {
       // Error handling done in provider
