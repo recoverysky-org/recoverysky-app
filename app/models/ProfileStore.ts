@@ -187,6 +187,12 @@ export const ProfileStoreModel = types
 
       // === VOLATILE SETTERS (persist to SQLite) ===
 
+      /** Update volatile only (for real-time display name) — no SQLite write */
+      setShortNameLocal(value: string) {
+        self.shortName = value
+      },
+
+      /** Update volatile + persist to SQLite */
       setShortName(value: string) {
         self.shortName = value
         persistSecure({ shortName: value })

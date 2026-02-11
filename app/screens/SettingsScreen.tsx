@@ -1,4 +1,4 @@
-import { FC, useState, useCallback } from "react"
+import { FC, useState, useCallback, useEffect, useRef } from "react"
 import {
   View,
   ViewStyle,
@@ -78,6 +78,36 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   // MST Stores - reactive!
   const profileStore = useProfileStore()
   const authStore = useAuthenticationStore()
+
+  // Local buffer for shortName — decouples TextInput from MobX re-renders
+  // to prevent React Native's controlled TextInput from firing stale onChangeText events
+  const [localShortName, setLocalShortName] = useState(profileStore.shortName)
+  const localShortNameRef = useRef(localShortName)
+
+  // Sync store → local when hydrated from SQLite (replaces the pre-hydration default)
+  useEffect(() => {
+    if (profileStore.isHydrated) {
+      setLocalShortName(profileStore.shortName)
+      localShortNameRef.current = profileStore.shortName
+    }
+  }, [profileStore.isHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // On each keystroke: update local state + store volatile (for live Display Name)
+  const handleShortNameChange = useCallback(
+    (text: string) => {
+      setLocalShortName(text)
+      localShortNameRef.current = text
+      profileStore.setShortNameLocal(text)
+    },
+    [profileStore],
+  )
+
+  // Persist to SQLite on blur (single write, no races)
+  const handleShortNameBlur = useCallback(() => {
+    if (!profileStore.isHydrated) return
+    profileStore.setShortName(localShortNameRef.current)
+  }, [profileStore])
+
 
   // Subscription state from RevenueCat
   const {
@@ -169,7 +199,13 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const handleLogout = () => {
     Alert.alert(translate("settingsScreen:logout"), translate("settingsScreen:logoutConfirm"), [
       { text: translate("common:cancel"), style: "cancel" },
-      { text: translate("common:ok"), onPress: logout },
+      {
+        text: translate("common:ok"),
+        onPress: async () => {
+          await disconnectZoom()
+          await logout()
+        },
+      },
     ])
   }
 
@@ -324,8 +360,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         <View style={themed($settingsRow)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:shortName" />
           <TextField
-            value={profileStore.shortName}
-            onChangeText={profileStore.setShortName}
+            value={localShortName}
+            onChangeText={handleShortNameChange}
+            onBlur={handleShortNameBlur}
+            autoCorrect={false}
+            autoCapitalize="words"
+            spellCheck={false}
             placeholder={translate("settingsScreen:shortNamePlaceholder")}
             style={themed($shortNameInput)}
             inputWrapperStyle={themed($shortNameInputWrapper)}
