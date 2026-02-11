@@ -14,6 +14,10 @@ export interface AttendanceChange {
   id: string
   /** The full record (available on 'processed' events) */
   record?: AttendanceRecord
+  /** Our internal meeting ID (available on 'processed' events) */
+  mid?: string
+  /** Whether attendance met minimum duration (available on 'processed' events) */
+  valid?: boolean
 }
 
 type AttendanceChangeListener = (event: AttendanceChange) => void

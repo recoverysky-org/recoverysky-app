@@ -13,8 +13,8 @@
  * - Weekly schedule grid
  */
 
-import { FC, useMemo, useState, useEffect, useCallback } from "react"
-import { View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
+import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
+import { Animated, View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { feedbackCache, type FeedbackRecord } from "@/db"
+import { attendanceEvents, feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
 import { useZoomMeeting, extractZoomMeetingNumber } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
@@ -52,6 +52,53 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
   // Local feedback state - initialized from cache, updated on interactions
   const [feedback, setFeedback] = useState<FeedbackRecord | null>(null)
+
+  // Attendance banner state
+  const [showBanner, setShowBanner] = useState(false)
+  const bannerOpacity = useRef(new Animated.Value(0)).current
+  const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Subscribe to attendance events — show banner when attendance is recorded for this meeting
+  useEffect(() => {
+    if (!visible || !meeting?.id) return
+
+    const unsub = attendanceEvents.subscribe((event) => {
+      if (event.type === "processed" && event.mid === meeting.id && event.valid) {
+        setShowBanner(true)
+        Animated.timing(bannerOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start()
+
+        // Auto-hide after 4 seconds
+        bannerTimeoutRef.current = setTimeout(() => {
+          Animated.timing(bannerOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => setShowBanner(false))
+        }, 4000)
+      }
+    })
+
+    return () => {
+      unsub()
+      if (bannerTimeoutRef.current) clearTimeout(bannerTimeoutRef.current)
+    }
+  }, [visible, meeting?.id, bannerOpacity])
+
+  // Reset banner when popup closes
+  useEffect(() => {
+    if (!visible) {
+      setShowBanner(false)
+      bannerOpacity.setValue(0)
+      if (bannerTimeoutRef.current) {
+        clearTimeout(bannerTimeoutRef.current)
+        bannerTimeoutRef.current = null
+      }
+    }
+  }, [visible, bannerOpacity])
 
   // Load feedback from cache when popup opens (synchronous read)
   useEffect(() => {
@@ -173,6 +220,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
         <Pressable style={themed($content)} onPress={onClose}>
+          {/* Attendance banner */}
+          {showBanner && (
+            <Animated.View
+              style={[
+                $attendanceBanner,
+                { backgroundColor: theme.colors.tint, opacity: bannerOpacity },
+              ]}
+            >
+              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Text style={$attendanceBannerText} tx="zoomMeeting:attendanceSaved" />
+            </Animated.View>
+          )}
+
           {/* Header */}
           <View style={themed($header)}>
             {/* Fellowship badge */}
@@ -504,3 +564,20 @@ const $ratingContainer: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
   gap: 4,
 })
+
+const $attendanceBanner: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  paddingVertical: 10,
+  paddingHorizontal: 16,
+  borderRadius: 10,
+  marginBottom: 8,
+}
+
+const $attendanceBannerText: TextStyle = {
+  fontSize: 15,
+  fontWeight: "600",
+  color: "#FFFFFF",
+}

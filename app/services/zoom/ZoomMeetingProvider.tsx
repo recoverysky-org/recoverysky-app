@@ -26,7 +26,6 @@ import * as Crypto from "expo-crypto"
 import * as Device from "expo-device"
 import { ZoomSDKProvider, useZoom } from "@zoom/meetingsdk-react-native"
 
-import { useToast } from "@/components/Toast"
 import {
   attendanceRepo,
   attendanceEvents,
@@ -144,7 +143,6 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
   const profileStore = useProfileStore()
-  const { showToast } = useToast()
   const [error, setError] = useState<string | null>(null)
   const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
   const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
@@ -234,7 +232,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           credit: 0,
           valid: false,
         })
-        attendanceEvents.emit({ type: "processed", id: ctx.attendanceId })
+        attendanceEvents.emit({ type: "processed", id: ctx.attendanceId, mid: ctx.mid, valid: false })
       } catch (err) {
         log.error("Attendance save failed", { error: String(err) })
       }
@@ -252,12 +250,9 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
     try {
       await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
       log.info("Attendance saved", { valid, creditMins })
-      attendanceEvents.emit({ type: "processed", id: ctx.attendanceId })
+      attendanceEvents.emit({ type: "processed", id: ctx.attendanceId, mid: ctx.mid, valid })
 
-      if (valid) {
-        // Show success toast for valid attendance
-        showToast({ tx: "zoomMeeting:attendanceSaved", type: "success", duration: 3000 })
-      } else {
+      if (!valid) {
         // Show warning dialog if meeting was too short
         showShortMeetingWarning(creditMins)
       }
