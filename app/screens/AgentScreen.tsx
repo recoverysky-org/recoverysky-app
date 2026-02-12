@@ -107,9 +107,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     }
   }, [])
 
-  // Log agent URL for debugging
   const agentApiUrl = `${configStore.agentUrl}/api/v1/chat`
-  log.debug("Agent API URL", { url: agentApiUrl, configStoreLoaded: configStore.isLoaded })
 
   // Initialize chat with Vercel AI SDK
   const { messages, status, error, sendMessage, setMessages } = useChat({
