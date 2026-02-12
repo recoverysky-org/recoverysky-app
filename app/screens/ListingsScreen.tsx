@@ -9,6 +9,7 @@ import { FC, useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   View,
   ViewStyle,
   TextStyle,
@@ -274,52 +275,130 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     [themed, t, profileStore.fellowship, error],
   )
 
+  const ListHeaderComponent = useCallback(
+    () => (
+      <View>
+        {/* Header */}
+        <View style={themed($header)}>
+          <Text preset="heading" style={themed($title)}>
+            {t("listingsScreen:title")}
+          </Text>
+        </View>
+
+        {/* Fellowship Selector - single line */}
+        <TouchableOpacity
+          style={themed($fellowshipSelector)}
+          onPress={() => setFellowshipModalVisible(true)}
+        >
+          <Text style={themed($fellowshipLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
+          <View style={$selectorValueRow}>
+            <Text style={themed($selectorValue)}>{profileStore.fellowship || "AA"}</Text>
+            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Day and Language Selector Row */}
+        <View style={themed($selectorRow)}>
+          {/* Day Selector Button */}
+          <TouchableOpacity
+            style={themed($selectorButton)}
+            onPress={() => setDayModalVisible(true)}
+          >
+            <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
+            <View style={$selectorValueRow}>
+              <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
+              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Language Selector Button */}
+          <TouchableOpacity
+            style={themed($selectorButton)}
+            onPress={() => setLanguageModalVisible(true)}
+          >
+            <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
+            <View style={$selectorValueRow}>
+              <Text style={themed($selectorValue)}>
+                {selectedLanguage || t("listingsScreen:allLanguages")}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Time Range Buttons */}
+        <View style={themed($timeRangeRow)}>
+          <TouchableOpacity
+            style={themed($timeButton)}
+            onPress={() => setTimePickerVisible("start")}
+          >
+            <Text style={themed($timeButtonLabel)}>{t("listingsScreen:startLabel")}</Text>
+            <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
+          </TouchableOpacity>
+          <Text style={themed($timeSeparator)}>{t("listingsScreen:toSeparator")}</Text>
+          <TouchableOpacity
+            style={themed($timeButton)}
+            onPress={() => setTimePickerVisible("end")}
+          >
+            <Text style={themed($timeButtonLabel)}>{t("listingsScreen:endLabel")}</Text>
+            <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Meeting Count */}
+        {filteredMeetings.length > 0 && (
+          <View style={themed($countContainer)}>
+            <Text style={themed($countText)}>
+              {t("listingsScreen:meetingCount", { count: filteredMeetings.length })}
+            </Text>
+          </View>
+        )}
+
+        {/* Loading Indicator */}
+        {isLoading && meetings.length === 0 && (
+          <View style={themed($loadingContainer)}>
+            <ActivityIndicator size="large" color={theme.colors.tint} />
+          </View>
+        )}
+      </View>
+    ),
+    [
+      themed,
+      t,
+      theme.colors.tint,
+      profileStore.fellowship,
+      selectedDayLabel,
+      selectedLanguage,
+      startHour,
+      endHour,
+      formatHour,
+      filteredMeetings.length,
+      isLoading,
+      meetings.length,
+    ],
+  )
+
   return (
     <View style={$screenContainer}>
-      {/* Header */}
-      <View style={themed($header)}>
-        <Text preset="heading" style={themed($title)}>
-          {t("listingsScreen:title")}
-        </Text>
-      </View>
-
-      {/* Fellowship Selector - single line */}
-      <TouchableOpacity
-        style={themed($fellowshipSelector)}
-        onPress={() => setFellowshipModalVisible(true)}
-      >
-        <Text style={themed($fellowshipLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
-        <View style={$selectorValueRow}>
-          <Text style={themed($selectorValue)}>{profileStore.fellowship || "AA"}</Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-        </View>
-      </TouchableOpacity>
-
-      {/* Day and Language Selector Row */}
-      <View style={themed($selectorRow)}>
-        {/* Day Selector Button */}
-        <TouchableOpacity style={themed($selectorButton)} onPress={() => setDayModalVisible(true)}>
-          <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
-          <View style={$selectorValueRow}>
-            <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-          </View>
-        </TouchableOpacity>
-
-        {/* Language Selector Button */}
-        <TouchableOpacity
-          style={themed($selectorButton)}
-          onPress={() => setLanguageModalVisible(true)}
-        >
-          <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
-          <View style={$selectorValueRow}>
-            <Text style={themed($selectorValue)}>
-              {selectedLanguage || t("listingsScreen:allLanguages")}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-          </View>
-        </TouchableOpacity>
-      </View>
+      {/* Meetings List - full page scroll with filters in header */}
+      <FlatList
+        ref={listRef}
+        data={filteredMeetings}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={ListHeaderComponent}
+        ItemSeparatorComponent={ItemSeparatorComponent}
+        ListEmptyComponent={!isLoading ? ListEmptyComponent : null}
+        contentContainerStyle={themed($listContent)}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading && filteredMeetings.length > 0}
+            onRefresh={fetchDailySchedules}
+            tintColor={theme.colors.tint}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      />
 
       {/* Day Selector Modal */}
       <Modal
@@ -370,37 +449,12 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
           <View style={themed($modalContent)}>
             <Text style={themed($modalTitle)}>{t("listingsScreen:selectLanguage")}</Text>
-            {/* All option */}
-            <TouchableOpacity
-              style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
-              onPress={() => {
-                setSelectedLanguage(null)
-                setLanguageModalVisible(false)
-                listRef.current?.scrollToOffset({ offset: 0, animated: true })
-              }}
-            >
-              <Text
-                style={[
-                  themed($modalOptionText),
-                  !selectedLanguage && themed($modalOptionTextSelected),
-                ]}
-              >
-                {t("listingsScreen:allLanguages")}
-              </Text>
-              {!selectedLanguage && (
-                <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-              )}
-            </TouchableOpacity>
-            {/* Language options */}
-            {availableLanguages.map((lang) => (
+            <ScrollView bounces={false}>
+              {/* All option */}
               <TouchableOpacity
-                key={lang}
-                style={[
-                  themed($modalOption),
-                  selectedLanguage === lang && themed($modalOptionSelected),
-                ]}
+                style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
                 onPress={() => {
-                  setSelectedLanguage(lang)
+                  setSelectedLanguage(null)
                   setLanguageModalVisible(false)
                   listRef.current?.scrollToOffset({ offset: 0, animated: true })
                 }}
@@ -408,16 +462,43 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                 <Text
                   style={[
                     themed($modalOptionText),
-                    selectedLanguage === lang && themed($modalOptionTextSelected),
+                    !selectedLanguage && themed($modalOptionTextSelected),
                   ]}
                 >
-                  {lang}
+                  {t("listingsScreen:allLanguages")}
                 </Text>
-                {selectedLanguage === lang && (
+                {!selectedLanguage && (
                   <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
                 )}
               </TouchableOpacity>
-            ))}
+              {/* Language options */}
+              {availableLanguages.map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  style={[
+                    themed($modalOption),
+                    selectedLanguage === lang && themed($modalOptionSelected),
+                  ]}
+                  onPress={() => {
+                    setSelectedLanguage(lang)
+                    setLanguageModalVisible(false)
+                    listRef.current?.scrollToOffset({ offset: 0, animated: true })
+                  }}
+                >
+                  <Text
+                    style={[
+                      themed($modalOptionText),
+                      selectedLanguage === lang && themed($modalOptionTextSelected),
+                    ]}
+                  >
+                    {lang}
+                  </Text>
+                  {selectedLanguage === lang && (
+                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>
@@ -432,47 +513,36 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
           <View style={themed($modalContent)}>
             <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
-            {SELECTABLE_FELLOWSHIPS.map((f) => (
-              <TouchableOpacity
-                key={f.value}
-                style={[
-                  themed($modalOption),
-                  profileStore.fellowship === f.value && themed($modalOptionSelected),
-                ]}
-                onPress={() => {
-                  profileStore.setFellowship(f.value)
-                  setFellowshipModalVisible(false)
-                }}
-              >
-                <Text
+            <ScrollView bounces={false}>
+              {SELECTABLE_FELLOWSHIPS.map((f) => (
+                <TouchableOpacity
+                  key={f.value}
                   style={[
-                    themed($modalOptionText),
-                    profileStore.fellowship === f.value && themed($modalOptionTextSelected),
+                    themed($modalOption),
+                    profileStore.fellowship === f.value && themed($modalOptionSelected),
                   ]}
+                  onPress={() => {
+                    profileStore.setFellowship(f.value)
+                    setFellowshipModalVisible(false)
+                  }}
                 >
-                  {f.label}
-                </Text>
-                {profileStore.fellowship === f.value && (
-                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                )}
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      themed($modalOptionText),
+                      profileStore.fellowship === f.value && themed($modalOptionTextSelected),
+                    ]}
+                  >
+                    {f.label}
+                  </Text>
+                  {profileStore.fellowship === f.value && (
+                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>
-
-      {/* Time Range Buttons */}
-      <View style={themed($timeRangeRow)}>
-        <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("start")}>
-          <Text style={themed($timeButtonLabel)}>{t("listingsScreen:startLabel")}</Text>
-          <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
-        </TouchableOpacity>
-        <Text style={themed($timeSeparator)}>{t("listingsScreen:toSeparator")}</Text>
-        <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("end")}>
-          <Text style={themed($timeButtonLabel)}>{t("listingsScreen:endLabel")}</Text>
-          <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Time Picker Modal */}
       <Modal
@@ -520,41 +590,6 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           </View>
         </Pressable>
       </Modal>
-
-      {/* Meeting Count */}
-      {filteredMeetings.length > 0 && (
-        <View style={themed($countContainer)}>
-          <Text style={themed($countText)}>
-            {t("listingsScreen:meetingCount", { count: filteredMeetings.length })}
-          </Text>
-        </View>
-      )}
-
-      {/* Loading Indicator */}
-      {isLoading && meetings.length === 0 && (
-        <View style={themed($loadingContainer)}>
-          <ActivityIndicator size="large" color={theme.colors.tint} />
-        </View>
-      )}
-
-      {/* Meetings List */}
-      <FlatList
-        ref={listRef}
-        data={filteredMeetings}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ItemSeparatorComponent={ItemSeparatorComponent}
-        ListEmptyComponent={!isLoading ? ListEmptyComponent : null}
-        contentContainerStyle={themed($listContent)}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading && filteredMeetings.length > 0}
-            onRefresh={fetchDailySchedules}
-            tintColor={theme.colors.tint}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
 
       <SchedulePopup
         visible={selectedMeeting !== null}
@@ -721,6 +756,7 @@ const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.md,
   minWidth: 200,
   maxWidth: "80%",
+  maxHeight: "70%",
 })
 
 const $modalTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
