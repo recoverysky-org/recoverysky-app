@@ -8,8 +8,7 @@
       "env": {
         "EXPO_PUBLIC_RESEED_DB": "false",
         "EXPO_PUBLIC_API_URL": "https://api.recoverysky.app",
-        "EXPO_PUBLIC_AGENT_URL": "https://agent.recoverysky.app",
-        "EXPO_PUBLIC_JOIN_MEETING_ZID": ""
+        "EXPO_PUBLIC_AGENT_URL": "https://agent.recoverysky.app"
       }
     },
     "development": {
