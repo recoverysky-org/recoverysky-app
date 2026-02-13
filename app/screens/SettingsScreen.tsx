@@ -111,7 +111,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   // Subscription state from RevenueCat
   const {
-    isPro,
+    isPremium,
+    hasAttendance,
     isLoading: isSubscriptionLoading,
     subscriptionInfo,
     showPaywall,
@@ -260,9 +261,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   // Get subscription status text
   const getSubscriptionStatus = (): string => {
     if (isSubscriptionLoading) return "..."
-    if (isPro) {
-      if (subscriptionInfo?.isInTrial) return translate("settingsScreen:subscriptionProTrial")
-      return translate("settingsScreen:subscriptionPro")
+    if (isPremium) {
+      if (subscriptionInfo?.isInTrial) return translate("settingsScreen:subscriptionPremiumTrial")
+      return translate("settingsScreen:subscriptionPremium")
+    }
+    if (hasAttendance) {
+      return translate("settingsScreen:subscriptionAttendance")
     }
     return translate("settingsScreen:subscriptionFree")
   }
@@ -653,19 +657,21 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 style={themed($activitySpinner)}
               />
             )}
-            <Text style={[themed($rowValue), isPro && themed($premiumText)]}>
+            <Text
+              style={[themed($rowValue), (isPremium || hasAttendance) && themed($premiumText)]}
+            >
               {getSubscriptionStatus()}
             </Text>
           </View>
         </View>
 
-        {/* Expiration Date (only show if Pro) */}
-        {isPro && (
+        {/* Expiration Date (show for any paid tier) */}
+        {(isPremium || hasAttendance) && (
           <SettingsRow label={translate("settingsScreen:expires")} value={formatExpirationDate()} />
         )}
 
-        {/* Upgrade Button (only show if not Pro) */}
-        {!isPro && (
+        {/* Upgrade Button (show for Free and Attendance users) */}
+        {!isPremium && (
           <TouchableOpacity
             style={themed($upgradeButton)}
             onPress={handleUpgrade}
@@ -676,8 +682,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           </TouchableOpacity>
         )}
 
-        {/* Manage Subscription (only show if Pro) */}
-        {isPro && (
+        {/* Manage Subscription (show for any paid tier) */}
+        {(isPremium || hasAttendance) && (
           <TouchableOpacity
             style={themed($settingsRow)}
             onPress={handleManageSubscription}

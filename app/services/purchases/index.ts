@@ -20,7 +20,7 @@ export {
   initializeRevenueCat,
   getCustomerInfo,
   hasEntitlement,
-  hasProSubscription,
+  hasPremiumSubscription,
   getSubscriptionInfo,
   getOfferings,
   purchasePackage,

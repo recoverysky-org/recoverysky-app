@@ -34,8 +34,10 @@ type Result<T> = { ok: true; value: T } | { ok: false; error: string; code?: PUR
  * Subscription info for UI display
  */
 export interface SubscriptionInfo {
-  /** Whether user has active pro subscription */
-  isPro: boolean
+  /** Whether user has active premium subscription */
+  isPremium: boolean
+  /** Whether user has attendance report entitlement */
+  hasAttendance: boolean
   /** Active entitlements */
   activeEntitlements: string[]
   /** Expiration date of current subscription (if any) */
@@ -115,10 +117,10 @@ export async function hasEntitlement(entitlementId: EntitlementId): Promise<bool
 }
 
 /**
- * Check if user has Pro subscription
+ * Check if user has Premium subscription
  */
-export async function hasProSubscription(): Promise<boolean> {
-  return hasEntitlement(ENTITLEMENTS.PRO)
+export async function hasPremiumSubscription(): Promise<boolean> {
+  return hasEntitlement(ENTITLEMENTS.PREMIUM)
 }
 
 /**
@@ -127,16 +129,19 @@ export async function hasProSubscription(): Promise<boolean> {
 export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
   try {
     const customerInfo = await Purchases.getCustomerInfo()
-    const proEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.PRO]
+    const premiumEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]
+    const attendanceEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.ATTENDANCE]
 
     const info: SubscriptionInfo = {
-      isPro: proEntitlement !== undefined && proEntitlement.isActive,
+      isPremium: premiumEntitlement !== undefined && premiumEntitlement.isActive,
+      hasAttendance: attendanceEntitlement !== undefined && attendanceEntitlement.isActive,
       activeEntitlements: Object.keys(customerInfo.entitlements.active),
-      expirationDate: proEntitlement?.expirationDate
-        ? new Date(proEntitlement.expirationDate)
+      expirationDate: (premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)
+        ? new Date((premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)!)
         : null,
-      activeProductId: proEntitlement?.productIdentifier ?? null,
-      isInTrial: proEntitlement?.periodType === "TRIAL",
+      activeProductId: premiumEntitlement?.productIdentifier
+        ?? attendanceEntitlement?.productIdentifier ?? null,
+      isInTrial: (premiumEntitlement?.periodType ?? attendanceEntitlement?.periodType) === "TRIAL",
       managementUrl: customerInfo.managementURL ?? null,
     }
 
@@ -180,7 +185,7 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<Result<Cus
 
     log.info("Purchase completed", {
       packageId: pkg.identifier,
-      isPro: customerInfo.entitlements.active[ENTITLEMENTS.PRO] !== undefined,
+      isPremium: customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM] !== undefined,
     })
 
     return { ok: true, value: customerInfo }
@@ -215,7 +220,7 @@ export async function restorePurchases(): Promise<Result<CustomerInfo>> {
     const customerInfo = await Purchases.restorePurchases()
 
     log.info("Purchases restored", {
-      isPro: customerInfo.entitlements.active[ENTITLEMENTS.PRO] !== undefined,
+      isPremium: customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM] !== undefined,
     })
 
     return { ok: true, value: customerInfo }
@@ -277,7 +282,7 @@ export async function presentPaywallIfNeeded(): Promise<Result<boolean>> {
   try {
     log.info("Presenting paywall if needed")
     const result = await RevenueCatUI.presentPaywallIfNeeded({
-      requiredEntitlementIdentifier: ENTITLEMENTS.PRO,
+      requiredEntitlementIdentifier: ENTITLEMENTS.PREMIUM,
     })
 
     switch (result) {

@@ -49,8 +49,10 @@ export const REVENUECAT_CONFIG = {
  * These must match the entitlements configured in RevenueCat dashboard.
  */
 export const ENTITLEMENTS = {
-  /** RecoverySky Pro - Premium subscription access */
-  PRO: "RecoverySky Pro",
+  /** RecoverySky Premium - Premium subscription access (Agent, etc.) */
+  PREMIUM: "recoverysky-premium",
+  /** RecoverySky Attendance - Attendance report access */
+  ATTENDANCE: "recoverysky-attendance",
 } as const
 
 /**

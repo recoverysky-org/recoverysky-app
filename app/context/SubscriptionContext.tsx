@@ -20,7 +20,7 @@ import { CustomerInfo } from "react-native-purchases"
 import {
   initializeRevenueCat,
   getSubscriptionInfo,
-  hasProSubscription,
+  hasPremiumSubscription,
   presentPaywall,
   presentPaywallIfNeeded,
   restorePurchases,
@@ -42,8 +42,10 @@ interface SubscriptionContextValue {
   isInitialized: boolean
   /** Whether subscription info is loading */
   isLoading: boolean
-  /** Whether user has Pro subscription */
-  isPro: boolean
+  /** Whether user has Premium subscription */
+  isPremium: boolean
+  /** Whether user has attendance report entitlement */
+  hasAttendance: boolean
   /** Detailed subscription info */
   subscriptionInfo: SubscriptionInfo | null
   /** Error message if any */
@@ -65,7 +67,8 @@ interface SubscriptionContextValue {
 const SubscriptionContext = createContext<SubscriptionContextValue>({
   isInitialized: false,
   isLoading: true,
-  isPro: false,
+  isPremium: false,
+  hasAttendance: false,
   subscriptionInfo: null,
   error: null,
   showPaywall: async () => false,
@@ -84,11 +87,11 @@ export function useSubscription(): SubscriptionContextValue {
 }
 
 /**
- * Hook to check if user has Pro subscription
+ * Hook to check if user has Premium subscription
  */
-export function useIsPro(): boolean {
-  const { isPro } = useSubscription()
-  return isPro
+export function useIsPremium(): boolean {
+  const { isPremium } = useSubscription()
+  return isPremium
 }
 
 interface SubscriptionProviderProps {
@@ -107,7 +110,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
   const configStore = useConfigStore()
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isPro, setIsPro] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
+  const [hasAttendance, setHasAttendance] = useState(false)
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -118,7 +122,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     const result = await getSubscriptionInfo()
     if (result.ok) {
       setSubscriptionInfo(result.value)
-      setIsPro(result.value.isPro)
+      setIsPremium(result.value.isPremium)
+      setHasAttendance(result.value.hasAttendance)
       setError(null)
     } else {
       setError(result.error)
@@ -196,8 +201,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
 
     if (result.ok) {
       await loadSubscriptionInfo()
-      const isPro = await hasProSubscription()
-      return isPro
+      const premium = await hasPremiumSubscription()
+      return premium
     }
 
     setError(result.error)
@@ -248,7 +253,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     () => ({
       isInitialized,
       isLoading,
-      isPro,
+      isPremium,
+      hasAttendance,
       subscriptionInfo,
       error,
       showPaywall,
@@ -261,7 +267,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     [
       isInitialized,
       isLoading,
-      isPro,
+      isPremium,
+      hasAttendance,
       subscriptionInfo,
       error,
       showPaywall,
