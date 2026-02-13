@@ -202,6 +202,8 @@ const es: Translations = {
     expires: "Expira",
     upgradeToPro: "Actualizar a Premium",
     manageSubscription: "Gestionar Suscripción",
+    loginToSubscribe: "Iniciar Sesión para Suscribirse",
+    loginToSubscribeHint: "Las suscripciones requieren una cuenta en la app.",
     restorePurchases: "Restaurar Compras",
     subscriptionSuccess: "¡Bienvenido a Premium!",
     subscriptionSuccessMessage:

@@ -202,6 +202,8 @@ const en = {
     expires: "Expires",
     upgradeToPro: "Upgrade to Premium",
     manageSubscription: "Manage Subscription",
+    loginToSubscribe: "Login to Subscribe",
+    loginToSubscribeHint: "App subscriptions require an app account.",
     restorePurchases: "Restore Purchases",
     subscriptionSuccess: "Welcome to Premium!",
     subscriptionSuccessMessage:

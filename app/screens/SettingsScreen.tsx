@@ -30,6 +30,7 @@ import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { remove } from "@/utils/storage"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -117,6 +118,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     subscriptionInfo,
     showPaywall,
     restore,
+    refresh: subscriptionRefresh,
   } = useSubscription()
 
   // UI-only state (modals, pickers)
@@ -665,44 +667,96 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           </View>
         </View>
 
-        {/* Expiration Date (show for any paid tier) */}
-        {(isPremium || hasAttendance) && (
-          <SettingsRow label={translate("settingsScreen:expires")} value={formatExpirationDate()} />
-        )}
+        {authStore.isAnonymous ? (
+          /* Anonymous user: show only Login to Subscribe button */
+          <>
+            <TouchableOpacity
+              style={themed($upgradeButton)}
+              onPress={() => logout()}
+              accessibilityRole="button"
+            >
+              <Ionicons name="log-in" size={18} color={theme.colors.tint} />
+              <Text style={themed($upgradeButtonText)} tx="settingsScreen:loginToSubscribe" />
+            </TouchableOpacity>
+            <Text style={[themed($subscriptionHint), themed($lastRow)]} tx="settingsScreen:loginToSubscribeHint" />
+          </>
+        ) : (
+          <>
+            {/* Expiration Date (show for any paid tier) */}
+            {(isPremium || hasAttendance) && (
+              <SettingsRow
+                label={translate("settingsScreen:expires")}
+                value={formatExpirationDate()}
+              />
+            )}
 
-        {/* Upgrade Button (show for Free and Attendance users) */}
-        {!isPremium && (
-          <TouchableOpacity
-            style={themed($upgradeButton)}
-            onPress={handleUpgrade}
-            accessibilityRole="button"
-          >
-            <Ionicons name="rocket" size={18} color={theme.colors.tint} />
-            <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
-          </TouchableOpacity>
-        )}
+            {/* Upgrade Button (show for Free and Attendance users) */}
+            {!isPremium && (
+              <TouchableOpacity
+                style={themed($upgradeButton)}
+                onPress={handleUpgrade}
+                accessibilityRole="button"
+              >
+                <Ionicons name="rocket" size={18} color={theme.colors.tint} />
+                <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
+              </TouchableOpacity>
+            )}
 
-        {/* Manage Subscription (show for any paid tier) */}
-        {(isPremium || hasAttendance) && (
-          <TouchableOpacity
-            style={themed($settingsRow)}
-            onPress={handleManageSubscription}
-            accessibilityRole="button"
-          >
-            <Text style={themed($rowLabel)} tx="settingsScreen:manageSubscription" />
-            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-          </TouchableOpacity>
-        )}
+            {/* Manage Subscription (show for any paid tier) */}
+            {(isPremium || hasAttendance) && (
+              <TouchableOpacity
+                style={themed($settingsRow)}
+                onPress={handleManageSubscription}
+                accessibilityRole="button"
+              >
+                <Text style={themed($rowLabel)} tx="settingsScreen:manageSubscription" />
+                <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+              </TouchableOpacity>
+            )}
 
-        {/* Restore Purchases */}
-        <TouchableOpacity
-          style={[themed($settingsRow), themed($lastRow)]}
-          onPress={handleRestorePurchases}
-          accessibilityRole="button"
-        >
-          <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
-          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-        </TouchableOpacity>
+            {/* Restore Purchases */}
+            <TouchableOpacity
+              style={[themed($settingsRow), !__DEV__ && themed($lastRow)]}
+              onPress={handleRestorePurchases}
+              accessibilityRole="button"
+            >
+              <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </TouchableOpacity>
+
+            {/* DEV: Reset local subscription state for testing */}
+            {__DEV__ && (
+              <TouchableOpacity
+                style={[themed($settingsRow), themed($lastRow)]}
+                onPress={() => {
+                  Alert.alert(
+                    "Reset Subscription",
+                    "Clear local subscription state for testing?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Reset",
+                        style: "destructive",
+                        onPress: async () => {
+                          remove("attendance_auto_enabled")
+                          profileStore.setAttendanceEnabled(false)
+                          await subscriptionRefresh()
+                          Alert.alert("Done", "Local subscription state cleared.")
+                        },
+                      },
+                    ],
+                  )
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={[themed($rowLabel), { color: theme.colors.error }]}>
+                  DEV: Reset Subscription
+                </Text>
+                <Icon icon="caretRight" size={16} color={theme.colors.error} />
+              </TouchableOpacity>
+            )}
+          </>
+        )}
       </View>
 
       {/* Zoom Account Section */}
@@ -921,6 +975,13 @@ const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $logoutRowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
   marginRight: spacing.xs,
   transform: [{ rotate: "180deg" }],
+})
+
+const $subscriptionHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: spacing.sm,
 })
 
 const $premiumText: ThemedStyle<TextStyle> = () => ({
