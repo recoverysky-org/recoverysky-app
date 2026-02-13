@@ -29,7 +29,8 @@ import {
   logoutUser,
   type SubscriptionInfo,
 } from "@/services/purchases"
-import { useConfigStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
+import { loadString, saveString } from "@/utils/storage"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "SubscriptionContext" })
@@ -108,6 +109,7 @@ interface SubscriptionProviderProps {
  */
 export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, appUserId }) => {
   const configStore = useConfigStore()
+  const profileStore = useProfileStore()
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
@@ -166,6 +168,17 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
 
     return unsubscribe
   }, [isInitialized, loadSubscriptionInfo])
+
+  /**
+   * Auto-enable attendance tracking on first subscription detection only.
+   * Uses MMKV flag so it never re-enables if the user later disables it.
+   */
+  useEffect(() => {
+    if (hasAttendance && !loadString("attendance_auto_enabled")) {
+      profileStore.setAttendanceEnabled(true)
+      saveString("attendance_auto_enabled", "1")
+    }
+  }, [hasAttendance, profileStore])
 
   /**
    * Present paywall
