@@ -11,7 +11,6 @@ import { observer } from "mobx-react-lite"
 
 import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
-import { AttendanceReportsScreen } from "@/screens/AttendanceReportsScreen"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
@@ -76,11 +75,6 @@ const AppStack = observer(function AppStack() {
         ) : (
           <>
             <Stack.Screen name="Main" component={MainNavigator} />
-            <Stack.Screen
-              name="AttendanceReports"
-              component={AttendanceReportsScreen}
-              options={{ headerShown: false }}
-            />
             <Stack.Screen
               name="ZoomLogin"
               component={ZoomLoginScreen}
