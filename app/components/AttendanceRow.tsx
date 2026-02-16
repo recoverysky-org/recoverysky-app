@@ -23,8 +23,12 @@ interface AttendanceRowProps {
   record: AttendanceRecord
   /** Whether this record is selected */
   isSelected?: boolean
+  /** Whether to show the report selection toggle (requires entitlement) */
+  showReportSelect?: boolean
   /** Callback when selection toggle is pressed */
   onToggleSelect?: () => void
+  /** Callback when Archive is pressed */
+  onArchive?: () => void
   /** Callback when Delete is pressed */
   onDelete?: () => void
 }
@@ -41,7 +45,9 @@ interface AttendanceRowProps {
 export const AttendanceRow: FC<AttendanceRowProps> = ({
   record,
   isSelected = false,
+  showReportSelect = false,
   onToggleSelect,
+  onArchive,
   onDelete,
 }) => {
   const { themed, theme } = useAppTheme()
@@ -78,24 +84,35 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
         </Text>
       </View>
 
-      {/* Select/Deselect button */}
+      {/* Select/Deselect button (only with attendance entitlement) */}
+      {showReportSelect && (
+        <Pressable
+          onPress={onToggleSelect}
+          hitSlop={8}
+          style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+        >
+          <Ionicons
+            name={isSelected ? "remove-circle-outline" : "add-circle-outline"}
+            size={26}
+            color={isSelected ? theme.colors.error : theme.colors.tint}
+          />
+        </Pressable>
+      )}
+
+      {/* Archive button */}
       <Pressable
-        onPress={onToggleSelect}
+        onPress={onArchive}
         hitSlop={8}
-        style={({ pressed }) => [themed($addButton), pressed && $pressed]}
+        style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
       >
-        <Ionicons
-          name={isSelected ? "remove-circle-outline" : "add-circle-outline"}
-          size={26}
-          color={isSelected ? theme.colors.error : theme.colors.tint}
-        />
+        <Ionicons name="archive-outline" size={22} color={theme.colors.textDim} />
       </Pressable>
 
       {/* Delete button */}
       <Pressable
         onPress={onDelete}
         hitSlop={8}
-        style={({ pressed }) => [themed($addButton), pressed && $pressed]}
+        style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
       >
         <Ionicons name="trash-outline" size={22} color={theme.colors.textDim} />
       </Pressable>
@@ -134,7 +151,7 @@ const $meta: ThemedStyle<TextStyle> = ({ colors }) => ({
   marginTop: 2,
 })
 
-const $addButton: ThemedStyle<ViewStyle> = () => ({
+const $actionButton: ThemedStyle<ViewStyle> = () => ({
   padding: 4,
 })
 

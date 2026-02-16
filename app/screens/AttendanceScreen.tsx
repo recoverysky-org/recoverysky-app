@@ -28,6 +28,7 @@ import { Screen } from "@/components/Screen"
 import { SegmentedControl } from "@/components/SegmentedControl"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceRepo, attendanceEvents, type AttendanceRecord } from "@/db"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
@@ -49,12 +50,101 @@ const SECTIONS = [
 ]
 
 // ============================================================================
+// NewListHeader - Extracted so FlatList gets a stable reference
+// ============================================================================
+
+interface NewListHeaderProps {
+  recordCount: number
+  hasAttendance: boolean
+  selectedCount: number
+  onNavigateSettings: () => void
+}
+
+const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
+  recordCount,
+  hasAttendance,
+  selectedCount,
+  onNavigateSettings,
+}) {
+  const { themed, theme } = useAppTheme()
+  const profileStore = useProfileStore()
+
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const canSendReport = selectedCount > 0 && isValidEmail(profileStore.reportEmail)
+
+  const handleSendReport = () => {
+    Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
+  }
+
+  return (
+    <View style={themed($sectionHeader)}>
+      {recordCount > 0 && (
+        <Text style={themed($countText)}>
+          {recordCount} {recordCount === 1 ? "record" : "records"}
+        </Text>
+      )}
+
+      {hasAttendance ? (
+        <>
+          {/* Email Input */}
+          <View style={themed($emailSection)}>
+            <Text style={themed($emailLabel)} text="Report Email" />
+            <TextField
+              value={profileStore.reportEmail}
+              onChangeText={profileStore.setReportEmail}
+              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              inputWrapperStyle={themed($emailInputWrapper)}
+            />
+          </View>
+
+          {/* Send Report Button */}
+          <TouchableOpacity
+            style={[themed($sendButton), !canSendReport && themed($sendButtonDisabled)]}
+            onPress={handleSendReport}
+            disabled={!canSendReport}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="send"
+              size={18}
+              color={canSendReport ? theme.colors.tint : theme.colors.textDim}
+            />
+            <Text
+              style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)}
+              text="Send Report"
+            />
+          </TouchableOpacity>
+
+          {/* Help Text */}
+          <Text
+            style={themed($helpText)}
+            text="Enter a valid email and select one or more attendance records to send a report."
+          />
+        </>
+      ) : (
+        <View style={themed($subscribePrompt)}>
+          <Text style={themed($subscribeText)} tx="attendanceScreen:subscribeRequired" />
+          <TouchableOpacity onPress={onNavigateSettings}>
+            <Text style={themed($subscribeLink)} tx="attendanceScreen:goToSettings" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  )
+})
+
+// ============================================================================
 // NewContent - Unproduced attendance records
 // ============================================================================
 
-const NewContent: FC = observer(function NewContent() {
+const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function NewContent({
+  onNavigateSettings,
+}) {
   const { themed, theme } = useAppTheme()
-  const profileStore = useProfileStore()
+  const { hasAttendance } = useSubscription()
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -105,6 +195,10 @@ const NewContent: FC = observer(function NewContent() {
     })
   }, [])
 
+  const handleArchive = useCallback((_record: AttendanceRecord) => {
+    Alert.alert("Coming Soon", "Archive functionality will be available in a future update.")
+  }, [])
+
   const handleDelete = useCallback((record: AttendanceRecord) => {
     Alert.alert("Remove Attendance", "This will mark this attendance as invalid. Continue?", [
       { text: "Cancel", style: "cancel" },
@@ -130,11 +224,13 @@ const NewContent: FC = observer(function NewContent() {
       <AttendanceRow
         record={item}
         isSelected={selectedIds.has(item.id)}
+        showReportSelect={hasAttendance}
         onToggleSelect={() => handleToggleSelect(item.id)}
+        onArchive={() => handleArchive(item)}
         onDelete={() => handleDelete(item)}
       />
     ),
-    [selectedIds, handleToggleSelect, handleDelete],
+    [selectedIds, hasAttendance, handleToggleSelect, handleArchive, handleDelete],
   )
 
   const keyExtractor = useCallback((item: AttendanceRecord) => item.id, [])
@@ -151,71 +247,16 @@ const NewContent: FC = observer(function NewContent() {
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const canSendReport = selectedIds.size > 0 && isValidEmail(profileStore.reportEmail)
-
-  const handleSendReport = useCallback(() => {
-    Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
-  }, [])
-
   const ListHeaderComponent = useCallback(
     () => (
-      <View style={themed($sectionHeader)}>
-        {records.length > 0 && (
-          <Text style={themed($countText)}>
-            {records.length} {records.length === 1 ? "record" : "records"}
-          </Text>
-        )}
-
-        {/* Email Input */}
-        <View style={themed($emailSection)}>
-          <Text style={themed($emailLabel)} text="Report Email" />
-          <TextField
-            value={profileStore.reportEmail}
-            onChangeText={profileStore.setReportEmail}
-            placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            inputWrapperStyle={themed($emailInputWrapper)}
-          />
-        </View>
-
-        {/* Send Report Button */}
-        <TouchableOpacity
-          style={[themed($sendButton), !canSendReport && themed($sendButtonDisabled)]}
-          onPress={handleSendReport}
-          disabled={!canSendReport}
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="send"
-            size={18}
-            color={canSendReport ? theme.colors.tint : theme.colors.textDim}
-          />
-          <Text
-            style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)}
-            text="Send Report"
-          />
-        </TouchableOpacity>
-
-        {/* Help Text */}
-        <Text
-          style={themed($helpText)}
-          text="Enter a valid email and select one or more attendance records to send a report."
-        />
-      </View>
+      <NewListHeader
+        recordCount={records.length}
+        hasAttendance={hasAttendance}
+        selectedCount={selectedIds.size}
+        onNavigateSettings={onNavigateSettings}
+      />
     ),
-    [
-      themed,
-      theme.colors.tint,
-      theme.colors.textDim,
-      records.length,
-      profileStore.reportEmail,
-      profileStore.setReportEmail,
-      handleSendReport,
-      canSendReport,
-    ],
+    [records.length, hasAttendance, selectedIds.size, onNavigateSettings],
   )
 
   return (
@@ -492,9 +533,13 @@ const ReportsContent: FC = observer(function ReportsContent() {
 // ============================================================================
 
 export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
-  function AttendanceScreen(_props) {
+  function AttendanceScreen({ navigation }) {
     const { themed } = useAppTheme()
     const [activeSection, setActiveSection] = useState<AttendanceSection>("new")
+
+    const handleNavigateSettings = useCallback(() => {
+      navigation.navigate("Settings")
+    }, [navigation])
 
     const handleSectionChange = useCallback((index: number) => {
       const keys: AttendanceSection[] = ["new", "archive", "reports"]
@@ -521,7 +566,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
 
         {/* Content Views - all mounted, inactive ones hidden */}
         <View style={[$content, activeSection === "new" ? $contentVisible : $contentHidden]}>
-          <NewContent />
+          <NewContent onNavigateSettings={handleNavigateSettings} />
         </View>
         <View style={[$content, activeSection === "archive" ? $contentVisible : $contentHidden]}>
           <ArchiveContent />
@@ -658,6 +703,25 @@ const $helpText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   color: colors.textDim,
   textAlign: "center",
   marginTop: spacing.sm,
+})
+
+const $subscribePrompt: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  paddingVertical: spacing.lg,
+})
+
+const $subscribeText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  fontSize: 15,
+  lineHeight: 22,
+  marginBottom: spacing.sm,
+})
+
+const $subscribeLink: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontSize: 15,
+  fontWeight: "600",
 })
 
 const $reportsContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
