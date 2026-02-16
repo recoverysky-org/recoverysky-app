@@ -39,9 +39,9 @@ export const ProfileStoreModel = types
     // === NON-SENSITIVE (stored in MMKV via snapshots) ===
 
     // Display toggles (preferences, not personal data)
-    showCleanDate: types.optional(types.boolean, true),
-    showCleanDays: types.optional(types.boolean, true),
-    showPronouns: types.optional(types.boolean, true),
+    showCleanDate: types.optional(types.boolean, false),
+    showCleanDays: types.optional(types.boolean, false),
+    showPronouns: types.optional(types.boolean, false),
 
     // Account info
     subscription: types.optional(types.string, "Free"),
@@ -311,9 +311,9 @@ export const ProfileStoreModel = types
         self.language = ""
 
         // Reset props (non-sensitive) data
-        self.showCleanDate = true
-        self.showCleanDays = true
-        self.showPronouns = true
+        self.showCleanDate = false
+        self.showCleanDays = false
+        self.showPronouns = false
         self.subscription = "Free"
         self.subscriptionExpires = null
         self.themeColor = ""
