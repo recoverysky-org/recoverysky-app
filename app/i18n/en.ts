@@ -38,7 +38,8 @@ const en = {
   },
   loginScreen: {
     logIn: "Log In",
-    enterDetails: "Sign in to sync your data across devices, or continue anonymously.",
+    enterDetails:
+      "Log in to access app subscriptions and premium features. Subscriptions require a logged in account, or continue anonymously with basic free features.\n\nYou may login and logout at any time in Settings.",
     loginButton: "Login",
     continueAnonymously: "Continue Anonymously",
     openingBrowser: "Opening browser for authentication...",
