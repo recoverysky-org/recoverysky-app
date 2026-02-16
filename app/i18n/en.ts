@@ -60,7 +60,7 @@ const en = {
   zoomSetupScreen: {
     title: "Zoom Account Required",
     subtitle:
-      "A Zoom account is now required to join meetings. Connect your existing account or create a new one.",
+      "A Zoom account is required by Zoom to join meetings. Connect your existing account or create a new one.",
     connectWithZoom: "Connect with Zoom",
     createAccount: "Create a Zoom Account",
     continueAnonymously: "Continue Anonymously",
@@ -189,6 +189,8 @@ const en = {
     addToReport: "Add to Report",
     credit: "credit",
     minutes: "min",
+    subscribeRequired: "To produce attendance reports, you must subscribe.",
+    goToSettings: "Go to Subscriptions in Settings",
   },
   settingsScreen: {
     title: "Settings",

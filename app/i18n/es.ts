@@ -61,7 +61,7 @@ const es: Translations = {
   zoomSetupScreen: {
     title: "Cuenta de Zoom Requerida",
     subtitle:
-      "Se requiere una cuenta de Zoom para unirse a las reuniones. Conecta tu cuenta existente o crea una nueva.",
+      "Zoom requiere una cuenta de Zoom para unirse a las reuniones. Conecta tu cuenta existente o crea una nueva.",
     connectWithZoom: "Conectar con Zoom",
     createAccount: "Crear una Cuenta de Zoom",
     continueAnonymously: "Continuar Anónimamente",
@@ -189,6 +189,8 @@ const es: Translations = {
     addToReport: "Agregar al Informe",
     credit: "crédito",
     minutes: "min",
+    subscribeRequired: "Para producir informes de asistencia, debes suscribirte.",
+    goToSettings: "Ir a Suscripciones en Configuración",
   },
   settingsScreen: {
     title: "Configuración",
