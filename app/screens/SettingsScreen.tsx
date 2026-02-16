@@ -206,6 +206,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         text: translate("common:ok"),
         onPress: async () => {
           await disconnectZoom()
+          profileStore.setZoomConnected(false)
           await logout()
         },
       },
@@ -773,6 +774,15 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               label={translate("settingsScreen:zoomConnected")}
               value={zoomAuth?.zoomEmail || zoomAuth?.zoomDisplayName || ""}
             />
+            {/* Edit Zoom Profile */}
+            <TouchableOpacity
+              style={themed($settingsRow)}
+              onPress={() => Linking.openURL("https://zoom.us/profile")}
+              accessibilityRole="button"
+            >
+              <Text style={themed($rowLabel)} tx="settingsScreen:editZoomProfile" />
+              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+            </TouchableOpacity>
             {/* Disconnect button */}
             <TouchableOpacity
               style={[themed($settingsRow), themed($lastRow)]}
@@ -785,7 +795,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                     {
                       text: translate("settingsScreen:zoomDisconnect"),
                       style: "destructive",
-                      onPress: disconnectZoom,
+                      onPress: async () => {
+                        await disconnectZoom()
+                        profileStore.setZoomConnected(false)
+                      },
                     },
                   ],
                 )

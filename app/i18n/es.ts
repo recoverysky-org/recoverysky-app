@@ -57,6 +57,28 @@ const es: Translations = {
     infoText:
       "Conectar tu cuenta de Zoom te permite unirte a reuniones con tu nombre e imagen de perfil. Tus credenciales se almacenan de forma segura en tu dispositivo.",
   },
+  zoomSetupScreen: {
+    title: "Cuenta de Zoom Requerida",
+    subtitle:
+      "Se requiere una cuenta de Zoom para unirse a las reuniones. Conecta tu cuenta existente o crea una nueva.",
+    connectWithZoom: "Conectar con Zoom",
+    createAccount: "Crear una Cuenta de Zoom",
+    continueAnonymously: "Continuar Anónimamente",
+    openingBrowser: "Abriendo inicio de sesión de Zoom...",
+    or: "o",
+    anonymousWarningTitle: "Acceso Anónimo Limitado",
+    anonymousWarningMessage:
+      "Unirse a reuniones sin una cuenta de Zoom puede producir errores, ya que hay un número limitado de accesos anónimos permitidos. Si tienes problemas, puedes conectar tu cuenta de Zoom en cualquier momento desde Configuración.",
+    signupModalTitle: "Crear una Cuenta de Zoom",
+    signupModalBody:
+      "Después de crear tu cuenta, Zoom mostrará una página de suscripción. NO necesitas iniciar una prueba gratuita.",
+    signupModalNote:
+      "Cuando veas lo anterior, cierra la ventana del navegador y regresa a RecoverySky para iniciar sesión con tu nueva cuenta de Zoom.",
+    signupModalNote2:
+      "Puedes hacer clic en \"Take me to my basic account\" para completar tu perfil de Zoom, luego cierra la ventana del navegador y regresa a RecoverySky.",
+    signupModalContinue: "Abrir Registro de Zoom",
+    loading: "Verificando conexión de Zoom...",
+  },
   mainNavigator: {
     homeTab: "Inicio",
     liveTab: "En vivo",
@@ -216,6 +238,7 @@ const es: Translations = {
     zoomAccountSection: "Cuenta de Zoom",
     connectZoom: "Conectar Cuenta de Zoom",
     zoomConnected: "Conectado como",
+    editZoomProfile: "Editar Perfil de Zoom",
     zoomDisconnect: "Desconectar Zoom",
     zoomDisconnectConfirm: "¿Estás seguro de que deseas desconectar tu cuenta de Zoom?",
     zoomDisconnectSuccess: "Cuenta de Zoom desconectada",

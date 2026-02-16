@@ -14,6 +14,7 @@ import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
+import { ZoomSetupScreen } from "@/screens/ZoomSetupScreen"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
@@ -39,8 +40,9 @@ const AppStack = observer(function AppStack() {
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
   const isAuthenticated = authStore.isAuthenticated
+  const needsZoomSetup = !profileStore.zoomConnected
   const needsOnboarding = !profileStore.onboardingCompleted
-  log.debug("Auth state retrieved", { isAuthenticated, needsOnboarding })
+  log.debug("Auth state retrieved", { isAuthenticated, needsZoomSetup, needsOnboarding })
 
   const {
     theme: { colors },
@@ -48,15 +50,26 @@ const AppStack = observer(function AppStack() {
   log.debug("Theme retrieved")
 
   useEffect(() => {
-    log.info("AppStack mounted", { isAuthenticated, needsOnboarding })
+    log.info("AppStack mounted", { isAuthenticated, needsZoomSetup, needsOnboarding })
     return () => {
       log.debug("AppStack unmounting")
     }
-  }, [isAuthenticated, needsOnboarding])
+  }, [isAuthenticated, needsZoomSetup, needsOnboarding])
 
-  // Determine initial route based on auth and onboarding status
-  const initialRoute = !isAuthenticated ? "Login" : needsOnboarding ? "Onboarding" : "Main"
-  log.debug("Determining initial route", { initialRoute, isAuthenticated, needsOnboarding })
+  // Determine initial route based on auth, zoom, and onboarding status
+  const initialRoute = !isAuthenticated
+    ? "Login"
+    : needsZoomSetup
+      ? "ZoomSetup"
+      : needsOnboarding
+        ? "Onboarding"
+        : "Main"
+  log.debug("Determining initial route", {
+    initialRoute,
+    isAuthenticated,
+    needsZoomSetup,
+    needsOnboarding,
+  })
 
   return (
     <Stack.Navigator
@@ -70,7 +83,9 @@ const AppStack = observer(function AppStack() {
       initialRouteName={initialRoute}
     >
       {isAuthenticated ? (
-        needsOnboarding ? (
+        needsZoomSetup ? (
+          <Stack.Screen name="ZoomSetup" component={ZoomSetupScreen} />
+        ) : needsOnboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
         ) : (
           <>

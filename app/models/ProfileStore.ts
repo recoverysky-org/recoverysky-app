@@ -58,6 +58,9 @@ export const ProfileStoreModel = types
     attendanceEnabled: types.optional(types.boolean, false),
     reportEmail: types.optional(types.string, ""),
 
+    // Zoom
+    zoomConnected: types.optional(types.boolean, false),
+
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
   })
@@ -258,6 +261,10 @@ export const ProfileStoreModel = types
         self.attendanceEnabled = value
       },
 
+      setZoomConnected(value: boolean) {
+        self.zoomConnected = value
+      },
+
       setReportEmail(value: string) {
         self.reportEmail = value
       },
@@ -319,6 +326,7 @@ export const ProfileStoreModel = types
         self.themeColor = ""
         self.onboardingCompleted = false
         self.dontShowShortMeetingWarning = false
+        self.zoomConnected = false
         self.attendanceEnabled = false
         self.reportEmail = ""
         self.dismissedHomeCards.clear()

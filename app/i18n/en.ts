@@ -56,6 +56,28 @@ const en = {
     infoText:
       "Connecting your Zoom account lets you join meetings with your display name and profile picture. Your credentials are stored securely on your device.",
   },
+  zoomSetupScreen: {
+    title: "Zoom Account Required",
+    subtitle:
+      "A Zoom account is now required to join meetings. Connect your existing account or create a new one.",
+    connectWithZoom: "Connect with Zoom",
+    createAccount: "Create a Zoom Account",
+    continueAnonymously: "Continue Anonymously",
+    openingBrowser: "Opening Zoom login...",
+    or: "or",
+    anonymousWarningTitle: "Limited Anonymous Access",
+    anonymousWarningMessage:
+      "Joining meetings without a Zoom account may produce errors, as there is a limited number of anonymous joins allowed. If you experience issues, you can connect your Zoom account anytime in Settings.",
+    signupModalTitle: "Creating a Zoom Account",
+    signupModalBody:
+      "After creating your account, Zoom will show a subscription page. You do NOT need to start a free trial.",
+    signupModalNote:
+      "Once you see the above, close the browser window and return to RecoverySky to log in with your new Zoom account.",
+    signupModalNote2:
+      "You may click \"Take me to my basic account\" to complete your Zoom profile, then close the browser window and return to RecoverySky.",
+    signupModalContinue: "Open Zoom Signup",
+    loading: "Checking Zoom connection...",
+  },
   // Main Navigation
   mainNavigator: {
     homeTab: "Home",
@@ -216,6 +238,7 @@ const en = {
     zoomAccountSection: "Zoom Account",
     connectZoom: "Connect Zoom Account",
     zoomConnected: "Connected as",
+    editZoomProfile: "Edit Zoom Profile",
     zoomDisconnect: "Disconnect Zoom",
     zoomDisconnectConfirm: "Are you sure you want to disconnect your Zoom account?",
     zoomDisconnectSuccess: "Zoom account disconnected",
