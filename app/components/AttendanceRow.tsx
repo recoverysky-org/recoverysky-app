@@ -99,14 +99,16 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
         </Pressable>
       )}
 
-      {/* Archive button */}
-      <Pressable
-        onPress={onArchive}
-        hitSlop={8}
-        style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
-      >
-        <Ionicons name="archive-outline" size={22} color={theme.colors.textDim} />
-      </Pressable>
+      {/* Archive button (hidden when already archived) */}
+      {onArchive && (
+        <Pressable
+          onPress={onArchive}
+          hitSlop={8}
+          style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+        >
+          <Ionicons name="archive-outline" size={22} color={theme.colors.textDim} />
+        </Pressable>
+      )}
 
       {/* Delete button */}
       <Pressable

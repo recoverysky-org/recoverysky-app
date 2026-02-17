@@ -58,6 +58,7 @@ interface NewListHeaderProps {
   hasAttendance: boolean
   selectedCount: number
   onNavigateSettings: () => void
+  onSendReport: () => void
 }
 
 const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
@@ -65,16 +66,13 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
   hasAttendance,
   selectedCount,
   onNavigateSettings,
+  onSendReport,
 }) {
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const canSendReport = selectedCount > 0 && isValidEmail(profileStore.reportEmail)
-
-  const handleSendReport = () => {
-    Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
-  }
 
   return (
     <View style={themed($sectionHeader)}>
@@ -103,7 +101,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
           {/* Send Report Button */}
           <TouchableOpacity
             style={[themed($sendButton), !canSendReport && themed($sendButtonDisabled)]}
-            onPress={handleSendReport}
+            onPress={onSendReport}
             disabled={!canSendReport}
             accessibilityRole="button"
           >
@@ -195,8 +193,29 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
     })
   }, [])
 
-  const handleArchive = useCallback((_record: AttendanceRecord) => {
-    Alert.alert("Coming Soon", "Archive functionality will be available in a future update.")
+  const handleArchive = useCallback((record: AttendanceRecord) => {
+    Alert.alert("Archive Attendance", "Move this record to the archive?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Archive",
+        onPress: async () => {
+          try {
+            await attendanceRepo.markArchived(record.id)
+            setRecords((prev) => prev.filter((r) => r.id !== record.id))
+            setSelectedIds((prev) => {
+              const next = new Set(prev)
+              next.delete(record.id)
+              return next
+            })
+            attendanceEvents.emit({ type: "archived", id: record.id })
+            logger.info("Attendance archived", { id: record.id })
+          } catch (error) {
+            logger.error("Failed to archive attendance", { error: String(error) })
+            Alert.alert("Error", "Failed to archive attendance record.")
+          }
+        },
+      },
+    ])
   }, [])
 
   const handleDelete = useCallback((record: AttendanceRecord) => {
@@ -247,6 +266,26 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
+  const handleSendReport = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    try {
+      const ids = Array.from(selectedIds)
+      for (const id of ids) {
+        await attendanceRepo.markArchived(id)
+      }
+      setRecords((prev) => prev.filter((r) => !selectedIds.has(r.id)))
+      setSelectedIds(new Set())
+      for (const id of ids) {
+        attendanceEvents.emit({ type: "archived", id })
+      }
+      logger.info("Report sent and records archived", { count: ids.length })
+      Alert.alert("Report Sent", `${ids.length} attendance record(s) archived.`)
+    } catch (error) {
+      logger.error("Failed to send report", { error: String(error) })
+      Alert.alert("Error", "Failed to send report.")
+    }
+  }, [selectedIds])
+
   const ListHeaderComponent = useCallback(
     () => (
       <NewListHeader
@@ -254,9 +293,10 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
         hasAttendance={hasAttendance}
         selectedCount={selectedIds.size}
         onNavigateSettings={onNavigateSettings}
+        onSendReport={handleSendReport}
       />
     ),
-    [records.length, hasAttendance, selectedIds.size, onNavigateSettings],
+    [records.length, hasAttendance, selectedIds.size, onNavigateSettings, handleSendReport],
   )
 
   return (
@@ -286,19 +326,16 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
 
 const ArchiveContent: FC = observer(function ArchiveContent() {
   const { themed, theme } = useAppTheme()
-  const profileStore = useProfileStore()
   const [records, setRecords] = useState<AttendanceRecord[]>([])
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
 
   const loadRecords = useCallback(async () => {
     setIsLoading(true)
     try {
-      const result = await attendanceRepo.findUnproduced()
+      const result = await attendanceRepo.findArchived()
       if (result.ok) {
-        const validRecords = result.value.filter((r) => r.valid)
         setRecords(
-          validRecords.map((r) => ({
+          result.value.map((r) => ({
             ...r,
             meetingName: r.meetingName || "Unknown Meeting",
           })),
@@ -319,23 +356,11 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
   useEffect(() => {
     return attendanceEvents.subscribe((event) => {
-      if (event.type === "processed") {
+      if (event.type === "archived") {
         void loadRecords()
       }
     })
   }, [loadRecords])
-
-  const handleToggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }, [])
 
   const handleDelete = useCallback((record: AttendanceRecord) => {
     Alert.alert("Remove Attendance", "This will mark this attendance as invalid. Continue?", [
@@ -359,14 +384,9 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
   const renderItem = useCallback(
     ({ item }: { item: AttendanceRecord }) => (
-      <AttendanceRow
-        record={item}
-        isSelected={selectedIds.has(item.id)}
-        onToggleSelect={() => handleToggleSelect(item.id)}
-        onDelete={() => handleDelete(item)}
-      />
+      <AttendanceRow record={item} onDelete={() => handleDelete(item)} />
     ),
-    [selectedIds, handleToggleSelect, handleDelete],
+    [handleDelete],
   )
 
   const keyExtractor = useCallback((item: AttendanceRecord) => item.id, [])
@@ -383,13 +403,6 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const canSendReport = selectedIds.size > 0 && isValidEmail(profileStore.reportEmail)
-
-  const handleSendReport = useCallback(() => {
-    Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
-  }, [])
-
   const ListHeaderComponent = useCallback(
     () => (
       <View style={themed($sectionHeader)}>
@@ -398,56 +411,9 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
             {records.length} {records.length === 1 ? "record" : "records"}
           </Text>
         )}
-
-        {/* Email Input */}
-        <View style={themed($emailSection)}>
-          <Text style={themed($emailLabel)} text="Report Email" />
-          <TextField
-            value={profileStore.reportEmail}
-            onChangeText={profileStore.setReportEmail}
-            placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            inputWrapperStyle={themed($emailInputWrapper)}
-          />
-        </View>
-
-        {/* Send Report Button */}
-        <TouchableOpacity
-          style={[themed($sendButton), !canSendReport && themed($sendButtonDisabled)]}
-          onPress={handleSendReport}
-          disabled={!canSendReport}
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="send"
-            size={18}
-            color={canSendReport ? theme.colors.tint : theme.colors.textDim}
-          />
-          <Text
-            style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)}
-            text="Send Report"
-          />
-        </TouchableOpacity>
-
-        {/* Help Text */}
-        <Text
-          style={themed($helpText)}
-          text="Enter a valid email and select one or more attendance records to send a report."
-        />
       </View>
     ),
-    [
-      themed,
-      theme.colors.tint,
-      theme.colors.textDim,
-      records.length,
-      profileStore.reportEmail,
-      profileStore.setReportEmail,
-      handleSendReport,
-      canSendReport,
-    ],
+    [themed, records.length],
   )
 
   return (

@@ -158,6 +158,16 @@ export const attendanceRepo = {
     return getAttendanceRepo().findUnproduced()
   },
 
+  /** Find archived attendance records */
+  findArchived: async () => {
+    return getAttendanceRepo().findArchived()
+  },
+
+  /** Mark an attendance record as archived */
+  markArchived: async (id: string) => {
+    return getAttendanceRepo().markArchived(id)
+  },
+
   /** Find all attendance records */
   findAll: async () => {
     return getAttendanceRepo().findAll()

@@ -7,7 +7,7 @@
 
 import type { AttendanceRecord } from "./repositories"
 
-export type AttendanceChangeType = "created" | "processed" | "produced"
+export type AttendanceChangeType = "created" | "processed" | "produced" | "archived"
 
 export interface AttendanceChange {
   type: AttendanceChangeType
