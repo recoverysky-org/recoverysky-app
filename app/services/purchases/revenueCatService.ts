@@ -21,7 +21,7 @@ import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui"
 
 import { logger } from "@/utils/logger"
 
-import { REVENUECAT_CONFIG, ENTITLEMENTS, type EntitlementId } from "./config"
+import { REVENUECAT_CONFIG, ENTITLEMENTS, OFFERINGS, type EntitlementId } from "./config"
 
 const log = logger.child({ module: "RevenueCatService" })
 
@@ -159,11 +159,26 @@ export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
 
 /**
  * Get available offerings
+ *
+ * Fetches the offering for the current environment:
+ * - __DEV__: 'premium-standard' offering (simulator/dev testing)
+ * - Production: 'default' offering
+ *
+ * Falls back to `offerings.current` if the named offering isn't found.
  */
 export async function getOfferings(): Promise<Result<PurchasesOffering | null>> {
   try {
+    const offeringId = OFFERINGS.getOfferingId()
     const offerings = await Purchases.getOfferings()
-    return { ok: true, value: offerings.current }
+    const offering = offerings.all[offeringId] ?? offerings.current
+    log.info("Resolved offering", {
+      requestedId: offeringId,
+      found: !!offerings.all[offeringId],
+      resolvedId: offering?.identifier,
+      availableOfferings: Object.keys(offerings.all),
+      packages: offering?.availablePackages.map((p) => p.identifier),
+    })
+    return { ok: true, value: offering }
   } catch (error) {
     const purchasesError = error as PurchasesError
     log.error("Failed to get offerings", { error: purchasesError.message })
@@ -239,12 +254,17 @@ export async function restorePurchases(): Promise<Result<CustomerInfo>> {
  * Present RevenueCat Paywall
  *
  * Shows the paywall UI configured in RevenueCat dashboard.
+ * Uses the environment-appropriate offering (dev: 'premium-standard', prod: 'default').
  * Returns true if a purchase was made or restored.
  */
 export async function presentPaywall(): Promise<Result<boolean>> {
   try {
-    log.info("Presenting paywall")
-    const result = await RevenueCatUI.presentPaywall()
+    // Fetch the correct offering for the environment
+    const offeringsResult = await getOfferings()
+    const offering = offeringsResult.ok ? offeringsResult.value ?? undefined : undefined
+
+    log.info("Presenting paywall", { offering: offering?.identifier })
+    const result = await RevenueCatUI.presentPaywall({ offering })
 
     switch (result) {
       case PAYWALL_RESULT.PURCHASED:
@@ -280,9 +300,14 @@ export async function presentPaywall(): Promise<Result<boolean>> {
  */
 export async function presentPaywallIfNeeded(): Promise<Result<boolean>> {
   try {
-    log.info("Presenting paywall if needed")
+    // Fetch the correct offering for the environment
+    const offeringsResult = await getOfferings()
+    const offering = offeringsResult.ok ? offeringsResult.value ?? undefined : undefined
+
+    log.info("Presenting paywall if needed", { offering: offering?.identifier })
     const result = await RevenueCatUI.presentPaywallIfNeeded({
       requiredEntitlementIdentifier: ENTITLEMENTS.PREMIUM,
+      offering,
     })
 
     switch (result) {
