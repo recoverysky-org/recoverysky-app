@@ -30,7 +30,6 @@ import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
-import { remove } from "@/utils/storage"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -717,45 +716,13 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
             {/* Restore Purchases */}
             <TouchableOpacity
-              style={[themed($settingsRow), !__DEV__ && themed($lastRow)]}
+              style={[themed($settingsRow), themed($lastRow)]}
               onPress={handleRestorePurchases}
               accessibilityRole="button"
             >
               <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </TouchableOpacity>
-
-            {/* DEV: Reset local subscription state for testing */}
-            {__DEV__ && (
-              <TouchableOpacity
-                style={[themed($settingsRow), themed($lastRow)]}
-                onPress={() => {
-                  Alert.alert(
-                    "Reset Subscription",
-                    "Clear local subscription state for testing?",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Reset",
-                        style: "destructive",
-                        onPress: async () => {
-                          remove("attendance_auto_enabled")
-                          profileStore.setAttendanceEnabled(false)
-                          await subscriptionRefresh()
-                          Alert.alert("Done", "Local subscription state cleared.")
-                        },
-                      },
-                    ],
-                  )
-                }}
-                accessibilityRole="button"
-              >
-                <Text style={[themed($rowLabel), { color: theme.colors.error }]}>
-                  DEV: Reset Subscription
-                </Text>
-                <Icon icon="caretRight" size={16} color={theme.colors.error} />
-              </TouchableOpacity>
-            )}
           </>
         )}
       </View>

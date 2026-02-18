@@ -1,3 +1,4 @@
+import { Platform } from "react-native"
 import { flow, Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { api } from "@/services/api"
@@ -30,8 +31,12 @@ export const ConfigStoreModel = types
     zoomSdkSecret: types.optional(types.string, process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""),
     /** Anonymous auth API key */
     authKey: types.optional(types.string, process.env.EXPO_PUBLIC_AUTH_KEY || ""),
-    /** RevenueCat API key (from server /config) */
-    revenueCatApiKey: types.optional(types.string, ""),
+    /** RevenueCat test API key (from server /config) */
+    revenueCatTestKey: types.optional(types.string, ""),
+    /** RevenueCat Apple API key (from server /config) */
+    revenueCatAppleKey: types.optional(types.string, ""),
+    /** RevenueCat Google API key (from server /config) */
+    revenueCatGoogleKey: types.optional(types.string, ""),
     /** ZAK service API key (from server /config) */
     zakApiKey: types.optional(types.string, ""),
     /** OTLP collector API key (from server /config) */
@@ -45,6 +50,13 @@ export const ConfigStoreModel = types
     /** Whether we have valid config (either from server or defaults) */
     get hasConfig() {
       return !!store.apiUrl && !!store.agentUrl
+    },
+    /** RevenueCat API key — test key in __DEV__, platform key in production */
+    get revenueCatApiKey(): string {
+      if (__DEV__) return store.revenueCatTestKey
+      if (Platform.OS === "ios") return store.revenueCatAppleKey
+      if (Platform.OS === "android") return store.revenueCatGoogleKey
+      return store.revenueCatTestKey
     },
   }))
   .actions((store) => ({
@@ -65,7 +77,9 @@ export const ConfigStoreModel = types
           if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
           if (config.ZOOM_SDK_KEY) store.zoomSdkKey = config.ZOOM_SDK_KEY
           if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
-          if (config.REVENUE_CAT_API_KEY) store.revenueCatApiKey = config.REVENUE_CAT_API_KEY
+          if (config.REVENUE_CAT_API_TEST_KEY) store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
+          if (config.REVENUE_CAT_API_APPLE_KEY) store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
+          if (config.REVENUE_CAT_API_GOOGLE_KEY) store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
           if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
           if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
           store.isLoaded = true
@@ -92,7 +106,9 @@ export const ConfigStoreModel = types
       store.zoomSdkKey = process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""
       store.zoomSdkSecret = process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""
       store.authKey = process.env.EXPO_PUBLIC_AUTH_KEY || ""
-      store.revenueCatApiKey = ""
+      store.revenueCatTestKey = ""
+      store.revenueCatAppleKey = ""
+      store.revenueCatGoogleKey = ""
       store.zakApiKey = ""
       store.otlpApiKey = ""
       store.isLoaded = false

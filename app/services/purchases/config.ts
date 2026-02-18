@@ -10,35 +10,33 @@ import { Platform } from "react-native"
 /**
  * RevenueCat API Keys
  *
- * IMPORTANT: Never ship with test API key to production!
- * Use environment variables or build configurations in production.
+ * Keys are provided by the server via /config endpoint and stored in ConfigStore.
+ * These hardcoded values serve as fallbacks only if the server config is unavailable.
+ *
+ * In __DEV__: uses the test store key (RevenueCat test environment)
+ * In production: uses platform-specific keys (Apple sandbox/production auto-detected)
  */
 export const REVENUECAT_CONFIG = {
-  // Test Store API key - use for development only
+  // Fallback keys — server-provided keys in ConfigStore take priority
   testApiKey: "test_LDsvtXxrdEkYzSXrbqMcKOiomvI",
-
-  // Platform-specific API keys for production
-  // TODO: Replace with actual production keys from RevenueCat dashboard
-  iosApiKey: "appl_XXXXXXXXXXXXXXXXXXXXXXXXXX",
-  androidApiKey: "goog_XXXXXXXXXXXXXXXXXXXXXXXXXX",
+  iosApiKey: "appl_MnVawjDDhxwzeRUBWsWuXjPOaNo",
+  androidApiKey: "",
 
   /**
-   * Get the appropriate API key based on environment and platform
+   * Get the fallback API key based on environment and platform.
+   * Prefer configStore.revenueCatApiKey over this when available.
    */
   getApiKey(): string {
-    // Use test key for development
     if (__DEV__) {
       return this.testApiKey
     }
 
-    // Use platform-specific keys for production
     if (Platform.OS === "ios") {
       return this.iosApiKey
     } else if (Platform.OS === "android") {
       return this.androidApiKey
     }
 
-    // Fallback to test key (should not happen in production)
     return this.testApiKey
   },
 } as const
@@ -73,10 +71,24 @@ export const PRODUCTS = {
  * Offering Identifiers
  *
  * These must match the offerings configured in RevenueCat dashboard.
+ * In __DEV__ (simulator), we use a specific test offering.
  */
 export const OFFERINGS = {
   /** Default offering shown to all users */
   DEFAULT: "default",
+  /** Premium standard offering for simulator/dev testing */
+  PREMIUM_STANDARD: "premium-standard",
+
+  /**
+   * Get the offering identifier for the current environment.
+   * Simulator/dev uses 'premium-standard', production uses 'default'.
+   */
+  getOfferingId(): string {
+    if (__DEV__) {
+      return this.PREMIUM_STANDARD
+    }
+    return this.DEFAULT
+  },
 } as const
 
 export type EntitlementId = (typeof ENTITLEMENTS)[keyof typeof ENTITLEMENTS]
