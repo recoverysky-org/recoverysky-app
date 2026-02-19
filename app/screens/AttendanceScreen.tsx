@@ -29,9 +29,9 @@ import { SegmentedControl } from "@/components/SegmentedControl"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { attendanceRepo, attendanceEvents, type AttendanceRecord } from "@/db"
+import { attendanceRepo, attendanceReportRepo, attendanceEvents, type AttendanceRecord } from "@/db"
 import { translate } from "@/i18n"
-import { useProfileStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -143,6 +143,8 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
 }) {
   const { themed, theme } = useAppTheme()
   const { hasAttendance } = useSubscription()
+  const authStore = useAuthenticationStore()
+  const profileStore = useProfileStore()
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -270,21 +272,42 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
     if (selectedIds.size === 0) return
     try {
       const ids = Array.from(selectedIds)
-      for (const id of ids) {
-        await attendanceRepo.markArchived(id)
+
+      // 1. Create attendance_report record
+      const reportResult = await attendanceReportRepo.create({
+        uid: authStore.userId ?? "",
+        email: profileStore.reportEmail,
+        generated: Date.now(),
+      })
+      if (!reportResult.ok) {
+        logger.error("Failed to create attendance report", { error: String(reportResult.error) })
+        Alert.alert("Error", "Failed to create attendance report.")
+        return
       }
+      const reportId = reportResult.value
+
+      // 2. Mark each selected attendance as produced (also archives)
+      for (const id of ids) {
+        await attendanceRepo.markProduced(id, reportId)
+      }
+
+      // 3. Update local state
       setRecords((prev) => prev.filter((r) => !selectedIds.has(r.id)))
       setSelectedIds(new Set())
+
+      // 4. Emit events for other tabs
+      attendanceEvents.emit({ type: "produced", id: reportId, reportId })
       for (const id of ids) {
         attendanceEvents.emit({ type: "archived", id })
       }
-      logger.info("Report sent and records archived", { count: ids.length })
-      Alert.alert("Report Sent", `${ids.length} attendance record(s) archived.`)
+
+      logger.info("Attendance report created", { reportId, count: ids.length })
+      Alert.alert("Report Created", `${ids.length} attendance record(s) included in report.`)
     } catch (error) {
-      logger.error("Failed to send report", { error: String(error) })
-      Alert.alert("Error", "Failed to send report.")
+      logger.error("Failed to create report", { error: String(error) })
+      Alert.alert("Error", "Failed to create attendance report.")
     }
-  }, [selectedIds])
+  }, [selectedIds, authStore.userId, profileStore.reportEmail])
 
   const ListHeaderComponent = useCallback(
     () => (

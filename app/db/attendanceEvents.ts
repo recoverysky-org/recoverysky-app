@@ -18,6 +18,8 @@ export interface AttendanceChange {
   mid?: string
   /** Whether attendance met minimum duration (available on 'processed' events) */
   valid?: boolean
+  /** Attendance report ID (available on 'produced' events) */
+  reportId?: string
 }
 
 type AttendanceChangeListener = (event: AttendanceChange) => void

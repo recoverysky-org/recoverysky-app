@@ -32,6 +32,7 @@ export {
   scheduleRepo,
   syncQueueRepo,
   attendanceRepo,
+  attendanceReportRepo,
   feedbackRepo,
   chatMessageRepo,
   profileRepository,
@@ -44,6 +45,9 @@ export {
   type AttendanceUpdateInput,
   type AttendanceRecord,
   type AttendanceEvent, // SDK event interface
+  type AttendanceReportRecord,
+  type AttendanceReportCreateInput,
+  type AttendanceReportUpdateInput,
   type FeedbackRecord,
   type FeedbackInput,
   type ChatMessageRecord,

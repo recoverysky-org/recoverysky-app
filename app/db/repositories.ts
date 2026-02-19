@@ -18,12 +18,16 @@ import {
   ScheduleSqliteRepository,
   SyncQueueRepository,
   AttendanceSqliteRepository,
+  AttendanceReportSqliteRepository,
   FeedbackSqliteRepository,
   ChatMessageSqliteRepository,
   ZoomAuthSqliteRepository,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
+  type AttendanceReportRecord,
+  type AttendanceReportCreateInput,
+  type AttendanceReportUpdateInput,
   type FeedbackRecord,
   type FeedbackInput,
   type ChatMessageRecord,
@@ -168,6 +172,16 @@ export const attendanceRepo = {
     return getAttendanceRepo().markArchived(id)
   },
 
+  /** Mark attendance as produced (link to a report, also archives) */
+  markProduced: async (id: string, arid: string) => {
+    return getAttendanceRepo().markProduced(id, arid)
+  },
+
+  /** Find attendance records linked to a specific report */
+  findByReportId: async (arid: string) => {
+    return getAttendanceRepo().findByReportId(arid)
+  },
+
   /** Find all attendance records */
   findAll: async () => {
     return getAttendanceRepo().findAll()
@@ -204,6 +218,65 @@ export const attendanceRepo = {
 
 // Re-export types for convenience
 export type { AttendanceCreateInput, AttendanceUpdateInput, AttendanceRecord }
+
+// ============================================================================
+// Attendance Report Repository
+// ============================================================================
+
+let _attendanceReportRepo: AttendanceReportSqliteRepository | null = null
+
+function getAttendanceReportRepo(): AttendanceReportSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_attendanceReportRepo)
+    _attendanceReportRepo = new AttendanceReportSqliteRepository(db as any)
+  return _attendanceReportRepo
+}
+
+/**
+ * Attendance report repository instance (lazy)
+ *
+ * Stores generated attendance reports with email delivery tracking.
+ */
+export const attendanceReportRepo = {
+  /** Create a new attendance report */
+  create: async (input: AttendanceReportCreateInput) => {
+    return getAttendanceReportRepo().create(input)
+  },
+
+  /** Find report by ID */
+  findById: async (id: string) => {
+    return getAttendanceReportRepo().findById(id)
+  },
+
+  /** Find all reports for a user */
+  findByUserId: async (uid: string) => {
+    return getAttendanceReportRepo().findByUserId(uid)
+  },
+
+  /** Find all reports */
+  findAll: async () => {
+    return getAttendanceReportRepo().findAll()
+  },
+
+  /** Update a report */
+  update: async (id: string, input: AttendanceReportUpdateInput) => {
+    return getAttendanceReportRepo().update(id, input)
+  },
+
+  /** Mark report email as sent with confirmation ID */
+  markEmailSent: async (id: string, confirmation: string) => {
+    return getAttendanceReportRepo().markEmailSent(id, confirmation)
+  },
+
+  /** Delete a report */
+  delete: async (id: string) => {
+    return getAttendanceReportRepo().delete(id)
+  },
+}
+
+// Re-export report types for convenience
+export type { AttendanceReportRecord, AttendanceReportCreateInput, AttendanceReportUpdateInput }
 
 // ============================================================================
 // Feedback Repository
