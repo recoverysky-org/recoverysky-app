@@ -66,7 +66,7 @@ export const ProfileStoreModel = types
   })
   .volatile(() => ({
     // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
-    shortName: "Joe B.",
+    shortName: "Anonymous",
     pronouns: null as Pronouns,
     recoveryDate: new Date().toISOString().split("T")[0],
     fellowship: "AA",

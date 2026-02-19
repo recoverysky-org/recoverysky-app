@@ -199,7 +199,7 @@ const en = {
     profileSection: "Profile",
     displayName: "Display Name",
     shortName: "Short Name",
-    shortNamePlaceholder: "e.g., Joe B.",
+    shortNamePlaceholder: "e.g., Jane D.",
     showCleanDate: "Show Recovery Date",
     showCleanDays: "Show Recovery Days",
     showPronouns: "Show Pronouns",
@@ -291,7 +291,7 @@ const en = {
     profileTitle: "Tell us about yourself",
     profileSubtitle: "This is your in-meeting profile",
     shortName: "Short Name",
-    shortNamePlaceholder: "e.g., Joe B.",
+    shortNamePlaceholder: "e.g., Jane D.",
     pronouns: "Pronouns",
     selectPronouns: "Select pronouns",
     // Screen 2: Recovery
