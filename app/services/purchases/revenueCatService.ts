@@ -175,8 +175,8 @@ export async function getOfferings(): Promise<Result<PurchasesOffering | null>> 
       requestedId: offeringId,
       found: !!offerings.all[offeringId],
       resolvedId: offering?.identifier,
-      availableOfferings: Object.keys(offerings.all),
-      packages: offering?.availablePackages.map((p) => p.identifier),
+      availableOfferings: Object.keys(offerings.all).join(", "),
+      packages: offering?.availablePackages.map((p) => p.identifier).join(", "),
     })
     return { ok: true, value: offering }
   } catch (error) {
