@@ -54,9 +54,13 @@ Metro has poor symlink support. The `metro.config.js` includes workarounds:
 MST with MMKV persistence in `app/models/`:
 - **RootStore**: Combines all stores, initialized in `app.tsx`
 - **AuthenticationStore**: Auth token, email, userId, `isAuthenticated` computed
-- **ProfileStore**: User profile settings with computed `displayName`, `cleanDays`, `isPremium`
+- **ProfileStore**: User profile and preferences with two storage tiers:
+  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, reportEmail
+  - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
+  - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
-- **ConfigStore**: API URLs, Zoom SDK keys, auth key (NOT persisted to MMKV for security)
+- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Includes API URLs, Zoom SDK keys, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view that selects by `__DEV__` and `Platform.OS`. NOT persisted to MMKV (security).
+- **ConversationStore**: AI agent conversation state
 
 ```typescript
 // Access stores in components (wrap with observer())
@@ -69,38 +73,56 @@ const MyComponent = observer(() => {
 })
 ```
 
-Persistence is automatic via `onSnapshot` → MMKV in `helpers/setupRootStore.ts`. **Note:** ConfigStore is excluded from MMKV persistence (security: SDK secrets shouldn't be in unencrypted storage).
+Persistence is automatic via `onSnapshot` → MMKV in `helpers/setupRootStore.ts`. ConfigStore is excluded from MMKV persistence.
 
 ### React Context Providers
-Alongside MST, two React Context providers exist in `app/context/`:
-- **AuthContext**: Authentication state with MMKV-backed token/email (temporary until backend ready)
+Alongside MST, three React Context providers exist in `app/context/`:
 - **MeetingContext**: Loads meetings from SQLite, joins with TREX data, filters live meetings
+- **SubscriptionContext**: RevenueCat subscription state — `isPremium`, `hasAttendance`, `showPaywall()`, `showPaywallIfNeeded()`, `restore()`, `login()`, `logout()`
 
 ```typescript
-// Access meeting data
 import { useMeetings } from "@/context/MeetingContext"
 const { meetings, liveMeetings, isLoading, refresh } = useMeetings()
+
+import { useSubscription } from "@/context/SubscriptionContext"
+const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ```
+
+### Navigation
+React Navigation v7 in `app/navigators/`:
+
+**App-level gating** (`AppNavigator.tsx`): Login → ZoomSetup → Onboarding → Main. Each gate is a persistent flag in ProfileStore (`isAuthenticated`, `zoomConnected`, `onboardingCompleted`).
+
+**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `attendanceEnabled`), Agent (conditional on `isPremium`), Settings.
+
+**Modals**: ZoomLogin (reconnection from Settings).
+
+Route types defined in `app/navigators/navigationTypes.ts`.
 
 ### Database Layer
 SQLite with Drizzle ORM in `app/db/`:
 - **DatabaseProvider**: Runs Drizzle migrations on startup, seeds data on first launch
 - **provider.ts**: Creates expo-sqlite database and Drizzle instance
-- **repositories.ts**: Pre-instantiated repositories for meetings, schedules, sync queue
-- **seedDatabase.ts**: Loads JSON seed data into SQLite (MMKV flag `db_seeded_v1`)
+- **repositories.ts**: Lazy proxy objects over common-lib repository classes (meetingRepo, scheduleRepo, attendanceRepo, feedbackRepo, chatMessageRepo, zoomAuthRepo, profileRepository)
+- **attendanceEvents.ts**: Simple pub/sub for cross-component attendance updates. Event types: `"created" | "processed" | "produced" | "archived"`. Subscribe in `useEffect`, emit after mutations.
+- **liveEvents.ts**: Similar pub/sub for live meeting preference changes
 
 Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
 
-### Navigation
-React Navigation v7 with bottom tabs:
-- **AppNavigator**: Wraps MainNavigator with NavigationContainer and ErrorBoundary
-- **MainNavigator**: 3 active tabs (Home, Live, Settings), 2 hidden tabs (Meetings, Schedule)
-- Route types defined in `app/navigators/navigationTypes.ts`
-
 ### API Layer
 Apisauce wrapper in `app/services/api/`:
+- Dual auth: device authorization (`X-Device-Token` / `X-API-Key`) + user OAuth (`Authorization: Bearer`)
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
-- Error handling via `apiProblem.ts`
+- Attestation queueing: API calls wait for `attestationPromise` to resolve before proceeding
+- Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP
+
+### Subscription System (RevenueCat)
+In `app/services/purchases/`:
+- **config.ts**: Entitlements (`recoverysky-premium`, `recoverysky-attendance`), offerings (`default` for prod, `premium-standard` for dev), API key selection by env/platform
+- **revenueCatService.ts**: SDK init, entitlement checks, offering-aware paywall presentation, purchase/restore flows
+- **SubscriptionContext** (`app/context/`): Wraps the app, initializes RC with `configStore.revenueCatApiKey`, listens for customer info updates, auto-enables attendance on first subscription
+
+Key pattern: `__DEV__` uses `test_` RC API key and `premium-standard` offering. Production uses platform-specific `appl_`/`goog_` keys and `default` offering. `__DEV__` is false in TestFlight/TestFlight builds.
 
 ### Theming
 Design token system in `app/theme/`:
@@ -137,6 +159,7 @@ i18next in `app/i18n/` with English and Spanish:
 - Use `tx` and `txOptions` props for translations
 - Wrap MST-consuming components with `observer()` from mobx-react-lite
 - Unused variables must be prefixed with `_`
+- Extract `ListHeaderComponent` into standalone `observer` components (not inline `useCallback`) to avoid FlatList re-render/focus-loss bugs
 
 ### Storage
 Use `app/utils/storage/` helpers (MMKV-backed), not AsyncStorage:
@@ -170,6 +193,7 @@ The `@sqlite` alias imports SQLite/Drizzle exports:
 import {
   migrations,                        // Drizzle migrations for useMigrations hook
   MeetingSqliteRepository,           // Repository classes
+  AttendanceSqliteRepository,        // Attendance with archive support
   meetings, schedules, trexes,       // Drizzle table schemas
 } from "@recoverysky-org/common/sqlite"
 ```
@@ -212,14 +236,17 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 - Uses `@ai-sdk/react` `useChat()` hook for streaming responses
 - Supports tool calls (meeting search, recovery resources)
 - Conversation persisted to ConversationStore
+- Agent tab gated behind `isPremium` entitlement
 
 ## Zoom Integration
 
 Zoom SDK in `app/services/zoom/`:
 - **ZoomMeetingProvider**: Context wrapper for meeting state
 - **useZoomMeeting**: Hook for joining meetings
-- **useZoomAuth**: OAuth flow for authenticated meeting joins (ZAK token)
+- **useZoomAuth**: OAuth flow for authenticated meeting joins (ZAK token), credentials stored in encrypted SQLite via `zoomAuthRepo`
 - Requires EAS build (native SDK, not Expo Go compatible)
+- **ZoomSetupScreen**: Required gate before onboarding — user must connect Zoom account
+- **ZoomLoginScreen**: Dismissible modal from Settings for reconnection
 
 ## Development Tools
 
