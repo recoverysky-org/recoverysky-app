@@ -55,7 +55,7 @@ export const ProfileStoreModel = types
     dontShowShortMeetingWarning: types.optional(types.boolean, false),
 
     // Attendance settings
-    attendanceEnabled: types.optional(types.boolean, false),
+    attendanceEnabled: types.optional(types.boolean, true),
     reportEmail: types.optional(types.string, ""),
 
     // Zoom
