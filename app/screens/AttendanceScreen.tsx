@@ -18,10 +18,12 @@ import {
   TextStyle,
   Alert,
   TouchableOpacity,
+  Modal,
 } from "react-native"
 import { DateTime } from "@recoverysky-org/common/browser"
 import * as Crypto from "expo-crypto"
 import { Ionicons } from "@expo/vector-icons"
+import { WebView } from "react-native-webview"
 import { observer } from "mobx-react-lite"
 
 import { AttendanceRow } from "@/components/AttendanceRow"
@@ -513,6 +515,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
   const [reports, setReports] = useState<AttendanceReportRecord[]>([])
   const [recordCounts, setRecordCounts] = useState<Map<string, number>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedReport, setSelectedReport] = useState<AttendanceReportRecord | null>(null)
 
   const loadReports = useCallback(async () => {
     setIsLoading(true)
@@ -564,6 +567,17 @@ const ReportsContent: FC = observer(function ReportsContent() {
     [theme],
   )
 
+  const handleViewReport = useCallback(
+    (report: AttendanceReportRecord) => {
+      if (!report.html) {
+        Alert.alert("Not Available", "Report content has not been received from the server yet.")
+        return
+      }
+      setSelectedReport(report)
+    },
+    [],
+  )
+
   const renderItem = useCallback(
     ({ item }: { item: AttendanceReportRecord }) => {
       const status = getStatusIcon(item)
@@ -581,10 +595,17 @@ const ReportsContent: FC = observer(function ReportsContent() {
               {item.email}{count > 0 && ` · ${count} record${count !== 1 ? "s" : ""}`}
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => handleViewReport(item)}
+            style={$viewButton}
+            hitSlop={8}
+          >
+            <Ionicons name="eye-outline" size={22} color={theme.colors.tint} />
+          </TouchableOpacity>
         </View>
       )
     },
-    [themed, getStatusIcon, recordCounts],
+    [themed, theme, getStatusIcon, recordCounts, handleViewReport],
   )
 
   const keyExtractor = useCallback((item: AttendanceReportRecord) => item.id, [])
@@ -604,32 +625,65 @@ const ReportsContent: FC = observer(function ReportsContent() {
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
+  const modalDateStr = selectedReport?.generated
+    ? DateTime.fromMillis(selectedReport.generated).toFormat("MMM d, yyyy h:mma").toLowerCase()
+    : ""
+
   return (
-    <FlatList
-      data={reports}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
-      ListEmptyComponent={ListEmptyComponent}
-      ListHeaderComponent={
-        reports.length > 0 ? (
-          <View style={themed($sectionHeader)}>
-            <Text style={themed($countText)}>
-              {reports.length} {reports.length === 1 ? "report" : "reports"}
-            </Text>
+    <>
+      <FlatList
+        data={reports}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ListEmptyComponent={ListEmptyComponent}
+        ListHeaderComponent={
+          reports.length > 0 ? (
+            <View style={themed($sectionHeader)}>
+              <Text style={themed($countText)}>
+                {reports.length} {reports.length === 1 ? "report" : "reports"}
+              </Text>
+            </View>
+          ) : null
+        }
+        ItemSeparatorComponent={ItemSeparatorComponent}
+        contentContainerStyle={themed($listContent)}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={loadReports}
+            tintColor={theme.colors.text}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      />
+
+      <Modal
+        visible={selectedReport !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedReport(null)}
+      >
+        <View style={themed($modalContainer)}>
+          <View style={themed($modalHeader)}>
+            <Text style={themed($modalTitle)}>{modalDateStr}</Text>
+            <TouchableOpacity
+              onPress={() => setSelectedReport(null)}
+              style={$modalCloseButton}
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
-        ) : null
-      }
-      ItemSeparatorComponent={ItemSeparatorComponent}
-      contentContainerStyle={themed($listContent)}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={loadReports}
-          tintColor={theme.colors.text}
-        />
-      }
-      showsVerticalScrollIndicator={false}
-    />
+          {selectedReport?.html ? (
+            <WebView
+              source={{ html: selectedReport.html }}
+              originWhitelist={["*"]}
+              style={$webView}
+            />
+          ) : null}
+        </View>
+      </Modal>
+    </>
   )
 })
 
@@ -855,3 +909,37 @@ const $reportMeta: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
   marginTop: 2,
 })
+
+const $viewButton: ViewStyle = {
+  padding: 4,
+}
+
+const $modalContainer: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  flex: 1,
+  backgroundColor: colors.background,
+})
+
+const $modalHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.sm,
+  backgroundColor: colors.card,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.separator,
+})
+
+const $modalTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.text,
+})
+
+const $modalCloseButton: ViewStyle = {
+  padding: 4,
+}
+
+const $webView: ViewStyle = {
+  flex: 1,
+}
