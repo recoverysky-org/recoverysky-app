@@ -18,8 +18,9 @@ import {
   TextStyle,
   Alert,
   TouchableOpacity,
-  ScrollView,
 } from "react-native"
+import { DateTime } from "@recoverysky-org/common/browser"
+import * as Crypto from "expo-crypto"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
@@ -29,7 +30,14 @@ import { SegmentedControl } from "@/components/SegmentedControl"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { attendanceRepo, attendanceReportRepo, attendanceEvents, type AttendanceRecord } from "@/db"
+import {
+  attendanceRepo,
+  attendanceReportRepo,
+  attendanceEvents,
+  type AttendanceRecord,
+  type AttendanceReportRecord,
+} from "@/db"
+import { api } from "@/services/api"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -275,6 +283,7 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
 
       // 1. Create attendance_report record
       const reportResult = await attendanceReportRepo.create({
+        id: Crypto.randomUUID(),
         uid: authStore.userId ?? "",
         email: profileStore.reportEmail,
         generated: Date.now(),
@@ -301,26 +310,53 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
         attendanceEvents.emit({ type: "archived", id })
       }
 
+      // 5. Send report to API for HTML generation and email delivery
+      const attendanceResult = await attendanceRepo.findByReportId(reportId)
+      if (attendanceResult.ok) {
+        const apiResult = await api.sendReport({
+          id: reportId,
+          uid: authStore.userId ?? "",
+          email: profileStore.reportEmail,
+          attendance: attendanceResult.value,
+        })
+        if (apiResult.kind === "ok") {
+          // 6. Persist server response (html, confirmed, etc.) back to SQLite
+          await attendanceReportRepo.update(reportId, {
+            html: apiResult.data.html,
+            confirmed: apiResult.data.confirmed,
+            confirmation: apiResult.data.confirmation,
+            error: apiResult.data.error,
+          })
+
+          if (apiResult.data.error) {
+            logger.error("Server returned error for report", { reportId })
+            Alert.alert(
+              "Report Error",
+              "Your report was created but the server encountered an error processing it. Please try again later.",
+            )
+          } else {
+            Alert.alert("Report Sent", `${ids.length} attendance record(s) included in report.`)
+          }
+        } else {
+          logger.warn("API report delivery failed, will retry later", {
+            reportId,
+            error: apiResult.kind,
+          })
+          Alert.alert(
+            "Report Created",
+            `Report saved locally but could not be sent to the server. It will be retried later.`,
+          )
+        }
+      } else {
+        Alert.alert("Report Created", `${ids.length} attendance record(s) saved locally.`)
+      }
+
       logger.info("Attendance report created", { reportId, count: ids.length })
-      Alert.alert("Report Created", `${ids.length} attendance record(s) included in report.`)
     } catch (error) {
       logger.error("Failed to create report", { error: String(error) })
       Alert.alert("Error", "Failed to create attendance report.")
     }
   }, [selectedIds, authStore.userId, profileStore.reportEmail])
-
-  const ListHeaderComponent = useCallback(
-    () => (
-      <NewListHeader
-        recordCount={records.length}
-        hasAttendance={hasAttendance}
-        selectedCount={selectedIds.size}
-        onNavigateSettings={onNavigateSettings}
-        onSendReport={handleSendReport}
-      />
-    ),
-    [records.length, hasAttendance, selectedIds.size, onNavigateSettings, handleSendReport],
-  )
 
   return (
     <FlatList
@@ -328,7 +364,15 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       ListEmptyComponent={ListEmptyComponent}
-      ListHeaderComponent={ListHeaderComponent}
+      ListHeaderComponent={
+        <NewListHeader
+          recordCount={records.length}
+          hasAttendance={hasAttendance}
+          selectedCount={selectedIds.size}
+          onNavigateSettings={onNavigateSettings}
+          onSendReport={handleSendReport}
+        />
+      }
       ItemSeparatorComponent={ItemSeparatorComponent}
       contentContainerStyle={themed($listContent)}
       refreshControl={
@@ -466,54 +510,126 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
 const ReportsContent: FC = observer(function ReportsContent() {
   const { themed, theme } = useAppTheme()
-  const profileStore = useProfileStore()
+  const [reports, setReports] = useState<AttendanceReportRecord[]>([])
+  const [recordCounts, setRecordCounts] = useState<Map<string, number>>(new Map())
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleSendReport = () => {
-    if (!profileStore.reportEmail) {
-      Alert.alert("Email Required", "Please enter an email address to send the report.")
-      return
+  const loadReports = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const result = await attendanceReportRepo.findAll()
+      if (result.ok) {
+        // Sort newest first
+        const sorted = result.value.sort((a, b) => b.generated - a.generated)
+        setReports(sorted)
+
+        // Fetch attendance counts per report
+        const counts = new Map<string, number>()
+        for (const report of sorted) {
+          const attendanceResult = await attendanceRepo.findByReportId(report.id)
+          if (attendanceResult.ok) {
+            counts.set(report.id, attendanceResult.value.length)
+          }
+        }
+        setRecordCounts(counts)
+      } else {
+        logger.error("Failed to load reports", { error: String(result.error) })
+      }
+    } catch (error) {
+      logger.error("Error loading reports", { error: String(error) })
+    } finally {
+      setIsLoading(false)
     }
-    Alert.alert("Coming Soon", "Send report functionality will be available in a future update.")
-  }
+  }, [])
 
-  return (
-    <ScrollView
-      contentContainerStyle={themed($reportsContent)}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Email Input */}
-      <View style={themed($emailSection)}>
-        <Text style={themed($emailLabel)} tx="settingsScreen:exportEmail" />
-        <TextField
-          value={profileStore.reportEmail}
-          onChangeText={profileStore.setReportEmail}
-          placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          inputWrapperStyle={themed($emailInputWrapper)}
-        />
-      </View>
+  useEffect(() => {
+    void loadReports()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-      {/* Send Report Button */}
-      <TouchableOpacity
-        style={themed($sendButton)}
-        onPress={handleSendReport}
-        accessibilityRole="button"
-      >
-        <Ionicons name="send" size={18} color={theme.colors.tint} />
-        <Text style={themed($sendButtonText)} text="Resend Report" />
-      </TouchableOpacity>
+  useEffect(() => {
+    return attendanceEvents.subscribe((event) => {
+      if (event.type === "produced") {
+        void loadReports()
+      }
+    })
+  }, [loadReports])
 
-      {/* Empty State */}
+  const getStatusIcon = useCallback(
+    (report: AttendanceReportRecord) => {
+      if (report.error) return { name: "warning" as const, color: theme.colors.error }
+      if (report.confirmed > 0)
+        return { name: "checkmark-circle" as const, color: theme.colors.palette.secondary500 }
+      return { name: "time-outline" as const, color: theme.colors.textDim }
+    },
+    [theme],
+  )
+
+  const renderItem = useCallback(
+    ({ item }: { item: AttendanceReportRecord }) => {
+      const status = getStatusIcon(item)
+      const count = recordCounts.get(item.id) ?? 0
+      const dateStr = item.generated > 0
+        ? DateTime.fromMillis(item.generated).toFormat("MMM d, yyyy h:mma").toLowerCase()
+        : "Unknown date"
+
+      return (
+        <View style={themed($reportRow)}>
+          <Ionicons name={status.name} size={22} color={status.color} />
+          <View style={$reportContent}>
+            <Text style={themed($reportDate)}>{dateStr}</Text>
+            <Text style={themed($reportMeta)}>
+              {item.email}{count > 0 && ` · ${count} record${count !== 1 ? "s" : ""}`}
+            </Text>
+          </View>
+        </View>
+      )
+    },
+    [themed, getStatusIcon, recordCounts],
+  )
+
+  const keyExtractor = useCallback((item: AttendanceReportRecord) => item.id, [])
+
+  const ListEmptyComponent = useCallback(
+    () => (
       <View style={themed($emptyContainer)}>
         <Text preset="subheading" style={themed($emptyText)} text="No reports yet" />
         <Text
           style={themed($emptySubtext)}
-          text="Select attendance records and generate a report"
+          text="Reports will appear here after you send attendance records"
         />
       </View>
-    </ScrollView>
+    ),
+    [themed],
+  )
+
+  const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
+
+  return (
+    <FlatList
+      data={reports}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      ListEmptyComponent={ListEmptyComponent}
+      ListHeaderComponent={
+        reports.length > 0 ? (
+          <View style={themed($sectionHeader)}>
+            <Text style={themed($countText)}>
+              {reports.length} {reports.length === 1 ? "report" : "reports"}
+            </Text>
+          </View>
+        ) : null
+      }
+      ItemSeparatorComponent={ItemSeparatorComponent}
+      contentContainerStyle={themed($listContent)}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={loadReports}
+          tintColor={theme.colors.text}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+    />
   )
 })
 
@@ -713,7 +829,29 @@ const $subscribeLink: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "600",
 })
 
-const $reportsContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.lg,
-  paddingBottom: spacing.xxl,
+const $reportRow: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  gap: spacing.sm,
+  backgroundColor: colors.card,
+  borderRadius: 8,
+})
+
+const $reportContent: ViewStyle = {
+  flex: 1,
+  minWidth: 0,
+}
+
+const $reportDate: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 15,
+  fontWeight: "500",
+  color: colors.text,
+})
+
+const $reportMeta: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  marginTop: 2,
 })

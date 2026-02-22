@@ -6,6 +6,8 @@
  * documentation for more details.
  */
 import { type meeting } from "@recoverysky-org/common/browser"
+
+import type { AttendanceRecord } from "@/db"
 import { ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
@@ -35,6 +37,23 @@ export interface AttestationVerifyRequest {
   deviceId: string
   /** iOS only: Key ID from DCAppAttestService.generateKey() */
   keyId?: string
+}
+
+/**
+ * Response from POST /reports endpoint
+ * Returns the full attendance_report record after server processing
+ */
+export interface SendReportResponse {
+  id: string
+  uid: string
+  error: boolean
+  retry: number
+  generated: number
+  confirmed: number
+  confirmation: string
+  email: string
+  html: string
+  text: string
 }
 
 /**
@@ -477,6 +496,40 @@ export class Api {
 
     log.debug("Received config from server")
     return { kind: "ok", config: response.data }
+  }
+
+  /**
+   * Send attendance report to the backend for HTML generation and email delivery
+   * POST /reports
+   */
+  async sendReport(params: {
+    id: string
+    uid: string
+    email: string
+    attendance: AttendanceRecord[]
+  }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Sending attendance report to API", {
+      reportId: params.id,
+      attendanceCount: params.attendance.length,
+    })
+
+    const response = await this.recoverySkyApi.post<SendReportResponse>("/reports", params)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Send report failed", { problem: problem?.kind, reportId: params.id })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data) {
+      log.warn("Invalid report response format")
+      return { kind: "bad-data" }
+    }
+
+    log.info("Report sent successfully", { reportId: params.id })
+    return { kind: "ok", data: response.data }
   }
 }
 
