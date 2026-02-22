@@ -264,9 +264,9 @@ export const attendanceReportRepo = {
     return getAttendanceReportRepo().update(id, input)
   },
 
-  /** Mark report email as sent with confirmation ID */
-  markEmailSent: async (id: string, confirmation: string) => {
-    return getAttendanceReportRepo().markEmailSent(id, confirmation)
+  /** Mark report as confirmed sent with confirmation ID */
+  markConfirmed: async (id: string, confirmation: string) => {
+    return getAttendanceReportRepo().markConfirmed(id, confirmation)
   },
 
   /** Delete a report */

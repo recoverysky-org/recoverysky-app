@@ -1,7 +1,7 @@
 /**
  * Database Provider Component
  *
- * Automatically initializes and seeds the database on app startup.
+ * Automatically initializes the database on app startup.
  * Shows loading overlay during initialization via DatabaseLoadingOverlay.
  * Uses encrypted SQLite with key from SecureStore.
  */
@@ -26,11 +26,10 @@ import { logger } from "@/utils/logger"
 
 import { feedbackCache } from "./feedbackCache"
 import { openDb as openDbProvider, rekeyDatabase } from "./provider"
-import { seedDatabase, isDatabaseSeeded } from "./seedDatabase"
 
 const log = logger.child({ module: "DatabaseProvider" })
 
-type DbStatus = "closed" | "opening" | "open" | "seeding" | "seeded" | "reencrypting" | "error"
+type DbStatus = "closed" | "opening" | "open" | "seeded" | "reencrypting" | "error"
 
 interface DatabaseContextValue {
   /** Current database status */
@@ -60,7 +59,7 @@ export function useDatabase(): DatabaseContextValue {
 export function useDatabaseReady(): { isReady: boolean; error: Error | null } {
   const { status, error } = useDatabase()
   return {
-    isReady: status === "open" || status === "seeded",
+    isReady: status === "seeded",
     error: error ? new Error(error) : null,
   }
 }
@@ -73,7 +72,6 @@ interface DatabaseProviderProps {
  * Database Provider Component
  *
  * Automatically opens database and runs migrations on mount.
- * Auto-seeds if not already seeded (checked via MMKV flag).
  */
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
   log.debug("DatabaseProvider initializing")
@@ -120,38 +118,9 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
       await migrate(dbRef.current.db, migrations)
 
       log.info("Migrations complete")
-      setStatus("open")
+      setStatus("seeded")
     } catch (e) {
       log.error("Database open failed", { error: String(e) })
-      setError(e instanceof Error ? e.message : String(e))
-      setStatus("error")
-    }
-  }, [status])
-
-  const seedDb = useCallback(async () => {
-    if (status !== "open" || !dbRef.current) {
-      log.warn("Database not open, cannot seed", { status })
-      setError("Open database first")
-      return
-    }
-
-    if (isDatabaseSeeded()) {
-      log.debug("Database already seeded")
-      setStatus("seeded")
-      return
-    }
-
-    try {
-      setStatus("seeding")
-      setError(null)
-      log.info("Seeding database...")
-
-      await seedDatabase(dbRef.current.expoDb)
-
-      log.info("Seeding complete")
-      setStatus("seeded")
-    } catch (e) {
-      log.error("Seeding failed", { error: String(e) })
       setError(e instanceof Error ? e.message : String(e))
       setStatus("error")
     }
@@ -192,15 +161,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     openDb()
   }, [openDb])
 
-  // Auto-seed when database is open
-  useEffect(() => {
-    if (status === "open") {
-      log.info("Database open, auto-seeding...")
-      seedDb()
-    }
-  }, [status, seedDb])
-
-  // Load feedback cache when database is seeded
+  // Load feedback cache when database is ready
   useEffect(() => {
     if (status === "seeded" && !feedbackCache.isLoaded()) {
       log.info("Database seeded, loading feedback cache...")
