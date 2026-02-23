@@ -53,6 +53,9 @@ import { logger } from "@/utils/logger"
 
 type AttendanceSection = "new" | "archive" | "reports"
 
+/** Validate email format */
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
 const SECTIONS = [
   { key: "new", label: "New" },
   { key: "archive", label: "Archive" },
@@ -80,9 +83,21 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
 }) {
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const [emailValid, setEmailValid] = useState<boolean | null>(null)
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const canSendReport = selectedCount > 0 && isValidEmail(profileStore.reportEmail)
+
+  // Debounced email validation indicator
+  useEffect(() => {
+    if (!profileStore.reportEmail) {
+      setEmailValid(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      setEmailValid(isValidEmail(profileStore.reportEmail))
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [profileStore.reportEmail])
 
   return (
     <View style={themed($sectionHeader)}>
@@ -97,15 +112,26 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
           {/* Email Input */}
           <View style={themed($emailSection)}>
             <Text style={themed($emailLabel)} text="Report Email" />
-            <TextField
-              value={profileStore.reportEmail}
-              onChangeText={profileStore.setReportEmail}
-              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              inputWrapperStyle={themed($emailInputWrapper)}
-            />
+            <View style={$emailRow}>
+              <TextField
+                value={profileStore.reportEmail}
+                onChangeText={profileStore.setReportEmail}
+                placeholder={translate("settingsScreen:exportEmailPlaceholder")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                inputWrapperStyle={themed($emailInputWrapper)}
+                containerStyle={$emailInputFlex}
+              />
+              {emailValid !== null && (
+                <Ionicons
+                  name={emailValid ? "checkmark-circle" : "close-circle"}
+                  size={20}
+                  color={emailValid ? theme.colors.palette.secondary500 : theme.colors.error}
+                  style={$emailValidIcon}
+                />
+              )}
+            </View>
           </View>
 
           {/* Send Report Button */}
@@ -512,10 +538,29 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
 const ReportsContent: FC = observer(function ReportsContent() {
   const { themed, theme } = useAppTheme()
+  const authStore = useAuthenticationStore()
   const [reports, setReports] = useState<AttendanceReportRecord[]>([])
   const [recordCounts, setRecordCounts] = useState<Map<string, number>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
   const [selectedReport, setSelectedReport] = useState<AttendanceReportRecord | null>(null)
+
+  // Resend state
+  const [resendReport, setResendReport] = useState<AttendanceReportRecord | null>(null)
+  const [resendEmail, setResendEmail] = useState("")
+  const [resendEmailValid, setResendEmailValid] = useState<boolean | null>(null)
+  const [isSending, setIsSending] = useState(false)
+
+  // Debounced resend email validation
+  useEffect(() => {
+    if (!resendEmail) {
+      setResendEmailValid(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      setResendEmailValid(isValidEmail(resendEmail))
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [resendEmail])
 
   const loadReports = useCallback(async () => {
     setIsLoading(true)
@@ -578,6 +623,115 @@ const ReportsContent: FC = observer(function ReportsContent() {
     [],
   )
 
+  const handleResendTap = useCallback((report: AttendanceReportRecord) => {
+    setResendReport(report)
+    setResendEmail(report.email)
+    setResendEmailValid(null)
+  }, [])
+
+  const handleCancelResend = useCallback(() => {
+    setResendReport(null)
+    setResendEmail("")
+    setResendEmailValid(null)
+  }, [])
+
+  const handleResend = useCallback(async () => {
+    if (!resendReport || !isValidEmail(resendEmail)) return
+    setIsSending(true)
+
+    try {
+      const emailChanged = resendEmail !== resendReport.email
+
+      if (!emailChanged) {
+        // Same email — resend
+        const apiResult = await api.resendReport({ id: resendReport.id, uid: authStore.userId ?? "" })
+        if (apiResult.kind === "ok") {
+          await attendanceReportRepo.update(resendReport.id, {
+            html: apiResult.data.html,
+            confirmed: apiResult.data.confirmed,
+            confirmation: apiResult.data.confirmation,
+            error: apiResult.data.error,
+          })
+          if (apiResult.data.error) {
+            Alert.alert("Report Error", "The server encountered an error resending the report.")
+          } else {
+            Alert.alert("Report Resent", "Your report has been resent successfully.")
+          }
+        } else {
+          Alert.alert("Resend Failed", "Could not resend the report. Please try again later.")
+        }
+      } else if (resendReport.error) {
+        // Changed email on errored report — replace in-place
+        await attendanceReportRepo.update(resendReport.id, {
+          email: resendEmail,
+          error: false,
+          confirmed: 0,
+          confirmation: "",
+        })
+        const apiResult = await api.sendReport({
+          id: resendReport.id,
+          uid: authStore.userId ?? "",
+          email: resendEmail,
+        })
+        if (apiResult.kind === "ok") {
+          await attendanceReportRepo.update(resendReport.id, {
+            html: apiResult.data.html,
+            confirmed: apiResult.data.confirmed,
+            confirmation: apiResult.data.confirmation,
+            error: apiResult.data.error,
+          })
+          if (apiResult.data.error) {
+            Alert.alert("Report Error", "The server encountered an error processing the report.")
+          } else {
+            Alert.alert("Report Sent", "Your report has been sent to the new email address.")
+          }
+        } else {
+          Alert.alert("Send Failed", "Report saved locally but could not be sent to the server.")
+        }
+      } else {
+        // Changed email on confirmed/pending report — forward as new report
+        const newId = Crypto.randomUUID()
+        await attendanceReportRepo.create({
+          id: newId,
+          uid: authStore.userId ?? "",
+          email: resendEmail,
+          fid: resendReport.id,
+          generated: Date.now(),
+        })
+        const apiResult = await api.sendReport({
+          id: newId,
+          uid: authStore.userId ?? "",
+          email: resendEmail,
+          fid: resendReport.id,
+        })
+        if (apiResult.kind === "ok") {
+          await attendanceReportRepo.update(newId, {
+            html: apiResult.data.html,
+            confirmed: apiResult.data.confirmed,
+            confirmation: apiResult.data.confirmation,
+            error: apiResult.data.error,
+          })
+          if (apiResult.data.error) {
+            Alert.alert("Report Error", "The forwarded report encountered a server error.")
+          } else {
+            Alert.alert("Report Forwarded", "Your report has been forwarded to the new address.")
+          }
+        } else {
+          Alert.alert("Forward Created", "Report saved locally but could not be sent to the server.")
+        }
+        attendanceEvents.emit({ type: "produced", id: newId, reportId: newId })
+      }
+
+      handleCancelResend()
+      void loadReports()
+    } catch (error) {
+      logger.error("Failed to resend report", { error: String(error) })
+      Alert.alert("Error", "An unexpected error occurred.")
+    } finally {
+      setIsSending(false)
+    }
+  }, [resendReport, resendEmail, authStore.userId, handleCancelResend, loadReports])
+
   const renderItem = useCallback(
     ({ item }: { item: AttendanceReportRecord }) => {
       const status = getStatusIcon(item)
@@ -596,6 +750,13 @@ const ReportsContent: FC = observer(function ReportsContent() {
             </Text>
           </View>
           <TouchableOpacity
+            onPress={() => handleResendTap(item)}
+            style={$viewButton}
+            hitSlop={8}
+          >
+            <Ionicons name="mail-outline" size={22} color={theme.colors.tint} />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => handleViewReport(item)}
             style={$viewButton}
             hitSlop={8}
@@ -605,7 +766,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
         </View>
       )
     },
-    [themed, theme, getStatusIcon, recordCounts, handleViewReport],
+    [themed, theme, getStatusIcon, recordCounts, handleViewReport, handleResendTap],
   )
 
   const keyExtractor = useCallback((item: AttendanceReportRecord) => item.id, [])
@@ -637,13 +798,70 @@ const ReportsContent: FC = observer(function ReportsContent() {
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmptyComponent}
         ListHeaderComponent={
-          reports.length > 0 ? (
-            <View style={themed($sectionHeader)}>
-              <Text style={themed($countText)}>
-                {reports.length} {reports.length === 1 ? "report" : "reports"}
-              </Text>
-            </View>
-          ) : null
+          <>
+            {/* Resend email editor panel */}
+            {resendReport && (
+              <View style={themed($resendPanel)}>
+                <Text style={themed($emailLabel)} text={
+                  resendEmail === resendReport.email ? "Resend Report" : "Forward Report"
+                } />
+                <View style={$emailRow}>
+                  <TextField
+                    value={resendEmail}
+                    onChangeText={setResendEmail}
+                    placeholder="recipient@example.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    inputWrapperStyle={themed($emailInputWrapper)}
+                    containerStyle={$emailInputFlex}
+                  />
+                  {resendEmailValid !== null && (
+                    <Ionicons
+                      name={resendEmailValid ? "checkmark-circle" : "close-circle"}
+                      size={20}
+                      color={resendEmailValid ? theme.colors.palette.secondary500 : theme.colors.error}
+                      style={$emailValidIcon}
+                    />
+                  )}
+                </View>
+                <View style={$resendActions}>
+                  <TouchableOpacity
+                    style={[themed($sendButton), (!isValidEmail(resendEmail) || isSending) && themed($sendButtonDisabled)]}
+                    onPress={handleResend}
+                    disabled={!isValidEmail(resendEmail) || isSending}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons
+                      name="send"
+                      size={18}
+                      color={isValidEmail(resendEmail) && !isSending ? theme.colors.tint : theme.colors.textDim}
+                    />
+                    <Text
+                      style={themed(isValidEmail(resendEmail) && !isSending ? $sendButtonText : $sendButtonTextDisabled)}
+                      text={isSending ? "Sending..." : "Send"}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={themed($cancelButton)}
+                    onPress={handleCancelResend}
+                    accessibilityRole="button"
+                  >
+                    <Text style={themed($cancelButtonText)} text="Cancel" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Report count */}
+            {reports.length > 0 && (
+              <View style={themed($sectionHeader)}>
+                <Text style={themed($countText)}>
+                  {reports.length} {reports.length === 1 ? "report" : "reports"}
+                </Text>
+              </View>
+            )}
+          </>
         }
         ItemSeparatorComponent={ItemSeparatorComponent}
         contentContainerStyle={themed($listContent)}
@@ -943,3 +1161,43 @@ const $modalCloseButton: ViewStyle = {
 const $webView: ViewStyle = {
   flex: 1,
 }
+
+const $emailRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+}
+
+const $emailInputFlex: ViewStyle = {
+  flex: 1,
+}
+
+const $emailValidIcon: ViewStyle = {
+  marginLeft: 8,
+}
+
+const $resendPanel: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  paddingHorizontal: spacing.lg,
+  paddingVertical: spacing.md,
+  marginBottom: spacing.sm,
+  backgroundColor: colors.card,
+  borderRadius: 8,
+  marginHorizontal: spacing.lg,
+})
+
+const $resendActions: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 12,
+}
+
+const $cancelButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  marginTop: spacing.sm,
+})
+
+const $cancelButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 16,
+  fontWeight: "500",
+})
