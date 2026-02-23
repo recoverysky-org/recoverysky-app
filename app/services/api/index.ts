@@ -506,12 +506,14 @@ export class Api {
     id: string
     uid: string
     email: string
-    attendance: AttendanceRecord[]
+    fid?: string
+    attendance?: AttendanceRecord[]
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
     await this.waitForAttestation()
     log.debug("Sending attendance report to API", {
       reportId: params.id,
-      attendanceCount: params.attendance.length,
+      fid: params.fid,
+      attendanceCount: params.attendance?.length ?? 0,
     })
 
     const response = await this.recoverySkyApi.post<SendReportResponse>("/reports", params)
@@ -529,6 +531,35 @@ export class Api {
     }
 
     log.info("Report sent successfully", { reportId: params.id })
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Resend an existing attendance report (same email)
+   * POST /reports with only { id }
+   */
+  async resendReport(params: {
+    id: string
+    uid: string
+  }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Resending attendance report", { reportId: params.id })
+
+    const response = await this.recoverySkyApi.post<SendReportResponse>("/reports", params)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Resend report failed", { problem: problem?.kind, reportId: params.id })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data) {
+      log.warn("Invalid resend response format")
+      return { kind: "bad-data" }
+    }
+
+    log.info("Report resent successfully", { reportId: params.id })
     return { kind: "ok", data: response.data }
   }
 }
