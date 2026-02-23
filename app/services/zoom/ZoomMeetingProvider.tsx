@@ -19,7 +19,6 @@ import {
   createContext,
   useContext,
   useCallback,
-  useRef,
 } from "react"
 import { Alert, Platform } from "react-native"
 import * as Crypto from "expo-crypto"
@@ -99,6 +98,13 @@ interface MeetingContext {
 }
 
 /**
+ * Module-level meeting context — survives provider remounts.
+ * If ZoomSDKConsumer remounts (e.g., SDK reinit), event listeners on the new
+ * instance still see the context that was set by the old instance's joinMeeting.
+ */
+let meetingContext: MeetingContext | null = null
+
+/**
  * Context value provided by ZoomMeetingProvider
  */
 export interface ZoomContextValue {
@@ -147,9 +153,6 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
   const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
 
-  // Track current meeting context for attendance
-  const meetingContextRef = useRef<MeetingContext | null>(null)
-
   // Helper to create an attendance event
   const createEvent = (message: string, data: Record<string, unknown>): AttendanceEvent => ({
     timestamp: Date.now(),
@@ -159,7 +162,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
   // Helper to add event to context and persist async
   const addEvent = (message: string, data: Record<string, unknown>) => {
-    const ctx = meetingContextRef.current
+    const ctx = meetingContext
     if (!ctx) {
       log.debug("addEvent: no context", { message })
       return
@@ -205,7 +208,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       return
     }
 
-    const ctx = meetingContextRef.current
+    const ctx = meetingContext
     if (!ctx) {
       log.debug("processAttendance: skipped, no context")
       return
@@ -307,9 +310,9 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
       // Track when we actually enter the meeting
       if (event.stateName === "inMeeting") {
-        if (meetingContextRef.current) {
-          meetingContextRef.current.inMeetingAt = Date.now()
-          log.debug("inMeeting", { attendanceId: meetingContextRef.current.attendanceId })
+        if (meetingContext) {
+          meetingContext.inMeetingAt = Date.now()
+          log.debug("inMeeting", { attendanceId: meetingContext.attendanceId })
         } else {
           log.debug("inMeeting but no context")
         }
@@ -319,25 +322,25 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       if (event.stateName === "ended" || event.stateName === "idle") {
         log.debug("End state received", {
           state: event.stateName,
-          hasContext: !!meetingContextRef.current,
-          inMeetingAt: meetingContextRef.current?.inMeetingAt ?? "none",
-          attendanceId: meetingContextRef.current?.attendanceId ?? "none",
+          hasContext: !!meetingContext,
+          inMeetingAt: meetingContext?.inMeetingAt ?? "none",
+          attendanceId: meetingContext?.attendanceId ?? "none",
         })
-        if (meetingContextRef.current) {
+        if (meetingContext) {
           // If user was never actually in the meeting (e.g. waiting room cycle),
           // keep the context alive for the next SDK cycle instead of processing
-          if (!meetingContextRef.current.inMeetingAt) {
+          if (!meetingContext.inMeetingAt) {
             log.debug("Meeting ended before inMeeting, keeping context for next cycle")
             return
           }
-          const ctxId = meetingContextRef.current.attendanceId
+          const ctxId = meetingContext.attendanceId
           log.debug("Starting processAttendance", { attendanceId: ctxId })
           processAttendance().then(() => {
             log.debug("processAttendance resolved, nulling context", { attendanceId: ctxId })
-            meetingContextRef.current = null
+            meetingContext = null
           }).catch((err) => {
             log.error("processAttendance failed", { attendanceId: ctxId, error: String(err) })
-            meetingContextRef.current = null
+            meetingContext = null
           })
         } else {
           log.debug("End state but no context to process")
@@ -364,8 +367,8 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       log.debug("Meeting ended", {
         reason: event.reasonName,
         code: event.reason,
-        hasContext: !!meetingContextRef.current,
-        attendanceId: meetingContextRef.current?.attendanceId ?? "none",
+        hasContext: !!meetingContext,
+        attendanceId: meetingContext?.attendanceId ?? "none",
       })
       addEvent("Meeting ended", { reason: event.reasonName, code: event.reason })
       setMeetingState("idle")
@@ -392,12 +395,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         const result = await requestMediaPermissions()
 
         if (result.justGranted) {
-          // Permissions were just granted - SDK needs to reinitialize
-          // to pick up the newly available devices
-          log.info("Permissions just granted - reinitializing SDK")
-          reinitializeSDK()
-          // Wait for SDK to reinitialize
-          await new Promise((resolve) => setTimeout(resolve, 500))
+          // Permissions just granted — do NOT reinitialize SDK here.
+          // reinitializeSDK() remounts the provider which disrupts the join flow.
+          // Modern Zoom SDK picks up newly granted permissions without reinit.
+          // meetingContext is module-level as an additional safeguard against remounts.
+          log.info("Permissions just granted, proceeding without SDK reinit")
         }
 
         if (!result.camera.granted || !result.audio.granted) {
@@ -449,14 +451,14 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         }
 
         // Set up meeting context for attendance tracking
-        const prevContext = meetingContextRef.current
+        const prevContext = meetingContext
         if (prevContext) {
           log.warn("Overwriting existing meeting context", {
             prevAttendanceId: prevContext.attendanceId,
             newAttendanceId: attendanceId,
           })
         }
-        meetingContextRef.current = {
+        meetingContext = {
           attendanceId,
           uid,
           mid: config.meetingId,
@@ -556,8 +558,8 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         setError(errorMessage)
 
         await processAttendance()
-        log.debug("Join error path: nulling context", { attendanceId: meetingContextRef.current?.attendanceId })
-        meetingContextRef.current = null
+        log.debug("Join error path: nulling context", { attendanceId: meetingContext?.attendanceId })
+        meetingContext = null
         throw err
       }
     },
