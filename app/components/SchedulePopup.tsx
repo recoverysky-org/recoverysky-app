@@ -25,6 +25,7 @@ import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { attendanceEvents, feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
+import { navigate } from "@/navigators/navigationUtilities"
 import { useZoomMeeting, extractZoomMeetingNumber } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -222,15 +223,22 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         <Pressable style={themed($content)} onPress={onClose}>
           {/* Attendance banner */}
           {showBanner && (
-            <Animated.View
-              style={[
-                $attendanceBanner,
-                { backgroundColor: theme.colors.tint, opacity: bannerOpacity },
-              ]}
+            <Pressable
+              onPress={() => {
+                onClose()
+                navigate("Attendance", { section: "new" })
+              }}
             >
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={$attendanceBannerText} tx="zoomMeeting:attendanceSaved" />
-            </Animated.View>
+              <Animated.View
+                style={[
+                  $attendanceBanner,
+                  { backgroundColor: theme.colors.tint, opacity: bannerOpacity },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                <Text style={$attendanceBannerText} tx="zoomMeeting:attendanceSaved" />
+              </Animated.View>
+            </Pressable>
           )}
 
           {/* Header */}

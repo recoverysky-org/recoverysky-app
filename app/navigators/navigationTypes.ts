@@ -10,12 +10,15 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 // Segment options for Meetings tab
 export type MeetingsSegment = "live" | "listings"
 
+// Section options for Attendance tab
+export type AttendanceSection = "new" | "archive" | "reports"
+
 // Main Tab Navigator types
 export type MainTabParamList = {
   Home: undefined
   Live: undefined
   Listings: undefined
-  Attendance: undefined
+  Attendance: { section?: AttendanceSection } | undefined
   Meetings: { segment?: MeetingsSegment } | undefined
   Schedule: undefined
   Agent: undefined

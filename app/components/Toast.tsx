@@ -14,7 +14,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { Animated, StyleSheet, ViewStyle, TextStyle } from "react-native"
+import { Animated, Pressable, StyleSheet, ViewStyle, TextStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { TxKeyPath } from "@/i18n"
@@ -36,6 +36,8 @@ interface ToastConfig {
   duration?: number
   /** Toast type for styling */
   type?: "success" | "info" | "error"
+  /** Callback when toast is tapped */
+  onPress?: () => void
 }
 
 interface ToastContextValue {
@@ -155,11 +157,27 @@ export const ToastProvider: FC<ToastProviderProps> = ({ children }) => {
             },
           ]}
         >
-          <Text
-            style={[styles.text, toast.type === "info" ? { color: theme.colors.text } : null]}
-            text={toast.message}
-            tx={toast.tx}
-          />
+          {toast.onPress ? (
+            <Pressable
+              onPress={() => {
+                toast.onPress?.()
+                hideToast()
+              }}
+              style={styles.pressable}
+            >
+              <Text
+                style={[styles.text, toast.type === "info" ? { color: theme.colors.text } : null]}
+                text={toast.message}
+                tx={toast.tx}
+              />
+            </Pressable>
+          ) : (
+            <Text
+              style={[styles.text, toast.type === "info" ? { color: theme.colors.text } : null]}
+              text={toast.message}
+              tx={toast.tx}
+            />
+          )}
         </Animated.View>
       )}
     </ToastContext.Provider>
@@ -181,6 +199,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     zIndex: 9999,
+  } as ViewStyle,
+  pressable: {
+    flex: 1,
+    alignItems: "center",
   } as ViewStyle,
   text: {
     fontSize: 15,
