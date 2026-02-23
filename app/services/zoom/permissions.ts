@@ -2,17 +2,11 @@
  * Zoom Media Permissions Utility
  *
  * Handles camera/microphone permission requests BEFORE joining a meeting.
- * This prevents the Zoom SDK black screen issue that occurs when permissions
- * are granted after SDK initialization.
- *
- * The problem: Zoom SDK caches device availability state at init time.
- * When permissions change after init, the SDK doesn't re-query devices.
- *
- * The solution: Request permissions before joining, and reinitialize SDK
- * if permissions were just granted (changed from undetermined to granted).
+ * Ensures permissions are granted before the Zoom SDK attempts to access
+ * camera/microphone hardware.
  */
 
-import { Audio } from "expo-av"
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from "expo-audio"
 import { Camera } from "expo-camera"
 import { PermissionStatus } from "expo-modules-core"
 
@@ -43,7 +37,7 @@ export interface MediaPermissionResult {
 export async function checkMediaPermissions(): Promise<MediaPermissionState> {
   const [cameraResponse, audioResponse] = await Promise.all([
     Camera.getCameraPermissionsAsync(),
-    Audio.getPermissionsAsync(),
+    getRecordingPermissionsAsync(),
   ])
 
   const state: MediaPermissionState = {
@@ -76,7 +70,7 @@ export async function requestMediaPermissions(): Promise<MediaPermissionResult> 
   // Request both permissions in parallel
   const [cameraResponse, audioResponse] = await Promise.all([
     Camera.requestCameraPermissionsAsync(),
-    Audio.requestPermissionsAsync(),
+    requestRecordingPermissionsAsync(),
   ])
 
   // Determine if any permission was just granted
