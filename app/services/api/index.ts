@@ -510,9 +510,10 @@ export class Api {
     attendance?: AttendanceRecord[]
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.debug("Sending attendance report to API", {
+    log.info("Sending attendance report to API", {
       reportId: params.id,
-      fid: params.fid,
+      email: params.email,
+      fid: params.fid ?? "none",
       attendanceCount: params.attendance?.length ?? 0,
     })
 
@@ -520,17 +521,26 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Send report failed", { problem: problem?.kind, reportId: params.id })
+      log.warn("Send report failed", {
+        reportId: params.id,
+        problem: problem?.kind,
+        status: response.status,
+      })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
 
     if (!response.data) {
-      log.warn("Invalid report response format")
+      log.warn("Invalid report response format", { reportId: params.id })
       return { kind: "bad-data" }
     }
 
-    log.info("Report sent successfully", { reportId: params.id })
+    log.info("Report sent successfully", {
+      reportId: params.id,
+      confirmed: response.data.confirmed,
+      error: response.data.error,
+      email: response.data.email,
+    })
     return { kind: "ok", data: response.data }
   }
 
@@ -543,23 +553,68 @@ export class Api {
     uid: string
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.debug("Resending attendance report", { reportId: params.id })
+    log.info("Resending attendance report", { reportId: params.id, uid: params.uid })
 
     const response = await this.recoverySkyApi.post<SendReportResponse>("/reports", params)
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Resend report failed", { problem: problem?.kind, reportId: params.id })
+      log.warn("Resend report failed", {
+        reportId: params.id,
+        problem: problem?.kind,
+        status: response.status,
+      })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
 
     if (!response.data) {
-      log.warn("Invalid resend response format")
+      log.warn("Invalid resend response format", { reportId: params.id })
       return { kind: "bad-data" }
     }
 
-    log.info("Report resent successfully", { reportId: params.id })
+    log.info("Report resent successfully", {
+      reportId: params.id,
+      confirmed: response.data.confirmed,
+      error: response.data.error,
+    })
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Poll report delivery status
+   * POST /reports/status
+   *
+   * Returns the current state of the report including confirmed/error fields.
+   * Poll until confirmed !== 0 to determine delivery success or failure.
+   */
+  async getReportStatus(params: {
+    id: string
+  }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Polling report status", { reportId: params.id })
+
+    const response = await this.recoverySkyApi.post<SendReportResponse>("/reports/status", params)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Report status poll failed", { problem: problem?.kind, reportId: params.id })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data) {
+      log.warn("Invalid report status response format", { reportId: params.id })
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Report status received", {
+      reportId: params.id,
+      confirmed: response.data.confirmed,
+      error: response.data.error,
+      confirmation: response.data.confirmation || "none",
+      email: response.data.email,
+    })
     return { kind: "ok", data: response.data }
   }
 }

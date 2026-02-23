@@ -160,7 +160,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   // Helper to add event to context and persist async
   const addEvent = (message: string, data: Record<string, unknown>) => {
     const ctx = meetingContextRef.current
-    if (!ctx) return
+    if (!ctx) {
+      log.debug("addEvent: no context", { message })
+      return
+    }
 
     const event = createEvent(message, data)
     ctx.events.push(event)
@@ -197,12 +200,26 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   // Process attendance record when meeting ends (only if attendance tracking is enabled)
   const processAttendance = async () => {
     // Skip if attendance tracking is disabled
-    if (!profileStore.attendanceEnabled) return
+    if (!profileStore.attendanceEnabled) {
+      log.debug("processAttendance: skipped, attendance disabled")
+      return
+    }
 
     const ctx = meetingContextRef.current
-    if (!ctx) return
+    if (!ctx) {
+      log.debug("processAttendance: skipped, no context")
+      return
+    }
 
-    log.debug("Processing attendance events", { eventCount: ctx.events.length })
+    const eventMessages = ctx.events.map((e) => e.message)
+    log.debug("Processing attendance events", {
+      attendanceId: ctx.attendanceId,
+      mid: ctx.mid,
+      eventCount: ctx.events.length,
+      events: eventMessages.join(", "),
+      joinedAt: ctx.joinedAt,
+      inMeetingAt: ctx.inMeetingAt ?? "never",
+    })
 
     // Find start event: last "Meeting state" with state "inMeeting"
     const startEvent = ctx.events.findLast((e) => {
@@ -221,20 +238,29 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
     // Both events required for valid attendance
     if (!startEvent || !endEvent) {
-      log.warn("Missing attendance events", {
+      log.warn("Missing attendance events — marking invalid", {
+        attendanceId: ctx.attendanceId,
         hasStart: !!startEvent,
         hasEnd: !!endEvent,
+        startTimestamp: startEvent?.timestamp ?? "none",
+        endTimestamp: endEvent?.timestamp ?? "none",
       })
       try {
+        const fallbackStart = startEvent?.timestamp || ctx.joinedAt
+        const fallbackEnd = endEvent?.timestamp || Date.now()
         await attendanceRepo.markProcessed(ctx.attendanceId, {
-          start: startEvent?.timestamp || ctx.joinedAt,
-          end: endEvent?.timestamp || Date.now(),
+          start: fallbackStart,
+          end: fallbackEnd,
           credit: 0,
           valid: false,
         })
+        log.info("Attendance marked invalid (missing events)", { attendanceId: ctx.attendanceId })
         attendanceEvents.emit({ type: "processed", id: ctx.attendanceId, mid: ctx.mid, valid: false })
       } catch (err) {
-        log.error("Attendance save failed", { error: String(err) })
+        log.error("Attendance save failed (missing events path)", {
+          attendanceId: ctx.attendanceId,
+          error: String(err),
+        })
       }
       return
     }
@@ -245,19 +271,30 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
     const valid = credit >= MIN_CREDIT_MS
     const creditMins = Math.round(credit / 60000)
 
-    log.info("Processing attendance", { creditMins, valid, start, end })
+    log.info("Processing attendance", {
+      attendanceId: ctx.attendanceId,
+      mid: ctx.mid,
+      creditMins,
+      valid,
+      start,
+      end,
+      creditMs: credit,
+    })
 
     try {
       await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
-      log.info("Attendance saved", { valid, creditMins })
+      log.info("Attendance saved", { attendanceId: ctx.attendanceId, valid, creditMins })
       attendanceEvents.emit({ type: "processed", id: ctx.attendanceId, mid: ctx.mid, valid })
 
       if (!valid) {
-        // Show warning dialog if meeting was too short
+        log.debug("Meeting too short for credit", { attendanceId: ctx.attendanceId, creditMins })
         showShortMeetingWarning(creditMins)
       }
     } catch (err) {
-      log.error("Attendance save failed", { error: String(err) })
+      log.error("Attendance save failed", {
+        attendanceId: ctx.attendanceId,
+        error: String(err),
+      })
     }
   }
 
@@ -269,13 +306,23 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       setMeetingState(event.stateName)
 
       // Track when we actually enter the meeting
-      if (event.stateName === "inMeeting" && meetingContextRef.current) {
-        meetingContextRef.current.inMeetingAt = Date.now()
-        log.debug("inMeeting")
+      if (event.stateName === "inMeeting") {
+        if (meetingContextRef.current) {
+          meetingContextRef.current.inMeetingAt = Date.now()
+          log.debug("inMeeting", { attendanceId: meetingContextRef.current.attendanceId })
+        } else {
+          log.debug("inMeeting but no context")
+        }
       }
 
       // Process and clear when meeting ends
       if (event.stateName === "ended" || event.stateName === "idle") {
+        log.debug("End state received", {
+          state: event.stateName,
+          hasContext: !!meetingContextRef.current,
+          inMeetingAt: meetingContextRef.current?.inMeetingAt ?? "none",
+          attendanceId: meetingContextRef.current?.attendanceId ?? "none",
+        })
         if (meetingContextRef.current) {
           // If user was never actually in the meeting (e.g. waiting room cycle),
           // keep the context alive for the next SDK cycle instead of processing
@@ -283,9 +330,17 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
             log.debug("Meeting ended before inMeeting, keeping context for next cycle")
             return
           }
-          processAttendance().finally(() => {
+          const ctxId = meetingContextRef.current.attendanceId
+          log.debug("Starting processAttendance", { attendanceId: ctxId })
+          processAttendance().then(() => {
+            log.debug("processAttendance resolved, nulling context", { attendanceId: ctxId })
+            meetingContextRef.current = null
+          }).catch((err) => {
+            log.error("processAttendance failed", { attendanceId: ctxId, error: String(err) })
             meetingContextRef.current = null
           })
+        } else {
+          log.debug("End state but no context to process")
         }
       }
     },
@@ -306,7 +361,12 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       addEvent("Join confirmed", { code: 0 })
     },
     onMeetingEndedReason: (event: ZoomMeetingEndedEvent) => {
-      log.debug("Meeting ended", { reason: event.reasonName, code: event.reason })
+      log.debug("Meeting ended", {
+        reason: event.reasonName,
+        code: event.reason,
+        hasContext: !!meetingContextRef.current,
+        attendanceId: meetingContextRef.current?.attendanceId ?? "none",
+      })
       addEvent("Meeting ended", { reason: event.reasonName, code: event.reason })
       setMeetingState("idle")
     },
@@ -360,6 +420,13 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       if (profileStore.attendanceEnabled) {
         // Create attendance record in SQLite
         const attendanceId = Crypto.randomUUID()
+        log.debug("Creating attendance record", {
+          attendanceId,
+          uid,
+          mid: config.meetingId,
+          zid: zidToJoin,
+          meetingName: config.meetingName ?? "",
+        })
         try {
           const result = await attendanceRepo.create({
             id: attendanceId,
@@ -371,13 +438,24 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
             events: [createEvent("Join initiated", { userName: config.userName })],
           })
           if (!result.ok) throw new Error("Failed to create attendance record")
-          log.info("Attendance created", { id: attendanceId })
+          log.info("Attendance created", { attendanceId, mid: config.meetingId, zid: zidToJoin })
           attendanceEvents.emit({ type: "created", id: attendanceId })
         } catch (err) {
-          log.error("Attendance create failed", { error: String(err) })
+          log.error("Attendance create failed", {
+            attendanceId,
+            mid: config.meetingId,
+            error: String(err),
+          })
         }
 
         // Set up meeting context for attendance tracking
+        const prevContext = meetingContextRef.current
+        if (prevContext) {
+          log.warn("Overwriting existing meeting context", {
+            prevAttendanceId: prevContext.attendanceId,
+            newAttendanceId: attendanceId,
+          })
+        }
         meetingContextRef.current = {
           attendanceId,
           uid,
@@ -388,9 +466,12 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           inMeetingAt: null,
           events: [],
         }
+        log.debug("Meeting context set", { attendanceId })
+      } else {
+        log.debug("Attendance tracking disabled, skipping record creation")
       }
 
-      log.info("Joining meeting", { zid: zidToJoin, userName: config.userName })
+      log.info("Joining meeting", { zid: zidToJoin, userName: config.userName, attendanceEnabled: profileStore.attendanceEnabled })
       addEvent("Calling SDK", { zid: zidToJoin })
 
       try {
@@ -475,6 +556,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         setError(errorMessage)
 
         await processAttendance()
+        log.debug("Join error path: nulling context", { attendanceId: meetingContextRef.current?.attendanceId })
         meetingContextRef.current = null
         throw err
       }
