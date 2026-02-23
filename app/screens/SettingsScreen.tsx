@@ -126,6 +126,19 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [languageModalVisible, setLanguageModalVisible] = useState(false)
   const [colorPickerVisible, setColorPickerVisible] = useState(false)
+  const [emailValid, setEmailValid] = useState<boolean | null>(null)
+
+  // Debounced email validation indicator
+  useEffect(() => {
+    if (!profileStore.reportEmail) {
+      setEmailValid(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileStore.reportEmail))
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [profileStore.reportEmail])
 
   // Language state from MST (persisted)
   const currentLang = profileStore.language || getCurrentLanguage()
@@ -617,15 +630,26 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         {/* Export Email */}
         <View style={themed($emailSection)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:exportEmail" />
-          <TextField
-            value={profileStore.reportEmail}
-            onChangeText={profileStore.setReportEmail}
-            placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            inputWrapperStyle={themed($emailInputWrapper)}
-          />
+          <View style={$emailRow}>
+            <TextField
+              value={profileStore.reportEmail}
+              onChangeText={profileStore.setReportEmail}
+              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              inputWrapperStyle={themed($emailInputWrapper)}
+              containerStyle={$emailInputFlex}
+            />
+            {emailValid !== null && (
+              <Ionicons
+                name={emailValid ? "checkmark-circle" : "close-circle"}
+                size={20}
+                color={emailValid ? theme.colors.palette.secondary500 : theme.colors.error}
+                style={$emailValidIcon}
+              />
+            )}
+          </View>
         </View>
 
         {/* Export Button */}
@@ -1112,6 +1136,19 @@ const $emailInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderColor: colors.border,
   borderRadius: 8,
 })
+
+const $emailRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+}
+
+const $emailInputFlex: ViewStyle = {
+  flex: 1,
+}
+
+const $emailValidIcon: ViewStyle = {
+  marginLeft: 8,
+}
 
 
 // Pronouns Button
