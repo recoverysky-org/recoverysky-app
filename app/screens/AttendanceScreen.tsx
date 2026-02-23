@@ -9,7 +9,7 @@
  * - Reports: View and manage sent attendance reports
  */
 
-import { FC, useCallback, useState, useEffect } from "react"
+import { FC, useCallback, useRef, useState, useEffect } from "react"
 import {
   ViewStyle,
   FlatList,
@@ -24,6 +24,7 @@ import { DateTime } from "@recoverysky-org/common/browser"
 import * as Crypto from "expo-crypto"
 import { Ionicons } from "@expo/vector-icons"
 import { WebView } from "react-native-webview"
+import { useRoute, type RouteProp } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 
 import { AttendanceRow } from "@/components/AttendanceRow"
@@ -31,6 +32,7 @@ import { Screen } from "@/components/Screen"
 import { SegmentedControl } from "@/components/SegmentedControl"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import {
   attendanceRepo,
@@ -42,7 +44,7 @@ import {
 import { api } from "@/services/api"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
-import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { MainTabScreenProps, type MainTabParamList, type AttendanceSection } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -51,10 +53,69 @@ import { logger } from "@/utils/logger"
 // Section definitions
 // ============================================================================
 
-type AttendanceSection = "new" | "archive" | "reports"
-
 /** Validate email format */
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+/** Poll intervals for delivery confirmation: 15s, then 60s repeating */
+const POLL_INTERVALS = [15000, 60000, 60000, 60000, 60000]
+
+/** Module-level toast callback set by AttendanceScreen component */
+let _showReportToast: ((error: boolean) => void) | null = null
+
+/**
+ * Fire-and-forget polling for report delivery confirmation.
+ * Polls POST /reports/status at increasing intervals until confirmed !== 0.
+ * Updates SQLite and emits event when status resolves.
+ */
+function pollForConfirmation(reportId: string) {
+  let attempt = 0
+  logger.info("Poll started", { reportId, intervals: POLL_INTERVALS.length })
+
+  const poll = async () => {
+    logger.debug("Poll attempt", { reportId, attempt: attempt + 1, delayMs: POLL_INTERVALS[attempt] })
+    try {
+      const result = await api.getReportStatus({ id: reportId })
+      if (result.kind === "ok") {
+        const { confirmed, error, confirmation, html } = result.data
+        logger.debug("Poll response", {
+          reportId,
+          confirmed,
+          error,
+          hasConfirmation: !!confirmation,
+          hasHtml: !!html,
+        })
+        if (confirmed !== 0 || error) {
+          logger.info("Poll resolved", {
+            reportId,
+            confirmed,
+            error,
+            confirmation: confirmation || "none",
+          })
+          await attendanceReportRepo.update(reportId, { confirmed, error, confirmation, html })
+          logger.debug("Poll: DB updated", { reportId })
+          attendanceEvents.emit({ type: "produced", id: reportId, reportId })
+          _showReportToast?.(!!error)
+          return // Done polling
+        }
+        logger.debug("Poll: not yet resolved, scheduling next", { reportId })
+      } else {
+        logger.warn("Poll: API returned non-ok", { reportId, kind: result.kind })
+      }
+    } catch (err) {
+      logger.error("Poll: exception", { reportId, attempt: attempt + 1, error: String(err) })
+    }
+
+    // Schedule next poll if we haven't exhausted intervals
+    if (attempt < POLL_INTERVALS.length - 1) {
+      attempt++
+    }
+    logger.debug("Poll: next attempt scheduled", { reportId, attempt: attempt + 1, delayMs: POLL_INTERVALS[attempt] })
+    setTimeout(poll, POLL_INTERVALS[attempt])
+  }
+
+  // Start first poll after initial delay
+  setTimeout(poll, POLL_INTERVALS[0])
+}
 
 const SECTIONS = [
   { key: "new", label: "New" },
@@ -308,27 +369,33 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
     if (selectedIds.size === 0) return
     try {
       const ids = Array.from(selectedIds)
+      const uid = authStore.userId ?? ""
+      const email = profileStore.reportEmail
+      logger.info("Creating new report", { uid, email, attendanceCount: ids.length })
 
-      // 1. Create attendance_report record
+      // 1. Create attendance_report record (unconfirmed)
+      const reportId = Crypto.randomUUID()
       const reportResult = await attendanceReportRepo.create({
-        id: Crypto.randomUUID(),
-        uid: authStore.userId ?? "",
-        email: profileStore.reportEmail,
+        id: reportId,
+        uid,
+        email,
         generated: Date.now(),
       })
       if (!reportResult.ok) {
-        logger.error("Failed to create attendance report", { error: String(reportResult.error) })
+        logger.error("Failed to create attendance report in DB", { reportId, error: String(reportResult.error) })
         Alert.alert("Error", "Failed to create attendance report.")
         return
       }
-      const reportId = reportResult.value
+      logger.debug("Report record created in DB", { reportId })
 
       // 2. Mark each selected attendance as produced (also archives)
+      logger.debug("Marking attendance records as produced", { reportId, count: ids.length, ids: ids.join(",") })
       for (const id of ids) {
         await attendanceRepo.markProduced(id, reportId)
       }
+      logger.debug("All attendance records marked produced", { reportId, count: ids.length })
 
-      // 3. Update local state
+      // 3. Update local state immediately
       setRecords((prev) => prev.filter((r) => !selectedIds.has(r.id)))
       setSelectedIds(new Set())
 
@@ -338,50 +405,60 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
         attendanceEvents.emit({ type: "archived", id })
       }
 
-      // 5. Send report to API for HTML generation and email delivery
+      // 5. Send report to API synchronously
       const attendanceResult = await attendanceRepo.findByReportId(reportId)
-      if (attendanceResult.ok) {
-        const apiResult = await api.sendReport({
-          id: reportId,
-          uid: authStore.userId ?? "",
-          email: profileStore.reportEmail,
-          attendance: attendanceResult.value,
+      if (!attendanceResult.ok) {
+        logger.warn("Failed to fetch attendance records for API", { reportId, error: String(attendanceResult.error) })
+        Alert.alert("Report Created", `${ids.length} attendance record(s) saved locally.`)
+        return
+      }
+      logger.debug("Sending report to API", {
+        reportId,
+        email,
+        attendanceCount: attendanceResult.value.length,
+      })
+
+      const apiResult = await api.sendReport({
+        id: reportId, uid, email, attendance: attendanceResult.value,
+      })
+
+      if (apiResult.kind === "ok") {
+        logger.info("Report API response OK", {
+          reportId,
+          confirmed: apiResult.data.confirmed,
+          error: apiResult.data.error,
+          hasHtml: !!apiResult.data.html,
         })
-        if (apiResult.kind === "ok") {
-          // 6. Persist server response (html, confirmed, etc.) back to SQLite
-          await attendanceReportRepo.update(reportId, {
-            html: apiResult.data.html,
+        await attendanceReportRepo.update(reportId, {
+          html: apiResult.data.html,
+          confirmed: apiResult.data.confirmed,
+          confirmation: apiResult.data.confirmation,
+          error: apiResult.data.error,
+        })
+        attendanceEvents.emit({ type: "produced", id: reportId, reportId })
+        Alert.alert("Report Sent", `${ids.length} attendance record(s) included in report.`)
+
+        // 6. If not yet confirmed, poll for delivery status
+        if (apiResult.data.confirmed === 0 && !apiResult.data.error) {
+          logger.info("Report unconfirmed, starting delivery poll", { reportId })
+          pollForConfirmation(reportId)
+        } else {
+          logger.info("Report already resolved", {
+            reportId,
             confirmed: apiResult.data.confirmed,
-            confirmation: apiResult.data.confirmation,
             error: apiResult.data.error,
           })
-
-          if (apiResult.data.error) {
-            logger.error("Server returned error for report", { reportId })
-            Alert.alert(
-              "Report Error",
-              "Your report was created but the server encountered an error processing it. Please try again later.",
-            )
-          } else {
-            Alert.alert("Report Sent", `${ids.length} attendance record(s) included in report.`)
-          }
-        } else {
-          logger.warn("API report delivery failed, will retry later", {
-            reportId,
-            error: apiResult.kind,
-          })
-          Alert.alert(
-            "Report Created",
-            `Report saved locally but could not be sent to the server. It will be retried later.`,
-          )
         }
       } else {
-        Alert.alert("Report Created", `${ids.length} attendance record(s) saved locally.`)
+        logger.warn("Report API call failed", { reportId, kind: apiResult.kind })
+        await attendanceReportRepo.update(reportId, { error: true })
+        attendanceEvents.emit({ type: "produced", id: reportId, reportId })
+        Alert.alert("Report Error", "Report saved locally but could not be sent to the server.")
       }
 
-      logger.info("Attendance report created", { reportId, count: ids.length })
+      logger.info("Report flow complete", { reportId, count: ids.length })
     } catch (error) {
-      logger.error("Failed to create report", { error: String(error) })
+      logger.error("Report flow exception", { error: String(error) })
       Alert.alert("Error", "Failed to create attendance report.")
     }
   }, [selectedIds, authStore.userId, profileStore.reportEmail])
@@ -640,97 +717,129 @@ const ReportsContent: FC = observer(function ReportsContent() {
     setIsSending(true)
 
     try {
+      const uid = authStore.userId ?? ""
       const emailChanged = resendEmail !== resendReport.email
+      logger.info("Resend initiated", {
+        reportId: resendReport.id,
+        originalEmail: resendReport.email,
+        newEmail: resendEmail,
+        emailChanged,
+        isError: resendReport.error,
+        hasFid: !!resendReport.fid,
+        fid: resendReport.fid || "none",
+      })
+
+      /** Update DB from API response + start polling if unconfirmed */
+      const handleApiResult = async (
+        reportId: string,
+        apiResult: { kind: "ok"; data: { html: string; confirmed: number; confirmation: string; error: boolean } } | { kind: string },
+      ) => {
+        if (apiResult.kind === "ok" && "data" in apiResult) {
+          const { data } = apiResult as { kind: "ok"; data: { html: string; confirmed: number; confirmation: string; error: boolean } }
+          logger.debug("Resend API result OK", {
+            reportId,
+            confirmed: data.confirmed,
+            error: data.error,
+            hasHtml: !!data.html,
+          })
+          await attendanceReportRepo.update(reportId, {
+            html: data.html,
+            confirmed: data.confirmed,
+            confirmation: data.confirmation,
+            error: data.error,
+          })
+          attendanceEvents.emit({ type: "produced", id: reportId, reportId })
+          if (data.confirmed === 0 && !data.error) {
+            logger.info("Resend unconfirmed, starting delivery poll", { reportId })
+            pollForConfirmation(reportId)
+          }
+        } else {
+          logger.warn("Resend API result failed", { reportId, kind: (apiResult as { kind: string }).kind })
+          await attendanceReportRepo.update(reportId, { error: true })
+          attendanceEvents.emit({ type: "produced", id: reportId, reportId })
+        }
+      }
 
       if (!emailChanged) {
         // Same email — resend
-        const apiResult = await api.resendReport({ id: resendReport.id, uid: authStore.userId ?? "" })
-        if (apiResult.kind === "ok") {
-          await attendanceReportRepo.update(resendReport.id, {
-            html: apiResult.data.html,
-            confirmed: apiResult.data.confirmed,
-            confirmation: apiResult.data.confirmation,
-            error: apiResult.data.error,
-          })
-          if (apiResult.data.error) {
-            Alert.alert("Report Error", "The server encountered an error resending the report.")
-          } else {
-            Alert.alert("Report Resent", "Your report has been resent successfully.")
-          }
-        } else {
-          Alert.alert("Resend Failed", "Could not resend the report. Please try again later.")
-        }
+        logger.info("Resend: same email path", { reportId: resendReport.id, email: resendEmail })
+        await attendanceReportRepo.update(resendReport.id, {
+          error: false, confirmed: 0, confirmation: "",
+        })
+        const apiResult = await api.resendReport({ id: resendReport.id, uid })
+        await handleApiResult(resendReport.id, apiResult)
+        Alert.alert(
+          apiResult.kind === "ok" ? "Report Resent" : "Resend Failed",
+          apiResult.kind === "ok"
+            ? "Your report has been resent."
+            : "Could not resend the report. Please try again later.",
+        )
       } else if (resendReport.error) {
         // Changed email on errored report — replace in-place
+        logger.info("Resend: error replace path", {
+          reportId: resendReport.id,
+          oldEmail: resendReport.email,
+          newEmail: resendEmail,
+        })
         await attendanceReportRepo.update(resendReport.id, {
-          email: resendEmail,
-          error: false,
-          confirmed: 0,
-          confirmation: "",
+          email: resendEmail, error: false, confirmed: 0, confirmation: "",
         })
-        const apiResult = await api.sendReport({
-          id: resendReport.id,
-          uid: authStore.userId ?? "",
-          email: resendEmail,
-        })
-        if (apiResult.kind === "ok") {
-          await attendanceReportRepo.update(resendReport.id, {
-            html: apiResult.data.html,
-            confirmed: apiResult.data.confirmed,
-            confirmation: apiResult.data.confirmation,
-            error: apiResult.data.error,
-          })
-          if (apiResult.data.error) {
-            Alert.alert("Report Error", "The server encountered an error processing the report.")
-          } else {
-            Alert.alert("Report Sent", "Your report has been sent to the new email address.")
-          }
-        } else {
-          Alert.alert("Send Failed", "Report saved locally but could not be sent to the server.")
-        }
+        const apiResult = await api.sendReport({ id: resendReport.id, uid, email: resendEmail })
+        await handleApiResult(resendReport.id, apiResult)
+        Alert.alert(
+          apiResult.kind === "ok" ? "Report Sent" : "Send Failed",
+          apiResult.kind === "ok"
+            ? "Your report has been sent to the new address."
+            : "Report saved locally but could not be sent to the server.",
+        )
       } else {
-        // Changed email on confirmed/pending report — forward as new report
+        // Changed email on confirmed/pending report — forward
+        const originId = resendReport.fid || resendReport.id
         const newId = Crypto.randomUUID()
+        logger.info("Resend: forward path", {
+          sourceReportId: resendReport.id,
+          sourceFid: resendReport.fid || "none",
+          originId,
+          newReportId: newId,
+          email: resendEmail,
+        })
         await attendanceReportRepo.create({
-          id: newId,
-          uid: authStore.userId ?? "",
-          email: resendEmail,
-          fid: resendReport.id,
-          generated: Date.now(),
+          id: newId, uid, email: resendEmail, fid: originId, generated: Date.now(),
         })
-        const apiResult = await api.sendReport({
-          id: newId,
-          uid: authStore.userId ?? "",
-          email: resendEmail,
-          fid: resendReport.id,
-        })
-        if (apiResult.kind === "ok") {
-          await attendanceReportRepo.update(newId, {
-            html: apiResult.data.html,
-            confirmed: apiResult.data.confirmed,
-            confirmation: apiResult.data.confirmation,
-            error: apiResult.data.error,
-          })
-          if (apiResult.data.error) {
-            Alert.alert("Report Error", "The forwarded report encountered a server error.")
-          } else {
-            Alert.alert("Report Forwarded", "Your report has been forwarded to the new address.")
-          }
-        } else {
-          Alert.alert("Forward Created", "Report saved locally but could not be sent to the server.")
-        }
+        logger.debug("Forward report created in DB", { newReportId: newId, fid: originId })
         attendanceEvents.emit({ type: "produced", id: newId, reportId: newId })
+        const apiResult = await api.sendReport({ id: newId, uid, email: resendEmail, fid: originId })
+        await handleApiResult(newId, apiResult)
+        Alert.alert(
+          apiResult.kind === "ok" ? "Report Forwarded" : "Forward Failed",
+          apiResult.kind === "ok"
+            ? "Your report has been forwarded to the new address."
+            : "Report saved locally but could not be sent to the server.",
+        )
       }
 
       handleCancelResend()
       void loadReports()
     } catch (error) {
-      logger.error("Failed to resend report", { error: String(error) })
+      logger.error("Resend flow exception", {
+        reportId: resendReport?.id,
+        error: String(error),
+      })
       Alert.alert("Error", "An unexpected error occurred.")
     } finally {
       setIsSending(false)
     }
   }, [resendReport, resendEmail, authStore.userId, handleCancelResend, loadReports])
+
+  const handleRowTap = useCallback((item: AttendanceReportRecord) => {
+    const status = item.error
+      ? "Error"
+      : item.confirmed > 0
+        ? "Delivered"
+        : "Pending"
+    const detail = item.confirmation || "No confirmation yet"
+    Alert.alert(status, detail)
+  }, [])
 
   const renderItem = useCallback(
     ({ item }: { item: AttendanceReportRecord }) => {
@@ -741,7 +850,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
         : "Unknown date"
 
       return (
-        <View style={themed($reportRow)}>
+        <TouchableOpacity style={themed($reportRow)} onPress={() => handleRowTap(item)} activeOpacity={0.7}>
           <Ionicons name={status.name} size={22} color={status.color} />
           <View style={$reportContent}>
             <Text style={themed($reportDate)}>{dateStr}</Text>
@@ -763,10 +872,10 @@ const ReportsContent: FC = observer(function ReportsContent() {
           >
             <Ionicons name="eye-outline" size={22} color={theme.colors.tint} />
           </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       )
     },
-    [themed, theme, getStatusIcon, recordCounts, handleViewReport, handleResendTap],
+    [themed, theme, getStatusIcon, recordCounts, handleViewReport, handleResendTap, handleRowTap],
   )
 
   const keyExtractor = useCallback((item: AttendanceReportRecord) => item.id, [])
@@ -912,7 +1021,42 @@ const ReportsContent: FC = observer(function ReportsContent() {
 export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
   function AttendanceScreen({ navigation }) {
     const { themed } = useAppTheme()
-    const [activeSection, setActiveSection] = useState<AttendanceSection>("new")
+    const toast = useToast()
+    const route = useRoute<RouteProp<MainTabParamList, "Attendance">>()
+
+    // Initialize section from route params or default to "new"
+    const [activeSection, setActiveSection] = useState<AttendanceSection>(
+      route.params?.section ?? "new",
+    )
+
+    // Track last route param to detect navigation-triggered changes
+    const lastRouteSection = useRef(route.params?.section)
+
+    // Sync section when route params change from navigation
+    useEffect(() => {
+      const newSection = route.params?.section
+      if (newSection && newSection !== lastRouteSection.current) {
+        lastRouteSection.current = newSection
+        setActiveSection(newSection)
+      }
+    }, [route.params?.section])
+
+    // Register module-level toast handler for poll completion
+    useEffect(() => {
+      _showReportToast = (error: boolean) => {
+        toast.showToast({
+          message: error ? "Report delivery failed" : "Report delivered successfully",
+          type: error ? "error" : "success",
+          duration: 10000,
+          onPress: () => {
+            navigation.navigate("Attendance", { section: "reports" })
+          },
+        })
+      }
+      return () => {
+        _showReportToast = null
+      }
+    }, [toast, navigation])
 
     const handleNavigateSettings = useCallback(() => {
       navigation.navigate("Settings")
