@@ -73,7 +73,10 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   // Sync Auth0 error to local state (ignore user-cancelled errors)
   useEffect(() => {
     if (auth0Error) {
-      if (auth0Error instanceof WebAuthError && auth0Error.type === WebAuthErrorCodes.USER_CANCELLED) {
+      if (
+        auth0Error instanceof WebAuthError &&
+        auth0Error.type === WebAuthErrorCodes.USER_CANCELLED
+      ) {
         log.info("Auth0 operation cancelled by user")
         return
       }

@@ -56,7 +56,10 @@ export interface SubscriptionInfo {
  * Should be called once at app startup, after the app user ID is known.
  * If appUserId is not provided, RevenueCat will generate an anonymous ID.
  */
-export async function initializeRevenueCat(appUserId?: string, apiKey?: string): Promise<Result<void>> {
+export async function initializeRevenueCat(
+  appUserId?: string,
+  apiKey?: string,
+): Promise<Result<void>> {
   try {
     const key = apiKey || REVENUECAT_CONFIG.getApiKey()
 
@@ -136,11 +139,12 @@ export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
       isPremium: premiumEntitlement !== undefined && premiumEntitlement.isActive,
       hasAttendance: attendanceEntitlement !== undefined && attendanceEntitlement.isActive,
       activeEntitlements: Object.keys(customerInfo.entitlements.active),
-      expirationDate: (premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)
-        ? new Date((premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)!)
-        : null,
-      activeProductId: premiumEntitlement?.productIdentifier
-        ?? attendanceEntitlement?.productIdentifier ?? null,
+      expirationDate:
+        (premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)
+          ? new Date((premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)!)
+          : null,
+      activeProductId:
+        premiumEntitlement?.productIdentifier ?? attendanceEntitlement?.productIdentifier ?? null,
       isInTrial: (premiumEntitlement?.periodType ?? attendanceEntitlement?.periodType) === "TRIAL",
       managementUrl: customerInfo.managementURL ?? null,
     }
@@ -261,7 +265,7 @@ export async function presentPaywall(): Promise<Result<boolean>> {
   try {
     // Fetch the correct offering for the environment
     const offeringsResult = await getOfferings()
-    const offering = offeringsResult.ok ? offeringsResult.value ?? undefined : undefined
+    const offering = offeringsResult.ok ? (offeringsResult.value ?? undefined) : undefined
 
     log.info("Presenting paywall", { offering: offering?.identifier })
     const result = await RevenueCatUI.presentPaywall({ offering })
@@ -302,7 +306,7 @@ export async function presentPaywallIfNeeded(): Promise<Result<boolean>> {
   try {
     // Fetch the correct offering for the environment
     const offeringsResult = await getOfferings()
-    const offering = offeringsResult.ok ? offeringsResult.value ?? undefined : undefined
+    const offering = offeringsResult.ok ? (offeringsResult.value ?? undefined) : undefined
 
     log.info("Presenting paywall if needed", { offering: offering?.identifier })
     const result = await RevenueCatUI.presentPaywallIfNeeded({

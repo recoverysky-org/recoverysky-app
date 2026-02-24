@@ -108,7 +108,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     profileStore.setShortName(localShortNameRef.current)
   }, [profileStore])
 
-
   // Subscription state from RevenueCat
   const {
     isPremium,
@@ -683,9 +682,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 style={themed($activitySpinner)}
               />
             )}
-            <Text
-              style={[themed($rowValue), (isPremium || hasAttendance) && themed($premiumText)]}
-            >
+            <Text style={[themed($rowValue), (isPremium || hasAttendance) && themed($premiumText)]}>
               {getSubscriptionStatus()}
             </Text>
           </View>
@@ -702,7 +699,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               <Ionicons name="log-in" size={18} color={theme.colors.tint} />
               <Text style={themed($upgradeButtonText)} tx="settingsScreen:loginToSubscribe" />
             </TouchableOpacity>
-            <Text style={[themed($subscriptionHint), themed($lastRow)]} tx="settingsScreen:loginToSubscribeHint" />
+            <Text
+              style={[themed($subscriptionHint), themed($lastRow)]}
+              tx="settingsScreen:loginToSubscribeHint"
+            />
           </>
         ) : (
           <>
@@ -1149,7 +1149,6 @@ const $emailInputFlex: ViewStyle = {
 const $emailValidIcon: ViewStyle = {
   marginLeft: 8,
 }
-
 
 // Pronouns Button
 const $pronounsButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({

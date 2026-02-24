@@ -336,10 +336,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
             <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
           </TouchableOpacity>
           <Text style={themed($timeSeparator)}>{t("listingsScreen:toSeparator")}</Text>
-          <TouchableOpacity
-            style={themed($timeButton)}
-            onPress={() => setTimePickerVisible("end")}
-          >
+          <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("end")}>
             <Text style={themed($timeButtonLabel)}>{t("listingsScreen:endLabel")}</Text>
             <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
           </TouchableOpacity>

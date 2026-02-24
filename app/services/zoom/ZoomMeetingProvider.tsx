@@ -11,15 +11,7 @@
  * Falls back gracefully when SDK keys are not configured.
  */
 
-import {
-  FC,
-  ReactNode,
-  useState,
-  useEffect,
-  createContext,
-  useContext,
-  useCallback,
-} from "react"
+import { FC, ReactNode, useState, useEffect, createContext, useContext, useCallback } from "react"
 import { Alert, Platform } from "react-native"
 import * as Crypto from "expo-crypto"
 import * as Device from "expo-device"
@@ -258,7 +250,12 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           valid: false,
         })
         log.info("Attendance marked invalid (missing events)", { attendanceId: ctx.attendanceId })
-        attendanceEvents.emit({ type: "processed", id: ctx.attendanceId, mid: ctx.mid, valid: false })
+        attendanceEvents.emit({
+          type: "processed",
+          id: ctx.attendanceId,
+          mid: ctx.mid,
+          valid: false,
+        })
       } catch (err) {
         log.error("Attendance save failed (missing events path)", {
           attendanceId: ctx.attendanceId,
@@ -335,13 +332,15 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           }
           const ctxId = meetingContext.attendanceId
           log.debug("Starting processAttendance", { attendanceId: ctxId })
-          processAttendance().then(() => {
-            log.debug("processAttendance resolved, nulling context", { attendanceId: ctxId })
-            meetingContext = null
-          }).catch((err) => {
-            log.error("processAttendance failed", { attendanceId: ctxId, error: String(err) })
-            meetingContext = null
-          })
+          processAttendance()
+            .then(() => {
+              log.debug("processAttendance resolved, nulling context", { attendanceId: ctxId })
+              meetingContext = null
+            })
+            .catch((err) => {
+              log.error("processAttendance failed", { attendanceId: ctxId, error: String(err) })
+              meetingContext = null
+            })
         } else {
           log.debug("End state but no context to process")
         }
@@ -473,7 +472,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         log.debug("Attendance tracking disabled, skipping record creation")
       }
 
-      log.info("Joining meeting", { zid: zidToJoin, userName: config.userName, attendanceEnabled: profileStore.attendanceEnabled })
+      log.info("Joining meeting", {
+        zid: zidToJoin,
+        userName: config.userName,
+        attendanceEnabled: profileStore.attendanceEnabled,
+      })
       addEvent("Calling SDK", { zid: zidToJoin })
 
       try {
@@ -503,7 +506,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           }
 
           // Fetch ZAK from /zak/me endpoint (works for both authenticated and anonymous)
-          const zak = await getZakToken(zoomAuth, authStore.deviceId ?? undefined, configStore.zakApiKey)
+          const zak = await getZakToken(
+            zoomAuth,
+            authStore.deviceId ?? undefined,
+            configStore.zakApiKey,
+          )
           if (zak) {
             zakToken = zak
             log.info("ZAK token obtained", {
@@ -558,7 +565,9 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         setError(errorMessage)
 
         await processAttendance()
-        log.debug("Join error path: nulling context", { attendanceId: meetingContext?.attendanceId })
+        log.debug("Join error path: nulling context", {
+          attendanceId: meetingContext?.attendanceId,
+        })
         meetingContext = null
         throw err
       }

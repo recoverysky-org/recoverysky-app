@@ -6,11 +6,10 @@
  * documentation for more details.
  */
 import { type meeting } from "@recoverysky-org/common/browser"
-
-import type { AttendanceRecord } from "@/db"
 import { ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
+import type { AttendanceRecord } from "@/db"
 import { logger } from "@/utils/logger"
 
 import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"

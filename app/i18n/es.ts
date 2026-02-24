@@ -76,7 +76,7 @@ const es: Translations = {
     signupModalNote:
       "Cuando veas lo anterior, cierra la ventana del navegador y regresa a RecoverySky para iniciar sesión con tu nueva cuenta de Zoom.",
     signupModalNote2:
-      "Puedes hacer clic en \"Take me to my basic account\" para completar tu perfil de Zoom, luego cierra la ventana del navegador y regresa a RecoverySky.",
+      'Puedes hacer clic en "Take me to my basic account" para completar tu perfil de Zoom, luego cierra la ventana del navegador y regresa a RecoverySky.',
     signupModalContinue: "Abrir Registro de Zoom",
     loading: "Verificando conexión de Zoom...",
   },

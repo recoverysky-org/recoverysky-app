@@ -338,7 +338,11 @@ export function useZoomAuth(): UseZoomAuthResult {
    * When zoomAuth is null, the service account is used (anonymous flow).
    */
   const getZakToken = useCallback(async (): Promise<string | null> => {
-    const result = await fetchZakToken(zoomAuth, authStore.deviceId ?? undefined, configStore.zakApiKey)
+    const result = await fetchZakToken(
+      zoomAuth,
+      authStore.deviceId ?? undefined,
+      configStore.zakApiKey,
+    )
 
     // Reload local state if tokens may have been refreshed
     if (result && zoomAuth) {

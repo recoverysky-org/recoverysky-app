@@ -17,6 +17,7 @@ import {
 } from "react"
 import { CustomerInfo } from "react-native-purchases"
 
+import { useConfigStore, useProfileStore } from "@/models"
 import {
   initializeRevenueCat,
   getSubscriptionInfo,
@@ -29,9 +30,8 @@ import {
   logoutUser,
   type SubscriptionInfo,
 } from "@/services/purchases"
-import { useConfigStore, useProfileStore } from "@/models"
-import { loadString, saveString } from "@/utils/storage"
 import { logger } from "@/utils/logger"
+import { loadString, saveString } from "@/utils/storage"
 
 const log = logger.child({ module: "SubscriptionContext" })
 
@@ -139,7 +139,10 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     const initialize = async () => {
       setIsLoading(true)
 
-      const result = await initializeRevenueCat(appUserId, configStore.revenueCatApiKey || undefined)
+      const result = await initializeRevenueCat(
+        appUserId,
+        configStore.revenueCatApiKey || undefined,
+      )
       if (result.ok) {
         setIsInitialized(true)
         await loadSubscriptionInfo()

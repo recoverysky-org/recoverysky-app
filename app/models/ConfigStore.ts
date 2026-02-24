@@ -77,9 +77,12 @@ export const ConfigStoreModel = types
           if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
           if (config.ZOOM_SDK_KEY) store.zoomSdkKey = config.ZOOM_SDK_KEY
           if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
-          if (config.REVENUE_CAT_API_TEST_KEY) store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
-          if (config.REVENUE_CAT_API_APPLE_KEY) store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
-          if (config.REVENUE_CAT_API_GOOGLE_KEY) store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
+          if (config.REVENUE_CAT_API_TEST_KEY)
+            store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
+          if (config.REVENUE_CAT_API_APPLE_KEY)
+            store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
+          if (config.REVENUE_CAT_API_GOOGLE_KEY)
+            store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
           if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
           if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
           store.isLoaded = true
