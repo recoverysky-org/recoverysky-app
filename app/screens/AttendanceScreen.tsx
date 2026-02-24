@@ -76,11 +76,12 @@ function pollForConfirmation(reportId: string) {
     try {
       const result = await api.getReportStatus({ id: reportId })
       if (result.kind === "ok") {
-        const { confirmed, error, confirmation, html } = result.data
+        const { confirmed, error, confirmation, html, retry } = result.data
         logger.debug("Poll response", {
           reportId,
           confirmed,
           error,
+          retry,
           hasConfirmation: !!confirmation,
           hasHtml: !!html,
         })
@@ -89,9 +90,10 @@ function pollForConfirmation(reportId: string) {
             reportId,
             confirmed,
             error,
+            retry,
             confirmation: confirmation || "none",
           })
-          await attendanceReportRepo.update(reportId, { confirmed, error, confirmation, html })
+          await attendanceReportRepo.update(reportId, { confirmed, error, confirmation, html, retry })
           logger.debug("Poll: DB updated", { reportId })
           attendanceEvents.emit({ type: "produced", id: reportId, reportId })
           _showReportToast?.(!!error)
@@ -434,6 +436,7 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
           confirmed: apiResult.data.confirmed,
           confirmation: apiResult.data.confirmation,
           error: apiResult.data.error,
+          retry: apiResult.data.retry,
         })
         attendanceEvents.emit({ type: "produced", id: reportId, reportId })
         Alert.alert("Report Sent", `${ids.length} attendance record(s) included in report.`)
@@ -732,14 +735,15 @@ const ReportsContent: FC = observer(function ReportsContent() {
       /** Update DB from API response + start polling if unconfirmed */
       const handleApiResult = async (
         reportId: string,
-        apiResult: { kind: "ok"; data: { html: string; confirmed: number; confirmation: string; error: boolean } } | { kind: string },
+        apiResult: { kind: "ok"; data: { html: string; confirmed: number; confirmation: string; error: boolean; retry: number } } | { kind: string },
       ) => {
         if (apiResult.kind === "ok" && "data" in apiResult) {
-          const { data } = apiResult as { kind: "ok"; data: { html: string; confirmed: number; confirmation: string; error: boolean } }
+          const { data } = apiResult as { kind: "ok"; data: { html: string; confirmed: number; confirmation: string; error: boolean; retry: number } }
           logger.debug("Resend API result OK", {
             reportId,
             confirmed: data.confirmed,
             error: data.error,
+            retry: data.retry,
             hasHtml: !!data.html,
           })
           await attendanceReportRepo.update(reportId, {
@@ -747,33 +751,33 @@ const ReportsContent: FC = observer(function ReportsContent() {
             confirmed: data.confirmed,
             confirmation: data.confirmation,
             error: data.error,
+            retry: data.retry,
           })
           attendanceEvents.emit({ type: "produced", id: reportId, reportId })
           if (data.confirmed === 0 && !data.error) {
             logger.info("Resend unconfirmed, starting delivery poll", { reportId })
             pollForConfirmation(reportId)
+          } else {
+            // Immediately resolved — show toast
+            _showReportToast?.(!!data.error)
           }
         } else {
           logger.warn("Resend API result failed", { reportId, kind: (apiResult as { kind: string }).kind })
           await attendanceReportRepo.update(reportId, { error: true })
           attendanceEvents.emit({ type: "produced", id: reportId, reportId })
+          _showReportToast?.(true)
         }
       }
 
       if (!emailChanged) {
-        // Same email — resend
+        // Same email — resend: reset status to pending, then re-send
         logger.info("Resend: same email path", { reportId: resendReport.id, email: resendEmail })
         await attendanceReportRepo.update(resendReport.id, {
-          error: false, confirmed: 0, confirmation: "",
+          error: false, retry: 0, confirmed: 0, confirmation: "",
         })
+        attendanceEvents.emit({ type: "produced", id: resendReport.id, reportId: resendReport.id })
         const apiResult = await api.resendReport({ id: resendReport.id, uid })
         await handleApiResult(resendReport.id, apiResult)
-        Alert.alert(
-          apiResult.kind === "ok" ? "Report Resent" : "Resend Failed",
-          apiResult.kind === "ok"
-            ? "Your report has been resent."
-            : "Could not resend the report. Please try again later.",
-        )
       } else if (resendReport.error) {
         // Changed email on errored report — replace in-place
         logger.info("Resend: error replace path", {
@@ -782,7 +786,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
           newEmail: resendEmail,
         })
         await attendanceReportRepo.update(resendReport.id, {
-          email: resendEmail, error: false, confirmed: 0, confirmation: "",
+          email: resendEmail, error: false, retry: 0, confirmed: 0, confirmation: "",
         })
         const apiResult = await api.sendReport({ id: resendReport.id, uid, email: resendEmail })
         await handleApiResult(resendReport.id, apiResult)
