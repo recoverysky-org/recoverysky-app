@@ -9,7 +9,7 @@
  * - Reports: View and manage sent attendance reports
  */
 
-import { FC, useCallback, useRef, useState, useEffect } from "react"
+import { FC, useCallback, useState, useEffect } from "react"
 import {
   ViewStyle,
   FlatList,
@@ -787,17 +787,18 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       route.params?.section ?? "new",
     )
 
-    // Track last route param to detect navigation-triggered changes
-    const lastRouteSection = useRef(route.params?.section)
-
-    // Sync section when route params change from navigation
+    // Sync section when tab is focused via navigation (e.g. banner tap, toast tap).
+    // Using the focus event ensures we apply params even when the value hasn't
+    // changed (navigate with same section while user is on a different sub-tab).
     useEffect(() => {
-      const newSection = route.params?.section
-      if (newSection && newSection !== lastRouteSection.current) {
-        lastRouteSection.current = newSection
-        setActiveSection(newSection)
-      }
-    }, [route.params?.section])
+      const unsubscribe = navigation.addListener("focus", () => {
+        const section = route.params?.section
+        if (section) {
+          setActiveSection(section)
+        }
+      })
+      return unsubscribe
+    }, [navigation, route.params?.section])
 
     // Subscribe to delivery resolution events from polling
     useEffect(() => {
