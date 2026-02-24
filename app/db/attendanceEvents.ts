@@ -7,7 +7,12 @@
 
 import type { AttendanceRecord } from "./repositories"
 
-export type AttendanceChangeType = "created" | "processed" | "produced" | "archived"
+export type AttendanceChangeType =
+  | "created"
+  | "processed"
+  | "produced"
+  | "archived"
+  | "delivery_resolved"
 
 export interface AttendanceChange {
   type: AttendanceChangeType
@@ -20,6 +25,8 @@ export interface AttendanceChange {
   valid?: boolean
   /** Attendance report ID (available on 'produced' events) */
   reportId?: string
+  /** Whether delivery resolved with an error (only on 'delivery_resolved' events) */
+  deliveryError?: boolean
 }
 
 type AttendanceChangeListener = (event: AttendanceChange) => void
