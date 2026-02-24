@@ -45,6 +45,15 @@ const POLL_INTERVALS = [15000, 60000, 60000, 60000, 60000]
 /** Extended update input (retry exists in source but missing from stale compiled .d.ts) */
 type UpdateInput = AttendanceReportUpdateInput & { retry?: number }
 
+/** Default values for all status fields — reset before every send */
+const STATUS_DEFAULTS = {
+  confirmed: 0,
+  confirmation: "",
+  error: false,
+  retry: 0,
+  html: "",
+} as UpdateInput
+
 /** Toast labels per operation type */
 const TOAST_LABELS: Record<SendOperation["type"], string> = {
   initial: "Report sent",
@@ -142,28 +151,50 @@ async function processApiResult(
   apiResult: ApiResult,
   operationType: SendOperation["type"],
   showToast: (config: { message: string; type: "success" | "error"; duration?: number }) => void,
+  preserveReset = false,
 ): Promise<boolean> {
   if (apiResult.kind === "ok") {
     const { data } = apiResult
-    await attendanceReportRepo.update(reportId, {
-      html: data.html,
-      confirmed: data.confirmed,
-      confirmation: data.confirmation,
-      error: data.error,
-      retry: data.retry,
-    } as UpdateInput)
-    attendanceEvents.emit({ type: "produced", id: reportId, reportId })
 
     if (data.error) {
+      // Errors are always authoritative — write to DB
+      await attendanceReportRepo.update(reportId, {
+        error: data.error,
+        retry: data.retry,
+      } as UpdateInput)
+      attendanceEvents.emit({ type: "produced", id: reportId, reportId })
       showToast({ message: "Failed to send report", type: "error" })
       return false
     }
 
-    showToast({ message: TOAST_LABELS[operationType], type: "success" })
+    if (preserveReset) {
+      // Resend/replace: API may return stale confirmed state from previous
+      // delivery. Keep our reset values in SQLite and always poll for fresh
+      // confirmation. Only trust error (handled above).
+      logger.debug("processApiResult: preserving reset, skipping DB write", {
+        reportId,
+        apiConfirmed: data.confirmed,
+      })
+    } else {
+      // Initial/forward: API response is authoritative for a new report
+      await attendanceReportRepo.update(reportId, {
+        html: data.html,
+        confirmed: data.confirmed,
+        confirmation: data.confirmation,
+        error: data.error,
+        retry: data.retry,
+      } as UpdateInput)
+      attendanceEvents.emit({ type: "produced", id: reportId, reportId })
 
-    if (data.confirmed === 0) {
-      pollForConfirmation(reportId)
+      // If already confirmed, no need to poll
+      if (data.confirmed !== 0) {
+        showToast({ message: TOAST_LABELS[operationType], type: "success" })
+        return true
+      }
     }
+
+    showToast({ message: TOAST_LABELS[operationType], type: "success" })
+    pollForConfirmation(reportId)
     return true
   }
 
@@ -178,119 +209,77 @@ async function processApiResult(
 // Operation handlers
 // ============================================================================
 
-async function handleInitialSend(
+type ShowToast = (config: { message: string; type: "success" | "error"; duration?: number }) => void
+
+/**
+ * Unified handler for initial send, resend, and error-replace.
+ * All three follow the same pattern: ensure record exists → reset status → call API.
+ */
+async function handleSend(
   uid: string,
-  op: Extract<SendOperation, { type: "initial" }>,
-  showToast: (config: { message: string; type: "success" | "error"; duration?: number }) => void,
+  op: Extract<SendOperation, { type: "initial" | "resend" | "replace" }>,
+  showToast: ShowToast,
 ): Promise<SendResult> {
-  const reportId = Crypto.randomUUID()
-  logger.info("Initial send started", { reportId, email: op.email, count: op.attendanceIds.length })
+  let reportId: string
+  const email = op.type === "resend" ? op.report.email : op.email
 
-  const createResult = await attendanceReportRepo.create({
-    id: reportId,
-    uid,
-    email: op.email,
-    generated: Date.now(),
-  })
-  if (!createResult.ok) {
-    logger.error("Failed to create attendance report in DB", {
-      reportId,
-      error: String(createResult.error),
+  // 1. Ensure report record exists (initial creates, others already exist)
+  if (op.type === "initial") {
+    reportId = Crypto.randomUUID()
+    logger.info("Initial send started", { reportId, email, count: op.attendanceIds.length })
+
+    const createResult = await attendanceReportRepo.create({
+      id: reportId, uid, email, generated: Date.now(),
     })
-    showToast({ message: "Failed to create report", type: "error" })
-    return { reportId, success: false }
-  }
-  logger.debug("Report record created in DB", { reportId })
+    if (!createResult.ok) {
+      logger.error("Failed to create attendance report in DB", { reportId, error: String(createResult.error) })
+      showToast({ message: "Failed to create report", type: "error" })
+      return { reportId, success: false }
+    }
 
-  logger.debug("Marking attendance records as produced", {
-    reportId,
-    count: op.attendanceIds.length,
-  })
-  for (const id of op.attendanceIds) {
-    await attendanceRepo.markProduced(id, reportId)
-  }
-
-  attendanceEvents.emit({ type: "produced", id: reportId, reportId })
-  for (const id of op.attendanceIds) {
-    attendanceEvents.emit({ type: "archived", id })
-  }
-
-  const attendanceResult = await attendanceRepo.findByReportId(reportId)
-  if (!attendanceResult.ok) {
-    logger.warn("Failed to fetch attendance records for API", {
-      reportId,
-      error: String(attendanceResult.error),
-    })
-    showToast({ message: "Report saved locally", type: "success" })
-    return { reportId, success: true }
+    for (const id of op.attendanceIds) {
+      await attendanceRepo.markProduced(id, reportId)
+    }
+    for (const id of op.attendanceIds) {
+      attendanceEvents.emit({ type: "archived", id })
+    }
+  } else {
+    reportId = op.report.id
+    logger.info(`${op.type === "resend" ? "Resend" : "Replace"} started`, { reportId, email })
   }
 
-  logger.debug("Sending report to API", {
-    reportId,
-    email: op.email,
-    attendanceCount: attendanceResult.value.length,
-  })
-  const apiResult = await api.sendReport({
-    id: reportId,
-    uid,
-    email: op.email,
-    attendance: attendanceResult.value,
-  })
-  const success = await processApiResult(reportId, apiResult, "initial", showToast)
-  logger.info("Initial send complete", { reportId, success })
-  return { reportId, success }
-}
-
-async function handleResend(
-  uid: string,
-  op: Extract<SendOperation, { type: "resend" }>,
-  showToast: (config: { message: string; type: "success" | "error"; duration?: number }) => void,
-): Promise<SendResult> {
-  const reportId = op.report.id
-  logger.info("Resend: same email path", { reportId, email: op.report.email })
-
-  await attendanceReportRepo.update(reportId, {
-    error: false,
-    retry: 0,
-    confirmed: 0,
-    confirmation: "",
-  } as UpdateInput)
+  // 2. Reset ALL status fields to defaults + set email
+  await attendanceReportRepo.update(reportId, { email, ...STATUS_DEFAULTS })
   attendanceEvents.emit({ type: "produced", id: reportId, reportId })
 
-  const apiResult = await api.resendReport({ id: reportId, uid })
-  const success = await processApiResult(reportId, apiResult, "resend", showToast)
-  return { reportId, success }
-}
+  // 3. Call API (initial sends attendance payload, resend is minimal, replace sends new email)
+  let apiResult: ApiResult
+  if (op.type === "initial") {
+    const attendanceResult = await attendanceRepo.findByReportId(reportId)
+    if (!attendanceResult.ok) {
+      logger.warn("Failed to fetch attendance for API", { reportId, error: String(attendanceResult.error) })
+      showToast({ message: "Report saved locally", type: "success" })
+      return { reportId, success: true }
+    }
+    apiResult = await api.sendReport({ id: reportId, uid, email, attendance: attendanceResult.value })
+  } else if (op.type === "resend") {
+    apiResult = await api.resendReport({ id: reportId, uid })
+  } else {
+    apiResult = await api.sendReport({ id: reportId, uid, email })
+  }
 
-async function handleReplace(
-  uid: string,
-  op: Extract<SendOperation, { type: "replace" }>,
-  showToast: (config: { message: string; type: "success" | "error"; duration?: number }) => void,
-): Promise<SendResult> {
-  const reportId = op.report.id
-  logger.info("Resend: error replace path", {
-    reportId,
-    oldEmail: op.report.email,
-    newEmail: op.email,
-  })
-
-  await attendanceReportRepo.update(reportId, {
-    email: op.email,
-    error: false,
-    retry: 0,
-    confirmed: 0,
-    confirmation: "",
-  } as UpdateInput)
-
-  const apiResult = await api.sendReport({ id: reportId, uid, email: op.email })
-  const success = await processApiResult(reportId, apiResult, "replace", showToast)
+  // 4. Process result (update DB, toast, poll if needed)
+  // Resend/replace: API may return stale confirmed state — preserve our reset
+  const preserveReset = op.type === "resend" || op.type === "replace"
+  const success = await processApiResult(reportId, apiResult, op.type, showToast, preserveReset)
+  logger.info("Send complete", { reportId, type: op.type, success })
   return { reportId, success }
 }
 
 async function handleForward(
   uid: string,
   op: Extract<SendOperation, { type: "forward" }>,
-  showToast: (config: { message: string; type: "success" | "error"; duration?: number }) => void,
+  showToast: ShowToast,
 ): Promise<SendResult> {
   const originId = op.report.fid || op.report.id
   const newId = Crypto.randomUUID()
@@ -340,11 +329,9 @@ export function useReportSender() {
 
         switch (op.type) {
           case "initial":
-            return await handleInitialSend(uid, op, showToast)
           case "resend":
-            return await handleResend(uid, op, showToast)
           case "replace":
-            return await handleReplace(uid, op, showToast)
+            return await handleSend(uid, op, showToast)
           case "forward":
             return await handleForward(uid, op, showToast)
         }
