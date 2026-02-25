@@ -277,14 +277,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 <Text style={themed($metaText)}>{formattedTime}</Text>
               </View>
             )}
-            {meeting.duration_ms ? (
-              <View style={$metaItem}>
-                <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>
-                  {Math.round(meeting.duration_ms / 60000)} {t("liveScreen:min")}
-                </Text>
-              </View>
-            ) : null}
+            <View style={$metaItem}>
+              <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
+              <Text style={themed($metaText)}>
+                {meeting.duration_ms
+                  ? `${Math.round(meeting.duration_ms / 60000)} ${t("liveScreen:min")}`
+                  : "24h"}
+              </Text>
+            </View>
             <View style={$metaItem}>
               <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
               <Text style={themed($metaText)}>
