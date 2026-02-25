@@ -620,6 +620,28 @@ export class Api {
     })
     return { kind: "ok", data: response.data }
   }
+  /**
+   * Check if a user has data in the old Firebase app
+   * GET /firebase/user/:uid
+   */
+  async checkFirebaseUser(
+    uid: string,
+  ): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Checking Firebase user data", { uid })
+
+    const response = await this.recoverySkyApi.get(`/firebase/user/${uid}`)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.debug("No Firebase data found", { uid, problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.debug("Firebase user data exists", { uid })
+    return { kind: "ok" }
+  }
 }
 
 // Singleton instance of the API for convenience

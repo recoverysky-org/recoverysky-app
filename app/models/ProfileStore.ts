@@ -64,6 +64,9 @@ export const ProfileStoreModel = types
     // Notifications
     notificationsEnabled: types.optional(types.boolean, true),
 
+    // Import
+    imported: types.optional(types.boolean, false),
+
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
   })
@@ -276,6 +279,10 @@ export const ProfileStoreModel = types
         self.reportEmail = value
       },
 
+      setImported(value: boolean) {
+        self.imported = value
+      },
+
       /**
        * Mark onboarding as completed
        */
@@ -337,6 +344,7 @@ export const ProfileStoreModel = types
         self.notificationsEnabled = true
         self.attendanceEnabled = false
         self.reportEmail = ""
+        self.imported = false
         self.dismissedHomeCards.clear()
 
         // Persist reset to SQLite

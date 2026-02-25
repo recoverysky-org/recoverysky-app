@@ -13,6 +13,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import {
+  OnboardingImport,
   OnboardingWelcome,
   OnboardingProfile,
   OnboardingRecovery,
@@ -44,6 +45,7 @@ export function OnboardingNavigator() {
       }}
       initialRouteName="OnboardingWelcome"
     >
+      <Stack.Screen name="OnboardingImport" component={OnboardingImport} />
       <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcome} />
       <Stack.Screen name="OnboardingProfile" component={OnboardingProfile} />
       <Stack.Screen name="OnboardingRecovery" component={OnboardingRecovery} />

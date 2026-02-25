@@ -325,6 +325,10 @@ const en = {
     // Actions
     logout: "Logout",
     logoutConfirm: "Are you sure you want to log out?",
+    // Import Section
+    importSection: "Import",
+    importProfile: "Import Profile",
+    importAttendanceReports: "Import Attendance Reports",
     // Legal Section
     legalSection: "Legal",
     thirdPartyLicenses: "Third-Party Licenses",
@@ -333,6 +337,14 @@ const en = {
   },
   // Onboarding
   onboarding: {
+    // Import
+    importTitle: "Welcome Back!",
+    importSubtitle: "We found data from your previous app. Would you like to import it?",
+    importJournalHint: "The journal is not available in this app, but you may export your old journal data as a PDF.",
+    importCloudData: "Import Cloud Data",
+    exportJournalPdf: "Export Journal PDF",
+    importSkip: "Skip Import",
+    importChecking: "Checking for existing data...",
     // Screen 0: Welcome
     welcomeTitle: "Welcome to RecoverySky!",
     welcomeSubtitle: "We wish you the best in your recovery journey.",

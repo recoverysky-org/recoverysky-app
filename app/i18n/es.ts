@@ -324,6 +324,10 @@ const es: Translations = {
     // Actions
     logout: "Cerrar Sesión",
     logoutConfirm: "¿Estás seguro de que deseas cerrar sesión?",
+    // Import Section
+    importSection: "Importar",
+    importProfile: "Importar Perfil",
+    importAttendanceReports: "Importar Reportes de Asistencia",
     // Legal Section
     legalSection: "Legal",
     thirdPartyLicenses: "Licencias de Terceros",
@@ -331,6 +335,14 @@ const es: Translations = {
     close: "Cerrar",
   },
   onboarding: {
+    // Import
+    importTitle: "¡Bienvenido de nuevo!",
+    importSubtitle: "Encontramos datos de tu aplicación anterior. ¿Te gustaría importarlos?",
+    importJournalHint: "El diario no está disponible en esta aplicación, pero puedes exportar los datos de tu diario anterior como PDF.",
+    importCloudData: "Importar Datos de la Nube",
+    exportJournalPdf: "Exportar Diario PDF",
+    importSkip: "Omitir Importación",
+    importChecking: "Buscando datos existentes...",
     // Screen 0: Welcome
     welcomeTitle: "¡Bienvenido a RecoverySky!",
     welcomeSubtitle: "Te deseamos lo mejor en tu camino de recuperación.",

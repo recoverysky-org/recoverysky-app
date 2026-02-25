@@ -902,6 +902,32 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
       </View>
 
+      {/* Import Section */}
+      <View style={themed($section)}>
+        <View style={themed($sectionHeader)}>
+          <Ionicons name="cloud-download-outline" size={20} color={themed($importIconColor).color} />
+          <Text style={themed($sectionTitle)} tx="settingsScreen:importSection" />
+        </View>
+
+        <TouchableOpacity
+          style={themed($settingsRow)}
+          onPress={() => {}}
+          accessibilityRole="button"
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:importProfile" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[themed($settingsRow), themed($lastRow)]}
+          onPress={() => {}}
+          accessibilityRole="button"
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:importAttendanceReports" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+      </View>
+
       {/* Legal Section */}
       <View style={themed($section)}>
         <View style={themed($sectionHeader)}>
@@ -1297,6 +1323,11 @@ const $datePickerDone: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $datePickerSpinner: ViewStyle = {
   height: 180,
 }
+
+// Import Section Icon Color
+const $importIconColor: ThemedStyle<{ color: string }> = () => ({
+  color: "#00BCD4",
+})
 
 // Legal Section Icon Color
 const $legalIconColor: ThemedStyle<{ color: string }> = ({ colors }) => ({

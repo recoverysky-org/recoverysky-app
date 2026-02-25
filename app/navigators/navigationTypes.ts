@@ -27,6 +27,7 @@ export type MainTabParamList = {
 
 // Onboarding Stack Navigator types
 export type OnboardingParamList = {
+  OnboardingImport: undefined
   OnboardingWelcome: undefined
   OnboardingProfile: undefined
   OnboardingRecovery: undefined
