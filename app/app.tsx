@@ -58,6 +58,7 @@ import {
   loginOneSignalUser,
   logoutOneSignalUser,
   requestNotificationPermission,
+  hasNotificationPermission,
   addNotificationClickHandler,
   setNotificationLanguage,
 } from "./services/notifications"
@@ -281,14 +282,12 @@ export function App() {
           initializeOneSignal(_rootStore.configStore.oneSignalAppId)
 
           // Set initial user identity
-          const userId = authStore.userId ?? authStore.deviceId
-          if (userId) loginOneSignalUser(userId)
+          if (authStore.userIdentifier) loginOneSignalUser(authStore.userIdentifier)
 
           // React to auth state changes for OneSignal identity
           reaction(
-            () => ({ userId: authStore.userId, deviceId: authStore.deviceId }),
-            ({ userId: uid, deviceId: did }) => {
-              const id = uid ?? did
+            () => authStore.userIdentifier,
+            (id) => {
               if (id) loginOneSignalUser(id)
               else logoutOneSignalUser()
             },
@@ -360,6 +359,28 @@ export function App() {
     }
   }, [])
 
+  // Sync OS notification permission with profileStore on foreground resume
+  useEffect(() => {
+    if (!rootStore || Platform.OS === "web") return
+
+    let appState = AppState.currentState
+
+    const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      if (appState.match(/inactive|background/) && nextState === "active") {
+        hasNotificationPermission().then((permitted) => {
+          if (!permitted && rootStore.profileStore.notificationsEnabled) {
+            rootStore.profileStore.setNotificationsEnabled(false)
+          }
+        })
+      }
+      appState = nextState
+    })
+
+    return () => {
+      subscription.remove()
+    }
+  }, [rootStore])
+
   // Check if app is ready
   const isAppReady =
     isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
@@ -375,9 +396,8 @@ export function App() {
     config,
   }
 
-  // Get userId for RevenueCat (use deviceId for anonymous users, userId for authenticated)
-  const revenueCatUserId =
-    rootStore.authenticationStore.userId ?? rootStore.authenticationStore.deviceId
+  // Get userId for RevenueCat
+  const revenueCatUserId = rootStore.authenticationStore.userIdentifier
 
   // otherwise, we're ready to render the app
   return (

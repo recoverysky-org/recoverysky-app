@@ -28,7 +28,12 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { optInNotifications, optOutNotifications } from "@/services/notifications"
+import {
+  optInNotifications,
+  optOutNotifications,
+  requestNotificationPermission,
+  hasNotificationPermission,
+} from "@/services/notifications"
 import { useZoomAuth } from "@/services/auth"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
@@ -201,9 +206,17 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   }
 
   const handleNotificationsToggle = useCallback(
-    (value: boolean) => {
+    async (value: boolean) => {
       profileStore.setNotificationsEnabled(value)
       if (value) {
+        const hasPermission = await hasNotificationPermission()
+        if (!hasPermission) {
+          const granted = await requestNotificationPermission()
+          if (!granted) {
+            profileStore.setNotificationsEnabled(false)
+            return
+          }
+        }
         optInNotifications()
       } else {
         optOutNotifications()

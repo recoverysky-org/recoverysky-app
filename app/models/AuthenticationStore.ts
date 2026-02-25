@@ -54,6 +54,10 @@ export const AuthenticationStoreModel = types
     get canRefresh() {
       return !!store.refreshToken
     },
+    /** The effective user identifier: Auth0 userId for registered users, deviceId for anonymous */
+    get userIdentifier(): string | undefined {
+      return store.userId ?? store.deviceId
+    },
     /**
      * Email validation error (if any)
      */
