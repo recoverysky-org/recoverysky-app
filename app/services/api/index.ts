@@ -462,6 +462,8 @@ export class Api {
           REVENUE_CAT_API_GOOGLE_KEY: string
           ZAK_API_KEY: string
           OTLP_API_KEY: string
+          ONE_SIGNAL_IOS_KEY_ID: string
+          ONE_SIGNAL_IOS_KEY: string
         }
       }
     | GeneralApiProblem
@@ -479,6 +481,8 @@ export class Api {
       REVENUE_CAT_API_GOOGLE_KEY: string
       ZAK_API_KEY: string
       OTLP_API_KEY: string
+      ONE_SIGNAL_IOS_KEY_ID: string
+      ONE_SIGNAL_IOS_KEY: string
     }>("/config")
 
     if (!response.ok) {

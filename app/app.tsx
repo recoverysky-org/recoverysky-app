@@ -40,7 +40,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
-import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator, ChatHydrator } from "./db"
+import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator, ChatHydrator, ReportPollingResumer } from "./db"
 import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
@@ -53,6 +53,14 @@ import {
   preparePlayIntegrity,
 } from "./services/attestation"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
+import {
+  initializeOneSignal,
+  loginOneSignalUser,
+  logoutOneSignalUser,
+  requestNotificationPermission,
+  addNotificationClickHandler,
+  setNotificationLanguage,
+} from "./services/notifications"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
@@ -268,6 +276,55 @@ export function App() {
           },
         )
 
+        // Initialize OneSignal push notifications (non-fatal)
+        if (_rootStore.configStore.oneSignalAppId) {
+          initializeOneSignal(_rootStore.configStore.oneSignalAppId)
+
+          // Set initial user identity
+          const userId = authStore.userId ?? authStore.deviceId
+          if (userId) loginOneSignalUser(userId)
+
+          // React to auth state changes for OneSignal identity
+          reaction(
+            () => ({ userId: authStore.userId, deviceId: authStore.deviceId }),
+            ({ userId: uid, deviceId: did }) => {
+              const id = uid ?? did
+              if (id) loginOneSignalUser(id)
+              else logoutOneSignalUser()
+            },
+          )
+
+          // Request notification permission after onboarding completes
+          reaction(
+            () => _rootStore.profileStore.onboardingCompleted,
+            (completed) => {
+              if (completed) {
+                setTimeout(() => requestNotificationPermission().catch(() => {}), 1000)
+              }
+            },
+          )
+
+          // Sync language preference to OneSignal
+          reaction(
+            () => _rootStore.profileStore.language,
+            (language) => {
+              if (language) setNotificationLanguage(language)
+            },
+          )
+
+          // Handle notification click → deep link to specific tab
+          addNotificationClickHandler((event) => {
+            const data = event.notification.additionalData as
+              | { screen?: string }
+              | undefined
+            if (data?.screen) {
+              log.info("Notification clicked, navigating", { screen: data.screen })
+              const { navigate: navTo } = require("./navigators/navigationUtilities")
+              navTo(data.screen as never)
+            }
+          })
+        }
+
         setRootStore(_rootStore)
         log.info("App initialization complete")
       } catch (error) {
@@ -332,6 +389,7 @@ export function App() {
               <DatabaseProvider>
                 <ProfileHydrator />
                 <ChatHydrator />
+                <ReportPollingResumer />
                 <MeetingProvider>
                   <ThemeProvider>
                     <ToastProvider>

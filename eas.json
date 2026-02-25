@@ -54,7 +54,8 @@
     "production": {
       "extends": "base",
       "env": {
-        "EXPO_PUBLIC_LOG_LEVEL": "warn"
+        "EXPO_PUBLIC_LOG_LEVEL": "warn",
+        "EXPO_PUBLIC_ONESIGNAL_MODE": "production"
       },
       "ios": {
         "resourceClass": "m-medium",

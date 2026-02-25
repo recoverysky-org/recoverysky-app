@@ -28,6 +28,7 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { optInNotifications, optOutNotifications } from "@/services/notifications"
 import { useZoomAuth } from "@/services/auth"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
@@ -199,6 +200,18 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     setThemeContextOverride(value ? "dark" : "light")
   }
 
+  const handleNotificationsToggle = useCallback(
+    (value: boolean) => {
+      profileStore.setNotificationsEnabled(value)
+      if (value) {
+        optInNotifications()
+      } else {
+        optOutNotifications()
+      }
+    },
+    [profileStore],
+  )
+
   const handleDeleteUserData = () => {
     Alert.alert(
       translate("settingsScreen:deleteUserData"),
@@ -264,7 +277,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   // Format expiration date for display
   const formatExpirationDate = (): string => {
-    if (!subscriptionInfo?.expirationDate) return "-"
+    if (!subscriptionInfo?.expirationDate) return translate("settingsScreen:expiresNone")
     return subscriptionInfo.expirationDate.toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
@@ -274,7 +287,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   // Get subscription status text
   const getSubscriptionStatus = (): string => {
-    if (isSubscriptionLoading) return "..."
+    if (isSubscriptionLoading) return translate("settingsScreen:subscriptionLoading")
     if (isPremium) {
       if (subscriptionInfo?.isInTrial) return translate("settingsScreen:subscriptionPremiumTrial")
       return translate("settingsScreen:subscriptionPremium")
@@ -608,6 +621,31 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
       </View>
 
+      {/* Notifications Section */}
+      <View style={themed($section)}>
+        <View style={themed($sectionHeader)}>
+          <Ionicons
+            name="notifications-outline"
+            size={20}
+            color={themed($notificationsIconColor).color}
+          />
+          <Text style={themed($sectionTitle)} tx="settingsScreen:notificationsSection" />
+        </View>
+
+        <View style={themed($settingsRow)}>
+          <View style={$styles.flex1}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:enableNotifications" />
+            <Text style={themed($rowHint)} tx="settingsScreen:notificationsHint" />
+          </View>
+          <Switch
+            value={profileStore.notificationsEnabled}
+            onValueChange={handleNotificationsToggle}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+      </View>
+
       {/* Attendance Section */}
       <View style={themed($section)}>
         <View style={themed($sectionHeader)}>
@@ -655,7 +693,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         <TouchableOpacity
           style={[themed($settingsRow), themed($lastRow)]}
           onPress={() =>
-            Alert.alert("Coming Soon", "Export functionality will be available in a future update.")
+            Alert.alert(translate("settingsScreen:comingSoon"), translate("settingsScreen:exportComingSoon"))
           }
           accessibilityRole="button"
         >
@@ -1068,6 +1106,10 @@ const $accountIconColor: ThemedStyle<{ color: string }> = () => ({
 
 const $appSettingsIconColor: ThemedStyle<{ color: string }> = () => ({
   color: "#9C27B0",
+})
+
+const $notificationsIconColor: ThemedStyle<{ color: string }> = () => ({
+  color: "#E91E63",
 })
 
 const $attendanceIconColor: ThemedStyle<{ color: string }> = () => ({
