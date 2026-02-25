@@ -68,9 +68,19 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
 
   return (
     <View style={themed($container)}>
-      {/* Selected indicator (only when selected) */}
-      {isSelected && (
-        <Ionicons name="checkmark-circle" size={22} color={theme.colors.palette.secondary500} />
+      {/* Report selection toggle (far left) */}
+      {showReportSelect && (
+        <Pressable
+          onPress={onToggleSelect}
+          hitSlop={8}
+          style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+        >
+          <Ionicons
+            name={isSelected ? "checkmark-circle" : "add-circle-outline"}
+            size={24}
+            color={isSelected ? "#4CAF50" : theme.colors.tint}
+          />
+        </Pressable>
       )}
 
       {/* Meeting info */}
@@ -84,21 +94,6 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
         </Text>
       </View>
 
-      {/* Select/Deselect button (only with attendance entitlement) */}
-      {showReportSelect && (
-        <Pressable
-          onPress={onToggleSelect}
-          hitSlop={8}
-          style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
-        >
-          <Ionicons
-            name={isSelected ? "remove-circle-outline" : "add-circle-outline"}
-            size={26}
-            color={isSelected ? theme.colors.error : theme.colors.tint}
-          />
-        </Pressable>
-      )}
-
       {/* Archive button (hidden when already archived) */}
       {onArchive && (
         <Pressable
@@ -110,14 +105,16 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
         </Pressable>
       )}
 
-      {/* Delete button */}
-      <Pressable
-        onPress={onDelete}
-        hitSlop={8}
-        style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
-      >
-        <Ionicons name="trash-outline" size={22} color={theme.colors.textDim} />
-      </Pressable>
+      {/* Delete button (hidden when not applicable, e.g. archived records tied to reports) */}
+      {onDelete && (
+        <Pressable
+          onPress={onDelete}
+          hitSlop={8}
+          style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+        >
+          <Ionicons name="trash-outline" size={22} color={theme.colors.textDim} />
+        </Pressable>
+      )}
     </View>
   )
 }
