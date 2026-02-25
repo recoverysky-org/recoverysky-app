@@ -18,6 +18,7 @@ import {
 } from "@/db"
 import { useAuthenticationStore } from "@/models"
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
+import { pollForConfirmation } from "@/services/polling"
 import { logger } from "@/utils/logger"
 
 // ============================================================================
@@ -39,9 +40,6 @@ export interface SendResult {
 // Constants
 // ============================================================================
 
-/** Poll intervals for delivery confirmation: 15s first, then 60s repeating */
-const POLL_INTERVALS = [15000, 60000, 60000, 60000, 60000]
-
 /** Extended update input (retry exists in source but missing from stale compiled .d.ts) */
 type UpdateInput = AttendanceReportUpdateInput & { retry?: number }
 
@@ -60,84 +58,6 @@ const TOAST_LABELS: Record<SendOperation["type"], string> = {
   resend: "Report resent",
   replace: "Report sent",
   forward: "Report forwarded",
-}
-
-// ============================================================================
-// Polling
-// ============================================================================
-
-/**
- * Fire-and-forget polling for report delivery confirmation.
- * Polls POST /reports/status at increasing intervals until confirmed !== 0.
- * Updates SQLite and emits delivery_resolved event when status resolves.
- */
-function pollForConfirmation(reportId: string) {
-  let attempt = 0
-  logger.info("Poll started", { reportId, intervals: POLL_INTERVALS.length })
-
-  const poll = async () => {
-    logger.debug("Poll attempt", {
-      reportId,
-      attempt: attempt + 1,
-      delayMs: POLL_INTERVALS[attempt],
-    })
-    try {
-      const result = await api.getReportStatus({ id: reportId })
-      if (result.kind === "ok") {
-        const { confirmed, error, confirmation, html, retry } = result.data
-        logger.debug("Poll response", {
-          reportId,
-          confirmed,
-          error,
-          retry,
-          hasConfirmation: !!confirmation,
-          hasHtml: !!html,
-        })
-        if (confirmed !== 0 || error) {
-          logger.info("Poll resolved", {
-            reportId,
-            confirmed,
-            error,
-            retry,
-            confirmation: confirmation || "none",
-          })
-          await attendanceReportRepo.update(reportId, {
-            confirmed,
-            error,
-            confirmation,
-            html,
-            retry,
-          } as UpdateInput)
-          logger.debug("Poll: DB updated", { reportId })
-          attendanceEvents.emit({ type: "produced", id: reportId, reportId })
-          attendanceEvents.emit({
-            type: "delivery_resolved",
-            id: reportId,
-            reportId,
-            deliveryError: !!error,
-          })
-          return
-        }
-        logger.debug("Poll: not yet resolved, scheduling next", { reportId })
-      } else {
-        logger.warn("Poll: API returned non-ok", { reportId, kind: result.kind })
-      }
-    } catch (err) {
-      logger.error("Poll: exception", { reportId, attempt: attempt + 1, error: String(err) })
-    }
-
-    if (attempt < POLL_INTERVALS.length - 1) {
-      attempt++
-    }
-    logger.debug("Poll: next attempt scheduled", {
-      reportId,
-      attempt: attempt + 1,
-      delayMs: POLL_INTERVALS[attempt],
-    })
-    setTimeout(poll, POLL_INTERVALS[attempt])
-  }
-
-  setTimeout(poll, POLL_INTERVALS[0])
 }
 
 // ============================================================================

@@ -27,6 +27,7 @@ export { DatabaseProvider, useDatabase, useDatabaseReady } from "./DatabaseProvi
 export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
 export { ProfileHydrator } from "./ProfileHydrator"
 export { ChatHydrator } from "./ChatHydrator"
+export { ReportPollingResumer } from "./ReportPollingResumer"
 export {
   meetingRepo,
   scheduleRepo,

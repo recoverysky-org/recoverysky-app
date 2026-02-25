@@ -259,6 +259,13 @@ export const attendanceReportRepo = {
     return getAttendanceReportRepo().findAll()
   },
 
+  /** Find all unconfirmed, non-error reports (pending delivery) */
+  findUnconfirmed: async () => {
+    const result = await getAttendanceReportRepo().findAll()
+    if (!result.ok) return result
+    return { ok: true as const, value: result.value.filter((r) => r.confirmed === 0 && !r.error) }
+  },
+
   /** Update a report */
   update: async (id: string, input: AttendanceReportUpdateInput) => {
     return getAttendanceReportRepo().update(id, input)
