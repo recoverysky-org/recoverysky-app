@@ -154,6 +154,7 @@ const es: Translations = {
     fri: "VIE",
     sat: "SÁB",
     sun: "DOM",
+    defaultFellowship: "AA",
   },
   listingsScreen: {
     title: "Listado de Reuniones",
@@ -191,6 +192,47 @@ const es: Translations = {
     minutes: "min",
     subscribeRequired: "Para producir informes de asistencia, debes suscribirte.",
     goToSettings: "Ir a Suscripciones en Configuración",
+    // Sections
+    sectionNew: "Nuevos",
+    sectionArchive: "Archivo",
+    sectionReports: "Informes",
+    // Record/report labels
+    record: "registro",
+    records: "registros",
+    report: "informe",
+    reports: "informes",
+    // New tab
+    reportEmail: "Correo del Informe",
+    sendReport: "Enviar Informe",
+    sendReportHint:
+      "Ingresa un correo válido y selecciona uno o más registros de asistencia para enviar un informe.",
+    unknownMeeting: "Reunión Desconocida",
+    // Remove alert
+    removeTitle: "Eliminar Asistencia",
+    removeMessage:
+      "Esto marcará esta asistencia como inválida y no podrá ser usada en un informe. ¿Continuar?",
+    cancel: "Cancelar",
+    remove: "Eliminar",
+    errorTitle: "Error",
+    removeError: "No se pudo eliminar el registro de asistencia.",
+    // Reports tab
+    notAvailableTitle: "No Disponible",
+    notAvailableMessage: "El contenido del informe aún no se ha recibido del servidor.",
+    noConfirmation: "Sin confirmación aún",
+    statusDelivered: "Entregado",
+    statusPending: "Pendiente",
+    statusError: "Error",
+    unknownDate: "Fecha desconocida",
+    noReports: "Sin informes aún",
+    noReportsSubtext: "Los informes aparecerán aquí después de enviar registros de asistencia",
+    resendReport: "Reenviar Informe",
+    forwardReport: "Reenviar a Otro",
+    recipientPlaceholder: "destinatario@ejemplo.com",
+    sending: "Enviando...",
+    send: "Enviar",
+    // Delivery toast
+    deliveryFailed: "La entrega del informe falló",
+    deliverySuccess: "Informe entregado exitosamente",
   },
   settingsScreen: {
     title: "Configuración",
@@ -225,6 +267,8 @@ const es: Translations = {
     subscriptionPremiumTrial: "Premium (Prueba)",
     notLoggedIn: "Sin sesión",
     expires: "Expira",
+    expiresNone: "-",
+    subscriptionLoading: "...",
     upgradeToPro: "Actualizar a Premium",
     manageSubscription: "Gestionar Suscripción",
     loginToSubscribe: "Iniciar Sesión para Suscribirse",
@@ -262,12 +306,18 @@ const es: Translations = {
     vibrantColors: "Vibrantes",
     customColor: "Color Personalizado",
     resetToDefault: "Restablecer por Defecto",
+    // Notifications Section
+    notificationsSection: "Notificaciones",
+    enableNotifications: "Notificaciones Push",
+    notificationsHint: "Recibe actualizaciones sobre reuniones y la comunidad de recuperación",
     // Attendance Section
     attendanceSection: "Asistencia",
     enableAttendance: "Habilitar Asistencia",
     exportEmail: "Correo de Exportación",
     exportEmailPlaceholder: "correo@ejemplo.com",
     exportAttendance: "Exportar Asistencia",
+    comingSoon: "Próximamente",
+    exportComingSoon: "La funcionalidad de exportación estará disponible en una futura actualización.",
     // Home Tips
     resetHomeTips: "Restablecer Consejos de Inicio",
     resetHomeTipsHint: "Mostrar todas las tarjetas de ayuda de nuevo",
@@ -379,6 +429,15 @@ const es: Translations = {
     meetingsFound_one: "{{count}} reunión encontrada",
     meetingsFound_other: "{{count}} reuniones encontradas",
     tapToViewDetails: "Toca una reunión para ver detalles",
+    roleYou: "Tú",
+    roleSky: "Sky",
+    usingTool: "Usando {{toolName}}...",
+    selected: "Seleccionado: {{name}}",
+    clearConversation: "Borrar Conversación",
+    clearConversationConfirm:
+      "¿Estás seguro de que quieres borrar toda la conversación? Esto no se puede deshacer.",
+    cancel: "Cancelar",
+    clear: "Borrar",
   },
 }
 

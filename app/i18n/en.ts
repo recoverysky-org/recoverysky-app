@@ -154,6 +154,7 @@ const en = {
     fri: "FRI",
     sat: "SAT",
     sun: "SUN",
+    defaultFellowship: "AA",
   },
   listingsScreen: {
     title: "Meeting Listings",
@@ -191,6 +192,47 @@ const en = {
     minutes: "min",
     subscribeRequired: "To produce attendance reports, you must subscribe.",
     goToSettings: "Go to Subscriptions in Settings",
+    // Sections
+    sectionNew: "New",
+    sectionArchive: "Archive",
+    sectionReports: "Reports",
+    // Record/report labels
+    record: "record",
+    records: "records",
+    report: "report",
+    reports: "reports",
+    // New tab
+    reportEmail: "Report Email",
+    sendReport: "Send Report",
+    sendReportHint:
+      "Enter a valid email and select one or more attendance records to send a report.",
+    unknownMeeting: "Unknown Meeting",
+    // Remove alert
+    removeTitle: "Remove Attendance",
+    removeMessage:
+      "This will mark this attendance as invalid and unable to be used in a report. Continue?",
+    cancel: "Cancel",
+    remove: "Remove",
+    errorTitle: "Error",
+    removeError: "Failed to remove attendance record.",
+    // Reports tab
+    notAvailableTitle: "Not Available",
+    notAvailableMessage: "Report content has not been received from the server yet.",
+    noConfirmation: "No confirmation yet",
+    statusDelivered: "Delivered",
+    statusPending: "Pending",
+    statusError: "Error",
+    unknownDate: "Unknown date",
+    noReports: "No reports yet",
+    noReportsSubtext: "Reports will appear here after you send attendance records",
+    resendReport: "Resend Report",
+    forwardReport: "Forward Report",
+    recipientPlaceholder: "recipient@example.com",
+    sending: "Sending...",
+    send: "Send",
+    // Delivery toast
+    deliveryFailed: "Report delivery failed",
+    deliverySuccess: "Report delivered successfully",
   },
   settingsScreen: {
     title: "Settings",
@@ -225,6 +267,8 @@ const en = {
     subscriptionPremiumTrial: "Premium (Trial)",
     notLoggedIn: "Not logged in",
     expires: "Expires",
+    expiresNone: "-",
+    subscriptionLoading: "...",
     upgradeToPro: "Upgrade to Premium",
     manageSubscription: "Manage Subscription",
     loginToSubscribe: "Login to Subscribe",
@@ -263,12 +307,18 @@ const en = {
     vibrantColors: "Vibrant",
     customColor: "Custom Color",
     resetToDefault: "Reset to Default",
+    // Notifications Section
+    notificationsSection: "Notifications",
+    enableNotifications: "Push Notifications",
+    notificationsHint: "Receive updates about meetings and recovery community",
     // Attendance Section
     attendanceSection: "Attendance",
     enableAttendance: "Enable Attendance",
     exportEmail: "Export Email",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Export Attendance",
+    comingSoon: "Coming Soon",
+    exportComingSoon: "Export functionality will be available in a future update.",
     // Home Tips
     resetHomeTips: "Reset Home Tips",
     resetHomeTipsHint: "Show all help cards again",
@@ -388,6 +438,15 @@ const en = {
     meetingsFound_one: "{{count}} meeting found",
     meetingsFound_other: "{{count}} meetings found",
     tapToViewDetails: "Tap a meeting to view details",
+    roleYou: "You",
+    roleSky: "Sky",
+    usingTool: "Using {{toolName}}...",
+    selected: "Selected: {{name}}",
+    clearConversation: "Clear Conversation",
+    clearConversationConfirm:
+      "Are you sure you want to clear the entire conversation? This cannot be undone.",
+    cancel: "Cancel",
+    clear: "Clear",
   },
 }
 

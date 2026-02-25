@@ -60,9 +60,9 @@ import { logger } from "@/utils/logger"
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const SECTIONS = [
-  { key: "new", label: "New" },
-  { key: "archive", label: "Archive" },
-  { key: "reports", label: "Reports" },
+  { key: "new", label: translate("attendanceScreen:sectionNew") },
+  { key: "archive", label: translate("attendanceScreen:sectionArchive") },
+  { key: "reports", label: translate("attendanceScreen:sectionReports") },
 ]
 
 // ============================================================================
@@ -106,7 +106,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
     <View style={themed($sectionHeader)}>
       {recordCount > 0 && (
         <Text style={themed($countText)}>
-          {recordCount} {recordCount === 1 ? "record" : "records"}
+          {recordCount} {translate(recordCount === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}
         </Text>
       )}
 
@@ -114,7 +114,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
         <>
           {/* Email Input */}
           <View style={themed($emailSection)}>
-            <Text style={themed($emailLabel)} text="Report Email" />
+            <Text style={themed($emailLabel)} tx="attendanceScreen:reportEmail" />
             <View style={$emailRow}>
               <TextField
                 value={profileStore.reportEmail}
@@ -151,14 +151,14 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
             />
             <Text
               style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)}
-              text="Send Report"
+              tx="attendanceScreen:sendReport"
             />
           </TouchableOpacity>
 
           {/* Help Text */}
           <Text
             style={themed($helpText)}
-            text="Enter a valid email and select one or more attendance records to send a report."
+            tx="attendanceScreen:sendReportHint"
           />
         </>
       ) : (
@@ -197,7 +197,7 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
         setRecords(
           validRecords.map((r) => ({
             ...r,
-            meetingName: r.meetingName || "Unknown Meeting",
+            meetingName: r.meetingName || translate("attendanceScreen:unknownMeeting"),
           })),
         )
       } else {
@@ -234,36 +234,11 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
     })
   }, [])
 
-  const handleArchive = useCallback((record: AttendanceRecord) => {
-    Alert.alert("Archive Attendance", "Move this record to the archive?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Archive",
-        onPress: async () => {
-          try {
-            await attendanceRepo.markArchived(record.id)
-            setRecords((prev) => prev.filter((r) => r.id !== record.id))
-            setSelectedIds((prev) => {
-              const next = new Set(prev)
-              next.delete(record.id)
-              return next
-            })
-            attendanceEvents.emit({ type: "archived", id: record.id })
-            logger.info("Attendance archived", { id: record.id })
-          } catch (error) {
-            logger.error("Failed to archive attendance", { error: String(error) })
-            Alert.alert("Error", "Failed to archive attendance record.")
-          }
-        },
-      },
-    ])
-  }, [])
-
   const handleDelete = useCallback((record: AttendanceRecord) => {
-    Alert.alert("Remove Attendance", "This will mark this attendance as invalid. Continue?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(translate("attendanceScreen:removeTitle"), translate("attendanceScreen:removeMessage"), [
+      { text: translate("attendanceScreen:cancel"), style: "cancel" },
       {
-        text: "Remove",
+        text: translate("attendanceScreen:remove"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -272,7 +247,7 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
             logger.info("Attendance marked invalid", { id: record.id })
           } catch (error) {
             logger.error("Failed to delete attendance", { error: String(error) })
-            Alert.alert("Error", "Failed to remove attendance record.")
+            Alert.alert(translate("attendanceScreen:errorTitle"), translate("attendanceScreen:removeError"))
           }
         },
       },
@@ -286,11 +261,10 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
         isSelected={selectedIds.has(item.id)}
         showReportSelect={hasAttendance}
         onToggleSelect={() => handleToggleSelect(item.id)}
-        onArchive={() => handleArchive(item)}
         onDelete={() => handleDelete(item)}
       />
     ),
-    [selectedIds, hasAttendance, handleToggleSelect, handleArchive, handleDelete],
+    [selectedIds, hasAttendance, handleToggleSelect, handleDelete],
   )
 
   const keyExtractor = useCallback((item: AttendanceRecord) => item.id, [])
@@ -366,7 +340,7 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
         setRecords(
           result.value.map((r) => ({
             ...r,
-            meetingName: r.meetingName || "Unknown Meeting",
+            meetingName: r.meetingName || translate("attendanceScreen:unknownMeeting"),
           })),
         )
       } else {
@@ -391,31 +365,11 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
     })
   }, [loadRecords])
 
-  const handleDelete = useCallback((record: AttendanceRecord) => {
-    Alert.alert("Remove Attendance", "This will mark this attendance as invalid. Continue?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await attendanceRepo.update(record.id, { valid: false })
-            setRecords((prev) => prev.filter((r) => r.id !== record.id))
-            logger.info("Attendance marked invalid", { id: record.id })
-          } catch (error) {
-            logger.error("Failed to delete attendance", { error: String(error) })
-            Alert.alert("Error", "Failed to remove attendance record.")
-          }
-        },
-      },
-    ])
-  }, [])
-
   const renderItem = useCallback(
     ({ item }: { item: AttendanceRecord }) => (
-      <AttendanceRow record={item} onDelete={() => handleDelete(item)} />
+      <AttendanceRow record={item} />
     ),
-    [handleDelete],
+    [],
   )
 
   const keyExtractor = useCallback((item: AttendanceRecord) => item.id, [])
@@ -437,7 +391,7 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
       <View style={themed($sectionHeader)}>
         {records.length > 0 && (
           <Text style={themed($countText)}>
-            {records.length} {records.length === 1 ? "record" : "records"}
+            {records.length} {translate(records.length === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}
           </Text>
         )}
       </View>
@@ -529,7 +483,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
 
   useEffect(() => {
     return attendanceEvents.subscribe((event) => {
-      if (event.type === "produced") {
+      if (event.type === "produced" || event.type === "delivery_resolved") {
         void loadReports()
       }
     })
@@ -547,7 +501,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
 
   const handleViewReport = useCallback((report: AttendanceReportRecord) => {
     if (!report.html) {
-      Alert.alert("Not Available", "Report content has not been received from the server yet.")
+      Alert.alert(translate("attendanceScreen:notAvailableTitle"), translate("attendanceScreen:notAvailableMessage"))
       return
     }
     setSelectedReport(report)
@@ -582,8 +536,12 @@ const ReportsContent: FC = observer(function ReportsContent() {
   }, [resendReport, resendEmail, sendReport, handleCancelResend, loadReports])
 
   const handleRowTap = useCallback((item: AttendanceReportRecord) => {
-    const status = item.error ? "Error" : item.confirmed > 0 ? "Delivered" : "Pending"
-    const detail = item.confirmation || "No confirmation yet"
+    const status = item.error
+      ? translate("attendanceScreen:statusError")
+      : item.confirmed > 0
+        ? translate("attendanceScreen:statusDelivered")
+        : translate("attendanceScreen:statusPending")
+    const detail = item.confirmation || translate("attendanceScreen:noConfirmation")
     Alert.alert(status, detail)
   }, [])
 
@@ -594,7 +552,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
       const dateStr =
         item.generated > 0
           ? DateTime.fromMillis(item.generated).toFormat("MMM d, yyyy h:mma").toLowerCase()
-          : "Unknown date"
+          : translate("attendanceScreen:unknownDate")
 
       return (
         <TouchableOpacity
@@ -607,7 +565,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
             <Text style={themed($reportDate)}>{dateStr}</Text>
             <Text style={themed($reportMeta)}>
               {item.email}
-              {count > 0 && ` · ${count} record${count !== 1 ? "s" : ""}`}
+              {count > 0 && ` · ${count} ${translate(count === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}`}
             </Text>
           </View>
           <TouchableOpacity onPress={() => handleResendTap(item)} style={$viewButton} hitSlop={8}>
@@ -627,11 +585,8 @@ const ReportsContent: FC = observer(function ReportsContent() {
   const ListEmptyComponent = useCallback(
     () => (
       <View style={themed($emptyContainer)}>
-        <Text preset="subheading" style={themed($emptyText)} text="No reports yet" />
-        <Text
-          style={themed($emptySubtext)}
-          text="Reports will appear here after you send attendance records"
-        />
+        <Text preset="subheading" style={themed($emptyText)} tx="attendanceScreen:noReports" />
+        <Text style={themed($emptySubtext)} tx="attendanceScreen:noReportsSubtext" />
       </View>
     ),
     [themed],
@@ -647,6 +602,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
     <>
       <FlatList
         data={reports}
+        extraData={reports}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListEmptyComponent={ListEmptyComponent}
@@ -657,13 +613,13 @@ const ReportsContent: FC = observer(function ReportsContent() {
               <View style={themed($resendPanel)}>
                 <Text
                   style={themed($emailLabel)}
-                  text={resendEmail === resendReport.email ? "Resend Report" : "Forward Report"}
+                  text={resendEmail === resendReport.email ? translate("attendanceScreen:resendReport") : translate("attendanceScreen:forwardReport")}
                 />
                 <View style={$emailRow}>
                   <TextField
                     value={resendEmail}
                     onChangeText={setResendEmail}
-                    placeholder="recipient@example.com"
+                    placeholder={translate("attendanceScreen:recipientPlaceholder")}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -706,7 +662,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
                           ? $sendButtonText
                           : $sendButtonTextDisabled,
                       )}
-                      text={isSending ? "Sending..." : "Send"}
+                      text={isSending ? translate("attendanceScreen:sending") : translate("attendanceScreen:send")}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -714,7 +670,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
                     onPress={handleCancelResend}
                     accessibilityRole="button"
                   >
-                    <Text style={themed($cancelButtonText)} text="Cancel" />
+                    <Text style={themed($cancelButtonText)} tx="attendanceScreen:cancel" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -724,7 +680,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
             {reports.length > 0 && (
               <View style={themed($sectionHeader)}>
                 <Text style={themed($countText)}>
-                  {reports.length} {reports.length === 1 ? "report" : "reports"}
+                  {reports.length} {translate(reports.length === 1 ? "attendanceScreen:report" : "attendanceScreen:reports")}
                 </Text>
               </View>
             )}
@@ -806,8 +762,8 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
         if (event.type === "delivery_resolved") {
           toast.showToast({
             message: event.deliveryError
-              ? "Report delivery failed"
-              : "Report delivered successfully",
+              ? translate("attendanceScreen:deliveryFailed")
+              : translate("attendanceScreen:deliverySuccess"),
             type: event.deliveryError ? "error" : "success",
             duration: 10000,
             onPress: () => {

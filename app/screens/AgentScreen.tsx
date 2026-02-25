@@ -22,6 +22,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { translate } from "@/i18n"
 import {
   useAuthenticationStore,
   useConfigStore,
@@ -195,11 +196,11 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
   const handleClearChat = useCallback(() => {
     Alert.alert(
-      "Clear Conversation",
-      "Are you sure you want to clear the entire conversation? This cannot be undone.",
+      translate("agentScreen:clearConversation"),
+      translate("agentScreen:clearConversationConfirm"),
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Clear", style: "destructive", onPress: doClearChat },
+        { text: translate("agentScreen:cancel"), style: "cancel" },
+        { text: translate("agentScreen:clear"), style: "destructive", onPress: doClearChat },
       ],
     )
   }, [doClearChat])
@@ -213,7 +214,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   // Handle popup close - collapse the tool result
   const handleClosePopup = useCallback(() => {
     if (selectedMeeting && activeToolCallId) {
-      conversationStore.collapseToolResult(activeToolCallId, `Selected: ${selectedMeeting.name}`)
+      conversationStore.collapseToolResult(activeToolCallId, translate("agentScreen:selected", { name: selectedMeeting.name }))
     }
     setSelectedMeeting(null)
     setActiveToolCallId(null)
@@ -295,7 +296,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                     color={message.role === "user" ? theme.colors.tint : "#9C27B0"}
                   />
                   <Text style={[themed($messageRole), message.role === "user" && $userMessageRole]}>
-                    {message.role === "user" ? "You" : "Sky"}
+                    {message.role === "user" ? translate("agentScreen:roleYou") : translate("agentScreen:roleSky")}
                   </Text>
                 </View>
                 <View style={themed($messageContent)}>
@@ -363,7 +364,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                             size={14}
                             color={theme.colors.textDim}
                           />
-                          <Text style={themed($toolCallText)}>Using {toolName}...</Text>
+                          <Text style={themed($toolCallText)}>{translate("agentScreen:usingTool", { toolName })}</Text>
                         </View>
                       )
                     }
