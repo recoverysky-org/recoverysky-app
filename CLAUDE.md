@@ -55,11 +55,11 @@ MST with MMKV persistence in `app/models/`:
 - **RootStore**: Combines all stores, initialized in `app.tsx`
 - **AuthenticationStore**: Auth token, email, userId, `isAuthenticated` computed
 - **ProfileStore**: User profile and preferences with two storage tiers:
-  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, reportEmail
+  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, notificationsEnabled, reportEmail
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
-- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Includes API URLs, Zoom SDK keys, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view that selects by `__DEV__` and `Platform.OS`. NOT persisted to MMKV (security).
+- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Includes API URLs, Zoom SDK keys, RevenueCat keys (3 separate: test, Apple, Google), OneSignal keys (`oneSignalAppId`, `oneSignalApiKey`), with computed `revenueCatApiKey` view that selects by `__DEV__` and `Platform.OS`. NOT persisted to MMKV (security).
 - **ConversationStore**: AI agent conversation state
 
 ```typescript
@@ -97,14 +97,16 @@ React Navigation v7 in `app/navigators/`:
 
 **Modals**: ZoomLogin (reconnection from Settings).
 
+**Section routing**: Attendance tab accepts `{ section?: "new" | "archive" | "reports" }` route params. Navigation to a specific section uses `navigate("Attendance", { section: "reports" })`. The screen syncs via `navigation.addListener("focus", ...)` to handle repeated navigations to the same section.
+
 Route types defined in `app/navigators/navigationTypes.ts`.
 
 ### Database Layer
 SQLite with Drizzle ORM in `app/db/`:
 - **DatabaseProvider**: Runs Drizzle migrations on startup, seeds data on first launch
 - **provider.ts**: Creates expo-sqlite database and Drizzle instance
-- **repositories.ts**: Lazy proxy objects over common-lib repository classes (meetingRepo, scheduleRepo, attendanceRepo, feedbackRepo, chatMessageRepo, zoomAuthRepo, profileRepository)
-- **attendanceEvents.ts**: Simple pub/sub for cross-component attendance updates. Event types: `"created" | "processed" | "produced" | "archived"`. Subscribe in `useEffect`, emit after mutations.
+- **repositories.ts**: Lazy proxy objects over common-lib repository classes (meetingRepo, scheduleRepo, attendanceRepo, attendanceReportRepo, feedbackRepo, chatMessageRepo, zoomAuthRepo, profileRepository)
+- **attendanceEvents.ts**: Simple pub/sub for cross-component attendance updates. Event types: `"created" | "processed" | "produced" | "archived" | "delivery_resolved"`. Subscribe in `useEffect`, emit after mutations. `delivery_resolved` includes `deliveryError?: boolean` for report delivery status.
 - **liveEvents.ts**: Similar pub/sub for live meeting preference changes
 
 Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
@@ -114,7 +116,8 @@ Apisauce wrapper in `app/services/api/`:
 - Dual auth: device authorization (`X-Device-Token` / `X-API-Key`) + user OAuth (`Authorization: Bearer`)
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
 - Attestation queueing: API calls wait for `attestationPromise` to resolve before proceeding
-- Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP
+- Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, OneSignal
+- Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
 
 ### Subscription System (RevenueCat)
 In `app/services/purchases/`:
@@ -123,6 +126,42 @@ In `app/services/purchases/`:
 - **SubscriptionContext** (`app/context/`): Wraps the app, initializes RC with `configStore.revenueCatApiKey`, listens for customer info updates, auto-enables attendance on first subscription
 
 Key pattern: `__DEV__` uses `test_` RC API key and `premium-standard` offering. Production uses platform-specific `appl_`/`goog_` keys and `default` offering. `__DEV__` is false in TestFlight/TestFlight builds.
+
+### Push Notifications (OneSignal)
+In `app/services/notifications/`:
+- **oneSignalService.ts**: Stateless SDK wrapper — init, login/logout, permission requests, opt in/out, click handler, language sync
+- **index.ts**: Barrel re-exports with namespaced names (`loginOneSignalUser`, `requestNotificationPermission`, etc.)
+- Initialized in `app.tsx` after `configStore.fetchConfig()` resolves, using `configStore.oneSignalAppId` (from server `ONE_SIGNAL_IOS_KEY_ID`)
+- MobX `reaction()` in `app.tsx` handles: auth identity sync, onboarding permission prompt (1s delay after completion), language sync
+- Notification click handler routes to specific tabs via `additionalData.screen` matching `MainTabParamList` names
+- `profileStore.notificationsEnabled` toggle controls opt-in/out (persisted via MMKV)
+- Settings screen has Notifications section with push toggle
+- Plugin configured in `app.config.ts` (must be first in plugins array); mode controlled by `EXPO_PUBLIC_ONESIGNAL_MODE` env var (`production` set in `eas.json` production profile)
+- Requires EAS build (native SDK, not Expo Go compatible)
+
+### Attendance Reports System
+The Reports tab in `AttendanceScreen.tsx` manages attendance report lifecycle:
+
+**4 send operations** (unified in `app/hooks/useReportSender.ts`):
+1. **Initial send**: Create report record, mark attendance as produced, send to API
+2. **Resend**: Same email — reset status fields, re-send existing report
+3. **Replace**: Error state — reset status, send with new email to same report
+4. **Forward**: Different email on confirmed report — creates new linked report with `fid`
+
+Operations 1-3 share a unified `handleSend` pattern (reset-then-send). Forward is separate (creates new record).
+
+**Key patterns:**
+- `STATUS_DEFAULTS` constant resets all status fields before every send (`confirmed=0, confirmation="", error=false, retry=0, html=""`)
+- `preserveReset` flag in `processApiResult` prevents stale API responses from overwriting reset values for resend/replace
+- Fire-and-forget `pollForConfirmation` polls `getReportStatus()` at increasing intervals (15s, then 60s×4) until confirmed
+- Events: `"produced"` triggers report list reload, `"delivery_resolved"` shows delivery toast
+- Discriminated union `SendOperation` type for type-safe operation dispatch
+
+```typescript
+import { useReportSender, type SendOperation } from "@/hooks/useReportSender"
+const { send, isSending } = useReportSender()
+await send({ type: "resend", report: existingReport })
+```
 
 ### Theming
 Design token system in `app/theme/`:
@@ -245,6 +284,7 @@ Zoom SDK in `app/services/zoom/`:
 - **useZoomMeeting**: Hook for joining meetings
 - **useZoomAuth**: OAuth flow for authenticated meeting joins (ZAK token), credentials stored in encrypted SQLite via `zoomAuthRepo`
 - Requires EAS build (native SDK, not Expo Go compatible)
+- Uses `expo-audio` for audio permissions (migrated from deprecated `expo-av`)
 - **ZoomSetupScreen**: Required gate before onboarding — user must connect Zoom account
 - **ZoomLoginScreen**: Dismissible modal from Settings for reconnection
 
