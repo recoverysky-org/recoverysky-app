@@ -293,15 +293,16 @@ export function App() {
             },
           )
 
+          // TODO: complete on notification branch
           // Request notification permission after onboarding completes
-          reaction(
-            () => _rootStore.profileStore.onboardingCompleted,
-            (completed) => {
-              if (completed) {
-                setTimeout(() => requestNotificationPermission().catch(() => {}), 1000)
-              }
-            },
-          )
+          // reaction(
+          //   () => _rootStore.profileStore.onboardingCompleted,
+          //   (completed) => {
+          //     if (completed) {
+          //       setTimeout(() => requestNotificationPermission().catch(() => {}), 1000)
+          //     }
+          //   },
+          // )
 
           // Sync language preference to OneSignal
           reaction(

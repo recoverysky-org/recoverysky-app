@@ -82,7 +82,7 @@ export async function initializeRevenueCat(
     return { ok: true, value: undefined }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    log.error("Failed to initialize RevenueCat", { error: message })
+    log.warn("Failed to initialize RevenueCat", { error: message })
     return { ok: false, error: message }
   }
 }
