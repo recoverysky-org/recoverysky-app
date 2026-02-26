@@ -928,7 +928,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={[themed($settingsRow), themed($lastRow)]}
-          onPress={() => Linking.openURL("https://app.recoverysky.org/oss.html")}
+          onPress={() => navigation.navigate("Licenses")}
           accessibilityRole="button"
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:thirdPartyLicenses" />

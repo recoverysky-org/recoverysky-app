@@ -44,6 +44,7 @@ export type AppStackParamList = {
   ZoomSetup: undefined
   ZoomLogin: undefined
   Import: undefined
+  Licenses: undefined
   Onboarding: NavigatorScreenParams<OnboardingParamList>
   Main: NavigatorScreenParams<MainTabParamList>
   // 🔥 Your screens go here

@@ -12,6 +12,7 @@ import { observer } from "mobx-react-lite"
 import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { LicensesScreen } from "@/screens/LicensesScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
@@ -102,6 +103,14 @@ const AppStack = observer(function AppStack() {
             <Stack.Screen
               name="Import"
               component={OnboardingImport}
+              options={{
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Licenses"
+              component={LicensesScreen}
               options={{
                 presentation: "modal",
                 headerShown: false,
