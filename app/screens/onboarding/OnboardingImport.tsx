@@ -9,6 +9,7 @@ import { FC, useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, ActivityIndicator } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation, useRoute } from "@react-navigation/native"
+import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -153,7 +154,7 @@ interface ImportResults {
   reportsCount: number
 }
 
-export const OnboardingImport: FC<any> = function OnboardingImport() {
+export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
   const navigation = useNavigation<any>()
   const route = useRoute()
   const isModal = route.name === "Import"
@@ -167,7 +168,6 @@ export const OnboardingImport: FC<any> = function OnboardingImport() {
     if (isModal) {
       navigation.goBack()
     } else {
-      // profileStore.setImported(true) // TODO: re-enable after dev
       navigation.replace("OnboardingProfile")
     }
   }
@@ -214,6 +214,7 @@ export const OnboardingImport: FC<any> = function OnboardingImport() {
       }
 
       log.info("Cloud data import complete")
+      profileStore.setImported(true)
       setResults({ profileName, attendanceCount, reportsCount })
     } catch (error) {
       log.error("Cloud data import failed", { error: String(error) })
@@ -316,18 +317,29 @@ export const OnboardingImport: FC<any> = function OnboardingImport() {
         <Pressable
           style={[
             themed($button),
-            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+            {
+              borderColor: profileStore.imported ? theme.colors.textDim : theme.colors.tint,
+              shadowColor: theme.colors.tint,
+              opacity: profileStore.imported ? 0.4 : 1,
+            },
           ]}
           onPress={handleImportCloudData}
-          disabled={importing}
+          disabled={importing || profileStore.imported}
         >
           {importing ? (
             <ActivityIndicator color={theme.colors.tint} />
           ) : (
             <>
-              <Ionicons name="cloud-download-outline" size={20} color={theme.colors.tint} />
+              <Ionicons
+                name={profileStore.imported ? "checkmark-circle" : "cloud-download-outline"}
+                size={20}
+                color={profileStore.imported ? theme.colors.textDim : theme.colors.tint}
+              />
               <Text
-                style={[themed($buttonText), { color: theme.colors.tint }]}
+                style={[
+                  themed($buttonText),
+                  { color: profileStore.imported ? theme.colors.textDim : theme.colors.tint },
+                ]}
                 tx="onboarding:importCloudData"
               />
             </>
@@ -361,7 +373,7 @@ export const OnboardingImport: FC<any> = function OnboardingImport() {
       </View>
     </Screen>
   )
-}
+})
 
 // ============================================================================
 // Styles

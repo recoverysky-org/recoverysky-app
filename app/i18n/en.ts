@@ -338,11 +338,11 @@ const en = {
   onboarding: {
     // Import
     importTitle: "Welcome Back!",
-    importSubtitle: "We found data from your previous app. Would you like to import it?",
+    importSubtitle: "We found data from AA/NA Live! Would you like to import it?",
     importJournalHint: "The journal is not available in this app, but you may export your old journal data as a PDF.",
     importCloudData: "Import Cloud Data",
     exportJournalPdf: "Export Journal PDF",
-    importSkip: "Skip Import",
+    importSkip: "Continue",
     importCompleteTitle: "Import Complete!",
     importCompleteTitleName: "Welcome back, {{name}}!",
     importProfileSuccess: "Profile imported",

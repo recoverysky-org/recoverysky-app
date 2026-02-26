@@ -336,11 +336,11 @@ const es: Translations = {
   onboarding: {
     // Import
     importTitle: "¡Bienvenido de nuevo!",
-    importSubtitle: "Encontramos datos de tu aplicación anterior. ¿Te gustaría importarlos?",
+    importSubtitle: "Encontramos datos de AA/NA Live! ¿Te gustaría importarlos?",
     importJournalHint: "El diario no está disponible en esta aplicación, pero puedes exportar los datos de tu diario anterior como PDF.",
     importCloudData: "Importar Datos de la Nube",
     exportJournalPdf: "Exportar Diario PDF",
-    importSkip: "Omitir Importación",
+    importSkip: "Continuar",
     importCompleteTitle: "Importación Completa!",
     importCompleteTitleName: "Bienvenido de nuevo, {{name}}!",
     importProfileSuccess: "Perfil importado",
