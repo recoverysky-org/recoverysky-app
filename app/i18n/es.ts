@@ -326,8 +326,7 @@ const es: Translations = {
     logoutConfirm: "¿Estás seguro de que deseas cerrar sesión?",
     // Import Section
     importSection: "Importar",
-    importProfile: "Importar Perfil",
-    importAttendanceReports: "Importar Reportes de Asistencia",
+    restartImport: "Reiniciar Importación",
     // Legal Section
     legalSection: "Legal",
     thirdPartyLicenses: "Licencias de Terceros",
@@ -342,6 +341,12 @@ const es: Translations = {
     importCloudData: "Importar Datos de la Nube",
     exportJournalPdf: "Exportar Diario PDF",
     importSkip: "Omitir Importación",
+    importCompleteTitle: "Importación Completa!",
+    importCompleteTitleName: "Bienvenido de nuevo, {{name}}!",
+    importProfileSuccess: "Perfil importado",
+    importAttendanceSuccess: "{{count}} registros de asistencia importados",
+    importReportsSuccess: "{{count}} reportes importados",
+    importContinue: "Continuar",
     importChecking: "Buscando datos existentes...",
     // Screen 0: Welcome
     welcomeTitle: "¡Bienvenido a RecoverySky!",

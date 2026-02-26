@@ -327,8 +327,7 @@ const en = {
     logoutConfirm: "Are you sure you want to log out?",
     // Import Section
     importSection: "Import",
-    importProfile: "Import Profile",
-    importAttendanceReports: "Import Attendance Reports",
+    restartImport: "Restart Import",
     // Legal Section
     legalSection: "Legal",
     thirdPartyLicenses: "Third-Party Licenses",
@@ -344,6 +343,12 @@ const en = {
     importCloudData: "Import Cloud Data",
     exportJournalPdf: "Export Journal PDF",
     importSkip: "Skip Import",
+    importCompleteTitle: "Import Complete!",
+    importCompleteTitleName: "Welcome back, {{name}}!",
+    importProfileSuccess: "Profile imported",
+    importAttendanceSuccess: "{{count}} attendance records imported",
+    importReportsSuccess: "{{count}} reports imported",
+    importContinue: "Continue",
     importChecking: "Checking for existing data...",
     // Screen 0: Welcome
     welcomeTitle: "Welcome to RecoverySky!",

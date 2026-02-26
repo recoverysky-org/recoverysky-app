@@ -81,6 +81,67 @@ export interface LiveSchedule {
   passwordEnc?: string
 }
 
+// =============================================================================
+// Firebase Import Types
+// =============================================================================
+
+export interface FirebaseUserData {
+  profile: {
+    shortName: string
+    pronouns: string
+    recoveryDate: string
+    fellowship: string
+  }
+  preferences: {
+    showCleanDate: boolean
+    showCleanDays: boolean
+    showPronouns: boolean
+    ninetyStart: number
+  }
+}
+
+export interface FirebaseAttendanceRecord {
+  id: string
+  iid: string
+  uid: string
+  mid: string
+  zid: string
+  created: number
+  valid: boolean
+  uzid: string
+  zpid: string
+  zuid: string
+  meetingHost: string
+  meetingName: string
+  archived: boolean
+  events: unknown[]
+  processed: number
+  start: number
+  end: number
+  credit: number
+  produced: number
+  arid: string
+}
+
+export interface FirebaseReportRecord {
+  id: string
+  iid: string
+  uid: string
+  fid: string
+  messageId: string
+  name: string
+  userEmail: string
+  error: boolean
+  retry: number
+  generated: number
+  confirmed: number
+  confirmation: string
+  email: string
+  html: string
+  text: string
+  credit: number
+}
+
 // Re-export for convenience
 export { GeneralApiProblem, getGeneralApiProblem } from "./apiProblem"
 export type { ApiConfig } from "./types"
@@ -622,25 +683,86 @@ export class Api {
   }
   /**
    * Check if a user has data in the old Firebase app
-   * GET /firebase/user/:uid
+   * GET /firebase/user — uid extracted from OAuth token server-side
    */
-  async checkFirebaseUser(
-    uid: string,
-  ): Promise<{ kind: "ok" } | GeneralApiProblem> {
+  async checkFirebaseUser(): Promise<{ kind: "ok" } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.debug("Checking Firebase user data", { uid })
+    log.debug("Checking Firebase user data")
 
-    const response = await this.recoverySkyApi.get(`/firebase/user/${uid}`)
+    const response = await this.recoverySkyApi.get("/firebase/user")
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.debug("No Firebase data found", { uid, problem: problem?.kind })
+      log.debug("No Firebase data found", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
 
-    log.debug("Firebase user data exists", { uid })
+    log.debug("Firebase user data exists")
     return { kind: "ok" }
+  }
+
+  /**
+   * Fetch user profile from old Firebase app
+   * GET /firebase/user — uid extracted from OAuth token server-side
+   */
+  async getFirebaseUser(): Promise<{ kind: "ok"; data: FirebaseUserData } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching Firebase user data")
+
+    const response = await this.recoverySkyApi.get<FirebaseUserData>("/firebase/user")
+
+    if (!response.ok || !response.data) {
+      const problem = getGeneralApiProblem(response)
+      if (problem) return problem
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Fetch attendance records from old Firebase app
+   * GET /firebase/attendance — uid extracted from OAuth token server-side
+   */
+  async getFirebaseAttendance(): Promise<
+    { kind: "ok"; data: FirebaseAttendanceRecord[] } | GeneralApiProblem
+  > {
+    await this.waitForAttestation()
+    log.debug("Fetching Firebase attendance")
+
+    const response =
+      await this.recoverySkyApi.get<FirebaseAttendanceRecord[]>("/firebase/attendance")
+
+    if (!response.ok || !response.data) {
+      const problem = getGeneralApiProblem(response)
+      if (problem) return problem
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Fetch attendance reports from old Firebase app
+   * GET /firebase/reports — uid extracted from OAuth token server-side
+   */
+  async getFirebaseReports(): Promise<
+    { kind: "ok"; data: FirebaseReportRecord[] } | GeneralApiProblem
+  > {
+    await this.waitForAttestation()
+    log.debug("Fetching Firebase reports")
+
+    const response =
+      await this.recoverySkyApi.get<FirebaseReportRecord[]>("/firebase/reports")
+
+    if (!response.ok || !response.data) {
+      const problem = getGeneralApiProblem(response)
+      if (problem) return problem
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
   }
 }
 

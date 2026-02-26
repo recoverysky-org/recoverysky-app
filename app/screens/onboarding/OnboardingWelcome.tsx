@@ -8,11 +8,14 @@ import { View, ViewStyle, TextStyle, Pressable, Image, ImageStyle, ActivityIndic
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useAuthenticationStore, useProfileStore } from "@/models"
+import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "OnboardingWelcome" })
 
 import { ProgressDots } from "./ProgressDots"
 
@@ -22,28 +25,28 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
   function OnboardingWelcome({ navigation }) {
     const { themed, theme } = useAppTheme()
     const profileStore = useProfileStore()
-    const authStore = useAuthenticationStore()
     const [loading, setLoading] = useState(false)
 
     const handleGetStarted = async () => {
+      log.info("handleGetStarted", { imported: profileStore.imported })
+
       if (profileStore.imported) {
+        log.info("imported=true, skipping to Profile")
         navigation.navigate("OnboardingProfile")
         return
       }
 
       setLoading(true)
-      const uid = authStore.userIdentifier
-      if (!uid) {
-        // profileStore.setImported(true) // TODO: re-enable after dev
-        navigation.navigate("OnboardingProfile")
-        return
-      }
+      log.info("Calling checkFirebaseUser API...")
+      const result = await api.checkFirebaseUser()
+      log.info("checkFirebaseUser result", { kind: result.kind })
 
-      const result = await api.checkFirebaseUser(uid)
       if (result.kind === "ok") {
         setLoading(false)
+        log.info("Firebase data found, navigating to Import")
         navigation.navigate("OnboardingImport")
       } else {
+        log.info("No Firebase data, navigating to Profile")
         // profileStore.setImported(true) // TODO: re-enable after dev
         navigation.navigate("OnboardingProfile")
       }

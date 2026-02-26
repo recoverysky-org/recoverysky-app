@@ -237,6 +237,19 @@ export const ProfileStoreModel = types
         changeLanguage(value)
       },
 
+      /** Batch-update multiple secure fields in a single SQLite write */
+      setSecureProfile(data: SecureProfileData) {
+        if (data.shortName !== undefined) self.shortName = data.shortName
+        if (data.pronouns !== undefined) self.pronouns = data.pronouns
+        if (data.recoveryDate !== undefined) self.recoveryDate = data.recoveryDate
+        if (data.fellowship !== undefined) self.fellowship = data.fellowship
+        if (data.language !== undefined) {
+          self.language = data.language
+          if (data.language) changeLanguage(data.language)
+        }
+        persistSecure(data)
+      },
+
       // === PROP SETTERS (auto-persist to MMKV via snapshots) ===
 
       setShowCleanDate(value: boolean) {
@@ -295,6 +308,7 @@ export const ProfileStoreModel = types
        */
       resetOnboarding() {
         self.onboardingCompleted = false
+        self.imported = false
       },
 
       /**

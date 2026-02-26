@@ -13,6 +13,7 @@ import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LoginScreen } from "@/screens/LoginScreen"
+import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
 import { ZoomSetupScreen } from "@/screens/ZoomSetupScreen"
 import { useAppTheme } from "@/theme/context"
@@ -93,6 +94,14 @@ const AppStack = observer(function AppStack() {
             <Stack.Screen
               name="ZoomLogin"
               component={ZoomLoginScreen}
+              options={{
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Import"
+              component={OnboardingImport}
               options={{
                 presentation: "modal",
                 headerShown: false,

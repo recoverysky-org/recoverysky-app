@@ -910,20 +910,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </View>
 
         <TouchableOpacity
-          style={themed($settingsRow)}
-          onPress={() => {}}
-          accessibilityRole="button"
-        >
-          <Text style={themed($rowLabel)} tx="settingsScreen:importProfile" />
-          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[themed($settingsRow), themed($lastRow)]}
-          onPress={() => {}}
+          onPress={() => navigation.navigate("Import")}
           accessibilityRole="button"
         >
-          <Text style={themed($rowLabel)} tx="settingsScreen:importAttendanceReports" />
+          <Text style={themed($rowLabel)} tx="settingsScreen:restartImport" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
         </TouchableOpacity>
       </View>
