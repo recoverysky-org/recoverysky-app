@@ -11,9 +11,7 @@
   },
   "newArchEnabled": true,
   "jsEngine": "hermes",
-  "assetBundlePatterns": [
-    "**/*"
-  ],
+  "assetBundlePatterns": ["**/*"],
   "android": {
     "icon": "./assets/images/app-icon-android-legacy.png",
     "package": "live.meetingmaker.app.prod",
@@ -55,9 +53,7 @@
       "NSPrivacyAccessedAPITypes": [
         {
           "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-          "NSPrivacyAccessedAPITypeReasons": [
-            "CA92.1"
-          ]
+          "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
         }
       ]
     },
@@ -120,15 +116,13 @@
           "extraMavenRepos": [],
           "extraProguardRules": ""
         },
-        "extraGradleArgs": [
-          "-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"
-        ]
+        "extraGradleArgs": ["-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"]
       }
     ],
     [
       "react-native-auth0",
       {
-        "domain": "meetingmaker.us.auth0.com",
+        "domain": "auth.recoverysky.app",
         "customScheme": "recoverysky-app"
       }
     ]
