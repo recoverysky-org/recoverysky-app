@@ -8,6 +8,7 @@
 export const AUTH0_CONFIG = {
   domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN ?? "",
   clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID ?? "",
+  audience: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE ?? "",
   customScheme: "recoverysky-app",
   scopes: ["openid", "profile", "email", "offline_access"],
 } as const

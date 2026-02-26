@@ -103,10 +103,11 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             const expiresAt = credentials.expiresAt * 1000
 
             // Update MST store with tokens
+            // Auth0 SDK may return null for optional fields; coerce to undefined for MST
             authStore.setTokens(
               credentials.accessToken,
-              credentials.refreshToken,
-              credentials.idToken,
+              credentials.refreshToken ?? undefined,
+              credentials.idToken ?? undefined,
               expiresAt,
             )
 
@@ -180,7 +181,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       }
 
       await authorize(
-        { scope: AUTH0_CONFIG.scopes.join(" ") },
+        { scope: AUTH0_CONFIG.scopes.join(" "), audience: AUTH0_CONFIG.audience },
         { customScheme: AUTH0_CONFIG.customScheme },
       )
       log.info("Auth0 login flow completed")

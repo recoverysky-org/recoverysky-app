@@ -9,14 +9,8 @@ const log = logger.child({ module: "AuthStore" })
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
-    /** OAuth access token */
-    accessToken: types.maybe(types.string),
-    /** OAuth refresh token for obtaining new access tokens */
+    /** OAuth refresh token for obtaining new access tokens (persisted for re-auth) */
     refreshToken: types.maybe(types.string),
-    /** OAuth ID token containing user identity claims */
-    idToken: types.maybe(types.string),
-    /** Timestamp (ms) when access token expires */
-    expiresAt: types.maybe(types.number),
     /** User's email address */
     authEmail: "",
     /** User ID from OAuth provider (sub claim) or deviceId for anonymous users */
@@ -26,6 +20,14 @@ export const AuthenticationStoreModel = types
     /** Whether user is using anonymous login (no OAuth) */
     isAnonymous: types.optional(types.boolean, false),
   })
+  .volatile(() => ({
+    /** OAuth access token — kept in memory only, never persisted */
+    accessToken: undefined as string | undefined,
+    /** OAuth ID token — kept in memory only */
+    idToken: undefined as string | undefined,
+    /** Timestamp (ms) when access token expires — kept in memory only */
+    expiresAt: undefined as number | undefined,
+  }))
   .views((store) => ({
     /**
      * Whether the user is authenticated.
