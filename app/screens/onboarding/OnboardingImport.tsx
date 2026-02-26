@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from "@react-navigation/native"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { attendanceRepo, attendanceReportRepo } from "@/db"
+import { useJournalExport } from "@/hooks/useJournalExport"
 import { useProfileStore } from "@/models"
 import {
   api,
@@ -34,11 +35,11 @@ const FELLOWSHIP_MAP: Record<string, string> = {
   "Marijuana Anonymous": "MA",
   "Recovery Dharma": "RD",
   // Pass through already-short values
-  AA: "AA",
-  NA: "NA",
-  CMA: "CMA",
-  MA: "MA",
-  RD: "RD",
+  "AA": "AA",
+  "NA": "NA",
+  "CMA": "CMA",
+  "MA": "MA",
+  "RD": "RD",
 }
 
 /** Normalize Firebase pronouns (e.g. "She/Her") to local lowercase format */
@@ -153,203 +154,214 @@ interface ImportResults {
 }
 
 export const OnboardingImport: FC<any> = function OnboardingImport() {
-    const navigation = useNavigation<any>()
-    const route = useRoute()
-    const isModal = route.name === "Import"
-    const { themed, theme } = useAppTheme()
-    const profileStore = useProfileStore()
-    const [importing, setImporting] = useState(false)
-    const [results, setResults] = useState<ImportResults | null>(null)
+  const navigation = useNavigation<any>()
+  const route = useRoute()
+  const isModal = route.name === "Import"
+  const { themed, theme } = useAppTheme()
+  const profileStore = useProfileStore()
+  const [importing, setImporting] = useState(false)
+  const [results, setResults] = useState<ImportResults | null>(null)
+  const { exportPdf, isExporting } = useJournalExport()
 
-    const dismiss = () => {
-      if (isModal) {
-        navigation.goBack()
+  const dismiss = () => {
+    if (isModal) {
+      navigation.goBack()
+    } else {
+      // profileStore.setImported(true) // TODO: re-enable after dev
+      navigation.replace("OnboardingProfile")
+    }
+  }
+
+  const handleSkip = () => dismiss()
+
+  const handleContinue = () => {
+    setResults(null)
+  }
+
+  const handleImportCloudData = async () => {
+    setImporting(true)
+    try {
+      // Fetch all three in parallel
+      const [userResult, attendanceResult, reportsResult] = await Promise.all([
+        api.getFirebaseUser(),
+        api.getFirebaseAttendance(),
+        api.getFirebaseReports(),
+      ])
+
+      let profileName: string | undefined
+      let attendanceCount = 0
+      let reportsCount = 0
+
+      // Import user profile
+      if (userResult.kind === "ok") {
+        profileName = await importUserProfile(profileStore, userResult.data)
       } else {
-        // profileStore.setImported(true) // TODO: re-enable after dev
-        navigation.replace("OnboardingProfile")
+        log.warn("Failed to fetch Firebase user", { kind: userResult.kind })
       }
-    }
 
-    const handleSkip = () => dismiss()
-
-    const handleContinue = () => {
-      setResults(null)
-    }
-
-    const handleImportCloudData = async () => {
-      setImporting(true)
-      try {
-        // Fetch all three in parallel
-        const [userResult, attendanceResult, reportsResult] = await Promise.all([
-          api.getFirebaseUser(),
-          api.getFirebaseAttendance(),
-          api.getFirebaseReports(),
-        ])
-
-        let profileName: string | undefined
-        let attendanceCount = 0
-        let reportsCount = 0
-
-        // Import user profile
-        if (userResult.kind === "ok") {
-          profileName = await importUserProfile(profileStore, userResult.data)
-        } else {
-          log.warn("Failed to fetch Firebase user", { kind: userResult.kind })
-        }
-
-        // Import attendance records
-        if (attendanceResult.kind === "ok") {
-          attendanceCount = await importAttendance(attendanceResult.data)
-        } else {
-          log.warn("Failed to fetch Firebase attendance", { kind: attendanceResult.kind })
-        }
-
-        // Import reports
-        if (reportsResult.kind === "ok") {
-          reportsCount = await importReports(reportsResult.data)
-        } else {
-          log.warn("Failed to fetch Firebase reports", { kind: reportsResult.kind })
-        }
-
-        log.info("Cloud data import complete")
-        setResults({ profileName, attendanceCount, reportsCount })
-      } catch (error) {
-        log.error("Cloud data import failed", { error: String(error) })
-        dismiss()
-      } finally {
-        setImporting(false)
+      // Import attendance records
+      if (attendanceResult.kind === "ok") {
+        attendanceCount = await importAttendance(attendanceResult.data)
+      } else {
+        log.warn("Failed to fetch Firebase attendance", { kind: attendanceResult.kind })
       }
+
+      // Import reports
+      if (reportsResult.kind === "ok") {
+        reportsCount = await importReports(reportsResult.data)
+      } else {
+        log.warn("Failed to fetch Firebase reports", { kind: reportsResult.kind })
+      }
+
+      log.info("Cloud data import complete")
+      setResults({ profileName, attendanceCount, reportsCount })
+    } catch (error) {
+      log.error("Cloud data import failed", { error: String(error) })
+      dismiss()
+    } finally {
+      setImporting(false)
     }
+  }
 
-    const handleExportJournal = () => {
-      // TODO: implement journal PDF export
-    }
+  const handleExportJournal = () => {
+    exportPdf()
+  }
 
-    // ── Results screen ──────────────────────────────────────────────────
-    if (results) {
-      return (
-        <Screen
-          preset="fixed"
-          safeAreaEdges={["top", "bottom"]}
-          contentContainerStyle={themed($container)}
-        >
-          <View style={$content}>
-            <Ionicons name="checkmark-circle-outline" size={80} color={theme.colors.tint} />
-            <Text
-              style={themed($title)}
-              tx={results.profileName ? "onboarding:importCompleteTitleName" : "onboarding:importCompleteTitle"}
-              txOptions={{ name: results.profileName }}
-            />
-
-            <View style={$resultsList}>
-              {results.profileName && (
-                <View style={$resultRow}>
-                  <Ionicons name="checkmark-circle" size={22} color={theme.colors.tint} />
-                  <Text style={themed($resultText)} tx="onboarding:importProfileSuccess" />
-                </View>
-              )}
-              {results.attendanceCount > 0 && (
-                <View style={$resultRow}>
-                  <Ionicons name="checkmark-circle" size={22} color={theme.colors.tint} />
-                  <Text
-                    style={themed($resultText)}
-                    tx="onboarding:importAttendanceSuccess"
-                    txOptions={{ count: results.attendanceCount }}
-                  />
-                </View>
-              )}
-              {results.reportsCount > 0 && (
-                <View style={$resultRow}>
-                  <Ionicons name="checkmark-circle" size={22} color={theme.colors.tint} />
-                  <Text
-                    style={themed($resultText)}
-                    tx="onboarding:importReportsSuccess"
-                    txOptions={{ count: results.reportsCount }}
-                  />
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View style={themed($footer)}>
-            <Pressable
-              style={[
-                themed($button),
-                { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
-              ]}
-              onPress={handleContinue}
-            >
-              <Text
-                style={[themed($buttonText), { color: theme.colors.tint }]}
-                tx="onboarding:importContinue"
-              />
-            </Pressable>
-          </View>
-        </Screen>
-      )
-    }
-
-    // ── Import options screen ───────────────────────────────────────────
+  // ── Results screen ──────────────────────────────────────────────────
+  if (results) {
     return (
       <Screen
         preset="fixed"
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={themed($container)}
       >
-        {/* Content */}
         <View style={$content}>
-          <Ionicons name="cloud-download-outline" size={80} color={theme.colors.tint} />
+          <Ionicons name="checkmark-circle-outline" size={80} color={theme.colors.tint} />
+          <Text
+            style={themed($title)}
+            tx={
+              results.profileName
+                ? "onboarding:importCompleteTitleName"
+                : "onboarding:importCompleteTitle"
+            }
+            txOptions={{ name: results.profileName }}
+          />
 
-          <Text style={themed($title)} tx="onboarding:importTitle" />
-          <Text style={themed($subtitle)} tx="onboarding:importSubtitle" />
-          <Text style={themed($subtitle)} tx="onboarding:importJournalHint" />
+          <View style={$resultsList}>
+            {results.profileName && (
+              <View style={$resultRow}>
+                <Ionicons name="checkmark-circle" size={22} color={theme.colors.tint} />
+                <Text style={themed($resultText)} tx="onboarding:importProfileSuccess" />
+              </View>
+            )}
+            {results.attendanceCount > 0 && (
+              <View style={$resultRow}>
+                <Ionicons name="checkmark-circle" size={22} color={theme.colors.tint} />
+                <Text
+                  style={themed($resultText)}
+                  tx="onboarding:importAttendanceSuccess"
+                  txOptions={{ count: results.attendanceCount }}
+                />
+              </View>
+            )}
+            {results.reportsCount > 0 && (
+              <View style={$resultRow}>
+                <Ionicons name="checkmark-circle" size={22} color={theme.colors.tint} />
+                <Text
+                  style={themed($resultText)}
+                  tx="onboarding:importReportsSuccess"
+                  txOptions={{ count: results.reportsCount }}
+                />
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Buttons */}
         <View style={themed($footer)}>
           <Pressable
             style={[
               themed($button),
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
-            onPress={handleImportCloudData}
-            disabled={importing}
+            onPress={handleContinue}
           >
-            {importing ? (
-              <ActivityIndicator color={theme.colors.tint} />
-            ) : (
-              <>
-                <Ionicons name="cloud-download-outline" size={20} color={theme.colors.tint} />
-                <Text
-                  style={[themed($buttonText), { color: theme.colors.tint }]}
-                  tx="onboarding:importCloudData"
-                />
-              </>
-            )}
-          </Pressable>
-
-          <Pressable
-            style={[
-              themed($button),
-              { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
-            ]}
-            onPress={handleExportJournal}
-            disabled={importing}
-          >
-            <Ionicons name="document-outline" size={20} color={theme.colors.tint} />
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
-              tx="onboarding:exportJournalPdf"
+              tx="onboarding:importContinue"
             />
-          </Pressable>
-
-          <Pressable onPress={handleSkip} style={$skipButton} disabled={importing}>
-            <Text style={themed($skipText)} tx="onboarding:importSkip" />
           </Pressable>
         </View>
       </Screen>
     )
   }
+
+  // ── Import options screen ───────────────────────────────────────────
+  return (
+    <Screen
+      preset="fixed"
+      safeAreaEdges={["top", "bottom"]}
+      contentContainerStyle={themed($container)}
+    >
+      {/* Content */}
+      <View style={$content}>
+        <Ionicons name="cloud-download-outline" size={80} color={theme.colors.tint} />
+
+        <Text style={themed($title)} tx="onboarding:importTitle" />
+        <Text style={themed($subtitle)} tx="onboarding:importSubtitle" />
+        <Text style={themed($subtitle)} tx="onboarding:importJournalHint" />
+      </View>
+
+      {/* Buttons */}
+      <View style={themed($footer)}>
+        <Pressable
+          style={[
+            themed($button),
+            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+          ]}
+          onPress={handleImportCloudData}
+          disabled={importing}
+        >
+          {importing ? (
+            <ActivityIndicator color={theme.colors.tint} />
+          ) : (
+            <>
+              <Ionicons name="cloud-download-outline" size={20} color={theme.colors.tint} />
+              <Text
+                style={[themed($buttonText), { color: theme.colors.tint }]}
+                tx="onboarding:importCloudData"
+              />
+            </>
+          )}
+        </Pressable>
+
+        <Pressable
+          style={[
+            themed($button),
+            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+          ]}
+          onPress={handleExportJournal}
+          disabled={importing || isExporting}
+        >
+          {isExporting ? (
+            <ActivityIndicator color={theme.colors.tint} />
+          ) : (
+            <>
+              <Ionicons name="document-outline" size={20} color={theme.colors.tint} />
+              <Text
+                style={[themed($buttonText), { color: theme.colors.tint }]}
+                tx="onboarding:exportJournalPdf"
+              />
+            </>
+          )}
+        </Pressable>
+
+        <Pressable onPress={handleSkip} style={$skipButton} disabled={importing}>
+          <Text style={themed($skipText)} tx="onboarding:importSkip" />
+        </Pressable>
+      </View>
+    </Screen>
+  )
+}
 
 // ============================================================================
 // Styles
