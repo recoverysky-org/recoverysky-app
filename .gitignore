@@ -117,3 +117,6 @@ web-build/
 app-dependency-graph.svg
 app-dependency-graph.png*.apk
 .expo/
+
+# SQLite database files
+*.db

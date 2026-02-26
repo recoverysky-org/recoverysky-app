@@ -40,4 +40,7 @@ config.resolver.sourceExts.push("sql")
 // Add .wasm extension for expo-sqlite web support (wa-sqlite)
 config.resolver.assetExts.push("wasm")
 
+// Add .db extension for bundled SQLite database assets (journal import)
+config.resolver.assetExts.push("db")
+
 module.exports = config
