@@ -366,6 +366,7 @@ export const ProfileStoreModel = types
         self.attendanceEnabled = false
         self.reportEmail = ""
         self.imported = false
+        self.aiConsentAccepted = false
         self.dismissedHomeCards.clear()
 
         // Persist reset to SQLite

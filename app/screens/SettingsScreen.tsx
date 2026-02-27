@@ -26,19 +26,21 @@ import { TextField } from "@/components/TextField"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
-import { useProfileStore, useAuthenticationStore } from "@/models"
+import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import {
   optInNotifications,
   optOutNotifications,
   requestNotificationPermission,
   hasNotificationPermission,
+  logoutOneSignalUser,
 } from "@/services/notifications"
 import { useZoomAuth } from "@/services/auth"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { clear as clearStorage } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
@@ -84,6 +86,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   // MST Stores - reactive!
   const profileStore = useProfileStore()
   const authStore = useAuthenticationStore()
+  const conversationStore = useConversationStore()
 
   // Local buffer for shortName — decouples TextInput from MobX re-renders
   // to prevent React Native's controlled TextInput from firing stale onChangeText events
@@ -123,6 +126,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     showPaywall,
     restore,
     refresh: subscriptionRefresh,
+    logout: logoutSubscription,
   } = useSubscription()
 
   // UI-only state (modals, pickers)
@@ -231,7 +235,38 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       translate("settingsScreen:deleteUserDataConfirm"),
       [
         { text: translate("common:cancel"), style: "cancel" },
-        { text: translate("common:ok"), style: "destructive", onPress: () => {} },
+        {
+          text: translate("common:ok"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // 1. Disconnect Zoom (removes Zoom auth from SQLite)
+              await disconnectZoom()
+              profileStore.setZoomConnected(false)
+
+              // 2. Logout from RevenueCat
+              await logoutSubscription()
+
+              // 3. Logout from OneSignal
+              logoutOneSignalUser()
+
+              // 4. Clear AI conversation history (SQLite)
+              conversationStore.clearHistory()
+
+              // 5. Reset ProfileStore (volatile + props, persists to SQLite)
+              profileStore.reset()
+
+              // 6. Clear MMKV storage (all persisted snapshots)
+              clearStorage()
+
+              // 7. Logout from Auth0 (clear session + MST auth state)
+              await logout()
+            } catch {
+              // Even if some steps fail, ensure auth is cleared
+              authStore.logout()
+            }
+          },
+        },
       ],
     )
   }
