@@ -13,6 +13,7 @@ import {
   ViewStyle,
 } from "react-native"
 
+import { translate } from "@/i18n/translate"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -148,6 +149,9 @@ export function Toggle<T>(props: ToggleProps<T>) {
   } = useAppTheme()
 
   const disabled = editable === false || status === "disabled" || props.disabled
+  const labelText = props.labelTx
+    ? translate(props.labelTx, props.labelTxOptions)
+    : props.label
 
   const Wrapper = useMemo(
     () => (disabled ? View : TouchableOpacity) as ComponentType<TouchableOpacityProps | ViewProps>,
@@ -175,6 +179,7 @@ export function Toggle<T>(props: ToggleProps<T>) {
     <Wrapper
       activeOpacity={1}
       accessibilityRole={accessibilityRole}
+      accessibilityLabel={WrapperProps.accessibilityLabel || labelText}
       accessibilityState={{ checked: value, disabled }}
       {...WrapperProps}
       style={$containerStyles}

@@ -9,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native"
 
+import { translate } from "@/i18n/translate"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle, ThemedStyleArray } from "@/theme/types"
@@ -200,11 +201,19 @@ export function Card(props: CardProps) {
     RightComponent && { marginEnd: spacing.md },
   ]
 
+  const headingLabel = headingTx ? translate(headingTx, headingTxOptions) : heading
+  const contentLabel = contentTx ? translate(contentTx, contentTxOptions) : content
+  const accessibilityLabel =
+    WrapperProps.accessibilityLabel ||
+    [headingLabel, contentLabel].filter(Boolean).join(". ") ||
+    undefined
+
   return (
     <Wrapper
       style={$containerStyle}
       activeOpacity={0.8}
       accessibilityRole={isPressable ? "button" : undefined}
+      accessibilityLabel={accessibilityLabel}
       {...WrapperProps}
     >
       {LeftComponent}

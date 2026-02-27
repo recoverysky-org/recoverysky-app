@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from "react-native"
 
+import { translate } from "@/i18n/translate"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle, ThemedStyleArray } from "@/theme/types"
@@ -147,10 +148,13 @@ export function Button(props: ButtonProps) {
     ]
   }
 
+  const accessibilityLabel = rest.accessibilityLabel || (tx ? translate(tx, txOptions) : text)
+
   return (
     <Pressable
       style={$viewStyle}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: !!disabled }}
       {...rest}
       disabled={disabled}

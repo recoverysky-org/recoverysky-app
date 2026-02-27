@@ -56,8 +56,24 @@ export interface TextProps extends RNTextProps {
  * @param {TextProps} props - The props for the `Text` component.
  * @returns {JSX.Element} The rendered `Text` component.
  */
+/**
+ * Default max font scale multiplier — caps Dynamic Type scaling to prevent
+ * extreme sizes from breaking layouts while still supporting Larger Text.
+ */
+const DEFAULT_MAX_FONT_SIZE_MULTIPLIER = 2
+
 export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef<RNText>) {
-  const { weight, size, tx, txOptions, text, children, style: $styleOverride, ...rest } = props
+  const {
+    weight,
+    size,
+    tx,
+    txOptions,
+    text,
+    children,
+    style: $styleOverride,
+    maxFontSizeMultiplier = DEFAULT_MAX_FONT_SIZE_MULTIPLIER,
+    ...rest
+  } = props
   const { themed } = useAppTheme()
   const { t } = useTranslation()
 
@@ -74,7 +90,7 @@ export const Text = forwardRef(function Text(props: TextProps, ref: ForwardedRef
   ]
 
   return (
-    <RNText {...rest} style={$styles} ref={ref}>
+    <RNText {...rest} maxFontSizeMultiplier={maxFontSizeMultiplier} style={$styles} ref={ref}>
       {content}
     </RNText>
   )

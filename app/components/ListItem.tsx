@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from "react-native"
 
+import { translate } from "@/i18n/translate"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -138,6 +139,9 @@ export const ListItem = forwardRef<View, ListItemProps>(function ListItem(
     TouchableOpacityProps.onPressOut !== undefined ||
     TouchableOpacityProps.onLongPress !== undefined
 
+  const accessibilityLabel =
+    TouchableOpacityProps.accessibilityLabel || (tx ? translate(tx, txOptions) : text)
+
   const $textStyles = [$textStyle, $textStyleOverride, TextProps?.style]
 
   const $containerStyles = [
@@ -152,7 +156,12 @@ export const ListItem = forwardRef<View, ListItemProps>(function ListItem(
 
   return (
     <View ref={ref} style={themed($containerStyles)}>
-      <Wrapper {...TouchableOpacityProps} style={$touchableStyles}>
+      <Wrapper
+        accessibilityRole={isTouchable ? "button" : undefined}
+        accessibilityLabel={accessibilityLabel}
+        {...TouchableOpacityProps}
+        style={$touchableStyles}
+      >
         <ListItemAction
           side="left"
           size={height}

@@ -144,6 +144,8 @@ export const TextField = forwardRef(function TextField(props: TextFieldProps, re
     ? translate(placeholderTx, placeholderTxOptions)
     : placeholder
 
+  const labelContent = labelTx ? translate(labelTx, labelTxOptions) : label
+
   const $containerStyles = [$containerStyleOverride]
 
   const $labelStyles = [$labelStyle, LabelTextProps?.style]
@@ -188,6 +190,7 @@ export const TextField = forwardRef(function TextField(props: TextFieldProps, re
       activeOpacity={1}
       style={$containerStyles}
       onPress={focusInput}
+      accessible={false}
       accessibilityState={{ disabled }}
     >
       {!!(label || labelTx) && (
@@ -217,6 +220,7 @@ export const TextField = forwardRef(function TextField(props: TextFieldProps, re
           textAlignVertical="top"
           placeholder={placeholderContent}
           placeholderTextColor={colors.textDim}
+          accessibilityLabel={labelContent || placeholderContent}
           {...TextInputProps}
           editable={!disabled}
           style={themed($inputStyles)}
@@ -265,7 +269,7 @@ const $inputStyle: ThemedStyle<TextStyle> = ({ colors, typography, spacing }) =>
   fontFamily: typography.primary.normal,
   color: colors.text,
   fontSize: 16,
-  height: 24,
+  minHeight: 24,
   // https://github.com/facebook/react-native/issues/21720#issuecomment-532642093
   paddingVertical: 0,
   paddingHorizontal: 0,

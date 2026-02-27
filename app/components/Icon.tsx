@@ -38,6 +38,11 @@ type BaseIconProps = {
    * Style overrides for the icon container
    */
   containerStyle?: StyleProp<ViewStyle>
+
+  /**
+   * Accessibility label for the icon. If not set, the icon is treated as decorative.
+   */
+  accessibilityLabel?: string
 }
 
 type PressableIconProps = Omit<TouchableOpacityProps, "style"> & BaseIconProps
@@ -57,6 +62,7 @@ export function PressableIcon(props: PressableIconProps) {
     size,
     style: $imageStyleOverride,
     containerStyle: $containerStyleOverride,
+    accessibilityLabel,
     ...pressableProps
   } = props
 
@@ -70,8 +76,13 @@ export function PressableIcon(props: PressableIconProps) {
   ]
 
   return (
-    <TouchableOpacity {...pressableProps} style={$containerStyleOverride}>
-      <Image style={$imageStyle} source={iconRegistry[icon]} />
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      {...pressableProps}
+      style={$containerStyleOverride}
+    >
+      <Image style={$imageStyle} source={iconRegistry[icon]} accessible={false} />
     </TouchableOpacity>
   )
 }
@@ -90,6 +101,7 @@ export function Icon(props: IconProps) {
     size,
     style: $imageStyleOverride,
     containerStyle: $containerStyleOverride,
+    accessibilityLabel,
     ...viewProps
   } = props
 
@@ -103,8 +115,14 @@ export function Icon(props: IconProps) {
   ]
 
   return (
-    <View {...viewProps} style={$containerStyleOverride}>
-      <Image style={$imageStyle} source={iconRegistry[icon]} />
+    <View
+      accessible={!!accessibilityLabel}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole={accessibilityLabel ? "image" : undefined}
+      {...viewProps}
+      style={$containerStyleOverride}
+    >
+      <Image style={$imageStyle} source={iconRegistry[icon]} accessible={false} />
     </View>
   )
 }
