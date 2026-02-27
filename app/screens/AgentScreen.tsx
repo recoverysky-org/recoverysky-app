@@ -16,6 +16,8 @@ import { DefaultChatTransport } from "ai"
 import { fetch as expoFetch } from "expo/fetch"
 import { observer } from "mobx-react-lite"
 
+import { getAiConsentText } from "@assets/content"
+
 import { ToolResultRenderer } from "@/components/agent"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
@@ -47,7 +49,8 @@ const log = logger.child({ module: "AgentScreen" })
  * - Tool calls (recovery resources, meeting info, literature)
  * - Conversation survives app restarts
  */
-export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function AgentScreen(_props) {
+export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function AgentScreen(props) {
+  const { navigation } = props
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
@@ -214,13 +217,51 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   // Handle popup close - collapse the tool result
   const handleClosePopup = useCallback(() => {
     if (selectedMeeting && activeToolCallId) {
-      conversationStore.collapseToolResult(activeToolCallId, translate("agentScreen:selected", { name: selectedMeeting.name }))
+      conversationStore.collapseToolResult(
+        activeToolCallId,
+        translate("agentScreen:selected", { name: selectedMeeting.name }),
+      )
     }
     setSelectedMeeting(null)
     setActiveToolCallId(null)
   }, [selectedMeeting, activeToolCallId, conversationStore])
 
   const isLoading = status === "streaming" || status === "submitted"
+
+  // AI consent gate (Apple Guideline 5.1.2(i))
+  if (!profileStore.aiConsentAccepted) {
+    return (
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+        <View style={themed($header)}>
+          <View style={$styles.row}>
+            <Ionicons name="help-buoy" size={24} color={theme.colors.tint} />
+            <Text preset="heading" tx="agentScreen:title" style={themed($headerTitle)} />
+          </View>
+        </View>
+        <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
+
+        <ScrollView style={themed($consentScroll)} showsVerticalScrollIndicator={false}>
+          <View style={themed($consentHeader)}>
+            <Ionicons name="shield-checkmark" size={32} color={theme.colors.tint} />
+            <Text preset="subheading" tx="agentScreen:consentTitle" style={themed($consentTitle)} />
+          </View>
+          <Text style={themed($consentText)}>{getAiConsentText()}</Text>
+        </ScrollView>
+
+        <View style={themed($consentFooter)}>
+          <Pressable
+            onPress={() => profileStore.setAiConsentAccepted(true)}
+            style={themed($consentAcceptButton)}
+          >
+            <Text preset="bold" tx="agentScreen:consentAccept" style={$consentAcceptText} />
+          </Pressable>
+          <Pressable onPress={() => navigation.goBack()} style={themed($consentDeclineButton)}>
+            <Text tx="agentScreen:consentDecline" style={themed($consentDeclineText)} />
+          </Pressable>
+        </View>
+      </Screen>
+    )
+  }
 
   // Extract debug metadata from last assistant message
   const debugMetadata = useMemo(() => {
@@ -296,7 +337,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                     color={message.role === "user" ? theme.colors.tint : "#9C27B0"}
                   />
                   <Text style={[themed($messageRole), message.role === "user" && $userMessageRole]}>
-                    {message.role === "user" ? translate("agentScreen:roleYou") : translate("agentScreen:roleSky")}
+                    {message.role === "user"
+                      ? translate("agentScreen:roleYou")
+                      : translate("agentScreen:roleSky")}
                   </Text>
                 </View>
                 <View style={themed($messageContent)}>
@@ -364,7 +407,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                             size={14}
                             color={theme.colors.textDim}
                           />
-                          <Text style={themed($toolCallText)}>{translate("agentScreen:usingTool", { toolName })}</Text>
+                          <Text style={themed($toolCallText)}>
+                            {translate("agentScreen:usingTool", { toolName })}
+                          </Text>
                         </View>
                       )
                     }
@@ -751,4 +796,55 @@ const $fab: ThemedStyle<ViewStyle> = ({ colors }) => ({
 
 const $fabOpen: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.textDim,
+})
+
+// Consent gate styles
+const $consentScroll: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+})
+
+const $consentHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  gap: spacing.sm,
+  marginVertical: spacing.lg,
+})
+
+const $consentTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.text,
+})
+
+const $consentText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  color: colors.textDim,
+  fontSize: 14,
+  lineHeight: 22,
+  paddingHorizontal: spacing.xs,
+})
+
+const $consentFooter: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.md,
+  gap: spacing.sm,
+  borderTopWidth: 1,
+  borderTopColor: "rgba(255,255,255,0.1)",
+})
+
+const $consentAcceptButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.tint,
+  paddingVertical: spacing.sm,
+  borderRadius: 12,
+  alignItems: "center",
+})
+
+const $consentAcceptText: TextStyle = {
+  color: "#000",
+  fontSize: 16,
+}
+
+const $consentDeclineButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.sm,
+  alignItems: "center",
+})
+
+const $consentDeclineText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 14,
 })

@@ -67,6 +67,9 @@ export const ProfileStoreModel = types
     // Import
     imported: types.optional(types.boolean, false),
 
+    // AI consent (Apple Guideline 5.1.2(i))
+    aiConsentAccepted: types.optional(types.boolean, false),
+
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
   })
@@ -294,6 +297,10 @@ export const ProfileStoreModel = types
 
       setImported(value: boolean) {
         self.imported = value
+      },
+
+      setAiConsentAccepted(value: boolean) {
+        self.aiConsentAccepted = value
       },
 
       /**

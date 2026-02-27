@@ -455,6 +455,9 @@ const es: Translations = {
       "¿Estás seguro de que quieres borrar toda la conversación? Esto no se puede deshacer.",
     cancel: "Cancelar",
     clear: "Borrar",
+    consentTitle: "Consentimiento de Datos IA",
+    consentAccept: "Acepto",
+    consentDecline: "Volver",
   },
 }
 

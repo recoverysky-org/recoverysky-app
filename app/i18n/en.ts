@@ -464,6 +464,9 @@ const en = {
       "Are you sure you want to clear the entire conversation? This cannot be undone.",
     cancel: "Cancel",
     clear: "Clear",
+    consentTitle: "AI Data Consent",
+    consentAccept: "I Agree",
+    consentDecline: "Go Back",
   },
 }
 
