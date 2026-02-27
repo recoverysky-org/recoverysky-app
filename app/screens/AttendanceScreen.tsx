@@ -717,7 +717,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
           </View>
           {selectedReport?.html ? (
             <WebView
-              source={{ html: selectedReport.html }}
+              source={{ html: selectedReport.html.replace(/<img[^>]*>/gi, "") }}
               originWhitelist={["*"]}
               style={$webView}
             />
@@ -1006,6 +1006,7 @@ const $modalHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.card,
   borderBottomWidth: 1,
   borderBottomColor: colors.separator,
+  zIndex: 1,
 })
 
 const $modalTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
