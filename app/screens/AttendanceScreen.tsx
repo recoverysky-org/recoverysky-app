@@ -571,8 +571,17 @@ const ReportsContent: FC = observer(function ReportsContent() {
           <TouchableOpacity onPress={() => handleResendTap(item)} style={$viewButton} hitSlop={8}>
             <Ionicons name="mail-outline" size={22} color={theme.colors.tint} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleViewReport(item)} style={$viewButton} hitSlop={8}>
-            <Ionicons name="eye-outline" size={22} color={theme.colors.tint} />
+          <TouchableOpacity
+            onPress={() => handleViewReport(item)}
+            style={$viewButton}
+            hitSlop={8}
+            disabled={item.error || item.confirmed === 0}
+          >
+            <Ionicons
+              name="eye-outline"
+              size={22}
+              color={item.error || item.confirmed === 0 ? theme.colors.border : theme.colors.tint}
+            />
           </TouchableOpacity>
         </TouchableOpacity>
       )
