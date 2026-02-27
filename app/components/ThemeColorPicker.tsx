@@ -16,7 +16,7 @@ import type { ThemedStyle } from "@/theme/types"
 
 // Preset vibrant colors
 const PRESET_COLORS = [
-  { name: "Hot Pink", hex: "#FF69B4" },
+  { name: "Rose", hex: "#C30A68" },
   { name: "Electric Pink", hex: "#FF1493" },
   { name: "Tangerine", hex: "#FF9966" },
   { name: "Orange", hex: "#FF6600" },
