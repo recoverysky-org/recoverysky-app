@@ -10,7 +10,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 echo "Patching iOS splash screen..."
 
 # Find the iOS app folder dynamically (excludes Pods, .xcodeproj, .xcworkspace)
-IOS_APP_DIR=$(find "$PROJECT_DIR/ios" -maxdepth 1 -type d ! -name "ios" ! -name "Pods" ! -name "build" ! -name ".*" ! -name "*.xcodeproj" ! -name "*.xcworkspace" | head -1)
+IOS_APP_DIR=$(find "$PROJECT_DIR/ios" -maxdepth 1 -type d ! -name "ios" ! -name "Pods" ! -name "build" ! -name ".*" ! -name "*.xcodeproj" ! -name "*.xcworkspace" ! -name "*Extension*" | head -1)
 
 if [ -z "$IOS_APP_DIR" ]; then
   echo "Error: Could not find iOS app directory"
