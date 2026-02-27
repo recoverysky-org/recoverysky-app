@@ -62,7 +62,9 @@
       ]
     },
     "infoPlist": {
+      "UIBackgroundModes": ["audio", "remote-notification"],
       "ITSAppUsesNonExemptEncryption": false,
+      "NSLocationWhenInUseUsageDescription": "Location access may be used to find nearby recovery meetings",
       "NSCameraUsageDescription": "Camera access is needed for video meetings",
       "NSMicrophoneUsageDescription": "Microphone access is needed for audio in meetings",
       "NSBluetoothPeripheralUsageDescription": "Bluetooth is used for headset connectivity",
