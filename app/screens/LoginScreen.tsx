@@ -11,8 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
-import { disclaimerText } from "@assets/content/disclaimer"
-import { euaText } from "@assets/content/eua"
+import { getDisclaimerText, getEuaText } from "@assets/content"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -162,9 +161,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             contentContainerStyle={themed($modalContentInner)}
             showsVerticalScrollIndicator
           >
-            <Text style={themed($agreementText)}>{euaText}</Text>
+            <Text style={themed($agreementText)}>{getEuaText()}</Text>
             <View style={themed($agreementDivider)} />
-            <Text style={themed($agreementText)}>{disclaimerText}</Text>
+            <Text style={themed($agreementText)}>{getDisclaimerText()}</Text>
           </ScrollView>
 
           {/* Modal Footer */}
