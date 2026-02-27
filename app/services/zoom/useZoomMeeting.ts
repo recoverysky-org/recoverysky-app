@@ -15,7 +15,6 @@ import { useZoomContext, type ZoomContextValue } from "./ZoomMeetingProvider"
 import type { ZoomJoinConfig, ZoomJoinResult, ZoomMeetingState } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeeting" })
-const noop = () => {}
 
 /**
  * Extract Zoom meeting number from various URL formats
@@ -56,8 +55,6 @@ export interface UseZoomMeetingReturn {
   joinMeeting: (config: ZoomJoinConfig) => Promise<ZoomJoinResult>
   /** Open a URL directly in the Zoom app */
   openInZoomApp: (url: string) => Promise<void>
-  /** Activate/initialize the SDK on demand (lazy init) */
-  activateSDK: () => void
   /** Reset state to idle */
   reset: () => void
 }
@@ -101,7 +98,6 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
   const [error, setError] = useState<string | null>(null)
 
   const isSDKReady = zoomContext?.isReady ?? false
-  const activateSDK = zoomContext?.activateSDK ?? noop
 
   const reset = useCallback(() => {
     setState("idle")
@@ -143,24 +139,15 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
       setError(null)
 
       try {
-        // Try native SDK if available (or trigger lazy activation)
-        if (zoomContext) {
-          if (isSDKReady) {
-            log.info("Using native Zoom SDK", { mid: config.meetingId })
-            await zoomContext.joinMeeting(config)
-            setState("inMeeting")
-            return { success: true }
-          }
-
-          // SDK not yet initialized — trigger lazy activation.
-          // The fallback provider stores the join config and activates the SDK.
-          // ZoomSDKConsumer will auto-join once mounted.
-          log.info("SDK not ready, triggering lazy activation", { mid: config.meetingId })
+        // Try native SDK first if available
+        if (isSDKReady && zoomContext) {
+          log.info("Using native Zoom SDK", { mid: config.meetingId })
           await zoomContext.joinMeeting(config)
+          setState("inMeeting")
           return { success: true }
         }
 
-        // No context at all — fallback to external Zoom app
+        // Fallback to external Zoom app (use original URL which has encrypted pwd)
         log.info("SDK not available, using external app", { mid: config.meetingId })
         const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
         await openInZoomApp(zoomUrl)
@@ -185,7 +172,6 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
     isSDKReady,
     joinMeeting,
     openInZoomApp,
-    activateSDK,
     reset,
   }
 }
