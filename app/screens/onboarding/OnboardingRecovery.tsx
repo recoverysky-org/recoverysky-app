@@ -81,7 +81,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
 
     return (
       <Screen
-        preset="fixed"
+        preset="scroll"
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={themed($container)}
       >
@@ -225,7 +225,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
 // ============================================================================
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+  flexGrow: 1,
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xl,
 })
