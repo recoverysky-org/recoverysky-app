@@ -53,9 +53,12 @@ Metro has poor symlink support. The `metro.config.js` includes workarounds:
 ### State Management (MobX-State-Tree)
 MST with MMKV persistence in `app/models/`:
 - **RootStore**: Combines all stores, initialized in `app.tsx`
-- **AuthenticationStore**: Auth token, email, userId, `isAuthenticated` computed
+- **AuthenticationStore**: Auth state with two storage tiers:
+  - **Props** (MMKV): `refreshToken`, `authEmail`, `userId`, `deviceId`, `isAnonymous`
+  - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never persisted to MMKV
+  - Computed: `isAuthenticated`
 - **ProfileStore**: User profile and preferences with two storage tiers:
-  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, notificationsEnabled, reportEmail
+  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, notificationsEnabled, reportEmail, `imported`
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
@@ -95,7 +98,7 @@ React Navigation v7 in `app/navigators/`:
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `attendanceEnabled`), Agent (conditional on `isPremium`), Settings.
 
-**Modals**: ZoomLogin (reconnection from Settings).
+**Modals** (app-stack level): ZoomLogin (reconnection), Import (Firebase data import from Settings), Licenses (OSS licenses from Settings).
 
 **Section routing**: Attendance tab accepts `{ section?: "new" | "archive" | "reports" }` route params. Navigation to a specific section uses `navigate("Attendance", { section: "reports" })`. The screen syncs via `navigation.addListener("focus", ...)` to handle repeated navigations to the same section.
 
@@ -115,9 +118,11 @@ Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
 Apisauce wrapper in `app/services/api/`:
 - Dual auth: device authorization (`X-Device-Token` / `X-API-Key`) + user OAuth (`Authorization: Bearer`)
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
-- Attestation queueing: API calls wait for `attestationPromise` to resolve before proceeding
+- Attestation queueing: `setAttestationInProgress(promise)` — API calls wait via `waitForAttestation()` before proceeding
+- Device auth: `setDeviceJwt(jwt)` sets `X-Device-Token`; `setApiKeyAuth()` fallback for simulators without attestation
 - Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, OneSignal
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
+- Firebase import endpoints: `getFirebaseUser()`, `getFirebaseAttendance()`, `getFirebaseReports()`, `checkFirebaseUser()` — types exported as `FirebaseUserData`, `FirebaseAttendanceRecord`, `FirebaseReportRecord`
 
 ### Subscription System (RevenueCat)
 In `app/services/purchases/`:
@@ -162,6 +167,22 @@ import { useReportSender, type SendOperation } from "@/hooks/useReportSender"
 const { send, isSending } = useReportSender()
 await send({ type: "resend", report: existingReport })
 ```
+
+### Journal PDF Export
+In `app/services/journal/`:
+- **journalExportService.ts**: Reads entries from old app's `DataStoreSQLite.db` (plain SQLite3, no encryption) via `expo-sqlite`, builds styled HTML, generates PDF via `expo-print`, shares via `expo-sharing`
+- **useJournalExport hook** (`app/hooks/`): Wraps service with `isExporting` state and toast error handling
+- Database location fallback: `Documents/SQLite/` → `Documents/` root → bundled asset (`assets/content/DataStoreSQLite.db`)
+- Bundled `.db` asset requires `"db"` in Metro `assetExts` (configured in `metro.config.js`)
+- Error handling via `JournalExportError` with typed `code: "not_found" | "empty" | "generation"`
+
+### Firebase Data Import
+In `app/screens/onboarding/OnboardingImport.tsx`:
+- Dual-context screen: onboarding flow (navigates forward) vs Settings modal (dismisses)
+- Parallel API fetch via `Promise.all()` for user profile, attendance, and reports
+- Normalizes fellowship names (`FELLOWSHIP_MAP`) and pronouns before import
+- Sets `profileStore.imported = true` after success; button greys out when already imported
+- Available from Settings via `navigate("Import")` modal
 
 ### Theming
 Design token system in `app/theme/`:
