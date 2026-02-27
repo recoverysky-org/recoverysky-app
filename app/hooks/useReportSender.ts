@@ -16,7 +16,7 @@ import {
   type AttendanceReportRecord,
   type AttendanceReportUpdateInput,
 } from "@/db"
-import { useAuthenticationStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
 import { pollForConfirmation } from "@/services/polling"
 import { logger } from "@/utils/logger"
@@ -34,6 +34,17 @@ export type SendOperation =
 export interface SendResult {
   reportId: string
   success: boolean
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/** Generate an 8-char hex report ID formatted as "####-####" */
+function generateReportId(): string {
+  const bytes = Crypto.getRandomBytes(4)
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase()
+  return `${hex.slice(0, 4)}-${hex.slice(4, 8)}`
 }
 
 // ============================================================================
@@ -137,6 +148,8 @@ type ShowToast = (config: { message: string; type: "success" | "error"; duration
  */
 async function handleSend(
   uid: string,
+  name: string,
+  userEmail: string,
   op: Extract<SendOperation, { type: "initial" | "resend" | "replace" }>,
   showToast: ShowToast,
 ): Promise<SendResult> {
@@ -145,11 +158,11 @@ async function handleSend(
 
   // 1. Ensure report record exists (initial creates, others already exist)
   if (op.type === "initial") {
-    reportId = Crypto.randomUUID()
+    reportId = generateReportId()
     logger.info("Initial send started", { reportId, email, count: op.attendanceIds.length })
 
     const createResult = await attendanceReportRepo.create({
-      id: reportId, uid, email, generated: Date.now(),
+      id: reportId, uid, email, name, userEmail, generated: Date.now(),
     })
     if (!createResult.ok) {
       logger.error("Failed to create attendance report in DB", { reportId, error: String(createResult.error) })
@@ -181,11 +194,11 @@ async function handleSend(
       showToast({ message: "Report saved locally", type: "success" })
       return { reportId, success: true }
     }
-    apiResult = await api.sendReport({ id: reportId, uid, email, attendance: attendanceResult.value })
+    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail, attendance: attendanceResult.value })
   } else if (op.type === "resend") {
     apiResult = await api.resendReport({ id: reportId, uid })
   } else {
-    apiResult = await api.sendReport({ id: reportId, uid, email })
+    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail })
   }
 
   // 4. Process result (update DB, toast, poll if needed)
@@ -198,11 +211,13 @@ async function handleSend(
 
 async function handleForward(
   uid: string,
+  name: string,
+  userEmail: string,
   op: Extract<SendOperation, { type: "forward" }>,
   showToast: ShowToast,
 ): Promise<SendResult> {
   const originId = op.report.fid || op.report.id
-  const newId = Crypto.randomUUID()
+  const newId = generateReportId()
   logger.info("Resend: forward path", {
     sourceReportId: op.report.id,
     sourceFid: op.report.fid || "none",
@@ -215,6 +230,8 @@ async function handleForward(
     id: newId,
     uid,
     email: op.email,
+    name,
+    userEmail,
     fid: originId,
     generated: Date.now(),
   })
@@ -225,6 +242,8 @@ async function handleForward(
     id: newId,
     uid,
     email: op.email,
+    name,
+    userEmail,
     fid: originId,
   })
   const success = await processApiResult(newId, apiResult, "forward", showToast)
@@ -237,6 +256,7 @@ async function handleForward(
 
 export function useReportSender() {
   const authStore = useAuthenticationStore()
+  const profileStore = useProfileStore()
   const toast = useToast()
   const [isSending, setIsSending] = useState(false)
 
@@ -245,15 +265,17 @@ export function useReportSender() {
       setIsSending(true)
       try {
         const uid = authStore.userId ?? ""
+        const name = profileStore.shortName
+        const userEmail = authStore.authEmail ?? ""
         const { showToast } = toast
 
         switch (op.type) {
           case "initial":
           case "resend":
           case "replace":
-            return await handleSend(uid, op, showToast)
+            return await handleSend(uid, name, userEmail, op, showToast)
           case "forward":
-            return await handleForward(uid, op, showToast)
+            return await handleForward(uid, name, userEmail, op, showToast)
         }
       } catch (error) {
         logger.error("Report send exception", { type: op.type, error: String(error) })
