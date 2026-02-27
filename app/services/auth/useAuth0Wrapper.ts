@@ -27,6 +27,8 @@ export interface UseAuth0WrapperOptions {
 export interface UseAuth0WrapperResult {
   /** Initiate the OAuth login flow */
   login: () => Promise<void>
+  /** Initiate the OAuth signup flow (opens Auth0 signup tab) */
+  signup: () => Promise<void>
   /** Login as anonymous user (no OAuth) */
   loginAnonymously: () => void
   /** Logout and clear all tokens */
@@ -193,6 +195,36 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   }, [authorize])
 
   /**
+   * Initiate the OAuth signup flow (opens Auth0 signup tab)
+   */
+  const signup = useCallback(async () => {
+    log.info("Starting Auth0 signup flow")
+    setError(null)
+
+    try {
+      try {
+        await cancelWebAuth()
+      } catch {
+        // Ignore - cancelWebAuth may fail if no transaction exists
+      }
+
+      await authorize(
+        {
+          scope: AUTH0_CONFIG.scopes.join(" "),
+          audience: AUTH0_CONFIG.audience,
+          additionalParameters: { screen_hint: "signup" },
+        },
+        { customScheme: AUTH0_CONFIG.customScheme },
+      )
+      log.info("Auth0 signup flow completed")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Signup failed"
+      log.error("Auth0 signup failed", { error: message })
+      setError(message)
+    }
+  }, [authorize])
+
+  /**
    * Login as anonymous user (no OAuth required)
    */
   const loginAnonymously = useCallback(() => {
@@ -259,6 +291,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
 
   return {
     login,
+    signup,
     loginAnonymously,
     logout,
     isLoading,

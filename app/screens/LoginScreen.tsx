@@ -28,7 +28,7 @@ const log = logger.child({ module: "LoginScreen" })
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
-type LoginType = "authenticated" | "anonymous" | null
+type LoginType = "authenticated" | "signup" | "anonymous" | null
 
 /**
  * LoginScreen - OAuth login via Auth0
@@ -39,7 +39,7 @@ type LoginType = "authenticated" | "anonymous" | null
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
   const { rekeyDb } = useDatabase()
-  const { login, loginAnonymously, isLoading, error, clearError } = useAuth0Wrapper({
+  const { login, signup, loginAnonymously, isLoading, error, clearError } = useAuth0Wrapper({
     onSqliteKeyChange: rekeyDb,
   })
 
@@ -65,6 +65,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     setShowEuaModal(true)
   }, [])
 
+  const handleSignupPress = useCallback(() => {
+    log.info("Login button pressed", { type: "signup" })
+    setPendingLoginType("signup")
+    setShowEuaModal(true)
+  }, [])
+
   const handleAnonymousPress = useCallback(() => {
     log.info("Login button pressed", { type: "anonymous" })
     setPendingLoginType("anonymous")
@@ -78,12 +84,14 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
     if (pendingLoginType === "authenticated") {
       await login()
+    } else if (pendingLoginType === "signup") {
+      await signup()
     } else if (pendingLoginType === "anonymous") {
       await loginAnonymously()
     }
 
     setPendingLoginType(null)
-  }, [pendingLoginType, login, loginAnonymously, clearError])
+  }, [pendingLoginType, login, signup, loginAnonymously, clearError])
 
   const handleEuaCancel = useCallback(() => {
     log.info("EUA cancelled", { loginType: pendingLoginType ?? "none" })
@@ -123,6 +131,19 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         >
           <Text style={themed($buttonText)} tx="loginScreen:loginButton" />
           {isLoading && pendingLoginType === "authenticated" && (
+            <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
+          )}
+        </Pressable>
+
+        {/* Auth0 OAuth Signup */}
+        <Pressable
+          testID="signup-button"
+          style={[themed($button), isLoading && themed($buttonDisabled)]}
+          onPress={handleSignupPress}
+          disabled={isLoading}
+        >
+          <Text style={themed($buttonText)} tx="loginScreen:signupButton" />
+          {isLoading && pendingLoginType === "signup" && (
             <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
           )}
         </Pressable>
