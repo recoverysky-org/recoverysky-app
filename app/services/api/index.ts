@@ -573,6 +573,7 @@ export class Api {
     name?: string
     userEmail?: string
     userIdNum?: string
+    timezone?: string
     fid?: string
     attendance?: AttendanceRecord[]
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
