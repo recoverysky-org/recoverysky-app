@@ -10,6 +10,7 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -57,11 +58,17 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
               onValueChange={toggleDarkMode}
               trackColor={{ false: "#767577", true: theme.colors.tint }}
               thumbColor="#fff"
+              accessibilityLabel={translate("onboarding:darkMode")}
             />
           </View>
 
           {/* Theme Color */}
-          <Pressable style={themed($settingRow)} onPress={() => setColorPickerVisible(true)}>
+          <Pressable
+            style={themed($settingRow)}
+            onPress={() => setColorPickerVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:themeColor")}
+          >
             <Text style={themed($settingLabel)} tx="onboarding:themeColor" />
             <View style={$colorPreviewRow}>
               <View style={[$colorPreview, { backgroundColor: theme.colors.tint }]} />
@@ -83,6 +90,8 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleNext}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:next")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -90,7 +99,12 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
             />
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

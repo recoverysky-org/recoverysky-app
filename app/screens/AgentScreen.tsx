@@ -252,10 +252,17 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
           <Pressable
             onPress={() => profileStore.setAiConsentAccepted(true)}
             style={themed($consentAcceptButton)}
+            accessibilityRole="button"
+            accessibilityLabel={translate("agentScreen:consentAccept")}
           >
             <Text preset="bold" tx="agentScreen:consentAccept" style={$consentAcceptText} />
           </Pressable>
-          <Pressable onPress={() => navigation.goBack()} style={themed($consentDeclineButton)}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={themed($consentDeclineButton)}
+            accessibilityRole="button"
+            accessibilityLabel={translate("agentScreen:consentDecline")}
+          >
             <Text tx="agentScreen:consentDecline" style={themed($consentDeclineText)} />
           </Pressable>
         </View>
@@ -460,6 +467,8 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
               themed($sendButton),
               (isLoading || !input.trim()) && themed($sendButtonDisabled),
             ]}
+            accessibilityRole="button"
+            accessibilityLabel={translate("agentScreen:sendMessage")}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color={theme.colors.tint} />
@@ -486,6 +495,8 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                   handleClearChat()
                 }}
                 style={themed($fabMenuItem)}
+                accessibilityRole="button"
+                accessibilityLabel={translate("agentScreen:clearChat")}
               >
                 <Ionicons name="trash-outline" size={18} color="#FFF" />
               </Pressable>
@@ -496,6 +507,10 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
           <Pressable
             onPress={() => setFabMenuOpen(!fabMenuOpen)}
             style={[themed($fab), fabMenuOpen && themed($fabOpen)]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              fabMenuOpen ? translate("common:close") : translate("agentScreen:openMenu")
+            }
           >
             <Ionicons name={fabMenuOpen ? "close" : "ellipsis-vertical"} size={20} color="#FFF" />
           </Pressable>

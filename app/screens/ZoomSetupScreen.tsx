@@ -129,6 +129,8 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
           style={[themed($connectButton), isLoading && themed($buttonDisabled)]}
           onPress={handleConnectPress}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={translate("zoomSetupScreen:connectWithZoom")}
         >
           <Ionicons name="videocam" size={24} color="#2D8CFF" style={themed($buttonIcon)} />
           <Text style={themed($connectButtonText)} tx="zoomSetupScreen:connectWithZoom" />
@@ -144,6 +146,8 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
           style={themed($createButton)}
           onPress={handleCreateAccountPress}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={translate("zoomSetupScreen:createAccount")}
         >
           <Ionicons
             name="person-add-outline"
@@ -170,6 +174,8 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
           style={themed($skipButton)}
           onPress={handleSkipPress}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={translate("zoomSetupScreen:continueAnonymously")}
         >
           <Text style={themed($skipButtonText)} tx="zoomSetupScreen:continueAnonymously" />
         </Pressable>
@@ -186,7 +192,12 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
           {/* Modal Header */}
           <View style={themed($modalHeader)}>
             <Text style={themed($modalTitle)} tx="zoomSetupScreen:signupModalTitle" />
-            <Pressable onPress={() => setShowSignupModal(false)} hitSlop={8}>
+            <Pressable
+              onPress={() => setShowSignupModal(false)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={translate("common:close")}
+            >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </Pressable>
           </View>
@@ -204,10 +215,20 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
 
           {/* Modal Footer */}
           <View style={themed($modalFooter)}>
-            <Pressable style={themed($modalCancelButton)} onPress={() => setShowSignupModal(false)}>
+            <Pressable
+              style={themed($modalCancelButton)}
+              onPress={() => setShowSignupModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel={translate("common:cancel")}
+            >
               <Text style={themed($modalCancelText)} tx="common:cancel" />
             </Pressable>
-            <Pressable style={themed($modalContinueButton)} onPress={handleSignupContinue}>
+            <Pressable
+              style={themed($modalContinueButton)}
+              onPress={handleSignupContinue}
+              accessibilityRole="button"
+              accessibilityLabel={translate("zoomSetupScreen:signupModalContinue")}
+            >
               <Text style={themed($modalContinueText)} tx="zoomSetupScreen:signupModalContinue" />
             </Pressable>
           </View>

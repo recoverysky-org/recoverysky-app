@@ -99,6 +99,8 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
             <Pressable
               style={themed($pickerButton)}
               onPress={() => setFellowshipModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={translate("onboarding:fellowship")}
             >
               <Text style={themed($pickerText)}>{getFellowshipLabel(profileStore.fellowship)}</Text>
               <Ionicons name="chevron-down" size={20} color={theme.colors.textDim} />
@@ -108,7 +110,12 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
           {/* Recovery Date Picker */}
           <View style={themed($inputSection)}>
             <Text style={themed($label)} tx="onboarding:recoveryDate" />
-            <Pressable style={themed($pickerButton)} onPress={() => setShowDatePicker(true)}>
+            <Pressable
+              style={themed($pickerButton)}
+              onPress={() => setShowDatePicker(true)}
+              accessibilityRole="button"
+              accessibilityLabel={translate("onboarding:recoveryDate")}
+            >
               <Text style={themed($pickerText)}>{formatDate(profileStore.recoveryDateAsDate)}</Text>
               <Ionicons name="calendar-outline" size={20} color={theme.colors.textDim} />
             </Pressable>
@@ -125,7 +132,12 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
                 maximumDate={new Date()}
                 themeVariant={theme.isDark ? "dark" : "light"}
               />
-              <Pressable style={themed($datePickerDone)} onPress={() => setShowDatePicker(false)}>
+              <Pressable
+                style={themed($datePickerDone)}
+                onPress={() => setShowDatePicker(false)}
+                accessibilityRole="button"
+                accessibilityLabel={translate("common:ok")}
+              >
                 <Text style={themed($datePickerDoneText)}>Done</Text>
               </Pressable>
             </View>
@@ -145,7 +157,11 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
 
         {/* Fellowship Modal */}
         <Modal visible={fellowshipModalVisible} transparent animationType="fade">
-          <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
+          <Pressable
+            style={themed($modalOverlay)}
+            onPress={() => setFellowshipModalVisible(false)}
+            accessibilityLabel={translate("common:close")}
+          >
             <View style={themed($modalContent)}>
               <Text style={themed($modalTitle)} tx="onboarding:selectFellowship" />
               {FELLOWSHIPS.map((f) => (
@@ -159,6 +175,9 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
                     profileStore.setFellowship(f)
                     setFellowshipModalVisible(false)
                   }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={getFellowshipLabel(f)}
+                  accessibilityState={{ selected: profileStore.fellowship === f }}
                 >
                   <Text style={themed($modalOptionText)}>{getFellowshipLabel(f)}</Text>
                   {profileStore.fellowship === f && (
@@ -178,6 +197,8 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleNext}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:next")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -185,7 +206,12 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
             />
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

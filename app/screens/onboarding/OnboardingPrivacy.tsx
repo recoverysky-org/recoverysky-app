@@ -10,6 +10,7 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -78,7 +79,12 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
 
           {/* Links - inline */}
           <View style={themed($linksRow)}>
-            <Pressable onPress={openPrivacyPolicy} style={themed($linkButton)}>
+            <Pressable
+              onPress={openPrivacyPolicy}
+              style={themed($linkButton)}
+              accessibilityRole="link"
+              accessibilityLabel={translate("onboarding:privacyPolicy")}
+            >
               <Text
                 style={[themed($linkText), { color: theme.colors.tint }]}
                 tx="onboarding:privacyPolicy"
@@ -86,7 +92,12 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
               <Ionicons name="open-outline" size={14} color={theme.colors.tint} />
             </Pressable>
             <Text style={themed($linkSeparator)}>|</Text>
-            <Pressable onPress={openTerms} style={themed($linkButton)}>
+            <Pressable
+              onPress={openTerms}
+              style={themed($linkButton)}
+              accessibilityRole="link"
+              accessibilityLabel={translate("onboarding:termsOfService")}
+            >
               <Text
                 style={[themed($linkText), { color: theme.colors.tint }]}
                 tx="onboarding:termsOfService"
@@ -104,6 +115,8 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleNext}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:next")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -111,7 +124,12 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
             />
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

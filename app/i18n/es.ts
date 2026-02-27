@@ -4,6 +4,7 @@ const es: Translations = {
   common: {
     ok: "OK",
     cancel: "Cancelar",
+    close: "Cerrar",
     back: "Volver",
     logOut: "Cerrar sesión",
     apply: "Aplicar",
@@ -459,6 +460,9 @@ const es: Translations = {
     consentTitle: "Consentimiento de Datos IA",
     consentAccept: "Acepto",
     consentDecline: "Volver",
+    sendMessage: "Enviar Mensaje",
+    clearChat: "Borrar Chat",
+    openMenu: "Menú",
   },
 }
 

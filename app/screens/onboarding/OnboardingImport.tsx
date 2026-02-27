@@ -15,6 +15,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { attendanceRepo, attendanceReportRepo } from "@/db"
 import { useJournalExport } from "@/hooks/useJournalExport"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import {
   api,
@@ -285,6 +286,8 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleContinue}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:importContinue")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -325,6 +328,8 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
           ]}
           onPress={handleImportCloudData}
           disabled={importing || profileStore.imported}
+          accessibilityRole="button"
+          accessibilityLabel={translate("onboarding:importCloudData")}
         >
           {importing ? (
             <ActivityIndicator color={theme.colors.tint} />
@@ -353,6 +358,8 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
           ]}
           onPress={handleExportJournal}
           disabled={importing || isExporting}
+          accessibilityRole="button"
+          accessibilityLabel={translate("onboarding:exportJournalPdf")}
         >
           {isExporting ? (
             <ActivityIndicator color={theme.colors.tint} />
@@ -367,7 +374,13 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
           )}
         </Pressable>
 
-        <Pressable onPress={handleSkip} style={$skipButton} disabled={importing}>
+        <Pressable
+          onPress={handleSkip}
+          style={$skipButton}
+          disabled={importing}
+          accessibilityRole="button"
+          accessibilityLabel={translate("onboarding:importSkip")}
+        >
           <Text style={themed($skipText)} tx="onboarding:importSkip" />
         </Pressable>
       </View>

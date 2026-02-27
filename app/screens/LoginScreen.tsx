@@ -16,6 +16,7 @@ import { getDisclaimerText, getEuaText } from "@assets/content"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
+import { translate } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
@@ -125,6 +126,8 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         {/* Auth0 OAuth Login */}
         <Pressable
           testID="login-button"
+          accessibilityRole="button"
+          accessibilityLabel={translate("loginScreen:loginButton")}
           style={[themed($button), isLoading && themed($buttonDisabled)]}
           onPress={handleLoginPress}
           disabled={isLoading}
@@ -138,6 +141,8 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         {/* Auth0 OAuth Signup */}
         <Pressable
           testID="signup-button"
+          accessibilityRole="button"
+          accessibilityLabel={translate("loginScreen:signupButton")}
           style={[themed($button), isLoading && themed($buttonDisabled)]}
           onPress={handleSignupPress}
           disabled={isLoading}
@@ -150,6 +155,8 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         <Pressable
           testID="anonymous-button"
+          accessibilityRole="button"
+          accessibilityLabel={translate("loginScreen:continueAnonymously")}
           style={[themed($button), isLoading && themed($buttonDisabled)]}
           onPress={handleAnonymousPress}
           disabled={isLoading}
@@ -171,7 +178,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           {/* Modal Header */}
           <View style={themed($modalHeader)}>
             <Text style={themed($modalTitle)} tx="loginScreen:euaTitle" />
-            <Pressable onPress={handleEuaCancel} hitSlop={8}>
+            <Pressable
+              onPress={handleEuaCancel}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={translate("common:close")}
+            >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </Pressable>
           </View>
@@ -189,7 +201,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
           {/* Modal Footer */}
           <View style={themed($modalFooter)}>
-            <Pressable style={themed($cancelButton)} onPress={handleEuaCancel}>
+            <Pressable
+              style={themed($cancelButton)}
+              onPress={handleEuaCancel}
+              accessibilityRole="button"
+              accessibilityLabel={translate("loginScreen:euaCancel")}
+            >
               <Text style={themed($cancelButtonText)} tx="loginScreen:euaCancel" />
             </Pressable>
             <Pressable
@@ -198,6 +215,8 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
                 { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
               ]}
               onPress={handleEuaAgree}
+              accessibilityRole="button"
+              accessibilityLabel={translate("loginScreen:euaAgree")}
             >
               <Text
                 style={[themed($agreeButtonText), { color: theme.colors.tint }]}

@@ -372,6 +372,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={themed($settingsRow)}
           onPress={() => setShowDatePicker(true)}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:recoveryDate")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:recoveryDate" />
           <View style={$styles.row}>
@@ -385,7 +386,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           (Platform.OS === "ios" ? (
             <View style={themed($datePickerContainer)}>
               <View style={themed($datePickerHeader)}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <TouchableOpacity
+                  onPress={() => setShowDatePicker(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel={translate("common:ok")}
+                >
                   <Text style={themed($datePickerDone)} tx="common:ok" />
                 </TouchableOpacity>
               </View>
@@ -413,6 +418,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         <TouchableOpacity
           style={[themed($settingsRow), themed($lastRow)]}
           onPress={() => setFellowshipModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:recoveryFellowship")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:recoveryFellowship" />
           <View style={$styles.row}>
@@ -459,6 +466,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             onValueChange={profileStore.setShowCleanDate}
             trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:showCleanDate")}
           />
         </View>
 
@@ -470,6 +478,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             onValueChange={profileStore.setShowCleanDays}
             trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:showCleanDays")}
           />
         </View>
 
@@ -481,6 +490,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               <TouchableOpacity
                 onPress={() => setPronounsModalVisible(true)}
                 style={themed($pronounsButton)}
+                accessibilityRole="button"
+                accessibilityLabel={getPronounsLabel(profileStore.pronouns)}
               >
                 <Text style={themed($pronounsButtonText)}>
                   {getPronounsLabel(profileStore.pronouns)}
@@ -493,6 +504,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               onValueChange={profileStore.setShowPronouns}
               trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
               thumbColor="#FFFFFF"
+              accessibilityLabel={translate("settingsScreen:showPronouns")}
             />
           </View>
         </View>
@@ -505,7 +517,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         animationType="fade"
         onRequestClose={() => setPronounsModalVisible(false)}
       >
-        <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
+        <Pressable
+          style={themed($modalOverlay)}
+          onPress={() => setPronounsModalVisible(false)}
+          accessibilityLabel={translate("common:close")}
+        >
           <View style={themed($modalContent)}>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
             {(["none", "he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
@@ -519,6 +535,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                   profileStore.setPronouns(p)
                   setPronounsModalVisible(false)
                 }}
+                accessibilityRole="radio"
+                accessibilityLabel={getPronounsLabel(p)}
+                accessibilityState={{ selected: profileStore.pronouns === p }}
               >
                 <Text
                   style={[
@@ -544,7 +563,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         animationType="fade"
         onRequestClose={() => setFellowshipModalVisible(false)}
       >
-        <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
+        <Pressable
+          style={themed($modalOverlay)}
+          onPress={() => setFellowshipModalVisible(false)}
+          accessibilityLabel={translate("common:close")}
+        >
           <View style={themed($modalContent)}>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectFellowship" />
             {SELECTABLE_FELLOWSHIPS.map((f) => (
@@ -558,6 +581,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                   profileStore.setFellowship(f)
                   setFellowshipModalVisible(false)
                 }}
+                accessibilityRole="radio"
+                accessibilityLabel={getFellowshipLabel(f)}
+                accessibilityState={{ selected: profileStore.fellowship === f }}
               >
                 <Text
                   style={[
@@ -583,7 +609,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         animationType="fade"
         onRequestClose={() => setLanguageModalVisible(false)}
       >
-        <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
+        <Pressable
+          style={themed($modalOverlay)}
+          onPress={() => setLanguageModalVisible(false)}
+          accessibilityLabel={translate("common:close")}
+        >
           <View style={themed($modalContent)}>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectLanguage" />
             {availableLanguages.map((lang) => (
@@ -591,6 +621,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 key={lang}
                 style={[themed($modalOption), currentLang === lang && themed($modalOptionSelected)]}
                 onPress={() => handleLanguageChange(lang)}
+                accessibilityRole="radio"
+                accessibilityLabel={languageNames[lang]}
+                accessibilityState={{ selected: currentLang === lang }}
               >
                 <Text
                   style={[
@@ -621,6 +654,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={themed($settingsRow)}
           onPress={() => setLanguageModalVisible(true)}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:language")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:language" />
           <View style={$styles.row}>
@@ -637,6 +671,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             onValueChange={handleDarkModeToggle}
             trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:darkMode")}
           />
         </View>
 
@@ -644,6 +679,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         <TouchableOpacity
           style={themed($settingsRow)}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:themeColor")}
           onPress={() => setColorPickerVisible(true)}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:themeColor" />
@@ -659,6 +695,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         <TouchableOpacity
           style={[themed($settingsRow), themed($lastRow)]}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:resetHomeTips")}
           onPress={() => profileStore.resetHomeCards()}
         >
           <View>
@@ -690,6 +727,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             onValueChange={handleNotificationsToggle}
             trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:enableNotifications")}
           />
         </View>
       </View>
@@ -709,6 +747,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             onValueChange={profileStore.setAttendanceEnabled}
             trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:enableAttendance")}
           />
         </View>
 
@@ -744,6 +783,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             Alert.alert(translate("settingsScreen:comingSoon"), translate("settingsScreen:exportComingSoon"))
           }
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:exportAttendance")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:exportAttendance" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
@@ -781,6 +821,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               style={themed($upgradeButton)}
               onPress={() => logout()}
               accessibilityRole="button"
+              accessibilityLabel={translate("settingsScreen:loginToSubscribe")}
             >
               <Ionicons name="log-in" size={18} color={theme.colors.tint} />
               <Text style={themed($upgradeButtonText)} tx="settingsScreen:loginToSubscribe" />
@@ -806,6 +847,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 style={themed($upgradeButton)}
                 onPress={handleUpgrade}
                 accessibilityRole="button"
+                accessibilityLabel={translate("settingsScreen:upgradeToPro")}
               >
                 <Ionicons name="rocket" size={18} color={theme.colors.tint} />
                 <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
@@ -818,6 +860,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 style={themed($settingsRow)}
                 onPress={handleManageSubscription}
                 accessibilityRole="button"
+                accessibilityLabel={translate("settingsScreen:manageSubscription")}
               >
                 <Text style={themed($rowLabel)} tx="settingsScreen:manageSubscription" />
                 <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
@@ -829,6 +872,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               style={[themed($settingsRow), themed($lastRow)]}
               onPress={handleRestorePurchases}
               accessibilityRole="button"
+              accessibilityLabel={translate("settingsScreen:restorePurchases")}
             >
               <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
@@ -856,6 +900,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               style={themed($settingsRow)}
               onPress={() => Linking.openURL("https://zoom.us/profile")}
               accessibilityRole="button"
+              accessibilityLabel={translate("settingsScreen:editZoomProfile")}
             >
               <Text style={themed($rowLabel)} tx="settingsScreen:editZoomProfile" />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
@@ -881,6 +926,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 )
               }}
               accessibilityRole="button"
+              accessibilityLabel={translate("settingsScreen:zoomDisconnect")}
             >
               <Text style={themed($rowLabel)} tx="settingsScreen:zoomDisconnect" />
               <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
@@ -891,6 +937,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             style={themed($zoomConnectButton)}
             onPress={() => navigation.navigate("ZoomLogin")}
             accessibilityRole="button"
+            accessibilityLabel={translate("settingsScreen:connectZoom")}
           >
             <Ionicons name="videocam" size={18} color="#2D8CFF" />
             <Text style={themed($zoomConnectButtonText)} tx="settingsScreen:connectZoom" />
@@ -916,6 +963,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={themed($deleteRow)}
           onPress={handleDeleteUserData}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:deleteUserData")}
         >
           <Icon icon="x" size={18} color={themed($dangerColor).color} />
           <Text style={themed($deleteText)} tx="settingsScreen:deleteUserData" />
@@ -925,6 +973,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={[themed($deleteRow), themed($lastRow)]}
           onPress={handleLogout}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:logout")}
         >
           <Icon
             icon="back"
@@ -948,6 +997,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={[themed($settingsRow), themed($lastRow)]}
           onPress={() => navigation.navigate("Import")}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:restartImport")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:restartImport" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
@@ -965,6 +1015,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={[themed($settingsRow), themed($lastRow)]}
           onPress={() => navigation.navigate("Licenses")}
           accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:thirdPartyLicenses")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:thirdPartyLicenses" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />

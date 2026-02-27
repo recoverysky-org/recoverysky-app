@@ -10,6 +10,7 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -83,12 +84,22 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
 
           {/* Links */}
           <View style={themed($linksRow)}>
-            <Pressable onPress={openSourceCode} style={themed($linkButton)}>
+            <Pressable
+              onPress={openSourceCode}
+              style={themed($linkButton)}
+              accessibilityRole="link"
+              accessibilityLabel={translate("onboarding:viewSource")}
+            >
               <Ionicons name="logo-github" size={18} color={theme.colors.tint} />
               <Text style={themed($linkText)} tx="onboarding:viewSource" />
             </Pressable>
             <Text style={themed($linkSeparator)}>|</Text>
-            <Pressable onPress={openLicense} style={themed($linkButton)}>
+            <Pressable
+              onPress={openLicense}
+              style={themed($linkButton)}
+              accessibilityRole="link"
+              accessibilityLabel={translate("onboarding:viewLicense")}
+            >
               <Ionicons name="document-outline" size={18} color={theme.colors.tint} />
               <Text style={themed($linkText)} tx="onboarding:viewLicense" />
             </Pressable>
@@ -103,6 +114,8 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleFinish}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:finish")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -110,7 +123,12 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
             />
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

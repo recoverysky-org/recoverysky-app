@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
 import { useAppTheme } from "@/theme/context"
@@ -67,7 +68,13 @@ export const ZoomLoginScreen: FC<ZoomLoginScreenProps> = observer(function ZoomL
     >
       {/* Close button */}
       <View style={themed($headerContainer)}>
-        <Pressable onPress={handleSkipPress} hitSlop={12} style={themed($closeButton)}>
+        <Pressable
+          onPress={handleSkipPress}
+          hitSlop={12}
+          style={themed($closeButton)}
+          accessibilityRole="button"
+          accessibilityLabel={translate("common:close")}
+        >
           <Ionicons name="close" size={28} color={theme.colors.text} />
         </Pressable>
       </View>
@@ -98,6 +105,8 @@ export const ZoomLoginScreen: FC<ZoomLoginScreenProps> = observer(function ZoomL
           style={[themed($connectButton), isLoading && themed($buttonDisabled)]}
           onPress={handleConnectPress}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={translate("zoomLoginScreen:connectWithZoom")}
         >
           <Ionicons name="videocam" size={24} color="#2D8CFF" style={themed($buttonIcon)} />
           <Text style={themed($connectButtonText)} tx="zoomLoginScreen:connectWithZoom" />
@@ -120,6 +129,8 @@ export const ZoomLoginScreen: FC<ZoomLoginScreenProps> = observer(function ZoomL
           style={themed($skipButton)}
           onPress={handleSkipPress}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={translate("zoomLoginScreen:continueAnonymously")}
         >
           <Text style={themed($skipButtonText)} tx="zoomLoginScreen:continueAnonymously" />
         </Pressable>

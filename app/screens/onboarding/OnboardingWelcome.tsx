@@ -8,6 +8,7 @@ import { View, ViewStyle, TextStyle, Pressable, Image, ImageStyle, ActivityIndic
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
@@ -82,6 +83,8 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
             ]}
             onPress={handleGetStarted}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:getStarted")}
           >
             {loading ? (
               <ActivityIndicator color={theme.colors.tint} />
@@ -93,7 +96,12 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
             )}
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

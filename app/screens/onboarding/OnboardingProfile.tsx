@@ -81,7 +81,12 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
           {/* Pronouns Picker */}
           <View style={themed($inputSection)}>
             <Text style={themed($label)} tx="onboarding:pronouns" />
-            <Pressable style={themed($pickerButton)} onPress={() => setPronounsModalVisible(true)}>
+            <Pressable
+              style={themed($pickerButton)}
+              onPress={() => setPronounsModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={translate("onboarding:pronouns")}
+            >
               <Text style={themed($pickerText)}>{getPronounsLabel(profileStore.pronouns)}</Text>
               <Ionicons name="chevron-down" size={20} color={theme.colors.textDim} />
             </Pressable>
@@ -90,7 +95,11 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
 
         {/* Pronouns Modal */}
         <Modal visible={pronounsModalVisible} transparent animationType="fade">
-          <Pressable style={themed($modalOverlay)} onPress={() => setPronounsModalVisible(false)}>
+          <Pressable
+            style={themed($modalOverlay)}
+            onPress={() => setPronounsModalVisible(false)}
+            accessibilityLabel={translate("common:close")}
+          >
             <View style={themed($modalContent)}>
               <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
               {(["none", "he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
@@ -104,6 +113,9 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
                     profileStore.setPronouns(p)
                     setPronounsModalVisible(false)
                   }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={getPronounsLabel(p)}
+                  accessibilityState={{ selected: profileStore.pronouns === p }}
                 >
                   <Text style={themed($modalOptionText)}>{getPronounsLabel(p)}</Text>
                   {profileStore.pronouns === p && (
@@ -123,6 +135,8 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleNext}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:next")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -130,7 +144,12 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
             />
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

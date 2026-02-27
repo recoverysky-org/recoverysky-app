@@ -7,7 +7,7 @@ import { observer } from "mobx-react-lite"
 import { HelpCard } from "@/components/HelpCard"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import type { TxKeyPath } from "@/i18n"
+import { translate, type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
@@ -166,7 +166,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       <View style={$header}>
         <Text preset="heading" tx="homeScreen:title" />
         {authStore.isAuthenticated && !authStore.isAnonymous && (
-          <Pressable onPress={handleLogout}>
+          <Pressable
+            onPress={handleLogout}
+            accessibilityRole="button"
+            accessibilityLabel={translate("settingsScreen:logout")}
+          >
             <Text style={themed($logoutLink)} tx="settingsScreen:logout" />
           </Pressable>
         )}

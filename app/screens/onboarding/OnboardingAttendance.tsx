@@ -10,6 +10,7 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -72,6 +73,7 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
               onValueChange={toggleAttendance}
               trackColor={{ false: "#767577", true: theme.colors.tint }}
               thumbColor="#fff"
+              accessibilityLabel={translate("onboarding:enableAttendance")}
             />
           </View>
         </View>
@@ -84,6 +86,8 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
               { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
             ]}
             onPress={handleNext}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:next")}
           >
             <Text
               style={[themed($buttonText), { color: theme.colors.tint }]}
@@ -91,7 +95,12 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
             />
           </Pressable>
 
-          <Pressable onPress={handleSkip} style={$skipButton}>
+          <Pressable
+            onPress={handleSkip}
+            style={$skipButton}
+            accessibilityRole="button"
+            accessibilityLabel={translate("onboarding:skipForNow")}
+          >
             <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>

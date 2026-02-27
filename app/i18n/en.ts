@@ -2,6 +2,7 @@ const en = {
   common: {
     ok: "OK!",
     cancel: "Cancel",
+    close: "Close",
     back: "Back",
     logOut: "Log Out",
     apply: "Apply",
@@ -468,6 +469,9 @@ const en = {
     consentTitle: "AI Data Consent",
     consentAccept: "I Agree",
     consentDecline: "Go Back",
+    sendMessage: "Send Message",
+    clearChat: "Clear Chat",
+    openMenu: "Menu",
   },
 }
 
