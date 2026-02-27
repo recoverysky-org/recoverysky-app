@@ -97,6 +97,13 @@ interface MeetingContext {
 let meetingContext: MeetingContext | null = null
 
 /**
+ * Module-level pending join config — survives provider remounts.
+ * When SDK is lazy-initialized, the join config is stored here so
+ * ZoomSDKConsumer can auto-join once the SDK is ready.
+ */
+let pendingJoinConfig: ZoomJoinConfig | null = null
+
+/**
  * Context value provided by ZoomMeetingProvider
  */
 export interface ZoomContextValue {
@@ -114,6 +121,8 @@ export interface ZoomContextValue {
   lastMeetingError: ZoomMeetingErrorEvent | null
   /** Reinitialize the SDK (used after permission changes) */
   reinitializeSDK: () => void
+  /** Activate/initialize the SDK on demand (lazy init) */
+  activateSDK: () => void
 }
 
 const ZoomContext = createContext<ZoomContextValue | null>(null)
@@ -133,10 +142,11 @@ export const useZoomContext = (): ZoomContextValue => {
 /**
  * Inner component that consumes the Zoom SDK hook
  */
-const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> = ({
-  children,
-  reinitializeSDK,
-}) => {
+const ZoomSDKConsumer: FC<{
+  children: ReactNode
+  reinitializeSDK: () => void
+  activateSDK: () => void
+}> = ({ children, reinitializeSDK, activateSDK }) => {
   const zoom = useZoom()
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
@@ -575,6 +585,18 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
     [zoom, authStore.userId, profileStore.attendanceEnabled, reinitializeSDK],
   )
 
+  // Auto-join if a pending join was queued during lazy SDK activation
+  useEffect(() => {
+    if (pendingJoinConfig) {
+      const config = pendingJoinConfig
+      pendingJoinConfig = null
+      log.info("Auto-joining pending meeting after SDK activation", { zid: config.meetingNumber })
+      joinMeeting(config).catch((err) => {
+        log.error("Auto-join failed", { error: String(err) })
+      })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
+
   const contextValue: ZoomContextValue = {
     initState: "ready",
     error,
@@ -583,6 +605,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
     meetingState,
     lastMeetingError,
     reinitializeSDK,
+    activateSDK,
   }
 
   return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
@@ -595,10 +618,17 @@ const ZoomFallbackProvider: FC<{
   children: ReactNode
   initState: ZoomInitState
   error: string | null
-}> = ({ children, initState, error }) => {
-  const joinMeeting = useCallback(async () => {
-    throw new Error("Zoom SDK not initialized - use external app fallback")
-  }, [])
+  activateSDK: () => void
+}> = ({ children, initState, error, activateSDK }) => {
+  const joinMeeting = useCallback(
+    async (config: ZoomJoinConfig) => {
+      // Store pending join config and trigger lazy SDK activation
+      pendingJoinConfig = config
+      activateSDK()
+      log.info("SDK activation requested, join will auto-resume", { zid: config.meetingNumber })
+    },
+    [activateSDK],
+  )
 
   const reinitializeSDK = useCallback(() => {
     // No-op in fallback mode
@@ -612,6 +642,7 @@ const ZoomFallbackProvider: FC<{
     meetingState: "idle",
     lastMeetingError: null,
     reinitializeSDK,
+    activateSDK,
   }
 
   return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
@@ -633,6 +664,8 @@ const ZoomFallbackProvider: FC<{
 // Check architecture once at module load time
 const ARCH_SUPPORTED = isArchitectureSupported()
 
+const noop = () => {} // Static no-op for unsupported architectures
+
 export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Early return for unsupported architectures - before any hooks
   // This prevents ZoomSDKProvider from ever being rendered on unsupported devices
@@ -641,6 +674,7 @@ export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) =
       <ZoomFallbackProvider
         initState="error"
         error="Zoom SDK not supported on this device architecture"
+        activateSDK={noop}
       >
         {children}
       </ZoomFallbackProvider>
@@ -661,8 +695,19 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
   // SDK version key - incrementing this forces ZoomSDKProvider to remount
   // Used to reinitialize SDK after permissions are granted
   const [sdkVersion, setSdkVersion] = useState(0)
+  // Lazy init gate — SDK only initializes when user joins a meeting
+  // This prevents the "find devices on local networks" prompt on app launch
+  const [sdkActivated, setSdkActivated] = useState(false)
 
   const { zoomSdkKey, zoomSdkSecret } = configStore
+
+  // Activate SDK on demand (called when user taps "Join Meeting")
+  const activateSDK = useCallback(() => {
+    if (!sdkActivated && isZoomConfigured(zoomSdkKey, zoomSdkSecret)) {
+      log.info("Activating Zoom SDK (lazy init)")
+      setSdkActivated(true)
+    }
+  }, [sdkActivated, zoomSdkKey, zoomSdkSecret])
 
   // Callback to reinitialize SDK (e.g., after permissions granted)
   const reinitializeSDK = useCallback(() => {
@@ -671,6 +716,9 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
   }, [sdkVersion])
 
   useEffect(() => {
+    // Don't init until user needs Zoom (lazy activation)
+    if (!sdkActivated) return
+
     // Check if SDK is configured
     const configured = isZoomConfigured(zoomSdkKey, zoomSdkSecret)
     log.info("Zoom SDK init check", {
@@ -702,12 +750,12 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
         setError(errorMessage)
         setInitState("error")
       })
-  }, [zoomSdkKey, zoomSdkSecret])
+  }, [sdkActivated, zoomSdkKey, zoomSdkSecret])
 
   // If SDK not ready, use fallback provider
   if (!jwtToken || initState !== "ready") {
     return (
-      <ZoomFallbackProvider initState={initState} error={error}>
+      <ZoomFallbackProvider initState={initState} error={error} activateSDK={activateSDK}>
         {children}
       </ZoomFallbackProvider>
     )
@@ -725,7 +773,9 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
         logSize: config.logSize,
       }}
     >
-      <ZoomSDKConsumer reinitializeSDK={reinitializeSDK}>{children}</ZoomSDKConsumer>
+      <ZoomSDKConsumer reinitializeSDK={reinitializeSDK} activateSDK={activateSDK}>
+        {children}
+      </ZoomSDKConsumer>
     </ZoomSDKProvider>
   )
 }
