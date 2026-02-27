@@ -21,6 +21,7 @@ export interface UserProfileRecord {
   recoveryDate: string | null
   fellowship: string
   language: string
+  userIdNum: string | null
 }
 
 /** Input for creating/updating profile */
@@ -30,6 +31,7 @@ export interface UserProfileInput {
   recoveryDate?: string | null
   fellowship?: string
   language?: string
+  userIdNum?: string | null
 }
 
 const DEFAULT_PROFILE_ID = "default"
@@ -67,6 +69,7 @@ export class UserProfileSqliteRepository {
           recoveryDate: data.recoveryDate ?? null,
           fellowship: data.fellowship ?? "AA",
           language: data.language ?? "",
+          userIdNum: data.userIdNum ?? null,
         })
         .returning()) as UserProfileRecord[]
       return rows[0] || null
@@ -112,6 +115,7 @@ export class UserProfileSqliteRepository {
         if (data.recoveryDate !== undefined) updates.recoveryDate = data.recoveryDate
         if (data.fellowship !== undefined) updates.fellowship = data.fellowship
         if (data.language !== undefined) updates.language = data.language
+        if (data.userIdNum !== undefined) updates.userIdNum = data.userIdNum
 
         if (Object.keys(updates).length === 0) {
           return existing // Nothing to update

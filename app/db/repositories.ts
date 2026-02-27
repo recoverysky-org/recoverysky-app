@@ -495,6 +495,7 @@ export const profileRepository = {
         recoveryDate: record.recoveryDate || undefined,
         fellowship: record.fellowship || undefined,
         language: record.language || undefined,
+        userIdNum: record.userIdNum ?? undefined,
       }
     } catch (error) {
       log.error("profileRepository load error", { error: String(error) })
@@ -515,6 +516,7 @@ export const profileRepository = {
         recoveryDate: data.recoveryDate,
         fellowship: data.fellowship,
         language: data.language,
+        userIdNum: data.userIdNum,
       })
       log.debug("Profile saved successfully")
     } catch (error) {

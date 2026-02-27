@@ -572,6 +572,7 @@ export class Api {
     email: string
     name?: string
     userEmail?: string
+    userIdNum?: string
     fid?: string
     attendance?: AttendanceRecord[]
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {

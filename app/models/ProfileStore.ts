@@ -24,6 +24,7 @@ export interface SecureProfileData {
   recoveryDate?: string
   fellowship?: string
   language?: string
+  userIdNum?: string | null
 }
 
 /**
@@ -80,6 +81,7 @@ export const ProfileStoreModel = types
     recoveryDate: new Date().toISOString().split("T")[0],
     fellowship: "AA",
     language: "", // empty = use device locale
+    userIdNum: "" as string,
 
     // Hydration flag
     _isHydrated: false,
@@ -193,6 +195,7 @@ export const ProfileStoreModel = types
             changeLanguage(data.language)
           }
         }
+        if (data.userIdNum !== undefined) self.userIdNum = data.userIdNum ?? ""
 
         self._isHydrated = true
       },
@@ -240,6 +243,11 @@ export const ProfileStoreModel = types
         changeLanguage(value)
       },
 
+      setUserIdNum(value: string) {
+        self.userIdNum = value
+        persistSecure({ userIdNum: value || null })
+      },
+
       /** Batch-update multiple secure fields in a single SQLite write */
       setSecureProfile(data: SecureProfileData) {
         if (data.shortName !== undefined) self.shortName = data.shortName
@@ -250,6 +258,7 @@ export const ProfileStoreModel = types
           self.language = data.language
           if (data.language) changeLanguage(data.language)
         }
+        if (data.userIdNum !== undefined) self.userIdNum = data.userIdNum ?? ""
         persistSecure(data)
       },
 
@@ -351,6 +360,7 @@ export const ProfileStoreModel = types
         self.recoveryDate = new Date().toISOString().split("T")[0]
         self.fellowship = "AA"
         self.language = ""
+        self.userIdNum = ""
 
         // Reset props (non-sensitive) data
         self.showCleanDate = false
@@ -376,6 +386,7 @@ export const ProfileStoreModel = types
           recoveryDate: self.recoveryDate,
           fellowship: self.fellowship,
           language: self.language,
+          userIdNum: null,
         })
       },
     }

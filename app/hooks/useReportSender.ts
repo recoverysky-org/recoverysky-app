@@ -150,6 +150,7 @@ async function handleSend(
   uid: string,
   name: string,
   userEmail: string,
+  userIdNum: string,
   op: Extract<SendOperation, { type: "initial" | "resend" | "replace" }>,
   showToast: ShowToast,
 ): Promise<SendResult> {
@@ -162,7 +163,7 @@ async function handleSend(
     logger.info("Initial send started", { reportId, email, count: op.attendanceIds.length })
 
     const createResult = await attendanceReportRepo.create({
-      id: reportId, uid, email, name, userEmail, generated: Date.now(),
+      id: reportId, uid, email, name, userEmail, userIdNum: userIdNum || undefined, generated: Date.now(),
     })
     if (!createResult.ok) {
       logger.error("Failed to create attendance report in DB", { reportId, error: String(createResult.error) })
@@ -194,11 +195,11 @@ async function handleSend(
       showToast({ message: "Report saved locally", type: "success" })
       return { reportId, success: true }
     }
-    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail, attendance: attendanceResult.value })
+    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail, userIdNum: userIdNum || undefined, attendance: attendanceResult.value })
   } else if (op.type === "resend") {
     apiResult = await api.resendReport({ id: reportId, uid })
   } else {
-    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail })
+    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail, userIdNum: userIdNum || undefined })
   }
 
   // 4. Process result (update DB, toast, poll if needed)
@@ -213,6 +214,7 @@ async function handleForward(
   uid: string,
   name: string,
   userEmail: string,
+  userIdNum: string,
   op: Extract<SendOperation, { type: "forward" }>,
   showToast: ShowToast,
 ): Promise<SendResult> {
@@ -232,6 +234,7 @@ async function handleForward(
     email: op.email,
     name,
     userEmail,
+    userIdNum: userIdNum || undefined,
     fid: originId,
     generated: Date.now(),
   })
@@ -244,6 +247,7 @@ async function handleForward(
     email: op.email,
     name,
     userEmail,
+    userIdNum: userIdNum || undefined,
     fid: originId,
   })
   const success = await processApiResult(newId, apiResult, "forward", showToast)
@@ -267,15 +271,16 @@ export function useReportSender() {
         const uid = authStore.userId ?? ""
         const name = profileStore.shortName
         const userEmail = authStore.authEmail ?? ""
+        const userIdNum = profileStore.userIdNum
         const { showToast } = toast
 
         switch (op.type) {
           case "initial":
           case "resend":
           case "replace":
-            return await handleSend(uid, name, userEmail, op, showToast)
+            return await handleSend(uid, name, userEmail, userIdNum, op, showToast)
           case "forward":
-            return await handleForward(uid, name, userEmail, op, showToast)
+            return await handleForward(uid, name, userEmail, userIdNum, op, showToast)
         }
       } catch (error) {
         logger.error("Report send exception", { type: op.type, error: String(error) })

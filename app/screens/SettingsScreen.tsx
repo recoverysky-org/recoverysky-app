@@ -751,43 +751,22 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           />
         </View>
 
-        {/* Export Email */}
-        <View style={themed($emailSection)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:exportEmail" />
-          <View style={$emailRow}>
-            <TextField
-              value={profileStore.reportEmail}
-              onChangeText={profileStore.setReportEmail}
-              placeholder={translate("settingsScreen:exportEmailPlaceholder")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              inputWrapperStyle={themed($emailInputWrapper)}
-              containerStyle={$emailInputFlex}
-            />
-            {emailValid !== null && (
-              <Ionicons
-                name={emailValid ? "checkmark-circle" : "close-circle"}
-                size={20}
-                color={emailValid ? theme.colors.palette.secondary500 : theme.colors.error}
-                style={$emailValidIcon}
-              />
-            )}
-          </View>
+        {/* ID Number */}
+        <View style={[themed($emailSection), themed($lastRow)]}>
+          <Text style={themed($rowLabel)} tx="settingsScreen:userIdNum" />
+          <TextField
+            value={profileStore.userIdNum}
+            onChangeText={profileStore.setUserIdNum}
+            placeholder={translate("settingsScreen:userIdNumPlaceholder")}
+            autoCapitalize="none"
+            autoCorrect={false}
+            inputWrapperStyle={themed($emailInputWrapper)}
+            containerStyle={$emailInputFlex}
+          />
         </View>
 
-        {/* Export Button */}
-        <TouchableOpacity
-          style={[themed($settingsRow), themed($lastRow)]}
-          onPress={() =>
-            Alert.alert(translate("settingsScreen:comingSoon"), translate("settingsScreen:exportComingSoon"))
-          }
-          accessibilityRole="button"
-          accessibilityLabel={translate("settingsScreen:exportAttendance")}
-        >
-          <Text style={themed($rowLabel)} tx="settingsScreen:exportAttendance" />
-          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-        </TouchableOpacity>
+        {/* TODO: Export Email */}
+        {/* TODO: Export Button */}
       </View>
 
       {/* Subscription Section */}
