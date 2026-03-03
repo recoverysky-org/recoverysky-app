@@ -113,7 +113,7 @@
         "android": {
           "minSdkVersion": 28,
           "targetSdkVersion": 35,
-          "compileSdkVersion": 35,
+          "compileSdkVersion": 36,
           "usesCleartextTraffic": true,
           "extraMavenRepos": [],
           "extraProguardRules": ""
