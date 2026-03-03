@@ -5,7 +5,8 @@
  * generates a styled HTML document, converts to PDF, and shares.
  */
 
-import { Asset } from "expo-asset"
+// TODO: re-enable for import simulation testing
+// import { Asset } from "expo-asset"
 import { Directory, Paths, File } from "expo-file-system"
 import { printToFileAsync } from "expo-print"
 import { shareAsync } from "expo-sharing"
@@ -16,8 +17,8 @@ const log = logger.child({ module: "JournalExport" })
 
 const OLD_DB_NAME = "DataStoreSQLite.db"
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const DB_ASSET = require("@assets/content/DataStoreSQLite.db")
+// TODO: use bundled asset for import simulation testing
+// const DB_ASSET = require("@assets/content/DataStoreSQLite.db")
 
 /** A single parsed journal entry from the old app's database */
 interface JournalEntry {
@@ -64,20 +65,20 @@ async function ensureDatabaseFile(): Promise<void> {
     return
   }
 
-  // Fall back to bundled asset
-  log.info("Journal DB not found, copying from bundled asset")
-  const asset = Asset.fromModule(DB_ASSET)
-  await asset.downloadAsync()
+  // No database found on device
+  throw new JournalExportError("Journal database not found on device", "not_found")
 
-  if (!asset.localUri) {
-    throw new JournalExportError("Failed to download bundled database asset", "not_found")
-  }
-
-  const sqliteDir = new Directory(Paths.document, "SQLite")
-  if (!sqliteDir.exists) sqliteDir.create()
-  const assetFile = new File(asset.localUri)
-  assetFile.copy(dbFile)
-  log.info("Copied bundled DB to SQLite directory")
+  // TODO: use bundled asset for import simulation testing
+  // const asset = Asset.fromModule(DB_ASSET)
+  // await asset.downloadAsync()
+  // if (!asset.localUri) {
+  //   throw new JournalExportError("Failed to download bundled database asset", "not_found")
+  // }
+  // const sqliteDir = new Directory(Paths.document, "SQLite")
+  // if (!sqliteDir.exists) sqliteDir.create()
+  // const assetFile = new File(asset.localUri)
+  // assetFile.copy(dbFile)
+  // log.info("Copied bundled DB to SQLite directory")
 }
 
 /**
