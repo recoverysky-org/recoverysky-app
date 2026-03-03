@@ -322,10 +322,41 @@ index ac6e2e4..d87f668 100644
    // -----------------------------------------------------------------------------------------------
    // endregion
 diff --git a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-index 42faf67..535909f 100644
+index 42faf67..260c882 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 +++ b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-@@ -11,6 +11,11 @@ - (dispatch_queue_t)methodQueue
+@@ -2,15 +2,42 @@
+ #import "RNZoomSDK.h"
+ 
+ @implementation RNZoomSDK
++{
++    BOOL _hasListeners;
++}
+ 
+ - (dispatch_queue_t)methodQueue
+ {
+     return dispatch_get_main_queue();
+ }
+ 
++// Track whether JS listeners are registered to avoid sending events
++// before the bridge/TurboModule system is ready (causes crash on New Arch)
++- (void)startObserving {
++    _hasListeners = YES;
++}
++
++- (void)stopObserving {
++    _hasListeners = NO;
++}
++
++// Safe wrapper — only emit if JS side is listening
++- (void)safeEmit:(NSString *)eventName body:(NSDictionary *)body {
++    if (_hasListeners) {
++        [self sendEventWithName:eventName body:body];
++    } else {
++        NSLog(@"[RNZoomSDK] Event dropped (no listeners): %@", eventName);
++    }
++}
++
  -(NSArray<NSString *>*)supportedEvents
  {
      return @[
@@ -337,7 +368,7 @@ index 42faf67..535909f 100644
      ];
  }
  
-@@ -57,6 +62,9 @@ - (dispatch_queue_t)methodQueue
+@@ -57,6 +84,9 @@ - (dispatch_queue_t)methodQueue
      MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
      MobileRTCMeetingJoinParam *params;
      if (meetService) {
@@ -347,7 +378,7 @@ index 42faf67..535909f 100644
          params = [[MobileRTCMeetingJoinParam alloc] init];
          params.meetingNumber = [config valueForKey:@"meetingNumber"];
          params.password = [config valueForKey:@"password"];
-@@ -171,31 +179,170 @@ - (dispatch_queue_t)methodQueue
+@@ -171,31 +201,170 @@ - (dispatch_queue_t)methodQueue
      });
  }
  
@@ -398,7 +429,7 @@ index 42faf67..535909f 100644
 +            message = [NSString stringWithFormat:@"SDK Authorization failed with error: %u", returnValue];
      }
 +
-+    [self sendEventWithName:@"onAuthReturn" body:@{
++    [self safeEmit:@"onAuthReturn" body:@{
 +        @"errorCode": @(returnValue),
 +        @"success": @(returnValue == MobileRTCAuthError_Success),
 +        @"message": message
@@ -414,7 +445,7 @@ index 42faf67..535909f 100644
 -    }
 +    NSLog(@"[RNZoomSDK] onMeetingError: %u %@", error, message);
 +
-+    [self sendEventWithName:@"onMeetingError" body:@{
++    [self safeEmit:@"onMeetingError" body:@{
 +        @"errorCode": @(error),
 +        @"message": message ?: @""
 +    }];
@@ -424,7 +455,7 @@ index 42faf67..535909f 100644
 -    NSLog(@"Join meeting confirmed.");
 +    NSLog(@"[RNZoomSDK] onJoinMeetingConfirmed");
 +
-+    [self sendEventWithName:@"onMeetingJoinConfirmed" body:@{}];
++    [self safeEmit:@"onMeetingJoinConfirmed" body:@{}];
  }
 +
  - (void)onMeetingStateChange:(MobileRTCMeetingState)state {
@@ -483,11 +514,11 @@ index 42faf67..535909f 100644
 +            stateName = @"unknown";
 +    }
 +
-+    [self sendEventWithName:@"onMeetingStateChange" body:@{
++    [self safeEmit:@"onMeetingStateChange" body:@{
 +        @"state": @(state),
 +        @"stateName": stateName
 +    }];
-+}
+ }
 +
 +- (void)onMeetingEndedReason:(MobileRTCMeetingEndReason)reason {
 +    NSLog(@"[RNZoomSDK] onMeetingEndedReason: %u", reason);
@@ -522,10 +553,10 @@ index 42faf67..535909f 100644
 +            reasonName = @"unknown";
 +    }
 +
-+    [self sendEventWithName:@"onMeetingEndedReason" body:@{
++    [self safeEmit:@"onMeetingEndedReason" body:@{
 +        @"reason": @(reason),
 +        @"reasonName": reasonName
 +    }];
- }
++}
 +
  @end
