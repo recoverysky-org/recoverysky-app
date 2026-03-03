@@ -228,7 +228,23 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
   const isLoading = status === "streaming" || status === "submitted"
 
+  // Extract debug metadata from last assistant message
+  const debugMetadata = useMemo(() => {
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
+    if (!lastAssistant?.metadata) return null
+
+    const meta = lastAssistant.metadata as {
+      crisisLevel?: number
+      tokensUsed?: { input: number; output: number; total: number }
+      emergency?: boolean
+    }
+
+    if (!meta.tokensUsed) return null
+    return meta
+  }, [messages])
+
   // AI consent gate (Apple Guideline 5.1.2(i))
+  // Must be after all hooks to avoid "Rendered more hooks" error
   if (!profileStore.aiConsentAccepted) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
@@ -269,21 +285,6 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
       </Screen>
     )
   }
-
-  // Extract debug metadata from last assistant message
-  const debugMetadata = useMemo(() => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
-    if (!lastAssistant?.metadata) return null
-
-    const meta = lastAssistant.metadata as {
-      crisisLevel?: number
-      tokensUsed?: { input: number; output: number; total: number }
-      emergency?: boolean
-    }
-
-    if (!meta.tokensUsed) return null
-    return meta
-  }, [messages])
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
