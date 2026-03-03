@@ -103,16 +103,37 @@ patch_debug_manifest() {
 patch_debug_manifest "$DEBUG_MANIFEST"
 patch_debug_manifest "$DEBUG_OPT_MANIFEST"
 
-# Increase Gradle JVM memory for large builds
+# Increase Gradle JVM memory for large builds (Zoom SDK needs >8GB for dex merging)
 GRADLE_PROPS="$PROJECT_DIR/android/gradle.properties"
 if [ -f "$GRADLE_PROPS" ]; then
   if grep -q "org.gradle.jvmargs=-Xmx2048m" "$GRADLE_PROPS"; then
-    sed -i '' 's/org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m/org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError/' "$GRADLE_PROPS"
-    echo "Increased Gradle JVM memory to 8GB"
+    sed -i '' 's/org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m/org.gradle.jvmargs=-Xmx16384m -XX:MaxMetaspaceSize=2048m -XX:+HeapDumpOnOutOfMemoryError/' "$GRADLE_PROPS"
+    echo "Increased Gradle JVM memory to 16GB"
   elif grep -q "org.gradle.jvmargs=-Xmx8192m" "$GRADLE_PROPS"; then
-    echo "Gradle JVM memory already set to 8GB"
+    sed -i '' 's/org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m/org.gradle.jvmargs=-Xmx16384m -XX:MaxMetaspaceSize=2048m/' "$GRADLE_PROPS"
+    echo "Increased Gradle JVM memory from 8GB to 16GB"
+  elif grep -q "org.gradle.jvmargs=-Xmx12288m" "$GRADLE_PROPS"; then
+    echo "Gradle JVM memory already set to 16GB"
   else
     echo "Warning: Could not find expected jvmargs in gradle.properties"
+  fi
+fi
+
+# Disable lint checkDependencies to prevent PrivateApiLookup OOM
+# Lint's ApiDatabase.writeDatabase allocates a massive ByteBuffer when
+# analyzing large SDKs (Zoom) which causes OOM regardless of heap size
+APP_BUILD_GRADLE="$PROJECT_DIR/android/app/build.gradle"
+if [ -f "$APP_BUILD_GRADLE" ]; then
+  if ! grep -q "checkDependencies" "$APP_BUILD_GRADLE"; then
+    sed -i '' '/android {/a\
+    lint {\
+        checkDependencies false\
+        checkReleaseBuilds false\
+    }
+' "$APP_BUILD_GRADLE"
+    echo "Disabled lint checkDependencies (prevents PrivateApiLookup OOM)"
+  else
+    echo "lint checkDependencies already configured"
   fi
 fi
 

@@ -114,11 +114,11 @@
           "minSdkVersion": 28,
           "targetSdkVersion": 35,
           "compileSdkVersion": 36,
-          "usesCleartextTraffic": true,
+          "usesCleartextTraffic": false,
           "extraMavenRepos": [],
           "extraProguardRules": ""
         },
-        "extraGradleArgs": ["-Dorg.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m"]
+        "extraGradleArgs": []
       }
     ],
     [
