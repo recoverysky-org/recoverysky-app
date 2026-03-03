@@ -30,6 +30,8 @@ xcuserdata
 DerivedData
 *.hmap
 *.ipa
+*.aab
+*.apk
 *.xcuserstate
 ios/.xcode.env.local
 
@@ -58,7 +60,10 @@ yarn-error.log
 buck-out/
 \.buckd/
 *.keystore
+*.jks
+*.pem
 !debug.keystore
+*-service-key.json
 
 # fastlane
 #
