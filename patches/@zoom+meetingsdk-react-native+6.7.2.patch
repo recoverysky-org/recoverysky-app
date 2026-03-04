@@ -1,0 +1,580 @@
+diff --git a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
+index ac6e2e4..139bda9 100644
+--- a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
++++ b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
+@@ -69,9 +69,10 @@ import us.zoom.sdk.ShareSettingType;
+ import us.zoom.sdk.StartMeetingOptions;
+ import us.zoom.sdk.StartMeetingParamsWithoutLogin;
+ 
+-public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomSDKInitializeListener, LifecycleEventListener {
++public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomSDKInitializeListener, LifecycleEventListener, MeetingServiceListener {
+ 
+   private final String DEBUG_TAG = "ZoomSDKDebug";
++  private boolean wasInMeeting = false;
+   private final ReactApplicationContext reactContext;
+ 
+   protected Display display;
+@@ -94,6 +95,11 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+ 
+   public String[] supportedEvents() {
+     return new String[] {
++      "onMeetingStateChange",
++      "onMeetingError",
++      "onMeetingJoinConfirmed",
++      "onMeetingEndedReason",
++      "onAuthReturn"
+     };
+   }
+ 
+@@ -144,6 +150,13 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+ 
+         zoomSDK.initialize(reactContext.getCurrentActivity(), RNZoomSDKModule.this, initParams);
+ 
++        // Register meeting service listener to receive events
++        MeetingService meetingService = zoomSDK.getMeetingService();
++        if (meetingService != null) {
++          meetingService.addListener(RNZoomSDKModule.this);
++          Log.d(DEBUG_TAG, "Meeting service listener registered");
++        }
++
+         Log.d(DEBUG_TAG, "SDK initialized successfully");
+ 
+         promise.resolve(true);
+@@ -311,18 +324,206 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+     });
+   }
+ 
++  // ==========================================================================
++  // In-Meeting Controls
++  // ==========================================================================
++
++  @ReactMethod
++  public void leaveMeeting(boolean endMeeting, Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) {
++      return;
++    }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          MeetingService meetingService = ZoomSDK.getInstance().getMeetingService();
++          if (meetingService != null) {
++            meetingService.leaveCurrentMeeting(endMeeting);
++            Log.d(DEBUG_TAG, "[RNZoomSDK] leaveMeeting called, endMeeting: " + endMeeting);
++            promise.resolve(true);
++          } else {
++            promise.reject("no_meeting", "No active meeting");
++          }
++        } catch (Exception e) {
++          promise.reject("leave_error", e.getMessage());
++        }
++      }
++    });
++  }
++
++  @ReactMethod
++  public void muteMyAudio(boolean muted, Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) {
++      return;
++    }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          ZoomSDK zoomSDK = ZoomSDK.getInstance();
++          if (zoomSDK.isInitialized() && zoomSDK.getInMeetingService() != null) {
++            InMeetingAudioController audioController = zoomSDK.getInMeetingService().getInMeetingAudioController();
++            if (audioController != null) {
++              audioController.muteMyAudio(muted);
++              Log.d(DEBUG_TAG, "[RNZoomSDK] muteMyAudio: " + muted);
++              promise.resolve(true);
++            } else {
++              promise.reject("audio_error", "Audio controller not available");
++            }
++          } else {
++            promise.reject("no_meeting", "No active meeting");
++          }
++        } catch (Exception e) {
++          promise.reject("audio_error", e.getMessage());
++        }
++      }
++    });
++  }
++
++  @ReactMethod
++  public void muteMyVideo(boolean muted, Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) {
++      return;
++    }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          ZoomSDK zoomSDK = ZoomSDK.getInstance();
++          if (zoomSDK.isInitialized() && zoomSDK.getInMeetingService() != null) {
++            zoomSDK.getInMeetingService().getInMeetingVideoController().muteMyVideo(muted);
++            Log.d(DEBUG_TAG, "[RNZoomSDK] muteMyVideo: " + muted);
++            promise.resolve(true);
++          } else {
++            promise.reject("no_meeting", "No active meeting");
++          }
++        } catch (Exception e) {
++          promise.reject("video_error", e.getMessage());
++        }
++      }
++    });
++  }
++
++  @ReactMethod
++  public void switchCamera(Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) {
++      return;
++    }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          ZoomSDK zoomSDK = ZoomSDK.getInstance();
++          if (zoomSDK.isInitialized() && zoomSDK.getInMeetingService() != null) {
++            zoomSDK.getInMeetingService().getInMeetingVideoController().switchToNextCamera();
++            Log.d(DEBUG_TAG, "[RNZoomSDK] switchCamera called");
++            promise.resolve(true);
++          } else {
++            promise.reject("no_meeting", "No active meeting");
++          }
++        } catch (Exception e) {
++          promise.reject("camera_error", e.getMessage());
++        }
++      }
++    });
++  }
++
++  // ==========================================================================
++  // Meeting Info
++  // ==========================================================================
++
++  @ReactMethod
++  public void getMeetingStatus(Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) {
++      return;
++    }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          MeetingService meetingService = ZoomSDK.getInstance().getMeetingService();
++          WritableMap result = Arguments.createMap();
++
++          if (meetingService != null) {
++            MeetingStatus status = meetingService.getMeetingStatus();
++            String stateName;
++            switch (status) {
++              case MEETING_STATUS_IDLE: stateName = "idle"; break;
++              case MEETING_STATUS_CONNECTING: stateName = "connecting"; break;
++              case MEETING_STATUS_WAITINGFORHOST: stateName = "waitingForHost"; break;
++              case MEETING_STATUS_INMEETING: stateName = "inMeeting"; break;
++              case MEETING_STATUS_DISCONNECTING: stateName = "disconnecting"; break;
++              case MEETING_STATUS_RECONNECTING: stateName = "reconnecting"; break;
++              case MEETING_STATUS_FAILED: stateName = "failed"; break;
++              case MEETING_STATUS_IN_WAITING_ROOM: stateName = "inWaitingRoom"; break;
++              default: stateName = "unknown";
++            }
++            result.putInt("state", status.ordinal());
++            result.putString("stateName", stateName);
++          } else {
++            result.putInt("state", 0);
++            result.putString("stateName", "idle");
++          }
++          promise.resolve(result);
++        } catch (Exception e) {
++          promise.reject("status_error", e.getMessage());
++        }
++      }
++    });
++  }
++
+   // -----------------------------------------------------------------------------------------------
+   // region ZoomSDKInitializeListener
+   // -----------------------------------------------------------------------------------------------
+ 
+   @Override
+   public void onZoomSDKInitializeResult(int errorCode, int internalErrorCode) {
+-    Log.d(DEBUG_TAG, "onZoomSDKInitializeResult, errorCode = " + errorCode + ", internalErrorCode = " + internalErrorCode);
++    Log.d(DEBUG_TAG, "[RNZoomSDK] onZoomSDKInitializeResult, errorCode = " + errorCode + ", internalErrorCode = " + internalErrorCode);
++
++    String message;
++    boolean success = (errorCode == 0);
++    if (success) {
++      message = "SDK successfully initialized.";
++    } else {
++      message = "SDK initialization failed with error: " + errorCode;
++    }
++
++    WritableMap params = Arguments.createMap();
++    params.putInt("errorCode", errorCode);
++    params.putBoolean("success", success);
++    params.putString("message", message);
++    sendEvent(reactContext, "onAuthReturn", params);
++
++    // Register meeting service listener after successful init
++    if (success) {
++      ZoomSDK zoomSDK = ZoomSDK.getInstance();
++      MeetingService meetingService = zoomSDK.getMeetingService();
++      if (meetingService != null) {
++        meetingService.addListener(RNZoomSDKModule.this);
++        Log.d(DEBUG_TAG, "[RNZoomSDK] Meeting service listener registered after init");
++      }
++
++      // Workaround: Zoom SDK 6.7.2 has a Kotlin reflection bug in the AV Preview
++      // screen (ZmAVPreviewBizHandler.onRenderHandleChanged stripped by their R8).
++      // Disabling video preview skips the buggy code path entirely.
++      MeetingSettingsHelper settingsHelper = zoomSDK.getMeetingSettingsHelper();
++      if (settingsHelper != null) {
++        settingsHelper.disableShowVideoPreviewWhenJoinMeeting(true);
++        Log.d(DEBUG_TAG, "[RNZoomSDK] Disabled video preview (SDK 6.7.2 AVPreview crash workaround)");
++      }
++    }
+   }
+ 
+   @Override
+   public void onZoomAuthIdentityExpired() {
+-    Log.d(DEBUG_TAG, "onZoomAuthIdentityExpired");
++    Log.d(DEBUG_TAG, "[RNZoomSDK] onZoomAuthIdentityExpired");
++
++    WritableMap params = Arguments.createMap();
++    params.putInt("errorCode", -1);
++    params.putBoolean("success", false);
++    params.putString("message", "Zoom auth identity expired");
++    sendEvent(reactContext, "onAuthReturn", params);
+   }
+ 
+   // -----------------------------------------------------------------------------------------------
+@@ -348,7 +549,90 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+     Log.d(DEBUG_TAG, "onHostDestroy");
+   }
+ 
++  // -----------------------------------------------------------------------------------------------
++  // endregion
++  // -----------------------------------------------------------------------------------------------
++
++  // -----------------------------------------------------------------------------------------------
++  // region MeetingServiceListener
++  // -----------------------------------------------------------------------------------------------
++
++  @Override
++  public void onMeetingStatusChanged(MeetingStatus meetingStatus, int errorCode, int internalErrorCode) {
++    Log.d(DEBUG_TAG, "[RNZoomSDK] onMeetingStatusChanged: " + meetingStatus + ", errorCode: " + errorCode);
++
++    String stateName;
++    switch (meetingStatus) {
++      case MEETING_STATUS_IDLE:
++        stateName = "idle";
++        break;
++      case MEETING_STATUS_CONNECTING:
++        stateName = "connecting";
++        break;
++      case MEETING_STATUS_WAITINGFORHOST:
++        stateName = "waitingForHost";
++        break;
++      case MEETING_STATUS_INMEETING:
++        stateName = "inMeeting";
++        break;
++      case MEETING_STATUS_DISCONNECTING:
++        stateName = "disconnecting";
++        break;
++      case MEETING_STATUS_RECONNECTING:
++        stateName = "reconnecting";
++        break;
++      case MEETING_STATUS_FAILED:
++        stateName = "failed";
++        break;
++      case MEETING_STATUS_IN_WAITING_ROOM:
++        stateName = "inWaitingRoom";
++        break;
++      case MEETING_STATUS_WEBINAR_PROMOTE:
++        stateName = "webinarPromote";
++        break;
++      case MEETING_STATUS_WEBINAR_DEPROMOTE:
++        stateName = "webinarDePromote";
++        break;
++      case MEETING_STATUS_UNKNOWN:
++      default:
++        stateName = "unknown";
++    }
++
++    // Synthesize onMeetingEndedReason for Android — iOS has a native delegate
++    // for this, but Android MeetingServiceListener does not provide one.
++    // IMPORTANT: Emit BEFORE onMeetingStateChange(idle) so the JS side has
++    // the "Meeting ended" event in context when processAttendance runs.
++    if (meetingStatus == MeetingStatus.MEETING_STATUS_INMEETING) {
++      wasInMeeting = true;
++    } else if (meetingStatus == MeetingStatus.MEETING_STATUS_IDLE && wasInMeeting) {
++      wasInMeeting = false;
++      WritableMap endParams = Arguments.createMap();
++      endParams.putInt("reason", 0);
++      endParams.putString("reasonName", "selfLeave");
++      sendEvent(reactContext, "onMeetingEndedReason", endParams);
++      Log.d(DEBUG_TAG, "[RNZoomSDK] Synthesized onMeetingEndedReason (selfLeave)");
++    }
+ 
++    WritableMap params = Arguments.createMap();
++    params.putInt("state", meetingStatus.ordinal());
++    params.putString("stateName", stateName);
++    params.putInt("errorCode", errorCode);
++    params.putInt("internalErrorCode", internalErrorCode);
++    sendEvent(reactContext, "onMeetingStateChange", params);
++
++    // If meeting failed, also send error event
++    if (meetingStatus == MeetingStatus.MEETING_STATUS_FAILED) {
++      WritableMap errorParams = Arguments.createMap();
++      errorParams.putInt("errorCode", errorCode);
++      errorParams.putString("message", "Meeting failed with error code: " + errorCode);
++      sendEvent(reactContext, "onMeetingError", errorParams);
++    }
++  }
++
++  @Override
++  public void onMeetingParameterNotification(MeetingParameter meetingParameter) {
++    Log.d(DEBUG_TAG, "[RNZoomSDK] onMeetingParameterNotification");
++  }
+ 
+   // -----------------------------------------------------------------------------------------------
+   // endregion
+diff --git a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
+index 42faf67..472da8b 100644
+--- a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
++++ b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
+@@ -2,15 +2,42 @@
+ #import "RNZoomSDK.h"
+ 
+ @implementation RNZoomSDK
++{
++    BOOL _hasListeners;
++}
+ 
+ - (dispatch_queue_t)methodQueue
+ {
+     return dispatch_get_main_queue();
+ }
+ 
++// Track whether JS listeners are registered to avoid sending events
++// before the bridge/TurboModule system is ready (causes crash on New Arch)
++- (void)startObserving {
++    _hasListeners = YES;
++}
++
++- (void)stopObserving {
++    _hasListeners = NO;
++}
++
++// Safe wrapper — only emit if JS side is listening
++- (void)safeEmit:(NSString *)eventName body:(NSDictionary *)body {
++    if (_hasListeners) {
++        [self sendEventWithName:eventName body:body];
++    } else {
++        NSLog(@"[RNZoomSDK] Event dropped (no listeners): %@", eventName);
++    }
++}
++
+ -(NSArray<NSString *>*)supportedEvents
+ {
+     return @[
++        @"onMeetingStateChange",
++        @"onMeetingError",
++        @"onMeetingJoinConfirmed",
++        @"onMeetingEndedReason",
++        @"onAuthReturn"
+     ];
+ }
+ 
+@@ -57,6 +84,9 @@ - (dispatch_queue_t)methodQueue
+     MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
+     MobileRTCMeetingJoinParam *params;
+     if (meetService) {
++        // Set delegate to receive meeting state callbacks
++        meetService.delegate = self;
++        NSLog(@"[RNZoomSDK] Meeting service delegate set");
+         params = [[MobileRTCMeetingJoinParam alloc] init];
+         params.meetingNumber = [config valueForKey:@"meetingNumber"];
+         params.password = [config valueForKey:@"password"];
+@@ -171,31 +201,169 @@ - (dispatch_queue_t)methodQueue
+     });
+ }
+ 
++// ============================================================================
++// In-Meeting Controls
++// ============================================================================
++
++RCT_REMAP_METHOD(leaveMeeting,
++        leaveMeetingWithEnd:(BOOL)endMeeting
++        withResolver:(RCTPromiseResolveBlock)resolve
++        withRejecter:(RCTPromiseRejectBlock)reject)
++{
++    dispatch_async(dispatch_get_main_queue(), ^{
++        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
++        if (meetService) {
++            if (endMeeting) {
++                [meetService leaveMeetingWithCmd:LeaveMeetingCmd_End];
++            } else {
++                [meetService leaveMeetingWithCmd:LeaveMeetingCmd_Leave];
++            }
++            NSLog(@"[RNZoomSDK] leaveMeeting called, endMeeting: %@", endMeeting ? @"YES" : @"NO");
++            resolve(@(YES));
++        } else {
++            reject(@"no_meeting", @"No active meeting", nil);
++        }
++    });
++}
++
++// ============================================================================
++// Meeting Delegate Callbacks
++// ============================================================================
++
+ - (void)onMobileRTCAuthReturn:(MobileRTCAuthError)returnValue {
++    NSLog(@"[RNZoomSDK] onMobileRTCAuthReturn: %u", returnValue);
++
++    NSString *message;
+     switch (returnValue) {
+         case MobileRTCAuthError_Success:
+-            NSLog(@"SDK successfully initialized.");
++            message = @"SDK successfully initialized.";
+             break;
+         case MobileRTCAuthError_TokenWrong:
+-            NSLog(@"Client JWT Token Authentication is invalid.");
++            message = @"Client JWT Token Authentication is invalid.";
+             break;
+         default:
+-            NSLog(@"SDK Authorization failed with MobileRTCAuthError: %u", returnValue);
++            message = [NSString stringWithFormat:@"SDK Authorization failed with error: %u", returnValue];
+     }
++
++    [self safeEmit:@"onAuthReturn" body:@{
++        @"errorCode": @(returnValue),
++        @"success": @(returnValue == MobileRTCAuthError_Success),
++        @"message": message
++    }];
+ }
+ 
+ - (void)onMeetingError:(MobileRTCMeetError)error message:(NSString *)message {
+-    switch (error) {
+-        case MobileRTCMeetError_PasswordError:
+-            NSLog(@"Could not join or start meeting because the meeting password was incorrect.");
+-        default:
+-            NSLog(@"Could not join or start meeting with MobileRTCMeetError: %u %@", error, message);
+-    }
++    NSLog(@"[RNZoomSDK] onMeetingError: %u %@", error, message);
++
++    [self safeEmit:@"onMeetingError" body:@{
++        @"errorCode": @(error),
++        @"message": message ?: @""
++    }];
+ }
++
+ - (void)onJoinMeetingConfirmed {
+-    NSLog(@"Join meeting confirmed.");
++    NSLog(@"[RNZoomSDK] onJoinMeetingConfirmed");
++
++    [self safeEmit:@"onMeetingJoinConfirmed" body:@{}];
+ }
++
+ - (void)onMeetingStateChange:(MobileRTCMeetingState)state {
+-    NSLog(@"Current meeting state: %u", state);
++    NSLog(@"[RNZoomSDK] onMeetingStateChange: %u", state);
++
++    NSString *stateName;
++    switch (state) {
++        case MobileRTCMeetingState_Idle:
++            stateName = @"idle";
++            break;
++        case MobileRTCMeetingState_Connecting:
++            stateName = @"connecting";
++            break;
++        case MobileRTCMeetingState_WaitingForHost:
++            stateName = @"waitingForHost";
++            break;
++        case MobileRTCMeetingState_InMeeting:
++            stateName = @"inMeeting";
++            break;
++        case MobileRTCMeetingState_Disconnecting:
++            stateName = @"disconnecting";
++            break;
++        case MobileRTCMeetingState_Reconnecting:
++            stateName = @"reconnecting";
++            break;
++        case MobileRTCMeetingState_Failed:
++            stateName = @"failed";
++            break;
++        case MobileRTCMeetingState_Ended:
++            stateName = @"ended";
++            break;
++        case MobileRTCMeetingState_Locked:
++            stateName = @"locked";
++            break;
++        case MobileRTCMeetingState_Unlocked:
++            stateName = @"unlocked";
++            break;
++        case MobileRTCMeetingState_InWaitingRoom:
++            stateName = @"inWaitingRoom";
++            break;
++        case MobileRTCMeetingState_WebinarPromote:
++            stateName = @"webinarPromote";
++            break;
++        case MobileRTCMeetingState_WebinarDePromote:
++            stateName = @"webinarDePromote";
++            break;
++        case MobileRTCMeetingState_JoinBO:
++            stateName = @"joinBreakoutRoom";
++            break;
++        case MobileRTCMeetingState_LeaveBO:
++            stateName = @"leaveBreakoutRoom";
++            break;
++        default:
++            stateName = @"unknown";
++    }
++
++    [self safeEmit:@"onMeetingStateChange" body:@{
++        @"state": @(state),
++        @"stateName": stateName
++    }];
+ }
++
++- (void)onMeetingEndedReason:(MobileRTCMeetingEndReason)reason {
++    NSLog(@"[RNZoomSDK] onMeetingEndedReason: %u", reason);
++
++    NSString *reasonName;
++    switch (reason) {
++        case MobileRTCMeetingEndReason_SelfLeave:
++            reasonName = @"selfLeave";
++            break;
++        case MobileRTCMeetingEndReason_RemovedByHost:
++            reasonName = @"removedByHost";
++            break;
++        case MobileRTCMeetingEndReason_EndByHost:
++            reasonName = @"endedByHost";
++            break;
++        case MobileRTCMeetingEndReason_JBHTimeout:
++            reasonName = @"joinBeforeHostTimeout";
++            break;
++        case MobileRTCMeetingEndReason_FreeMeetingTimeout:
++            reasonName = @"freeMeetingTimeout";
++            break;
++        case MobileRTCMeetingEndReason_NoAteendee:
++            reasonName = @"noAttendee";
++            break;
++        case MobileRTCMeetingEndReason_HostEndForAnotherMeeting:
++            reasonName = @"hostStartedAnotherMeeting";
++            break;
++        case MobileRTCMeetingEndReason_ConnectBroken:
++            reasonName = @"connectionBroken";
++            break;
++        default:
++            reasonName = @"unknown";
++    }
++
++    [self safeEmit:@"onMeetingEndedReason" body:@{
++        @"reason": @(reason),
++        @"reasonName": reasonName
++    }];
++}
++
+ @end
