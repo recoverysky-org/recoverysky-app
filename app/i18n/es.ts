@@ -321,7 +321,8 @@ const es: Translations = {
     exportEmailPlaceholder: "correo@ejemplo.com",
     exportAttendance: "Exportar Asistencia",
     comingSoon: "Próximamente",
-    exportComingSoon: "La funcionalidad de exportación estará disponible en una futura actualización.",
+    exportComingSoon:
+      "La funcionalidad de exportación estará disponible en una futura actualización.",
     // Home Tips
     resetHomeTips: "Restablecer Consejos de Inicio",
     resetHomeTipsHint: "Mostrar todas las tarjetas de ayuda de nuevo",
@@ -341,7 +342,8 @@ const es: Translations = {
     // Import
     importTitle: "¡Bienvenido de nuevo!",
     importSubtitle: "Encontramos datos de AA/NA Live! ¿Te gustaría importarlos?",
-    importJournalHint: "El diario no está disponible en esta aplicación, pero puedes exportar los datos de tu diario anterior como PDF.",
+    importJournalHint:
+      "El diario no está disponible en esta aplicación, pero puedes exportar los datos de tu diario anterior como PDF.",
     importCloudData: "Importar Datos de la Nube",
     exportJournalPdf: "Exportar Diario PDF",
     importSkip: "Continuar",
@@ -465,6 +467,11 @@ const es: Translations = {
     sendMessage: "Enviar Mensaje",
     clearChat: "Borrar Chat",
     openMenu: "Menú",
+    startVoiceInput: "Entrada de voz",
+    stopRecording: "Detener grabación",
+    transcribing: "Transcribiendo...",
+    micPermissionDenied: "Se requiere acceso al micrófono para la entrada de voz",
+    transcriptionFailed: "No se pudo transcribir el audio. Inténtalo de nuevo.",
   },
 }
 

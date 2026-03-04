@@ -123,6 +123,16 @@ export interface FirebaseAttendanceRecord {
   arid: string
 }
 
+// =============================================================================
+// Transcription Types
+// =============================================================================
+
+export interface TranscribeResponse {
+  transcript: string
+  language: string
+  duration_ms: number
+}
+
 export interface FirebaseReportRecord {
   id: string
   iid: string
@@ -757,8 +767,7 @@ export class Api {
     await this.waitForAttestation()
     log.debug("Fetching Firebase reports")
 
-    const response =
-      await this.recoverySkyApi.get<FirebaseReportRecord[]>("/firebase/reports")
+    const response = await this.recoverySkyApi.get<FirebaseReportRecord[]>("/firebase/reports")
 
     if (!response.ok || !response.data) {
       const problem = getGeneralApiProblem(response)
@@ -766,6 +775,50 @@ export class Api {
       return { kind: "bad-data" }
     }
 
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Transcribe an audio recording to text
+   * POST /api/v1/transcribe — multipart/form-data with audio file
+   */
+  async transcribeAudio(
+    uri: string,
+    language = "en-US",
+  ): Promise<{ kind: "ok"; data: TranscribeResponse } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Transcribing audio", { language, uri: uri.slice(-20) })
+
+    const formData = new FormData()
+    formData.append("audio", {
+      uri,
+      name: "audio.m4a",
+      type: "audio/mp4",
+    } as unknown as Blob)
+    formData.append("language", language)
+
+    const response = await this.recoverySkyApi.post<TranscribeResponse>(
+      "/api/v1/transcribe",
+      formData,
+    )
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Transcription failed", { problem: problem?.kind, status: response.status })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data) {
+      log.warn("Invalid transcription response")
+      return { kind: "bad-data" }
+    }
+
+    log.info("Transcription complete", {
+      language: response.data.language,
+      duration_ms: response.data.duration_ms,
+      length: response.data.transcript.length,
+    })
     return { kind: "ok", data: response.data }
   }
 }

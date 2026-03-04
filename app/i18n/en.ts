@@ -343,7 +343,8 @@ const en = {
     // Import
     importTitle: "Welcome Back!",
     importSubtitle: "We found data from AA/NA Live! Would you like to import it?",
-    importJournalHint: "The journal is not available in this app, but you may export your old journal data as a PDF.",
+    importJournalHint:
+      "The journal is not available in this app, but you may export your old journal data as a PDF.",
     importCloudData: "Import Cloud Data",
     exportJournalPdf: "Export Journal PDF",
     importSkip: "Continue",
@@ -474,6 +475,11 @@ const en = {
     sendMessage: "Send Message",
     clearChat: "Clear Chat",
     openMenu: "Menu",
+    startVoiceInput: "Voice input",
+    stopRecording: "Stop recording",
+    transcribing: "Transcribing...",
+    micPermissionDenied: "Microphone access is required for voice input",
+    transcriptionFailed: "Could not transcribe audio. Please try again.",
   },
 }
 

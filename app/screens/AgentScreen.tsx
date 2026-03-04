@@ -24,7 +24,8 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { translate } from "@/i18n"
+import { useVoiceInput } from "@/hooks/useVoiceInput"
+import { translate, getCurrentLanguage } from "@/i18n"
 import {
   useAuthenticationStore,
   useConfigStore,
@@ -227,6 +228,16 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   }, [selectedMeeting, activeToolCallId, conversationStore])
 
   const isLoading = status === "streaming" || status === "submitted"
+
+  // Voice input - language derived from current app locale
+  const voiceLanguage = getCurrentLanguage() === "es" ? "es-MX" : "en-US"
+  const {
+    state: voiceState,
+    error: voiceError,
+    startRecording,
+    stopRecording,
+  } = useVoiceInput((transcript) => setInput(transcript), voiceLanguage)
+  const isVoiceActive = voiceState !== "idle"
 
   // Extract debug metadata from last assistant message
   const debugMetadata = useMemo(() => {
@@ -448,25 +459,48 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
         {/* Input Area */}
         <View style={themed($inputContainer)}>
+          {/* Mic button */}
+          <Pressable
+            onPress={voiceState === "recording" ? stopRecording : startRecording}
+            disabled={isLoading || voiceState === "processing"}
+            style={[themed($micButton), voiceState === "recording" && themed($micButtonRecording)]}
+            accessibilityRole="button"
+            accessibilityLabel={translate(
+              voiceState === "recording"
+                ? "agentScreen:stopRecording"
+                : "agentScreen:startVoiceInput",
+            )}
+          >
+            {voiceState === "processing" ? (
+              <ActivityIndicator size="small" color={theme.colors.tint} />
+            ) : (
+              <Ionicons
+                name={voiceState === "recording" ? "stop" : "mic"}
+                size={20}
+                color={voiceState === "recording" ? theme.colors.error : theme.colors.textDim}
+              />
+            )}
+          </Pressable>
+
           <TextField
             ref={inputRef}
-            value={input}
+            value={voiceState === "processing" ? translate("agentScreen:transcribing") : input}
             onChangeText={setInput}
             placeholderTx="agentScreen:inputPlaceholder"
             containerStyle={$inputContainerInner}
             style={themed($textInput)}
             inputWrapperStyle={themed($inputWrapper)}
             onSubmitEditing={handleSend}
-            editable={!isLoading}
+            editable={!isLoading && !isVoiceActive}
             returnKeyType="send"
             blurOnSubmit={true}
           />
           <Pressable
             onPress={handleSend}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || isVoiceActive || !input.trim()}
             style={[
               themed($sendButton),
-              (isLoading || !input.trim()) && themed($sendButtonDisabled),
+              (isLoading || isVoiceActive || !input.trim()) && themed($sendButtonDisabled),
             ]}
             accessibilityRole="button"
             accessibilityLabel={translate("agentScreen:sendMessage")}
@@ -477,11 +511,21 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
               <Ionicons
                 name="send"
                 size={20}
-                color={input.trim() ? theme.colors.tint : theme.colors.textDim}
+                color={input.trim() && !isVoiceActive ? theme.colors.tint : theme.colors.textDim}
               />
             )}
           </Pressable>
         </View>
+
+        {/* Voice error message */}
+        {voiceError && (
+          <View style={themed($voiceErrorContainer)}>
+            <Ionicons name="warning-outline" size={14} color={theme.colors.error} />
+            <Text style={themed($voiceErrorText)}>
+              {translate(`agentScreen:${voiceError}` as Parameters<typeof translate>[0])}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Floating Action Menu */}
@@ -812,6 +856,36 @@ const $fab: ThemedStyle<ViewStyle> = ({ colors }) => ({
 
 const $fabOpen: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.textDim,
+})
+
+const $micButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: colors.card,
+  borderWidth: 1,
+  borderColor: colors.border,
+  alignItems: "center",
+  justifyContent: "center",
+})
+
+const $micButtonRecording: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderColor: colors.error,
+  borderWidth: 2,
+})
+
+const $voiceErrorContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  paddingHorizontal: spacing.sm,
+  paddingBottom: spacing.xs,
+})
+
+const $voiceErrorText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  color: colors.error,
+  flex: 1,
 })
 
 // Consent gate styles
