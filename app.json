@@ -11,7 +11,11 @@
   },
   "newArchEnabled": true,
   "jsEngine": "hermes",
-  "assetBundlePatterns": ["**/*"],
+  "assetBundlePatterns": [
+    "assets/fonts/**",
+    "assets/images/*.png",
+    "assets/content/**"
+  ],
   "android": {
     "icon": "./assets/images/app-icon-android-legacy.png",
     "package": "live.meetingmaker.app.prod",
