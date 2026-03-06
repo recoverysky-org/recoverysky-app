@@ -20,7 +20,8 @@ const log = logger.child({ module: "OnboardingWelcome" })
 
 import { ProgressDots } from "./ProgressDots"
 
-const welcomeImage = require("@assets/images/welcome-face.png")
+const signatureBlack = require("@assets/images/RecoverySky-signature.black.png")
+const signatureWhite = require("@assets/images/RecoverySky-signature.white.png")
 
 export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
   function OnboardingWelcome({ navigation }) {
@@ -68,7 +69,11 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
 
         {/* Content */}
         <View style={$content}>
-          <Image source={welcomeImage} style={$welcomeImage} resizeMode="contain" />
+          <Image
+            source={theme.isDark ? signatureWhite : signatureBlack}
+            style={$welcomeImage}
+            resizeMode="contain"
+          />
 
           <Text style={themed($title)} tx="onboarding:welcomeTitle" />
           <Text style={themed($subtitle)} tx="onboarding:welcomeSubtitle" />
@@ -127,8 +132,8 @@ const $content: ViewStyle = {
 }
 
 const $welcomeImage: ImageStyle = {
-  width: 200,
-  height: 200,
+  width: "100%",
+  height: 100,
   marginBottom: 32,
 }
 
