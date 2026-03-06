@@ -63,7 +63,8 @@
       },
       "android": {
         "buildType": "app-bundle",
-        "resourceClass": "medium"
+        "resourceClass": "medium",
+        "credentialsSource": "local"
       },
       "autoIncrement": true
     }

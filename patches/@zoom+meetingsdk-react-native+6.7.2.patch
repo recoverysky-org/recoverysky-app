@@ -578,3 +578,16 @@ index 42faf67..472da8b 100644
 +}
 +
  @end
+diff --git a/node_modules/@zoom/meetingsdk-react-native/meetingsdk-react-native.podspec b/node_modules/@zoom/meetingsdk-react-native/meetingsdk-react-native.podspec
+index 09f986f..74151b2 100644
+--- a/node_modules/@zoom/meetingsdk-react-native/meetingsdk-react-native.podspec
++++ b/node_modules/@zoom/meetingsdk-react-native/meetingsdk-react-native.podspec
+@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
+   s.source_files = "ios/**/*.{h,m,mm}"
+   s.dependency "React-Core"
+ 
+-  s.dependency "ZoomMeetingSDK", '6.7.2'
++  s.dependency "ZoomMeetingSDK", '>= 6.7.2', '< 7.0'
+ 
+   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
+   s.preserve_paths = ['MobileRTC.xcframework/**/*', 'zoomcml.xcframework/**/*']
