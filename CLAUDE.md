@@ -314,3 +314,25 @@ Zoom SDK in `app/services/zoom/`:
 - **Reactotron**: Dev-only debugging (auto-configured)
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
 - **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
+
+## Pending Upgrades
+
+### Zoom SDK — upgrade to `@zoom/meetingsdk-react-native@6.7.5` when released on npm
+
+Currently using npm package `6.7.2` but with the native `ZoomMeetingSDK` CocoaPod pinned to `6.7.5`
+(~88 MB smaller than 6.7.2 in the iOS binary). The npm package is not yet on the registry.
+
+The patch at `patches/@zoom+meetingsdk-react-native+6.7.2.patch` covers:
+- iOS ObjC: meeting state events, `leaveMeeting`, `safeEmit` observer guard
+- Android Java: `MeetingServiceListener`, in-meeting controls, synthesized `onMeetingEndedReason`
+- podspec: loosened `ZoomMeetingSDK` dependency from `'6.7.2'` to `'>= 6.7.2', '< 7.0'`
+
+The Podfile also has an explicit `pod 'ZoomMeetingSDK', '6.7.5'` override.
+
+**When `@zoom/meetingsdk-react-native@6.7.5` drops on npm:**
+
+1. `npm install` — auto-upgrades since `package.json` has `"^6.7.2"`
+2. Diff the new package's iOS/Android source against the old patched files to see what Zoom may have incorporated upstream
+3. `npx patch-package @zoom/meetingsdk-react-native` — regenerates patch as `+6.7.5.patch` (old `+6.7.2.patch` can be deleted)
+4. If the new podspec already pins `ZoomMeetingSDK '6.7.5'`, remove the explicit `pod 'ZoomMeetingSDK', '6.7.5'` line from `ios/Podfile` and the podspec loosening from the patch
+5. `cd ios && pod install`
