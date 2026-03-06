@@ -5,7 +5,8 @@
   "main": "index.tsx",
   "scripts": {
     "actions": "rm -rf ./.forgejo/actions && git clone --depth 1 https://git.rso/recoverysky-org/forgejo-actions.git ./.forgejo/actions && rm -rf ./.forgejo/actions/.git",
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && bash scripts/patch-zoom-android.sh",
+    "patch:zoom:android": "bash scripts/patch-zoom-android.sh",
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",

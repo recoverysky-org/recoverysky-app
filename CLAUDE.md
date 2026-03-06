@@ -319,15 +319,34 @@ Zoom SDK in `app/services/zoom/`:
 
 ### Zoom SDK — upgrade to `@zoom/meetingsdk-react-native@6.7.5` when released on npm
 
-Currently using npm package `6.7.2` but with the native `ZoomMeetingSDK` CocoaPod pinned to `6.7.5`
-(~88 MB smaller than 6.7.2 in the iOS binary). The npm package is not yet on the registry.
+Currently using npm package `6.7.2` but with both native SDKs pinned to `6.7.5`:
+- **iOS**: CocoaPod `ZoomMeetingSDK` pinned to `6.7.5` (~88 MB smaller than 6.7.2)
+- **Android**: Local `mobilertc.aar` from `zoom-sdk-android-6.7.5.37500.zip`, with `armeabi-v7a` stripped (~40% size reduction)
+
+The npm package is not yet available as `6.7.5` on the registry.
 
 The patch at `patches/@zoom+meetingsdk-react-native+6.7.2.patch` covers:
 - iOS ObjC: meeting state events, `leaveMeeting`, `safeEmit` observer guard
 - Android Java: `MeetingServiceListener`, in-meeting controls, synthesized `onMeetingEndedReason`
+- Android build.gradle: replaced Maven `us.zoom.meetingsdk:zoomsdk:6.7.2` with local `mobilertc.aar`
 - podspec: loosened `ZoomMeetingSDK` dependency from `'6.7.2'` to `'>= 6.7.2', '< 7.0'`
 
 The Podfile also has an explicit `pod 'ZoomMeetingSDK', '6.7.5'` override.
+
+#### Android AAR setup
+
+The `scripts/patch-zoom-android.sh` script (runs automatically in `postinstall`):
+1. Extracts `mobilertc.aar` from `zoom-sdk-android-6.7.5.37500.zip` (must be at project root)
+2. Strips `armeabi-v7a` (32-bit ARM) — all modern devices are arm64
+3. Strips 21 unused feature `.so` libs (chat, messaging, PDF, ML, phone, USB, misc UI) — ~68MB savings
+4. Repackages the slim AAR into `android/libs/mobilertc.aar` (~177MB, down from ~300MB original)
+5. Adds `flatDir { dirs "libs" }` to `android/build.gradle` allprojects repositories
+
+The script is idempotent — skips extraction if the AAR already exists. Delete the AAR to force re-extraction. The zip file is gitignored.
+
+Run manually: `npm run patch:zoom:android`
+
+If a stripped library causes a runtime crash, remove it from the `STRIP_LIBS` array in the script, delete the AAR, and re-run.
 
 **When `@zoom/meetingsdk-react-native@6.7.5` drops on npm:**
 
@@ -335,4 +354,5 @@ The Podfile also has an explicit `pod 'ZoomMeetingSDK', '6.7.5'` override.
 2. Diff the new package's iOS/Android source against the old patched files to see what Zoom may have incorporated upstream
 3. `npx patch-package @zoom/meetingsdk-react-native` — regenerates patch as `+6.7.5.patch` (old `+6.7.2.patch` can be deleted)
 4. If the new podspec already pins `ZoomMeetingSDK '6.7.5'`, remove the explicit `pod 'ZoomMeetingSDK', '6.7.5'` line from `ios/Podfile` and the podspec loosening from the patch
-5. `cd ios && pod install`
+5. If the new Android build.gradle uses Maven `6.7.5`, remove the `mobilertc.aar` override: revert the build.gradle patch line, remove `android/libs/`, remove `flatDir` from root build.gradle, and remove `scripts/patch-zoom-android.sh` from postinstall
+6. `cd ios && pod install`

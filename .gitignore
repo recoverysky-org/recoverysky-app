@@ -9,9 +9,10 @@ credentials.json
 android/
 ios/
 
-// Zoom repos
+# Zoom repos and SDK archives
 MeetingSDK-ReactNative-Quickstart/
 meetingsdk-web-sample/
+zoom-sdk-android-*.zip
 
 # Xcode
 #

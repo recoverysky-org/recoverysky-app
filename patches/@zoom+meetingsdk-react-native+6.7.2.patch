@@ -1,3 +1,14 @@
+diff --git a/node_modules/@zoom/meetingsdk-react-native/android/build.gradle b/node_modules/@zoom/meetingsdk-react-native/android/build.gradle
+index 8138ecd..a54555d 100644
+--- a/node_modules/@zoom/meetingsdk-react-native/android/build.gradle
++++ b/node_modules/@zoom/meetingsdk-react-native/android/build.gradle
+@@ -186,5 +186,5 @@ dependencies {
+   implementation libraries.profileinstaller
+   implementation libraries.coilGif
+ 
+-  implementation 'us.zoom.meetingsdk:zoomsdk:6.7.2'
++  implementation(name: 'mobilertc', ext: 'aar')
+ }
 diff --git a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
 index ac6e2e4..139bda9 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
