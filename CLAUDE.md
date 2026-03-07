@@ -338,8 +338,8 @@ The Podfile also has an explicit `pod 'ZoomMeetingSDK', '6.7.5'` override.
 The `scripts/patch-zoom-android.sh` script (runs automatically in `postinstall`):
 1. Extracts `mobilertc.aar` from `zoom-sdk-android-6.7.5.37500.zip` (must be at project root)
 2. Strips `armeabi-v7a` (32-bit ARM) — all modern devices are arm64
-3. Strips 21 unused feature `.so` libs (chat, messaging, PDF, ML, phone, USB, misc UI) — ~68MB savings
-4. Repackages the slim AAR into `android/libs/mobilertc.aar` (~177MB, down from ~300MB original)
+3. `.so` lib stripping is disabled — `libzPreMeetingUI.so` (loaded at SDK init) has deep transitive dependencies across chat, messaging, phone, and UI libs, making individual stripping unsafe
+4. Repackages the slim AAR into `android/libs/mobilertc.aar` (~245MB arm64-v8a only, down from ~474MB with both ABIs)
 5. Adds `flatDir { dirs "libs" }` to `android/build.gradle` allprojects repositories
 
 The script is idempotent — skips extraction if the AAR already exists. Delete the AAR to force re-extraction. The zip file is gitignored.

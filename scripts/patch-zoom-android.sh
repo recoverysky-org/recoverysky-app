@@ -25,38 +25,10 @@ AAR_DEST="$PROJECT_DIR/android/libs/mobilertc.aar"
 ROOT_GRADLE="$PROJECT_DIR/android/build.gradle"
 
 # Unused Zoom SDK feature libraries safe to remove for a join-meeting-only app.
-# These are loaded lazily by the SDK — removing them won't crash the app
-# unless the corresponding feature is actually invoked at runtime.
-STRIP_LIBS=(
-  # In-meeting chat & messaging (~25MB)
-  libzMsgAppCommon.so
-  libzMsgUI.so
-  libzChatUI.so
-  # Phone/PSTN/Team Chat (~14MB)
-  libzPTApp.so
-  libzAppPTUI.so
-  libzPSApp.so
-  libzPSUI.so
-  # PDF & annotation/whiteboard (~7MB)
-  libpdfium_wrap.so
-  libzoom_pdfium.so
-  libannotate.so
-  # ML/AI features (~5MB)
-  libtensorflowlite_jni.so
-  libtensorflowlite_gpu_jni.so
-  # Deep Virtual Filters (~4MB)
-  libdvf.so
-  # WebView & misc UI (~6MB)
-  libzUnifyWebView.so
-  libzm_conf_universal_ui.so
-  libzAppConfUI.so
-  libzAppUI.so
-  libzPreMeetingUI.so
-  libzHybridClinicalNotesUI.so
-  # USB peripherals (<1MB)
-  libusb-1.0.so
-  libuvc.so
-)
+# Stripping disabled — libzPreMeetingUI.so (loaded at SDK init) has deep
+# transitive dependencies on chat, messaging, phone, and other libs.
+# The dependency chain is too intertwined to safely strip individual libs.
+STRIP_LIBS=()
 
 # ── Step 0: Preflight ──────────────────────────────────────────────────────
 
