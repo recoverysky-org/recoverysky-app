@@ -78,6 +78,9 @@ fi
 if ! grep -q "tools:replace" "$MANIFEST"; then
   sed -i '' 's|android:dataExtractionRules="@xml/secure_store_data_extraction_rules"|android:dataExtractionRules="@xml/secure_store_data_extraction_rules" tools:replace="android:networkSecurityConfig,android:usesCleartextTraffic"|' "$MANIFEST"
   echo "Added tools:replace to AndroidManifest.xml"
+elif ! grep -q 'tools:replace="android:networkSecurityConfig' "$MANIFEST"; then
+  sed -i '' 's|tools:replace="android:usesCleartextTraffic"|tools:replace="android:networkSecurityConfig,android:usesCleartextTraffic"|' "$MANIFEST"
+  echo "Updated tools:replace to include networkSecurityConfig"
 else
   echo "tools:replace already present"
 fi
@@ -134,6 +137,38 @@ if [ -f "$APP_BUILD_GRADLE" ]; then
     echo "Disabled lint checkDependencies (prevents PrivateApiLookup OOM)"
   else
     echo "lint checkDependencies already configured"
+  fi
+fi
+
+# Override Zoom SDK Spanish string with invalid format specifiers
+# The AAR has non-positional format in zm_prism_acc_avatar_row_over_max which fails AAPT2
+ZOOM_ES_OVERRIDE="$RES_DIR/values-es/zoom_overrides.xml"
+if [ ! -f "$ZOOM_ES_OVERRIDE" ]; then
+  mkdir -p "$RES_DIR/values-es"
+  cat > "$ZOOM_ES_OVERRIDE" << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Override Zoom SDK string with invalid format specifiers -->
+    <string name="zm_prism_acc_avatar_row_over_max" formatted="false">Participantes: %s, más de %d participantes</string>
+</resources>
+EOF
+  echo "Created Zoom SDK Spanish string override"
+else
+  echo "Zoom SDK Spanish string override already present"
+fi
+
+# Exclude Amazon Appstore SDK (transitive dep from RevenueCat, unused)
+if [ -f "$APP_BUILD_GRADLE" ]; then
+  if ! grep -q "purchases-store-amazon" "$APP_BUILD_GRADLE"; then
+    sed -i '' '/^dependencies {/i\
+configurations.all {\
+    exclude group: '\''com.revenuecat.purchases'\'', module: '\''purchases-store-amazon'\''\
+    exclude group: '\''com.amazon.device'\'', module: '\''amazon-appstore-sdk'\''\
+}\
+' "$APP_BUILD_GRADLE"
+    echo "Excluded Amazon Appstore SDK from RevenueCat"
+  else
+    echo "Amazon Appstore SDK exclusion already present"
   fi
 fi
 
