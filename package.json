@@ -1,6 +1,6 @@
 {
   "name": "recoverysky-app",
-  "version": "3.99.1",
+  "version": "3.99.2",
   "private": true,
   "main": "index.tsx",
   "scripts": {
@@ -9,7 +9,7 @@
     "patch:zoom:android": "bash scripts/patch-zoom-android.sh",
     "start": "expo start --dev-client",
     "android": "expo run:android",
-    "prebuild:android:clean": "npx expo prebuild --platform android --clean && npm run patch:zoom:android",
+    "prebuild:android:clean": "npx expo prebuild --platform android --clean && npm run patch:android && npm run patch:zoom:android",
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "web": "expo start --web",
