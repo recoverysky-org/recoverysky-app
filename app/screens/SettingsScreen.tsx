@@ -1064,7 +1064,7 @@ const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $sectionTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "700",
-  fontSize: 18,
+  fontSize: 27,
   color: colors.text,
 })
 
