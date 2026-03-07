@@ -27,6 +27,7 @@ import {
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { getZakToken } from "@/services/zak"
+import { recordMeetingJoined, maybeRequestReview } from "@/services/review"
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"
@@ -371,6 +372,9 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       })
       addEvent("Meeting ended", { reason: event.reasonName, code: event.reason })
       setMeetingState("idle")
+
+      recordMeetingJoined()
+      maybeRequestReview()
     },
     onAuthReturn: (event: ZoomAuthEvent) => {
       log.info("Auth", { success: event.success })

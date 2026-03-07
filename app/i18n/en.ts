@@ -332,6 +332,8 @@ const en = {
     // Import Section
     importSection: "Import",
     restartImport: "Restart Import",
+    // Review
+    rateApp: "Rate RecoverySky",
     // Legal Section
     legalSection: "Legal",
     thirdPartyLicenses: "Third-Party Licenses",

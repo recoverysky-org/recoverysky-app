@@ -332,6 +332,7 @@ const es: Translations = {
     // Import Section
     importSection: "Importar",
     restartImport: "Reiniciar Importación",
+    rateApp: "Calificar RecoverySky",
     // Legal Section
     legalSection: "Legal",
     thirdPartyLicenses: "Licencias de Terceros",

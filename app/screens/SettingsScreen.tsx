@@ -36,6 +36,7 @@ import {
   logoutOneSignalUser,
 } from "@/services/notifications"
 import { useZoomAuth } from "@/services/auth"
+import { requestReviewFromSettings } from "@/services/review"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -985,6 +986,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
       {/* Legal Section */}
       <View style={themed($section)}>
+        <TouchableOpacity
+          style={themed($upgradeButton)}
+          onPress={() => requestReviewFromSettings()}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:rateApp")}
+        >
+          <Ionicons name="star" size={18} color={theme.colors.tint} />
+          <Text style={themed($upgradeButtonText)} tx="settingsScreen:rateApp" />
+        </TouchableOpacity>
+
         <View style={themed($sectionHeader)}>
           <Ionicons name="document-text-outline" size={20} color={themed($legalIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:legalSection" />
