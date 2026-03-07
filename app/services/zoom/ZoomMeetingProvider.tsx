@@ -302,7 +302,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   // Subscribe to native SDK events
   useZoomEvents({
     onMeetingStateChange: (event: ZoomMeetingStateEvent) => {
-      log.debug("Meeting state", { state: event.stateName, code: event.state })
+      log.info("Meeting state", { state: event.stateName, code: event.state })
       addEvent("Meeting state", { state: event.stateName, code: event.state })
       setMeetingState(event.stateName)
 
@@ -387,7 +387,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       // Check and request media permissions BEFORE joining
       // This prevents the black screen issue when permissions are granted after SDK init
       const perms = await checkMediaPermissions()
-      log.debug("Pre-join permission check", {
+      log.info("Pre-join permission check", {
         camera: perms.camera,
         audio: perms.audio,
         anyUndetermined: perms.anyUndetermined,
@@ -486,7 +486,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       try {
         // Check SDK initialization state
         const isInit = await zoom.isInitialized()
-        log.debug("SDK init check", { isInitialized: isInit })
+        log.info("SDK init check", { isInitialized: isInit })
         if (!isInit) {
           throw new Error("Zoom SDK not initialized")
         }
@@ -532,10 +532,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         // ZAK identifies the user, password grants access to the meeting.
         const sdkPassword = overridePw || config.password || ""
 
-        log.debug("Calling SDK joinMeeting", {
+        log.info("Calling SDK joinMeeting", {
           meetingNumber: zidToJoin,
           userName: config.userName,
-          password: sdkPassword || "empty",
+          password: sdkPassword ? "SET" : "empty",
           useZak,
           hasZak: !!zakToken,
           zakPreview: zakToken ? zakToken.slice(0, 20) + "..." : "none",

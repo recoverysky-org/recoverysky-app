@@ -32,12 +32,10 @@ export interface ZoomSDKConfig {
  * @param sdkSecret - SDK secret from ConfigStore
  */
 export function getZoomConfig(sdkKey: string = "", sdkSecret: string = ""): ZoomSDKConfig {
-  if (__DEV__) {
-    log.debug("Zoom config", {
-      sdkKey: sdkKey ? `${sdkKey.slice(0, 8)}...` : "NOT SET",
-      sdkSecret: sdkSecret ? "SET" : "NOT SET",
-    })
-  }
+  log.info("Zoom config", {
+    sdkKey: sdkKey ? `${sdkKey.slice(0, 8)}...` : "NOT SET",
+    sdkSecret: sdkSecret ? "SET" : "NOT SET",
+  })
 
   if (!sdkKey || !sdkSecret) {
     log.warn("Zoom SDK keys not configured - SDK features will be unavailable")
@@ -47,7 +45,7 @@ export function getZoomConfig(sdkKey: string = "", sdkSecret: string = ""): Zoom
     sdkKey,
     sdkSecret,
     domain: "zoom.us",
-    enableLog: __DEV__,
+    enableLog: true,
     logSize: 5,
   }
 }

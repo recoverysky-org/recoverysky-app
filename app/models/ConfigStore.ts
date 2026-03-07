@@ -71,7 +71,7 @@ export const ConfigStoreModel = types
       if (store.isLoading) return
 
       store.isLoading = true
-      log.debug("Fetching config from server")
+      log.info("Fetching config from server")
 
       try {
         const result = yield api.getConfig()
@@ -93,7 +93,11 @@ export const ConfigStoreModel = types
           if (config.ONE_SIGNAL_IOS_KEY) store.oneSignalApiKey = config.ONE_SIGNAL_IOS_KEY
           store.isLoaded = true
 
-          log.info("Config loaded from server")
+          log.info("Config loaded from server", {
+            hasZoomKey: !!store.zoomSdkKey,
+            hasZoomSecret: !!store.zoomSdkSecret,
+            zoomKeyPreview: store.zoomSdkKey ? store.zoomSdkKey.slice(0, 8) + "..." : "EMPTY",
+          })
         } else {
           log.warn("Failed to fetch config, using defaults", { kind: result.kind })
         }

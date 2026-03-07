@@ -36,7 +36,7 @@ export async function generateZoomJwt(
   const iat = Date.now()
   const exp = iat + 20 * 60 * 60 * 1000 // 20 hours from now
 
-  log.debug("Generating Zoom JWT", {
+  log.info("Generating Zoom JWT", {
     meetingNumber,
     role,
     expiresIn: "20 hours",
@@ -57,7 +57,7 @@ export async function generateZoomJwt(
       { alg: "HS256" },
     )
 
-    log.debug("Zoom JWT generated successfully")
+    log.info("Zoom JWT generated successfully")
     return token
   } catch (error) {
     log.error("Failed to generate Zoom JWT", {
