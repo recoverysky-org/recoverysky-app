@@ -8,6 +8,7 @@ import {
   ViewStyle,
   TextStyle,
   ActivityIndicator,
+  Platform,
   Pressable,
 } from "react-native"
 import * as WebBrowser from "expo-web-browser"
@@ -140,26 +141,28 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
         {/* Loading text */}
         {isLoading && <Text style={themed($loadingText)} tx="zoomSetupScreen:openingBrowser" />}
 
-        {/* Create Account button */}
-        <Pressable
-          testID="zoom-setup-create-button"
-          style={themed($createButton)}
-          onPress={handleCreateAccountPress}
-          disabled={isLoading}
-          accessibilityRole="button"
-          accessibilityLabel={translate("zoomSetupScreen:createAccount")}
-        >
-          <Ionicons
-            name="person-add-outline"
-            size={20}
-            color={theme.colors.tint}
-            style={themed($buttonIcon)}
-          />
-          <Text
-            style={[themed($createButtonText), { color: theme.colors.tint }]}
-            tx="zoomSetupScreen:createAccount"
-          />
-        </Pressable>
+        {/* Create Account button (hidden on iOS per App Store guidelines) */}
+        {Platform.OS !== "ios" && (
+          <Pressable
+            testID="zoom-setup-create-button"
+            style={themed($createButton)}
+            onPress={handleCreateAccountPress}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel={translate("zoomSetupScreen:createAccount")}
+          >
+            <Ionicons
+              name="person-add-outline"
+              size={20}
+              color={theme.colors.tint}
+              style={themed($buttonIcon)}
+            />
+            <Text
+              style={[themed($createButtonText), { color: theme.colors.tint }]}
+              tx="zoomSetupScreen:createAccount"
+            />
+          </Pressable>
+        )}
 
         {/* Divider */}
         <View style={themed($dividerContainer)}>

@@ -4,6 +4,7 @@ import {
   ViewStyle,
   TextStyle,
   ActivityIndicator,
+  Platform,
   Pressable,
   Modal,
   ScrollView,
@@ -153,16 +154,18 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           )}
         </Pressable>
 
-        <Pressable
-          testID="anonymous-button"
-          accessibilityRole="button"
-          accessibilityLabel={translate("loginScreen:continueAnonymously")}
-          style={[themed($button), isLoading && themed($buttonDisabled)]}
-          onPress={handleAnonymousPress}
-          disabled={isLoading}
-        >
-          <Text style={themed($buttonTextSecondary)} tx="loginScreen:continueAnonymously" />
-        </Pressable>
+        {Platform.OS !== "ios" && (
+          <Pressable
+            testID="anonymous-button"
+            accessibilityRole="button"
+            accessibilityLabel={translate("loginScreen:continueAnonymously")}
+            style={[themed($button), isLoading && themed($buttonDisabled)]}
+            onPress={handleAnonymousPress}
+            disabled={isLoading}
+          >
+            <Text style={themed($buttonTextSecondary)} tx="loginScreen:continueAnonymously" />
+          </Pressable>
+        )}
 
         {isLoading && <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />}
       </View>
