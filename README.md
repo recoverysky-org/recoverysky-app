@@ -108,19 +108,232 @@ npm run web        # Web browser
 > npm run build:android:sim # Android emulator
 > ```
 
-### Build Commands
+### Prebuild (Native Project Generation)
+
+Expo Prebuild generates the native `ios/` and `android/` directories from `app.config.ts`. You **must** prebuild before running local Gradle/Xcode builds. EAS builds handle this automatically.
+
+After prebuild, platform-specific patch scripts run to fix native code that Expo config plugins can't handle (splash screen, Android manifest, iOS project settings, Zoom SDK AAR).
 
 ```bash
-# Development builds (local)
-npm run build:ios:sim        # iOS simulator
-npm run build:ios:device     # iOS physical device
-npm run build:android:sim    # Android emulator
-npm run build:android:device # Android physical device
+# Regenerate both platforms (deletes ios/ and android/, re-generates, applies all patches)
+npm run prebuild:clean
 
-# Production builds
-npm run build:ios:prod
-npm run build:android:prod
+# Regenerate iOS only
+npm run prebuild:ios:clean
+
+# Regenerate Android only
+npm run prebuild:android:clean
 ```
+
+**When to prebuild:**
+- After adding/removing a native module (`npm install react-native-*`)
+- After changing `app.config.ts` native settings (permissions, schemes, plugins)
+- After modifying patch scripts in `scripts/`
+- When native directories are corrupted or out of sync
+
+**Patch scripts** applied during prebuild:
+| Script | Platform | Purpose |
+|--------|----------|---------|
+| `patch:splash` | Both | Splash screen native fixes |
+| `patch:ios` | iOS | iOS project configuration fixes |
+| `patch:android` | Android | Android manifest and build config fixes |
+| `patch:zoom:android` | Android | Extracts and slims Zoom SDK AAR (~474MB → ~245MB) |
+
+> **Note:** `patch:zoom:android` also runs automatically via `postinstall` after `npm install`.
+
+---
+
+### Building for iOS
+
+#### Local Testing (Development Builds)
+
+Development builds include `expo-dev-client` for hot reload and debugging tools. These use the `development` EAS profile with debug env vars.
+
+```bash
+# iOS Simulator (most common for development)
+npm run build:ios:sim
+
+# iOS Physical Device (requires Apple Developer account + provisioning profile)
+npm run build:ios:device
+```
+
+Simulator builds produce a `.tar.gz` in the project root. Device builds produce an `.ipa`. See [Deploying to Devices & Simulators](#deploying-to-devices--simulators) for installation steps.
+
+#### Preview Builds (Release Mode, Internal Distribution)
+
+Preview builds compile in release mode (optimized, no dev tools) but use internal distribution — useful for testing production-like performance without submitting to the App Store.
+
+```bash
+npm run build:ios:preview          # Simulator (release mode)
+npm run build:ios:preview:device   # Physical device (release mode, ad-hoc)
+```
+
+#### Production Build (App Store Submission)
+
+Produces a signed `.ipa` for App Store / TestFlight. Uses the `production` EAS profile with production API URLs, `LOG_LEVEL=warn`, and auto-incrementing version number.
+
+```bash
+# Build locally, then submit separately
+npm run build:ios:prod
+npm run submit:ios            # Submits the most recent .ipa to App Store Connect
+
+# Build remotely on EAS + submit in one step
+npm run release:ios
+```
+
+---
+
+### Building for Android
+
+Android local builds use Gradle directly, which is faster than EAS for iteration. You must prebuild first if the `android/` directory doesn't exist or is stale.
+
+#### Local Testing — Emulator (x86_64)
+
+```bash
+# Debug build (fast compile, dev tools enabled)
+npm run build:android:sim:debug
+
+# Release build (optimized, no dev tools)
+npm run build:android:sim:release
+```
+
+Output: `android/app/build/outputs/apk/debug/app-debug.apk` or `.../release/app-release.apk`
+
+#### Local Testing — Physical Device (arm64-v8a)
+
+```bash
+# Debug build
+npm run build:android:device:debug
+
+# Release build (production-like performance on device)
+npm run build:android:device:release
+
+# 32-bit ARM devices (rare, older devices)
+npm run build:android:device:debug:arm32
+npm run build:android:device:release:arm32
+```
+
+See [Deploying to Devices & Simulators](#deploying-to-devices--simulators) for installation steps.
+
+#### Production Build (Play Store Submission)
+
+Produces a signed `.aab` (Android App Bundle) via the `production` EAS profile. Uses production API URLs, OneSignal production mode, local signing credentials, and auto-incrementing version.
+
+```bash
+# Build locally, then submit separately
+npm run build:android:prod
+npm run submit:android        # Submits the most recent .aab to Google Play Console
+
+# Build remotely on EAS + submit in one step
+npm run release:android
+```
+
+> **AAB vs APK:** Production builds output `.aab` files, which cannot be installed directly via `adb`. AABs are optimized for Play Store delivery. For local production testing on a physical device, use `npm run build:android:device:release` instead (produces an installable APK).
+
+---
+
+### Build Quick Reference
+
+| Goal | Command | Output |
+|------|---------|--------|
+| **iOS sim (dev)** | `npm run build:ios:sim` | `.tar.gz` |
+| **iOS device (dev)** | `npm run build:ios:device` | `.ipa` (dev) |
+| **iOS sim (release)** | `npm run build:ios:preview` | `.tar.gz` |
+| **iOS device (release)** | `npm run build:ios:preview:device` | `.ipa` (ad-hoc) |
+| **iOS prod (App Store)** | `npm run build:ios:prod` | `.ipa` (store) |
+| **Android emu (debug)** | `npm run build:android:sim:debug` | `.apk` (x86_64) |
+| **Android emu (release)** | `npm run build:android:sim:release` | `.apk` (x86_64) |
+| **Android device (debug)** | `npm run build:android:device:debug` | `.apk` (arm64) |
+| **Android device (release)** | `npm run build:android:device:release` | `.apk` (arm64) |
+| **Android prod (Play Store)** | `npm run build:android:prod` | `.aab` |
+
+---
+
+### Deploying to Devices & Simulators
+
+#### iOS Simulator
+
+EAS dev/preview builds for simulator produce a `.tar.gz` in the project root.
+
+```bash
+# Install + launch in one step (requires a booted simulator)
+npm run deploy:ios:sim
+
+# Or separately:
+npm run install:ios:sim    # Extracts .tar.gz and installs on booted simulator
+npm run launch:ios:sim     # Launches the app by bundle ID
+```
+
+> **Tip:** Boot a simulator first with `open -a Simulator` or via Xcode > Open Developer Tool > Simulator.
+
+#### iOS Physical Device
+
+For **dev/preview builds** (`build:ios:device`, `build:ios:preview:device`), the EAS build process produces an `.ipa` in the project root. Install it using one of:
+
+```bash
+# Xcode Devices window (easiest)
+# 1. Open Xcode > Window > Devices and Simulators
+# 2. Select your connected device
+# 3. Click "+" under "Installed Apps" and select the .ipa file
+
+# Or via command line with ios-deploy (install with: brew install ios-deploy)
+ios-deploy --bundle build-*.ipa
+
+# Or via Apple Configurator 2 (from Mac App Store)
+# Drag and drop the .ipa onto your connected device
+```
+
+For **production builds** (`build:ios:prod`), the `.ipa` is App Store signed and cannot be installed directly on devices. Use TestFlight instead:
+
+```bash
+npm run submit:ios         # Upload to App Store Connect
+# Then install via TestFlight app on your device
+```
+
+#### Android Emulator / Physical Device
+
+Gradle builds produce APKs that can be installed directly via `adb`. Connect a device via USB (with USB debugging enabled) or boot an emulator.
+
+```bash
+# Install + launch in one step
+npm run deploy:android
+
+# Or separately:
+npm run install:android    # Installs the most recent APK (auto-picks debug or release)
+npm run launch:android     # Launches the app by package name
+```
+
+`install:android` auto-detects the newest APK from:
+1. `android/app/build/outputs/apk/debug/app-debug.apk`
+2. `android/app/build/outputs/apk/release/app-release.apk`
+3. `build-*.apk` in the project root (from EAS builds)
+
+> **Physical device tip:** Run `npm run adb` first to set up reverse port forwarding so the device can reach Metro (8081), Reactotron (9090), and local APIs (3000, 9001).
+
+**EAS production builds** produce `.aab` files which cannot be installed via `adb`. To test a production-like build on a physical device, use Gradle instead:
+
+```bash
+npm run build:android:device:release   # Produces installable .apk with release optimizations
+npm run deploy:android                 # Install and launch
+```
+
+To submit an `.aab` to the Play Store:
+
+```bash
+npm run submit:android     # Uploads the most recent .aab to Google Play Console
+```
+
+#### Deploy Quick Reference
+
+| Target | Build | Deploy |
+|--------|-------|--------|
+| **iOS Simulator** | `npm run build:ios:sim` | `npm run deploy:ios:sim` |
+| **iOS Device (dev)** | `npm run build:ios:device` | Install `.ipa` via Xcode or `ios-deploy` |
+| **iOS Device (prod)** | `npm run build:ios:prod` | `npm run submit:ios` → TestFlight |
+| **Android Emulator** | `npm run build:android:sim:debug` | `npm run deploy:android` |
+| **Android Device (dev)** | `npm run build:android:device:debug` | `npm run deploy:android` |
+| **Android Device (prod-like)** | `npm run build:android:device:release` | `npm run deploy:android` |
+| **Android Play Store** | `npm run build:android:prod` | `npm run submit:android` |
 
 ---
 
