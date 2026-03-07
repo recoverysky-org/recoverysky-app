@@ -1,4 +1,4 @@
-import { ConfigPlugin, withDangerousMod } from "@expo/config-plugins"
+import { ConfigPlugin, withAndroidManifest, withDangerousMod } from "@expo/config-plugins"
 import fs from "fs"
 import path from "path"
 
@@ -17,7 +17,35 @@ const DEBUG_MANIFEST = `<manifest xmlns:android="http://schemas.android.com/apk/
 </manifest>
 `
 
+/**
+ * Adds tools:replace="android:usesCleartextTraffic" to the main manifest
+ * to override the Zoom SDK's mobilertc AAR which sets it to false.
+ */
+const withMainManifestToolsReplace: ConfigPlugin = (config) => {
+  return withAndroidManifest(config, (config) => {
+    const manifest = config.modResults
+    const app = manifest.manifest.application?.[0]
+    if (app) {
+      app.$["tools:replace"] = [
+        app.$["tools:replace"],
+        "android:usesCleartextTraffic",
+      ]
+        .filter(Boolean)
+        .join(",")
+    }
+    return config
+  })
+}
+
+/**
+ * Writes debug-only network security config and manifest overrides.
+ * Also patches the main manifest to win the merge against mobilertc AAR.
+ */
 const withDebugNetworkSecurity: ConfigPlugin = (config) => {
+  // Patch main manifest for release builds
+  config = withMainManifestToolsReplace(config)
+
+  // Write debug-specific files
   return withDangerousMod(config, [
     "android",
     async (config) => {
