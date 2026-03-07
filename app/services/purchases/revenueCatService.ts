@@ -63,6 +63,11 @@ export async function initializeRevenueCat(
   try {
     const key = apiKey || REVENUECAT_CONFIG.getApiKey()
 
+    if (!key) {
+      log.warn("RevenueCat API key not available, skipping initialization")
+      return { ok: false, error: "API key not available" }
+    }
+
     // Enable debug logs in development
     if (__DEV__) {
       Purchases.setLogLevel(LOG_LEVEL.DEBUG)
