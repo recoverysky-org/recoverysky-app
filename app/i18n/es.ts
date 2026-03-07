@@ -54,7 +54,7 @@ const es: Translations = {
     title: "Conectar Zoom",
     subtitle: "Inicia sesión con tu cuenta de Zoom para unirte a reuniones con tu identidad.",
     connectWithZoom: "Conectar con Zoom",
-    continueAnonymously: "Continuar Anónimamente",
+    continueAnonymously: "Continuar sin Conectar",
     openingBrowser: "Abriendo inicio de sesión de Zoom...",
     or: "o",
     infoText:
@@ -66,7 +66,7 @@ const es: Translations = {
       "Zoom requiere una cuenta de Zoom para unirse a las reuniones. Conecta tu cuenta existente o crea una nueva.",
     connectWithZoom: "Conectar con Zoom",
     createAccount: "Crear una Cuenta de Zoom",
-    continueAnonymously: "Continuar Anónimamente",
+    continueAnonymously: "Continuar sin Conectar",
     openingBrowser: "Abriendo inicio de sesión de Zoom...",
     or: "o",
     anonymousWarningTitle: "Acceso Anónimo Limitado",

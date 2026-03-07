@@ -53,7 +53,7 @@ const en = {
     title: "Connect Zoom",
     subtitle: "Sign in with your Zoom account to join meetings with your identity.",
     connectWithZoom: "Connect with Zoom",
-    continueAnonymously: "Continue Anonymously",
+    continueAnonymously: "Continue without Connecting",
     openingBrowser: "Opening Zoom login...",
     or: "or",
     infoText:
@@ -65,7 +65,7 @@ const en = {
       "A Zoom account is required by Zoom to join meetings. Connect your existing account or create a new one.",
     connectWithZoom: "Connect with Zoom",
     createAccount: "Create a Zoom Account",
-    continueAnonymously: "Continue Anonymously",
+    continueAnonymously: "Continue without Connecting",
     openingBrowser: "Opening Zoom login...",
     or: "or",
     anonymousWarningTitle: "Limited Anonymous Access",
