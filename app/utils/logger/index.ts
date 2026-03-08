@@ -26,7 +26,7 @@
  *
  * Configuration:
  * - Set EXPO_PUBLIC_OTLP_ENDPOINT in .env when Alloy is online
- * - Set EXPO_PUBLIC_OTLP_API_KEY for authentication
+ * - Set EXPO_PUBLIC_OTLP_X_API_KEY for authentication (sent as X-API-Key header)
  * - Until configured, logs go to console (dev) or are dropped (prod)
  */
 
@@ -42,12 +42,12 @@ export type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes } fro
  *
  * Reads config from environment:
  * - EXPO_PUBLIC_OTLP_ENDPOINT: OTLP collector URL (optional until Alloy is online)
- * - EXPO_PUBLIC_OTLP_API_KEY: API key for auth (optional)
+ * - EXPO_PUBLIC_OTLP_X_API_KEY: API key for auth (sent as X-API-Key header)
  * - EXPO_PUBLIC_LOG_LEVEL: Minimum log level (trace, debug, info, warn, error, fatal)
  */
 export const logger = createLogger({
   endpoint: process.env.EXPO_PUBLIC_OTLP_ENDPOINT,
-  apiKey: process.env.EXPO_PUBLIC_OTLP_API_KEY,
+  apiKey: process.env.EXPO_PUBLIC_OTLP_X_API_KEY,
   minLevel: (process.env.EXPO_PUBLIC_LOG_LEVEL as LogLevel) || undefined,
   serviceName: "recoverysky-app",
   serviceVersion: require("../../../package.json").version,
