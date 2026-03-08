@@ -109,6 +109,8 @@ async function retryWithBackoff<T>(
 export interface MeetingWithTrex extends meeting {
   /** User's feedback for this meeting (loves, rates, joins) - null if no feedback */
   feedback: FeedbackRecord | null
+  /** Schedule ID from the API */
+  sid: string
   /** Current meeting time in UTC milliseconds */
   millis: number
   /** Meeting duration in milliseconds */
@@ -247,6 +249,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         password: s.password || s.meeting.password || "",
         passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
         feedback: feedbackCache.get(s.meeting.id),
+        sid: s.sid,
         millis: s.millis,
         duration_ms: s.duration_ms ?? 0,
         scheduleData: s.data,

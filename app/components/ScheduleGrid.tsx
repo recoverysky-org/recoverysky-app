@@ -3,10 +3,13 @@
  *
  * Displays a weekly schedule grid showing meeting times.
  * Current day is highlighted in the header.
+ * Cells are optionally tappable (for creating/editing reminders).
+ * Cells with active reminders are highlighted gold.
  */
 
-import { FC, useMemo } from "react"
-import { View, ViewStyle, TextStyle } from "react-native"
+import { FC, useMemo, useCallback } from "react"
+import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 import { DateTime } from "@recoverysky-org/common/browser"
 import { useTranslation } from "react-i18next"
 
@@ -26,11 +29,18 @@ const DAY_KEYS = [
   "liveScreen:sun",
 ] as const
 
+/** Amber/gold color for reminder indicators */
+const REMINDER_COLOR = "#f59e0b"
+
 interface ScheduleGridProps {
   /** Schedule data: array of rows, each row is [Mon, Tue, Wed, Thu, Fri, Sat, Sun] UTC millis or null */
   scheduleData: Array<Array<number | null>>
   /** Current day of week (1-7, ISO weekday where 1=Monday) - used for highlighting */
   currentDow?: number
+  /** Called when a non-null cell is tapped. Passes millis, dayIndex (0-6), rowIndex. */
+  onCellPress?: (millis: number, dayIndex: number, rowIndex: number) => void
+  /** Set of "rowIndex-colIndex" keys for cells that have active reminders */
+  reminderCells?: Set<string>
 }
 
 /**
@@ -40,7 +50,12 @@ interface ScheduleGridProps {
  * @example
  * <ScheduleGrid scheduleData={meeting.scheduleData} currentDow={DateTime.now().weekday} />
  */
-export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }) => {
+export const ScheduleGrid: FC<ScheduleGridProps> = ({
+  scheduleData,
+  currentDow,
+  onCellPress,
+  reminderCells,
+}) => {
   const { t } = useTranslation()
   const { themed } = useAppTheme()
 
@@ -51,6 +66,13 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
     }
     return DateTime.now().weekday - 1
   }, [currentDow])
+
+  const handleCellPress = useCallback(
+    (millis: number, colIndex: number, rowIndex: number) => {
+      onCellPress?.(millis, colIndex, rowIndex)
+    },
+    [onCellPress],
+  )
 
   if (scheduleData.length === 0) {
     return null
@@ -79,19 +101,54 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({ scheduleData, currentDow }
         <View key={rowIndex}>
           {rowIndex > 0 && <View style={themed($separator)} />}
           <View style={themed($timeRow)}>
-            {row.map((millis, colIndex) => (
-              <View key={colIndex} style={themed($timeCell)}>
-                {millis !== null ? (
-                  <View style={themed($timeCellInner)}>
-                    <Text style={themed($timeText)}>
-                      {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={themed($emptyCellInner)} />
-                )}
-              </View>
-            ))}
+            {row.map((millis, colIndex) => {
+              const hasReminder = reminderCells?.has(`${rowIndex}-${colIndex}`) ?? false
+              const isTappable = millis !== null && onCellPress !== undefined
+
+              return (
+                <View key={colIndex} style={themed($timeCell)}>
+                  {millis !== null ? (
+                    isTappable ? (
+                      <Pressable
+                        onPress={() => handleCellPress(millis, colIndex, rowIndex)}
+                        style={({ pressed }) => [
+                          hasReminder ? $reminderCellInner : themed($timeCellInner),
+                          pressed && $cellPressed,
+                        ]}
+                      >
+                        <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
+                          {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
+                        </Text>
+                        {hasReminder && (
+                          <Ionicons
+                            name="notifications"
+                            size={10}
+                            color={REMINDER_COLOR}
+                            style={$bellIcon}
+                          />
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View style={hasReminder ? $reminderCellInner : themed($timeCellInner)}>
+                        <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
+                          {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
+                        </Text>
+                        {hasReminder && (
+                          <Ionicons
+                            name="notifications"
+                            size={10}
+                            color={REMINDER_COLOR}
+                            style={$bellIcon}
+                          />
+                        )}
+                      </View>
+                    )
+                  ) : (
+                    <View style={themed($emptyCellInner)} />
+                  )}
+                </View>
+              )
+            })}
           </View>
         </View>
       ))}
@@ -156,6 +213,20 @@ const $timeCellInner: ThemedStyle<ViewStyle> = ({ colors }) => ({
   alignItems: "center",
 })
 
+const $reminderCellInner: ViewStyle = {
+  backgroundColor: `${REMINDER_COLOR}25`,
+  borderRadius: 8,
+  paddingVertical: 6,
+  paddingHorizontal: 4,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: `${REMINDER_COLOR}60`,
+}
+
+const $cellPressed: ViewStyle = {
+  opacity: 0.7,
+}
+
 const $emptyCellInner: ThemedStyle<ViewStyle> = () => ({
   height: 32, // Match height of filled cells
 })
@@ -165,3 +236,13 @@ const $timeText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "600",
   color: colors.tint,
 })
+
+const $reminderTimeText: TextStyle = {
+  fontSize: 11,
+  fontWeight: "600",
+  color: REMINDER_COLOR,
+}
+
+const $bellIcon: ViewStyle = {
+  marginTop: 2,
+}

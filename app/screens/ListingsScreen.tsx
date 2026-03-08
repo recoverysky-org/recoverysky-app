@@ -188,6 +188,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       const newMeetings: MeetingWithTrex[] = result.schedules.map((s: LiveSchedule) => ({
         ...s.meeting,
         feedback: null,
+        sid: s.sid,
         millis: s.millis,
         duration_ms: s.duration_ms ?? 0,
         scheduleData: s.data,

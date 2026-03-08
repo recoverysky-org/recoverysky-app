@@ -56,6 +56,20 @@ export interface SendReportResponse {
 }
 
 /**
+ * Input for syncing a reminder to the server
+ */
+export interface ReminderApiInput {
+  id: string
+  mid: string
+  sid?: string
+  name?: string
+  timezone: string
+  minutes_before: number
+  at_start: boolean
+  enabled: boolean
+}
+
+/**
  * Schedule data row - 7 columns for Sun-Sat, value is time string or null
  */
 export type ScheduleDataRow = (number | null)[]
@@ -820,6 +834,53 @@ export class Api {
       length: response.data.transcript.length,
     })
     return { kind: "ok", data: response.data }
+  }
+
+  // ==========================================================================
+  // Reminders (stubbed — server endpoints not yet implemented)
+  // ==========================================================================
+
+  /**
+   * Sync a new reminder to the server for push notification scheduling.
+   * Stubbed until server endpoint is built.
+   */
+  async createReminder(input: ReminderApiInput): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.warn("createReminder: server endpoint not yet implemented", { mid: input.mid })
+    return { kind: "ok" }
+  }
+
+  /**
+   * Sync reminder updates to the server.
+   * Stubbed until server endpoint is built.
+   */
+  async updateReminder(
+    id: string,
+    _input: Partial<ReminderApiInput>,
+  ): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.warn("updateReminder: server endpoint not yet implemented", { id })
+    return { kind: "ok" }
+  }
+
+  /**
+   * Delete a reminder on the server.
+   * Stubbed until server endpoint is built.
+   */
+  async deleteReminder(id: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.warn("deleteReminder: server endpoint not yet implemented", { id })
+    return { kind: "ok" }
+  }
+
+  /**
+   * Fetch all reminders for the current user from the server.
+   * Stubbed until server endpoint is built.
+   */
+  async getReminders(): Promise<{ kind: "ok"; reminders: never[] } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.warn("getReminders: server endpoint not yet implemented")
+    return { kind: "ok", reminders: [] }
   }
 }
 

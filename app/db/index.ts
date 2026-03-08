@@ -38,6 +38,7 @@ export {
   chatMessageRepo,
   profileRepository,
   zoomAuthRepo,
+  reminderRepo,
   findAllTrexes,
   findTrexById,
   findTrexesByIds,
@@ -56,7 +57,11 @@ export {
   type ZoomAuthRecord,
   type ZoomAuthCreateInput,
   type ZoomAuthUpdateInput,
+  type ReminderRecord,
+  type ReminderCreateInput,
+  type ReminderUpdateInput,
 } from "./repositories"
 export { feedbackCache } from "./feedbackCache"
 export { attendanceEvents } from "./attendanceEvents"
 export { liveEvents } from "./liveEvents"
+export { reminderEvents } from "./reminderEvents"

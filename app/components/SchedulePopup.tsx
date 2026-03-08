@@ -20,10 +20,12 @@ import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { attendanceEvents, feedbackCache, type FeedbackRecord } from "@/db"
+import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
+import { useReminders } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { useZoomMeeting, extractZoomMeetingNumber } from "@/services/zoom"
@@ -50,6 +52,24 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const profileStore = useProfileStore()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+
+  // Reminder state
+  const [reminderEditorVisible, setReminderEditorVisible] = useState(false)
+  const [editingReminder, setEditingReminder] = useState<ReminderRecord | null>(null)
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
+  const { reminderCells, createReminder, updateReminder, deleteReminder, findExistingReminder } =
+    useReminders(visible ? meeting : null, meeting?.sid ?? "")
+
+  // Handle schedule grid cell tap → open reminder editor
+  const handleCellPress = useCallback(
+    (_millis: number, dayIndex: number, rowIndex: number) => {
+      const existing = findExistingReminder()
+      setEditingReminder(existing)
+      setSelectedCell({ row: rowIndex, col: dayIndex })
+      setReminderEditorVisible(true)
+    },
+    [findExistingReminder],
+  )
 
   // Local feedback state - initialized from cache, updated on interactions
   const [feedback, setFeedback] = useState<FeedbackRecord | null>(null)
@@ -383,9 +403,29 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           ) : null}
 
           {/* Schedule Grid */}
-          <ScheduleGrid scheduleData={scheduleGridData} currentDow={currentDow} />
+          <ScheduleGrid
+            scheduleData={scheduleGridData}
+            currentDow={currentDow}
+            onCellPress={handleCellPress}
+            reminderCells={reminderCells}
+          />
         </Pressable>
       </View>
+
+      {/* Reminder Editor Modal */}
+      {meeting && (
+        <ReminderEditorModal
+          visible={reminderEditorVisible}
+          onClose={() => setReminderEditorVisible(false)}
+          meeting={meeting}
+          existingReminder={editingReminder}
+          selectedCell={selectedCell}
+          sid={meeting.sid}
+          onCreate={createReminder}
+          onUpdate={updateReminder}
+          onDelete={deleteReminder}
+        />
+      )}
     </Modal>
   )
 })

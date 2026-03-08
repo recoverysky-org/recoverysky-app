@@ -22,6 +22,7 @@ import {
   FeedbackSqliteRepository,
   ChatMessageSqliteRepository,
   ZoomAuthSqliteRepository,
+  ReminderSqliteRepository,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
@@ -35,6 +36,9 @@ import {
   type ZoomAuthRecord,
   type ZoomAuthCreateInput,
   type ZoomAuthUpdateInput,
+  type ReminderRecord,
+  type ReminderCreateInput,
+  type ReminderUpdateInput,
 } from "@recoverysky-org/common/sqlite"
 
 import type { SecureProfileData } from "@/models/ProfileStore"
@@ -407,6 +411,79 @@ export const chatMessageRepo = {
 
 // Re-export chat message types
 export type { ChatMessageRecord, ChatMessageInput }
+
+// ============================================================================
+// Reminder Repository
+// ============================================================================
+
+let _reminderRepo: ReminderSqliteRepository | null = null
+
+function getReminderRepo(): ReminderSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_reminderRepo) _reminderRepo = new ReminderSqliteRepository(db as any)
+  return _reminderRepo
+}
+
+/**
+ * Reminder repository instance (lazy)
+ *
+ * Stores user reminders for upcoming meetings with timezone-aware scheduling.
+ */
+export const reminderRepo = {
+  /** Create a new reminder */
+  create: async (input: ReminderCreateInput) => {
+    return getReminderRepo().create(input)
+  },
+
+  /** Find reminder by ID */
+  findById: async (id: string) => {
+    return getReminderRepo().findById(id)
+  },
+
+  /** Find all reminders for a user */
+  findByUserId: async (uid: string) => {
+    return getReminderRepo().findByUserId(uid)
+  },
+
+  /** Find all reminders for a meeting */
+  findByMeetingId: async (mid: string) => {
+    return getReminderRepo().findByMeetingId(mid)
+  },
+
+  /** Find a user's reminder for a specific meeting */
+  findByUserAndMeeting: async (uid: string, mid: string) => {
+    return getReminderRepo().findByUserAndMeeting(uid, mid)
+  },
+
+  /** Find all enabled reminders for a user */
+  findEnabledByUserId: async (uid: string) => {
+    return getReminderRepo().findEnabledByUserId(uid)
+  },
+
+  /** Update a reminder */
+  update: async (id: string, input: ReminderUpdateInput) => {
+    return getReminderRepo().update(id, input)
+  },
+
+  /** Toggle enabled status */
+  toggleEnabled: async (id: string) => {
+    return getReminderRepo().toggleEnabled(id)
+  },
+
+  /** Delete a reminder */
+  delete: async (id: string) => {
+    return getReminderRepo().delete(id)
+  },
+
+  /** Delete all reminders for a user */
+  deleteByUserId: async (uid: string) => {
+    return getReminderRepo().deleteByUserId(uid)
+  },
+}
+
+// Re-export reminder types
+export type { ReminderRecord, ReminderCreateInput, ReminderUpdateInput }
 
 // ============================================================================
 // TREX Queries (simple functions, no full repository needed for MVP)

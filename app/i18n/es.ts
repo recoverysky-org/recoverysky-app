@@ -474,6 +474,26 @@ const es: Translations = {
     micPermissionDenied: "Se requiere acceso al micrófono para la entrada de voz",
     transcriptionFailed: "No se pudo transcribir el audio. Inténtalo de nuevo.",
   },
+  reminderEditor: {
+    newReminder: "Nuevo Recordatorio",
+    editReminder: "Editar Recordatorio",
+    thisMeetingOnly: "Solo esta reunión",
+    allMeetingsAtTime: "Todas las reuniones a esta hora",
+    minutesBefore: "Minutos antes",
+    atStart: "También notificar al inicio",
+    enabled: "Activado",
+    save: "Guardar",
+    cancel: "Cancelar",
+    delete: "Eliminar",
+    deleteConfirm: "¿Eliminar este recordatorio?",
+    saved: "Recordatorio guardado",
+    deleted: "Recordatorio eliminado",
+    min5: "5 min",
+    min10: "10 min",
+    min15: "15 min",
+    min30: "30 min",
+    min60: "1 hora",
+  },
 }
 
 export default es

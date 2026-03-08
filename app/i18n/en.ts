@@ -483,6 +483,26 @@ const en = {
     micPermissionDenied: "Microphone access is required for voice input",
     transcriptionFailed: "Could not transcribe audio. Please try again.",
   },
+  reminderEditor: {
+    newReminder: "New Reminder",
+    editReminder: "Edit Reminder",
+    thisMeetingOnly: "This meeting only",
+    allMeetingsAtTime: "All meetings at this time",
+    minutesBefore: "Minutes before",
+    atStart: "Also notify at meeting start",
+    enabled: "Enabled",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete",
+    deleteConfirm: "Delete this reminder?",
+    saved: "Reminder saved",
+    deleted: "Reminder deleted",
+    min5: "5 min",
+    min10: "10 min",
+    min15: "15 min",
+    min30: "30 min",
+    min60: "1 hour",
+  },
 }
 
 export default en
