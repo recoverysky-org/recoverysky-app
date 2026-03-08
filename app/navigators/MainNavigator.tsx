@@ -11,7 +11,7 @@ import { useMeetings } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
 import { useProfileStore } from "@/models"
-import { AgentScreen } from "@/screens/AgentScreen"
+// import { AgentScreen } from "@/screens/AgentScreen" // Hidden until ready
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
@@ -40,7 +40,7 @@ export const MainNavigator = observer(function MainNavigator() {
   const { liveMeetings } = useMeetings()
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
-  const { isPremium } = useSubscription()
+  const { isPremium: _isPremium } = useSubscription() // Agent tab hidden
 
   return (
     <Tab.Navigator
@@ -116,6 +116,7 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
+      {/* Agent tab hidden until ready for release
       {isPremium && (
         <Tab.Screen
           name="Agent"
@@ -128,6 +129,7 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
+      */}
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
