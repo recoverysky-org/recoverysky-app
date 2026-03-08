@@ -2,7 +2,7 @@
   <img src="assets/images/background.png" alt="RecoverySky Banner" width="100%" />
 </p>
 
-<h1 align="center">🌤️ RecoverySky Hybrid</h1>
+<h1 align="center">🌤️ RecoverySky App</h1>
 
 <p align="center">
   <strong>A cross-platform recovery meeting finder built with React Native & Expo</strong>
