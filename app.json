@@ -2,7 +2,7 @@
   "name": "recoverysky-app",
   "slug": "recoverysky-app",
   "scheme": "recoverysky-app",
-  "version": "3.99.5",
+  "version": "3.99.6",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
