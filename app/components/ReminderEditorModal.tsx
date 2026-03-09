@@ -73,47 +73,66 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
   // Form state
   const [minutesBefore, setMinutesBefore] = useState(15)
   const [atStart, setAtStart] = useState(false)
-  const [allInSchedule, setAllInSchedule] = useState(false)
+  /** "single" = this meeting, "row" = all at this time, "all" = entire schedule */
+  const [scope, setScope] = useState<"single" | "row" | "all">("single")
   const [enabled, setEnabled] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+
+  // Local selected cell — initialized from prop, user can change by tapping grid
+  const [activeCell, setActiveCell] = useState<{ row: number; col: number } | null>(null)
 
   // Reset form when modal opens
   useEffect(() => {
     if (visible) {
+      setActiveCell(selectedCell)
       if (existingReminder) {
         setMinutesBefore(existingReminder.minutes_before)
         setAtStart(existingReminder.at_start)
-        setAllInSchedule(existingReminder.sid !== "")
+        setScope(existingReminder.sid !== "" ? "row" : "single")
         setEnabled(existingReminder.enabled)
       } else {
         setMinutesBefore(15)
         setAtStart(false)
-        setAllInSchedule(false)
+        setScope("single")
         setEnabled(true)
       }
     }
-  }, [visible, existingReminder])
+  }, [visible, existingReminder, selectedCell])
 
-  // Highlight cells based on scope:
-  // - "This meeting only" → just the tapped cell
-  // - "All meetings at this time" → all non-null cells in the grid
+  // Handle cell tap inside the editor grid — change selection
+  const handleEditorCellPress = useCallback(
+    (_millis: number, dayIndex: number, rowIndex: number) => {
+      setActiveCell({ row: rowIndex, col: dayIndex })
+    },
+    [],
+  )
+
+  // Highlight based on scope:
+  // "single" → one cell, "row" → all at this time, "all" → entire schedule
   const highlightedCells = useMemo(() => {
     const cells = new Set<string>()
-    if (!meeting.scheduleData || !selectedCell) return cells
+    if (!activeCell || !meeting.scheduleData) return cells
 
-    if (allInSchedule) {
-      // Highlight all non-null cells
+    if (scope === "all") {
+      // Every non-null cell in the grid
       meeting.scheduleData.forEach((row, ri) => {
         row.forEach((millis, ci) => {
           if (millis !== null) cells.add(`${ri}-${ci}`)
         })
       })
+    } else if (scope === "row") {
+      // All non-null cells in the active row
+      const row = meeting.scheduleData[activeCell.row]
+      if (row) {
+        row.forEach((millis, ci) => {
+          if (millis !== null) cells.add(`${activeCell.row}-${ci}`)
+        })
+      }
     } else {
-      // Highlight only the tapped cell
-      cells.add(`${selectedCell.row}-${selectedCell.col}`)
+      cells.add(`${activeCell.row}-${activeCell.col}`)
     }
     return cells
-  }, [meeting.scheduleData, selectedCell, allInSchedule])
+  }, [activeCell, scope, meeting.scheduleData])
 
   const handleSave = useCallback(async () => {
     if (isSaving) return
@@ -126,13 +145,13 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
         await onUpdate(existingReminder.id, {
           minutes_before: minutesBefore,
           at_start: atStart,
-          sid: allInSchedule ? sid : "",
+          sid: scope !== "single" ? sid : "",
           enabled,
         })
       } else {
         await onCreate({
           mid: meeting.id,
-          sid: allInSchedule ? sid : undefined,
+          sid: scope !== "single" ? sid : undefined,
           name: meeting.name,
           timezone: tz,
           minutes_before: minutesBefore,
@@ -150,7 +169,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     existingReminder,
     minutesBefore,
     atStart,
-    allInSchedule,
+    scope,
     enabled,
     sid,
     meeting,
@@ -204,34 +223,42 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               {meeting.name}
             </Text>
 
-            {/* Read-only schedule grid with gold highlighting */}
+            {/* Interactive schedule grid — tap to change selection */}
             {meeting.scheduleData && meeting.scheduleData.length > 0 && (
-              <ScheduleGrid scheduleData={meeting.scheduleData} reminderCells={highlightedCells} />
+              <ScheduleGrid
+                scheduleData={meeting.scheduleData}
+                reminderCells={highlightedCells}
+                onCellPress={handleEditorCellPress}
+              />
             )}
 
             {/* Scope toggle */}
             {sid ? (
               <View style={themed($section)}>
-                <Pressable
-                  style={[themed($scopeChip), !allInSchedule && themed($scopeChipActive)]}
-                  onPress={() => setAllInSchedule(false)}
-                >
-                  <Text
-                    style={[themed($scopeChipText), !allInSchedule && themed($scopeChipTextActive)]}
-                  >
-                    {t("reminderEditor:thisMeetingOnly")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[themed($scopeChip), allInSchedule && themed($scopeChipActive)]}
-                  onPress={() => setAllInSchedule(true)}
-                >
-                  <Text
-                    style={[themed($scopeChipText), allInSchedule && themed($scopeChipTextActive)]}
-                  >
-                    {t("reminderEditor:allMeetingsAtTime")}
-                  </Text>
-                </Pressable>
+                <View style={themed($chipRow)}>
+                  {(
+                    [
+                      { value: "single", key: "reminderEditor:thisMeetingOnly" },
+                      { value: "row", key: "reminderEditor:allMeetingsAtTime" },
+                      { value: "all", key: "reminderEditor:allMeetingsInSchedule" },
+                    ] as const
+                  ).map(({ value, key }) => (
+                    <Pressable
+                      key={value}
+                      style={[themed($scopeChip), scope === value && themed($scopeChipActive)]}
+                      onPress={() => setScope(value)}
+                    >
+                      <Text
+                        style={[
+                          themed($scopeChipText),
+                          scope === value && themed($scopeChipTextActive),
+                        ]}
+                      >
+                        {t(key)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             ) : null}
 

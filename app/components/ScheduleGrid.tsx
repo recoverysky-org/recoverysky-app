@@ -5,6 +5,7 @@
  * Current day is highlighted in the header.
  * Cells are optionally tappable (for creating/editing reminders).
  * Cells with active reminders are highlighted gold.
+ * Adjacent reminder cells in the same row merge into a connected band.
  */
 
 import { FC, useMemo, useCallback } from "react"
@@ -102,17 +103,50 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
           {rowIndex > 0 && <View style={themed($separator)} />}
           <View style={themed($timeRow)}>
             {row.map((millis, colIndex) => {
-              const hasReminder = reminderCells?.has(`${rowIndex}-${colIndex}`) ?? false
+              const cellKey = `${rowIndex}-${colIndex}`
+              const hasReminder = reminderCells?.has(cellKey) ?? false
               const isTappable = millis !== null && onCellPress !== undefined
 
+              // Check adjacent reminder cells for connected band styling
+              const leftKey = `${rowIndex}-${colIndex - 1}`
+              const rightKey = `${rowIndex}-${colIndex + 1}`
+              const hasLeft = hasReminder && (reminderCells?.has(leftKey) ?? false)
+              const hasRight = hasReminder && (reminderCells?.has(rightKey) ?? false)
+
+              // Dynamic border-radius: flatten sides that connect to neighbors
+              const bandStyle: ViewStyle | undefined = hasReminder
+                ? {
+                    borderTopLeftRadius: hasLeft ? 0 : 8,
+                    borderBottomLeftRadius: hasLeft ? 0 : 8,
+                    borderTopRightRadius: hasRight ? 0 : 8,
+                    borderBottomRightRadius: hasRight ? 0 : 8,
+                    // Remove border on connected sides
+                    borderLeftWidth: hasLeft ? 0 : 1,
+                    borderRightWidth: hasRight ? 0 : 1,
+                  }
+                : undefined
+
+              // Remove horizontal padding between connected cells
+              const cellGap: ViewStyle | undefined =
+                hasReminder && (hasLeft || hasRight)
+                  ? {
+                      paddingLeft: hasLeft ? 0 : 2,
+                      paddingRight: hasRight ? 0 : 2,
+                    }
+                  : undefined
+
+              const innerStyle = hasReminder
+                ? [$reminderCellInner, bandStyle]
+                : themed($timeCellInner)
+
               return (
-                <View key={colIndex} style={themed($timeCell)}>
+                <View key={colIndex} style={[themed($timeCell), cellGap]}>
                   {millis !== null ? (
                     isTappable ? (
                       <Pressable
                         onPress={() => handleCellPress(millis, colIndex, rowIndex)}
                         style={({ pressed }) => [
-                          hasReminder ? $reminderCellInner : themed($timeCellInner),
+                          ...(Array.isArray(innerStyle) ? innerStyle : [innerStyle]),
                           pressed && $cellPressed,
                         ]}
                       >
@@ -129,7 +163,7 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                         )}
                       </Pressable>
                     ) : (
-                      <View style={hasReminder ? $reminderCellInner : themed($timeCellInner)}>
+                      <View style={Array.isArray(innerStyle) ? innerStyle : [innerStyle]}>
                         <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
                           {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
                         </Text>

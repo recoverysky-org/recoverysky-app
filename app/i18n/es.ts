@@ -477,8 +477,9 @@ const es: Translations = {
   reminderEditor: {
     newReminder: "Nuevo Recordatorio",
     editReminder: "Editar Recordatorio",
-    thisMeetingOnly: "Solo esta reunión",
-    allMeetingsAtTime: "Todas las reuniones a esta hora",
+    thisMeetingOnly: "Solo esta",
+    allMeetingsAtTime: "Todas a esta hora",
+    allMeetingsInSchedule: "Todo el horario",
     minutesBefore: "Minutos antes",
     atStart: "También notificar al inicio",
     enabled: "Activado",
