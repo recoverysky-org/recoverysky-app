@@ -255,13 +255,14 @@ function computeReminderCells(
       })
     })
   } else if (rowScopeReminder) {
-    // All at this time — highlight only the row matching this meeting's time
+    // All at this time — find the row containing this meeting, highlight entire row
     meeting.scheduleData.forEach((row, rowIndex) => {
-      row.forEach((millis, colIndex) => {
-        if (millis !== null && millis === meeting.millis) {
-          cells.add(`${rowIndex}-${colIndex}`)
-        }
-      })
+      const rowHasMeeting = row.some((m) => m !== null && m === meeting.millis)
+      if (rowHasMeeting) {
+        row.forEach((millis, colIndex) => {
+          if (millis !== null) cells.add(`${rowIndex}-${colIndex}`)
+        })
+      }
     })
   }
 
