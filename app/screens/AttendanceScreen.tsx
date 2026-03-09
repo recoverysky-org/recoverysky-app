@@ -106,7 +106,8 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
     <View style={themed($sectionHeader)}>
       {recordCount > 0 && (
         <Text style={themed($countText)}>
-          {recordCount} {translate(recordCount === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}
+          {recordCount}{" "}
+          {translate(recordCount === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}
         </Text>
       )}
 
@@ -156,10 +157,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
           </TouchableOpacity>
 
           {/* Help Text */}
-          <Text
-            style={themed($helpText)}
-            tx="attendanceScreen:sendReportHint"
-          />
+          <Text style={themed($helpText)} tx="attendanceScreen:sendReportHint" />
         </>
       ) : (
         <View style={themed($subscribePrompt)}>
@@ -235,23 +233,30 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
   }, [])
 
   const handleDelete = useCallback((record: AttendanceRecord) => {
-    Alert.alert(translate("attendanceScreen:removeTitle"), translate("attendanceScreen:removeMessage"), [
-      { text: translate("attendanceScreen:cancel"), style: "cancel" },
-      {
-        text: translate("attendanceScreen:remove"),
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await attendanceRepo.update(record.id, { valid: false })
-            setRecords((prev) => prev.filter((r) => r.id !== record.id))
-            logger.info("Attendance marked invalid", { id: record.id })
-          } catch (error) {
-            logger.error("Failed to delete attendance", { error: String(error) })
-            Alert.alert(translate("attendanceScreen:errorTitle"), translate("attendanceScreen:removeError"))
-          }
+    Alert.alert(
+      translate("attendanceScreen:removeTitle"),
+      translate("attendanceScreen:removeMessage"),
+      [
+        { text: translate("attendanceScreen:cancel"), style: "cancel" },
+        {
+          text: translate("attendanceScreen:remove"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await attendanceRepo.update(record.id, { valid: false })
+              setRecords((prev) => prev.filter((r) => r.id !== record.id))
+              logger.info("Attendance marked invalid", { id: record.id })
+            } catch (error) {
+              logger.error("Failed to delete attendance", { error: String(error) })
+              Alert.alert(
+                translate("attendanceScreen:errorTitle"),
+                translate("attendanceScreen:removeError"),
+              )
+            }
+          },
         },
-      },
-    ])
+      ],
+    )
   }, [])
 
   const renderItem = useCallback(
@@ -366,9 +371,7 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
   }, [loadRecords])
 
   const renderItem = useCallback(
-    ({ item }: { item: AttendanceRecord }) => (
-      <AttendanceRow record={item} />
-    ),
+    ({ item }: { item: AttendanceRecord }) => <AttendanceRow record={item} />,
     [],
   )
 
@@ -391,7 +394,10 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
       <View style={themed($sectionHeader)}>
         {records.length > 0 && (
           <Text style={themed($countText)}>
-            {records.length} {translate(records.length === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}
+            {records.length}{" "}
+            {translate(
+              records.length === 1 ? "attendanceScreen:record" : "attendanceScreen:records",
+            )}
           </Text>
         )}
       </View>
@@ -501,7 +507,10 @@ const ReportsContent: FC = observer(function ReportsContent() {
 
   const handleViewReport = useCallback((report: AttendanceReportRecord) => {
     if (!report.html) {
-      Alert.alert(translate("attendanceScreen:notAvailableTitle"), translate("attendanceScreen:notAvailableMessage"))
+      Alert.alert(
+        translate("attendanceScreen:notAvailableTitle"),
+        translate("attendanceScreen:notAvailableMessage"),
+      )
       return
     }
     setSelectedReport(report)
@@ -565,7 +574,8 @@ const ReportsContent: FC = observer(function ReportsContent() {
             <Text style={themed($reportDate)}>{dateStr}</Text>
             <Text style={themed($reportMeta)}>
               {item.email}
-              {count > 0 && ` · ${count} ${translate(count === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}`}
+              {count > 0 &&
+                ` · ${count} ${translate(count === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}`}
             </Text>
           </View>
           <TouchableOpacity onPress={() => handleResendTap(item)} style={$viewButton} hitSlop={8}>
@@ -622,7 +632,11 @@ const ReportsContent: FC = observer(function ReportsContent() {
               <View style={themed($resendPanel)}>
                 <Text
                   style={themed($emailLabel)}
-                  text={resendEmail === resendReport.email ? translate("attendanceScreen:resendReport") : translate("attendanceScreen:forwardReport")}
+                  text={
+                    resendEmail === resendReport.email
+                      ? translate("attendanceScreen:resendReport")
+                      : translate("attendanceScreen:forwardReport")
+                  }
                 />
                 <View style={$emailRow}>
                   <TextField
@@ -671,7 +685,11 @@ const ReportsContent: FC = observer(function ReportsContent() {
                           ? $sendButtonText
                           : $sendButtonTextDisabled,
                       )}
-                      text={isSending ? translate("attendanceScreen:sending") : translate("attendanceScreen:send")}
+                      text={
+                        isSending
+                          ? translate("attendanceScreen:sending")
+                          : translate("attendanceScreen:send")
+                      }
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -689,7 +707,10 @@ const ReportsContent: FC = observer(function ReportsContent() {
             {reports.length > 0 && (
               <View style={themed($sectionHeader)}>
                 <Text style={themed($countText)}>
-                  {reports.length} {translate(reports.length === 1 ? "attendanceScreen:report" : "attendanceScreen:reports")}
+                  {reports.length}{" "}
+                  {translate(
+                    reports.length === 1 ? "attendanceScreen:report" : "attendanceScreen:reports",
+                  )}
                 </Text>
               </View>
             )}

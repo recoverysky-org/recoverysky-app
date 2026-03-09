@@ -193,7 +193,9 @@ export const LiveContent: FC = observer(function LiveContent() {
       >
         <Text style={themed($selectorLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
         <View style={$selectorValueRow}>
-          <Text style={themed($selectorValue)}>{filterFellowship || t("liveScreen:defaultFellowship")}</Text>
+          <Text style={themed($selectorValue)}>
+            {filterFellowship || t("liveScreen:defaultFellowship")}
+          </Text>
           <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
         </View>
       </TouchableOpacity>

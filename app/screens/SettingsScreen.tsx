@@ -28,6 +28,8 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { useZoomAuth } from "@/services/auth"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import {
   optInNotifications,
   optOutNotifications,
@@ -35,9 +37,7 @@ import {
   hasNotificationPermission,
   logoutOneSignalUser,
 } from "@/services/notifications"
-import { useZoomAuth } from "@/services/auth"
 import { requestReviewFromSettings } from "@/services/review"
-import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -969,7 +969,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       {/* Import Section */}
       <View style={themed($section)}>
         <View style={themed($sectionHeader)}>
-          <Ionicons name="cloud-download-outline" size={20} color={themed($importIconColor).color} />
+          <Ionicons
+            name="cloud-download-outline"
+            size={20}
+            color={themed($importIconColor).color}
+          />
           <Text style={themed($sectionTitle)} tx="settingsScreen:importSection" />
         </View>
 

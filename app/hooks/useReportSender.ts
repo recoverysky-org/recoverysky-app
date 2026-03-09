@@ -43,7 +43,9 @@ export interface SendResult {
 /** Generate an 8-char hex report ID formatted as "####-####" */
 function generateReportId(): string {
   const bytes = Crypto.getRandomBytes(4)
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase()
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()
   return `${hex.slice(0, 4)}-${hex.slice(4, 8)}`
 }
 
@@ -164,10 +166,20 @@ async function handleSend(
     logger.info("Initial send started", { reportId, email, count: op.attendanceIds.length })
 
     const createResult = await attendanceReportRepo.create({
-      id: reportId, uid, email, name, userEmail, userIdNum: userIdNum || undefined, timezone, generated: Date.now(),
+      id: reportId,
+      uid,
+      email,
+      name,
+      userEmail,
+      userIdNum: userIdNum || undefined,
+      timezone,
+      generated: Date.now(),
     })
     if (!createResult.ok) {
-      logger.error("Failed to create attendance report in DB", { reportId, error: String(createResult.error) })
+      logger.error("Failed to create attendance report in DB", {
+        reportId,
+        error: String(createResult.error),
+      })
       showToast({ message: "Failed to create report", type: "error" })
       return { reportId, success: false }
     }
@@ -192,15 +204,35 @@ async function handleSend(
   if (op.type === "initial") {
     const attendanceResult = await attendanceRepo.findByReportId(reportId)
     if (!attendanceResult.ok) {
-      logger.warn("Failed to fetch attendance for API", { reportId, error: String(attendanceResult.error) })
+      logger.warn("Failed to fetch attendance for API", {
+        reportId,
+        error: String(attendanceResult.error),
+      })
       showToast({ message: "Report saved locally", type: "success" })
       return { reportId, success: true }
     }
-    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail, userIdNum: userIdNum || undefined, timezone, attendance: attendanceResult.value })
+    apiResult = await api.sendReport({
+      id: reportId,
+      uid,
+      email,
+      name,
+      userEmail,
+      userIdNum: userIdNum || undefined,
+      timezone,
+      attendance: attendanceResult.value,
+    })
   } else if (op.type === "resend") {
     apiResult = await api.resendReport({ id: reportId, uid })
   } else {
-    apiResult = await api.sendReport({ id: reportId, uid, email, name, userEmail, userIdNum: userIdNum || undefined, timezone })
+    apiResult = await api.sendReport({
+      id: reportId,
+      uid,
+      email,
+      name,
+      userEmail,
+      userIdNum: userIdNum || undefined,
+      timezone,
+    })
   }
 
   // 4. Process result (update DB, toast, poll if needed)

@@ -88,7 +88,10 @@ class LoggerImpl implements Logger {
     }
 
     // Console output — enabled in dev always, in release for warn+ to aid debugging
-    if ((__DEV__ && this.config.consoleInDev) || LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY["info"]) {
+    if (
+      (__DEV__ && this.config.consoleInDev) ||
+      LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY["info"]
+    ) {
       const method = CONSOLE_METHODS[level]
       const fn = console[method] as (...args: unknown[]) => void
       if (Object.keys(record.attributes).length > 0) {

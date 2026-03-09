@@ -26,10 +26,7 @@ const withMainManifestToolsReplace: ConfigPlugin = (config) => {
     const manifest = config.modResults
     const app = manifest.manifest.application?.[0]
     if (app) {
-      app.$["tools:replace"] = [
-        app.$["tools:replace"],
-        "android:usesCleartextTraffic",
-      ]
+      app.$["tools:replace"] = [app.$["tools:replace"], "android:usesCleartextTraffic"]
         .filter(Boolean)
         .join(",")
     }
@@ -54,16 +51,10 @@ const withDebugNetworkSecurity: ConfigPlugin = (config) => {
       // Write network_security_config.xml
       const xmlDir = path.join(projectRoot, "android/app/src/debug/res/xml")
       fs.mkdirSync(xmlDir, { recursive: true })
-      fs.writeFileSync(
-        path.join(xmlDir, "network_security_config.xml"),
-        NETWORK_SECURITY_CONFIG,
-      )
+      fs.writeFileSync(path.join(xmlDir, "network_security_config.xml"), NETWORK_SECURITY_CONFIG)
 
       // Write debug AndroidManifest.xml with networkSecurityConfig + tools:replace
-      const manifestPath = path.join(
-        projectRoot,
-        "android/app/src/debug/AndroidManifest.xml",
-      )
+      const manifestPath = path.join(projectRoot, "android/app/src/debug/AndroidManifest.xml")
       fs.writeFileSync(manifestPath, DEBUG_MANIFEST)
 
       return config

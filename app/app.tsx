@@ -40,7 +40,13 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
-import { DatabaseProvider, DatabaseLoadingOverlay, ProfileHydrator, ChatHydrator, ReportPollingResumer } from "./db"
+import {
+  DatabaseProvider,
+  DatabaseLoadingOverlay,
+  ProfileHydrator,
+  ChatHydrator,
+  ReportPollingResumer,
+} from "./db"
 import { initI18n } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
@@ -314,9 +320,7 @@ export function App() {
 
           // Handle notification click → deep link to specific tab
           addNotificationClickHandler((event) => {
-            const data = event.notification.additionalData as
-              | { screen?: string }
-              | undefined
+            const data = event.notification.additionalData as { screen?: string } | undefined
             if (data?.screen) {
               log.info("Notification clicked, navigating", { screen: data.screen })
               const { navigate: navTo } = require("./navigators/navigationUtilities")

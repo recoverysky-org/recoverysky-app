@@ -6,10 +6,10 @@
  */
 import { useEffect } from "react"
 import { ActivityIndicator, View } from "react-native"
-import { useAuth0 } from "react-native-auth0"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
+import { useAuth0 } from "react-native-auth0"
 
 import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
@@ -58,7 +58,14 @@ const AppStack = observer(function AppStack() {
   // This prevents a flash of the Login screen for returning users
   if (auth0Loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
         <ActivityIndicator size="large" color={colors.tint} />
       </View>
     )

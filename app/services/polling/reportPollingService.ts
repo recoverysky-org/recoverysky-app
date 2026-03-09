@@ -11,11 +11,7 @@
  *   60 min+: every 15 min
  */
 
-import {
-  attendanceReportRepo,
-  attendanceEvents,
-  type AttendanceReportUpdateInput,
-} from "@/db"
+import { attendanceReportRepo, attendanceEvents, type AttendanceReportUpdateInput } from "@/db"
 import { api } from "@/services/api"
 import { logger } from "@/utils/logger"
 
@@ -131,7 +127,11 @@ export function pollForConfirmation(reportId: string): void {
 
     // Not resolved — schedule next poll (never give up)
     const delay = getNextDelay(startTime)
-    log.debug("Poll: scheduling next", { reportId, delayMs: delay, elapsedMs: Date.now() - startTime })
+    log.debug("Poll: scheduling next", {
+      reportId,
+      delayMs: delay,
+      elapsedMs: Date.now() - startTime,
+    })
     setTimeout(poll, delay)
   }
 

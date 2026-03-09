@@ -26,8 +26,8 @@ import {
 } from "@/db"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
-import { getZakToken } from "@/services/zak"
 import { recordMeetingJoined, maybeRequestReview } from "@/services/review"
+import { getZakToken } from "@/services/zak"
 import { logger } from "@/utils/logger"
 
 import { generateZoomJwt } from "./generateJwt"

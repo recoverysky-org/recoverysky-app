@@ -149,9 +149,7 @@ export function Toggle<T>(props: ToggleProps<T>) {
   } = useAppTheme()
 
   const disabled = editable === false || status === "disabled" || props.disabled
-  const labelText = props.labelTx
-    ? translate(props.labelTx, props.labelTxOptions)
-    : props.label
+  const labelText = props.labelTx ? translate(props.labelTx, props.labelTxOptions) : props.label
 
   const Wrapper = useMemo(
     () => (disabled ? View : TouchableOpacity) as ComponentType<TouchableOpacityProps | ViewProps>,

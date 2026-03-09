@@ -4,7 +4,15 @@
  * Welcome intro screen with recovery message
  */
 import { FC, useState } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Image, ImageStyle, ActivityIndicator } from "react-native"
+import {
+  View,
+  ViewStyle,
+  TextStyle,
+  Pressable,
+  Image,
+  ImageStyle,
+  ActivityIndicator,
+} from "react-native"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -16,9 +24,9 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
 
-const log = logger.child({ module: "OnboardingWelcome" })
-
 import { ProgressDots } from "./ProgressDots"
+
+const log = logger.child({ module: "OnboardingWelcome" })
 
 const signatureBlack = require("@assets/images/RecoverySky-signature.black.png")
 const signatureWhite = require("@assets/images/RecoverySky-signature.white.png")

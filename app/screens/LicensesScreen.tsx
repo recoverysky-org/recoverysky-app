@@ -10,11 +10,11 @@ import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
+import { ossLicensesText } from "@assets/content/oss"
+
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-
-import { ossLicensesText } from "@assets/content/oss"
 
 export const LicensesScreen: FC = function LicensesScreen() {
   const navigation = useNavigation()
