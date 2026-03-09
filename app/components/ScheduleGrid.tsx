@@ -10,7 +10,6 @@
 
 import { FC, useMemo, useCallback } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
 import { DateTime } from "@recoverysky-org/common/browser"
 import { useTranslation } from "react-i18next"
 
@@ -153,28 +152,12 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                         <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
                           {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
                         </Text>
-                        {hasReminder && (
-                          <Ionicons
-                            name="notifications"
-                            size={10}
-                            color={REMINDER_COLOR}
-                            style={$bellIcon}
-                          />
-                        )}
                       </Pressable>
                     ) : (
                       <View style={Array.isArray(innerStyle) ? innerStyle : [innerStyle]}>
                         <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
                           {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
                         </Text>
-                        {hasReminder && (
-                          <Ionicons
-                            name="notifications"
-                            size={10}
-                            color={REMINDER_COLOR}
-                            style={$bellIcon}
-                          />
-                        )}
                       </View>
                     )
                   ) : (
@@ -277,6 +260,3 @@ const $reminderTimeText: TextStyle = {
   color: REMINDER_COLOR,
 }
 
-const $bellIcon: ViewStyle = {
-  marginTop: 2,
-}
