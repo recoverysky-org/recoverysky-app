@@ -88,7 +88,10 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
       if (existingReminder) {
         setMinutesBefore(existingReminder.minutes_before)
         setAtStart(existingReminder.at_start)
-        setScope(existingReminder.sid !== "" ? "row" : "single")
+        setScope(
+          existingReminder.sid && !existingReminder.mid ? "all" :
+          existingReminder.sid ? "row" : "single"
+        )
         setEnabled(existingReminder.enabled)
       } else {
         setMinutesBefore(15)
@@ -145,12 +148,13 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
         await onUpdate(existingReminder.id, {
           minutes_before: minutesBefore,
           at_start: atStart,
+          mid: scope === "all" ? "" : meeting.id,
           sid: scope !== "single" ? sid : "",
           enabled,
         })
       } else {
         await onCreate({
-          mid: meeting.id,
+          mid: scope === "all" ? "" : meeting.id,
           sid: scope !== "single" ? sid : undefined,
           name: meeting.name,
           timezone: tz,

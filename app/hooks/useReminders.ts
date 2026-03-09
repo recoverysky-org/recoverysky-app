@@ -240,14 +240,25 @@ function computeReminderCells(
   const enabledReminders = reminders.filter((r) => r.enabled)
   if (enabledReminders.length === 0) return cells
 
-  // If any reminder exists for this meeting, highlight all non-null cells
-  const hasDirectReminder = enabledReminders.some((r) => r.mid === meeting.id)
-  const hasScheduleReminder = enabledReminders.some((r) => r.sid && r.sid !== "")
+  // Scope detection from stored fields:
+  //   single: no sid        → no grid highlighting
+  //   row:    sid + mid      → highlight cells matching meeting.millis
+  //   all:    sid + no mid   → highlight all non-null cells
+  const allScopeReminder = enabledReminders.find((r) => r.sid && r.sid !== "" && !r.mid)
+  const rowScopeReminder = enabledReminders.find((r) => r.sid && r.sid !== "" && r.mid)
 
-  if (hasDirectReminder || hasScheduleReminder) {
+  if (allScopeReminder) {
+    // Entire schedule — highlight every non-null cell
     meeting.scheduleData.forEach((row, rowIndex) => {
       row.forEach((millis, colIndex) => {
-        if (millis !== null) {
+        if (millis !== null) cells.add(`${rowIndex}-${colIndex}`)
+      })
+    })
+  } else if (rowScopeReminder) {
+    // All at this time — highlight only the row matching this meeting's time
+    meeting.scheduleData.forEach((row, rowIndex) => {
+      row.forEach((millis, colIndex) => {
+        if (millis !== null && millis === meeting.millis) {
           cells.add(`${rowIndex}-${colIndex}`)
         }
       })
