@@ -71,7 +71,9 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
       if (sid) {
         const byUser = await reminderRepo.findByUserId(uid)
         if (byUser.ok) {
-          scheduleReminders = byUser.value.filter((r) => r.sid === sid && r.mid !== meeting.id)
+          scheduleReminders = byUser.value.filter(
+            (r) => r.sid === sid && r.scope !== "single" && r.mid !== meeting.id,
+          )
         }
       }
 
@@ -223,12 +225,20 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
   }
 }
 
+/** Extract UTC hours*60+minutes from epoch millis — identifies a time-of-day */
+function utcTimeOfDay(millis: number): number {
+  const d = new Date(millis)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
 /**
  * Compute which grid cells have active reminders.
  * Returns a Set of "rowIndex-colIndex" keys.
  *
- * Since mid identifies the recurring meeting and the schedule grid shows
- * all occurrences, a reminder for a mid highlights ALL cells for that meeting.
+ * Uses the explicit `scope` field on each reminder:
+ *   single → no grid highlighting (can't identify specific cell)
+ *   row    → highlight the time-slot row matching meeting.millis
+ *   all    → highlight every non-null cell
  */
 function computeReminderCells(
   reminders: ReminderRecord[],
@@ -237,30 +247,26 @@ function computeReminderCells(
   const cells = new Set<string>()
   if (!meeting?.scheduleData || reminders.length === 0) return cells
 
-  const enabledReminders = reminders.filter((r) => r.enabled)
-  if (enabledReminders.length === 0) return cells
+  const enabled = reminders.filter((r) => r.enabled)
+  if (enabled.length === 0) return cells
 
-  // Scope detection from stored fields:
-  //   single: no sid        → no grid highlighting
-  //   row:    sid + mid      → highlight cells matching meeting.millis
-  //   all:    sid + no mid   → highlight all non-null cells
-  const allScopeReminder = enabledReminders.find((r) => r.sid && r.sid !== "" && !r.mid)
-  const rowScopeReminder = enabledReminders.find((r) => r.sid && r.sid !== "" && r.mid)
+  const hasAll = enabled.some((r) => r.scope === "all")
+  const hasRow = enabled.some((r) => r.scope === "row")
 
-  if (allScopeReminder) {
-    // Entire schedule — highlight every non-null cell
-    meeting.scheduleData.forEach((row, rowIndex) => {
-      row.forEach((millis, colIndex) => {
-        if (millis !== null) cells.add(`${rowIndex}-${colIndex}`)
+  if (hasAll) {
+    meeting.scheduleData.forEach((row, ri) => {
+      row.forEach((m, ci) => {
+        if (m !== null) cells.add(`${ri}-${ci}`)
       })
     })
-  } else if (rowScopeReminder) {
-    // All at this time — find the row containing this meeting, highlight entire row
-    meeting.scheduleData.forEach((row, rowIndex) => {
-      const rowHasMeeting = row.some((m) => m !== null && m === meeting.millis)
-      if (rowHasMeeting) {
-        row.forEach((millis, colIndex) => {
-          if (millis !== null) cells.add(`${rowIndex}-${colIndex}`)
+  } else if (hasRow) {
+    // Match by time-of-day (UTC HH:MM) — epoch timestamps differ per day
+    const target = utcTimeOfDay(meeting.millis)
+    meeting.scheduleData.forEach((row, ri) => {
+      const rowMatches = row.some((m) => m !== null && utcTimeOfDay(m) === target)
+      if (rowMatches) {
+        row.forEach((m, ci) => {
+          if (m !== null) cells.add(`${ri}-${ci}`)
         })
       }
     })

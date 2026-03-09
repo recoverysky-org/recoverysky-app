@@ -259,4 +259,3 @@ const $reminderTimeText: TextStyle = {
   fontWeight: "600",
   color: REMINDER_COLOR,
 }
-
