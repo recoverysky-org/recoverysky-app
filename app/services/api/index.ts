@@ -64,6 +64,8 @@ export interface ReminderApiInput {
   sid?: string
   name?: string
   timezone: string
+  dow?: number
+  time?: number
   minutes_before: number
   at_start: boolean
   enabled: boolean

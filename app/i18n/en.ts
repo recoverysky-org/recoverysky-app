@@ -505,6 +505,8 @@ const en = {
     min15: "15 min",
     min30: "30 min",
     min60: "1 hour",
+    selectTime: "Select Time",
+    reminderTime: "Reminder time",
     overlapMessage: "This overlaps with an existing reminder",
     premiumTitle: "Premium Feature",
     premiumMessage: "Reminders are available with a Premium subscription.",

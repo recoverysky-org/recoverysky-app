@@ -496,6 +496,8 @@ const es: Translations = {
     min15: "15 min",
     min30: "30 min",
     min60: "1 hora",
+    selectTime: "Seleccionar Hora",
+    reminderTime: "Hora del recordatorio",
     overlapMessage: "Esto se superpone con un recordatorio existente",
     premiumTitle: "Función Premium",
     premiumMessage: "Los recordatorios están disponibles con una suscripción Premium.",
