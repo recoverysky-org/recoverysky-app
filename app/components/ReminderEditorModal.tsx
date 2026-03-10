@@ -53,6 +53,8 @@ interface ReminderEditorModalProps {
   onUpdate: (id: string, input: ReminderUpdateInput) => Promise<void>
   /** Delete handler from useReminders */
   onDelete: (id: string) => Promise<void>
+  /** Check if proposed cells overlap with existing reminders */
+  onCheckOverlap: (proposedCells: Set<string>, excludeId?: string) => ReminderRecord[]
 }
 
 export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
@@ -65,6 +67,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
   onCreate,
   onUpdate,
   onDelete,
+  onCheckOverlap,
 }) => {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
@@ -134,14 +137,12 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     return cells
   }, [activeCell, scope, enabled, meeting.scheduleData])
 
-  const handleSave = useCallback(async () => {
-    if (isSaving || !activeCell) return
+  const doSave = useCallback(async () => {
+    if (!activeCell) return
     setIsSaving(true)
 
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-      // Resolve the meeting ID from the selected cell in the grid
       const cellMid =
         meeting.scheduleData?.[activeCell.row]?.[activeCell.col]?.id ?? meeting.id
 
@@ -171,7 +172,6 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
       setIsSaving(false)
     }
   }, [
-    isSaving,
     activeCell,
     isEditing,
     existingReminder,
@@ -185,6 +185,18 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     onUpdate,
     onClose,
   ])
+
+  // Reactively check overlap whenever scope, cell, or enabled changes
+  const hasOverlap = useMemo(() => {
+    if (!activeCell) return false
+    const proposedKeys = new Set(highlightedCells.keys())
+    return onCheckOverlap(proposedKeys, existingReminder?.id).length > 0
+  }, [activeCell, highlightedCells, onCheckOverlap, existingReminder?.id])
+
+  const handleSave = useCallback(() => {
+    if (isSaving || !activeCell) return
+    doSave()
+  }, [isSaving, activeCell, doSave])
 
   const handleDelete = useCallback(() => {
     if (!existingReminder) return
@@ -317,6 +329,16 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
                   trackColor={{ false: theme.colors.border, true: `${REMINDER_COLOR}80` }}
                   thumbColor={enabled ? REMINDER_COLOR : theme.colors.textDim}
                 />
+              </View>
+            )}
+
+            {/* Overlap warning */}
+            {hasOverlap && (
+              <View style={$overlapWarning}>
+                <Ionicons name="warning" size={16} color="#f59e0b" />
+                <Text style={$overlapWarningText}>
+                  {t("reminderEditor:overlapMessage")}
+                </Text>
               </View>
             )}
 
@@ -477,6 +499,24 @@ const $toggleLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "500",
   color: colors.text,
 })
+
+const $overlapWarning: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+  marginTop: 12,
+  paddingVertical: 8,
+  paddingHorizontal: 10,
+  backgroundColor: "rgba(245, 158, 11, 0.12)",
+  borderRadius: 8,
+}
+
+const $overlapWarningText: TextStyle = {
+  flex: 1,
+  fontSize: 13,
+  fontWeight: "500",
+  color: "#f59e0b",
+}
 
 const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",

@@ -108,35 +108,8 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
               const isDisabled = reminderState === "disabled"
               const isTappable = cell !== null && onCellPress !== undefined
 
-              // Check adjacent reminder cells for connected band styling
-              const leftKey = `${rowIndex}-${colIndex - 1}`
-              const rightKey = `${rowIndex}-${colIndex + 1}`
-              const hasLeft = hasReminder && reminderCells?.has(leftKey)
-              const hasRight = hasReminder && reminderCells?.has(rightKey)
-
-              // Dynamic border-radius: flatten sides that connect to neighbors
-              const bandStyle: ViewStyle | undefined = hasReminder
-                ? {
-                    borderTopLeftRadius: hasLeft ? 0 : 8,
-                    borderBottomLeftRadius: hasLeft ? 0 : 8,
-                    borderTopRightRadius: hasRight ? 0 : 8,
-                    borderBottomRightRadius: hasRight ? 0 : 8,
-                    borderLeftWidth: hasLeft ? 0 : 1,
-                    borderRightWidth: hasRight ? 0 : 1,
-                  }
-                : undefined
-
-              // Remove horizontal padding between connected cells
-              const cellGap: ViewStyle | undefined =
-                hasReminder && (hasLeft || hasRight)
-                  ? {
-                      paddingLeft: hasLeft ? 0 : 2,
-                      paddingRight: hasRight ? 0 : 2,
-                    }
-                  : undefined
-
               const innerStyle = hasReminder
-                ? [isDisabled ? $disabledCellInner : $reminderCellInner, bandStyle]
+                ? (isDisabled ? $disabledCellInner : $reminderCellInner)
                 : themed($timeCellInner)
 
               const textStyle = hasReminder
@@ -146,22 +119,19 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                 : themed($timeText)
 
               return (
-                <View key={colIndex} style={[themed($timeCell), cellGap]}>
+                <View key={colIndex} style={themed($timeCell)}>
                   {cell !== null ? (
                     isTappable ? (
                       <Pressable
                         onPress={() => handleCellPress(cell.millis, cell.id, colIndex, rowIndex)}
-                        style={({ pressed }) => [
-                          ...(Array.isArray(innerStyle) ? innerStyle : [innerStyle]),
-                          pressed && $cellPressed,
-                        ]}
+                        style={({ pressed }) => [innerStyle, pressed && $cellPressed]}
                       >
                         <Text style={textStyle}>
                           {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </Pressable>
                     ) : (
-                      <View style={Array.isArray(innerStyle) ? innerStyle : [innerStyle]}>
+                      <View style={innerStyle}>
                         <Text style={textStyle}>
                           {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
@@ -243,8 +213,6 @@ const $reminderCellInner: ViewStyle = {
   paddingVertical: 6,
   paddingHorizontal: 4,
   alignItems: "center",
-  borderWidth: 1,
-  borderColor: `${REMINDER_COLOR}60`,
 }
 
 const $disabledCellInner: ViewStyle = {
@@ -253,8 +221,6 @@ const $disabledCellInner: ViewStyle = {
   paddingVertical: 6,
   paddingHorizontal: 4,
   alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#555",
 }
 
 const $cellPressed: ViewStyle = {

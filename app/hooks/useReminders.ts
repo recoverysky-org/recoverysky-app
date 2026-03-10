@@ -37,6 +37,8 @@ interface UseRemindersResult {
   deleteReminder: (id: string) => Promise<void>
   /** Find existing reminder covering the given cell ID (direct, row, or all scope) */
   findExistingReminder: (cellId?: string) => ReminderRecord | null
+  /** Check if proposed cells overlap with existing reminders (excludeId skips self) */
+  checkOverlap: (proposedCells: Set<string>, excludeId?: string) => ReminderRecord[]
 }
 
 /**
@@ -236,6 +238,18 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
     [reminders, meeting?.id, meeting?.scheduleData],
   )
 
+  const checkOverlap = useCallback(
+    (proposedCells: Set<string>, excludeId?: string): ReminderRecord[] => {
+      if (!meeting?.scheduleData) return []
+      return reminders.filter((r) => {
+        if (excludeId && r.id === excludeId) return false
+        const rCells = getCellsForReminder(r, meeting.scheduleData!)
+        return rCells.some((key) => proposedCells.has(key))
+      })
+    },
+    [reminders, meeting?.scheduleData],
+  )
+
   return {
     reminders,
     reminderCells,
@@ -244,18 +258,45 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
     updateReminder,
     deleteReminder,
     findExistingReminder,
+    checkOverlap,
   }
+}
+
+/** Get the "row-col" cell keys covered by a single reminder */
+function getCellsForReminder(
+  r: ReminderRecord,
+  scheduleData: (({ millis: number; id: string } | null)[])[],
+): string[] {
+  const keys: string[] = []
+  if (r.scope === "all") {
+    scheduleData.forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        if (cell !== null) keys.push(`${ri}-${ci}`)
+      })
+    })
+  } else if (r.scope === "row") {
+    for (let ri = 0; ri < scheduleData.length; ri++) {
+      if (scheduleData[ri].some((c) => c !== null && c.id === r.mid)) {
+        scheduleData[ri].forEach((c, ci) => {
+          if (c !== null) keys.push(`${ri}-${ci}`)
+        })
+        break
+      }
+    }
+  } else {
+    for (let ri = 0; ri < scheduleData.length; ri++) {
+      for (let ci = 0; ci < scheduleData[ri].length; ci++) {
+        const c = scheduleData[ri][ci]
+        if (c !== null && c.id === r.mid) keys.push(`${ri}-${ci}`)
+      }
+    }
+  }
+  return keys
 }
 
 /**
  * Compute which grid cells have reminders and their enabled/disabled state.
  * Returns a Map of "rowIndex-colIndex" → "enabled" | "disabled".
- *
- * Each cell in scheduleData carries an `id` (meeting/trex ID).
- * Uses the explicit `scope` field on each reminder:
- *   single → highlight only the cell whose id matches reminder.mid
- *   row    → find the cell matching reminder.mid, highlight its entire row
- *   all    → highlight every non-null cell
  */
 function computeReminderCells(
   reminders: ReminderRecord[],
@@ -264,46 +305,11 @@ function computeReminderCells(
   const cells = new Map<string, "enabled" | "disabled">()
   if (!meeting?.scheduleData || reminders.length === 0) return cells
 
-  const addCells = (keys: string[], state: "enabled" | "disabled") => {
-    for (const key of keys) {
-      // "enabled" wins over "disabled" if both apply
-      if (cells.get(key) !== "enabled") cells.set(key, state)
-    }
-  }
-
   for (const r of reminders) {
     const state = r.enabled ? "enabled" : "disabled"
-
-    if (r.scope === "all") {
-      const keys: string[] = []
-      meeting.scheduleData.forEach((row, ri) => {
-        row.forEach((cell, ci) => {
-          if (cell !== null) keys.push(`${ri}-${ci}`)
-        })
-      })
-      addCells(keys, state)
-    } else if (r.scope === "row") {
-      for (let ri = 0; ri < meeting.scheduleData.length; ri++) {
-        const row = meeting.scheduleData[ri]
-        if (row.some((cell) => cell !== null && cell.id === r.mid)) {
-          const keys: string[] = []
-          row.forEach((cell, ci) => {
-            if (cell !== null) keys.push(`${ri}-${ci}`)
-          })
-          addCells(keys, state)
-          break
-        }
-      }
-    } else {
-      for (let ri = 0; ri < meeting.scheduleData.length; ri++) {
-        const row = meeting.scheduleData[ri]
-        for (let ci = 0; ci < row.length; ci++) {
-          const cell = row[ci]
-          if (cell !== null && cell.id === r.mid) {
-            addCells([`${ri}-${ci}`], state)
-          }
-        }
-      }
+    const keys = getCellsForReminder(r, meeting.scheduleData)
+    for (const key of keys) {
+      if (cells.get(key) !== "enabled") cells.set(key, state)
     }
   }
 

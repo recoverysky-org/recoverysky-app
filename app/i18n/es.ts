@@ -495,6 +495,7 @@ const es: Translations = {
     min15: "15 min",
     min30: "30 min",
     min60: "1 hora",
+    overlapMessage: "Esto se superpone con un recordatorio existente",
   },
 }
 

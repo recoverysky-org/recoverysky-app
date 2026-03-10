@@ -57,8 +57,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const [reminderEditorVisible, setReminderEditorVisible] = useState(false)
   const [editingReminder, setEditingReminder] = useState<ReminderRecord | null>(null)
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
-  const { reminderCells, createReminder, updateReminder, deleteReminder, findExistingReminder } =
-    useReminders(visible ? meeting : null, meeting?.sid ?? "")
+  const {
+    reminderCells,
+    createReminder,
+    updateReminder,
+    deleteReminder,
+    findExistingReminder,
+    checkOverlap,
+  } = useReminders(visible ? meeting : null, meeting?.sid ?? "")
 
   // Handle schedule grid cell tap → open reminder editor
   const handleCellPress = useCallback(
@@ -426,6 +432,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           onCreate={createReminder}
           onUpdate={updateReminder}
           onDelete={deleteReminder}
+          onCheckOverlap={checkOverlap}
         />
       )}
     </Modal>
