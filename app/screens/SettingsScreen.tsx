@@ -28,7 +28,7 @@ import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
-import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import {
@@ -42,7 +42,7 @@ import { requestReviewFromSettings } from "@/services/review"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { clear as clearStorage, saveString } from "@/utils/storage"
+import { clear as clearStorage, loadString, remove, saveString } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
@@ -86,27 +86,38 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     }, [reloadZoomAuth]),
   )
 
+  // Track where to return after subscription (e.g. "Attendance:new")
+  const subscriptionReturnRef = useRef<string | null>(
+    route.params?.returnTo ?? loadString("SUBSCRIPTION_RETURN"),
+  )
+  // Persist returnTo so it survives the login flow
+  useEffect(() => {
+    const returnTo = route.params?.returnTo
+    if (returnTo) {
+      saveString("SUBSCRIPTION_RETURN", returnTo)
+      navigation.setParams({ returnTo: undefined })
+    }
+  }, [route.params?.returnTo, navigation])
+
   // Scroll-to-section support
   const scrollRef = useRef<ScrollView>(null)
   const sectionOffsets = useRef<Record<string, number>>({})
 
-  // Scroll to section whenever the screen gains focus with a section param
+  // Scroll to section whenever route params change (works for both tab focus and direct navigate)
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      const section = route.params?.section
-      if (!section) return
-      // Delay to ensure onLayout has captured offsets after first mount
-      const timer = setTimeout(() => {
-        const y = sectionOffsets.current[section]
-        if (y !== undefined) {
-          scrollRef.current?.scrollTo({ y, animated: true })
-        }
-        // Clear the param so re-focusing the tab doesn't re-scroll
-        navigation.setParams({ section: undefined })
-      }, 400)
-      return () => clearTimeout(timer)
-    })
-    return unsubscribe
+    const section = route.params?.section
+    if (!section) return
+    // Delay to ensure onLayout has captured offsets after mount/re-render
+    const timer = setTimeout(() => {
+      const y = sectionOffsets.current[section]
+      if (y !== undefined) {
+        // Subtract a small offset so the section header isn't flush with the top edge
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true })
+      }
+      // Clear the param so re-focusing the tab doesn't re-scroll
+      navigation.setParams({ section: undefined })
+    }, 400)
+    return () => clearTimeout(timer)
   }, [navigation, route.params?.section])
 
   const trackSection = useCallback(
@@ -318,13 +329,26 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     ])
   }
 
+  const navigateReturn = useCallback(() => {
+    const returnTo = subscriptionReturnRef.current
+    if (!returnTo) return
+    subscriptionReturnRef.current = null
+    remove("SUBSCRIPTION_RETURN")
+    const [screen, section] = returnTo.split(":")
+    navigation.navigate(screen as any, section ? { section } : undefined)
+  }, [navigation])
+
   const handleUpgrade = async () => {
     const purchased = await showPaywall()
     if (purchased) {
-      Alert.alert(
-        translate("settingsScreen:subscriptionSuccess"),
-        translate("settingsScreen:subscriptionSuccessMessage"),
-      )
+      if (subscriptionReturnRef.current) {
+        navigateReturn()
+      } else {
+        Alert.alert(
+          translate("settingsScreen:subscriptionSuccess"),
+          translate("settingsScreen:subscriptionSuccessMessage"),
+        )
+      }
     }
   }
 
@@ -1105,7 +1129,7 @@ const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  paddingVertical: spacing.sm + 5,
+  paddingVertical: spacing.sm + 10,
   gap: spacing.xs,
   borderBottomWidth: 1,
   borderBottomColor: colors.border,
@@ -1115,6 +1139,7 @@ const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 const $sectionTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontWeight: "700",
   fontSize: 27,
+  lineHeight: 34,
   color: colors.text,
 })
 

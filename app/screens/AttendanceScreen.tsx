@@ -73,7 +73,7 @@ interface NewListHeaderProps {
   recordCount: number
   hasAttendance: boolean
   selectedCount: number
-  onNavigateSettings: () => void
+  onNavigateSubscription: () => void
   onSendReport: () => void
 }
 
@@ -81,7 +81,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
   recordCount,
   hasAttendance,
   selectedCount,
-  onNavigateSettings,
+  onNavigateSubscription,
   onSendReport,
 }) {
   const { themed, theme } = useAppTheme()
@@ -162,7 +162,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
       ) : (
         <View style={themed($subscribePrompt)}>
           <Text style={themed($subscribeText)} tx="attendanceScreen:subscribeRequired" />
-          <TouchableOpacity onPress={onNavigateSettings}>
+          <TouchableOpacity onPress={onNavigateSubscription}>
             <Text style={themed($subscribeLink)} tx="attendanceScreen:goToSettings" />
           </TouchableOpacity>
         </View>
@@ -175,8 +175,8 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
 // NewContent - Unproduced attendance records
 // ============================================================================
 
-const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function NewContent({
-  onNavigateSettings,
+const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function NewContent({
+  onNavigateSubscription,
 }) {
   const { themed, theme } = useAppTheme()
   const { hasAttendance } = useSubscription()
@@ -310,7 +310,7 @@ const NewContent: FC<{ onNavigateSettings: () => void }> = observer(function New
           recordCount={records.length}
           hasAttendance={hasAttendance}
           selectedCount={selectedIds.size}
-          onNavigateSettings={onNavigateSettings}
+          onNavigateSubscription={onNavigateSubscription}
           onSendReport={handleSendReport}
         />
       }
@@ -808,6 +808,10 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       navigation.navigate("Settings", { section: "attendance" })
     }, [navigation])
 
+    const handleNavigateSubscription = useCallback(() => {
+      navigation.navigate("Settings", { section: "subscription", returnTo: "Attendance:new" })
+    }, [navigation])
+
     const handleSectionChange = useCallback((index: number) => {
       const keys: AttendanceSection[] = ["new", "archive", "reports"]
       setActiveSection(keys[index])
@@ -836,7 +840,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
 
         {/* Content Views - all mounted, inactive ones hidden */}
         <View style={[$content, activeSection === "new" ? $contentVisible : $contentHidden]}>
-          <NewContent onNavigateSettings={handleNavigateSettings} />
+          <NewContent onNavigateSubscription={handleNavigateSubscription} />
         </View>
         <View style={[$content, activeSection === "archive" ? $contentVisible : $contentHidden]}>
           <ArchiveContent />

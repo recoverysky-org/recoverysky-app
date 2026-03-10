@@ -1,8 +1,7 @@
-import { useEffect } from "react"
+import { useRef } from "react"
 import { View, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { useNavigation } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -19,9 +18,9 @@ import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { useAppTheme } from "@/theme/context"
+import { loadString, remove } from "@/utils/storage"
 
 import type { MainTabParamList, SettingsSection } from "./navigationTypes"
-import { loadString, remove } from "@/utils/storage"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
@@ -44,22 +43,16 @@ export const MainNavigator = observer(function MainNavigator() {
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
   const { isPremium: _isPremium } = useSubscription() // Agent tab hidden
-  const navigation = useNavigation<any>()
 
-  // Post-login redirect: navigate to Settings section if stored before login flow
-  useEffect(() => {
-    const postLoginSection = loadString("POST_LOGIN_SECTION") as SettingsSection | null
-    if (!postLoginSection) return
+  // Post-login redirect: if a section was saved before logout, open Settings tab first
+  const postLoginSectionRef = useRef(loadString("POST_LOGIN_SECTION") as SettingsSection | null)
+  if (postLoginSectionRef.current) {
     remove("POST_LOGIN_SECTION")
-    // Delay to let tab navigator fully mount before navigating
-    const timer = setTimeout(() => {
-      navigation.navigate("Settings", { section: postLoginSection })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [navigation])
+  }
 
   return (
     <Tab.Navigator
+      initialRouteName={postLoginSectionRef.current ? "Settings" : "Home"}
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
@@ -149,6 +142,7 @@ export const MainNavigator = observer(function MainNavigator() {
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
+        initialParams={postLoginSectionRef.current ? { section: postLoginSectionRef.current } : undefined}
         options={{
           tabBarLabel: t("mainNavigator:settingsTab"),
           tabBarIcon: ({ focused }) => (

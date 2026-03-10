@@ -34,7 +34,7 @@ export type MainTabParamList = {
   Meetings: { segment?: MeetingsSegment } | undefined
   Schedule: undefined
   Agent: undefined
-  Settings: { section?: SettingsSection } | undefined
+  Settings: { section?: SettingsSection; returnTo?: string } | undefined
 }
 
 // Onboarding Stack Navigator types
