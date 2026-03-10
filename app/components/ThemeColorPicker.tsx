@@ -20,7 +20,7 @@ const PRESET_COLORS = [
   { name: "Electric Pink", hex: "#FF1493" },
   { name: "Tangerine", hex: "#FF9966" },
   { name: "Orange", hex: "#FF6600" },
-  { name: "Yellow", hex: "#FFD700" },
+  { name: "Yellow", hex: "#E6C700" },
   { name: "Lime", hex: "#32CD32" },
   { name: "Cyan", hex: "#00CED1" },
   { name: "Purple", hex: "#9370DB" },
