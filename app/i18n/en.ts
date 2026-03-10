@@ -486,7 +486,7 @@ const en = {
   reminderEditor: {
     newReminder: "New Reminder",
     editReminder: "Edit Reminder",
-    thisMeetingOnly: "This one only",
+    thisMeetingOnly: "Only one",
     allMeetingsAtTime: "All at this time",
     allMeetingsInSchedule: "Entire schedule",
     minutesBefore: "Minutes before",
