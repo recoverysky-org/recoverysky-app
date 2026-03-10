@@ -186,12 +186,31 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     onClose,
   ])
 
-  // Reactively check overlap whenever scope, cell, or enabled changes
+  // Reactively check overlap whenever scope or selected cell changes
   const hasOverlap = useMemo(() => {
-    if (!activeCell) return false
-    const proposedKeys = new Set(highlightedCells.keys())
+    if (!activeCell || !meeting.scheduleData) return false
+
+    // Compute proposed cell keys directly from current state
+    const proposedKeys = new Set<string>()
+    if (scope === "all") {
+      meeting.scheduleData.forEach((row, ri) => {
+        row.forEach((cell, ci) => {
+          if (cell !== null) proposedKeys.add(`${ri}-${ci}`)
+        })
+      })
+    } else if (scope === "row") {
+      const row = meeting.scheduleData[activeCell.row]
+      if (row) {
+        row.forEach((cell, ci) => {
+          if (cell !== null) proposedKeys.add(`${activeCell.row}-${ci}`)
+        })
+      }
+    } else {
+      proposedKeys.add(`${activeCell.row}-${activeCell.col}`)
+    }
+
     return onCheckOverlap(proposedKeys, existingReminder?.id).length > 0
-  }, [activeCell, highlightedCells, onCheckOverlap, existingReminder?.id])
+  }, [activeCell, scope, meeting.scheduleData, onCheckOverlap, existingReminder?.id])
 
   const handleSave = useCallback(() => {
     if (isSaving || !activeCell) return
