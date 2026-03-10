@@ -5,7 +5,7 @@
  * and fire-and-forget API sync for server-side push notification scheduling.
  */
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import * as Crypto from "expo-crypto"
 
 import type { MeetingWithTrex } from "@/context/MeetingContext"
@@ -35,8 +35,8 @@ interface UseRemindersResult {
   updateReminder: (id: string, input: ReminderUpdateInput) => Promise<void>
   /** Delete a reminder */
   deleteReminder: (id: string) => Promise<void>
-  /** Find existing reminder for this meeting (direct or via schedule) */
-  findExistingReminder: () => ReminderRecord | null
+  /** Find existing reminder covering the given cell ID (direct, row, or all scope) */
+  findExistingReminder: (cellId?: string) => ReminderRecord | null
 }
 
 /**
@@ -53,37 +53,42 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
 
   const uid = authStore.userId ?? ""
 
-  // Load reminders when meeting changes
+  // Collect all meeting IDs visible in the schedule grid
+  const gridMids = useMemo(() => {
+    const ids = new Set<string>()
+    if (meeting?.scheduleData) {
+      for (const row of meeting.scheduleData) {
+        for (const cell of row) {
+          if (cell !== null) ids.add(cell.id)
+        }
+      }
+    }
+    return ids
+  }, [meeting?.scheduleData])
+
+  // Load reminders for all meetings visible in the grid
   const loadReminders = useCallback(async () => {
-    if (!meeting?.id || !uid) {
+    if (!uid || gridMids.size === 0) {
       setReminders([])
       return
     }
 
     setIsLoading(true)
     try {
-      // Load reminders for this specific meeting
-      const byMeeting = await reminderRepo.findByMeetingId(meeting.id)
-      const meetingReminders = byMeeting.ok ? byMeeting.value : []
-
-      // Also load schedule-level reminders if we have a sid
-      let scheduleReminders: ReminderRecord[] = []
-      if (sid) {
-        const byUser = await reminderRepo.findByUserId(uid)
-        if (byUser.ok) {
-          scheduleReminders = byUser.value.filter(
-            (r) => r.sid === sid && r.scope !== "single" && r.mid !== meeting.id,
-          )
-        }
+      const byUser = await reminderRepo.findByUserId(uid)
+      if (byUser.ok) {
+        setReminders(
+          byUser.value.filter((r) => gridMids.has(r.mid) || (sid && r.sid === sid)),
+        )
+      } else {
+        setReminders([])
       }
-
-      setReminders([...meetingReminders, ...scheduleReminders])
     } catch (error) {
-      log.error("Failed to load reminders", { error: String(error), mid: meeting.id })
+      log.error("Failed to load reminders", { error: String(error), mid: meeting?.id })
     } finally {
       setIsLoading(false)
     }
-  }, [meeting?.id, uid, sid])
+  }, [uid, gridMids, sid, meeting?.id])
 
   useEffect(() => {
     loadReminders()
@@ -201,18 +206,35 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
       .catch((e) => log.warn("API sync failed for deleteReminder", { error: String(e) }))
   }, [])
 
-  const findExistingReminder = useCallback((): ReminderRecord | null => {
-    if (!meeting?.id) return null
-    // Direct meeting reminder first
-    const direct = reminders.find((r) => r.mid === meeting.id)
-    if (direct) return direct
-    // Schedule-level reminder
-    if (sid) {
-      const schedule = reminders.find((r) => r.sid === sid)
-      if (schedule) return schedule
-    }
-    return null
-  }, [reminders, meeting?.id, sid])
+  const findExistingReminder = useCallback(
+    (cellId?: string): ReminderRecord | null => {
+      if (!meeting?.scheduleData) return null
+
+      const mid = cellId ?? meeting.id
+
+      // Exact match — single-scope reminder on this cell
+      const direct = reminders.find((r) => r.mid === mid)
+      if (direct) return direct
+
+      // Row/all scope — find a reminder whose mid is in the same row as the tapped cell
+      for (const row of meeting.scheduleData) {
+        const tappedInRow = row.some((c) => c !== null && c.id === mid)
+        if (!tappedInRow) continue
+        // Look for a reminder whose mid is anywhere in this row
+        for (const cell of row) {
+          if (cell === null) continue
+          const match = reminders.find(
+            (r) => r.mid === cell.id && (r.scope === "row" || r.scope === "all"),
+          )
+          if (match) return match
+        }
+      }
+
+      // Schedule-wide reminder (all scope not tied to a specific row)
+      return reminders.find((r) => r.scope === "all") ?? null
+    },
+    [reminders, meeting?.id, meeting?.scheduleData],
+  )
 
   return {
     reminders,
@@ -225,19 +247,14 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
   }
 }
 
-/** Extract UTC hours*60+minutes from epoch millis — identifies a time-of-day */
-function utcTimeOfDay(millis: number): number {
-  const d = new Date(millis)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
-}
-
 /**
  * Compute which grid cells have active reminders.
  * Returns a Set of "rowIndex-colIndex" keys.
  *
+ * Each cell in scheduleData now carries an `id` (meeting/trex ID).
  * Uses the explicit `scope` field on each reminder:
- *   single → no grid highlighting (can't identify specific cell)
- *   row    → highlight the time-slot row matching meeting.millis
+ *   single → highlight only the cell whose id matches reminder.mid
+ *   row    → find the cell matching reminder.mid, highlight its entire row
  *   all    → highlight every non-null cell
  */
 function computeReminderCells(
@@ -250,26 +267,37 @@ function computeReminderCells(
   const enabled = reminders.filter((r) => r.enabled)
   if (enabled.length === 0) return cells
 
-  const hasAll = enabled.some((r) => r.scope === "all")
-  const hasRow = enabled.some((r) => r.scope === "row")
-
-  if (hasAll) {
-    meeting.scheduleData.forEach((row, ri) => {
-      row.forEach((m, ci) => {
-        if (m !== null) cells.add(`${ri}-${ci}`)
-      })
-    })
-  } else if (hasRow) {
-    // Match by time-of-day (UTC HH:MM) — epoch timestamps differ per day
-    const target = utcTimeOfDay(meeting.millis)
-    meeting.scheduleData.forEach((row, ri) => {
-      const rowMatches = row.some((m) => m !== null && utcTimeOfDay(m) === target)
-      if (rowMatches) {
-        row.forEach((m, ci) => {
-          if (m !== null) cells.add(`${ri}-${ci}`)
+  for (const r of enabled) {
+    if (r.scope === "all") {
+      // Entire schedule
+      meeting.scheduleData.forEach((row, ri) => {
+        row.forEach((cell, ci) => {
+          if (cell !== null) cells.add(`${ri}-${ci}`)
         })
+      })
+    } else if (r.scope === "row") {
+      // Find the row containing the reminder's meeting ID, highlight entire row
+      for (let ri = 0; ri < meeting.scheduleData.length; ri++) {
+        const row = meeting.scheduleData[ri]
+        if (row.some((cell) => cell !== null && cell.id === r.mid)) {
+          row.forEach((cell, ci) => {
+            if (cell !== null) cells.add(`${ri}-${ci}`)
+          })
+          break
+        }
       }
-    })
+    } else {
+      // Single — highlight only the exact cell matching reminder.mid
+      for (let ri = 0; ri < meeting.scheduleData.length; ri++) {
+        const row = meeting.scheduleData[ri]
+        for (let ci = 0; ci < row.length; ci++) {
+          const cell = row[ci]
+          if (cell !== null && cell.id === r.mid) {
+            cells.add(`${ri}-${ci}`)
+          }
+        }
+      }
+    }
   }
 
   return cells

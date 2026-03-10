@@ -62,8 +62,8 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
   // Handle schedule grid cell tap → open reminder editor
   const handleCellPress = useCallback(
-    (_millis: number, dayIndex: number, rowIndex: number) => {
-      const existing = findExistingReminder()
+    (_millis: number, id: string, dayIndex: number, rowIndex: number) => {
+      const existing = findExistingReminder(id)
       setEditingReminder(existing)
       setSelectedCell({ row: rowIndex, col: dayIndex })
       setReminderEditorVisible(true)

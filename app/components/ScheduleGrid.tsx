@@ -33,12 +33,12 @@ const DAY_KEYS = [
 const REMINDER_COLOR = "#f59e0b"
 
 interface ScheduleGridProps {
-  /** Schedule data: array of rows, each row is [Mon, Tue, Wed, Thu, Fri, Sat, Sun] UTC millis or null */
-  scheduleData: Array<Array<number | null>>
+  /** Schedule data: array of rows, each row is [Mon..Sun] with { millis, id } or null */
+  scheduleData: Array<Array<{ millis: number; id: string } | null>>
   /** Current day of week (1-7, ISO weekday where 1=Monday) - used for highlighting */
   currentDow?: number
-  /** Called when a non-null cell is tapped. Passes millis, dayIndex (0-6), rowIndex. */
-  onCellPress?: (millis: number, dayIndex: number, rowIndex: number) => void
+  /** Called when a non-null cell is tapped. Passes millis, id, dayIndex (0-6), rowIndex. */
+  onCellPress?: (millis: number, id: string, dayIndex: number, rowIndex: number) => void
   /** Set of "rowIndex-colIndex" keys for cells that have active reminders */
   reminderCells?: Set<string>
 }
@@ -68,8 +68,8 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
   }, [currentDow])
 
   const handleCellPress = useCallback(
-    (millis: number, colIndex: number, rowIndex: number) => {
-      onCellPress?.(millis, colIndex, rowIndex)
+    (millis: number, id: string, colIndex: number, rowIndex: number) => {
+      onCellPress?.(millis, id, colIndex, rowIndex)
     },
     [onCellPress],
   )
@@ -101,10 +101,10 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
         <View key={rowIndex}>
           {rowIndex > 0 && <View style={themed($separator)} />}
           <View style={themed($timeRow)}>
-            {row.map((millis, colIndex) => {
+            {row.map((cell, colIndex) => {
               const cellKey = `${rowIndex}-${colIndex}`
               const hasReminder = reminderCells?.has(cellKey) ?? false
-              const isTappable = millis !== null && onCellPress !== undefined
+              const isTappable = cell !== null && onCellPress !== undefined
 
               // Check adjacent reminder cells for connected band styling
               const leftKey = `${rowIndex}-${colIndex - 1}`
@@ -140,23 +140,23 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
 
               return (
                 <View key={colIndex} style={[themed($timeCell), cellGap]}>
-                  {millis !== null ? (
+                  {cell !== null ? (
                     isTappable ? (
                       <Pressable
-                        onPress={() => handleCellPress(millis, colIndex, rowIndex)}
+                        onPress={() => handleCellPress(cell.millis, cell.id, colIndex, rowIndex)}
                         style={({ pressed }) => [
                           ...(Array.isArray(innerStyle) ? innerStyle : [innerStyle]),
                           pressed && $cellPressed,
                         ]}
                       >
                         <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
-                          {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
+                          {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </Pressable>
                     ) : (
                       <View style={Array.isArray(innerStyle) ? innerStyle : [innerStyle]}>
                         <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
-                          {millis === 0 ? "24h" : formatMillisToLocalTime(millis)}
+                          {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </View>
                     )

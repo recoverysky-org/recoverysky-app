@@ -70,9 +70,14 @@ export interface ReminderApiInput {
 }
 
 /**
- * Schedule data row - 7 columns for Sun-Sat, value is time string or null
+ * A single cell in the schedule grid — millis + meeting ID, or null for empty slots
  */
-export type ScheduleDataRow = (number | null)[]
+export type ScheduleCell = { millis: number; id: string } | null
+
+/**
+ * Schedule data row - 7 columns for Mon-Sun
+ */
+export type ScheduleDataRow = ScheduleCell[]
 
 /**
  * Live schedule from /schedules/live API

@@ -101,7 +101,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
 
   // Handle cell tap inside the editor grid — change selection
   const handleEditorCellPress = useCallback(
-    (_millis: number, dayIndex: number, rowIndex: number) => {
+    (_millis: number, _id: string, dayIndex: number, rowIndex: number) => {
       setActiveCell({ row: rowIndex, col: dayIndex })
     },
     [],
@@ -114,18 +114,16 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     if (!activeCell || !meeting.scheduleData) return cells
 
     if (scope === "all") {
-      // Every non-null cell in the grid
       meeting.scheduleData.forEach((row, ri) => {
-        row.forEach((millis, ci) => {
-          if (millis !== null) cells.add(`${ri}-${ci}`)
+        row.forEach((cell, ci) => {
+          if (cell !== null) cells.add(`${ri}-${ci}`)
         })
       })
     } else if (scope === "row") {
-      // All non-null cells in the active row
       const row = meeting.scheduleData[activeCell.row]
       if (row) {
-        row.forEach((millis, ci) => {
-          if (millis !== null) cells.add(`${activeCell.row}-${ci}`)
+        row.forEach((cell, ci) => {
+          if (cell !== null) cells.add(`${activeCell.row}-${ci}`)
         })
       }
     } else {
@@ -135,24 +133,28 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
   }, [activeCell, scope, meeting.scheduleData])
 
   const handleSave = useCallback(async () => {
-    if (isSaving) return
+    if (isSaving || !activeCell) return
     setIsSaving(true)
 
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
 
+      // Resolve the meeting ID from the selected cell in the grid
+      const cellMid =
+        meeting.scheduleData?.[activeCell.row]?.[activeCell.col]?.id ?? meeting.id
+
       if (isEditing && existingReminder) {
         await onUpdate(existingReminder.id, {
           minutes_before: minutesBefore,
           at_start: atStart,
-          mid: meeting.id,
+          mid: cellMid,
           sid: scope !== "single" ? sid : "",
           scope,
           enabled,
         })
       } else {
         await onCreate({
-          mid: meeting.id,
+          mid: cellMid,
           sid: scope !== "single" ? sid : undefined,
           scope,
           name: meeting.name,
@@ -168,6 +170,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     }
   }, [
     isSaving,
+    activeCell,
     isEditing,
     existingReminder,
     minutesBefore,
