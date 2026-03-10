@@ -317,7 +317,7 @@ const es: Translations = {
     attendanceSection: "Asistencia",
     enableAttendance: "Habilitar Asistencia",
     userIdNum: "Número de ID",
-    userIdNumPlaceholder: "ID de miembro o estudiante",
+    userIdNumPlaceholder: "Tu número de identificación",
     exportEmail: "Correo de Exportación",
     exportEmailPlaceholder: "correo@ejemplo.com",
     exportAttendance: "Exportar Asistencia",

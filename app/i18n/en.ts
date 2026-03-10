@@ -318,7 +318,7 @@ const en = {
     attendanceSection: "Attendance",
     enableAttendance: "Enable Attendance",
     userIdNum: "ID Number",
-    userIdNumPlaceholder: "Member or student ID",
+    userIdNumPlaceholder: "Your identifying number",
     exportEmail: "Export Email",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Export Attendance",
