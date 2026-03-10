@@ -24,6 +24,8 @@ interface LiveMeetingRowProps {
   rating?: number
   /** Whether user has favorited - overrides meeting.feedback.loves for live updates */
   isFavorite?: boolean
+  /** Whether any meeting in this schedule has a reminder set */
+  hasReminder?: boolean
   /** Callback when row is pressed */
   onPress?: (meeting: MeetingWithTrex) => void
 }
@@ -40,10 +42,13 @@ interface LiveMeetingRowProps {
  *   onPress={(m) => openPopup(m)}
  * />
  */
+const REMINDER_COLOR = "#f59e0b"
+
 export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
   meeting,
   rating = 0,
   isFavorite = false,
+  hasReminder = false,
   onPress,
 }) => {
   const { themed, theme } = useAppTheme()
@@ -76,7 +81,8 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
         {meeting.name}
       </Text>
 
-      {/* Heart (if favorited) */}
+      {/* Reminder bell / Heart */}
+      {hasReminder && <Ionicons name="notifications" size={14} color={REMINDER_COLOR} style={$bellIcon} />}
       {isFavorite && <Ionicons name="heart" size={16} color="#ef4444" style={$heartIcon} />}
 
       {/* Right side: Time/Language + Stars */}
@@ -143,6 +149,10 @@ const $meetingName: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   color: colors.text,
 })
+
+const $bellIcon: ViewStyle = {
+  marginRight: 2,
+}
 
 const $heartIcon: ViewStyle = {
   marginRight: 4,

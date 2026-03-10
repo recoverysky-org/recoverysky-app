@@ -21,6 +21,7 @@ import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
+import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -51,6 +52,7 @@ export const LiveContent: FC = observer(function LiveContent() {
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const profileStore = useProfileStore()
+  const reminderLookup = useReminderLookup()
 
   // Log mount/unmount
   useEffect(() => {
@@ -159,11 +161,12 @@ export const LiveContent: FC = observer(function LiveContent() {
           meeting={item}
           rating={feedback?.rates ?? 0}
           isFavorite={feedback?.loves ?? false}
+          hasReminder={meetingHasReminder(item, reminderLookup)}
           onPress={() => handleMeetingPress(item)}
         />
       )
     },
-    [handleMeetingPress, displayFeedback],
+    [handleMeetingPress, displayFeedback, reminderLookup],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])

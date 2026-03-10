@@ -31,6 +31,7 @@ import { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { api, LiveSchedule } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -74,6 +75,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const reminderLookup = useReminderLookup()
 
   // Refs
   const listRef = useRef<FlatList>(null)
@@ -248,11 +250,12 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           meeting={item}
           rating={feedback?.rates ?? 0}
           isFavorite={feedback?.loves ?? false}
+          hasReminder={meetingHasReminder(item, reminderLookup)}
           onPress={() => handleMeetingPress(item)}
         />
       )
     },
-    [handleMeetingPress, displayFeedback],
+    [handleMeetingPress, displayFeedback, reminderLookup],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
