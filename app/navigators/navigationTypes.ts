@@ -13,6 +13,18 @@ export type MeetingsSegment = "live" | "listings"
 // Section options for Attendance tab
 export type AttendanceSection = "new" | "archive" | "reports"
 
+// Section options for Settings tab
+export type SettingsSection =
+  | "recovery"
+  | "profile"
+  | "appSettings"
+  | "notifications"
+  | "attendance"
+  | "subscription"
+  | "zoom"
+  | "account"
+  | "import"
+
 // Main Tab Navigator types
 export type MainTabParamList = {
   Home: undefined
@@ -22,7 +34,7 @@ export type MainTabParamList = {
   Meetings: { segment?: MeetingsSegment } | undefined
   Schedule: undefined
   Agent: undefined
-  Settings: undefined
+  Settings: { section?: SettingsSection } | undefined
 }
 
 // Onboarding Stack Navigator types

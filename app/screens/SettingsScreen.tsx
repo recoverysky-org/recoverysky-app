@@ -12,6 +12,7 @@ import {
   Platform,
   Linking,
   ActivityIndicator,
+  ScrollView,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
@@ -67,6 +68,7 @@ const SELECTABLE_FELLOWSHIPS = [
  */
 export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(function SettingsScreen({
   navigation,
+  route,
 }) {
   const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
   const { logout } = useAuth0Wrapper()
@@ -82,6 +84,36 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     useCallback(() => {
       reloadZoomAuth()
     }, [reloadZoomAuth]),
+  )
+
+  // Scroll-to-section support
+  const scrollRef = useRef<ScrollView>(null)
+  const sectionOffsets = useRef<Record<string, number>>({})
+
+  // Scroll to section whenever the screen gains focus with a section param
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      const section = route.params?.section
+      if (!section) return
+      // Delay to ensure onLayout has captured offsets after first mount
+      const timer = setTimeout(() => {
+        const y = sectionOffsets.current[section]
+        if (y !== undefined) {
+          scrollRef.current?.scrollTo({ y, animated: true })
+        }
+        // Clear the param so re-focusing the tab doesn't re-scroll
+        navigation.setParams({ section: undefined })
+      }, 400)
+      return () => clearTimeout(timer)
+    })
+    return unsubscribe
+  }, [navigation, route.params?.section])
+
+  const trackSection = useCallback(
+    (name: string) => (e: { nativeEvent: { layout: { y: number } } }) => {
+      sectionOffsets.current[name] = e.nativeEvent.layout.y
+    },
+    [],
   )
 
   // MST Stores - reactive!
@@ -351,6 +383,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     <Screen
       preset="scroll"
       safeAreaEdges={["top"]}
+      scrollViewRef={scrollRef}
       contentContainerStyle={[$styles.container, themed($container)]}
     >
       {/* Header */}
@@ -358,7 +391,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       <Text style={themed($subtitle)} tx="settingsScreen:subtitle" />
 
       {/* Recovery Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("recovery")}>
         <View style={themed($sectionHeader)}>
           <Ionicons
             name="shield-checkmark-outline"
@@ -431,7 +464,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Profile Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("profile")}>
         <View style={themed($sectionHeader)}>
           <Icon icon="community" size={20} color={themed($iconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:profileSection" />
@@ -644,7 +677,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </Modal>
 
       {/* App Settings Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("appSettings")}>
         <View style={themed($sectionHeader)}>
           <Icon icon="settings" size={20} color={themed($appSettingsIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:appSettingsSection" />
@@ -708,7 +741,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Notifications Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("notifications")}>
         <View style={themed($sectionHeader)}>
           <Ionicons
             name="notifications-outline"
@@ -734,7 +767,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Attendance Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("attendance")}>
         <View style={themed($sectionHeader)}>
           <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
@@ -771,7 +804,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Subscription Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("subscription")}>
         <View style={themed($sectionHeader)}>
           <Ionicons name="star" size={20} color="#FFD700" />
           <Text style={themed($sectionTitle)} tx="settingsScreen:subscriptionSection" />
@@ -862,7 +895,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Zoom Account Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("zoom")}>
         <View style={themed($sectionHeader)}>
           <Ionicons name="videocam" size={20} color="#2D8CFF" />
           <Text style={themed($sectionTitle)} tx="settingsScreen:zoomAccountSection" />
@@ -926,7 +959,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Account Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("account")}>
         <View style={themed($sectionHeader)}>
           <Icon icon="lock" size={20} color={themed($accountIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:accountSection" />
@@ -967,7 +1000,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Import Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("import")}>
         <View style={themed($sectionHeader)}>
           <Ionicons
             name="cloud-download-outline"

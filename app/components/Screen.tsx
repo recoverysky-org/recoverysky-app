@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState } from "react"
+import { type MutableRefObject, ReactNode, useRef, useState } from "react"
 import {
   KeyboardAvoidingView,
   KeyboardAvoidingViewProps,
@@ -61,6 +61,10 @@ interface BaseScreenProps {
    * Pass any additional props directly to the KeyboardAvoidingView component.
    */
   KeyboardAvoidingViewProps?: KeyboardAvoidingViewProps
+  /**
+   * Optional external ref to the internal ScrollView (scroll/auto presets only).
+   */
+  scrollViewRef?: MutableRefObject<ScrollView | null>
 }
 
 interface FixedScreenProps extends BaseScreenProps {
@@ -197,7 +201,8 @@ function ScreenWithScrolling(props: ScreenProps) {
     style,
   } = props as ScrollScreenProps
 
-  const ref = useRef<ScrollView>(null)
+  const internalRef = useRef<ScrollView>(null)
+  const ref = props.scrollViewRef ?? internalRef
 
   const { scrollEnabled, onContentSizeChange, onLayout } = useAutoPreset(props as AutoScreenProps)
 
