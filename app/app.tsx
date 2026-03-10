@@ -65,6 +65,8 @@ import {
   logoutOneSignalUser,
   requestNotificationPermission,
   hasNotificationPermission,
+  optInNotifications,
+  optOutNotifications,
   addNotificationClickHandler,
   setNotificationLanguage,
 } from "./services/notifications"
@@ -299,17 +301,6 @@ export function App() {
             },
           )
 
-          // TODO: complete on notification branch
-          // Request notification permission after onboarding completes
-          // reaction(
-          //   () => _rootStore.profileStore.onboardingCompleted,
-          //   (completed) => {
-          //     if (completed) {
-          //       setTimeout(() => requestNotificationPermission().catch(() => {}), 1000)
-          //     }
-          //   },
-          // )
-
           // Sync language preference to OneSignal
           reaction(
             () => _rootStore.profileStore.language,
@@ -318,13 +309,18 @@ export function App() {
             },
           )
 
-          // Handle notification click → deep link to specific tab
+          // Handle notification click → deep link to specific tab with optional params
           addNotificationClickHandler((event) => {
-            const data = event.notification.additionalData as { screen?: string } | undefined
+            const data = event.notification.additionalData as
+              | { screen?: string; section?: string; segment?: string }
+              | undefined
             if (data?.screen) {
-              log.info("Notification clicked, navigating", { screen: data.screen })
+              log.info("Notification clicked, navigating", { screen: data.screen, ...data })
               const { navigate: navTo } = require("./navigators/navigationUtilities")
-              navTo(data.screen as never)
+              const params: Record<string, string> = {}
+              if (data.section) params.section = data.section
+              if (data.segment) params.segment = data.segment
+              navTo(data.screen as never, Object.keys(params).length > 0 ? params : undefined)
             }
           })
         }
@@ -373,8 +369,15 @@ export function App() {
     const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
       if (appState.match(/inactive|background/) && nextState === "active") {
         hasNotificationPermission().then((permitted) => {
-          if (!permitted && rootStore.profileStore.notificationsEnabled) {
+          const { notificationsEnabled } = rootStore.profileStore
+          if (!permitted && notificationsEnabled) {
+            // OS permission revoked → disable app toggle
             rootStore.profileStore.setNotificationsEnabled(false)
+            optOutNotifications()
+          } else if (permitted && !notificationsEnabled) {
+            // OS permission granted (user enabled in Settings) → enable app toggle
+            rootStore.profileStore.setNotificationsEnabled(true)
+            optInNotifications()
           }
         })
       }

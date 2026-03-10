@@ -43,8 +43,6 @@ export const ConfigStoreModel = types
     otlpApiKey: types.optional(types.string, ""),
     /** OneSignal App ID (from server /config) */
     oneSignalAppId: types.optional(types.string, ""),
-    /** OneSignal REST API key (from server /config) */
-    oneSignalApiKey: types.optional(types.string, ""),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -90,7 +88,6 @@ export const ConfigStoreModel = types
           if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
           if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
           if (config.ONE_SIGNAL_IOS_KEY_ID) store.oneSignalAppId = config.ONE_SIGNAL_IOS_KEY_ID
-          if (config.ONE_SIGNAL_IOS_KEY) store.oneSignalApiKey = config.ONE_SIGNAL_IOS_KEY
           store.isLoaded = true
 
           log.info("Config loaded from server", {
@@ -125,7 +122,6 @@ export const ConfigStoreModel = types
       store.zakApiKey = ""
       store.otlpApiKey = ""
       store.oneSignalAppId = ""
-      store.oneSignalApiKey = ""
       store.isLoaded = false
     },
   }))
