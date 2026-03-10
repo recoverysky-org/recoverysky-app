@@ -25,8 +25,8 @@ const log = logger.child({ module: "useReminders" })
 interface UseRemindersResult {
   /** All reminders for this meeting (including schedule-level) */
   reminders: ReminderRecord[]
-  /** Set of "rowIndex-colIndex" keys for cells with active reminders */
-  reminderCells: Set<string>
+  /** Map of "rowIndex-colIndex" keys to reminder state ("enabled" | "disabled") */
+  reminderCells: Map<string, "enabled" | "disabled">
   /** Whether reminders are being loaded */
   isLoading: boolean
   /** Create a new reminder */
@@ -248,10 +248,10 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
 }
 
 /**
- * Compute which grid cells have active reminders.
- * Returns a Set of "rowIndex-colIndex" keys.
+ * Compute which grid cells have reminders and their enabled/disabled state.
+ * Returns a Map of "rowIndex-colIndex" → "enabled" | "disabled".
  *
- * Each cell in scheduleData now carries an `id` (meeting/trex ID).
+ * Each cell in scheduleData carries an `id` (meeting/trex ID).
  * Uses the explicit `scope` field on each reminder:
  *   single → highlight only the cell whose id matches reminder.mid
  *   row    → find the cell matching reminder.mid, highlight its entire row
@@ -260,40 +260,47 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
 function computeReminderCells(
   reminders: ReminderRecord[],
   meeting: MeetingWithTrex | null,
-): Set<string> {
-  const cells = new Set<string>()
+): Map<string, "enabled" | "disabled"> {
+  const cells = new Map<string, "enabled" | "disabled">()
   if (!meeting?.scheduleData || reminders.length === 0) return cells
 
-  const enabled = reminders.filter((r) => r.enabled)
-  if (enabled.length === 0) return cells
+  const addCells = (keys: string[], state: "enabled" | "disabled") => {
+    for (const key of keys) {
+      // "enabled" wins over "disabled" if both apply
+      if (cells.get(key) !== "enabled") cells.set(key, state)
+    }
+  }
 
-  for (const r of enabled) {
+  for (const r of reminders) {
+    const state = r.enabled ? "enabled" : "disabled"
+
     if (r.scope === "all") {
-      // Entire schedule
+      const keys: string[] = []
       meeting.scheduleData.forEach((row, ri) => {
         row.forEach((cell, ci) => {
-          if (cell !== null) cells.add(`${ri}-${ci}`)
+          if (cell !== null) keys.push(`${ri}-${ci}`)
         })
       })
+      addCells(keys, state)
     } else if (r.scope === "row") {
-      // Find the row containing the reminder's meeting ID, highlight entire row
       for (let ri = 0; ri < meeting.scheduleData.length; ri++) {
         const row = meeting.scheduleData[ri]
         if (row.some((cell) => cell !== null && cell.id === r.mid)) {
+          const keys: string[] = []
           row.forEach((cell, ci) => {
-            if (cell !== null) cells.add(`${ri}-${ci}`)
+            if (cell !== null) keys.push(`${ri}-${ci}`)
           })
+          addCells(keys, state)
           break
         }
       }
     } else {
-      // Single — highlight only the exact cell matching reminder.mid
       for (let ri = 0; ri < meeting.scheduleData.length; ri++) {
         const row = meeting.scheduleData[ri]
         for (let ci = 0; ci < row.length; ci++) {
           const cell = row[ci]
           if (cell !== null && cell.id === r.mid) {
-            cells.add(`${ri}-${ci}`)
+            addCells([`${ri}-${ci}`], state)
           }
         }
       }
@@ -301,4 +308,73 @@ function computeReminderCells(
   }
 
   return cells
+}
+
+/**
+ * Check if a meeting's schedule has any reminders set.
+ * Matches by cell IDs in scheduleData or by schedule ID (sid).
+ */
+export function meetingHasReminder(
+  meeting: MeetingWithTrex,
+  lookup: ReminderLookup,
+): boolean {
+  if (lookup.sids.has(meeting.sid)) return true
+  if (meeting.scheduleData) {
+    for (const row of meeting.scheduleData) {
+      for (const cell of row) {
+        if (cell !== null && lookup.mids.has(cell.id)) return true
+      }
+    }
+  }
+  return false
+}
+
+export interface ReminderLookup {
+  /** Meeting IDs that have reminders */
+  mids: Set<string>
+  /** Schedule IDs that have reminders (row/all scope) */
+  sids: Set<string>
+}
+
+/**
+ * Lightweight hook that returns Sets of meeting IDs and schedule IDs with reminders.
+ * Used by meeting lists to show a bell indicator on rows with reminders.
+ *
+ * A meeting shows the bell if:
+ *   - Any cell ID in its scheduleData is in `mids`, OR
+ *   - Its `sid` is in `sids`
+ */
+export function useReminderLookup(): ReminderLookup {
+  const authStore = useAuthenticationStore()
+  const uid = authStore.userId ?? ""
+  const [lookup, setLookup] = useState<ReminderLookup>({ mids: new Set(), sids: new Set() })
+
+  const load = useCallback(async () => {
+    if (!uid) {
+      setLookup({ mids: new Set(), sids: new Set() })
+      return
+    }
+    const result = await reminderRepo.findByUserId(uid)
+    if (result.ok) {
+      const mids = new Set<string>()
+      const sids = new Set<string>()
+      for (const r of result.value) {
+        if (r.mid) mids.add(r.mid)
+        if (r.sid) sids.add(r.sid)
+      }
+      setLookup({ mids, sids })
+    }
+  }, [uid])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useEffect(() => {
+    return reminderEvents.subscribe(() => {
+      load()
+    })
+  }, [load])
+
+  return lookup
 }

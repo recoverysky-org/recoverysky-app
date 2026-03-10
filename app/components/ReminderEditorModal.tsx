@@ -110,27 +110,29 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
   // Highlight based on scope:
   // "single" → one cell, "row" → all at this time, "all" → entire schedule
   const highlightedCells = useMemo(() => {
-    const cells = new Set<string>()
+    const cells = new Map<string, "enabled" | "disabled">()
     if (!activeCell || !meeting.scheduleData) return cells
+
+    const state = enabled ? "enabled" : "disabled"
 
     if (scope === "all") {
       meeting.scheduleData.forEach((row, ri) => {
         row.forEach((cell, ci) => {
-          if (cell !== null) cells.add(`${ri}-${ci}`)
+          if (cell !== null) cells.set(`${ri}-${ci}`, state)
         })
       })
     } else if (scope === "row") {
       const row = meeting.scheduleData[activeCell.row]
       if (row) {
         row.forEach((cell, ci) => {
-          if (cell !== null) cells.add(`${activeCell.row}-${ci}`)
+          if (cell !== null) cells.set(`${activeCell.row}-${ci}`, state)
         })
       }
     } else {
-      cells.add(`${activeCell.row}-${activeCell.col}`)
+      cells.set(`${activeCell.row}-${activeCell.col}`, state)
     }
     return cells
-  }, [activeCell, scope, meeting.scheduleData])
+  }, [activeCell, scope, enabled, meeting.scheduleData])
 
   const handleSave = useCallback(async () => {
     if (isSaving || !activeCell) return

@@ -39,8 +39,8 @@ interface ScheduleGridProps {
   currentDow?: number
   /** Called when a non-null cell is tapped. Passes millis, id, dayIndex (0-6), rowIndex. */
   onCellPress?: (millis: number, id: string, dayIndex: number, rowIndex: number) => void
-  /** Set of "rowIndex-colIndex" keys for cells that have active reminders */
-  reminderCells?: Set<string>
+  /** Map of "rowIndex-colIndex" keys to reminder state ("enabled" | "disabled") */
+  reminderCells?: Map<string, "enabled" | "disabled">
 }
 
 /**
@@ -103,14 +103,16 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
           <View style={themed($timeRow)}>
             {row.map((cell, colIndex) => {
               const cellKey = `${rowIndex}-${colIndex}`
-              const hasReminder = reminderCells?.has(cellKey) ?? false
+              const reminderState = reminderCells?.get(cellKey)
+              const hasReminder = reminderState !== undefined
+              const isDisabled = reminderState === "disabled"
               const isTappable = cell !== null && onCellPress !== undefined
 
               // Check adjacent reminder cells for connected band styling
               const leftKey = `${rowIndex}-${colIndex - 1}`
               const rightKey = `${rowIndex}-${colIndex + 1}`
-              const hasLeft = hasReminder && (reminderCells?.has(leftKey) ?? false)
-              const hasRight = hasReminder && (reminderCells?.has(rightKey) ?? false)
+              const hasLeft = hasReminder && reminderCells?.has(leftKey)
+              const hasRight = hasReminder && reminderCells?.has(rightKey)
 
               // Dynamic border-radius: flatten sides that connect to neighbors
               const bandStyle: ViewStyle | undefined = hasReminder
@@ -119,7 +121,6 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                     borderBottomLeftRadius: hasLeft ? 0 : 8,
                     borderTopRightRadius: hasRight ? 0 : 8,
                     borderBottomRightRadius: hasRight ? 0 : 8,
-                    // Remove border on connected sides
                     borderLeftWidth: hasLeft ? 0 : 1,
                     borderRightWidth: hasRight ? 0 : 1,
                   }
@@ -135,8 +136,14 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                   : undefined
 
               const innerStyle = hasReminder
-                ? [$reminderCellInner, bandStyle]
+                ? [isDisabled ? $disabledCellInner : $reminderCellInner, bandStyle]
                 : themed($timeCellInner)
+
+              const textStyle = hasReminder
+                ? isDisabled
+                  ? $disabledTimeText
+                  : $reminderTimeText
+                : themed($timeText)
 
               return (
                 <View key={colIndex} style={[themed($timeCell), cellGap]}>
@@ -149,13 +156,13 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                           pressed && $cellPressed,
                         ]}
                       >
-                        <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
+                        <Text style={textStyle}>
                           {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </Pressable>
                     ) : (
                       <View style={Array.isArray(innerStyle) ? innerStyle : [innerStyle]}>
-                        <Text style={hasReminder ? $reminderTimeText : themed($timeText)}>
+                        <Text style={textStyle}>
                           {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </View>
@@ -240,6 +247,16 @@ const $reminderCellInner: ViewStyle = {
   borderColor: `${REMINDER_COLOR}60`,
 }
 
+const $disabledCellInner: ViewStyle = {
+  backgroundColor: "#333",
+  borderRadius: 8,
+  paddingVertical: 6,
+  paddingHorizontal: 4,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "#555",
+}
+
 const $cellPressed: ViewStyle = {
   opacity: 0.7,
 }
@@ -258,4 +275,10 @@ const $reminderTimeText: TextStyle = {
   fontSize: 11,
   fontWeight: "600",
   color: REMINDER_COLOR,
+}
+
+const $disabledTimeText: TextStyle = {
+  fontSize: 11,
+  fontWeight: "600",
+  color: "#999",
 }
