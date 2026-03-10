@@ -105,7 +105,8 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
   }, [loadReminders])
 
   // Compute which grid cells have reminders
-  const reminderCells = computeReminderCells(reminders, meeting)
+  const isContinuous = meeting?.continuous ?? false
+  const reminderCells = computeReminderCells(reminders, meeting, isContinuous)
 
   const createReminder = useCallback(
     async (input: Omit<ReminderCreateInput, "uid">): Promise<ReminderRecord | null> => {
@@ -247,11 +248,11 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
       if (!meeting?.scheduleData) return []
       return reminders.filter((r) => {
         if (excludeId && r.id === excludeId) return false
-        const rCells = getCellsForReminder(r, meeting.scheduleData!)
+        const rCells = getCellsForReminder(r, meeting.scheduleData!, isContinuous)
         return rCells.some((key) => proposedCells.has(key))
       })
     },
-    [reminders, meeting?.scheduleData],
+    [reminders, meeting?.scheduleData, isContinuous],
   )
 
   return {
@@ -270,6 +271,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
 function getCellsForReminder(
   r: ReminderRecord,
   scheduleData: (({ millis: number; id: string } | null)[])[],
+  continuous: boolean,
 ): string[] {
   const keys: string[] = []
   if (r.scope === "all") {
@@ -284,6 +286,16 @@ function getCellsForReminder(
         scheduleData[ri].forEach((c, ci) => {
           if (c !== null) keys.push(`${ri}-${ci}`)
         })
+        break
+      }
+    }
+  } else if (continuous && r.dow > 0) {
+    // Continuous (24/7): all cells share the same id, use dow to target the single cell
+    const ci = r.dow - 1
+    for (let ri = 0; ri < scheduleData.length; ri++) {
+      const c = scheduleData[ri][ci]
+      if (c !== null && c.id === r.mid) {
+        keys.push(`${ri}-${ci}`)
         break
       }
     }
@@ -305,13 +317,14 @@ function getCellsForReminder(
 function computeReminderCells(
   reminders: ReminderRecord[],
   meeting: MeetingWithTrex | null,
+  continuous: boolean,
 ): Map<string, "enabled" | "disabled"> {
   const cells = new Map<string, "enabled" | "disabled">()
   if (!meeting?.scheduleData || reminders.length === 0) return cells
 
   for (const r of reminders) {
     const state = r.enabled ? "enabled" : "disabled"
-    const keys = getCellsForReminder(r, meeting.scheduleData)
+    const keys = getCellsForReminder(r, meeting.scheduleData, continuous)
     for (const key of keys) {
       if (cells.get(key) !== "enabled") cells.set(key, state)
     }
