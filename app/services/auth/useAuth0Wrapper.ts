@@ -281,7 +281,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     isLoggingOut.current = true
 
     try {
-      // Clear Auth0 web session (requires browser redirect on iOS)
+      // Clear Auth0 web session (requires browser redirect)
       if (user && !authStore.isAnonymous) {
         await clearSession({}, { customScheme: AUTH0_CONFIG.customScheme })
         log.info("Auth0 session cleared")
