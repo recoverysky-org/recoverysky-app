@@ -42,7 +42,7 @@ import { requestReviewFromSettings } from "@/services/review"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { clear as clearStorage } from "@/utils/storage"
+import { clear as clearStorage, saveString } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
@@ -832,7 +832,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           <>
             <TouchableOpacity
               style={themed($upgradeButton)}
-              onPress={() => logout()}
+              onPress={() => {
+                saveString("POST_LOGIN_SECTION", "subscription")
+                logout()
+              }}
               accessibilityRole="button"
               accessibilityLabel={translate("settingsScreen:loginToSubscribe")}
             >
@@ -1039,6 +1042,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </View>
 
         <TouchableOpacity
+          style={themed($settingsRow)}
+          onPress={() => navigation.navigate("Terms")}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:termsAndConditions")}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:termsAndConditions" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[themed($settingsRow), themed($lastRow)]}
           onPress={() => navigation.navigate("Licenses")}
           accessibilityRole="button"
@@ -1092,7 +1105,7 @@ const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $sectionHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  paddingVertical: spacing.sm,
+  paddingVertical: spacing.sm + 5,
   gap: spacing.xs,
   borderBottomWidth: 1,
   borderBottomColor: colors.border,
