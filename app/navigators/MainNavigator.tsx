@@ -1,6 +1,8 @@
+import { useEffect } from "react"
 import { View, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+import { useNavigation } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -18,7 +20,8 @@ import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { useAppTheme } from "@/theme/context"
 
-import { MainTabParamList } from "./navigationTypes"
+import type { MainTabParamList, SettingsSection } from "./navigationTypes"
+import { loadString, remove } from "@/utils/storage"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
@@ -41,6 +44,19 @@ export const MainNavigator = observer(function MainNavigator() {
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
   const { isPremium: _isPremium } = useSubscription() // Agent tab hidden
+  const navigation = useNavigation<any>()
+
+  // Post-login redirect: navigate to Settings section if stored before login flow
+  useEffect(() => {
+    const postLoginSection = loadString("POST_LOGIN_SECTION") as SettingsSection | null
+    if (!postLoginSection) return
+    remove("POST_LOGIN_SECTION")
+    // Delay to let tab navigator fully mount before navigating
+    const timer = setTimeout(() => {
+      navigation.navigate("Settings", { section: postLoginSection })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [navigation])
 
   return (
     <Tab.Navigator

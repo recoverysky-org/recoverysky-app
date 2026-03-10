@@ -31,6 +31,7 @@ import { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { navigate } from "@/navigators/navigationUtilities"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { api, LiveSchedule } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
@@ -287,6 +288,9 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           <Text preset="heading" style={themed($title)}>
             {t("listingsScreen:title")}
           </Text>
+          <TouchableOpacity onPress={() => navigate("Settings" as never, { section: "profile" } as never)} hitSlop={8}>
+            <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
+          </TouchableOpacity>
         </View>
 
         {/* Fellowship Selector - single line */}
@@ -626,6 +630,9 @@ const $screenContainer: ViewStyle = {
 }
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
   paddingHorizontal: spacing.md,
   paddingTop: spacing.md,
   paddingBottom: spacing.sm,

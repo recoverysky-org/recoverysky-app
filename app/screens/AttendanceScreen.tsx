@@ -764,7 +764,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
 
 export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
   function AttendanceScreen({ navigation }) {
-    const { themed } = useAppTheme()
+    const { themed, theme } = useAppTheme()
     const toast = useToast()
     const route = useRoute<RouteProp<MainTabParamList, "Attendance">>()
 
@@ -805,7 +805,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
     }, [toast, navigation])
 
     const handleNavigateSettings = useCallback(() => {
-      navigation.navigate("Settings")
+      navigation.navigate("Settings", { section: "attendance" })
     }, [navigation])
 
     const handleSectionChange = useCallback((index: number) => {
@@ -820,6 +820,9 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
         {/* Header */}
         <View style={themed($screenHeader)}>
           <Text preset="heading" tx="attendanceScreen:title" />
+          <TouchableOpacity onPress={handleNavigateSettings} hitSlop={8}>
+            <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
+          </TouchableOpacity>
         </View>
 
         {/* Section Selector */}
@@ -855,6 +858,9 @@ const $container: ThemedStyle<ViewStyle> = () => ({
 })
 
 const $screenHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
   paddingHorizontal: spacing.lg,
   paddingTop: spacing.xs,
   paddingBottom: spacing.sm,

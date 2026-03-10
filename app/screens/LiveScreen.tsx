@@ -24,6 +24,7 @@ import { useLivePolling } from "@/hooks/useLivePolling"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { navigate } from "@/navigators/navigationUtilities"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -187,6 +188,9 @@ export const LiveContent: FC = observer(function LiveContent() {
       {/* Header - outside FlatList to match Listings layout */}
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
+        <TouchableOpacity onPress={() => navigate("Settings" as never, { section: "profile" } as never)} hitSlop={8}>
+          <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
+        </TouchableOpacity>
       </View>
 
       {/* Fellowship Selector - single line */}
@@ -297,6 +301,9 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
 }
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
   paddingHorizontal: spacing.md,
   paddingTop: spacing.md,
   paddingBottom: spacing.sm,
