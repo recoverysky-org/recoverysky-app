@@ -409,6 +409,8 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             onCellPress={handleCellPress}
             reminderCells={reminderCells}
           />
+
+          <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />
         </Pressable>
       </View>
 
@@ -525,6 +527,13 @@ const $readMore: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 13,
   color: colors.tint,
   marginBottom: spacing.sm,
+})
+
+const $reminderHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 11,
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: spacing.xs,
 })
 
 const $tagsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

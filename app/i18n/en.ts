@@ -145,6 +145,7 @@ const en = {
     meeting: "{{count}} meeting",
     password: "Password",
     tapToReadMore: "Tap to read more...",
+    tapTimesHint: "Tap times to set reminders",
     join: "join",
     joins: "joins",
     min: "min",

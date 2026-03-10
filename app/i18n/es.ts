@@ -145,6 +145,7 @@ const es: Translations = {
     meeting: "{{count}} reunión",
     password: "Contraseña",
     tapToReadMore: "Toca para leer más...",
+    tapTimesHint: "Toca los horarios para configurar recordatorios",
     join: "visita",
     joins: "visitas",
     min: "min",
