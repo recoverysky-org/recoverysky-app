@@ -89,7 +89,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         return
       }
 
-      const existing = findExistingReminder(id)
+      const existing = findExistingReminder(id, dayIndex)
       setEditingReminder(existing)
       setSelectedCell({ row: rowIndex, col: dayIndex })
       setReminderEditorVisible(true)

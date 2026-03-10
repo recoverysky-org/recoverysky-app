@@ -36,7 +36,7 @@ interface UseRemindersResult {
   /** Delete a reminder */
   deleteReminder: (id: string) => Promise<void>
   /** Find existing reminder covering the given cell ID (direct, row, or all scope) */
-  findExistingReminder: (cellId?: string) => ReminderRecord | null
+  findExistingReminder: (cellId?: string, dayIndex?: number) => ReminderRecord | null
   /** Check if proposed cells overlap with existing reminders (excludeId skips self) */
   checkOverlap: (proposedCells: Set<string>, excludeId?: string) => ReminderRecord[]
 }
@@ -214,13 +214,20 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
   }, [])
 
   const findExistingReminder = useCallback(
-    (cellId?: string): ReminderRecord | null => {
+    (cellId?: string, dayIndex?: number): ReminderRecord | null => {
       if (!meeting?.scheduleData) return null
 
       const mid = cellId ?? meeting.id
 
       // Exact match — single-scope reminder on this cell
-      const direct = reminders.find((r) => r.mid === mid)
+      // For continuous meetings, also match by dow since all cells share the same mid
+      const direct = reminders.find((r) => {
+        if (r.mid !== mid || r.scope !== "single") return false
+        if (isContinuous && dayIndex !== undefined && r.dow > 0) {
+          return r.dow === dayIndex + 1
+        }
+        return true
+      })
       if (direct) return direct
 
       // Row/all scope — find a reminder whose mid is in the same row as the tapped cell
