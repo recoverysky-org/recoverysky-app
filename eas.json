@@ -54,6 +54,7 @@
     "production": {
       "extends": "base",
       "env": {
+        "EXPO_NO_CAPABILITY_SYNC": "1",
         "EXPO_PUBLIC_LOG_LEVEL": "warn",
         "EXPO_PUBLIC_ONESIGNAL_MODE": "production"
       },
