@@ -395,7 +395,6 @@ export function App() {
 
   // Note: Splash screen is hidden by DatabaseLoadingOverlay when DB is seeded
   if (!isAppReady) {
-    // Only log on first render to avoid spam
     return null
   }
 

@@ -5,20 +5,20 @@
  * and a "main" flow which the user will use once logged in.
  */
 import { useEffect } from "react"
-import { ActivityIndicator, View } from "react-native"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
-import { useAuth0 } from "react-native-auth0"
 
 import Config from "@/config"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LicensesScreen } from "@/screens/LicensesScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
+import { TermsScreen } from "@/screens/TermsScreen"
 import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
 import { ZoomSetupScreen } from "@/screens/ZoomSetupScreen"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
@@ -41,7 +41,7 @@ const Stack = createNativeStackNavigator<AppStackParamList>()
 const AppStack = observer(function AppStack() {
   log.debug("AppStack initializing")
 
-  const { isLoading: auth0Loading } = useAuth0()
+  useAuth0Wrapper() // Syncs Auth0 session → MST store, sets authReady
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
   const isAuthenticated = authStore.isAuthenticated
@@ -54,29 +54,17 @@ const AppStack = observer(function AppStack() {
   } = useAppTheme()
   log.debug("Theme retrieved")
 
-  // Wait for Auth0 SDK to resolve cached session before rendering navigation
-  // This prevents a flash of the Login screen for returning users
-  if (auth0Loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={colors.tint} />
-      </View>
-    )
-  }
-
   useEffect(() => {
-    log.info("AppStack mounted", { isAuthenticated, needsZoomSetup, needsOnboarding })
+    log.info("AppStack mounted", { isAuthenticated, authReady: authStore.authReady, needsZoomSetup, needsOnboarding })
     return () => {
       log.debug("AppStack unmounting")
     }
-  }, [isAuthenticated, needsZoomSetup, needsOnboarding])
+  }, [isAuthenticated, authStore.authReady, needsZoomSetup, needsOnboarding])
+
+  // Don't render navigation until auth is resolved — splash screen covers this
+  if (!authStore.authReady) {
+    return null
+  }
 
   // Determine initial route based on auth, zoom, and onboarding status
   const initialRoute = !isAuthenticated
@@ -131,6 +119,14 @@ const AppStack = observer(function AppStack() {
             <Stack.Screen
               name="Licenses"
               component={LicensesScreen}
+              options={{
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Terms"
+              component={TermsScreen}
               options={{
                 presentation: "modal",
                 headerShown: false,

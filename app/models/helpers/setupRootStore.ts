@@ -1,6 +1,7 @@
 import { applySnapshot, onSnapshot } from "mobx-state-tree"
 
 import { profileRepository } from "@/db/repositories"
+import { loadAuthCredentials } from "@/services/auth/secureStorage"
 import { logger } from "@/utils/logger"
 import * as storage from "@/utils/storage"
 
@@ -12,19 +13,6 @@ const log = logger.child({ module: "RootStore" })
  * The key we use to store the root state in MMKV.
  */
 const ROOT_STATE_STORAGE_KEY = "root-v1"
-
-/**
- * Strip OAuth tokens from the auth store snapshot before persisting to MMKV.
- * Tokens are managed by the Auth0 SDK (iOS Keychain / Android Keystore) and
- * re-synced to MST on app launch — no need to duplicate them in unencrypted storage.
- */
-function stripAuthTokens<T extends Record<string, unknown>>(snapshot: T): T {
-  const authStore = snapshot.authenticationStore as Record<string, unknown> | undefined
-  if (!authStore) return snapshot
-
-  const { accessToken: _, refreshToken: _r, idToken: _i, expiresAt: _e, ...safeAuth } = authStore
-  return { ...snapshot, authenticationStore: safeAuth }
-}
 
 /**
  * Setup the root state.
@@ -57,11 +45,42 @@ export async function setupRootStore(rootStore: RootStore) {
     log.error("Failed to load RootStore from MMKV", { error: String(e) })
   }
 
+  // Reset anonymous flag on cold start so returning anonymous users see the Login screen.
+  if (rootStore.authenticationStore.isAnonymous) {
+    rootStore.authenticationStore.setProp("isAnonymous", false)
+  }
+
+  // Load auth credentials from SecureStore.
+  // If we have a valid (non-expired) access token, hydrate auth immediately —
+  // no need to wait for Auth0 SDK. This eliminates the Login screen flash.
+  try {
+    const creds = await loadAuthCredentials()
+    if (creds && creds.expiresAt > Date.now()) {
+      rootStore.authenticationStore.setTokens(
+        creds.accessToken,
+        creds.refreshToken,
+        creds.idToken,
+        creds.expiresAt,
+      )
+      log.info("Auth credentials restored from SecureStore", {
+        expiresIn: Math.round((creds.expiresAt - Date.now()) / 1000 / 60) + " min",
+      })
+    } else if (creds) {
+      log.info("Stored auth credentials expired, user will need to re-authenticate")
+    }
+  } catch (e) {
+    log.error("Failed to load auth credentials from SecureStore", { error: String(e) })
+  }
+
+  // Auth is always ready after loading from SecureStore — either we have valid tokens
+  // or we don't, but either way we know what screen to show immediately.
+  rootStore.authenticationStore.setAuthReady()
+
   // Track changes and save to MMKV
-  // Exclude configStore (uses env vars) and auth tokens (managed by Auth0 SDK securely)
+  // Exclude configStore (uses env vars); auth tokens are all volatile and won't appear in snapshots
   const unsubscribe = onSnapshot(rootStore, (snapshot) => {
     const { configStore: _configStore, ...snapshotWithoutConfig } = snapshot
-    storage.save(ROOT_STATE_STORAGE_KEY, stripAuthTokens(snapshotWithoutConfig))
+    storage.save(ROOT_STATE_STORAGE_KEY, snapshotWithoutConfig)
   })
   log.debug("RootStore snapshot listener registered")
 

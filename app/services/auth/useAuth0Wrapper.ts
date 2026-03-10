@@ -16,6 +16,7 @@ import { logger } from "@/utils/logger"
 
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
 import { decodeJwtPayload, extractSqliteKeyFromClaims, type IdTokenClaims } from "./jwtUtils"
+import { saveAuthCredentials, clearAuthCredentials } from "./secureStorage"
 
 const log = logger.child({ module: "useAuth0Wrapper" })
 
@@ -122,6 +123,19 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               authStore.setAuthEmail(user.email)
             }
 
+            // Persist credentials to SecureStore for instant restore on next cold start
+            saveAuthCredentials({
+              accessToken: credentials.accessToken,
+              refreshToken: credentials.refreshToken ?? undefined,
+              idToken: credentials.idToken ?? undefined,
+              expiresAt,
+            }).catch((err) =>
+              log.error("Failed to persist auth credentials", { error: String(err) }),
+            )
+
+            // Auth initialization complete — credentials are now in MST
+            authStore.setAuthReady()
+
             // Check for SQLite encryption key in JWT claims
             if (credentials.idToken) {
               await handleSqliteKeyFromJwt(credentials.idToken)
@@ -138,6 +152,16 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     syncUserToStore()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  // When Auth0 SDK finishes loading: if no user, auth is resolved (no session to restore)
+  useEffect(() => {
+    if (!auth0Loading && !user && !isLoggingOut.current && !authStore.authReady) {
+      log.info("Auth0 resolved without user, auth ready")
+      authStore.setAuthReady()
+      clearAuthCredentials().catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth0Loading, user])
 
   /**
    * Extract SQLite key from JWT claims and handle rekey if needed
@@ -263,8 +287,11 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         log.info("Auth0 session cleared")
       }
 
-      // Clear MST store
+      // Clear MST store and SecureStore
       authStore.logout()
+      clearAuthCredentials().catch((err) =>
+        log.error("Failed to clear auth credentials", { error: String(err) }),
+      )
       log.info("Logout complete")
     } catch (err) {
       // User cancelled the iOS browser dialog — abort logout
@@ -277,6 +304,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       log.error("Logout failed", { error: message })
       // Still clear local state on unexpected errors
       authStore.logout()
+      clearAuthCredentials().catch(() => {})
     } finally {
       isLoggingOut.current = false
     }

@@ -9,8 +9,10 @@
 import { useEffect, useRef } from "react"
 import { Modal, View, ViewStyle, TextStyle, ActivityIndicator } from "react-native"
 import * as SplashScreen from "expo-splash-screen"
+import { observer } from "mobx-react-lite"
 
 import { Text } from "@/components/Text"
+import { useAuthenticationStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -22,22 +24,25 @@ const log = logger.child({ module: "DatabaseLoadingOverlay" })
 /**
  * Overlay component that shows during database initialization.
  * Place inside DatabaseProvider to access database status.
+ * Also controls splash screen — waits for both DB seeded AND auth resolved.
  */
-export function DatabaseLoadingOverlay() {
+export const DatabaseLoadingOverlay = observer(function DatabaseLoadingOverlay() {
   const { themed, theme } = useAppTheme()
   const { status, error } = useDatabase()
+  const authStore = useAuthenticationStore()
   const hasHiddenSplash = useRef(false)
 
-  // Hide splash screen only once when database is fully seeded
+  // Hide splash screen only once when database is fully seeded AND auth is resolved.
+  // Delay hide by one frame so React can paint the correct screen first.
   useEffect(() => {
-    if (status === "seeded" && !hasHiddenSplash.current) {
+    if (status === "seeded" && authStore.authReady && !hasHiddenSplash.current) {
       hasHiddenSplash.current = true
-      log.info("Database seeded, hiding splash screen")
+      log.info("Database seeded and auth ready, hiding splash screen")
       SplashScreen.hideAsync().catch((err) => {
         log.warn("Failed to hide splash screen", { error: String(err) })
       })
     }
-  }, [status])
+  }, [status, authStore.authReady])
 
   // Only show overlay during opening, reencrypting, or error states
   // Note: "seeding" is instant (no data to seed) so no overlay needed
@@ -67,7 +72,7 @@ export function DatabaseLoadingOverlay() {
       </View>
     </Modal>
   )
-}
+})
 
 const $overlay: ThemedStyle<ViewStyle> = () => ({
   flex: 1,

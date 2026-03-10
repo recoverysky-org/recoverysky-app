@@ -336,6 +336,7 @@ const es: Translations = {
     rateApp: "Calificar RecoverySky",
     // Legal Section
     legalSection: "Legal",
+    termsAndConditions: "Términos y Condiciones",
     thirdPartyLicenses: "Licencias de Terceros",
     thirdPartyLicensesTitle: "Licencias de Código Abierto",
     close: "Cerrar",

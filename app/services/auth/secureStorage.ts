@@ -45,3 +45,46 @@ export async function deleteItemAsync(key: string): Promise<void> {
     await SecureStore.deleteItemAsync(key)
   }
 }
+
+// --- Auth Credential Helpers ---
+
+const AUTH_CREDENTIALS_KEY = "auth_credentials_v1"
+
+export interface StoredAuthCredentials {
+  accessToken: string
+  refreshToken?: string
+  idToken?: string
+  /** Expiry timestamp in milliseconds */
+  expiresAt: number
+}
+
+export async function loadAuthCredentials(): Promise<StoredAuthCredentials | undefined> {
+  const raw = await getItemAsync(AUTH_CREDENTIALS_KEY)
+  if (!raw) return undefined
+  try {
+    return JSON.parse(raw) as StoredAuthCredentials
+  } catch {
+    return undefined
+  }
+}
+
+export async function saveAuthCredentials(creds: StoredAuthCredentials): Promise<void> {
+  await setItemAsync(AUTH_CREDENTIALS_KEY, JSON.stringify(creds))
+}
+
+export async function clearAuthCredentials(): Promise<void> {
+  await deleteItemAsync(AUTH_CREDENTIALS_KEY)
+}
+
+// --- Terms Acceptance ---
+
+const TERMS_ACCEPTED_KEY = "terms_accepted_v1"
+
+export async function hasAcceptedTerms(): Promise<boolean> {
+  const val = await getItemAsync(TERMS_ACCEPTED_KEY)
+  return val === "true"
+}
+
+export async function setTermsAccepted(): Promise<void> {
+  await setItemAsync(TERMS_ACCEPTED_KEY, "true")
+}

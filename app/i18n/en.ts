@@ -337,6 +337,7 @@ const en = {
     rateApp: "Rate RecoverySky",
     // Legal Section
     legalSection: "Legal",
+    termsAndConditions: "Terms & Conditions",
     thirdPartyLicenses: "Third-Party Licenses",
     thirdPartyLicensesTitle: "Open Source Licenses",
     close: "Close",

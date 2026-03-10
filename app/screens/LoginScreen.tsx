@@ -20,6 +20,7 @@ import { useDatabase } from "@/db/DatabaseProvider"
 import { translate } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -48,6 +49,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   // EUA modal state
   const [showEuaModal, setShowEuaModal] = useState(false)
   const [pendingLoginType, setPendingLoginType] = useState<LoginType>(null)
+  const [termsAlreadyAccepted, setTermsAlreadyAccepted] = useState(false)
+
+  // Check if terms were previously accepted
+  useEffect(() => {
+    hasAcceptedTerms().then(setTermsAlreadyAccepted).catch(() => {})
+  }, [])
 
   useEffect(() => {
     log.info("LoginScreen mounted")
@@ -61,39 +68,57 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     }
   }, [error])
 
+  const proceedWithLogin = useCallback(
+    async (type: LoginType) => {
+      clearError()
+      if (type === "authenticated") await login()
+      else if (type === "signup") await signup()
+      else if (type === "anonymous") await loginAnonymously()
+    },
+    [login, signup, loginAnonymously, clearError],
+  )
+
   const handleLoginPress = useCallback(() => {
     log.info("Login button pressed", { type: "authenticated" })
-    setPendingLoginType("authenticated")
-    setShowEuaModal(true)
-  }, [])
+    if (termsAlreadyAccepted) {
+      proceedWithLogin("authenticated")
+    } else {
+      setPendingLoginType("authenticated")
+      setShowEuaModal(true)
+    }
+  }, [termsAlreadyAccepted, proceedWithLogin])
 
   const handleSignupPress = useCallback(() => {
     log.info("Login button pressed", { type: "signup" })
-    setPendingLoginType("signup")
-    setShowEuaModal(true)
-  }, [])
+    if (termsAlreadyAccepted) {
+      proceedWithLogin("signup")
+    } else {
+      setPendingLoginType("signup")
+      setShowEuaModal(true)
+    }
+  }, [termsAlreadyAccepted, proceedWithLogin])
 
   const handleAnonymousPress = useCallback(() => {
     log.info("Login button pressed", { type: "anonymous" })
-    setPendingLoginType("anonymous")
-    setShowEuaModal(true)
-  }, [])
+    if (termsAlreadyAccepted) {
+      proceedWithLogin("anonymous")
+    } else {
+      setPendingLoginType("anonymous")
+      setShowEuaModal(true)
+    }
+  }, [termsAlreadyAccepted, proceedWithLogin])
 
   const handleEuaAgree = useCallback(async () => {
     log.info("EUA accepted", { loginType: pendingLoginType ?? "none" })
     setShowEuaModal(false)
-    clearError()
 
-    if (pendingLoginType === "authenticated") {
-      await login()
-    } else if (pendingLoginType === "signup") {
-      await signup()
-    } else if (pendingLoginType === "anonymous") {
-      await loginAnonymously()
-    }
+    // Persist acceptance to SecureStore
+    setTermsAlreadyAccepted(true)
+    setTermsAccepted().catch((err) => log.error("Failed to persist terms acceptance", { error: String(err) }))
 
+    await proceedWithLogin(pendingLoginType)
     setPendingLoginType(null)
-  }, [pendingLoginType, login, signup, loginAnonymously, clearError])
+  }, [pendingLoginType, proceedWithLogin])
 
   const handleEuaCancel = useCallback(() => {
     log.info("EUA cancelled", { loginType: pendingLoginType ?? "none" })

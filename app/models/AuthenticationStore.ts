@@ -9,8 +9,6 @@ const log = logger.child({ module: "AuthStore" })
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
   .props({
-    /** OAuth refresh token for obtaining new access tokens (persisted for re-auth) */
-    refreshToken: types.maybe(types.string),
     /** User's email address */
     authEmail: "",
     /** User ID from OAuth provider (sub claim) or deviceId for anonymous users */
@@ -21,12 +19,16 @@ export const AuthenticationStoreModel = types
     isAnonymous: types.optional(types.boolean, false),
   })
   .volatile(() => ({
+    /** OAuth refresh token — persisted to SecureStore, never MMKV */
+    refreshToken: undefined as string | undefined,
     /** OAuth access token — kept in memory only, never persisted */
     accessToken: undefined as string | undefined,
     /** OAuth ID token — kept in memory only */
     idToken: undefined as string | undefined,
     /** Timestamp (ms) when access token expires — kept in memory only */
     expiresAt: undefined as number | undefined,
+    /** Whether auth initialization is complete (Auth0 session resolved) */
+    authReady: false,
   }))
   .views((store) => ({
     /**
@@ -118,6 +120,12 @@ export const AuthenticationStoreModel = types
     setDeviceId(id: string) {
       log.debug("setDeviceId()", { deviceId: id.slice(0, 8) + "..." })
       store.deviceId = id
+    },
+    /**
+     * Mark auth initialization as complete
+     */
+    setAuthReady() {
+      store.authReady = true
     },
     /**
      * Login as anonymous user
