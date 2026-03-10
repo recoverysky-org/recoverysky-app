@@ -24,6 +24,10 @@ import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import type { ReminderRecord, ReminderCreateInput, ReminderUpdateInput } from "@/db"
+import {
+  hasNotificationPermission,
+  requestNotificationPermission,
+} from "@/services/notifications"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -142,6 +146,16 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     setIsSaving(true)
 
     try {
+      // Ensure notification permission before saving — reminder is useless without it
+      const permitted = await hasNotificationPermission()
+      if (!permitted) {
+        const granted = await requestNotificationPermission()
+        if (!granted) {
+          setIsSaving(false)
+          return
+        }
+      }
+
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
       const cellMid =
         meeting.scheduleData?.[activeCell.row]?.[activeCell.col]?.id ?? meeting.id

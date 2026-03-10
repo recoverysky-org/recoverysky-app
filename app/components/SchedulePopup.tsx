@@ -14,7 +14,7 @@
  */
 
 import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
-import { Animated, View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
+import { Alert, Animated, View, ViewStyle, TextStyle, Modal, Pressable, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
@@ -24,6 +24,7 @@ import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
 import { useReminders } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
@@ -51,6 +52,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
+  const { isPremium } = useSubscription()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
   // Reminder state
@@ -66,15 +68,33 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     checkOverlap,
   } = useReminders(visible ? meeting : null, meeting?.sid ?? "")
 
-  // Handle schedule grid cell tap → open reminder editor
+  // Handle schedule grid cell tap → open reminder editor (premium only)
   const handleCellPress = useCallback(
     (_millis: number, id: string, dayIndex: number, rowIndex: number) => {
+      if (!isPremium) {
+        Alert.alert(
+          t("reminderEditor:premiumTitle"),
+          t("reminderEditor:premiumMessage"),
+          [
+            { text: t("reminderEditor:cancel"), style: "cancel" },
+            {
+              text: t("reminderEditor:goToSettings"),
+              onPress: () => {
+                onClose()
+                navigate("Settings" as never, { section: "subscription" } as never)
+              },
+            },
+          ],
+        )
+        return
+      }
+
       const existing = findExistingReminder(id)
       setEditingReminder(existing)
       setSelectedCell({ row: rowIndex, col: dayIndex })
       setReminderEditorVisible(true)
     },
-    [findExistingReminder],
+    [isPremium, findExistingReminder, t, onClose],
   )
 
   // Local feedback state - initialized from cache, updated on interactions
