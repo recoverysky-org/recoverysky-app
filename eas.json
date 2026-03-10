@@ -6,6 +6,7 @@
   "build": {
     "base": {
       "env": {
+        "EXPO_NO_CAPABILITY_SYNC": "1",
         "EXPO_PUBLIC_RESEED_DB": "false",
         "EXPO_PUBLIC_API_URL": "https://api.recoverysky.app",
         "EXPO_PUBLIC_AGENT_URL": "https://agent.recoverysky.app"

@@ -39,7 +39,7 @@
     "build:ios:device": "EXPO_NO_CAPABILITY_SYNC=1 eas build --profile development:device --platform ios --local",
     "build:ios:preview": "EXPO_NO_CAPABILITY_SYNC=1 eas build --profile preview --platform ios --local",
     "build:ios:preview:device": "EXPO_NO_CAPABILITY_SYNC=1 eas build --profile preview:device --platform ios --local",
-    "build:ios:prod": "eas build --profile production --platform ios --local",
+    "build:ios:prod": "EXPO_NO_CAPABILITY_SYNC=1 eas build --profile production --platform ios --local",
     "build:android:sim:debug": "cd android && ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 && cd ..",
     "build:android:sim:release": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 && cd ..",
     "build:android:device:debug": "cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a && cd ..",
