@@ -43,7 +43,7 @@ const en = {
       "Log in to access app subscriptions and premium features. Subscriptions require a logged in account, or continue anonymously with basic free features.\n\nYou may login and logout at any time in Settings.",
     loginButton: "Login",
     signupButton: "Sign Up",
-    continueAnonymously: "Continue Anonymously",
+    continueAnonymously: "", // TODO: decide on copy for anonymous login button
     openingBrowser: "Opening browser for authentication...",
     euaTitle: "Terms & Conditions",
     euaAgree: "I Agree",
