@@ -1,6 +1,6 @@
 {
   "name": "recoverysky-app",
-  "version": "3.99.10",
+  "version": "3.99.11",
   "private": true,
   "main": "index.tsx",
   "scripts": {
@@ -71,7 +71,7 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
-    "@recoverysky-org/common": "^1.16.4",
+    "@recoverysky-org/common": "^1.17.1",
     "@revenuecat/purchases-js": "^1.23.0",
     "@stardazed/streams-text-encoding": "^1.0.2",
     "@trex-ts/core": "^1.5.6",
