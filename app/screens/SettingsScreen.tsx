@@ -292,6 +292,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               await logoutSubscription()
 
               // 3. Logout from OneSignal
+              optOutNotifications()
               logoutOneSignalUser()
 
               // 4. Clear AI conversation history (SQLite)

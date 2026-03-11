@@ -87,7 +87,7 @@ export const ConfigStoreModel = types
             store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
           if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
           if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
-          if (config.ONE_SIGNAL_IOS_KEY_ID) store.oneSignalAppId = config.ONE_SIGNAL_IOS_KEY_ID
+          if (config.ONE_SIGNAL_APP_ID) store.oneSignalAppId = config.ONE_SIGNAL_APP_ID
           store.isLoaded = true
 
           log.info("Config loaded from server", {
