@@ -60,8 +60,10 @@ export interface SendReportResponse {
  */
 export interface ReminderApiInput {
   id: string
+  uid: string
   mid: string
   sid?: string
+  scope?: string
   name?: string
   timezone: string
   dow?: number
@@ -69,6 +71,23 @@ export interface ReminderApiInput {
   minutes_before: number
   at_start: boolean
   enabled: boolean
+}
+
+export interface ReminderApiResponse {
+  id: string
+  uid: string
+  sid: string
+  mid: string
+  scope: string
+  dow: number
+  time: number
+  name: string
+  timezone: string
+  minutes_before: number
+  at_start: boolean
+  enabled: boolean
+  created: number
+  updated: number
 }
 
 /**
@@ -554,8 +573,7 @@ export class Api {
           REVENUE_CAT_API_GOOGLE_KEY: string
           ZAK_API_KEY: string
           OTLP_API_KEY: string
-          ONE_SIGNAL_IOS_KEY_ID: string
-          ONE_SIGNAL_IOS_KEY: string
+          ONE_SIGNAL_APP_ID: string
         }
       }
     | GeneralApiProblem
@@ -573,8 +591,7 @@ export class Api {
       REVENUE_CAT_API_GOOGLE_KEY: string
       ZAK_API_KEY: string
       OTLP_API_KEY: string
-      ONE_SIGNAL_IOS_KEY_ID: string
-      ONE_SIGNAL_IOS_KEY: string
+      ONE_SIGNAL_APP_ID: string
     }>("/config")
 
     if (!response.ok) {
@@ -844,50 +861,83 @@ export class Api {
   }
 
   // ==========================================================================
-  // Reminders (stubbed — server endpoints not yet implemented)
+  // Reminders
   // ==========================================================================
 
-  /**
-   * Sync a new reminder to the server for push notification scheduling.
-   * Stubbed until server endpoint is built.
-   */
   async createReminder(input: ReminderApiInput): Promise<{ kind: "ok" } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.warn("createReminder: server endpoint not yet implemented", { mid: input.mid })
+    log.debug("Creating reminder", { mid: input.mid, scope: input.scope })
+
+    const response = await this.recoverySkyApi.post<ReminderApiResponse>("/reminders", input)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Create reminder failed", { problem: problem?.kind, mid: input.mid })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.debug("Reminder created", { id: input.id })
     return { kind: "ok" }
   }
 
-  /**
-   * Sync reminder updates to the server.
-   * Stubbed until server endpoint is built.
-   */
   async updateReminder(
     id: string,
-    _input: Partial<ReminderApiInput>,
+    input: Partial<ReminderApiInput>,
   ): Promise<{ kind: "ok" } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.warn("updateReminder: server endpoint not yet implemented", { id })
+    log.debug("Updating reminder", { id })
+
+    const response = await this.recoverySkyApi.patch<ReminderApiResponse>(`/reminders/${id}`, input)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Update reminder failed", { problem: problem?.kind, id })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.debug("Reminder updated", { id })
     return { kind: "ok" }
   }
 
-  /**
-   * Delete a reminder on the server.
-   * Stubbed until server endpoint is built.
-   */
-  async deleteReminder(id: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
+  async deleteReminder(id: string, uid: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.warn("deleteReminder: server endpoint not yet implemented", { id })
+    log.debug("Deleting reminder", { id })
+
+    const response = await this.recoverySkyApi.delete<ReminderApiResponse>(
+      `/reminders/${id}`,
+      {},
+      { data: { uid } },
+    )
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Delete reminder failed", { problem: problem?.kind, id })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.debug("Reminder deleted", { id })
     return { kind: "ok" }
   }
 
-  /**
-   * Fetch all reminders for the current user from the server.
-   * Stubbed until server endpoint is built.
-   */
-  async getReminders(): Promise<{ kind: "ok"; reminders: never[] } | GeneralApiProblem> {
+  async getReminders(
+    uid: string,
+  ): Promise<{ kind: "ok"; reminders: ReminderApiResponse[] } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.warn("getReminders: server endpoint not yet implemented")
-    return { kind: "ok", reminders: [] }
+    log.debug("Fetching reminders", { uid })
+
+    const response = await this.recoverySkyApi.get<ReminderApiResponse[]>("/reminders", { uid })
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Fetch reminders failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    return { kind: "ok", reminders: response.data ?? [] }
   }
 }
 

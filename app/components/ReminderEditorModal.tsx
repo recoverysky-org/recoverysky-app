@@ -191,14 +191,10 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     setIsSaving(true)
 
     try {
-      // Ensure notification permission before saving — reminder is useless without it
+      // Best-effort notification permission — don't block save if unavailable
       const permitted = await hasNotificationPermission()
       if (!permitted) {
-        const granted = await requestNotificationPermission()
-        if (!granted) {
-          setIsSaving(false)
-          return
-        }
+        await requestNotificationPermission()
       }
 
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -208,18 +204,9 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
       // dow: ISO weekday from grid column (col 0=Mon → dow 1, col 6=Sun → dow 7)
       const dow = activeCell.col + 1
 
-      // time: minutes from midnight
-      let time: number
-      if (is24h && hasCustomTime) {
-        // 24/7 meeting — use time picker value
-        time = customTime.getHours() * 60 + customTime.getMinutes()
-      } else if (cell && cell.millis > 0) {
-        // Regular meeting — extract local time from cell millis
-        const local = DateTime.fromMillis(cell.millis).toLocal()
-        time = local.hour * 60 + local.minute
-      } else {
-        time = 0
-      }
+      // time: minutes from midnight (only meaningful for 24/7 meetings; -1 otherwise)
+      const time =
+        is24h && hasCustomTime ? customTime.getHours() * 60 + customTime.getMinutes() : -1
 
       if (isEditing && existingReminder) {
         await onUpdate(existingReminder.id, {
@@ -341,6 +328,30 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               </Pressable>
             </View>
 
+            {/* Action buttons */}
+            <View style={themed($actionRow)}>
+              {isEditing && (
+                <Pressable style={themed($deleteButton)} onPress={handleDelete}>
+                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                  <Text style={$deleteButtonText}>{t("reminderEditor:delete")}</Text>
+                </Pressable>
+              )}
+
+              <View style={themed($rightActions)}>
+                <Pressable style={themed($cancelButton)} onPress={onClose}>
+                  <Text style={themed($cancelButtonText)}>{t("reminderEditor:cancel")}</Text>
+                </Pressable>
+                <Pressable
+                  style={[themed($saveButton), !canSave && $savingDisabled]}
+                  onPress={handleSave}
+                  disabled={!canSave}
+                >
+                  <Ionicons name="checkmark" size={18} color="#000" />
+                  <Text style={$saveButtonText}>{t("reminderEditor:save")}</Text>
+                </Pressable>
+              </View>
+            </View>
+
             {/* Meeting name */}
             <Text style={themed($meetingName)} numberOfLines={1}>
               {meeting.name}
@@ -382,14 +393,6 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
                 )}
                 {showTimePicker && (
                   <View style={$timePickerContainer}>
-                    <DateTimePicker
-                      value={customTime}
-                      mode="time"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={handleTimeChange}
-                      minuteInterval={5}
-                      themeVariant="dark"
-                    />
                     {Platform.OS === "ios" && (
                       <Pressable
                         style={themed($timePickerDone)}
@@ -401,6 +404,14 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
                         <Text style={$timePickerDoneText}>{t("reminderEditor:save")}</Text>
                       </Pressable>
                     )}
+                    <DateTimePicker
+                      value={customTime}
+                      mode="time"
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      onChange={handleTimeChange}
+                      minuteInterval={5}
+                      themeVariant="dark"
+                    />
                   </View>
                 )}
               </View>
@@ -496,29 +507,6 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               </View>
             )}
 
-            {/* Action buttons */}
-            <View style={themed($actionRow)}>
-              {isEditing && (
-                <Pressable style={themed($deleteButton)} onPress={handleDelete}>
-                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                  <Text style={$deleteButtonText}>{t("reminderEditor:delete")}</Text>
-                </Pressable>
-              )}
-
-              <View style={themed($rightActions)}>
-                <Pressable style={themed($cancelButton)} onPress={onClose}>
-                  <Text style={themed($cancelButtonText)}>{t("reminderEditor:cancel")}</Text>
-                </Pressable>
-                <Pressable
-                  style={[themed($saveButton), !canSave && $savingDisabled]}
-                  onPress={handleSave}
-                  disabled={!canSave}
-                >
-                  <Ionicons name="checkmark" size={18} color="#000" />
-                  <Text style={$saveButtonText}>{t("reminderEditor:save")}</Text>
-                </Pressable>
-              </View>
-            </View>
           </ScrollView>
         </View>
       </View>
@@ -724,7 +712,7 @@ const $saveButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 
 const $savingDisabled: ViewStyle = {
-  opacity: 0.6,
+  opacity: 0.35,
 }
 
 const $saveButtonText: TextStyle = {

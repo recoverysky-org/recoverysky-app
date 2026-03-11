@@ -79,9 +79,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
     try {
       const byUser = await reminderRepo.findByUserId(uid)
       if (byUser.ok) {
-        setReminders(
-          byUser.value.filter((r) => gridMids.has(r.mid) || (sid && r.sid === sid)),
-        )
+        setReminders(byUser.value.filter((r) => gridMids.has(r.mid) || (sid && r.sid === sid)))
       } else {
         setReminders([])
       }
@@ -137,8 +135,10 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
         api
           .createReminder({
             id,
+            uid,
             mid: created.mid,
             sid: created.sid || undefined,
+            scope: created.scope,
             name: created.name,
             timezone: created.timezone,
             dow: created.dow,
@@ -155,63 +155,70 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
     [uid],
   )
 
-  const updateReminder = useCallback(async (id: string, input: ReminderUpdateInput) => {
-    const result = await reminderRepo.update(id, input)
-    if (!result.ok) {
-      log.error("Failed to update reminder", { id })
-      return
-    }
+  const updateReminder = useCallback(
+    async (id: string, input: ReminderUpdateInput) => {
+      const result = await reminderRepo.update(id, input)
+      if (!result.ok) {
+        log.error("Failed to update reminder", { id })
+        return
+      }
 
-    const record = await reminderRepo.findById(id)
-    const updated = record.ok ? record.value : null
+      const record = await reminderRepo.findById(id)
+      const updated = record.ok ? record.value : null
 
-    reminderEvents.emit({
-      type: "updated",
-      id,
-      record: updated ?? undefined,
-      mid: updated?.mid,
-      sid: updated?.sid || undefined,
-    })
-
-    // Fire-and-forget API sync
-    api
-      .updateReminder(id, {
+      reminderEvents.emit({
+        type: "updated",
         id,
-        mid: updated?.mid ?? "",
-        timezone: updated?.timezone ?? "",
-        dow: updated?.dow ?? 0,
-        time: updated?.time ?? 0,
-        minutes_before: updated?.minutes_before ?? 15,
-        at_start: updated?.at_start ?? false,
-        enabled: updated?.enabled ?? true,
-        ...input,
+        record: updated ?? undefined,
+        mid: updated?.mid,
+        sid: updated?.sid || undefined,
       })
-      .catch((e) => log.warn("API sync failed for updateReminder", { error: String(e) }))
-  }, [])
 
-  const deleteReminder = useCallback(async (id: string) => {
-    // Read before deleting for event data
-    const record = await reminderRepo.findById(id)
-    const existing = record.ok ? record.value : null
+      // Fire-and-forget API sync
+      api
+        .updateReminder(id, {
+          id,
+          uid,
+          mid: updated?.mid ?? "",
+          timezone: updated?.timezone ?? "",
+          dow: updated?.dow ?? 0,
+          time: updated?.time ?? 0,
+          minutes_before: updated?.minutes_before ?? 15,
+          at_start: updated?.at_start ?? false,
+          enabled: updated?.enabled ?? true,
+          ...input,
+        })
+        .catch((e) => log.warn("API sync failed for updateReminder", { error: String(e) }))
+    },
+    [uid],
+  )
 
-    const result = await reminderRepo.delete(id)
-    if (!result.ok) {
-      log.error("Failed to delete reminder", { id })
-      return
-    }
+  const deleteReminder = useCallback(
+    async (id: string) => {
+      // Read before deleting for event data
+      const record = await reminderRepo.findById(id)
+      const existing = record.ok ? record.value : null
 
-    reminderEvents.emit({
-      type: "deleted",
-      id,
-      mid: existing?.mid,
-      sid: existing?.sid || undefined,
-    })
+      const result = await reminderRepo.delete(id)
+      if (!result.ok) {
+        log.error("Failed to delete reminder", { id })
+        return
+      }
 
-    // Fire-and-forget API sync
-    api
-      .deleteReminder(id)
-      .catch((e) => log.warn("API sync failed for deleteReminder", { error: String(e) }))
-  }, [])
+      reminderEvents.emit({
+        type: "deleted",
+        id,
+        mid: existing?.mid,
+        sid: existing?.sid || undefined,
+      })
+
+      // Fire-and-forget API sync
+      api
+        .deleteReminder(id, uid)
+        .catch((e) => log.warn("API sync failed for deleteReminder", { error: String(e) }))
+    },
+    [uid],
+  )
 
   const findExistingReminder = useCallback(
     (cellId?: string, dayIndex?: number): ReminderRecord | null => {
@@ -277,7 +284,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
 /** Get the "row-col" cell keys covered by a single reminder */
 function getCellsForReminder(
   r: ReminderRecord,
-  scheduleData: (({ millis: number; id: string } | null)[])[],
+  scheduleData: ({ millis: number; id: string } | null)[][],
   continuous: boolean,
 ): string[] {
   const keys: string[] = []
@@ -344,10 +351,7 @@ function computeReminderCells(
  * Check if a meeting's schedule has any reminders set.
  * Matches by cell IDs in scheduleData or by schedule ID (sid).
  */
-export function meetingHasReminder(
-  meeting: MeetingWithTrex,
-  lookup: ReminderLookup,
-): boolean {
+export function meetingHasReminder(meeting: MeetingWithTrex, lookup: ReminderLookup): boolean {
   if (lookup.sids.has(meeting.sid)) return true
   if (meeting.scheduleData) {
     for (const row of meeting.scheduleData) {
