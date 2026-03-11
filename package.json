@@ -20,6 +20,7 @@
     "patch:splash": "bash scripts/patch-splash.sh",
     "patch:android": "bash scripts/patch-android.sh",
     "patch:ios": "bash scripts/patch-ios.sh",
+    "generate:icons": "bash scripts/generate-icons.sh",
     "compile": "tsc --noEmit -p . --pretty",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
