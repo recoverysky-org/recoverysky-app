@@ -352,6 +352,16 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               </View>
             </View>
 
+            {/* Overlap warning */}
+            {hasOverlap && (
+              <View style={$overlapWarning}>
+                <Ionicons name="warning" size={16} color="#f59e0b" />
+                <Text style={$overlapWarningText}>
+                  {t("reminderEditor:overlapMessage")}
+                </Text>
+              </View>
+            )}
+
             {/* Meeting name */}
             <Text style={themed($meetingName)} numberOfLines={1}>
               {meeting.name}
@@ -494,16 +504,6 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
                   trackColor={{ false: theme.colors.border, true: `${REMINDER_COLOR}80` }}
                   thumbColor={enabled ? REMINDER_COLOR : theme.colors.textDim}
                 />
-              </View>
-            )}
-
-            {/* Overlap warning */}
-            {hasOverlap && (
-              <View style={$overlapWarning}>
-                <Ionicons name="warning" size={16} color="#f59e0b" />
-                <Text style={$overlapWarningText}>
-                  {t("reminderEditor:overlapMessage")}
-                </Text>
               </View>
             )}
 
