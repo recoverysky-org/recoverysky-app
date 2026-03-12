@@ -315,10 +315,6 @@ Zoom SDK in `app/services/zoom/`:
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
 - **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
 
-## TODOs
-
-- **LoginScreen `continueAnonymously` button**: Copy is currently blank (`""` in `en.ts` and `es.ts`). Decide on final wording and update `loginScreen.continueAnonymously` in both language files.
-
 ## Pending Upgrades
 
 ### Zoom SDK — upgrade to `@zoom/meetingsdk-react-native@6.7.5` when released on npm

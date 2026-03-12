@@ -44,7 +44,7 @@ const es: Translations = {
       "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa, o continúa de forma anónima con funciones básicas gratuitas.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Configuración.",
     loginButton: "Iniciar sesión",
     signupButton: "Registrarse",
-    continueAnonymously: "", // TODO: decide on copy for anonymous login button
+    continueAnonymously: "Continuar Anónimamente",
     openingBrowser: "Abriendo navegador para autenticación...",
     euaTitle: "Términos y Condiciones",
     euaAgree: "Acepto",
