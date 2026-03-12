@@ -103,6 +103,13 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     return cell !== null && cell.millis === 0
   }, [activeCell, meeting.scheduleData])
 
+  // On iOS, time picker is always visible for continuous meetings — auto-enable hasCustomTime
+  useEffect(() => {
+    if (is24h && Platform.OS === "ios" && !hasCustomTime) {
+      setHasCustomTime(true)
+    }
+  }, [is24h, hasCustomTime])
+
   // Reset form when modal opens
   useEffect(() => {
     if (visible) {
@@ -145,13 +152,16 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
   )
 
   // Handle time picker change
-  const handleTimeChange = useCallback((_event: DateTimePickerEvent, date?: Date) => {
-    if (Platform.OS === "android") setShowTimePicker(false)
-    if (date) {
-      setCustomTime(date)
-      setHasCustomTime(true)
-    }
-  }, [])
+  const handleTimeChange = useCallback(
+    (_event: DateTimePickerEvent, date?: Date) => {
+      if (Platform.OS === "android") setShowTimePicker(false)
+      if (date) {
+        setCustomTime(date)
+        setHasCustomTime(true)
+      }
+    },
+    [],
+  )
 
   // Format custom time for display
   const formattedCustomTime = useMemo(() => {
@@ -204,14 +214,25 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
       // dow: ISO weekday from grid column (col 0=Mon → dow 1, col 6=Sun → dow 7)
       const dow = activeCell.col + 1
 
-      // time: minutes from midnight (only meaningful for 24/7 meetings; -1 otherwise)
-      const time =
-        is24h && hasCustomTime ? customTime.getHours() * 60 + customTime.getMinutes() : -1
+      // time: minutes from midnight — server uses this as the reference for minutes_before
+      let time = -1
+      if (is24h && hasCustomTime) {
+        // 24/7 meetings: user picks the notification time
+        time = customTime.getHours() * 60 + customTime.getMinutes()
+      } else if (!is24h && cell?.millis) {
+        // Regular meetings: derive from the cell's UTC start time → local
+        const local = DateTime.fromMillis(cell.millis).toLocal()
+        time = local.hour * 60 + local.minute
+      }
+
+      // Continuous meetings: time IS the reminder, no "minutes before" concept
+      const effectiveMinutes = is24h ? 0 : minutesBefore
+      const effectiveAtStart = is24h ? false : atStart
 
       if (isEditing && existingReminder) {
         await onUpdate(existingReminder.id, {
-          minutes_before: minutesBefore,
-          at_start: atStart,
+          minutes_before: effectiveMinutes,
+          at_start: effectiveAtStart,
           mid: cellMid,
           sid: scope !== "single" ? sid : "",
           scope,
@@ -228,8 +249,8 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
           time,
           name: meeting.name,
           timezone: tz,
-          minutes_before: minutesBefore,
-          at_start: atStart,
+          minutes_before: effectiveMinutes,
+          at_start: effectiveAtStart,
           enabled: true,
         })
       }
@@ -376,53 +397,40 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               />
             )}
 
-            {/* Time picker for 24/7 meetings */}
+            {/* Time picker for continuous (24/7) meetings — time IS the reminder */}
             {is24h && (
               <View style={themed($section)}>
                 <Text style={themed($sectionLabel)}>{t("reminderEditor:reminderTime")}</Text>
-                {hasCustomTime && !showTimePicker && (
-                  <Pressable
-                    style={themed($timeDisplay)}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Ionicons name="time-outline" size={18} color={REMINDER_COLOR} />
-                    <Text style={$timeDisplayText}>{formattedCustomTime}</Text>
-                    <Ionicons name="pencil" size={14} color={theme.colors.textDim} />
-                  </Pressable>
-                )}
-                {!hasCustomTime && !showTimePicker && (
-                  <Pressable
-                    style={themed($selectTimeButton)}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Ionicons name="time-outline" size={18} color={REMINDER_COLOR} />
-                    <Text style={$selectTimeButtonText}>
-                      {t("reminderEditor:selectTime")}
-                    </Text>
-                  </Pressable>
-                )}
-                {showTimePicker && (
-                  <View style={$timePickerContainer}>
-                    {Platform.OS === "ios" && (
-                      <Pressable
-                        style={themed($timePickerDone)}
-                        onPress={() => {
-                          setShowTimePicker(false)
-                          setHasCustomTime(true)
-                        }}
-                      >
-                        <Text style={$timePickerDoneText}>{t("reminderEditor:save")}</Text>
-                      </Pressable>
+                {Platform.OS === "ios" ? (
+                  <DateTimePicker
+                    value={customTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={handleTimeChange}
+                    minuteInterval={5}
+                    themeVariant="dark"
+                  />
+                ) : (
+                  <>
+                    <Pressable
+                      style={themed(hasCustomTime ? $timeDisplay : $selectTimeButton)}
+                      onPress={() => setShowTimePicker(true)}
+                    >
+                      <Ionicons name="time-outline" size={18} color={REMINDER_COLOR} />
+                      <Text style={hasCustomTime ? $timeDisplayText : $selectTimeButtonText}>
+                        {hasCustomTime ? formattedCustomTime : t("reminderEditor:selectTime")}
+                      </Text>
+                    </Pressable>
+                    {showTimePicker && (
+                      <DateTimePicker
+                        value={customTime}
+                        mode="time"
+                        display="default"
+                        onChange={handleTimeChange}
+                        minuteInterval={5}
+                      />
                     )}
-                    <DateTimePicker
-                      value={customTime}
-                      mode="time"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={handleTimeChange}
-                      minuteInterval={5}
-                      themeVariant="dark"
-                    />
-                  </View>
+                  </>
                 )}
               </View>
             )}
@@ -457,42 +465,45 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               </View>
             ) : null}
 
-            {/* Minutes before */}
-            <View style={themed($section)}>
-              <Text style={themed($sectionLabel)}>{t("reminderEditor:minutesBefore")}</Text>
-              <View style={themed($chipRow)}>
-                {MINUTE_PRESETS.map(({ value, key }) => (
-                  <Pressable
-                    key={value}
-                    style={[
-                      themed($minuteChip),
-                      minutesBefore === value && themed($minuteChipActive),
-                    ]}
-                    onPress={() => setMinutesBefore(value)}
-                  >
-                    <Text
-                      style={[
-                        themed($minuteChipText),
-                        minutesBefore === value && themed($minuteChipTextActive),
-                      ]}
-                    >
-                      {t(key)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
+            {/* Minutes before & at-start — only for scheduled meetings, not continuous */}
+            {!is24h && (
+              <>
+                <View style={themed($section)}>
+                  <Text style={themed($sectionLabel)}>{t("reminderEditor:minutesBefore")}</Text>
+                  <View style={themed($chipRow)}>
+                    {MINUTE_PRESETS.map(({ value, key }) => (
+                      <Pressable
+                        key={value}
+                        style={[
+                          themed($minuteChip),
+                          minutesBefore === value && themed($minuteChipActive),
+                        ]}
+                        onPress={() => setMinutesBefore(value)}
+                      >
+                        <Text
+                          style={[
+                            themed($minuteChipText),
+                            minutesBefore === value && themed($minuteChipTextActive),
+                          ]}
+                        >
+                          {t(key)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
 
-            {/* At start toggle */}
-            <View style={themed($toggleRow)}>
-              <Text style={themed($toggleLabel)}>{t("reminderEditor:atStart")}</Text>
-              <Switch
-                value={atStart}
-                onValueChange={setAtStart}
-                trackColor={{ false: theme.colors.border, true: `${REMINDER_COLOR}80` }}
-                thumbColor={atStart ? REMINDER_COLOR : theme.colors.textDim}
-              />
-            </View>
+                <View style={themed($toggleRow)}>
+                  <Text style={themed($toggleLabel)}>{t("reminderEditor:atStart")}</Text>
+                  <Switch
+                    value={atStart}
+                    onValueChange={setAtStart}
+                    trackColor={{ false: theme.colors.border, true: `${REMINDER_COLOR}80` }}
+                    thumbColor={atStart ? REMINDER_COLOR : theme.colors.textDim}
+                  />
+                </View>
+              </>
+            )}
 
             {/* Enabled toggle (edit mode only) */}
             {isEditing && (
@@ -721,7 +732,7 @@ const $saveButtonText: TextStyle = {
   color: "#000",
 }
 
-const $selectTimeButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+const $selectTimeButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
@@ -757,21 +768,3 @@ const $timeDisplayText: TextStyle = {
   color: REMINDER_COLOR,
 }
 
-const $timePickerContainer: ViewStyle = {
-  alignItems: "center",
-}
-
-const $timePickerDone: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingVertical: spacing.xs,
-  paddingHorizontal: spacing.md,
-  borderRadius: 8,
-  backgroundColor: REMINDER_COLOR,
-  alignSelf: "center",
-  marginTop: spacing.xs,
-})
-
-const $timePickerDoneText: TextStyle = {
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#000",
-}
