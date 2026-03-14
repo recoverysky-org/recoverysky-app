@@ -24,6 +24,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRoute, type RouteProp } from "@react-navigation/native"
 import { DateTime } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { WebView } from "react-native-webview"
 
 import { AttendanceRow } from "@/components/AttendanceRow"
@@ -432,6 +433,7 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
 const ReportsContent: FC = observer(function ReportsContent() {
   const { themed, theme } = useAppTheme()
+  const insets = useSafeAreaInsets()
   const { send: sendReport, isSending } = useReportSender()
   const [reports, setReports] = useState<AttendanceReportRecord[]>([])
   const [recordCounts, setRecordCounts] = useState<Map<string, number>>(new Map())
@@ -735,7 +737,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
         onRequestClose={() => setSelectedReport(null)}
       >
         <View style={themed($modalContainer)}>
-          <View style={themed($modalHeader)}>
+          <View style={[themed($modalHeader), { paddingTop: insets.top + 12 }]}>
             <Text style={themed($modalTitle)}>{modalDateStr}</Text>
             <TouchableOpacity
               onPress={() => setSelectedReport(null)}
