@@ -41,6 +41,8 @@ const es: Translations = {
   loginScreen: {
     logIn: "Iniciar sesión",
     enterDetails:
+      "Inicia sesión para acceder a las suscripciones y funciones premium. Apple requiere una cuenta para apps con servicios interactivos como videoconferencias.",
+    enterDetailsAndroid:
       "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa, o continúa de forma anónima con funciones básicas gratuitas.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Configuración.",
     loginButton: "Iniciar sesión",
     signupButton: "Registrarse",
@@ -61,9 +63,9 @@ const es: Translations = {
       "Conectar tu cuenta de Zoom te permite unirte a reuniones con tu nombre e imagen de perfil. Tus credenciales se almacenan de forma segura en tu dispositivo.",
   },
   zoomSetupScreen: {
-    title: "Cuenta de Zoom Requerida",
+    title: "Conectar Cuenta de Zoom",
     subtitle:
-      "Zoom requiere una cuenta de Zoom para unirse a las reuniones. Conecta tu cuenta existente o crea una nueva.",
+      "Zoom pronto requerirá una cuenta para unirse a las reuniones. Conectar tu cuenta de Zoom permite una foto de perfil personalizada en las reuniones.",
     connectWithZoom: "Conectar con Zoom",
     createAccount: "Crear una Cuenta de Zoom",
     continueAnonymously: "Continuar sin Conectar",
@@ -78,7 +80,7 @@ const es: Translations = {
     signupModalNote:
       "Cuando veas lo anterior, cierra la ventana del navegador y regresa a RecoverySky para iniciar sesión con tu nueva cuenta de Zoom.",
     signupModalNote2:
-      'Puedes hacer clic en "Take me to my basic account" para completar tu perfil de Zoom, luego cierra la ventana del navegador y regresa a RecoverySky.',
+      'También puedes hacer clic en "Take me to my basic account" para completar tu perfil de Zoom, luego cierra la ventana del navegador y regresa a RecoverySky.',
     signupModalContinue: "Abrir Registro de Zoom",
     loading: "Verificando conexión de Zoom...",
   },
@@ -502,6 +504,39 @@ const es: Translations = {
     premiumTitle: "Función Premium",
     premiumMessage: "Los recordatorios están disponibles con una suscripción Premium.",
     goToSettings: "Suscripción",
+  },
+  cleanTime: {
+    yourRecovery: "Tu Recuperación",
+    year_one: "{{count}} Año",
+    year_other: "{{count}} Años",
+    month_one: "{{count}} Mes",
+    month_other: "{{count}} Meses",
+    day_one: "{{count}} Día",
+    day_other: "{{count}} Días",
+    totalDays: "{{count}} días en total",
+    soberSince: "Sobrio desde {{date}}",
+    cleanSince: "Limpio desde {{date}}",
+    recoveringSince: "En recuperación desde {{date}}",
+    nextMilestone: "Siguiente: {{milestone}}",
+    daysToGo: "{{count}} días restantes",
+    congratulations: "¡Felicidades!",
+    milestone24Hours: "24 Horas",
+    milestone1Week: "1 Semana",
+    milestone30Days: "30 Días",
+    milestone60Days: "60 Días",
+    milestone90Days: "90 Días",
+    milestone6Months: "6 Meses",
+    milestone9Months: "9 Meses",
+    milestone1Year: "1 Año",
+    milestone18Months: "18 Meses",
+    milestone2Years: "2 Años",
+    milestone3Years: "3 Años",
+    milestone5Years: "5 Años",
+    milestone10Years: "10 Años",
+    milestone15Years: "15 Años",
+    milestone20Years: "20 Años",
+    milestone25Years: "25 Años",
+    milestone30Years: "30 Años",
   },
 }
 

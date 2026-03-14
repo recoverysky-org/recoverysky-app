@@ -40,6 +40,8 @@ const en = {
   loginScreen: {
     logIn: "Log In",
     enterDetails:
+      "Log in to access app subscriptions and premium features. An account is required by Apple for apps with interactive services like video conferencing.",
+    enterDetailsAndroid:
       "Log in to access app subscriptions and premium features. Subscriptions require a logged in account, or continue anonymously with basic free features.\n\nYou may login and logout at any time in Settings.",
     loginButton: "Login",
     signupButton: "Sign Up",
@@ -60,9 +62,9 @@ const en = {
       "Connecting your Zoom account lets you join meetings with your display name and profile picture. Your credentials are stored securely on your device.",
   },
   zoomSetupScreen: {
-    title: "Zoom Account Required",
+    title: "Connect Zoom Account",
     subtitle:
-      "A Zoom account is required by Zoom to join meetings. Connect your existing account or create a new one.",
+      "A Zoom account will soon be required by Zoom to join meetings. Connecting your Zoom account allows a custom in-meeting profile picture.",
     connectWithZoom: "Connect with Zoom",
     createAccount: "Create a Zoom Account",
     continueAnonymously: "Continue without Connecting",
@@ -77,7 +79,7 @@ const en = {
     signupModalNote:
       "Once you see the above, close the browser window and return to RecoverySky to log in with your new Zoom account.",
     signupModalNote2:
-      'You may click "Take me to my basic account" to complete your Zoom profile, then close the browser window and return to RecoverySky.',
+      'You may also click "Take me to my basic account" to complete your Zoom profile, then close the browser window and return to RecoverySky.',
     signupModalContinue: "Open Zoom Signup",
     loading: "Checking Zoom connection...",
   },
@@ -511,6 +513,39 @@ const en = {
     premiumTitle: "Premium Feature",
     premiumMessage: "Reminders are available with a Premium subscription.",
     goToSettings: "Subscription",
+  },
+  cleanTime: {
+    yourRecovery: "Your Recovery",
+    year_one: "{{count}} Year",
+    year_other: "{{count}} Years",
+    month_one: "{{count}} Month",
+    month_other: "{{count}} Months",
+    day_one: "{{count}} Day",
+    day_other: "{{count}} Days",
+    totalDays: "{{count}} total days",
+    soberSince: "Sober since {{date}}",
+    cleanSince: "Clean since {{date}}",
+    recoveringSince: "Recovering since {{date}}",
+    nextMilestone: "Next: {{milestone}}",
+    daysToGo: "{{count}} days to go",
+    congratulations: "Congratulations!",
+    milestone24Hours: "24 Hours",
+    milestone1Week: "1 Week",
+    milestone30Days: "30 Days",
+    milestone60Days: "60 Days",
+    milestone90Days: "90 Days",
+    milestone6Months: "6 Months",
+    milestone9Months: "9 Months",
+    milestone1Year: "1 Year",
+    milestone18Months: "18 Months",
+    milestone2Years: "2 Years",
+    milestone3Years: "3 Years",
+    milestone5Years: "5 Years",
+    milestone10Years: "10 Years",
+    milestone15Years: "15 Years",
+    milestone20Years: "20 Years",
+    milestone25Years: "25 Years",
+    milestone30Years: "30 Years",
   },
 }
 
