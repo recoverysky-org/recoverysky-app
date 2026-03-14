@@ -124,6 +124,7 @@ const es: Translations = {
     ratingsDescription:
       "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
     // Dashboard
+    gettingStarted: "Primeros Pasos",
     cleanDays: "Días Limpio",
   },
   meetingsScreen: {

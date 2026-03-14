@@ -33,8 +33,6 @@ interface HelpCardDef {
   actionParams?: { segment?: MeetingsSegment }
 }
 
-const MAX_VISIBLE_CARDS = 5
-
 const HELP_CARDS: HelpCardDef[] = [
   {
     id: "onboarding",
@@ -92,10 +90,10 @@ const HELP_CARDS: HelpCardDef[] = [
 ]
 
 /**
- * HomeScreen - Help cards + Dashboard
+ * HomeScreen - Dashboard with clean time counter and getting started cards
  *
- * Shows dismissible help cards for new users.
- * After all cards dismissed, shows dashboard with stats.
+ * Shows all help cards at once as a "Getting Started" section.
+ * Clean time counter sits below, floating up as cards are dismissed.
  */
 export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function HomeScreen(_props) {
   const { themed } = useAppTheme()
@@ -115,16 +113,13 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
     return () => log.debug("HomeScreen unmounted")
   }, [])
 
-  // Get undismissed cards (use slice() to get reactive array for dependency)
-  // Show max 5 at a time - new cards appear as others are dismissed
+  // Show all undismissed cards at once
   const dismissedIds = profileStore.dismissedHomeCards.slice()
   const visibleCards = HELP_CARDS.filter((card) => {
-    // Don't show dismissed cards
     if (dismissedIds.includes(card.id)) return false
-    // Don't show attendance card if attendance tracking is disabled
     if (card.id === "attendance" && !profileStore.attendanceEnabled) return false
     return true
-  }).slice(0, MAX_VISIBLE_CARDS)
+  })
 
   const handleDismissCard = useCallback(
     (cardId: string) => {
@@ -175,12 +170,10 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         )}
       </View>
 
-      {/* Clean Time Card — always visible */}
-      <CleanTimeCard />
-
-      {/* Help Cards */}
+      {/* Getting Started section */}
       {visibleCards.length > 0 && (
         <View style={themed($cardsContainer)}>
+          <Text style={themed($sectionHeader)} tx="homeScreen:gettingStarted" />
           {visibleCards.map((card) => (
             <HelpCard
               key={card.id}
@@ -194,6 +187,9 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
           ))}
         </View>
       )}
+
+      {/* Clean Time Card — below cards, floats up as cards are dismissed */}
+      <CleanTimeCard />
     </Screen>
   )
 })
@@ -216,6 +212,15 @@ const $logoutLink: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
   fontSize: 14,
   fontWeight: "500",
+})
+
+const $sectionHeader: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 15,
+  fontWeight: "600",
+  color: colors.textDim,
+  textTransform: "uppercase",
+  letterSpacing: 1,
+  marginBottom: spacing.sm,
 })
 
 const $cardsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

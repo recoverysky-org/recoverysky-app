@@ -124,6 +124,7 @@ const en = {
     ratingsDescription:
       "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
     // Dashboard
+    gettingStarted: "Getting Started",
     cleanDays: "Days Clean",
   },
   meetingsScreen: {
