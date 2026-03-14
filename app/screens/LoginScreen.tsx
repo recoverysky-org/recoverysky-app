@@ -139,7 +139,13 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           preset="heading"
           style={themed($logIn)}
         />
-        <Text tx="loginScreen:enterDetails" preset="subheading" style={themed($enterDetails)} />
+        <Text
+          tx={
+            Platform.OS === "ios" ? "loginScreen:enterDetails" : "loginScreen:enterDetailsAndroid"
+          }
+          preset="subheading"
+          style={themed($enterDetails)}
+        />
       </View>
 
       <View style={themed($contentContainer)}>
