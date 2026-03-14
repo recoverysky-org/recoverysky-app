@@ -232,6 +232,7 @@ const $title: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
 const $heroText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 28,
   fontWeight: "700",
+  lineHeight: 36,
   color: colors.tint,
   textAlign: "center",
   marginBottom: 4,
