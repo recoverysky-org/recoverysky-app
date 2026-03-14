@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 
+import { CleanTimeCard } from "@/components/CleanTimeCard"
 import { HelpCard } from "@/components/HelpCard"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -154,8 +155,6 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
     await logout()
   }
 
-  const showDashboard = visibleCards.length === 0
-
   return (
     <Screen
       preset="scroll"
@@ -176,19 +175,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         )}
       </View>
 
-      {/* Help Cards or Dashboard */}
-      {showDashboard ? (
-        <View style={themed($dashboardContainer)}>
-          {/* Clean Days Hero */}
-          <View style={themed($cleanDaysCard)}>
-            <Text style={themed($cleanDaysNumber)}>{profileStore.cleanDays}</Text>
-            <Text style={themed($cleanDaysLabel)} tx="homeScreen:cleanDays" />
-          </View>
+      {/* Clean Time Card — always visible */}
+      <CleanTimeCard />
 
-          {/* Placeholder for future dashboard widgets */}
-          <Text style={themed($dashboardHint)}>Dashboard coming soon...</Text>
-        </View>
-      ) : (
+      {/* Help Cards */}
+      {visibleCards.length > 0 && (
         <View style={themed($cardsContainer)}>
           {visibleCards.map((card) => (
             <HelpCard
@@ -229,37 +220,4 @@ const $logoutLink: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $cardsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginTop: spacing.lg,
-})
-
-const $dashboardContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginTop: spacing.lg,
-  alignItems: "center",
-})
-
-const $cleanDaysCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.card,
-  borderRadius: 20,
-  paddingVertical: spacing.xl,
-  paddingHorizontal: spacing.xxl,
-  alignItems: "center",
-  marginBottom: spacing.lg,
-})
-
-const $cleanDaysNumber: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 64,
-  fontWeight: "700",
-  color: colors.tint,
-})
-
-const $cleanDaysLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 18,
-  fontWeight: "500",
-  color: colors.textDim,
-  marginTop: 4,
-})
-
-const $dashboardHint: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-  textAlign: "center",
 })
