@@ -179,8 +179,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           )}
         </Pressable>
 
-        {/* TODO: restore Platform.OS !== "ios" gate after testing */}
-        {(true || Platform.OS !== "ios") && (
+        {Platform.OS !== "ios" && (
           <Pressable
             testID="anonymous-button"
             accessibilityRole="button"
