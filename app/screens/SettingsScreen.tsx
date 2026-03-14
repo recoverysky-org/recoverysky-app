@@ -177,6 +177,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
   const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const endOfYear = useRef(new Date(new Date().getFullYear(), 11, 31)).current
   const [languageModalVisible, setLanguageModalVisible] = useState(false)
   const [colorPickerVisible, setColorPickerVisible] = useState(false)
   const [emailValid, setEmailValid] = useState<boolean | null>(null)
@@ -458,7 +459,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 mode="date"
                 display="spinner"
                 onChange={handleDateChange}
-                maximumDate={new Date()}
+                maximumDate={endOfYear}
                 style={$datePickerSpinner}
                 themeVariant={isDarkMode ? "dark" : "light"}
               />
@@ -467,9 +468,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             <DateTimePicker
               value={profileStore.recoveryDateAsDate}
               mode="date"
-              display="default"
+              display="spinner"
               onChange={handleDateChange}
-              maximumDate={new Date()}
+              maximumDate={endOfYear}
               themeVariant={isDarkMode ? "dark" : "light"}
             />
           ))}
