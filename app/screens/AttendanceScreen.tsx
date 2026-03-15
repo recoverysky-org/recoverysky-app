@@ -61,9 +61,9 @@ import { logger } from "@/utils/logger"
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 const SECTIONS = [
-  { key: "new", label: translate("attendanceScreen:sectionNew") },
-  { key: "archive", label: translate("attendanceScreen:sectionArchive") },
-  { key: "reports", label: translate("attendanceScreen:sectionReports") },
+  { key: "new", tx: "attendanceScreen:sectionNew" as const },
+  { key: "archive", tx: "attendanceScreen:sectionArchive" as const },
+  { key: "reports", tx: "attendanceScreen:sectionReports" as const },
 ]
 
 // ============================================================================
