@@ -68,11 +68,11 @@ export const HelpCard: FC<HelpCardProps> = function HelpCard({
     >
       {/* Dismiss button */}
       <Pressable
-        style={$dismissButton}
+        style={themed($dismissButton)}
         onPress={handleDismiss}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="close" size={20} color={theme.colors.textDim} />
+        <Text style={[themed($dismissText), { color: theme.colors.tint }]} tx="common:close" />
       </Pressable>
 
       {/* Icon + Title row */}
@@ -111,12 +111,19 @@ const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.md,
 })
 
-const $dismissButton: ViewStyle = {
+const $dismissButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   position: "absolute",
-  top: 12,
-  right: 12,
+  top: spacing.sm,
+  right: spacing.sm,
   zIndex: 1,
-}
+  paddingVertical: 2,
+  paddingHorizontal: spacing.xs,
+})
+
+const $dismissText: ThemedStyle<TextStyle> = () => ({
+  fontSize: 13,
+  fontWeight: "600",
+})
 
 const $headerRow: ViewStyle = {
   flexDirection: "row",
