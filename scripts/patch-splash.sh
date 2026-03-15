@@ -1,37 +1,45 @@
 #!/bin/bash
 # Patch splash screen after expo prebuild
-# This restores the full-screen splash configuration that expo overwrites
+#
+# expo-splash-screen v31 generates a storyboard with a 100×100 centered image
+# regardless of resizeMode:"cover". The runtime programmatic view renders correctly,
+# but there's a visible flash between the tiny native storyboard and the full-screen
+# runtime view. This script overwrites the storyboard with full-screen constraints.
+#
+# Run AFTER expo prebuild:
+#   npx expo prebuild && npm run patch:splash
+#
+# For EAS builds, this runs automatically via eas.json prebuildCommand.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "Patching iOS splash screen..."
+# ============================================================================
+# iOS: Full-screen storyboard
+# ============================================================================
 
-# Find the iOS app folder dynamically (excludes Pods, .xcodeproj, .xcworkspace)
-IOS_APP_DIR=$(find "$PROJECT_DIR/ios" -maxdepth 1 -type d ! -name "ios" ! -name "Pods" ! -name "build" ! -name ".*" ! -name "*.xcodeproj" ! -name "*.xcworkspace" ! -name "*Extension*" | head -1)
+patch_ios() {
+  # Find the iOS app folder dynamically
+  IOS_APP_DIR=$(find "$PROJECT_DIR/ios" -maxdepth 1 -type d ! -name "ios" ! -name "Pods" ! -name "build" ! -name ".*" ! -name "*.xcodeproj" ! -name "*.xcworkspace" ! -name "*Extension*" 2>/dev/null | head -1)
 
-if [ -z "$IOS_APP_DIR" ]; then
-  echo "Error: Could not find iOS app directory"
-  exit 1
-fi
+  if [ -z "$IOS_APP_DIR" ]; then
+    echo "[patch-splash] iOS app directory not found, skipping iOS patch"
+    return
+  fi
 
-echo "Found iOS app directory: $IOS_APP_DIR"
+  STORYBOARD="$IOS_APP_DIR/SplashScreen.storyboard"
+  SPLASH_SRC="$PROJECT_DIR/assets/images/splash.png"
+  SPLASH_DIR="$IOS_APP_DIR/Images.xcassets/SplashScreenLogo.imageset"
 
-# Path to storyboard
-STORYBOARD="$IOS_APP_DIR/SplashScreen.storyboard"
-SPLASH_SRC="$PROJECT_DIR/assets/images/splash.png"
-SPLASH_DIR="$IOS_APP_DIR/Images.xcassets/SplashScreenLogo.imageset"
+  if [ ! -f "$STORYBOARD" ]; then
+    echo "[patch-splash] Storyboard not found, skipping iOS patch (run expo prebuild first)"
+    return
+  fi
 
-if [ ! -f "$STORYBOARD" ]; then
-  echo "Error: Storyboard not found at $STORYBOARD"
-  echo "Run 'npx expo prebuild' first"
-  exit 1
-fi
-
-# Update storyboard to use full-screen constraints
-cat > "$STORYBOARD" << 'EOF'
+  # Overwrite storyboard with full-screen constraints
+  cat > "$STORYBOARD" << 'STORYBOARD_EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24093.7" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="EXPO-VIEWCONTROLLER-1">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
@@ -71,7 +79,7 @@ cat > "$STORYBOARD" << 'EOF'
         </scene>
     </scenes>
     <resources>
-        <image name="SplashScreenLogo" width="393" height="852"/>
+        <image name="SplashScreenLogo" width="428" height="925"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
@@ -80,26 +88,74 @@ cat > "$STORYBOARD" << 'EOF'
         </namedColor>
     </resources>
 </document>
-EOF
+STORYBOARD_EOF
 
-echo "Storyboard patched"
+  echo "[patch-splash] iOS storyboard patched with full-screen constraints"
 
-# Copy and resize splash images
-if [ -f "$SPLASH_SRC" ]; then
-  echo "Copying splash images..."
+  # Copy and resize splash images for @1x/@2x/@3x
+  if [ -f "$SPLASH_SRC" ] && [ -d "$SPLASH_DIR" ]; then
+    # @3x - original size
+    cp "$SPLASH_SRC" "$SPLASH_DIR/image@3x.png"
 
-  # @3x - original size
-  cp "$SPLASH_SRC" "$SPLASH_DIR/image@3x.png"
+    # @2x and @1x via sips (macOS only, sips -z HEIGHT WIDTH)
+    if command -v sips &> /dev/null; then
+      sips -z 1850 856 "$SPLASH_SRC" --out "$SPLASH_DIR/image@2x.png" > /dev/null 2>&1
+      sips -z 925 428 "$SPLASH_SRC" --out "$SPLASH_DIR/image.png" > /dev/null 2>&1
+      echo "[patch-splash] iOS splash images resized"
+    fi
+  fi
+}
 
-  # @2x - resize to 2/3
-  sips -z 1850 856 "$SPLASH_SRC" --out "$SPLASH_DIR/image@2x.png" > /dev/null 2>&1
+# ============================================================================
+# Android: Replace stretched square icons with full-screen splash drawables
+# ============================================================================
 
-  # @1x - resize to 1/3
-  sips -z 925 428 "$SPLASH_SRC" --out "$SPLASH_DIR/image.png" > /dev/null 2>&1
+patch_android() {
+  ANDROID_RES="$PROJECT_DIR/android/app/src/main/res"
+  SPLASH_SRC="$PROJECT_DIR/assets/images/splash.png"
 
-  echo "Splash images copied"
-else
-  echo "Warning: splash.png not found at $SPLASH_SRC"
-fi
+  if [ ! -d "$ANDROID_RES" ]; then
+    echo "[patch-splash] Android res directory not found, skipping Android patch"
+    return
+  fi
 
-echo "iOS splash screen patched successfully!"
+  if [ ! -f "$SPLASH_SRC" ]; then
+    echo "[patch-splash] splash.png not found, skipping Android patch"
+    return
+  fi
+
+  if ! command -v sips &> /dev/null; then
+    echo "[patch-splash] sips not available, skipping Android image resize"
+    return
+  fi
+
+  # Source image: 1284×2775. Generate properly scaled portrait images per DPI.
+  # Android DPI buckets: mdpi=1x, hdpi=1.5x, xhdpi=2x, xxhdpi=3x, xxxhdpi=4x
+  # Base width at mdpi: ~360dp (common phone width). We use the full portrait image.
+  # mdpi: 360×778, hdpi: 540×1167, xhdpi: 720×1556, xxhdpi: 1080×2334, xxxhdpi: 1284×2775
+  declare -A SIZES=(
+    ["drawable-mdpi"]="778 360"
+    ["drawable-hdpi"]="1167 540"
+    ["drawable-xhdpi"]="1556 720"
+    ["drawable-xxhdpi"]="2334 1080"
+    ["drawable-xxxhdpi"]="2775 1284"
+  )
+
+  for bucket in "${!SIZES[@]}"; do
+    TARGET_DIR="$ANDROID_RES/$bucket"
+    if [ -d "$TARGET_DIR" ]; then
+      read -r h w <<< "${SIZES[$bucket]}"
+      sips -z "$h" "$w" "$SPLASH_SRC" --out "$TARGET_DIR/splashscreen_logo.png" > /dev/null 2>&1
+    fi
+  done
+
+  echo "[patch-splash] Android splash images replaced with full-screen variants"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+patch_ios
+patch_android
+echo "[patch-splash] Done!"
