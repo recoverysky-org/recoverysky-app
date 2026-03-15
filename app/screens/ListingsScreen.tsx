@@ -60,6 +60,33 @@ const SELECTABLE_FELLOWSHIPS = [
   { value: Fellowship.RD, label: "RD" },
 ] as const
 
+/** Map of ISO 639-1 language codes (uppercase) to native display names */
+const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
+  EN: "English",
+  ES: "Español",
+  FR: "Français",
+  PT: "Português",
+  DE: "Deutsch",
+  RU: "Русский",
+  AR: "العربية",
+  TH: "ไทย",
+  IT: "Italiano",
+  JA: "日本語",
+  KO: "한국어",
+  ZH: "中文",
+  NL: "Nederlands",
+  PL: "Polski",
+  SV: "Svenska",
+  HE: "עברית",
+  HI: "हिन्दी",
+  TR: "Türkçe",
+  UK: "Українська",
+  FA: "فارسی",
+}
+
+const getLanguageDisplayName = (code: string): string =>
+  LANGUAGE_DISPLAY_NAMES[code] ?? code
+
 // Get current ISO day of week (1=Monday, 7=Sunday)
 const getCurrentIsoDow = (): number => {
   const jsDay = new Date().getDay() // 0=Sun, 6=Sat
@@ -327,7 +354,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
             <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)}>
-                {selectedLanguage || t("listingsScreen:allLanguages")}
+                {selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
@@ -496,7 +523,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                       selectedLanguage === lang && themed($modalOptionTextSelected),
                     ]}
                   >
-                    {lang}
+                    {getLanguageDisplayName(lang)}
                   </Text>
                   {selectedLanguage === lang && (
                     <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
