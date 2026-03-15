@@ -51,9 +51,23 @@ fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
 "
 echo "Updated app.json"
 
+# Update package-lock.json
+if [ -f "package-lock.json" ]; then
+  node -e "
+const fs = require('fs');
+const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+lock.version = '$NEW_VERSION';
+if (lock.packages && lock.packages['']) {
+  lock.packages[''].version = '$NEW_VERSION';
+}
+fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+"
+  echo "Updated package-lock.json"
+fi
+
 # Git operations
 echo "Committing version bump..."
-git add package.json app.json
+git add package.json app.json package-lock.json
 
 git commit -m "$(cat <<EOF
 🔖 release: v$NEW_VERSION
