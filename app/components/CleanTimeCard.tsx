@@ -151,8 +151,6 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
     [milestone.progress, theme.colors.tint],
   )
 
-  if (!profileStore.isHydrated) return null
-
   return (
     <View style={[themed($card), cardGlowStyle]}>
       {/* Fellowship accent bar */}
