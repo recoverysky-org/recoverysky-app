@@ -109,7 +109,12 @@
       {
         "image": "./assets/images/splash.png",
         "resizeMode": "cover",
-        "backgroundColor": "#0a1628"
+        "backgroundColor": "#0a1628",
+        "android": {
+          "image": "./assets/images/app-icon-all.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0a1628"
+        }
       }
     ],
     "./plugins/withFullScreenSplash",

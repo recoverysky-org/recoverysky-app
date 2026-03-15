@@ -107,47 +107,18 @@ STORYBOARD_EOF
 }
 
 # ============================================================================
-# Android: Hide circular icon, show solid background → expo runtime takes over
+# Android: No patching needed
 # ============================================================================
 #
-# Android 12+ SplashScreen API forces windowSplashScreenAnimatedIcon into a
-# circular mask. There is no way to render a full-screen image via the native
-# splash API. Instead we:
-#   1. Replace the icon PNGs with a transparent drawable
-#   2. Remove icon_preferred behavior from styles.xml
-#   3. The native splash becomes just the solid background color (#0a1628)
-#   4. expo-splash-screen runtime immediately takes over with the full-screen image
+# Android 12+ SplashScreen API shows windowSplashScreenAnimatedIcon in a circle.
+# The expo-splash-screen plugin config uses a separate android.image (the app's
+# adaptive foreground icon — pink cloud logo) which looks correct in the circle.
+# expo-splash-screen runtime then takes over with the full-screen sky image.
 #
-# Result: dark background → full-screen splash (no circle flash)
+# Result: dark background + pink cloud logo in circle → full-screen splash
 
 patch_android() {
-  ANDROID_RES="$PROJECT_DIR/android/app/src/main/res"
-
-  if [ ! -d "$ANDROID_RES" ]; then
-    echo "[patch-splash] Android res directory not found, skipping Android patch"
-    return
-  fi
-
-  # Create a transparent XML drawable to replace the icon
-  mkdir -p "$ANDROID_RES/drawable"
-  cat > "$ANDROID_RES/drawable/splashscreen_transparent.xml" << 'DRAWABLE_EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@android:color/transparent"/>
-    <size android:width="1dp" android:height="1dp"/>
-</shape>
-DRAWABLE_EOF
-
-  # Update styles.xml: use transparent icon, remove icon_preferred
-  STYLES="$ANDROID_RES/values/styles.xml"
-  if [ -f "$STYLES" ]; then
-    # Replace the icon reference with transparent drawable
-    sed -i '' 's|@drawable/splashscreen_logo|@drawable/splashscreen_transparent|g' "$STYLES"
-    # Remove icon_preferred behavior (causes the circular mask)
-    sed -i '' '/<item name="android:windowSplashScreenBehavior">icon_preferred<\/item>/d' "$STYLES"
-    echo "[patch-splash] Android styles.xml patched (transparent icon, no circle)"
-  fi
+  echo "[patch-splash] Android splash handled by expo-splash-screen plugin config"
 }
 
 # ============================================================================
