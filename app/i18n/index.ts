@@ -7,13 +7,13 @@ import "intl-pluralrules"
 import { logger } from "@/utils/logger"
 
 // if English isn't your default language, move Translations to the appropriate language file.
+import ar from "./ar"
+import de from "./de"
 import en, { Translations } from "./en"
 import es from "./es"
 import fr from "./fr"
 import pt from "./pt"
 import ru from "./ru"
-import ar from "./ar"
-import de from "./de"
 import th from "./th"
 import uk from "./uk"
 
