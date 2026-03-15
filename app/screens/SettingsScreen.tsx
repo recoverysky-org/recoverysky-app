@@ -698,6 +698,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 )}
               </TouchableOpacity>
             ))}
+            <Text style={themed($translationHint)} tx="settingsScreen:translationHint" />
           </View>
         </Pressable>
       </Modal>
@@ -1438,6 +1439,14 @@ const $modalOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
   fontWeight: "600",
+})
+
+const $translationHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: spacing.md,
+  fontStyle: "italic",
 })
 
 // Date Picker Styles

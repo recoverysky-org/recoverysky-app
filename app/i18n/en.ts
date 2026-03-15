@@ -306,6 +306,7 @@ const en = {
     appSettingsSection: "App Settings",
     language: "Language",
     selectLanguage: "Select Language",
+    translationHint: "Translations provided by AI — we welcome corrections from our community.",
     darkMode: "Dark Mode",
     themeColor: "Theme Color",
     currentColor: "Current",

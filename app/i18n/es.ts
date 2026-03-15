@@ -305,6 +305,7 @@ const es: Translations = {
     appSettingsSection: "Configuración de la App",
     language: "Idioma",
     selectLanguage: "Seleccionar Idioma",
+    translationHint: "Traducciones proporcionadas por IA — agradecemos correcciones de nuestra comunidad.",
     darkMode: "Modo Oscuro",
     themeColor: "Color del Tema",
     currentColor: "Actual",

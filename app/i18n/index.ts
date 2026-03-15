@@ -9,6 +9,11 @@ import { logger } from "@/utils/logger"
 // if English isn't your default language, move Translations to the appropriate language file.
 import en, { Translations } from "./en"
 import es from "./es"
+import fr from "./fr"
+import pt from "./pt"
+import ru from "./ru"
+import ar from "./ar"
+import de from "./de"
 
 const log = logger.child({ module: "i18n" })
 
@@ -16,13 +21,18 @@ const fallbackLocale = "en-US"
 
 const systemLocales = Localization.getLocales()
 
-const resources = { en, es }
+const resources = { en, es, fr, pt, ru, ar, de }
 const supportedTags = Object.keys(resources)
 
 // Language display names (in their native language)
 export const languageNames: Record<string, string> = {
   en: "English",
   es: "Español",
+  fr: "Français",
+  pt: "Português",
+  ru: "Русский",
+  ar: "العربية",
+  de: "Deutsch",
 }
 
 // Get list of available languages
