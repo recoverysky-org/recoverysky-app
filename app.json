@@ -109,6 +109,7 @@
       {
         "image": "./assets/images/splash.png",
         "resizeMode": "cover",
+        "enableFullScreenImage_legacy": true,
         "backgroundColor": "#0a1628",
         "android": {
           "image": "./assets/images/app-icon-all.png",
@@ -117,7 +118,6 @@
         }
       }
     ],
-    "./plugins/withFullScreenSplash",
     [
       "react-native-edge-to-edge",
       {
