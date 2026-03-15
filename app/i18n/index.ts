@@ -14,6 +14,8 @@ import pt from "./pt"
 import ru from "./ru"
 import ar from "./ar"
 import de from "./de"
+import th from "./th"
+import uk from "./uk"
 
 const log = logger.child({ module: "i18n" })
 
@@ -21,7 +23,7 @@ const fallbackLocale = "en-US"
 
 const systemLocales = Localization.getLocales()
 
-const resources = { en, es, fr, pt, ru, ar, de }
+const resources = { en, es, fr, pt, ru, ar, de, th, uk }
 const supportedTags = Object.keys(resources)
 
 // Language display names (in their native language)
@@ -33,6 +35,8 @@ export const languageNames: Record<string, string> = {
   ru: "Русский",
   ar: "العربية",
   de: "Deutsch",
+  th: "ไทย",
+  uk: "Українська",
 }
 
 // Get list of available languages
