@@ -5,7 +5,6 @@
   },
   "build": {
     "base": {
-      "prebuildCommand": "bash scripts/patch-splash.sh",
       "env": {
         "EXPO_NO_CAPABILITY_SYNC": "1",
         "EXPO_PUBLIC_RESEED_DB": "false",

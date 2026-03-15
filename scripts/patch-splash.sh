@@ -107,49 +107,47 @@ STORYBOARD_EOF
 }
 
 # ============================================================================
-# Android: Replace stretched square icons with full-screen splash drawables
+# Android: Hide circular icon, show solid background → expo runtime takes over
 # ============================================================================
+#
+# Android 12+ SplashScreen API forces windowSplashScreenAnimatedIcon into a
+# circular mask. There is no way to render a full-screen image via the native
+# splash API. Instead we:
+#   1. Replace the icon PNGs with a transparent drawable
+#   2. Remove icon_preferred behavior from styles.xml
+#   3. The native splash becomes just the solid background color (#0a1628)
+#   4. expo-splash-screen runtime immediately takes over with the full-screen image
+#
+# Result: dark background → full-screen splash (no circle flash)
 
 patch_android() {
   ANDROID_RES="$PROJECT_DIR/android/app/src/main/res"
-  SPLASH_SRC="$PROJECT_DIR/assets/images/splash.png"
 
   if [ ! -d "$ANDROID_RES" ]; then
     echo "[patch-splash] Android res directory not found, skipping Android patch"
     return
   fi
 
-  if [ ! -f "$SPLASH_SRC" ]; then
-    echo "[patch-splash] splash.png not found, skipping Android patch"
-    return
+  # Create a transparent XML drawable to replace the icon
+  mkdir -p "$ANDROID_RES/drawable"
+  cat > "$ANDROID_RES/drawable/splashscreen_transparent.xml" << 'DRAWABLE_EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent"/>
+    <size android:width="1dp" android:height="1dp"/>
+</shape>
+DRAWABLE_EOF
+
+  # Update styles.xml: use transparent icon, remove icon_preferred
+  STYLES="$ANDROID_RES/values/styles.xml"
+  if [ -f "$STYLES" ]; then
+    # Replace the icon reference with transparent drawable
+    sed -i '' 's|@drawable/splashscreen_logo|@drawable/splashscreen_transparent|g' "$STYLES"
+    # Remove icon_preferred behavior (causes the circular mask)
+    sed -i '' '/<item name="android:windowSplashScreenBehavior">icon_preferred<\/item>/d' "$STYLES"
+    echo "[patch-splash] Android styles.xml patched (transparent icon, no circle)"
   fi
-
-  if ! command -v sips &> /dev/null; then
-    echo "[patch-splash] sips not available, skipping Android image resize"
-    return
-  fi
-
-  # Source image: 1284×2775. Generate properly scaled portrait images per DPI.
-  # Android DPI buckets: mdpi=1x, hdpi=1.5x, xhdpi=2x, xxhdpi=3x, xxxhdpi=4x
-  # Base width at mdpi: ~360dp (common phone width). We use the full portrait image.
-  # mdpi: 360×778, hdpi: 540×1167, xhdpi: 720×1556, xxhdpi: 1080×2334, xxxhdpi: 1284×2775
-  declare -A SIZES=(
-    ["drawable-mdpi"]="778 360"
-    ["drawable-hdpi"]="1167 540"
-    ["drawable-xhdpi"]="1556 720"
-    ["drawable-xxhdpi"]="2334 1080"
-    ["drawable-xxxhdpi"]="2775 1284"
-  )
-
-  for bucket in "${!SIZES[@]}"; do
-    TARGET_DIR="$ANDROID_RES/$bucket"
-    if [ -d "$TARGET_DIR" ]; then
-      read -r h w <<< "${SIZES[$bucket]}"
-      sips -z "$h" "$w" "$SPLASH_SRC" --out "$TARGET_DIR/splashscreen_logo.png" > /dev/null 2>&1
-    fi
-  done
-
-  echo "[patch-splash] Android splash images replaced with full-screen variants"
 }
 
 # ============================================================================

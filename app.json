@@ -112,6 +112,7 @@
         "backgroundColor": "#0a1628"
       }
     ],
+    "./plugins/withFullScreenSplash",
     [
       "react-native-edge-to-edge",
       {
