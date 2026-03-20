@@ -123,6 +123,10 @@ const es: Translations = {
     ratingsTitle: "Califica Reuniones",
     ratingsDescription:
       "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
+    supportTitle: "¿Necesitas ayuda?",
+    supportDescription:
+      "¿Tienes una pregunta, encontraste un error o quieres compartir comentarios? Visita nuestra página de soporte para obtener ayuda.",
+    goToSupport: "Obtener soporte",
     // Dashboard
     gettingStarted: "Primeros Pasos",
     cleanDays: "Días Limpio",
@@ -338,6 +342,7 @@ const es: Translations = {
     importSection: "Importar",
     restartImport: "Reiniciar Importación",
     rateApp: "Calificar RecoverySky",
+    support: "Soporte",
     // Legal Section
     legalSection: "Legal",
     termsAndConditions: "Términos y Condiciones",

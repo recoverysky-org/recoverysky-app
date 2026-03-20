@@ -123,6 +123,11 @@ const en = {
     ratingsTitle: "Rate Meetings",
     ratingsDescription:
       "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
+    // Support
+    supportTitle: "Need Help?",
+    supportDescription:
+      "Have a question, found a bug, or want to share feedback? Visit our support page for help.",
+    goToSupport: "Get Support",
     // Dashboard
     gettingStarted: "Getting Started",
     cleanDays: "Days Clean",
@@ -339,6 +344,7 @@ const en = {
     restartImport: "Restart Import",
     // Review
     rateApp: "Rate RecoverySky",
+    support: "Support",
     // Legal Section
     legalSection: "Legal",
     termsAndConditions: "Terms & Conditions",

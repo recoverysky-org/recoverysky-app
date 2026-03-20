@@ -122,6 +122,10 @@ const ar: Translations = {
     ratingsTitle: "قيّم الاجتماعات",
     ratingsDescription:
       "استخدم النجوم لتقييم الاجتماعات حسب تجربتك. الاجتماعات الأعلى تقييماً تظهر أولاً. تقييماتك شخصية ولا تُشارَك أبداً.",
+    supportTitle: "هل تحتاج مساعدة؟",
+    supportDescription:
+      "هل لديك سؤال أو وجدت خطأ أو تريد مشاركة ملاحظاتك؟ قم بزيارة صفحة الدعم للحصول على المساعدة.",
+    goToSupport: "الحصول على الدعم",
     // Dashboard
     gettingStarted: "البداية",
     cleanDays: "أيام النظافة",
@@ -337,6 +341,7 @@ const ar: Translations = {
     importSection: "الاستيراد",
     restartImport: "إعادة الاستيراد",
     rateApp: "قيّم RecoverySky",
+    support: "الدعم",
     // Legal Section
     legalSection: "قانوني",
     termsAndConditions: "الشروط والأحكام",

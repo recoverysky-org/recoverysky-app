@@ -122,6 +122,10 @@ const ru: Translations = {
     ratingsTitle: "Оцени собрания",
     ratingsDescription:
       "Используй звёзды, чтобы оценить собрания по своему опыту. Собрания с высоким рейтингом отображаются первыми. Твои оценки личные и никогда не передаются.",
+    supportTitle: "Нужна помощь?",
+    supportDescription:
+      "Есть вопрос, нашли ошибку или хотите оставить отзыв? Посетите нашу страницу поддержки для получения помощи.",
+    goToSupport: "Получить поддержку",
     // Dashboard
     gettingStarted: "Начало работы",
     cleanDays: "Дней трезвости",
@@ -337,6 +341,7 @@ const ru: Translations = {
     importSection: "Импорт",
     restartImport: "Повторить импорт",
     rateApp: "Оценить RecoverySky",
+    support: "Поддержка",
     // Legal Section
     legalSection: "Правовая информация",
     termsAndConditions: "Условия использования",

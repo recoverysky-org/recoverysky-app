@@ -122,6 +122,10 @@ const th: Translations = {
     ratingsTitle: "ให้คะแนนประชุม",
     ratingsDescription:
       "ใช้ดาวเพื่อให้คะแนนประชุมตามประสบการณ์ของคุณ ประชุมที่คะแนนสูงจะแสดงก่อน คะแนนของคุณเป็นส่วนตัวและไม่ถูกแชร์ให้ใครนะ",
+    supportTitle: "ต้องการความช่วยเหลือ?",
+    supportDescription:
+      "มีคำถาม พบข้อผิดพลาด หรือต้องการแบ่งปันความคิดเห็น? เยี่ยมชมหน้าสนับสนุนของเราเพื่อรับความช่วยเหลือ",
+    goToSupport: "รับการสนับสนุน",
     // Dashboard
     gettingStarted: "เริ่มต้นใช้งาน",
     cleanDays: "วันที่สะอาด",
@@ -337,6 +341,7 @@ const th: Translations = {
     importSection: "นำเข้า",
     restartImport: "นำเข้าใหม่",
     rateApp: "ให้คะแนน RecoverySky",
+    support: "สนับสนุน",
     // Legal Section
     legalSection: "กฎหมาย",
     termsAndConditions: "ข้อกำหนดและเงื่อนไข",

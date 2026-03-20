@@ -122,6 +122,11 @@ const fr: Translations = {
     ratingsTitle: "Évaluer les réunions",
     ratingsDescription:
       "Utilise les étoiles pour évaluer les réunions selon ton expérience. Les réunions les mieux cotées apparaissent en premier. Tes évaluations sont personnelles et jamais partagées.",
+    // Support
+    supportTitle: "Besoin d'aide ?",
+    supportDescription:
+      "Tu as une question, trouvé un bug ou tu veux partager un commentaire ? Visite notre page de support pour obtenir de l'aide.",
+    goToSupport: "Obtenir de l'aide",
     // Dashboard
     gettingStarted: "Pour commencer",
     cleanDays: "Jours d'abstinence",
@@ -337,6 +342,7 @@ const fr: Translations = {
     importSection: "Importation",
     restartImport: "Recommencer l'importation",
     rateApp: "Évaluer RecoverySky",
+    support: "Support",
     // Legal Section
     legalSection: "Légal",
     termsAndConditions: "Conditions d'utilisation",

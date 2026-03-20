@@ -122,6 +122,10 @@ const de: Translations = {
     ratingsTitle: "Meetings bewerten",
     ratingsDescription:
       "Nutze Sterne, um Meetings nach deiner Erfahrung zu bewerten. Höher bewertete Meetings erscheinen zuerst. Deine Bewertungen sind persönlich und werden nie geteilt.",
+    supportTitle: "Brauchst du Hilfe?",
+    supportDescription:
+      "Hast du eine Frage, einen Fehler gefunden oder möchtest Feedback geben? Besuche unsere Support-Seite für Hilfe.",
+    goToSupport: "Support erhalten",
     // Dashboard
     gettingStarted: "Erste Schritte",
     cleanDays: "Tage clean",
@@ -337,6 +341,7 @@ const de: Translations = {
     importSection: "Import",
     restartImport: "Import neu starten",
     rateApp: "RecoverySky bewerten",
+    support: "Hilfe & Support",
     // Legal Section
     legalSection: "Rechtliches",
     termsAndConditions: "Nutzungsbedingungen",

@@ -122,6 +122,10 @@ const pt: Translations = {
     ratingsTitle: "Avaliar Reuniões",
     ratingsDescription:
       "Use as estrelas pra avaliar reuniões com base na sua experiência. Reuniões com nota mais alta aparecem primeiro. Suas avaliações são pessoais e nunca são compartilhadas.",
+    supportTitle: "Precisa de ajuda?",
+    supportDescription:
+      "Tem uma pergunta, encontrou um bug ou quer compartilhar feedback? Visite nossa página de suporte para obter ajuda.",
+    goToSupport: "Obter suporte",
     // Dashboard
     gettingStarted: "Primeiros Passos",
     cleanDays: "Dias Limpo",
@@ -337,6 +341,7 @@ const pt: Translations = {
     importSection: "Importação",
     restartImport: "Refazer Importação",
     rateApp: "Avaliar RecoverySky",
+    support: "Suporte",
     // Legal Section
     legalSection: "Legal",
     termsAndConditions: "Termos e Condições",

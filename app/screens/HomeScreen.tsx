@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect } from "react"
-import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { View, ViewStyle, TextStyle, Pressable, Linking } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
@@ -31,6 +31,7 @@ interface HelpCardDef {
   actionTx?: TxKeyPath
   actionTab?: "Meetings" | "Attendance" | "Settings"
   actionParams?: { segment?: MeetingsSegment }
+  actionUrl?: string
 }
 
 const HELP_CARDS: HelpCardDef[] = [
@@ -40,6 +41,14 @@ const HELP_CARDS: HelpCardDef[] = [
     titleTx: "homeScreen:onboardingTitle",
     descriptionTx: "homeScreen:onboardingDescription",
     actionTx: "homeScreen:restartOnboarding",
+  },
+  {
+    id: "support",
+    icon: "help-circle-outline",
+    titleTx: "homeScreen:supportTitle",
+    descriptionTx: "homeScreen:supportDescription",
+    actionTx: "homeScreen:goToSupport",
+    actionUrl: "https://www.recoverysky.org/support",
   },
   {
     id: "live",
@@ -135,6 +144,8 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       if (card.id === "onboarding") {
         // Reset onboarding and navigate to it
         profileStore.resetOnboarding()
+      } else if (card.actionUrl) {
+        Linking.openURL(card.actionUrl)
       } else if (card.actionTab) {
         // Navigate to the tab with optional params
         // @ts-expect-error - Navigation params typing is complex with segment params

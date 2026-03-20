@@ -122,6 +122,10 @@ const uk: Translations = {
     ratingsTitle: "Оціни зустрічі",
     ratingsDescription:
       "Використовуй зірки, щоб оцінити зустрічі за своїм досвідом. Зустрічі з вищим рейтингом відображаються першими. Твої оцінки особисті та ніколи не передаються.",
+    supportTitle: "Потрібна допомога?",
+    supportDescription:
+      "Маєте запитання, знайшли помилку або хочете залишити відгук? Відвідайте нашу сторінку підтримки для отримання допомоги.",
+    goToSupport: "Отримати підтримку",
     // Dashboard
     gettingStarted: "Початок роботи",
     cleanDays: "Днів тверезості",
@@ -337,6 +341,7 @@ const uk: Translations = {
     importSection: "Імпорт",
     restartImport: "Повторити імпорт",
     rateApp: "Оцінити RecoverySky",
+    support: "Підтримка",
     // Legal Section
     legalSection: "Правова інформація",
     termsAndConditions: "Умови використання",
