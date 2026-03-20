@@ -22,6 +22,7 @@ import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -53,6 +54,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
     const [showDatePicker, setShowDatePicker] = useState(false)
 
     const handleNext = () => {
+      trackEvent("onboarding_step", { step: "recovery" })
       navigation.navigate("OnboardingTheme")
     }
 

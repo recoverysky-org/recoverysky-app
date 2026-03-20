@@ -70,6 +70,7 @@ import {
   addNotificationClickHandler,
   setNotificationLanguage,
 } from "./services/notifications"
+import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
@@ -325,7 +326,26 @@ export function App() {
           })
         }
 
+        // Initialize Umami analytics (non-fatal)
+        if (_rootStore.configStore.umamiUrl && _rootStore.configStore.umamiWebsiteId) {
+          initializeUmami(
+            _rootStore.configStore.umamiUrl,
+            _rootStore.configStore.umamiWebsiteId,
+            _rootStore.configStore.umamiApiKey,
+          )
+
+          // Set initial user identity
+          if (authStore.userIdentifier) setTrackingUserId(authStore.userIdentifier)
+
+          // React to auth identity changes
+          reaction(
+            () => authStore.userIdentifier,
+            (id) => setTrackingUserId(id || undefined),
+          )
+        }
+
         setRootStore(_rootStore)
+        trackEvent("app_initialized", { sessionId })
         log.info("App initialization complete")
       } catch (error) {
         log.error("RootStore initialization failed", { error: String(error) })

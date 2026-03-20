@@ -30,6 +30,7 @@ import {
   logoutUser,
   type SubscriptionInfo,
 } from "@/services/purchases"
+import { trackEvent } from "@/services/tracking"
 import { logger } from "@/utils/logger"
 import { loadString, saveString } from "@/utils/storage"
 
@@ -187,8 +188,10 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
    * Present paywall
    */
   const showPaywall = useCallback(async (): Promise<boolean> => {
+    trackEvent("paywall_shown", { source: "manual" })
     const result = await presentPaywall()
     if (result.ok && result.value) {
+      trackEvent("purchase_completed", { entitlement: "premium" })
       await loadSubscriptionInfo()
       return true
     }
@@ -199,8 +202,10 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
    * Present paywall if needed
    */
   const showPaywallIfNeeded = useCallback(async (): Promise<boolean> => {
+    trackEvent("paywall_shown", { source: "gated" })
     const result = await presentPaywallIfNeeded()
     if (result.ok && result.value) {
+      trackEvent("purchase_completed", { entitlement: "premium" })
       await loadSubscriptionInfo()
       return true
     }
@@ -218,6 +223,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     if (result.ok) {
       await loadSubscriptionInfo()
       const premium = await hasPremiumSubscription()
+      if (premium) trackEvent("purchase_restored")
       return premium
     }
 

@@ -13,6 +13,7 @@ import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -32,6 +33,7 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
     const profileStore = useProfileStore()
 
     const handleNext = () => {
+      trackEvent("onboarding_step", { step: "privacy" })
       navigation.navigate("OnboardingOSS")
     }
 

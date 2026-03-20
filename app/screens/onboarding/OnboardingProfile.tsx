@@ -14,6 +14,7 @@ import { TextField } from "@/components/TextField"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -45,6 +46,7 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
     const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
 
     const handleNext = () => {
+      trackEvent("onboarding_step", { step: "profile" })
       navigation.navigate("OnboardingRecovery")
     }
 

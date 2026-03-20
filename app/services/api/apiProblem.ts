@@ -1,5 +1,7 @@
 import { ApiResponse } from "apisauce"
 
+import { trackEvent } from "@/services/tracking"
+
 export type GeneralApiProblem =
   /**
    * Times up.
@@ -44,31 +46,50 @@ export type GeneralApiProblem =
  * @param response The api response.
  */
 export function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProblem | null {
+  let problem: GeneralApiProblem | null = null
+
   switch (response.problem) {
     case "CONNECTION_ERROR":
-      return { kind: "cannot-connect", temporary: true }
+      problem = { kind: "cannot-connect", temporary: true }
+      break
     case "NETWORK_ERROR":
-      return { kind: "cannot-connect", temporary: true }
+      problem = { kind: "cannot-connect", temporary: true }
+      break
     case "TIMEOUT_ERROR":
-      return { kind: "timeout", temporary: true }
+      problem = { kind: "timeout", temporary: true }
+      break
     case "SERVER_ERROR":
-      return { kind: "server" }
+      problem = { kind: "server" }
+      break
     case "UNKNOWN_ERROR":
-      return { kind: "unknown", temporary: true }
+      problem = { kind: "unknown", temporary: true }
+      break
     case "CLIENT_ERROR":
       switch (response.status) {
         case 401:
-          return { kind: "unauthorized" }
+          problem = { kind: "unauthorized" }
+          break
         case 403:
-          return { kind: "forbidden" }
+          problem = { kind: "forbidden" }
+          break
         case 404:
-          return { kind: "not-found" }
+          problem = { kind: "not-found" }
+          break
         default:
-          return { kind: "rejected" }
+          problem = { kind: "rejected" }
+          break
       }
+      break
     case "CANCEL_ERROR":
       return null
   }
 
-  return null
+  if (problem) {
+    trackEvent("api_error", {
+      kind: problem.kind,
+      endpoint: response.config?.url || "",
+    })
+  }
+
+  return problem
 }

@@ -39,6 +39,7 @@ import {
   logoutOneSignalUser,
 } from "@/services/notifications"
 import { requestReviewFromSettings } from "@/services/review"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -47,11 +48,7 @@ import { clear as clearStorage, loadString, remove, saveString } from "@/utils/s
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
 /** Fellowships available for user selection */
-const SELECTABLE_FELLOWSHIPS = [
-  Fellowship.AA,
-  Fellowship.NA,
-  Fellowship.RD,
-] as const
+const SELECTABLE_FELLOWSHIPS = [Fellowship.AA, Fellowship.NA, Fellowship.RD] as const
 
 /**
  * SettingsScreen - User profile, account, and app settings
@@ -198,6 +195,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   const handleLanguageChange = (langCode: string) => {
     profileStore.setLanguage(langCode)
+    trackEvent("language_changed", { language: langCode })
     setLanguageModalVisible(false)
   }
 
@@ -255,6 +253,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const handleNotificationsToggle = useCallback(
     async (value: boolean) => {
       profileStore.setNotificationsEnabled(value)
+      trackEvent("notification_toggle", { enabled: value })
       if (value) {
         const hasPermission = await hasNotificationPermission()
         if (!hasPermission) {
@@ -283,6 +282,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style: "destructive",
           onPress: async () => {
             try {
+              trackEvent("data_deleted")
+
               // 1. Disconnect Zoom (removes Zoom auth from SQLite)
               await disconnectZoom()
               profileStore.setZoomConnected(false)
@@ -321,6 +322,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       {
         text: translate("common:ok"),
         onPress: async () => {
+          trackEvent("logout")
           await disconnectZoom()
           profileStore.setZoomConnected(false)
           await logout()

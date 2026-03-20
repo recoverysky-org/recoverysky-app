@@ -20,8 +20,9 @@ import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
 import { translate } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
-import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
+import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -54,7 +55,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
   // Check if terms were previously accepted
   useEffect(() => {
-    hasAcceptedTerms().then(setTermsAlreadyAccepted).catch(() => {})
+    hasAcceptedTerms()
+      .then(setTermsAlreadyAccepted)
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       if (type === "authenticated") await login()
       else if (type === "signup") await signup()
       else if (type === "anonymous") await loginAnonymously()
+      trackEvent("login_completed", { method: type === "anonymous" ? "anonymous" : "oauth" })
     },
     [login, signup, loginAnonymously, clearError],
   )
@@ -115,7 +119,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
     // Persist acceptance to SecureStore
     setTermsAlreadyAccepted(true)
-    setTermsAccepted().catch((err) => log.error("Failed to persist terms acceptance", { error: String(err) }))
+    setTermsAccepted().catch((err) =>
+      log.error("Failed to persist terms acceptance", { error: String(err) }),
+    )
 
     await proceedWithLogin(pendingLoginType)
     setPendingLoginType(null)
@@ -158,9 +164,15 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         {Platform.OS === "ios" && (
           <View style={themed($noticeBanner)}>
-            <Ionicons name="information-circle" size={22} color={theme.colors.tint} style={$noticeIcon} />
+            <Ionicons
+              name="information-circle"
+              size={22}
+              color={theme.colors.tint}
+              style={$noticeIcon}
+            />
             <Text style={themed($noticeText)}>
-              This is the updated AA/NA Live app. If you are an existing user, log in with the same credentials you used with AA/NA Live. If you need help, please contact{" "}
+              This is the updated AA/NA Live app. If you are an existing user, log in with the same
+              credentials you used with AA/NA Live. If you need help, please contact{" "}
               <Text
                 style={themed($noticeLink)}
                 onPress={() => Linking.openURL("https://www.recoverysky.org/support")}

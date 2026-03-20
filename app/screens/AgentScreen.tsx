@@ -33,6 +33,7 @@ import {
   useProfileStore,
 } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -186,6 +187,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     if (!input.trim()) return
     const message = input.trim()
     setInput("")
+    trackEvent("agent_message_sent")
     sendMessage({ text: message })
   }, [input, setInput, sendMessage])
 

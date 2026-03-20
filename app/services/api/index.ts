@@ -574,6 +574,9 @@ export class Api {
           ZAK_API_KEY: string
           OTLP_API_KEY: string
           ONE_SIGNAL_APP_ID: string
+          UMAMI_URL: string
+          UMAMI_WEBSITE_ID: string
+          UMAMI_X_API_KEY: string
         }
       }
     | GeneralApiProblem
@@ -592,6 +595,9 @@ export class Api {
       ZAK_API_KEY: string
       OTLP_API_KEY: string
       ONE_SIGNAL_APP_ID: string
+      UMAMI_URL: string
+      UMAMI_WEBSITE_ID: string
+      UMAMI_X_API_KEY: string
     }>("/config")
 
     if (!response.ok) {

@@ -21,6 +21,7 @@ import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -53,6 +54,7 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
   useEffect(() => {
     if (isConnected) {
       log.info("Zoom connected, setting zoomConnected flag")
+      trackEvent("zoom_connected")
       profileStore.setZoomConnected(true)
     }
   }, [isConnected, profileStore])

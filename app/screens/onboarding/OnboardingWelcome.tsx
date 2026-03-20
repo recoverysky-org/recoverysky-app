@@ -20,6 +20,7 @@ import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -38,6 +39,7 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
     const [loading, setLoading] = useState(false)
 
     const handleGetStarted = async () => {
+      trackEvent("onboarding_step", { step: "welcome" })
       log.info("handleGetStarted", { imported: profileStore.imported })
 
       if (profileStore.imported) {

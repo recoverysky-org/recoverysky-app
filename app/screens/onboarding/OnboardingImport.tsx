@@ -23,6 +23,7 @@ import {
   type FirebaseAttendanceRecord,
   type FirebaseReportRecord,
 } from "@/services/api"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -235,6 +236,7 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
       }
 
       log.info("Cloud data import complete")
+      trackEvent("firebase_import")
       profileStore.setImported(true)
       setResults({ profileName, attendanceCount, reportsCount })
     } catch (error) {

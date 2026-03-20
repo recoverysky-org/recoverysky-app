@@ -13,6 +13,7 @@ import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -25,6 +26,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
     const [colorPickerVisible, setColorPickerVisible] = useState(false)
 
     const handleNext = () => {
+      trackEvent("onboarding_step", { step: "theme" })
       navigation.navigate("OnboardingAttendance")
     }
 

@@ -13,6 +13,7 @@ import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -34,6 +35,7 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
     const profileStore = useProfileStore()
 
     const handleFinish = () => {
+      trackEvent("onboarding_completed")
       profileStore.completeOnboarding()
     }
 

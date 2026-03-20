@@ -43,6 +43,12 @@ export const ConfigStoreModel = types
     otlpApiKey: types.optional(types.string, ""),
     /** OneSignal App ID (from server /config) */
     oneSignalAppId: types.optional(types.string, ""),
+    /** Umami analytics URL (from server /config) */
+    umamiUrl: types.optional(types.string, ""),
+    /** Umami website ID (from server /config) */
+    umamiWebsiteId: types.optional(types.string, ""),
+    /** Umami X-API-Key (from server /config) */
+    umamiApiKey: types.optional(types.string, ""),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -88,6 +94,9 @@ export const ConfigStoreModel = types
           if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
           if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
           if (config.ONE_SIGNAL_APP_ID) store.oneSignalAppId = config.ONE_SIGNAL_APP_ID
+          if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
+          if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
+          if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
           store.isLoaded = true
 
           log.info("Config loaded from server", {
@@ -122,6 +131,9 @@ export const ConfigStoreModel = types
       store.zakApiKey = ""
       store.otlpApiKey = ""
       store.oneSignalAppId = ""
+      store.umamiUrl = ""
+      store.umamiWebsiteId = ""
+      store.umamiApiKey = ""
       store.isLoaded = false
     },
   }))

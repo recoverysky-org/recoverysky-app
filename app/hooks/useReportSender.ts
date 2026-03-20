@@ -19,6 +19,7 @@ import {
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
 import { pollForConfirmation } from "@/services/polling"
+import { trackEvent } from "@/services/tracking"
 import { logger } from "@/utils/logger"
 
 // ============================================================================
@@ -121,6 +122,7 @@ async function processApiResult(
 
       // If already confirmed, no need to poll
       if (data.confirmed !== 0) {
+        trackEvent("report_confirmed")
         showToast({ message: TOAST_LABELS[operationType], type: "success" })
         return true
       }
@@ -131,6 +133,7 @@ async function processApiResult(
     return true
   }
 
+  trackEvent("report_delivery_failed")
   logger.warn("Report API failed", { reportId, kind: apiResult.kind })
   await attendanceReportRepo.update(reportId, { error: true })
   attendanceEvents.emit({ type: "produced", id: reportId, reportId })
@@ -239,6 +242,7 @@ async function handleSend(
   // Resend/replace: API may return stale confirmed state — preserve our reset
   const preserveReset = op.type === "resend" || op.type === "replace"
   const success = await processApiResult(reportId, apiResult, op.type, showToast, preserveReset)
+  if (success) trackEvent("report_sent", { type: op.type })
   logger.info("Send complete", { reportId, type: op.type, success })
   return { reportId, success }
 }
@@ -287,6 +291,7 @@ async function handleForward(
     fid: originId,
   })
   const success = await processApiResult(newId, apiResult, "forward", showToast)
+  if (success) trackEvent("report_sent", { type: "forward" })
   return { reportId: newId, success }
 }
 
