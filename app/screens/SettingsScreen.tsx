@@ -1097,6 +1097,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
       </View>
 
+      {/* Version */}
+      <Text style={themed($versionText)}>v{require("../../package.json").version}</Text>
+
       {/* Theme Color Picker Modal */}
       <ThemeColorPicker visible={colorPickerVisible} onClose={() => setColorPickerVisible(false)} />
     </Screen>
@@ -1314,6 +1317,13 @@ const $dangerColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
 
 const $dimColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
   color: colors.textDim,
+})
+
+const $versionText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  textAlign: "center",
+  color: colors.textDim,
+  fontSize: 13,
+  paddingVertical: spacing.lg,
 })
 
 const $tintColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
