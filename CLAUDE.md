@@ -315,6 +315,21 @@ Zoom SDK in `app/services/zoom/`:
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
 - **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
 
+### Running on iOS Simulator (Intel Mac)
+
+ZoomMeetingSDK `6.7.5` dropped x86_64 simulator support (ships arm64-simulator only). The dev machine is an Intel i9 Mac which requires x86_64 simulator builds. To run on the iOS simulator:
+
+1. Add a temporary pod pin in `ios/Podfile` inside the `recoveryskyapp` target:
+   ```ruby
+   pod 'ZoomMeetingSDK', '6.7.2'
+   ```
+2. Run `cd ios && pod update ZoomMeetingSDK && cd ..`
+3. Build: `npm run ios`
+
+ZoomMeetingSDK `6.7.2` ships a fat simulator binary with **both x86_64 and arm64**. The Zoom SDK runs fully in the simulator (meetings, UI, everything).
+
+**Before committing or building for production/TestFlight**, remove the `pod 'ZoomMeetingSDK', '6.7.2'` line so the podspec resolves to `6.7.5` (smaller binary, device-only architectures).
+
 ## Pending Upgrades
 
 ### Zoom SDK — upgrade to `@zoom/meetingsdk-react-native@6.7.5` when released on npm
@@ -331,7 +346,7 @@ The patch at `patches/@zoom+meetingsdk-react-native+6.7.2.patch` covers:
 - Android build.gradle: replaced Maven `us.zoom.meetingsdk:zoomsdk:6.7.2` with local `mobilertc.aar`
 - podspec: loosened `ZoomMeetingSDK` dependency from `'6.7.2'` to `'>= 6.7.2', '< 7.0'`
 
-The Podfile also has an explicit `pod 'ZoomMeetingSDK', '6.7.5'` override.
+The podspec dependency `'>= 6.7.2', '< 7.0'` resolves to `6.7.5` (latest). For simulator builds on Intel Macs, temporarily pin `pod 'ZoomMeetingSDK', '6.7.2'` in the Podfile (see "Running on iOS Simulator" above).
 
 #### Android AAR setup
 
