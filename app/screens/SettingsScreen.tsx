@@ -50,8 +50,6 @@ type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 const SELECTABLE_FELLOWSHIPS = [
   Fellowship.AA,
   Fellowship.NA,
-  Fellowship.CMA,
-  Fellowship.MA,
   Fellowship.RD,
 ] as const
 
@@ -1061,6 +1059,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         >
           <Ionicons name="star" size={18} color={theme.colors.tint} />
           <Text style={themed($upgradeButtonText)} tx="settingsScreen:rateApp" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($upgradeButton)}
+          onPress={() => Linking.openURL("https://www.recoverysky.org/support")}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:support")}
+        >
+          <Ionicons name="help-circle-outline" size={18} color={theme.colors.tint} />
+          <Text style={themed($upgradeButtonText)} tx="settingsScreen:support" />
         </TouchableOpacity>
 
         <View style={themed($sectionHeader)}>

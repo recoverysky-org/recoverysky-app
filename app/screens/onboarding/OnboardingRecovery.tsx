@@ -27,7 +27,7 @@ import type { ThemedStyle } from "@/theme/types"
 
 import { ProgressDots } from "./ProgressDots"
 
-const FELLOWSHIPS = ["AA", "NA", "CMA", "RD", "Other"] as const
+const FELLOWSHIPS = ["AA", "NA", "RD", "Other"] as const
 type _Fellowship = (typeof FELLOWSHIPS)[number]
 
 const getFellowshipLabel = (f: string): string => {
@@ -36,8 +36,6 @@ const getFellowshipLabel = (f: string): string => {
       return "Alcoholics Anonymous (AA)"
     case "NA":
       return "Narcotics Anonymous (NA)"
-    case "CMA":
-      return "Crystal Meth Anonymous (CMA)"
     case "RD":
       return "Recovery Dharma (RD)"
     case "Other":

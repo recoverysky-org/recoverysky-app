@@ -501,7 +501,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
     (report: AttendanceReportRecord) => {
       if (report.error) return { name: "warning" as const, color: theme.colors.error }
       if (report.confirmed > 0)
-        return { name: "checkmark-circle" as const, color: theme.colors.palette.secondary500 }
+        return { name: "checkmark-circle" as const, color: "#39FF14" }
       return { name: "time-outline" as const, color: theme.colors.textDim }
     },
     [theme],
@@ -581,7 +581,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
             </Text>
           </View>
           <TouchableOpacity onPress={() => handleResendTap(item)} style={$viewButton} hitSlop={8}>
-            <Ionicons name="mail-outline" size={22} color={theme.colors.tint} />
+            <Ionicons name="arrow-redo-outline" size={22} color={theme.colors.tint} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleViewReport(item)}
