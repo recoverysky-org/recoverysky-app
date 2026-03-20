@@ -212,6 +212,10 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       )
       log.info("Auth0 login flow completed")
     } catch (err) {
+      if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
+        log.info("Login cancelled by user")
+        return
+      }
       const message = err instanceof Error ? err.message : "Login failed"
       log.error("Auth0 login failed", { error: message })
       setError(message)
@@ -242,6 +246,10 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       )
       log.info("Auth0 signup flow completed")
     } catch (err) {
+      if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
+        log.info("Signup cancelled by user")
+        return
+      }
       const message = err instanceof Error ? err.message : "Signup failed"
       log.error("Auth0 signup failed", { error: message })
       setError(message)
