@@ -125,7 +125,7 @@ const es: Translations = {
       "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
     supportTitle: "¿Necesitas ayuda?",
     supportDescription:
-      "¿Tienes una pregunta, encontraste un error o quieres compartir comentarios? Visita nuestra página de soporte para obtener ayuda.",
+      "¿Tienes una pregunta o necesitas ayuda?",
     goToSupport: "Obtener soporte",
     // Dashboard
     gettingStarted: "Primeros Pasos",

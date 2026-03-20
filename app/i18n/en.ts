@@ -126,7 +126,7 @@ const en = {
     // Support
     supportTitle: "Need Help?",
     supportDescription:
-      "Have a question, found a bug, or want to share feedback? Visit our support page for help.",
+      "Have a question, or need help?",
     goToSupport: "Get Support",
     // Dashboard
     gettingStarted: "Getting Started",

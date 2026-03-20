@@ -124,7 +124,7 @@ const de: Translations = {
       "Nutze Sterne, um Meetings nach deiner Erfahrung zu bewerten. Höher bewertete Meetings erscheinen zuerst. Deine Bewertungen sind persönlich und werden nie geteilt.",
     supportTitle: "Brauchst du Hilfe?",
     supportDescription:
-      "Hast du eine Frage, einen Fehler gefunden oder möchtest Feedback geben? Besuche unsere Support-Seite für Hilfe.",
+      "Hast du eine Frage oder brauchst Hilfe?",
     goToSupport: "Support erhalten",
     // Dashboard
     gettingStarted: "Erste Schritte",

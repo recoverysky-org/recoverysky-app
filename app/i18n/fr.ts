@@ -125,7 +125,7 @@ const fr: Translations = {
     // Support
     supportTitle: "Besoin d'aide ?",
     supportDescription:
-      "Tu as une question, trouvé un bug ou tu veux partager un commentaire ? Visite notre page de support pour obtenir de l'aide.",
+      "Tu as une question ou besoin d'aide ?",
     goToSupport: "Obtenir de l'aide",
     // Dashboard
     gettingStarted: "Pour commencer",
