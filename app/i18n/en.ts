@@ -125,8 +125,7 @@ const en = {
       "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
     // Support
     supportTitle: "Need Help?",
-    supportDescription:
-      "Have a question, or need help?",
+    supportDescription: "Have a question, or need help?",
     goToSupport: "Get Support",
     // Dashboard
     gettingStarted: "Getting Started",
@@ -407,9 +406,9 @@ const en = {
     privacyTitle: "Your Privacy Matters",
     privacySubtitle: "We take your privacy seriously",
     dataOnDevice: "Your data never leaves your device",
-    noTracking: "No analytics, no tracking, no Google",
+    noTracking: "No Google analytics, no tracking",
     totalAnonymity: "Complete privacy and anonymity",
-    minimalNetwork: "Only network traffic is for live meeting lists",
+    minimalNetwork: "Network traffic is for live meeting lists",
     encryptedStorage: "100% local encrypted SQL storage",
     hipaaCompliant: "HIPAA compliant network and storage",
     openSource: "Open source - available for review and security testing",
