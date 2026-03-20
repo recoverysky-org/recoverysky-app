@@ -36,8 +36,6 @@ const log = logger.child({ module: "LiveScreen" })
 const SELECTABLE_FELLOWSHIPS = [
   { value: Fellowship.AA, label: "AA" },
   { value: Fellowship.NA, label: "NA" },
-  { value: Fellowship.CMA, label: "CMA" },
-  { value: Fellowship.MA, label: "MA" },
   { value: Fellowship.RD, label: "RD" },
 ] as const
 

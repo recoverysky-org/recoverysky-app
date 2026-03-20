@@ -27,7 +27,7 @@ import type { ThemedStyle } from "@/theme/types"
 
 import { ProgressDots } from "./ProgressDots"
 
-const FELLOWSHIPS = ["AA", "NA", "RD", "Other"] as const
+const FELLOWSHIPS = ["AA", "NA", "RD"] as const
 type _Fellowship = (typeof FELLOWSHIPS)[number]
 
 const getFellowshipLabel = (f: string): string => {
