@@ -17,15 +17,15 @@ const pt: Translations = {
   },
   errorScreen: {
     title: "Algo deu errado!",
-    friendlySubtitle:
-      "Essa é a tela que seus usuários vão ver em produção quando ocorrer um erro.",
+    friendlySubtitle: "Essa é a tela que seus usuários vão ver em produção quando ocorrer um erro.",
     reset: "REINICIAR APP",
     traceTitle: "Erro da pilha %{name}",
   },
   emptyStateComponent: {
     generic: {
       heading: "Tão vazio... tão triste",
-      content: "Nenhum dado encontrado ainda. Tente apertar o botão pra atualizar ou recarregar o app.",
+      content:
+        "Nenhum dado encontrado ainda. Tente apertar o botão pra atualizar ou recarregar o app.",
       button: "Vamos tentar de novo",
     },
   },
@@ -103,7 +103,8 @@ const pt: Translations = {
       "Reveja a introdução do app a qualquer momento pra conhecer os recursos e a privacidade.",
     restartOnboarding: "Refazer Questionário Inicial",
     liveTitle: "Reuniões ao Vivo",
-    liveDescription: "Encontre reuniões acontecendo agora. Toque na aba Ao Vivo pra ver o que está rolando.",
+    liveDescription:
+      "Encontre reuniões acontecendo agora. Toque na aba Ao Vivo pra ver o que está rolando.",
     goToLive: "Ir pro Ao Vivo",
     listingsTitle: "Lista de Reuniões",
     listingsDescription: "Navegue pela agenda completa por dia e horário. Ótimo pra se planejar.",
@@ -123,8 +124,7 @@ const pt: Translations = {
     ratingsDescription:
       "Use as estrelas pra avaliar reuniões com base na sua experiência. Reuniões com nota mais alta aparecem primeiro. Suas avaliações são pessoais e nunca são compartilhadas.",
     supportTitle: "Precisa de ajuda?",
-    supportDescription:
-      "Tem uma pergunta ou precisa de ajuda?",
+    supportDescription: "Tem uma pergunta ou precisa de ajuda?",
     goToSupport: "Obter suporte",
     // Dashboard
     gettingStarted: "Primeiros Passos",
@@ -233,7 +233,8 @@ const pt: Translations = {
     statusError: "Erro",
     unknownDate: "Data desconhecida",
     noReports: "Nenhum relatório ainda",
-    noReportsSubtext: "Os relatórios vão aparecer aqui depois que você enviar registros de presença",
+    noReportsSubtext:
+      "Os relatórios vão aparecer aqui depois que você enviar registros de presença",
     resendReport: "Reenviar Relatório",
     forwardReport: "Encaminhar Relatório",
     recipientPlaceholder: "destinatario@exemplo.com",
@@ -329,8 +330,7 @@ const pt: Translations = {
     exportEmailPlaceholder: "email@exemplo.com",
     exportAttendance: "Exportar Presença",
     comingSoon: "Em Breve",
-    exportComingSoon:
-      "A função de exportação estará disponível em uma atualização futura.",
+    exportComingSoon: "A função de exportação estará disponível em uma atualização futura.",
     // Home Tips
     resetHomeTips: "Redefinir Dicas de Início",
     resetHomeTipsHint: "Mostrar todos os cartões de ajuda novamente",
@@ -391,7 +391,8 @@ const pt: Translations = {
     themeColor: "Cor do Tema",
     // Screen 4: Attendance
     attendanceTitle: "Presença Pessoal",
-    attendanceSubtitle: "Defina metas, acompanhe seu progresso e celebre visualmente sua jornada de recuperação.",
+    attendanceSubtitle:
+      "Defina metas, acompanhe seu progresso e celebre visualmente sua jornada de recuperação.",
     attendanceFreeFeature:
       "Se ativado, a presença é registrada automaticamente quando você participa pelo app",
     attendancePrivate:

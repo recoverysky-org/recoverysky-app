@@ -186,7 +186,10 @@ export const LiveContent: FC = observer(function LiveContent() {
       {/* Header - outside FlatList to match Listings layout */}
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
-        <TouchableOpacity onPress={() => navigate("Settings" as never, { section: "profile" } as never)} hitSlop={8}>
+        <TouchableOpacity
+          onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
+          hitSlop={8}
+        >
           <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
         </TouchableOpacity>
       </View>

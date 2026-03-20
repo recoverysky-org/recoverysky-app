@@ -25,7 +25,8 @@ const de: Translations = {
   emptyStateComponent: {
     generic: {
       heading: "So leer... so traurig",
-      content: "Noch keine Daten gefunden. Tippe auf den Button, um zu aktualisieren oder die App neu zu laden.",
+      content:
+        "Noch keine Daten gefunden. Tippe auf den Button, um zu aktualisieren oder die App neu zu laden.",
       button: "Versuchen wir's nochmal",
     },
   },
@@ -103,10 +104,12 @@ const de: Translations = {
       "Schau dir die App-Einführung jederzeit an, um mehr über Funktionen und Datenschutz zu erfahren.",
     restartOnboarding: "Einführungsfragen neu starten",
     liveTitle: "Live-Meetings",
-    liveDescription: "Finde Meetings, die gerade stattfinden. Tippe auf den Live-Tab, um zu sehen, was läuft.",
+    liveDescription:
+      "Finde Meetings, die gerade stattfinden. Tippe auf den Live-Tab, um zu sehen, was läuft.",
     goToLive: "Zu Live gehen",
     listingsTitle: "Meeting-Verzeichnis",
-    listingsDescription: "Durchsuche den kompletten Zeitplan nach Tag und Uhrzeit. Ideal zum Vorausplanen.",
+    listingsDescription:
+      "Durchsuche den kompletten Zeitplan nach Tag und Uhrzeit. Ideal zum Vorausplanen.",
     goToListings: "Verzeichnis ansehen",
     attendanceTitle: "Teilnahme verfolgen",
     attendanceDescription:
@@ -123,8 +126,7 @@ const de: Translations = {
     ratingsDescription:
       "Nutze Sterne, um Meetings nach deiner Erfahrung zu bewerten. Höher bewertete Meetings erscheinen zuerst. Deine Bewertungen sind persönlich und werden nie geteilt.",
     supportTitle: "Brauchst du Hilfe?",
-    supportDescription:
-      "Hast du eine Frage oder brauchst Hilfe?",
+    supportDescription: "Hast du eine Frage oder brauchst Hilfe?",
     goToSupport: "Support erhalten",
     // Dashboard
     gettingStarted: "Erste Schritte",
@@ -308,7 +310,8 @@ const de: Translations = {
     appSettingsSection: "App-Einstellungen",
     language: "Sprache",
     selectLanguage: "Sprache wählen",
-    translationHint: "Übersetzungen wurden mit KI erstellt — Korrekturen aus unserer Gemeinschaft sind willkommen.",
+    translationHint:
+      "Übersetzungen wurden mit KI erstellt — Korrekturen aus unserer Gemeinschaft sind willkommen.",
     darkMode: "Dunkelmodus",
     themeColor: "Designfarbe",
     currentColor: "Aktuell",
@@ -329,8 +332,7 @@ const de: Translations = {
     exportEmailPlaceholder: "email@beispiel.de",
     exportAttendance: "Teilnahme exportieren",
     comingSoon: "Kommt bald",
-    exportComingSoon:
-      "Die Exportfunktion wird in einem zukünftigen Update verfügbar sein.",
+    exportComingSoon: "Die Exportfunktion wird in einem zukünftigen Update verfügbar sein.",
     // Home Tips
     resetHomeTips: "Start-Tipps zurücksetzen",
     resetHomeTipsHint: "Alle Hilfekarten wieder anzeigen",
@@ -391,7 +393,8 @@ const de: Translations = {
     themeColor: "Designfarbe",
     // Screen 4: Attendance
     attendanceTitle: "Persönliche Teilnahme",
-    attendanceSubtitle: "Setze Ziele, verfolge Fortschritte und feiere deinen Genesungsweg visuell.",
+    attendanceSubtitle:
+      "Setze Ziele, verfolge Fortschritte und feiere deinen Genesungsweg visuell.",
     attendanceFreeFeature:
       "Wenn aktiviert, wird die Meeting-Teilnahme automatisch erfasst, wenn du über die App beitrittst",
     attendancePrivate:
@@ -445,11 +448,16 @@ const de: Translations = {
     title: "Entwicklertools",
     reportBugs: "Fehler melden",
     reactotron: "An Reactotron senden",
-    androidReactotronHint: "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
-    iosReactotronHint: "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
-    macosReactotronHint: "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
-    webReactotronHint: "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
-    windowsReactotronHint: "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
+    androidReactotronHint:
+      "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
+    iosReactotronHint:
+      "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
+    macosReactotronHint:
+      "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
+    webReactotronHint:
+      "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
+    windowsReactotronHint:
+      "Falls das nicht funktioniert, stelle sicher, dass die Reactotron-App läuft.",
   },
   agentScreen: {
     title: "Sky Assistent",

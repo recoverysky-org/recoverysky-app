@@ -18,8 +18,8 @@ import {
   ScrollView,
   Platform,
 } from "react-native"
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { Ionicons } from "@expo/vector-icons"
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { DateTime } from "@recoverysky-org/common/browser"
 import { useTranslation } from "react-i18next"
 
@@ -27,10 +27,7 @@ import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import type { ReminderRecord, ReminderCreateInput, ReminderUpdateInput } from "@/db"
-import {
-  hasNotificationPermission,
-  requestNotificationPermission,
-} from "@/services/notifications"
+import { hasNotificationPermission, requestNotificationPermission } from "@/services/notifications"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -152,16 +149,13 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
   )
 
   // Handle time picker change
-  const handleTimeChange = useCallback(
-    (_event: DateTimePickerEvent, date?: Date) => {
-      if (Platform.OS === "android") setShowTimePicker(false)
-      if (date) {
-        setCustomTime(date)
-        setHasCustomTime(true)
-      }
-    },
-    [],
-  )
+  const handleTimeChange = useCallback((_event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === "android") setShowTimePicker(false)
+    if (date) {
+      setCustomTime(date)
+      setHasCustomTime(true)
+    }
+  }, [])
 
   // Format custom time for display
   const formattedCustomTime = useMemo(() => {
@@ -377,9 +371,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
             {hasOverlap && (
               <View style={$overlapWarning}>
                 <Ionicons name="warning" size={16} color="#f59e0b" />
-                <Text style={$overlapWarningText}>
-                  {t("reminderEditor:overlapMessage")}
-                </Text>
+                <Text style={$overlapWarningText}>{t("reminderEditor:overlapMessage")}</Text>
               </View>
             )}
 
@@ -517,7 +509,6 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
                 />
               </View>
             )}
-
           </ScrollView>
         </View>
       </View>
@@ -767,4 +758,3 @@ const $timeDisplayText: TextStyle = {
   fontWeight: "700",
   color: REMINDER_COLOR,
 }
-

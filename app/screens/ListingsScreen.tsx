@@ -29,10 +29,10 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
+import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { navigate } from "@/navigators/navigationUtilities"
-import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { api, LiveSchedule } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -82,8 +82,7 @@ const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
   FA: "فارسی",
 }
 
-const getLanguageDisplayName = (code: string): string =>
-  LANGUAGE_DISPLAY_NAMES[code] ?? code
+const getLanguageDisplayName = (code: string): string => LANGUAGE_DISPLAY_NAMES[code] ?? code
 
 // Get current ISO day of week (1=Monday, 7=Sunday)
 const getCurrentIsoDow = (): number => {
@@ -313,7 +312,10 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           <Text preset="heading" style={themed($title)}>
             {t("listingsScreen:title")}
           </Text>
-          <TouchableOpacity onPress={() => navigate("Settings" as never, { section: "profile" } as never)} hitSlop={8}>
+          <TouchableOpacity
+            onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
+            hitSlop={8}
+          >
             <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
           </TouchableOpacity>
         </View>
@@ -352,7 +354,9 @@ export const ListingsContent: FC = observer(function ListingsContent() {
             <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)}>
-                {selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}
+                {selectedLanguage
+                  ? getLanguageDisplayName(selectedLanguage)
+                  : t("listingsScreen:allLanguages")}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>

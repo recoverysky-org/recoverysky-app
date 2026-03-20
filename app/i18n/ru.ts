@@ -25,7 +25,8 @@ const ru: Translations = {
   emptyStateComponent: {
     generic: {
       heading: "Так пусто... так грустно",
-      content: "Данные пока не найдены. Попробуй нажать кнопку, чтобы обновить или перезагрузить приложение.",
+      content:
+        "Данные пока не найдены. Попробуй нажать кнопку, чтобы обновить или перезагрузить приложение.",
       button: "Давай попробуем ещё раз",
     },
   },
@@ -80,7 +81,7 @@ const ru: Translations = {
     signupModalNote:
       "Когда увидишь эту страницу, закрой окно браузера и вернись в RecoverySky, чтобы войти через новый аккаунт Zoom.",
     signupModalNote2:
-      'Ты также можешь нажать «Take me to my basic account», чтобы заполнить профиль Zoom, затем закрыть браузер и вернуться в RecoverySky.',
+      "Ты также можешь нажать «Take me to my basic account», чтобы заполнить профиль Zoom, затем закрыть браузер и вернуться в RecoverySky.",
     signupModalContinue: "Открыть регистрацию Zoom",
     loading: "Проверяем подключение Zoom...",
   },
@@ -103,10 +104,12 @@ const ru: Translations = {
       "Ознакомься с введением в приложение в любое время, чтобы узнать о функциях и конфиденциальности.",
     restartOnboarding: "Пройти начальную анкету заново",
     liveTitle: "Собрания онлайн",
-    liveDescription: "Найди собрания, которые идут прямо сейчас. Нажми на вкладку «Сейчас», чтобы посмотреть.",
+    liveDescription:
+      "Найди собрания, которые идут прямо сейчас. Нажми на вкладку «Сейчас», чтобы посмотреть.",
     goToLive: "Перейти к онлайн",
     listingsTitle: "Каталог собраний",
-    listingsDescription: "Просматривай полное расписание по дням и времени. Удобно для планирования.",
+    listingsDescription:
+      "Просматривай полное расписание по дням и времени. Удобно для планирования.",
     goToListings: "Смотреть каталог",
     attendanceTitle: "Учёт посещений",
     attendanceDescription:
@@ -123,8 +126,7 @@ const ru: Translations = {
     ratingsDescription:
       "Используй звёзды, чтобы оценить собрания по своему опыту. Собрания с высоким рейтингом отображаются первыми. Твои оценки личные и никогда не передаются.",
     supportTitle: "Нужна помощь?",
-    supportDescription:
-      "Есть вопрос или нужна помощь?",
+    supportDescription: "Есть вопрос или нужна помощь?",
     goToSupport: "Получить поддержку",
     // Dashboard
     gettingStarted: "Начало работы",
@@ -284,8 +286,7 @@ const ru: Translations = {
     loginToSubscribeHint: "Для подписки необходим аккаунт в приложении.",
     restorePurchases: "Восстановить покупки",
     subscriptionSuccess: "Добро пожаловать в Премиум!",
-    subscriptionSuccessMessage:
-      "Спасибо за поддержку RecoverySky. Наслаждайся премиум-функциями!",
+    subscriptionSuccessMessage: "Спасибо за поддержку RecoverySky. Наслаждайся премиум-функциями!",
     restoreSuccess: "Покупки восстановлены",
     restoreSuccessMessage: "Твоя подписка успешно восстановлена.",
     restoreNoSubscription: "Подписка не найдена",
@@ -308,7 +309,8 @@ const ru: Translations = {
     appSettingsSection: "Настройки приложения",
     language: "Язык",
     selectLanguage: "Выбрать язык",
-    translationHint: "Переводы выполнены с помощью ИИ — мы будем рады поправкам от нашего сообщества.",
+    translationHint:
+      "Переводы выполнены с помощью ИИ — мы будем рады поправкам от нашего сообщества.",
     darkMode: "Тёмная тема",
     themeColor: "Цвет темы",
     currentColor: "Текущий",
@@ -329,8 +331,7 @@ const ru: Translations = {
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Экспорт посещений",
     comingSoon: "Скоро",
-    exportComingSoon:
-      "Функция экспорта будет доступна в будущем обновлении.",
+    exportComingSoon: "Функция экспорта будет доступна в будущем обновлении.",
     // Home Tips
     resetHomeTips: "Сбросить подсказки на главной",
     resetHomeTipsHint: "Показать все карточки помощи заново",
@@ -391,11 +392,11 @@ const ru: Translations = {
     themeColor: "Цвет темы",
     // Screen 4: Attendance
     attendanceTitle: "Личный учёт посещений",
-    attendanceSubtitle: "Ставь цели, отслеживай прогресс и визуально отмечай свой путь выздоровления.",
+    attendanceSubtitle:
+      "Ставь цели, отслеживай прогресс и визуально отмечай свой путь выздоровления.",
     attendanceFreeFeature:
       "Если включено, посещение собраний отслеживается автоматически при подключении через приложение",
-    attendancePrivate:
-      "Данные зашифрованы на твоём устройстве и покидают его только при экспорте",
+    attendancePrivate: "Данные зашифрованы на твоём устройстве и покидают его только при экспорте",
     attendancePaidFeature:
       "Подписка: Отчёты с цифровой подписью для наставников, суда или социальных служб",
     enableAttendance: "Включить учёт посещений",

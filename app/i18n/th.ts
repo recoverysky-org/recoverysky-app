@@ -17,8 +17,7 @@ const th: Translations = {
   },
   errorScreen: {
     title: "มีบางอย่างผิดพลาด!",
-    friendlySubtitle:
-      "นี่คือหน้าจอที่ผู้ใช้จะเห็นเมื่อเกิดข้อผิดพลาดในระบบจริง",
+    friendlySubtitle: "นี่คือหน้าจอที่ผู้ใช้จะเห็นเมื่อเกิดข้อผิดพลาดในระบบจริง",
     reset: "รีเซ็ตแอป",
     traceTitle: "ข้อผิดพลาดจากสแต็ก %{name}",
   },
@@ -75,8 +74,7 @@ const th: Translations = {
     anonymousWarningMessage:
       "การเข้าร่วมประชุมโดยไม่มีบัญชี Zoom อาจเกิดข้อผิดพลาดได้ เพราะจำนวนครั้งที่เข้าแบบไม่ระบุตัวตนมีจำกัด หากมีปัญหา คุณสามารถเชื่อมต่อบัญชี Zoom ได้ตลอดเวลาในการตั้งค่านะ",
     signupModalTitle: "สร้างบัญชี Zoom",
-    signupModalBody:
-      "หลังจากสร้างบัญชีแล้ว Zoom จะแสดงหน้าสมัครสมาชิก ไม่ต้องเริ่มทดลองใช้ฟรีนะ",
+    signupModalBody: "หลังจากสร้างบัญชีแล้ว Zoom จะแสดงหน้าสมัครสมาชิก ไม่ต้องเริ่มทดลองใช้ฟรีนะ",
     signupModalNote:
       "เมื่อเห็นหน้านั้นแล้ว ให้ปิดหน้าต่างเบราว์เซอร์แล้วกลับมาที่ RecoverySky เพื่อเข้าสู่ระบบด้วยบัญชี Zoom ใหม่ของคุณ",
     signupModalNote2:
@@ -109,8 +107,7 @@ const th: Translations = {
     listingsDescription: "เรียกดูตารางทั้งหมดตามวันและเวลา เหมาะสำหรับวางแผนล่วงหน้า",
     goToListings: "ดูรายการ",
     attendanceTitle: "ติดตามการเข้าร่วม",
-    attendanceDescription:
-      "การเข้าร่วมประชุมถูกบันทึกอัตโนมัติ ดูประวัติและส่งออกรายงานได้เลย",
+    attendanceDescription: "การเข้าร่วมประชุมถูกบันทึกอัตโนมัติ ดูประวัติและส่งออกรายงานได้เลย",
     goToAttendance: "ดูการเข้าร่วม",
     settingsTitle: "ปรับแต่งแอปของคุณ",
     settingsDescription: "ตั้งวันที่เริ่มฟื้นตัว ธีม และการตั้งค่าส่วนตัวได้เลย",
@@ -123,8 +120,7 @@ const th: Translations = {
     ratingsDescription:
       "ใช้ดาวเพื่อให้คะแนนประชุมตามประสบการณ์ของคุณ ประชุมที่คะแนนสูงจะแสดงก่อน คะแนนของคุณเป็นส่วนตัวและไม่ถูกแชร์ให้ใครนะ",
     supportTitle: "ต้องการความช่วยเหลือ?",
-    supportDescription:
-      "มีคำถามหรือต้องการความช่วยเหลือ?",
+    supportDescription: "มีคำถามหรือต้องการความช่วยเหลือ?",
     goToSupport: "รับการสนับสนุน",
     // Dashboard
     gettingStarted: "เริ่มต้นใช้งาน",
@@ -329,8 +325,7 @@ const th: Translations = {
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "ส่งออกการเข้าร่วม",
     comingSoon: "เร็วๆ นี้",
-    exportComingSoon:
-      "ฟังก์ชันส่งออกจะพร้อมใช้งานในการอัปเดตครั้งถัดไปนะ",
+    exportComingSoon: "ฟังก์ชันส่งออกจะพร้อมใช้งานในการอัปเดตครั้งถัดไปนะ",
     // Home Tips
     resetHomeTips: "รีเซ็ตเคล็ดลับหน้าหลัก",
     resetHomeTipsHint: "แสดงการ์ดช่วยเหลือทั้งหมดอีกครั้ง",
@@ -378,8 +373,7 @@ const th: Translations = {
     selectPronouns: "เลือกสรรพนาม",
     // Screen 2: Recovery
     recoveryTitle: "การฟื้นตัวของคุณ",
-    recoverySubtitle:
-      "กรองประชุมตามกลุ่มที่เลือก แสดงวันที่และจำนวนวันฟื้นตัว",
+    recoverySubtitle: "กรองประชุมตามกลุ่มที่เลือก แสดงวันที่และจำนวนวันฟื้นตัว",
     fellowship: "กลุ่ม",
     selectFellowship: "เลือกกลุ่มของคุณ",
     recoveryDate: "วันที่เริ่มฟื้นตัว",
@@ -392,12 +386,9 @@ const th: Translations = {
     // Screen 4: Attendance
     attendanceTitle: "การเข้าร่วมส่วนตัว",
     attendanceSubtitle: "ตั้งเป้าหมาย ติดตามความก้าวหน้า และเฉลิมฉลองเส้นทางการฟื้นตัวของคุณ",
-    attendanceFreeFeature:
-      "หากเปิดใช้งาน การเข้าร่วมประชุมจะถูกบันทึกอัตโนมัติเมื่อเข้าผ่านแอป",
-    attendancePrivate:
-      "ข้อมูลถูกเข้ารหัสบนอุปกรณ์ของคุณและจะออกไปเมื่อคุณเลือกส่งออกเท่านั้น",
-    attendancePaidFeature:
-      "สมาชิก: รายงานที่เซ็นดิจิทัลสำหรับพี่เลี้ยง ศาล หรือหน่วยงานครอบครัว",
+    attendanceFreeFeature: "หากเปิดใช้งาน การเข้าร่วมประชุมจะถูกบันทึกอัตโนมัติเมื่อเข้าผ่านแอป",
+    attendancePrivate: "ข้อมูลถูกเข้ารหัสบนอุปกรณ์ของคุณและจะออกไปเมื่อคุณเลือกส่งออกเท่านั้น",
+    attendancePaidFeature: "สมาชิก: รายงานที่เซ็นดิจิทัลสำหรับพี่เลี้ยง ศาล หรือหน่วยงานครอบครัว",
     enableAttendance: "เปิดการติดตามการเข้าร่วม",
     enableAttendanceHint: "เปลี่ยนได้ตลอดเวลาในการตั้งค่านะ",
     // Screen 5: Privacy

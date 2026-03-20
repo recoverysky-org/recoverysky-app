@@ -124,8 +124,7 @@ const es: Translations = {
     ratingsDescription:
       "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
     supportTitle: "¿Necesitas ayuda?",
-    supportDescription:
-      "¿Tienes una pregunta o necesitas ayuda?",
+    supportDescription: "¿Tienes una pregunta o necesitas ayuda?",
     goToSupport: "Obtener soporte",
     // Dashboard
     gettingStarted: "Primeros Pasos",
@@ -309,7 +308,8 @@ const es: Translations = {
     appSettingsSection: "Configuración de la App",
     language: "Idioma",
     selectLanguage: "Seleccionar Idioma",
-    translationHint: "Traducciones proporcionadas por IA — agradecemos correcciones de nuestra comunidad.",
+    translationHint:
+      "Traducciones proporcionadas por IA — agradecemos correcciones de nuestra comunidad.",
     darkMode: "Modo Oscuro",
     themeColor: "Color del Tema",
     currentColor: "Actual",

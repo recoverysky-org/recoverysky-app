@@ -500,8 +500,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
   const getStatusIcon = useCallback(
     (report: AttendanceReportRecord) => {
       if (report.error) return { name: "warning" as const, color: theme.colors.error }
-      if (report.confirmed > 0)
-        return { name: "checkmark-circle" as const, color: "#39FF14" }
+      if (report.confirmed > 0) return { name: "checkmark-circle" as const, color: "#39FF14" }
       return { name: "time-outline" as const, color: theme.colors.textDim }
     },
     [theme],

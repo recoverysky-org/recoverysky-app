@@ -14,8 +14,8 @@ import { useAuthenticationStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LicensesScreen } from "@/screens/LicensesScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
-import { TermsScreen } from "@/screens/TermsScreen"
 import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
+import { TermsScreen } from "@/screens/TermsScreen"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
 import { ZoomSetupScreen } from "@/screens/ZoomSetupScreen"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
@@ -55,7 +55,12 @@ const AppStack = observer(function AppStack() {
   log.debug("Theme retrieved")
 
   useEffect(() => {
-    log.info("AppStack mounted", { isAuthenticated, authReady: authStore.authReady, needsZoomSetup, needsOnboarding })
+    log.info("AppStack mounted", {
+      isAuthenticated,
+      authReady: authStore.authReady,
+      needsZoomSetup,
+      needsOnboarding,
+    })
     return () => {
       log.debug("AppStack unmounting")
     }

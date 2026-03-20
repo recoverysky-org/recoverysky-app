@@ -82,7 +82,9 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
       </Text>
 
       {/* Reminder bell / Heart */}
-      {hasReminder && <Ionicons name="notifications" size={14} color={REMINDER_COLOR} style={$bellIcon} />}
+      {hasReminder && (
+        <Ionicons name="notifications" size={14} color={REMINDER_COLOR} style={$bellIcon} />
+      )}
       {isFavorite && <Ionicons name="heart" size={16} color="#ef4444" style={$heartIcon} />}
 
       {/* Right side: Time/Language + Stars */}

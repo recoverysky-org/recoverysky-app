@@ -142,7 +142,9 @@ export const MainNavigator = observer(function MainNavigator() {
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        initialParams={postLoginSectionRef.current ? { section: postLoginSectionRef.current } : undefined}
+        initialParams={
+          postLoginSectionRef.current ? { section: postLoginSectionRef.current } : undefined
+        }
         options={{
           tabBarLabel: t("mainNavigator:settingsTab"),
           tabBarIcon: ({ focused }) => (

@@ -17,15 +17,15 @@ const uk: Translations = {
   },
   errorScreen: {
     title: "Щось пішло не так!",
-    friendlySubtitle:
-      "Це екран, який побачать користувачі у продакшені при виникненні помилки.",
+    friendlySubtitle: "Це екран, який побачать користувачі у продакшені при виникненні помилки.",
     reset: "СКИНУТИ ДОДАТОК",
     traceTitle: "Помилка зі стеку %{name}",
   },
   emptyStateComponent: {
     generic: {
       heading: "Так порожньо... так сумно",
-      content: "Даних поки не знайдено. Спробуй натиснути кнопку, щоб оновити або перезавантажити додаток.",
+      content:
+        "Даних поки не знайдено. Спробуй натиснути кнопку, щоб оновити або перезавантажити додаток.",
       button: "Спробуймо ще раз",
     },
   },
@@ -54,7 +54,8 @@ const uk: Translations = {
   },
   zoomLoginScreen: {
     title: "Підключити Zoom",
-    subtitle: "Увійди через свій обліковий запис Zoom, щоб приєднуватися до зустрічей під своїм іменем.",
+    subtitle:
+      "Увійди через свій обліковий запис Zoom, щоб приєднуватися до зустрічей під своїм іменем.",
     connectWithZoom: "Підключити через Zoom",
     continueAnonymously: "Продовжити без підключення",
     openingBrowser: "Відкриваємо вхід у Zoom...",
@@ -80,7 +81,7 @@ const uk: Translations = {
     signupModalNote:
       "Коли побачиш цю сторінку, закрий вікно браузера та повернися до RecoverySky, щоб увійти через новий обліковий запис Zoom.",
     signupModalNote2:
-      'Ти також можеш натиснути «Take me to my basic account», щоб заповнити профіль Zoom, потім закрити браузер і повернутися до RecoverySky.',
+      "Ти також можеш натиснути «Take me to my basic account», щоб заповнити профіль Zoom, потім закрити браузер і повернутися до RecoverySky.",
     signupModalContinue: "Відкрити реєстрацію Zoom",
     loading: "Перевіряємо підключення Zoom...",
   },
@@ -103,7 +104,8 @@ const uk: Translations = {
       "Переглядай вступ до додатку будь-коли, щоб дізнатися про функції та конфіденційність.",
     restartOnboarding: "Пройти початкову анкету заново",
     liveTitle: "Зустрічі онлайн",
-    liveDescription: "Знайди зустрічі, які відбуваються прямо зараз. Натисни на вкладку «Зараз», щоб подивитися.",
+    liveDescription:
+      "Знайди зустрічі, які відбуваються прямо зараз. Натисни на вкладку «Зараз», щоб подивитися.",
     goToLive: "Перейти до онлайн",
     listingsTitle: "Каталог зустрічей",
     listingsDescription: "Переглядай повний розклад за днями та часом. Зручно для планування.",
@@ -123,8 +125,7 @@ const uk: Translations = {
     ratingsDescription:
       "Використовуй зірки, щоб оцінити зустрічі за своїм досвідом. Зустрічі з вищим рейтингом відображаються першими. Твої оцінки особисті та ніколи не передаються.",
     supportTitle: "Потрібна допомога?",
-    supportDescription:
-      "Маєте запитання або потрібна допомога?",
+    supportDescription: "Маєте запитання або потрібна допомога?",
     goToSupport: "Отримати підтримку",
     // Dashboard
     gettingStarted: "Початок роботи",
@@ -284,8 +285,7 @@ const uk: Translations = {
     loginToSubscribeHint: "Для підписки потрібен обліковий запис у додатку.",
     restorePurchases: "Відновити покупки",
     subscriptionSuccess: "Ласкаво просимо до Преміум!",
-    subscriptionSuccessMessage:
-      "Дякуємо за підтримку RecoverySky. Насолоджуйся преміум-функціями!",
+    subscriptionSuccessMessage: "Дякуємо за підтримку RecoverySky. Насолоджуйся преміум-функціями!",
     restoreSuccess: "Покупки відновлено",
     restoreSuccessMessage: "Твою підписку успішно відновлено.",
     restoreNoSubscription: "Підписку не знайдено",
@@ -308,7 +308,8 @@ const uk: Translations = {
     appSettingsSection: "Налаштування додатку",
     language: "Мова",
     selectLanguage: "Обрати мову",
-    translationHint: "Переклади виконані за допомогою ШІ — ми будемо раді виправленням від нашої спільноти.",
+    translationHint:
+      "Переклади виконані за допомогою ШІ — ми будемо раді виправленням від нашої спільноти.",
     darkMode: "Темна тема",
     themeColor: "Колір теми",
     currentColor: "Поточний",
@@ -329,8 +330,7 @@ const uk: Translations = {
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Експорт відвідувань",
     comingSoon: "Незабаром",
-    exportComingSoon:
-      "Функція експорту буде доступна в майбутньому оновленні.",
+    exportComingSoon: "Функція експорту буде доступна в майбутньому оновленні.",
     // Home Tips
     resetHomeTips: "Скинути підказки на головній",
     resetHomeTipsHint: "Показати всі картки допомоги заново",
@@ -378,8 +378,7 @@ const uk: Translations = {
     selectPronouns: "Обрати займенники",
     // Screen 2: Recovery
     recoveryTitle: "Твоє одужання",
-    recoverySubtitle:
-      "Фільтрує зустрічі за обраною спільнотою. Показує дату та дні тверезості.",
+    recoverySubtitle: "Фільтрує зустрічі за обраною спільнотою. Показує дату та дні тверезості.",
     fellowship: "Спільнота",
     selectFellowship: "Обери свою спільноту",
     recoveryDate: "Дата одужання",
@@ -391,11 +390,11 @@ const uk: Translations = {
     themeColor: "Колір теми",
     // Screen 4: Attendance
     attendanceTitle: "Особистий облік відвідувань",
-    attendanceSubtitle: "Ставте цілі, відстежуйте прогрес і візуально відзначайте свій шлях одужання.",
+    attendanceSubtitle:
+      "Ставте цілі, відстежуйте прогрес і візуально відзначайте свій шлях одужання.",
     attendanceFreeFeature:
       "Якщо увімкнено, відвідування зустрічей відстежується автоматично при підключенні через додаток",
-    attendancePrivate:
-      "Дані зашифровані на твоєму пристрої та залишають його лише при експорті",
+    attendancePrivate: "Дані зашифровані на твоєму пристрої та залишають його лише при експорті",
     attendancePaidFeature:
       "Підписка: Звіти з цифровим підписом для наставників, суду або соціальних служб",
     enableAttendance: "Увімкнути облік відвідувань",

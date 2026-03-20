@@ -25,7 +25,8 @@ const fr: Translations = {
   emptyStateComponent: {
     generic: {
       heading: "Tellement vide... tellement triste",
-      content: "Aucune donnée trouvée. Essaie d'appuyer sur le bouton pour rafraîchir ou recharger l'app.",
+      content:
+        "Aucune donnée trouvée. Essaie d'appuyer sur le bouton pour rafraîchir ou recharger l'app.",
       button: "On essaie encore",
     },
   },
@@ -103,10 +104,12 @@ const fr: Translations = {
       "Consulte l'introduction de l'app en tout temps pour découvrir les fonctions et la confidentialité.",
     restartOnboarding: "Recommencer le questionnaire initial",
     liveTitle: "Réunions en direct",
-    liveDescription: "Trouve des réunions en cours présentement. Va dans l'onglet En direct pour voir ce qui joue.",
+    liveDescription:
+      "Trouve des réunions en cours présentement. Va dans l'onglet En direct pour voir ce qui joue.",
     goToLive: "Aller au direct",
     listingsTitle: "Répertoire de réunions",
-    listingsDescription: "Parcours l'horaire complet par jour et par heure. Parfait pour planifier.",
+    listingsDescription:
+      "Parcours l'horaire complet par jour et par heure. Parfait pour planifier.",
     goToListings: "Voir le répertoire",
     attendanceTitle: "Suivre la présence",
     attendanceDescription:
@@ -124,8 +127,7 @@ const fr: Translations = {
       "Utilise les étoiles pour évaluer les réunions selon ton expérience. Les réunions les mieux cotées apparaissent en premier. Tes évaluations sont personnelles et jamais partagées.",
     // Support
     supportTitle: "Besoin d'aide ?",
-    supportDescription:
-      "Tu as une question ou besoin d'aide ?",
+    supportDescription: "Tu as une question ou besoin d'aide ?",
     goToSupport: "Obtenir de l'aide",
     // Dashboard
     gettingStarted: "Pour commencer",
@@ -234,7 +236,8 @@ const fr: Translations = {
     statusError: "Erreur",
     unknownDate: "Date inconnue",
     noReports: "Aucun rapport encore",
-    noReportsSubtext: "Les rapports apparaîtront ici après que tu auras envoyé des registres de présence",
+    noReportsSubtext:
+      "Les rapports apparaîtront ici après que tu auras envoyé des registres de présence",
     resendReport: "Renvoyer le rapport",
     forwardReport: "Transférer le rapport",
     recipientPlaceholder: "destinataire@exemple.com",
@@ -309,7 +312,8 @@ const fr: Translations = {
     appSettingsSection: "Réglages de l'app",
     language: "Langue",
     selectLanguage: "Choisir la langue",
-    translationHint: "Traductions fournies par IA — les corrections de notre communauté sont les bienvenues.",
+    translationHint:
+      "Traductions fournies par IA — les corrections de notre communauté sont les bienvenues.",
     darkMode: "Mode sombre",
     themeColor: "Couleur du thème",
     currentColor: "Actuelle",
@@ -320,7 +324,8 @@ const fr: Translations = {
     // Notifications Section
     notificationsSection: "Notifications",
     enableNotifications: "Notifications push",
-    notificationsHint: "Reçois des mises à jour sur les réunions et la communauté de rétablissement",
+    notificationsHint:
+      "Reçois des mises à jour sur les réunions et la communauté de rétablissement",
     // Attendance Section
     attendanceSection: "Présence",
     enableAttendance: "Activer la présence",
@@ -330,8 +335,7 @@ const fr: Translations = {
     exportEmailPlaceholder: "courriel@exemple.com",
     exportAttendance: "Exporter la présence",
     comingSoon: "Bientôt disponible",
-    exportComingSoon:
-      "La fonction d'exportation sera disponible dans une prochaine mise à jour.",
+    exportComingSoon: "La fonction d'exportation sera disponible dans une prochaine mise à jour.",
     // Home Tips
     resetHomeTips: "Réinitialiser les conseils d'accueil",
     resetHomeTipsHint: "Réafficher toutes les cartes d'aide",
@@ -392,7 +396,8 @@ const fr: Translations = {
     themeColor: "Couleur du thème",
     // Screen 4: Attendance
     attendanceTitle: "Présence personnelle",
-    attendanceSubtitle: "Fixe des objectifs, suis tes progrès et célèbre visuellement ton rétablissement.",
+    attendanceSubtitle:
+      "Fixe des objectifs, suis tes progrès et célèbre visuellement ton rétablissement.",
     attendanceFreeFeature:
       "Si activé, ta présence est enregistrée automatiquement quand tu joins une réunion via l'app",
     attendancePrivate:

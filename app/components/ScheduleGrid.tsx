@@ -109,7 +109,9 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
               const isTappable = cell !== null && onCellPress !== undefined
 
               const innerStyle = hasReminder
-                ? (isDisabled ? $disabledCellInner : $reminderCellInner)
+                ? isDisabled
+                  ? $disabledCellInner
+                  : $reminderCellInner
                 : themed($timeCellInner)
 
               const textStyle = hasReminder

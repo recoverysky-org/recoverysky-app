@@ -17,8 +17,7 @@ const ar: Translations = {
   },
   errorScreen: {
     title: "حدث خطأ ما!",
-    friendlySubtitle:
-      "هذه هي الشاشة التي سيراها المستخدمون عند حدوث خطأ في بيئة الإنتاج.",
+    friendlySubtitle: "هذه هي الشاشة التي سيراها المستخدمون عند حدوث خطأ في بيئة الإنتاج.",
     reset: "إعادة تعيين التطبيق",
     traceTitle: "خطأ من مكدس %{name}",
   },
@@ -75,8 +74,7 @@ const ar: Translations = {
     anonymousWarningMessage:
       "الانضمام إلى الاجتماعات بدون حساب Zoom قد يسبب أخطاء، حيث أن عدد مرات الدخول المجهول محدود. إذا واجهت مشاكل، يمكنك ربط حساب Zoom في أي وقت من الإعدادات.",
     signupModalTitle: "إنشاء حساب Zoom",
-    signupModalBody:
-      "بعد إنشاء حسابك، سيعرض Zoom صفحة اشتراك. لا تحتاج لبدء فترة تجريبية مجانية.",
+    signupModalBody: "بعد إنشاء حسابك، سيعرض Zoom صفحة اشتراك. لا تحتاج لبدء فترة تجريبية مجانية.",
     signupModalNote:
       "عندما ترى ذلك، أغلق نافذة المتصفح وارجع إلى RecoverySky لتسجيل الدخول بحساب Zoom الجديد.",
     signupModalNote2:
@@ -99,8 +97,7 @@ const ar: Translations = {
     placeholder: "محتوى لوحة المعلومات قريباً",
     // Help Cards
     onboardingTitle: "مرحباً بك في RecoverySky",
-    onboardingDescription:
-      "راجع مقدمة التطبيق في أي وقت للتعرف على الميزات والخصوصية.",
+    onboardingDescription: "راجع مقدمة التطبيق في أي وقت للتعرف على الميزات والخصوصية.",
     restartOnboarding: "إعادة الاستبيان الأولي",
     liveTitle: "اجتماعات مباشرة",
     liveDescription: "اعثر على اجتماعات تجري الآن. اضغط على تبويب «مباشر» لترى ما هو متاح.",
@@ -109,8 +106,7 @@ const ar: Translations = {
     listingsDescription: "تصفح الجدول الكامل حسب اليوم والوقت. مفيد للتخطيط المسبق.",
     goToListings: "عرض الدليل",
     attendanceTitle: "تتبع الحضور",
-    attendanceDescription:
-      "يتم تتبع حضورك للاجتماعات تلقائياً. استعرض السجل وصدّر التقارير.",
+    attendanceDescription: "يتم تتبع حضورك للاجتماعات تلقائياً. استعرض السجل وصدّر التقارير.",
     goToAttendance: "عرض الحضور",
     settingsTitle: "خصّص تطبيقك",
     settingsDescription: "حدد تاريخ تعافيك والمظهر وتفضيلاتك الشخصية.",
@@ -123,8 +119,7 @@ const ar: Translations = {
     ratingsDescription:
       "استخدم النجوم لتقييم الاجتماعات حسب تجربتك. الاجتماعات الأعلى تقييماً تظهر أولاً. تقييماتك شخصية ولا تُشارَك أبداً.",
     supportTitle: "هل تحتاج مساعدة؟",
-    supportDescription:
-      "هل لديك سؤال أو تحتاج مساعدة؟",
+    supportDescription: "هل لديك سؤال أو تحتاج مساعدة؟",
     goToSupport: "الحصول على الدعم",
     // Dashboard
     gettingStarted: "البداية",
@@ -213,8 +208,7 @@ const ar: Translations = {
     // New tab
     reportEmail: "بريد التقرير",
     sendReport: "إرسال التقرير",
-    sendReportHint:
-      "أدخل بريداً إلكترونياً صالحاً واختر سجل حضور واحداً أو أكثر لإرسال تقرير.",
+    sendReportHint: "أدخل بريداً إلكترونياً صالحاً واختر سجل حضور واحداً أو أكثر لإرسال تقرير.",
     unknownMeeting: "اجتماع غير معروف",
     // Remove alert
     removeTitle: "إزالة الحضور",
@@ -284,8 +278,7 @@ const ar: Translations = {
     loginToSubscribeHint: "تتطلب الاشتراكات حساباً في التطبيق.",
     restorePurchases: "استعادة المشتريات",
     subscriptionSuccess: "مرحباً بك في المميز!",
-    subscriptionSuccessMessage:
-      "شكراً لدعمك لـ RecoverySky. استمتع بالميزات المميزة!",
+    subscriptionSuccessMessage: "شكراً لدعمك لـ RecoverySky. استمتع بالميزات المميزة!",
     restoreSuccess: "تمت استعادة المشتريات",
     restoreSuccessMessage: "تمت استعادة اشتراكك بنجاح.",
     restoreNoSubscription: "لم يتم العثور على اشتراك",
@@ -329,8 +322,7 @@ const ar: Translations = {
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "تصدير الحضور",
     comingSoon: "قريباً",
-    exportComingSoon:
-      "ستتوفر وظيفة التصدير في تحديث مستقبلي.",
+    exportComingSoon: "ستتوفر وظيفة التصدير في تحديث مستقبلي.",
     // Home Tips
     resetHomeTips: "إعادة تعيين نصائح الرئيسية",
     resetHomeTipsHint: "إظهار جميع بطاقات المساعدة مرة أخرى",
@@ -378,8 +370,7 @@ const ar: Translations = {
     selectPronouns: "اختر الضمائر",
     // Screen 2: Recovery
     recoveryTitle: "تعافيك",
-    recoverySubtitle:
-      "يفلتر الاجتماعات حسب الزمالة المختارة. يعرض تاريخ وأيام التعافي.",
+    recoverySubtitle: "يفلتر الاجتماعات حسب الزمالة المختارة. يعرض تاريخ وأيام التعافي.",
     fellowship: "الزمالة",
     selectFellowship: "اختر زمالتك",
     recoveryDate: "تاريخ التعافي",
@@ -392,12 +383,9 @@ const ar: Translations = {
     // Screen 4: Attendance
     attendanceTitle: "الحضور الشخصي",
     attendanceSubtitle: "حدد أهدافاً، تابع تقدمك، واحتفل بمسيرة تعافيك بصرياً.",
-    attendanceFreeFeature:
-      "عند التفعيل، يتم تتبع حضورك تلقائياً عند الانضمام عبر التطبيق",
-    attendancePrivate:
-      "تبقى البيانات مشفرة على جهازك ولا تخرج إلا عندما تختار التصدير",
-    attendancePaidFeature:
-      "اشتراك: تقارير موقعة رقمياً للمرشدين أو المحاكم أو خدمات الأسرة",
+    attendanceFreeFeature: "عند التفعيل، يتم تتبع حضورك تلقائياً عند الانضمام عبر التطبيق",
+    attendancePrivate: "تبقى البيانات مشفرة على جهازك ولا تخرج إلا عندما تختار التصدير",
+    attendancePaidFeature: "اشتراك: تقارير موقعة رقمياً للمرشدين أو المحاكم أو خدمات الأسرة",
     enableAttendance: "تفعيل تتبع الحضور",
     enableAttendanceHint: "يمكنك تغيير هذا في أي وقت من الإعدادات",
     // Screen 5: Privacy
@@ -419,8 +407,7 @@ const ar: Translations = {
     ossSecurity: "أمان من خلال الانفتاح — يمكن لأي شخص مراجعة الكود",
     ossCommunity: "تطوير وتحسينات بدعم المجتمع",
     ossReview: "راجع أو عدّل أو ساهم في الكود المصدري",
-    ossLicense:
-      "مرخص بموجب AGPLv3 — لديك حرية الاستخدام والدراسة والمشاركة وتحسين هذا البرنامج.",
+    ossLicense: "مرخص بموجب AGPLv3 — لديك حرية الاستخدام والدراسة والمشاركة وتحسين هذا البرنامج.",
     viewSource: "عرض الكود المصدري",
     viewLicense: "رخصة AGPLv3",
     // Common
@@ -455,8 +442,7 @@ const ar: Translations = {
     title: "مساعد Sky",
     subtitle: "مساعدك الذكي لاجتماعات التعافي",
     emptyState: "اسأل Sky عن الاجتماعات",
-    emptyStateHint:
-      "احصل على مساعدة بموارد التعافي ومعلومات الاجتماعات وأدبيات التعافي.",
+    emptyStateHint: "احصل على مساعدة بموارد التعافي ومعلومات الاجتماعات وأدبيات التعافي.",
     inputPlaceholder: "اكتب رسالتك...",
     thinking: "Sky يفكر...",
     noMeetingsFound: "لم يتم العثور على اجتماعات",
