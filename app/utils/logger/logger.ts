@@ -139,14 +139,32 @@ class LoggerImpl implements Logger {
   async flush(): Promise<void> {
     if (this.buffer.length === 0) return
 
+    // No endpoint = OTLP not configured, discard buffer
+    if (!this.config.endpoint) {
+      this.buffer = []
+      return
+    }
+
+    // Endpoint configured but no API key yet — hold buffer until updateConfig provides it
+    if (!this.config.apiKey) return
+
     const records = [...this.buffer]
     this.buffer = []
 
     const result = await sendToOtlp(records, this.config)
 
-    if (!result.ok && __DEV__) {
-      // In dev, warn about send failures (but don't lose logs)
-      console.warn(`[Logger] Failed to send logs: ${result.error}`)
+    if (!result.ok) {
+      // Re-queue failed records for retry on next flush
+      this.buffer = [...records, ...this.buffer]
+
+      // Cap buffer to prevent unbounded growth if endpoint is persistently down
+      if (this.buffer.length > 500) {
+        this.buffer = this.buffer.slice(-500)
+      }
+
+      if (__DEV__) {
+        console.warn(`[Logger] Failed to send ${records.length} logs, re-queued: ${result.error}`)
+      }
     }
   }
 
@@ -187,6 +205,8 @@ class LoggerImpl implements Logger {
   updateConfig(config: Partial<Pick<LoggerConfig, "apiKey" | "endpoint">>): void {
     if (config.apiKey !== undefined) this.config.apiKey = config.apiKey
     if (config.endpoint !== undefined) this.config.endpoint = config.endpoint
+    // Flush buffered logs now that config may be complete
+    this.flush().catch(() => {})
   }
 
   /**

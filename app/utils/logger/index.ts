@@ -26,8 +26,9 @@
  *
  * Configuration:
  * - Set EXPO_PUBLIC_OTLP_ENDPOINT in .env when Alloy is online
- * - Set EXPO_PUBLIC_OTLP_X_API_KEY for authentication (sent as X-API-Key header)
- * - Until configured, logs go to console (dev) or are dropped (prod)
+ * - API key is fetched from /config endpoint and applied via logger.updateConfig()
+ * - Logs buffer until API key arrives, then flush automatically
+ * - Console output is always available (all levels in dev, info+ in prod)
  */
 
 import { createLogger } from "./logger"
@@ -42,18 +43,18 @@ export type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes } fro
  *
  * Reads config from environment:
  * - EXPO_PUBLIC_OTLP_ENDPOINT: OTLP collector URL (optional until Alloy is online)
- * - EXPO_PUBLIC_OTLP_X_API_KEY: API key for auth (sent as X-API-Key header)
  * - EXPO_PUBLIC_LOG_LEVEL: Minimum log level (trace, debug, info, warn, error, fatal)
+ *
+ * API key is provided at runtime via updateConfig() after /config endpoint responds.
+ * Logs buffer in memory until the key arrives, then flush automatically.
  */
 export const logger = createLogger({
   endpoint: process.env.EXPO_PUBLIC_OTLP_ENDPOINT,
-  apiKey: process.env.EXPO_PUBLIC_OTLP_X_API_KEY,
   minLevel: (process.env.EXPO_PUBLIC_LOG_LEVEL as LogLevel) || undefined,
   serviceName: "recoverysky-app",
   serviceVersion: require("../../../package.json").version,
-  // Fast flush in dev for easier debugging
-  batchSize: __DEV__ ? 1 : 10,
-  flushIntervalMs: __DEV__ ? 1000 : 5000,
+  batchSize: __DEV__ ? 10 : 10,
+  flushIntervalMs: __DEV__ ? 3000 : 5000,
 })
 
 // Log instrumentation scope once at startup
