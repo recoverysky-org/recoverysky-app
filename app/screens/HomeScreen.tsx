@@ -43,14 +43,6 @@ const HELP_CARDS: HelpCardDef[] = [
     actionTx: "homeScreen:restartOnboarding",
   },
   {
-    id: "support",
-    icon: "help-circle-outline",
-    titleTx: "homeScreen:supportTitle",
-    descriptionTx: "homeScreen:supportDescription",
-    actionTx: "homeScreen:goToSupport",
-    actionUrl: "https://www.recoverysky.org/support",
-  },
-  {
     id: "live",
     icon: "radio-outline",
     titleTx: "homeScreen:liveTitle",
@@ -58,6 +50,14 @@ const HELP_CARDS: HelpCardDef[] = [
     actionTx: "homeScreen:goToLive",
     actionTab: "Meetings",
     actionParams: { segment: "live" },
+  },
+  {
+    id: "support",
+    icon: "help-circle-outline",
+    titleTx: "homeScreen:supportTitle",
+    descriptionTx: "homeScreen:supportDescription",
+    actionTx: "homeScreen:goToSupport",
+    actionUrl: "https://www.recoverysky.org/support",
   },
   {
     id: "listings",

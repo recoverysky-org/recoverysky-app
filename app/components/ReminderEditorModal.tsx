@@ -408,7 +408,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
                     display="spinner"
                     onChange={handleTimeChange}
                     minuteInterval={5}
-                    themeVariant="dark"
+                    themeVariant={theme.isDark ? "dark" : "light"}
                   />
                 ) : (
                   <>

@@ -355,7 +355,7 @@ export const ProfileStoreModel = types
        */
       reset() {
         // Reset volatile (sensitive) data
-        self.shortName = "Joe B."
+        self.shortName = "Anonymous"
         self.pronouns = null
         self.recoveryDate = new Date().toISOString().split("T")[0]
         self.fellowship = "AA"
