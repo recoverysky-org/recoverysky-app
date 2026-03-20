@@ -70,54 +70,70 @@ async function importUserProfile(
 ): Promise<string | undefined> {
   const { profile, preferences } = data
 
-  // Batch all secure fields into a single SQLite write via setSecureProfile
+  // Only import fields still at their default values — don't overwrite
+  // values the user has already customized (e.g. via Settings).
   const secureData: Record<string, string | null> = {}
+  const today = new Date().toISOString().split("T")[0]
 
-  if (profile.shortName) secureData.shortName = profile.shortName
-  if (profile.pronouns) secureData.pronouns = normalizePronouns(profile.pronouns)
-  if (profile.recoveryDate) secureData.recoveryDate = profile.recoveryDate
+  if (profile.shortName && profileStore.shortName === "Anonymous") {
+    secureData.shortName = profile.shortName
+  }
+  if (profile.pronouns && profileStore.pronouns === null) {
+    secureData.pronouns = normalizePronouns(profile.pronouns)
+  }
+  if (profile.recoveryDate && profileStore.recoveryDate === today) {
+    secureData.recoveryDate = profile.recoveryDate
+  }
   if (profile.fellowship) {
     const mapped = FELLOWSHIP_MAP[profile.fellowship] ?? ""
-    if (mapped) secureData.fellowship = mapped
+    if (mapped && profileStore.fellowship === "AA") secureData.fellowship = mapped
   }
 
-  // Single volatile update + single SQLite upsert
-  profileStore.setSecureProfile(secureData)
+  if (Object.keys(secureData).length > 0) {
+    profileStore.setSecureProfile(secureData)
+  }
 
-  // MMKV props (auto-persisted via snapshots)
-  profileStore.setShowCleanDate(preferences.showCleanDate)
-  profileStore.setShowCleanDays(preferences.showCleanDays)
-  profileStore.setShowPronouns(preferences.showPronouns)
+  // MMKV display toggles — only enable, never disable user's choices
+  if (preferences.showCleanDate) profileStore.setShowCleanDate(true)
+  if (preferences.showCleanDays) profileStore.setShowCleanDays(true)
+  if (preferences.showPronouns) profileStore.setShowPronouns(true)
 
-  log.info("User profile imported", { shortName: profile.shortName })
+  log.info("User profile imported", {
+    shortName: profile.shortName,
+    fieldsImported: Object.keys(secureData).join(","),
+  })
   return profile.shortName
 }
 
 async function importAttendance(records: FirebaseAttendanceRecord[]): Promise<number> {
   let imported = 0
   for (const r of records) {
-    const result = await attendanceRepo.create({
-      id: r.id,
-      iid: r.iid || r.id,
-      uid: r.uid,
-      mid: r.mid,
-      zid: r.zid,
-      created: r.created,
-      valid: r.valid,
-      uzid: r.uzid,
-      zpid: r.zpid,
-      zuid: r.zuid,
-      meetingHost: r.meetingHost,
-      meetingName: r.meetingName,
-      archived: r.archived,
-      processed: r.processed,
-      start: r.start,
-      end: r.end,
-      credit: r.credit,
-      produced: r.produced,
-      arid: r.arid,
-    })
-    if (result.ok) imported++
+    try {
+      const result = await attendanceRepo.create({
+        id: r.id,
+        iid: r.iid || r.id,
+        uid: r.uid,
+        mid: r.mid,
+        zid: r.zid,
+        created: r.created,
+        valid: r.valid,
+        uzid: r.uzid,
+        zpid: r.zpid,
+        zuid: r.zuid,
+        meetingHost: r.meetingHost,
+        meetingName: r.meetingName,
+        archived: r.archived,
+        processed: r.processed,
+        start: r.start,
+        end: r.end,
+        credit: r.credit,
+        produced: r.produced,
+        arid: r.arid,
+      })
+      if (result.ok) imported++
+    } catch (err) {
+      log.debug("Skipping duplicate attendance record", { id: r.id })
+    }
   }
   log.info("Attendance imported", { total: records.length, imported })
   return imported
@@ -126,24 +142,28 @@ async function importAttendance(records: FirebaseAttendanceRecord[]): Promise<nu
 async function importReports(records: FirebaseReportRecord[]): Promise<number> {
   let imported = 0
   for (const r of records) {
-    const result = await attendanceReportRepo.create({
-      id: r.id,
-      iid: r.iid || r.id,
-      uid: r.uid,
-      fid: r.fid,
-      name: r.name,
-      userEmail: r.userEmail,
-      email: r.email,
-      error: r.error,
-      messageId: r.messageId,
-      generated: r.generated,
-      confirmed: Date.now(),
-      confirmation: "IMPORTED from AA/NA Live!",
-      html: r.html,
-      text: r.text,
-      credit: r.credit,
-    })
-    if (result.ok) imported++
+    try {
+      const result = await attendanceReportRepo.create({
+        id: r.id,
+        iid: r.iid || r.id,
+        uid: r.uid,
+        fid: r.fid,
+        name: r.name,
+        userEmail: r.userEmail,
+        email: r.email,
+        error: r.error,
+        messageId: r.messageId,
+        generated: r.generated,
+        confirmed: Date.now(),
+        confirmation: "IMPORTED from AA/NA Live!",
+        html: r.html,
+        text: r.text,
+        credit: r.credit,
+      })
+      if (result.ok) imported++
+    } catch (err) {
+      log.debug("Skipping duplicate report record", { id: r.id })
+    }
   }
   log.info("Reports imported", { total: records.length, imported })
   return imported
