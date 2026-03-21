@@ -41,3 +41,7 @@ Step-by-step checklist for preparing and publishing a production release.
 - [ ] Verify the tag appears on the remote
 - [ ] Trigger EAS build if not automated
 - [ ] Smoke test the production build
+
+## For iOS
+- Checkout branch prod-ios
+- rebase root
