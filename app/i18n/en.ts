@@ -103,6 +103,9 @@ const en = {
     onboardingDescription:
       "Review the app introduction anytime to learn about features and privacy.",
     restartOnboarding: "Restart Initial Questionnaire",
+    navigationTitle: "Navigation",
+    navigationDescription:
+      "Note the tabs at the bottom. That's how you get around! We are on Home :-)",
     liveTitle: "Live Meetings",
     liveDescription: "Find meetings happening right now. Tap the Live tab to see what's streaming.",
     goToLive: "Go to Live",

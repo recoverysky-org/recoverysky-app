@@ -43,6 +43,12 @@ const HELP_CARDS: HelpCardDef[] = [
     actionTx: "homeScreen:restartOnboarding",
   },
   {
+    id: "navigation",
+    icon: "apps-outline",
+    titleTx: "homeScreen:navigationTitle",
+    descriptionTx: "homeScreen:navigationDescription",
+  },
+  {
     id: "live",
     icon: "radio-outline",
     titleTx: "homeScreen:liveTitle",
