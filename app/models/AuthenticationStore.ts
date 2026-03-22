@@ -118,7 +118,7 @@ export const AuthenticationStoreModel = types
      * Set device ID (captured on app start)
      */
     setDeviceId(id: string) {
-      log.debug("setDeviceId()", { deviceId: id.slice(0, 8) + "..." })
+      log.debug("setDeviceId()")
       store.deviceId = id
     },
     /**
@@ -132,7 +132,7 @@ export const AuthenticationStoreModel = types
      * Uses deviceId as userId for tracking
      */
     loginAnonymously() {
-      log.info("loginAnonymously()", { deviceId: store.deviceId?.slice(0, 8) + "..." })
+      log.info("loginAnonymously()")
       store.isAnonymous = true
       store.userId = store.deviceId
     },

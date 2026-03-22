@@ -266,7 +266,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
 
     try {
       authStore.loginAnonymously()
-      log.info("Anonymous login complete", { deviceId: authStore.deviceId?.slice(0, 8) + "..." })
+      log.info("Anonymous login complete")
     } catch (err) {
       const message = err instanceof Error ? err.message : "Anonymous login failed"
       log.error("Anonymous login failed", { error: message })
@@ -355,9 +355,7 @@ export async function loadStoredAuth0(
 
   // Check if we have a deviceId for anonymous users
   if (authStore.isAnonymous && authStore.deviceId) {
-    log.info("Anonymous user session restored", {
-      deviceId: authStore.deviceId?.slice(0, 8) + "...",
-    })
+    log.info("Anonymous user session restored")
     return true
   }
 

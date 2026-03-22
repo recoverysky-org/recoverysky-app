@@ -30,7 +30,7 @@ export async function getDeviceId(): Promise<string> {
   // Check cache first
   const cached = loadString(DEVICE_ID_KEY)
   if (cached) {
-    log.info("Device ID loaded from cache", { deviceId: cached.slice(0, 8) + "..." })
+    log.info("Device ID loaded from cache")
     return cached
   }
 
@@ -52,10 +52,7 @@ export async function getDeviceId(): Promise<string> {
 
   // Cache for future use
   saveString(DEVICE_ID_KEY, deviceId)
-  log.info("Device ID created", {
-    source,
-    deviceId: deviceId.slice(0, 8) + "...",
-  })
+  log.info("Device ID created", { source })
 
   return deviceId
 }
@@ -84,6 +81,6 @@ function generateUUID(): string {
  */
 export function generateSessionId(): string {
   const sessionId = generateUUID()
-  log.debug("Session ID generated", { sessionId: sessionId.slice(0, 8) + "..." })
+  log.debug("Session ID generated")
   return sessionId
 }
