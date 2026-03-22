@@ -88,7 +88,7 @@ const appVersion = require("../package.json").version
 // Set initial logger context with session and version (deviceId added after async load)
 logger.setContext({ sessionId, appVersion })
 
-log.info("App module loaded", { sessionId: sessionId.slice(0, 8) + "...", appVersion })
+log.info("App module loaded")
 
 // =============================================================================
 // Device Attestation State (memory-only)
@@ -252,6 +252,7 @@ export function App() {
         const deviceId = await getDeviceId()
         deviceIdRef.current = deviceId
         _rootStore.authenticationStore.setDeviceId(deviceId)
+        logger.setContext({ deviceId })
 
         // Initialize device authorization (attestation or API key fallback)
         // This blocks until we have valid device credentials

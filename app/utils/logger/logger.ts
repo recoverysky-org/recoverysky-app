@@ -77,6 +77,7 @@ class LoggerImpl implements Logger {
     const contextAttrs: LogAttributes = {}
     if (this.context.sessionId) contextAttrs.sessionId = this.context.sessionId
     if (this.context.appVersion) contextAttrs.appVersion = this.context.appVersion
+    if (this.context.deviceId) contextAttrs.deviceId = this.context.deviceId
 
     const record: LogRecord = {
       timestamp: Date.now(),
@@ -87,11 +88,8 @@ class LoggerImpl implements Logger {
       ...(this.spanId && { spanId: this.spanId }),
     }
 
-    // Console output — enabled in dev always, in release for warn+ to aid debugging
-    if (
-      (__DEV__ && this.config.consoleInDev) ||
-      LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY["info"]
-    ) {
+    // Console output — all logs that pass the level filter go to console
+    if (__DEV__ || LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.config.minLevel]) {
       const method = CONSOLE_METHODS[level]
       const fn = console[method] as (...args: unknown[]) => void
       if (Object.keys(record.attributes).length > 0) {

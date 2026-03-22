@@ -40,6 +40,7 @@ export interface LoggerConfig {
 export interface LoggerContext {
   sessionId?: string
   appVersion?: string
+  deviceId?: string
 }
 
 export interface Logger {
