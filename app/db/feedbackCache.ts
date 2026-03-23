@@ -68,6 +68,8 @@ export const feedbackCache = {
         cache = new Map(result.value.map((fb) => [fb.mid, fb]))
         loaded = true
         log.info("Feedback cache loaded", { count: cache.size })
+        // Notify listeners so components that mounted before cache loaded get updated
+        cache.forEach((fb, mid) => notifyListeners(mid, fb))
       } else {
         log.error("Failed to load feedback cache", { error: String(result.error) })
         // Initialize empty cache so app can still function
