@@ -346,6 +346,11 @@ const de: Translations = {
     restartImport: "Import neu starten",
     rateApp: "RecoverySky bewerten",
     support: "Hilfe & Support",
+    // Advanced Section
+    advancedSection: "Erweitert",
+    allowExternalZoom: "Externe Zoom-Meetings erlauben",
+    allowExternalZoomHint:
+      "Öffnet Meetings in der Zoom-App statt in der App. Die Anwesenheit wird nicht erfasst und die Funktionalität der Meetings wurde nicht überprüft.",
     // Legal Section
     legalSection: "Rechtliches",
     termsAndConditions: "Nutzungsbedingungen",

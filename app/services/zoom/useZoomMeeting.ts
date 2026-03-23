@@ -9,6 +9,7 @@
 import { useState, useCallback } from "react"
 import { Linking } from "react-native"
 
+import { useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
 
 import { useZoomContext, type ZoomContextValue } from "./ZoomMeetingProvider"
@@ -94,6 +95,7 @@ function useOptionalZoomContext(): ZoomContextValue | null {
  */
 export function useZoomMeeting(): UseZoomMeetingReturn {
   const zoomContext = useOptionalZoomContext()
+  const profileStore = useProfileStore()
   const [state, setState] = useState<ZoomMeetingState>("idle")
   const [error, setError] = useState<string | null>(null)
 
@@ -139,6 +141,15 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
       setError(null)
 
       try {
+        // Password-protected meetings open in external Zoom app (when enabled)
+        if (profileStore.allowExternalZoom && config.passwordProtected) {
+          log.info("Password-protected meeting, opening in Zoom app", { mid: config.meetingId })
+          const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
+          await openInZoomApp(zoomUrl)
+          setState("idle")
+          return { success: true }
+        }
+
         // Try native SDK first if available
         if (isSDKReady && zoomContext) {
           log.info("Using native Zoom SDK", { mid: config.meetingId })
@@ -162,7 +173,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
         return { success: false, error: errorMessage }
       }
     },
-    [isSDKReady, zoomContext, openInZoomApp],
+    [isSDKReady, zoomContext, openInZoomApp, profileStore.allowExternalZoom],
   )
 
   return {

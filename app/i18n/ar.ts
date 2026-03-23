@@ -336,6 +336,11 @@ const ar: Translations = {
     restartImport: "إعادة الاستيراد",
     rateApp: "قيّم RecoverySky",
     support: "الدعم",
+    // Advanced Section
+    advancedSection: "متقدم",
+    allowExternalZoom: "السماح باجتماعات Zoom الخارجية",
+    allowExternalZoomHint:
+      "يفتح الاجتماعات في تطبيق Zoom بدلاً من داخل التطبيق. لا يتم تتبع الحضور ولم يتم التحقق من عمل الاجتماعات.",
     // Legal Section
     legalSection: "قانوني",
     termsAndConditions: "الشروط والأحكام",

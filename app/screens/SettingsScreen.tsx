@@ -1051,6 +1051,28 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
       </View>
 
+      {/* Advanced Section */}
+      <View style={themed($section)} onLayout={trackSection("advanced")}>
+        <View style={themed($sectionHeader)}>
+          <Ionicons name="settings-outline" size={20} color={themed($advancedIconColor).color} />
+          <Text style={themed($sectionTitle)} tx="settingsScreen:advancedSection" />
+        </View>
+
+        <View style={themed($settingsRow)}>
+          <View style={$styles.flex1}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:allowExternalZoom" />
+            <Text style={themed($rowHint)} tx="settingsScreen:allowExternalZoomHint" />
+          </View>
+          <Switch
+            value={profileStore.allowExternalZoom}
+            onValueChange={profileStore.setAllowExternalZoom}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+            thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:allowExternalZoom")}
+          />
+        </View>
+      </View>
+
       {/* Legal Section */}
       <View style={themed($section)}>
         <TouchableOpacity
@@ -1500,6 +1522,11 @@ const $datePickerSpinner: ViewStyle = {
 // Import Section Icon Color
 const $importIconColor: ThemedStyle<{ color: string }> = () => ({
   color: "#00BCD4",
+})
+
+// Advanced Section Icon Color
+const $advancedIconColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
+  color: colors.textDim,
 })
 
 // Legal Section Icon Color

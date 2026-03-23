@@ -202,7 +202,9 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     setError(null)
 
     try {
-      const result = await api.getDailySchedules(selectedDay, fellowship)
+      const result = await api.getDailySchedules(selectedDay, fellowship, {
+        includePasswordProtected: profileStore.allowExternalZoom,
+      })
 
       if (result.kind !== "ok") {
         log.error("API getDailySchedules failed", { kind: result.kind })
@@ -240,7 +242,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedDay, profileStore.fellowship])
+  }, [selectedDay, profileStore.fellowship, profileStore.allowExternalZoom])
 
   // Fetch when day or fellowship changes
   useEffect(() => {

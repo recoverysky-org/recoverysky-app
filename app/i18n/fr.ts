@@ -349,6 +349,11 @@ const fr: Translations = {
     restartImport: "Recommencer l'importation",
     rateApp: "Évaluer RecoverySky",
     support: "Support",
+    // Advanced Section
+    advancedSection: "Avancé",
+    allowExternalZoom: "Autoriser les réunions Zoom externes",
+    allowExternalZoomHint:
+      "Ouvre les réunions dans l'application Zoom au lieu de l'application intégrée. La présence n'est pas suivie et le fonctionnement des réunions n'a pas été vérifié.",
     // Legal Section
     legalSection: "Légal",
     termsAndConditions: "Conditions d'utilisation",

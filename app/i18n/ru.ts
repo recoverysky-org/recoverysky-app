@@ -345,6 +345,11 @@ const ru: Translations = {
     restartImport: "Повторить импорт",
     rateApp: "Оценить RecoverySky",
     support: "Поддержка",
+    // Advanced Section
+    advancedSection: "Дополнительно",
+    allowExternalZoom: "Разрешить внешние встречи Zoom",
+    allowExternalZoomHint:
+      "Открывает встречи в приложении Zoom вместо встроенного. Посещаемость не отслеживается и работоспособность встреч не проверена.",
     // Legal Section
     legalSection: "Правовая информация",
     termsAndConditions: "Условия использования",

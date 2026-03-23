@@ -347,6 +347,11 @@ const en = {
     // Review
     rateApp: "Rate RecoverySky",
     support: "Support",
+    // Advanced Section
+    advancedSection: "Advanced",
+    allowExternalZoom: "Allow External Zoom Meetings",
+    allowExternalZoomHint:
+      "Opens meetings in the Zoom app instead of in-app. Attendance is not tracked and meetings have not been verified to be functional.",
     // Legal Section
     legalSection: "Legal",
     termsAndConditions: "Terms & Conditions",

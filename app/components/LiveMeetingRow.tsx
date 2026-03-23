@@ -81,7 +81,10 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
         {meeting.name}
       </Text>
 
-      {/* Reminder bell / Heart */}
+      {/* Indicator icons */}
+      {meeting.passwordProtected && (
+        <Text style={$externalZoomIcon}>Z</Text>
+      )}
       {hasReminder && (
         <Ionicons name="notifications" size={14} color={REMINDER_COLOR} style={$bellIcon} />
       )}
@@ -151,6 +154,13 @@ const $meetingName: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   color: colors.text,
 })
+
+const $externalZoomIcon: TextStyle = {
+  fontSize: 13,
+  fontWeight: "800",
+  color: "#2D8CFF",
+  marginRight: 2,
+}
 
 const $bellIcon: ViewStyle = {
   marginRight: 2,

@@ -344,6 +344,11 @@ const uk: Translations = {
     restartImport: "Повторити імпорт",
     rateApp: "Оцінити RecoverySky",
     support: "Підтримка",
+    // Advanced Section
+    advancedSection: "Додатково",
+    allowExternalZoom: "Дозволити зовнішні зустрічі Zoom",
+    allowExternalZoomHint:
+      "Відкриває зустрічі в додатку Zoom замість вбудованого. Відвідуваність не відстежується і працездатність зустрічей не перевірена.",
     // Legal Section
     legalSection: "Правова інформація",
     termsAndConditions: "Умови використання",

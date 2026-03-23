@@ -339,6 +339,11 @@ const th: Translations = {
     restartImport: "นำเข้าใหม่",
     rateApp: "ให้คะแนน RecoverySky",
     support: "สนับสนุน",
+    // Advanced Section
+    advancedSection: "ขั้นสูง",
+    allowExternalZoom: "อนุญาตการประชุม Zoom ภายนอก",
+    allowExternalZoomHint:
+      "เปิดการประชุมในแอป Zoom แทนการใช้ในแอป การเข้าร่วมไม่ถูกบันทึกและไม่ได้ตรวจสอบว่าการประชุมทำงานได้",
     // Legal Section
     legalSection: "กฎหมาย",
     termsAndConditions: "ข้อกำหนดและเงื่อนไข",

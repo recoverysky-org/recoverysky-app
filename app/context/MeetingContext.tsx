@@ -17,6 +17,7 @@ import {
 import { type meeting } from "@recoverysky-org/common/browser"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
+import { useProfileStore } from "@/models"
 import { api, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
 
@@ -117,6 +118,8 @@ export interface MeetingWithTrex extends meeting {
   duration_ms: number
   /** Pre-computed schedule grid data from API (values are UTC millis) */
   scheduleData: ScheduleDataRow[] | null
+  /** Whether this meeting requires a password to join externally */
+  passwordProtected?: boolean
 }
 
 /** API connection status */
@@ -164,6 +167,7 @@ interface MeetingProviderProps {
 
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   log.debug("MeetingProvider initializing")
+  const profileStore = useProfileStore()
 
   // Live meetings data
   const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
@@ -209,7 +213,10 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       setError(null)
 
       const outcome = await retryWithBackoff(
-        () => api.getLiveSchedules(),
+        () =>
+          api.getLiveSchedules({
+            includePasswordProtected: profileStore.allowExternalZoom,
+          }),
         (result) => result.kind === "ok",
         "getLiveSchedules",
       )

@@ -71,6 +71,9 @@ export const ProfileStoreModel = types
     // AI consent (Apple Guideline 5.1.2(i))
     aiConsentAccepted: types.optional(types.boolean, false),
 
+    // Advanced
+    allowExternalZoom: types.optional(types.boolean, false),
+
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
   })
@@ -310,6 +313,11 @@ export const ProfileStoreModel = types
 
       setAiConsentAccepted(value: boolean) {
         self.aiConsentAccepted = value
+      },
+
+      setAllowExternalZoom(value: boolean) {
+        self.allowExternalZoom = value
+        liveEvents.preferencesChanged("allowExternalZoom")
       },
 
       /**
