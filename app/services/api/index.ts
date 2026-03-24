@@ -448,19 +448,17 @@ export class Api {
    * Returns schedules that are currently live with their meeting IDs.
    * Each schedule includes pre-computed grid data for display.
    */
-  async getLiveSchedules(
-    options?: { includePasswordProtected?: boolean },
-  ): Promise<
-    { kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem
-  > {
+  async getLiveSchedules(options?: {
+    includeExternal?: boolean
+  }): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
     await this.waitForAttestation()
     // Get device timezone in IANA format (e.g., "America/New_York")
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     log.debug("Fetching live schedules from API", { tz })
 
     const params: Record<string, string | boolean> = { tz }
-    if (options?.includePasswordProtected) {
-      params.includePasswordProtected = true
+    if (options?.includeExternal) {
+      params.includeExternal = true
     }
 
     const response = await this.recoverySkyApi.get<{
@@ -499,15 +497,15 @@ export class Api {
   async getDailySchedules(
     iso_dow: number,
     fellowship: string,
-    options?: { includePasswordProtected?: boolean },
+    options?: { includeExternal?: boolean },
   ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
     await this.waitForAttestation()
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     log.debug("Fetching daily schedules from API", { iso_dow, fellowship, tz })
 
     const params: Record<string, string | number | boolean> = { iso_dow, fellowship, tz }
-    if (options?.includePasswordProtected) {
-      params.includePasswordProtected = true
+    if (options?.includeExternal) {
+      params.includeExternal = true
     }
 
     const response = await this.recoverySkyApi.get<{

@@ -255,7 +255,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         meetingName: meeting.name,
         password,
         meetingUrl: meeting.url,
-        passwordProtected: meeting.passwordProtected,
+        external: meeting.external,
       })
     } catch {
       // Error handling done in provider

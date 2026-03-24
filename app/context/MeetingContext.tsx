@@ -119,7 +119,7 @@ export interface MeetingWithTrex extends meeting {
   /** Pre-computed schedule grid data from API (values are UTC millis) */
   scheduleData: ScheduleDataRow[] | null
   /** Whether this meeting requires a password to join externally */
-  passwordProtected?: boolean
+  external?: boolean
 }
 
 /** API connection status */
@@ -215,7 +215,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       const outcome = await retryWithBackoff(
         () =>
           api.getLiveSchedules({
-            includePasswordProtected: profileStore.allowExternalZoom,
+            includeExternal: profileStore.allowExternalZoom,
           }),
         (result) => result.kind === "ok",
         "getLiveSchedules",

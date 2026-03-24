@@ -142,7 +142,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
 
       try {
         // Password-protected meetings open in external Zoom app (when enabled)
-        if (profileStore.allowExternalZoom && config.passwordProtected) {
+        if (profileStore.allowExternalZoom && config.external) {
           log.info("Password-protected meeting, opening in Zoom app", { mid: config.meetingId })
           const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
           await openInZoomApp(zoomUrl)

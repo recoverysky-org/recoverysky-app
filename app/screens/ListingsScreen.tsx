@@ -203,7 +203,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
 
     try {
       const result = await api.getDailySchedules(selectedDay, fellowship, {
-        includePasswordProtected: profileStore.allowExternalZoom,
+        includeExternal: profileStore.allowExternalZoom,
       })
 
       if (result.kind !== "ok") {

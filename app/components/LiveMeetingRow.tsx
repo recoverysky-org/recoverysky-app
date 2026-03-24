@@ -82,9 +82,7 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
       </Text>
 
       {/* Indicator icons */}
-      {meeting.passwordProtected && (
-        <Text style={$externalZoomIcon}>Z</Text>
-      )}
+      {meeting.external && <Text style={$externalZoomIcon}>Z</Text>}
       {hasReminder && (
         <Ionicons name="notifications" size={14} color={REMINDER_COLOR} style={$bellIcon} />
       )}
