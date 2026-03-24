@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/background.png" alt="RecoverySky Banner" width="100%" />
+  <img src="assets/images/RecoverySky-signature.white.png" alt="RecoverySky Banner" width="100%" />
 </p>
 
 <h1 align="center">🌤️ RecoverySky App</h1>
