@@ -300,6 +300,9 @@ const th: Translations = {
     accountSection: "บัญชี",
     userId: "รหัสผู้ใช้",
     anonymousUser: "ไม่ระบุตัวตน",
+    deleteAllReminders: "ลบการแจ้งเตือนทั้งหมด",
+    deleteAllRemindersConfirm: "คุณแน่ใจหรือไม่ว่าต้องการลบการแจ้งเตือนทั้งหมด? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
+    deleteAllRemindersSuccess: "ลบการแจ้งเตือนทั้งหมดแล้ว",
     deleteUserData: "ลบข้อมูลผู้ใช้",
     deleteUserDataConfirm:
       "แน่ใจไหมว่าต้องการลบข้อมูลทั้งหมด? การดำเนินการนี้ไม่สามารถย้อนกลับได้นะ",

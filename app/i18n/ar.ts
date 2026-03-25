@@ -297,6 +297,9 @@ const ar: Translations = {
     accountSection: "الحساب",
     userId: "معرّف المستخدم",
     anonymousUser: "مجهول",
+    deleteAllReminders: "حذف جميع التذكيرات",
+    deleteAllRemindersConfirm: "هل أنت متأكد أنك تريد حذف جميع التذكيرات؟ لا يمكن التراجع عن هذا الإجراء.",
+    deleteAllRemindersSuccess: "تم حذف جميع التذكيرات.",
     deleteUserData: "حذف بيانات المستخدم",
     deleteUserDataConfirm:
       "هل أنت متأكد أنك تريد حذف جميع بياناتك؟ لا يمكن التراجع عن هذا الإجراء.",

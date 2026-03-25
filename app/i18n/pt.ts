@@ -305,6 +305,9 @@ const pt: Translations = {
     accountSection: "Conta",
     userId: "ID do Usuário",
     anonymousUser: "Anônimo",
+    deleteAllReminders: "Excluir Todos os Lembretes",
+    deleteAllRemindersConfirm: "Tem certeza de que deseja excluir todos os seus lembretes? Isso não pode ser desfeito.",
+    deleteAllRemindersSuccess: "Todos os lembretes foram excluídos.",
     deleteUserData: "Excluir Dados do Usuário",
     deleteUserDataConfirm:
       "Tem certeza que quer excluir todos os seus dados? Essa ação não pode ser desfeita.",

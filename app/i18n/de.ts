@@ -306,6 +306,9 @@ const de: Translations = {
     accountSection: "Konto",
     userId: "Benutzer-ID",
     anonymousUser: "Anonym",
+    deleteAllReminders: "Alle Erinnerungen Löschen",
+    deleteAllRemindersConfirm: "Sind Sie sicher, dass Sie alle Erinnerungen löschen möchten? Dies kann nicht rückgängig gemacht werden.",
+    deleteAllRemindersSuccess: "Alle Erinnerungen wurden gelöscht.",
     deleteUserData: "Benutzerdaten löschen",
     deleteUserDataConfirm:
       "Bist du sicher, dass du alle deine Daten löschen möchtest? Dies kann nicht rückgängig gemacht werden.",

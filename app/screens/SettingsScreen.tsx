@@ -26,6 +26,8 @@ import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useSubscription } from "@/context/SubscriptionContext"
+import { reminderRepo, reminderEvents } from "@/db"
+import { api } from "@/services/api"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -270,6 +272,36 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     },
     [profileStore],
   )
+
+  const handleDeleteReminders = () => {
+    Alert.alert(
+      translate("settingsScreen:deleteAllReminders"),
+      translate("settingsScreen:deleteAllRemindersConfirm"),
+      [
+        { text: translate("common:cancel"), style: "cancel" },
+        {
+          text: translate("common:ok"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const uid = authStore.userId
+              if (uid) {
+                await Promise.all([
+                  reminderRepo.deleteByUserId(uid),
+                  api.deleteReminders(uid),
+                ])
+                // Notify Live/Listings screens to refresh reminder indicators
+                reminderEvents.emit({ type: "deleted", id: "*" })
+              }
+              Alert.alert(translate("settingsScreen:deleteAllRemindersSuccess"))
+            } catch (err) {
+              console.error("Failed to delete reminders", err)
+            }
+          },
+        },
+      ],
+    )
+  }
 
   const handleDeleteUserData = () => {
     Alert.alert(
@@ -991,7 +1023,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       {/* Account Section */}
       <View style={themed($section)} onLayout={trackSection("account")}>
         <View style={themed($sectionHeader)}>
-          <Icon icon="lock" size={20} color={themed($accountIconColor).color} />
+          <Ionicons name="person-circle-outline" size={20} color={themed($accountIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:accountSection" />
         </View>
         <SettingsRow
@@ -1002,6 +1034,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               : authStore.authEmail || authStore.userId || translate("settingsScreen:notLoggedIn")
           }
         />
+        <TouchableOpacity
+          style={themed($deleteRow)}
+          onPress={handleDeleteReminders}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:deleteAllReminders")}
+        >
+          <Icon icon="x" size={18} color={themed($dangerColor).color} />
+          <Text style={themed($deleteText)} tx="settingsScreen:deleteAllReminders" />
+          <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
+        </TouchableOpacity>
         <TouchableOpacity
           style={themed($deleteRow)}
           onPress={handleDeleteUserData}
@@ -1273,8 +1315,7 @@ const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.error,
 })
 
-const $logoutRowIcon: ThemedStyle<ImageStyle> = ({ spacing }) => ({
-  marginRight: spacing.xs,
+const $logoutRowIcon: ThemedStyle<ImageStyle> = () => ({
   transform: [{ rotate: "180deg" }],
 })
 

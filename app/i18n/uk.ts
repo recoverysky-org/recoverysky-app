@@ -304,6 +304,9 @@ const uk: Translations = {
     accountSection: "Обліковий запис",
     userId: "ID користувача",
     anonymousUser: "Анонімний",
+    deleteAllReminders: "Видалити всі нагадування",
+    deleteAllRemindersConfirm: "Ви впевнені, що хочете видалити всі нагадування? Цю дію не можна скасувати.",
+    deleteAllRemindersSuccess: "Усі нагадування видалено.",
     deleteUserData: "Видалити дані користувача",
     deleteUserDataConfirm:
       "Ти впевнений, що хочеш видалити всі свої дані? Цю дію не можна скасувати.",

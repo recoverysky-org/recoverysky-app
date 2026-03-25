@@ -308,6 +308,9 @@ const fr: Translations = {
     accountSection: "Compte",
     userId: "ID utilisateur",
     anonymousUser: "Anonyme",
+    deleteAllReminders: "Supprimer Tous les Rappels",
+    deleteAllRemindersConfirm: "Êtes-vous sûr de vouloir supprimer tous vos rappels ? Cette action est irréversible.",
+    deleteAllRemindersSuccess: "Tous les rappels ont été supprimés.",
     deleteUserData: "Supprimer les données utilisateur",
     deleteUserDataConfirm:
       "Es-tu sûr de vouloir supprimer toutes tes données utilisateur? Cette action est irréversible.",

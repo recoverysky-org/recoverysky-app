@@ -667,6 +667,27 @@ export class Api {
   }
 
   /**
+   * Delete all reminders for a user
+   * DELETE /reminders?uid=...
+   */
+  async deleteReminders(uid: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Deleting remote reminders", { uid })
+
+    const response = await this.recoverySkyApi.delete(`/reminders?uid=${encodeURIComponent(uid)}`)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Delete reminders failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.info("Remote reminders deleted", { uid })
+    return { kind: "ok" }
+  }
+
+  /**
    * Send attendance report to the backend for HTML generation and email delivery
    * POST /reports
    */

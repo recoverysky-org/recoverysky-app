@@ -305,6 +305,9 @@ const ru: Translations = {
     accountSection: "Аккаунт",
     userId: "ID пользователя",
     anonymousUser: "Анонимный",
+    deleteAllReminders: "Удалить все напоминания",
+    deleteAllRemindersConfirm: "Вы уверены, что хотите удалить все напоминания? Это действие нельзя отменить.",
+    deleteAllRemindersSuccess: "Все напоминания удалены.",
     deleteUserData: "Удалить данные пользователя",
     deleteUserDataConfirm:
       "Ты уверен, что хочешь удалить все свои данные? Это действие нельзя отменить.",

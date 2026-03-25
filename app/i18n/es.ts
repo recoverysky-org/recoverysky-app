@@ -304,6 +304,9 @@ const es: Translations = {
     accountSection: "Cuenta",
     userId: "ID de Usuario",
     anonymousUser: "Anónimo",
+    deleteAllReminders: "Eliminar Todos los Recordatorios",
+    deleteAllRemindersConfirm: "¿Estás seguro de que quieres eliminar todos tus recordatorios? Esto no se puede deshacer.",
+    deleteAllRemindersSuccess: "Todos los recordatorios han sido eliminados.",
     deleteUserData: "Eliminar Datos de Usuario",
     deleteUserDataConfirm:
       "¿Estás seguro de que deseas eliminar todos los datos de usuario? Esta acción no se puede deshacer.",
