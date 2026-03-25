@@ -1,11 +1,11 @@
 /**
  * Disclaimer text
- * Last updated: Dec 31, 2025
+ * Last updated: March 24, 2026
  */
 export const disclaimerText = `Disclaimer
-Last updated: Dec 31, 2025 1:22 AM
+Last updated: March 24, 2026
 
-Please read this Disclaimer carefully before using the RecoverySky App application (the "Application") operated by RecoverySky Org, a(n) Not For Profit formed in Delaware, United States ("us, we, our") as this Disclaimer contains important information regarding limitations of our liability. Your access to and use of the Application is conditional upon your acceptance of and compliance with this Disclaimer. This Disclaimer applies to everyone, including but not limited to visitors, users, and others, who wish to access or use the Application.
+Please read this Disclaimer carefully before using the RecoverySky App application (the "Application") operated by RecoverySky Org, a Not For Profit organization formed in Delaware, United States ("us, we, our") as this Disclaimer contains important information regarding limitations of our liability. Your access to and use of the Application is conditional upon your acceptance of and compliance with this Disclaimer. This Disclaimer applies to everyone, including but not limited to visitors, users, and others, who wish to access or use the Application.
 
 By accessing or using the Application, you agree to be bound by this Disclaimer. If you disagree with any part of this Disclaimer, then you do not have our permission to access or use the Application.
 
@@ -30,8 +30,11 @@ You should always consult with a healthcare professional prior to implementing a
 No legal advice
 The information displayed on this Application is provided for informational and educational purposes and is not intended as legal advice. You should always consult with a lawyer for help with your specific legal needs and issues.
 
+Language
+This Disclaimer is drafted in English. Any translations provided are for convenience only. In the event of a conflict between the English version and any translated version, the English version shall prevail.
+
 Changes
-We reserve the right to make changes to this Disclaimer at any time without any prior notice to you.
+We reserve the right to make changes to this Disclaimer at any time. Your continued use of the Application after changes take effect constitutes acceptance of the revised Disclaimer.
 
 Questions
 If you have any questions about this Disclaimer, please contact us at admin@recoverysky.org.`
