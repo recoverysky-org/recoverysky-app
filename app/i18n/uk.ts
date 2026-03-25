@@ -48,8 +48,8 @@ const uk: Translations = {
     signupButton: "Зареєструватися",
     continueAnonymously: "Продовжити анонімно",
     openingBrowser: "Відкриваємо браузер для авторизації...",
-    euaTitle: "Умови використання",
-    euaAgree: "Приймаю",
+    euaTitle: "Юридичні угоди",
+    euaAgree: "Прийняти угоди",
     euaCancel: "Скасувати",
   },
   zoomLoginScreen: {
@@ -351,7 +351,11 @@ const uk: Translations = {
       "Відкриває зустрічі в додатку Zoom замість вбудованого. Відвідуваність не відстежується і працездатність зустрічей не перевірена.",
     // Legal Section
     legalSection: "Правова інформація",
+    eula: "Ліцензійна угода",
     termsAndConditions: "Умови використання",
+    privacyPolicy: "Політика конфіденційності",
+    disclaimer: "Відмова від відповідальності",
+    aiConsent: "Згода на ШІ",
     thirdPartyLicenses: "Ліцензії сторонніх компонентів",
     thirdPartyLicensesTitle: "Ліцензії відкритого коду",
     close: "Закрити",

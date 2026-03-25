@@ -78,13 +78,30 @@ export async function clearAuthCredentials(): Promise<void> {
 
 // --- Terms Acceptance ---
 
-const TERMS_ACCEPTED_KEY = "terms_accepted_v1"
+const TERMS_ACCEPTED_KEY = "terms_accepted_v2"
 
-export async function hasAcceptedTerms(): Promise<boolean> {
-  const val = await getItemAsync(TERMS_ACCEPTED_KEY)
-  return val === "true"
+/**
+ * Get the ISO date string when terms were last accepted.
+ * Returns null if never accepted.
+ */
+export async function getTermsAcceptedDate(): Promise<string | null> {
+  return await getItemAsync(TERMS_ACCEPTED_KEY)
 }
 
+/**
+ * Check if terms were accepted and are still current.
+ * If documentDate is provided, returns false if the document was updated after acceptance.
+ */
+export async function hasAcceptedTerms(documentDate?: string): Promise<boolean> {
+  const acceptedDate = await getTermsAcceptedDate()
+  if (!acceptedDate) return false
+  if (documentDate && new Date(documentDate) > new Date(acceptedDate)) return false
+  return true
+}
+
+/**
+ * Record terms acceptance with current timestamp.
+ */
 export async function setTermsAccepted(): Promise<void> {
-  await setItemAsync(TERMS_ACCEPTED_KEY, "true")
+  await setItemAsync(TERMS_ACCEPTED_KEY, new Date().toISOString())
 }

@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { getEuaText, getDisclaimerText } from "@assets/content"
+import { getDisclaimerText } from "@assets/content"
 
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
@@ -29,8 +29,6 @@ export const TermsScreen: FC = function TermsScreen() {
         </Pressable>
       </View>
       <ScrollView style={$scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        <Text style={themed($body)}>{getEuaText()}</Text>
-        <View style={themed($divider)} />
         <Text style={themed($body)}>{getDisclaimerText()}</Text>
       </ScrollView>
     </View>

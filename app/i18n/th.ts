@@ -47,8 +47,8 @@ const th: Translations = {
     signupButton: "สมัครสมาชิก",
     continueAnonymously: "ใช้งานแบบไม่ระบุตัวตน",
     openingBrowser: "กำลังเปิดเบราว์เซอร์เพื่อยืนยันตัวตน...",
-    euaTitle: "ข้อกำหนดและเงื่อนไข",
-    euaAgree: "ยอมรับ",
+    euaTitle: "ข้อตกลงทางกฎหมาย",
+    euaAgree: "ยอมรับข้อตกลง",
     euaCancel: "ยกเลิก",
   },
   zoomLoginScreen: {
@@ -346,7 +346,11 @@ const th: Translations = {
       "เปิดการประชุมในแอป Zoom แทนการใช้ในแอป การเข้าร่วมไม่ถูกบันทึกและไม่ได้ตรวจสอบว่าการประชุมทำงานได้",
     // Legal Section
     legalSection: "กฎหมาย",
+    eula: "ข้อตกลงสิทธิ์การใช้งาน",
     termsAndConditions: "ข้อกำหนดและเงื่อนไข",
+    privacyPolicy: "นโยบายความเป็นส่วนตัว",
+    disclaimer: "ข้อจำกัดความรับผิดชอบ",
+    aiConsent: "ความยินยอม AI",
     thirdPartyLicenses: "สัญญาอนุญาตของบุคคลที่สาม",
     thirdPartyLicensesTitle: "สัญญาอนุญาตโอเพนซอร์ส",
     close: "ปิด",

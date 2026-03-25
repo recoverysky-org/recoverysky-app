@@ -42,11 +42,11 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
     }
 
     const openPrivacyPolicy = () => {
-      Linking.openURL("https://recoverysky.org/privacy.html")
+      Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/privacy")
     }
 
     const openTerms = () => {
-      Linking.openURL("https://recoverysky.org/terms.html")
+      Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/terms")
     }
 
     return (

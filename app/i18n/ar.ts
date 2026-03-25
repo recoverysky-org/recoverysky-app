@@ -47,8 +47,8 @@ const ar: Translations = {
     signupButton: "إنشاء حساب",
     continueAnonymously: "المتابعة بشكل مجهول",
     openingBrowser: "جارٍ فتح المتصفح للمصادقة...",
-    euaTitle: "الشروط والأحكام",
-    euaAgree: "أوافق",
+    euaTitle: "الاتفاقيات القانونية",
+    euaAgree: "قبول الاتفاقيات",
     euaCancel: "إلغاء",
   },
   zoomLoginScreen: {
@@ -343,7 +343,11 @@ const ar: Translations = {
       "يفتح الاجتماعات في تطبيق Zoom بدلاً من داخل التطبيق. لا يتم تتبع الحضور ولم يتم التحقق من عمل الاجتماعات.",
     // Legal Section
     legalSection: "قانوني",
+    eula: "اتفاقية ترخيص المستخدم",
     termsAndConditions: "الشروط والأحكام",
+    privacyPolicy: "سياسة الخصوصية",
+    disclaimer: "إخلاء المسؤولية",
+    aiConsent: "موافقة الذكاء الاصطناعي",
     thirdPartyLicenses: "تراخيص الطرف الثالث",
     thirdPartyLicensesTitle: "تراخيص المصادر المفتوحة",
     close: "إغلاق",

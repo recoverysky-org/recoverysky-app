@@ -49,8 +49,8 @@ const ru: Translations = {
     signupButton: "Регистрация",
     continueAnonymously: "Продолжить анонимно",
     openingBrowser: "Открываем браузер для авторизации...",
-    euaTitle: "Условия использования",
-    euaAgree: "Принимаю",
+    euaTitle: "Юридические соглашения",
+    euaAgree: "Принять соглашения",
     euaCancel: "Отмена",
   },
   zoomLoginScreen: {
@@ -352,7 +352,11 @@ const ru: Translations = {
       "Открывает встречи в приложении Zoom вместо встроенного. Посещаемость не отслеживается и работоспособность встреч не проверена.",
     // Legal Section
     legalSection: "Правовая информация",
+    eula: "Лицензионное соглашение",
     termsAndConditions: "Условия использования",
+    privacyPolicy: "Политика конфиденциальности",
+    disclaimer: "Отказ от ответственности",
+    aiConsent: "Согласие на ИИ",
     thirdPartyLicenses: "Лицензии сторонних компонентов",
     thirdPartyLicensesTitle: "Лицензии открытого кода",
     close: "Закрыть",

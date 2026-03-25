@@ -49,8 +49,8 @@ const de: Translations = {
     signupButton: "Registrieren",
     continueAnonymously: "Anonym fortfahren",
     openingBrowser: "Browser wird für die Anmeldung geöffnet...",
-    euaTitle: "Nutzungsbedingungen",
-    euaAgree: "Ich stimme zu",
+    euaTitle: "Rechtliche Vereinbarungen",
+    euaAgree: "Vereinbarungen Akzeptieren",
     euaCancel: "Abbrechen",
   },
   zoomLoginScreen: {
@@ -353,7 +353,11 @@ const de: Translations = {
       "Öffnet Meetings in der Zoom-App statt in der App. Die Anwesenheit wird nicht erfasst und die Funktionalität der Meetings wurde nicht überprüft.",
     // Legal Section
     legalSection: "Rechtliches",
+    eula: "Endbenutzer-Lizenzvereinbarung",
     termsAndConditions: "Nutzungsbedingungen",
+    privacyPolicy: "Datenschutzrichtlinie",
+    disclaimer: "Haftungsausschluss",
+    aiConsent: "KI-Einwilligung",
     thirdPartyLicenses: "Drittanbieter-Lizenzen",
     thirdPartyLicensesTitle: "Open-Source-Lizenzen",
     close: "Schließen",

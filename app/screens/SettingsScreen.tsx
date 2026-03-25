@@ -1102,11 +1102,51 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($settingsRow)}
-          onPress={() => navigation.navigate("Terms")}
+          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/EULA")}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:eula")}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:eula" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($settingsRow)}
+          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/terms")}
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:termsAndConditions")}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:termsAndConditions" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($settingsRow)}
+          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/privacy")}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:privacyPolicy")}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:privacyPolicy" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($settingsRow)}
+          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/disclaimer")}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:disclaimer")}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:disclaimer" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($settingsRow)}
+          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/AI_Consent")}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:aiConsent")}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:aiConsent" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
         </TouchableOpacity>
 

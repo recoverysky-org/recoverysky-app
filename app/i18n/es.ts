@@ -48,8 +48,8 @@ const es: Translations = {
     signupButton: "Registrarse",
     continueAnonymously: "Continuar Anónimamente",
     openingBrowser: "Abriendo navegador para autenticación...",
-    euaTitle: "Términos y Condiciones",
-    euaAgree: "Acepto",
+    euaTitle: "Acuerdos Legales",
+    euaAgree: "Aceptar Acuerdos",
     euaCancel: "Cancelar",
   },
   zoomLoginScreen: {
@@ -352,7 +352,11 @@ const es: Translations = {
       "Abre las reuniones en la aplicación de Zoom en lugar de dentro de la app. La asistencia no se registra y no se ha verificado que las reuniones sean funcionales.",
     // Legal Section
     legalSection: "Legal",
+    eula: "Acuerdo de Licencia de Usuario",
     termsAndConditions: "Términos y Condiciones",
+    privacyPolicy: "Política de Privacidad",
+    disclaimer: "Descargo de Responsabilidad",
+    aiConsent: "Consentimiento de IA",
     thirdPartyLicenses: "Licencias de Terceros",
     thirdPartyLicensesTitle: "Licencias de Código Abierto",
     close: "Cerrar",

@@ -628,6 +628,45 @@ export class Api {
   }
 
   /**
+   * Get content document from Directus CMS
+   * GET /content/:collection/:document
+   */
+  async getContent(
+    document: string,
+    collection = "RecoverySky_Content",
+  ): Promise<{ kind: "ok"; content: string; updatedAt?: string } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching content from API", { collection, document })
+
+    const response = await this.recoverySkyApi.get<{
+      data: {
+        content: string
+        date_updated?: string
+      }
+    }>(`/content/${collection}/${document}`)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Content fetch failed", { collection, document, problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    const doc = response.data?.data
+    if (!doc?.content) {
+      log.warn("Empty content response", { collection, document })
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Content received", { collection, document })
+    return {
+      kind: "ok",
+      content: doc.content,
+      updatedAt: doc.date_updated,
+    }
+  }
+
+  /**
    * Send attendance report to the backend for HTML generation and email delivery
    * POST /reports
    */

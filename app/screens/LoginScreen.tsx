@@ -1,4 +1,4 @@
-import { FC, useState, useCallback, useEffect } from "react"
+import { FC, useState, useCallback, useEffect, useRef } from "react"
 import {
   View,
   ViewStyle,
@@ -13,13 +13,12 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
-import { getDisclaimerText, getEuaText } from "@assets/content"
-
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
 import { translate } from "@/i18n"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
+import { api } from "@/services/api"
 import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { trackEvent } from "@/services/tracking"
@@ -29,7 +28,20 @@ import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "LoginScreen" })
 
-// Import agreement texts
+/** Strip HTML tags and convert to readable plain text */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
@@ -48,10 +60,17 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     onSqliteKeyChange: rekeyDb,
   })
 
-  // EUA modal state
+  // Agreement modal state
   const [showEuaModal, setShowEuaModal] = useState(false)
   const [pendingLoginType, setPendingLoginType] = useState<LoginType>(null)
   const [termsAlreadyAccepted, setTermsAlreadyAccepted] = useState(false)
+  const [activeTab, setActiveTab] = useState<"disclaimer" | "eula">("disclaimer")
+
+  // Dynamic content from API
+  const [disclaimerContent, setDisclaimerContent] = useState("")
+  const [eulaContent, setEulaContent] = useState("")
+  const [contentLoading, setContentLoading] = useState(false)
+  const contentLoaded = useRef(false)
 
   // Check if terms were previously accepted
   useEffect(() => {
@@ -59,6 +78,20 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       .then(setTermsAlreadyAccepted)
       .catch(() => {})
   }, [])
+
+  // Fetch content when modal opens
+  useEffect(() => {
+    if (!showEuaModal || contentLoaded.current) return
+    setContentLoading(true)
+    Promise.all([api.getContent("disclaimer"), api.getContent("EULA")])
+      .then(([disclaimerResult, eulaResult]) => {
+        if (disclaimerResult.kind === "ok") setDisclaimerContent(htmlToText(disclaimerResult.content))
+        if (eulaResult.kind === "ok") setEulaContent(htmlToText(eulaResult.content))
+        contentLoaded.current = true
+      })
+      .catch((err) => log.error("Failed to fetch legal content", { error: String(err) }))
+      .finally(() => setContentLoading(false))
+  }, [showEuaModal])
 
   useEffect(() => {
     log.info("LoginScreen mounted")
@@ -252,15 +285,46 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             </Pressable>
           </View>
 
+          {/* Tabs */}
+          <View style={themed($tabBar)}>
+            <Pressable
+              style={[themed($tab), activeTab === "disclaimer" && themed($tabActive)]}
+              onPress={() => setActiveTab("disclaimer")}
+            >
+              <Text
+                style={[
+                  themed($tabText),
+                  activeTab === "disclaimer" && { color: theme.colors.tint },
+                ]}
+              >
+                Disclaimer
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[themed($tab), activeTab === "eula" && themed($tabActive)]}
+              onPress={() => setActiveTab("eula")}
+            >
+              <Text
+                style={[themed($tabText), activeTab === "eula" && { color: theme.colors.tint }]}
+              >
+                EULA
+              </Text>
+            </Pressable>
+          </View>
+
           {/* Agreement Content */}
           <ScrollView
-            style={themed($modalContent)}
+            style={themed($modalContentScroll)}
             contentContainerStyle={themed($modalContentInner)}
             showsVerticalScrollIndicator
           >
-            <Text style={themed($agreementText)}>{getEuaText()}</Text>
-            <View style={themed($agreementDivider)} />
-            <Text style={themed($agreementText)}>{getDisclaimerText()}</Text>
+            {contentLoading ? (
+              <ActivityIndicator size="large" color={theme.colors.tint} style={{ marginTop: 40 }} />
+            ) : (
+              <Text style={themed($agreementText)}>
+                {activeTab === "disclaimer" ? disclaimerContent : eulaContent}
+              </Text>
+            )}
           </ScrollView>
 
           {/* Modal Footer */}
@@ -416,7 +480,7 @@ const $loadingText: ThemedStyle<TextStyle> = ({ colors }) => ({
 // Modal styles
 const $modalContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flex: 1,
-  backgroundColor: colors.background,
+  backgroundColor: colors.card,
   paddingTop: spacing.lg,
 })
 
@@ -436,7 +500,30 @@ const $modalTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
-const $modalContent: ThemedStyle<ViewStyle> = () => ({
+const $tabBar: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  flexDirection: "row",
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
+})
+
+const $tab: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  alignItems: "center",
+  paddingVertical: spacing.sm,
+})
+
+const $tabActive: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  borderBottomWidth: 2,
+  borderBottomColor: colors.tint,
+})
+
+const $tabText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 15,
+  fontWeight: "600",
+  color: colors.textDim,
+})
+
+const $modalContentScroll: ThemedStyle<ViewStyle> = () => ({
   flex: 1,
 })
 
@@ -448,12 +535,6 @@ const $agreementText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   lineHeight: 22,
   color: colors.text,
-})
-
-const $agreementDivider: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  height: 1,
-  backgroundColor: colors.border,
-  marginVertical: spacing.xl,
 })
 
 const $modalFooter: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({

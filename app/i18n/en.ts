@@ -47,8 +47,8 @@ const en = {
     signupButton: "Sign Up",
     continueAnonymously: "Continue Anonymously",
     openingBrowser: "Opening browser for authentication...",
-    euaTitle: "Terms & Conditions",
-    euaAgree: "I Agree",
+    euaTitle: "Legal Agreements",
+    euaAgree: "Accept Agreements",
     euaCancel: "Cancel",
   },
   zoomLoginScreen: {
@@ -354,7 +354,11 @@ const en = {
       "Opens meetings in the Zoom app instead of in-app. Attendance is not tracked and meetings have not been verified to be functional.",
     // Legal Section
     legalSection: "Legal",
+    eula: "End User License Agreement",
     termsAndConditions: "Terms & Conditions",
+    privacyPolicy: "Privacy Policy",
+    disclaimer: "Disclaimer",
+    aiConsent: "AI Consent",
     thirdPartyLicenses: "Third-Party Licenses",
     thirdPartyLicensesTitle: "Open Source Licenses",
     close: "Close",
