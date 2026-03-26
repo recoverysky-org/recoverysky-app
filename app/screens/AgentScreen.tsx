@@ -16,8 +16,6 @@ import { DefaultChatTransport } from "ai"
 import { fetch as expoFetch } from "expo/fetch"
 import { observer } from "mobx-react-lite"
 
-import { getAiConsentText } from "@assets/content"
-
 import { ToolResultRenderer } from "@/components/agent"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
@@ -33,6 +31,7 @@ import {
   useProfileStore,
 } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { api } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -40,6 +39,21 @@ import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "AgentScreen" })
+
+/** Strip HTML tags and convert to readable plain text */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
 
 /**
  * AgentScreen - Sky Agent, your AI-powered recovery meeting agent
@@ -256,6 +270,18 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     return meta
   }, [messages])
 
+  // Fetch AI consent text from CMS
+  const [consentContent, setConsentContent] = useState("")
+  useEffect(() => {
+    if (profileStore.aiConsentAccepted) return
+    api
+      .getContent("aiConsent")
+      .then((result) => {
+        if (result.kind === "ok") setConsentContent(htmlToText(result.content))
+      })
+      .catch(() => {})
+  }, [profileStore.aiConsentAccepted])
+
   // AI consent gate (Apple Guideline 5.1.2(i))
   // Must be after all hooks to avoid "Rendered more hooks" error
   if (!profileStore.aiConsentAccepted) {
@@ -274,7 +300,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
             <Ionicons name="shield-checkmark" size={32} color={theme.colors.tint} />
             <Text preset="subheading" tx="agentScreen:consentTitle" style={themed($consentTitle)} />
           </View>
-          <Text style={themed($consentText)}>{getAiConsentText()}</Text>
+          <Text style={themed($consentText)}>{consentContent}</Text>
         </ScrollView>
 
         <View style={themed($consentFooter)}>
