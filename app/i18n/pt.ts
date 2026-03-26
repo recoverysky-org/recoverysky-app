@@ -49,7 +49,7 @@ const pt: Translations = {
     continueAnonymously: "Continuar Anonimamente",
     openingBrowser: "Abrindo navegador pra autenticação...",
     euaTitle: "Acordos Legais",
-    euaAgree: "Aceitar Acordos",
+    euaAgree: "Aceitar",
     euaCancel: "Cancelar",
   },
   zoomLoginScreen: {

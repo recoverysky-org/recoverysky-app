@@ -48,7 +48,7 @@ const th: Translations = {
     continueAnonymously: "ใช้งานแบบไม่ระบุตัวตน",
     openingBrowser: "กำลังเปิดเบราว์เซอร์เพื่อยืนยันตัวตน...",
     euaTitle: "ข้อตกลงทางกฎหมาย",
-    euaAgree: "ยอมรับข้อตกลง",
+    euaAgree: "ยอมรับ",
     euaCancel: "ยกเลิก",
   },
   zoomLoginScreen: {

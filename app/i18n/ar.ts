@@ -48,7 +48,7 @@ const ar: Translations = {
     continueAnonymously: "المتابعة بشكل مجهول",
     openingBrowser: "جارٍ فتح المتصفح للمصادقة...",
     euaTitle: "الاتفاقيات القانونية",
-    euaAgree: "قبول الاتفاقيات",
+    euaAgree: "قبول",
     euaCancel: "إلغاء",
   },
   zoomLoginScreen: {

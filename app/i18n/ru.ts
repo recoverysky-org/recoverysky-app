@@ -50,7 +50,7 @@ const ru: Translations = {
     continueAnonymously: "Продолжить анонимно",
     openingBrowser: "Открываем браузер для авторизации...",
     euaTitle: "Юридические соглашения",
-    euaAgree: "Принять соглашения",
+    euaAgree: "Принять",
     euaCancel: "Отмена",
   },
   zoomLoginScreen: {

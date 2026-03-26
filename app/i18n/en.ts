@@ -48,7 +48,7 @@ const en = {
     continueAnonymously: "",
     openingBrowser: "Opening browser for authentication...",
     euaTitle: "Legal Agreements",
-    euaAgree: "Accept Agreements",
+    euaAgree: "Accept",
     euaCancel: "Cancel",
   },
   zoomLoginScreen: {

@@ -50,7 +50,7 @@ const de: Translations = {
     continueAnonymously: "Anonym fortfahren",
     openingBrowser: "Browser wird für die Anmeldung geöffnet...",
     euaTitle: "Rechtliche Vereinbarungen",
-    euaAgree: "Vereinbarungen Akzeptieren",
+    euaAgree: "Akzeptieren",
     euaCancel: "Abbrechen",
   },
   zoomLoginScreen: {

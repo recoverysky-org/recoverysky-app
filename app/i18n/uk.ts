@@ -49,7 +49,7 @@ const uk: Translations = {
     continueAnonymously: "Продовжити анонімно",
     openingBrowser: "Відкриваємо браузер для авторизації...",
     euaTitle: "Юридичні угоди",
-    euaAgree: "Прийняти угоди",
+    euaAgree: "Прийняти",
     euaCancel: "Скасувати",
   },
   zoomLoginScreen: {
