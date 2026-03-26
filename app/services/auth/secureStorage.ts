@@ -106,6 +106,10 @@ export async function setTermsAccepted(): Promise<void> {
   await setItemAsync(TERMS_ACCEPTED_KEY, new Date().toISOString())
 }
 
-export async function clearTermsAccepted(): Promise<void> {
-  await deleteItemAsync(TERMS_ACCEPTED_KEY)
+/**
+ * Clear all secure storage data managed by this module.
+ * Deletes auth credentials and terms acceptance.
+ */
+export async function clearAllSecureData(): Promise<void> {
+  await Promise.all([deleteItemAsync(AUTH_CREDENTIALS_KEY), deleteItemAsync(TERMS_ACCEPTED_KEY)])
 }

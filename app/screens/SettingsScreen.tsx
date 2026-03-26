@@ -32,8 +32,9 @@ import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } f
 import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
-import { clearTermsAccepted } from "@/services/auth/secureStorage"
+import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { clearSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import {
   optInNotifications,
   optOutNotifications,
@@ -337,8 +338,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // 6. Clear MMKV storage (all persisted snapshots)
               clearStorage()
 
-              // 7. Clear terms acceptance from secure store
-              await clearTermsAccepted()
+              // 7. Clear all secure store data (auth credentials, terms, SQLite key)
+              await Promise.all([clearAllSecureData(), clearSqliteEncryptionKey()])
 
               // 8. Logout from Auth0 (clear session + MST auth state)
               await logout()
