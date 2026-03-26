@@ -105,3 +105,7 @@ export async function hasAcceptedTerms(documentDate?: string): Promise<boolean> 
 export async function setTermsAccepted(): Promise<void> {
   await setItemAsync(TERMS_ACCEPTED_KEY, new Date().toISOString())
 }
+
+export async function clearTermsAccepted(): Promise<void> {
+  await deleteItemAsync(TERMS_ACCEPTED_KEY)
+}

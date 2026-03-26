@@ -32,6 +32,7 @@ import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } f
 import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useZoomAuth } from "@/services/auth"
+import { clearTermsAccepted } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import {
   optInNotifications,
@@ -336,7 +337,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // 6. Clear MMKV storage (all persisted snapshots)
               clearStorage()
 
-              // 7. Logout from Auth0 (clear session + MST auth state)
+              // 7. Clear terms acceptance from secure store
+              await clearTermsAccepted()
+
+              // 8. Logout from Auth0 (clear session + MST auth state)
               await logout()
             } catch {
               // Even if some steps fail, ensure auth is cleared
