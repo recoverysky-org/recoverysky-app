@@ -25,6 +25,7 @@ import {
   presentPaywall,
   presentPaywallIfNeeded,
   restorePurchases,
+  syncExistingPurchases,
   addCustomerInfoListener,
   loginUser,
   logoutUser,
@@ -146,6 +147,23 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
       )
       if (result.ok) {
         setIsInitialized(true)
+
+        // One-time sync for users migrating from the old app (iaptic → RevenueCat).
+        // Silently sends the on-device App Store receipt to RC without Apple ID prompt.
+        if (!loadString("rc_purchases_synced")) {
+          log.info("First launch with RevenueCat — running migration sync for existing receipts")
+          const syncResult = await syncExistingPurchases()
+          if (syncResult.ok) {
+            log.info("Migration sync succeeded — marking as complete")
+          } else {
+            log.warn("Migration sync failed — will retry on next launch", { error: syncResult.error })
+          }
+          // Only mark complete on success so it retries on failure
+          if (syncResult.ok) saveString("rc_purchases_synced", "1")
+        } else {
+          log.debug("Migration sync already completed — skipping")
+        }
+
         await loadSubscriptionInfo()
       } else {
         setError(result.error)

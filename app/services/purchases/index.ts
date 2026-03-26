@@ -25,6 +25,7 @@ export {
   getOfferings,
   purchasePackage,
   restorePurchases,
+  syncExistingPurchases,
   presentPaywall,
   presentPaywallIfNeeded,
   loginUser,

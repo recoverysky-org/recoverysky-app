@@ -389,6 +389,34 @@ export async function logoutUser(): Promise<Result<CustomerInfo>> {
 }
 
 /**
+ * Sync existing purchases with RevenueCat
+ *
+ * Reads the on-device App Store receipt and sends it to RevenueCat for validation.
+ * Use this once for migrating users from a previous payment processor (e.g. iaptic).
+ * Unlike restorePurchases(), this does NOT trigger an Apple ID sign-in dialog.
+ */
+export async function syncExistingPurchases(): Promise<Result<void>> {
+  try {
+    log.info("Migration sync: reading on-device App Store receipt and sending to RevenueCat")
+    await Purchases.syncPurchases()
+
+    // Log post-sync entitlement state for verification
+    const customerInfo = await Purchases.getCustomerInfo()
+    const activeEntitlements = Object.keys(customerInfo.entitlements.active)
+    log.info("Migration sync completed", {
+      activeEntitlements: activeEntitlements.join(", ") || "none",
+      hasReceipt: activeEntitlements.length > 0,
+    })
+
+    return { ok: true, value: undefined }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    log.warn("Migration sync failed", { error: message })
+    return { ok: false, error: message }
+  }
+}
+
+/**
  * Add customer info update listener
  *
  * Use this to react to subscription changes in real-time.
