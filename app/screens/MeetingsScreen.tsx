@@ -25,7 +25,7 @@ const SEGMENTS = [
  * and continued background polling.
  */
 export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
-  function MeetingsScreen(_props) {
+  function MeetingsScreen({ navigation: meetingsNavigation }) {
     const { themed } = useAppTheme()
     const route = useRoute<RouteProp<MainTabParamList, "Meetings">>()
 
@@ -52,6 +52,14 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
         setActiveSegment(newSegment)
       }
     }, [route.params?.segment, route.params?.meetingId])
+
+    // Clear meetingId from route params after LiveContent reads it,
+    // so it doesn't persist in navigation state and re-trigger on app restart
+    useEffect(() => {
+      if (route.params?.meetingId) {
+        meetingsNavigation.setParams({ meetingId: undefined })
+      }
+    }, [route.params?.meetingId, meetingsNavigation])
 
     const handleSegmentChange = useCallback((index: number) => {
       setActiveSegment(index === 0 ? "live" : "listings")

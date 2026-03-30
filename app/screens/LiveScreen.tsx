@@ -142,15 +142,23 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
   // Auto-open schedule popup when meetingId param is provided (notification or post-subscription return)
+  // Capture meetingId into a ref during render so it survives route param clearing
+  const pendingMeetingIdRef = useRef<string | undefined>(undefined)
   const consumedMeetingIdRef = useRef<string | undefined>(undefined)
+  if (meetingId && meetingId !== consumedMeetingIdRef.current) {
+    pendingMeetingIdRef.current = meetingId
+  }
+
   useEffect(() => {
-    if (!meetingId || meetingId === consumedMeetingIdRef.current) return
+    const targetId = pendingMeetingIdRef.current
+    if (!targetId || targetId === consumedMeetingIdRef.current) return
 
     async function openMeetingPopup() {
       // 1. Try finding in already-loaded live meetings
-      const found = liveMeetings.find((m) => m.id === meetingId)
+      const found = liveMeetings.find((m) => m.id === targetId)
       if (found) {
-        consumedMeetingIdRef.current = meetingId
+        consumedMeetingIdRef.current = targetId
+        pendingMeetingIdRef.current = undefined
         setSelectedMeeting(found)
         return
       }
@@ -160,7 +168,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 
       // 3. Not in context and done loading — fetch from API
       try {
-        const result = await api.getScheduleByMeetingId(meetingId!)
+        const result = await api.getScheduleByMeetingId(targetId!)
         if (result.kind === "ok") {
           const s = result.schedule
           const meetingWithTrex: MeetingWithTrex = {
@@ -173,15 +181,18 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             duration_ms: s.duration_ms ?? 0,
             scheduleData: s.data,
           }
-          consumedMeetingIdRef.current = meetingId
+          consumedMeetingIdRef.current = targetId
+          pendingMeetingIdRef.current = undefined
           setSelectedMeeting(meetingWithTrex)
         } else {
-          log.warn("Failed to fetch schedule for meetingId", { meetingId, kind: result.kind })
-          consumedMeetingIdRef.current = meetingId
+          log.warn("Failed to fetch schedule for meetingId", { meetingId: targetId, kind: result.kind })
+          consumedMeetingIdRef.current = targetId
+          pendingMeetingIdRef.current = undefined
         }
       } catch (err) {
-        log.error("Error fetching schedule for meetingId", { meetingId, error: String(err) })
-        consumedMeetingIdRef.current = meetingId
+        log.error("Error fetching schedule for meetingId", { meetingId: targetId, error: String(err) })
+        consumedMeetingIdRef.current = targetId
+        pendingMeetingIdRef.current = undefined
       }
     }
 
