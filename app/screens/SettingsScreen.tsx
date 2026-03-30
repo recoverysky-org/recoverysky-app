@@ -27,19 +27,20 @@ import { TextField } from "@/components/TextField"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
-import { api } from "@/services/api"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { api } from "@/services/api"
 import { useZoomAuth } from "@/services/auth"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { clearSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import {
+  loginNotificationUser,
+  logoutNotificationUser,
   optInNotifications,
   optOutNotifications,
   requestNotificationPermission,
-  logoutOneSignalUser,
 } from "@/services/notifications"
 import { requestReviewFromSettings } from "@/services/review"
 import { trackEvent } from "@/services/tracking"
@@ -263,12 +264,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           profileStore.setNotificationsEnabled(false)
           return
         }
+        // Ensure push token is registered with backend (fetches token if needed)
+        if (authStore.userIdentifier && authStore.deviceId) {
+          loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
+        }
         optInNotifications()
       } else {
         optOutNotifications()
       }
     },
-    [profileStore],
+    [profileStore, authStore],
   )
 
   const handleDeleteReminders = () => {
@@ -284,10 +289,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             try {
               const uid = authStore.userId
               if (uid) {
-                await Promise.all([
-                  reminderRepo.deleteByUserId(uid),
-                  api.deleteReminders(uid),
-                ])
+                await Promise.all([reminderRepo.deleteByUserId(uid), api.deleteReminders(uid)])
                 // Notify Live/Listings screens to refresh reminder indicators
                 reminderEvents.emit({ type: "deleted", id: "*" })
               }
@@ -321,9 +323,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // 2. Logout from RevenueCat
               await logoutSubscription()
 
-              // 3. Logout from OneSignal
+              // 3. Logout from push notifications
               optOutNotifications()
-              logoutOneSignalUser()
+              logoutNotificationUser()
 
               // 4. Clear AI conversation history (SQLite)
               conversationStore.clearHistory()
@@ -1030,7 +1032,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       {/* Account Section */}
       <View style={themed($section)} onLayout={trackSection("account")}>
         <View style={themed($sectionHeader)}>
-          <Ionicons name="person-circle-outline" size={20} color={themed($accountIconColor).color} />
+          <Ionicons
+            name="person-circle-outline"
+            size={20}
+            color={themed($accountIconColor).color}
+          />
           <Text style={themed($sectionTitle)} tx="settingsScreen:accountSection" />
         </View>
         <SettingsRow
@@ -1151,7 +1157,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($settingsRow)}
-          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/EULA")}
+          onPress={() =>
+            Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/EULA")
+          }
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:eula")}
         >
@@ -1161,7 +1169,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($settingsRow)}
-          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/terms")}
+          onPress={() =>
+            Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/terms")
+          }
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:termsAndConditions")}
         >
@@ -1171,7 +1181,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($settingsRow)}
-          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/privacy")}
+          onPress={() =>
+            Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/privacy")
+          }
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:privacyPolicy")}
         >
@@ -1181,7 +1193,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($settingsRow)}
-          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/disclaimer")}
+          onPress={() =>
+            Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/disclaimer")
+          }
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:disclaimer")}
         >
@@ -1191,7 +1205,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($settingsRow)}
-          onPress={() => Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/AI_Consent")}
+          onPress={() =>
+            Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/AI_Consent")
+          }
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:aiConsent")}
         >

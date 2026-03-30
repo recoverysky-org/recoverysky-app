@@ -1,7 +1,7 @@
 export {
-  initializeOneSignal,
-  loginUser as loginOneSignalUser,
-  logoutUser as logoutOneSignalUser,
+  initializeNotifications,
+  registerPushToken as loginNotificationUser,
+  unregisterPushToken as logoutNotificationUser,
   requestPermission as requestNotificationPermission,
   hasPermission as hasNotificationPermission,
   optIn as optInNotifications,
@@ -9,4 +9,4 @@ export {
   getOptedIn as getNotificationsOptedIn,
   setLanguage as setNotificationLanguage,
   addClickHandler as addNotificationClickHandler,
-} from "./oneSignalService"
+} from "./expoNotificationService"

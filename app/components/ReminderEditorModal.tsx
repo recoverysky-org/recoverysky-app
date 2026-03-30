@@ -27,7 +27,12 @@ import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import type { ReminderRecord, ReminderCreateInput, ReminderUpdateInput } from "@/db"
-import { hasNotificationPermission, requestNotificationPermission } from "@/services/notifications"
+import { useStores } from "@/models"
+import {
+  hasNotificationPermission,
+  requestNotificationPermission,
+  loginNotificationUser,
+} from "@/services/notifications"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -75,6 +80,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
 }) => {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
+  const { authenticationStore: authStore } = useStores()
   const isEditing = existingReminder !== null
 
   // Form state
@@ -195,10 +201,13 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
     setIsSaving(true)
 
     try {
-      // Best-effort notification permission — don't block save if unavailable
+      // Best-effort notification permission + token registration
       const permitted = await hasNotificationPermission()
       if (!permitted) {
-        await requestNotificationPermission()
+        const granted = await requestNotificationPermission()
+        if (granted && authStore.userIdentifier && authStore.deviceId) {
+          loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
+        }
       }
 
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone

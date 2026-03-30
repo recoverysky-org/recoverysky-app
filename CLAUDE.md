@@ -62,7 +62,7 @@ MST with MMKV persistence in `app/models/`:
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
-- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Includes API URLs, Zoom SDK keys, RevenueCat keys (3 separate: test, Apple, Google), OneSignal keys (`oneSignalAppId`, `oneSignalApiKey`), with computed `revenueCatApiKey` view that selects by `__DEV__` and `Platform.OS`. NOT persisted to MMKV (security).
+- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Includes API URLs, Zoom SDK keys, RevenueCat keys (3 separate: test, Apple, Google), Umami analytics keys, with computed `revenueCatApiKey` view that selects by `__DEV__` and `Platform.OS`. NOT persisted to MMKV (security).
 - **ConversationStore**: AI agent conversation state
 
 ```typescript
@@ -120,7 +120,7 @@ Apisauce wrapper in `app/services/api/`:
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
 - Attestation queueing: `setAttestationInProgress(promise)` — API calls wait via `waitForAttestation()` before proceeding
 - Device auth: `setDeviceJwt(jwt)` sets `X-Device-Token`; `setApiKeyAuth()` fallback for simulators without attestation
-- Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, OneSignal
+- Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, Umami
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
 - Firebase import endpoints: `getFirebaseUser()`, `getFirebaseAttendance()`, `getFirebaseReports()`, `checkFirebaseUser()` — types exported as `FirebaseUserData`, `FirebaseAttendanceRecord`, `FirebaseReportRecord`
 
@@ -132,17 +132,17 @@ In `app/services/purchases/`:
 
 Key pattern: `__DEV__` uses `test_` RC API key and `premium-standard` offering. Production uses platform-specific `appl_`/`goog_` keys and `default` offering. `__DEV__` is false in TestFlight/TestFlight builds.
 
-### Push Notifications (OneSignal)
+### Push Notifications (expo-notifications)
 In `app/services/notifications/`:
-- **oneSignalService.ts**: Stateless SDK wrapper — init, login/logout, permission requests, opt in/out, click handler, language sync
-- **index.ts**: Barrel re-exports with namespaced names (`loginOneSignalUser`, `requestNotificationPermission`, etc.)
-- Initialized in `app.tsx` after `configStore.fetchConfig()` resolves, using `configStore.oneSignalAppId` (from server `ONE_SIGNAL_IOS_KEY_ID`)
-- MobX `reaction()` in `app.tsx` handles: auth identity sync, onboarding permission prompt (1s delay after completion), language sync
-- Notification click handler routes to specific tabs via `additionalData.screen` matching `MainTabParamList` names
-- `profileStore.notificationsEnabled` toggle controls opt-in/out (persisted via MMKV)
+- **expoNotificationService.ts**: Stateless service — init, push token registration via `/push-tokens/` API, permission requests, opt in/out, click handler, language sync
+- **index.ts**: Barrel re-exports with namespaced names (`loginNotificationUser`, `requestNotificationPermission`, etc.)
+- Initialized in `app.tsx` after `configStore.fetchConfig()` resolves (skipped on web)
+- Expo Push Token obtained via `getExpoPushTokenAsync({ projectId })` and registered with backend `POST /push-tokens/`
+- MobX `reaction()` in `app.tsx` handles: auth identity sync (token registration), language sync
+- Notification click handler routes to specific tabs via `data.screen` matching `MainTabParamList` names
+- `profileStore.notificationsEnabled` toggle controls opt-in/out (persisted via MMKV), synced to backend via `PATCH /push-tokens/`
 - Settings screen has Notifications section with push toggle
-- Plugin configured in `app.config.ts` (must be first in plugins array); mode controlled by `EXPO_PUBLIC_ONESIGNAL_MODE` env var (`production` set in `eas.json` production profile)
-- Requires EAS build (native SDK, not Expo Go compatible)
+- Requires EAS build (native module, not Expo Go compatible)
 
 ### Attendance Reports System
 The Reports tab in `AttendanceScreen.tsx` manages attendance report lifecycle:

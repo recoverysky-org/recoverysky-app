@@ -278,15 +278,10 @@ react-native-purchases-ui
 PUSH NOTIFICATIONS
 ------------------------------
 
-react-native-onesignal
+expo-notifications
   License: MIT
-  Copyright: OneSignal
-  https://github.com/OneSignal/react-native-onesignal
-
-onesignal-expo-plugin
-  License: MIT
-  Copyright: OneSignal
-  https://github.com/OneSignal/onesignal-expo-plugin
+  Copyright: 650 Industries (Expo)
+  https://github.com/expo/expo/tree/main/packages/expo-notifications
 
 ------------------------------
 PDF & SHARING

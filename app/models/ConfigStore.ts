@@ -41,8 +41,6 @@ export const ConfigStoreModel = types
     zakApiKey: types.optional(types.string, ""),
     /** OTLP collector API key (from server /config) */
     otlpApiKey: types.optional(types.string, ""),
-    /** OneSignal App ID (from server /config) */
-    oneSignalAppId: types.optional(types.string, ""),
     /** Umami analytics URL (from server /config) */
     umamiUrl: types.optional(types.string, ""),
     /** Umami website ID (from server /config) */
@@ -98,7 +96,6 @@ export const ConfigStoreModel = types
                 store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
               if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
               if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
-              if (config.ONE_SIGNAL_APP_ID) store.oneSignalAppId = config.ONE_SIGNAL_APP_ID
               if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
               if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
               if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
@@ -155,7 +152,6 @@ export const ConfigStoreModel = types
       store.revenueCatGoogleKey = ""
       store.zakApiKey = ""
       store.otlpApiKey = ""
-      store.oneSignalAppId = ""
       store.umamiUrl = ""
       store.umamiWebsiteId = ""
       store.umamiApiKey = ""

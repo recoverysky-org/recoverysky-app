@@ -54,6 +54,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
   const [isLoading, setIsLoading] = useState(false)
 
   const uid = authStore.userId ?? ""
+  const did = authStore.deviceId ?? ""
 
   // Collect all meeting IDs visible in the schedule grid
   const gridMids = useMemo(() => {
@@ -136,6 +137,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
           .createReminder({
             id,
             uid,
+            did,
             mid: created.mid,
             sid: created.sid || undefined,
             scope: created.scope,
@@ -152,7 +154,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
 
       return created
     },
-    [uid],
+    [uid, did],
   )
 
   const updateReminder = useCallback(
@@ -179,6 +181,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
         .updateReminder(id, {
           id,
           uid,
+          did,
           mid: updated?.mid ?? "",
           timezone: updated?.timezone ?? "",
           dow: updated?.dow ?? 0,
@@ -190,7 +193,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
         })
         .catch((e) => log.warn("API sync failed for updateReminder", { error: String(e) }))
     },
-    [uid],
+    [uid, did],
   )
 
   const deleteReminder = useCallback(

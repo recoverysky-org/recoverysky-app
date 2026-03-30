@@ -217,7 +217,7 @@ See [Deploying to Devices & Simulators](#deploying-to-devices--simulators) for i
 
 #### Production Build (Play Store Submission)
 
-Produces a signed `.aab` (Android App Bundle) via the `production` EAS profile. Uses production API URLs, OneSignal production mode, local signing credentials, and auto-incrementing version.
+Produces a signed `.aab` (Android App Bundle) via the `production` EAS profile. Uses production API URLs, local signing credentials, and auto-incrementing version.
 
 ```bash
 # Build locally, then submit separately

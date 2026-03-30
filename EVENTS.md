@@ -185,9 +185,9 @@ These events have been identified as valuable but are not included in the initia
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `notification_permission_requested` | OS notification permission dialog shown | — | `app/services/notifications/oneSignalService.ts` |
-| `notification_permission_granted` | User granted notification permission | — | `app/services/notifications/oneSignalService.ts` |
-| `notification_permission_denied` | User denied notification permission | — | `app/services/notifications/oneSignalService.ts` |
+| `notification_permission_requested` | OS notification permission dialog shown | — | `app/services/notifications/expoNotificationService.ts` |
+| `notification_permission_granted` | User granted notification permission | — | `app/services/notifications/expoNotificationService.ts` |
+| `notification_permission_denied` | User denied notification permission | — | `app/services/notifications/expoNotificationService.ts` |
 | `notification_clicked` | User tapped a push notification | `{ screen }` | `app/app.tsx` |
 
 ### Settings (Granular)

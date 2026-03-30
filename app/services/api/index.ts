@@ -61,6 +61,7 @@ export interface SendReportResponse {
 export interface ReminderApiInput {
   id: string
   uid: string
+  did: string
   mid: string
   sid?: string
   scope?: string
@@ -616,7 +617,6 @@ export class Api {
           REVENUE_CAT_API_GOOGLE_KEY: string
           ZAK_API_KEY: string
           OTLP_API_KEY: string
-          ONE_SIGNAL_APP_ID: string
           UMAMI_URL: string
           UMAMI_WEBSITE_ID: string
           UMAMI_X_API_KEY: string
@@ -637,7 +637,6 @@ export class Api {
       REVENUE_CAT_API_GOOGLE_KEY: string
       ZAK_API_KEY: string
       OTLP_API_KEY: string
-      ONE_SIGNAL_APP_ID: string
       UMAMI_URL: string
       UMAMI_WEBSITE_ID: string
       UMAMI_X_API_KEY: string
@@ -1047,6 +1046,38 @@ export class Api {
     }
 
     return { kind: "ok", reminders: response.data ?? [] }
+  }
+
+  // ==========================================================================
+  // Push Tokens
+  // ==========================================================================
+
+  /**
+   * Register or update an Expo Push Token for the current device (upsert)
+   * POST /push-tokens/
+   */
+  async registerPushToken(input: {
+    userId: string
+    deviceId: string
+    token: string
+    platform: "ios" | "android"
+    language?: string
+    enabled?: boolean
+  }): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Registering push token", { userId: input.userId.slice(0, 8) + "..." })
+
+    const response = await this.recoverySkyApi.post("/push-tokens/", input)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Push token registration failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.info("Push token registered")
+    return { kind: "ok" }
   }
 }
 

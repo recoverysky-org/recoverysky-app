@@ -60,9 +60,9 @@ import {
 } from "./services/attestation"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import {
-  initializeOneSignal,
-  loginOneSignalUser,
-  logoutOneSignalUser,
+  initializeNotifications,
+  loginNotificationUser,
+  logoutNotificationUser,
   hasNotificationPermission,
   optInNotifications,
   optOutNotifications,
@@ -307,25 +307,28 @@ export function App() {
           },
         )
 
-        // Initialize OneSignal push notifications (non-fatal)
-        if (!_rootStore.configStore.oneSignalAppId) {
-          log.debug("OneSignal skipped: no appId in config")
-        } else {
-          initializeOneSignal(_rootStore.configStore.oneSignalAppId)
+        // Initialize push notifications (non-fatal)
+        if (Platform.OS !== "web") {
+          initializeNotifications()
 
-          // Set initial user identity
-          if (authStore.userIdentifier) loginOneSignalUser(authStore.userIdentifier)
+          // Register push token with backend
+          if (authStore.userIdentifier && authStore.deviceId) {
+            loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
+          }
 
-          // React to auth state changes for OneSignal identity
+          // React to auth state changes for push token registration
           reaction(
             () => authStore.userIdentifier,
             (id) => {
-              if (id) loginOneSignalUser(id)
-              else logoutOneSignalUser()
+              if (id && authStore.deviceId) {
+                loginNotificationUser(id, authStore.deviceId).catch(() => {})
+              } else {
+                logoutNotificationUser()
+              }
             },
           )
 
-          // Sync language preference to OneSignal
+          // Sync language preference to backend
           reaction(
             () => _rootStore.profileStore.language,
             (language) => {
@@ -334,10 +337,7 @@ export function App() {
           )
 
           // Handle notification click → deep link to specific tab with optional params
-          addNotificationClickHandler((event) => {
-            const data = event.notification.additionalData as
-              | { screen?: string; section?: string; segment?: string; meetingId?: string }
-              | undefined
+          addNotificationClickHandler((data) => {
             if (data?.screen) {
               log.info("Notification clicked, navigating", { screen: data.screen, ...data })
               const { navigate: navTo } = require("./navigators/navigationUtilities")

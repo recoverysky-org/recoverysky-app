@@ -16,7 +16,6 @@ import "tsx/cjs"
  */
 module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
   const existingPlugins = config.plugins ?? []
-  const oneSignalMode = process.env.EXPO_PUBLIC_ONESIGNAL_MODE || "development"
 
   return {
     ...config,
@@ -38,8 +37,6 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
       },
     },
     plugins: [
-      // OneSignal must be first to avoid iOS "OneSignal/OneSignal.h file not found" errors
-      ["onesignal-expo-plugin", { mode: oneSignalMode }],
       ...existingPlugins,
       // Debug-only: override Zoom SDK's network security config to allow cleartext for local dev
       "./plugins/withDebugNetworkSecurity",

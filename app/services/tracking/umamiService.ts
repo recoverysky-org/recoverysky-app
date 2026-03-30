@@ -2,7 +2,7 @@
  * Umami Analytics Tracking Service
  *
  * Stateless service module for Umami HTTP Tracking API.
- * Follows the same pattern as services/notifications/oneSignalService.ts.
+ * Follows the same pattern as services/notifications/expoNotificationService.ts.
  *
  * @see EVENTS.md for the full event reference
  */
@@ -19,7 +19,6 @@ let hostUrl = ""
 let websiteId = ""
 let apiKey = ""
 let userId: string | undefined
-
 
 /**
  * Initialize the Umami tracking service.
