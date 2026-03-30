@@ -24,7 +24,7 @@ import { logger } from "@/utils/logger"
 
 import { MainNavigator } from "./MainNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
-import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
+import { navigationRef, useBackButtonHandler, flushPendingNavigation } from "./navigationUtilities"
 import { OnboardingNavigator } from "./OnboardingNavigator"
 
 const log = logger.child({ module: "AppNavigator" })
@@ -167,7 +167,12 @@ export const AppNavigator = (props: NavigationProps) => {
   log.debug("AppNavigator rendering NavigationContainer")
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme} {...props}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navigationTheme}
+      onReady={flushPendingNavigation}
+      {...props}
+    >
       <ErrorBoundary catchErrors={Config.catchErrors}>
         <AppStack />
       </ErrorBoundary>

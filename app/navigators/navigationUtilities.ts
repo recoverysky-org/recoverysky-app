@@ -171,6 +171,12 @@ export function useNavigationPersistence(storage: Storage, persistenceKey: strin
 }
 
 /**
+ * Pending navigation queued before the NavigationContainer was ready (e.g., cold-start from notification).
+ * Flushed by `flushPendingNavigation` once the container mounts.
+ */
+let pendingNavigation: { name: unknown; params?: unknown } | null = null
+
+/**
  * use this to navigate without the navigation
  * prop. If you have access to the navigation prop, do not use this.
  * @see {@link https://reactnavigation.org/docs/navigating-without-navigation-prop/}
@@ -179,6 +185,22 @@ export function useNavigationPersistence(storage: Storage, persistenceKey: strin
  */
 export function navigate(name: unknown, params?: unknown) {
   if (navigationRef.isReady()) {
+    // @ts-expect-error
+    navigationRef.navigate(name as never, params as never)
+  } else {
+    // Queue for replay once NavigationContainer is ready
+    pendingNavigation = { name, params }
+  }
+}
+
+/**
+ * Call from NavigationContainer's onReady to replay any navigation
+ * that was attempted before the container mounted (e.g., notification cold-start).
+ */
+export function flushPendingNavigation() {
+  if (pendingNavigation && navigationRef.isReady()) {
+    const { name, params } = pendingNavigation
+    pendingNavigation = null
     // @ts-expect-error
     navigationRef.navigate(name as never, params as never)
   }
