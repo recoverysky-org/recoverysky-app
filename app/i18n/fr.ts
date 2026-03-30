@@ -10,7 +10,8 @@ const fr: Translations = {
     apply: "Appliquer",
     closeApp: "Fermer l'app",
     configErrorTitle: "Connexion impossible",
-    configErrorMessage: "RecoverySky n'a pas pu charger sa configuration. Vérifie ta connexion Internet et réessaie.\n\nSi ce problème persiste, contacte support@recoverysky.app",
+    configErrorMessage:
+      "RecoverySky n'a pas pu charger sa configuration. Vérifie ta connexion Internet et réessaie.\n\nSi ce problème persiste, contacte support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Ça ressemble probablement pas à ton app.",
@@ -107,7 +108,8 @@ const fr: Translations = {
       "Consulte l'introduction de l'app en tout temps pour découvrir les fonctions et la confidentialité.",
     restartOnboarding: "Recommencer le questionnaire initial",
     navigationTitle: "Navigation",
-    navigationDescription: "Remarque les onglets en bas. C'est comme ça qu'on navigue ! On est sur Accueil :-)",
+    navigationDescription:
+      "Remarque les onglets en bas. C'est comme ça qu'on navigue ! On est sur Accueil :-)",
     liveTitle: "Réunions en direct",
     liveDescription:
       "Trouve des réunions en cours présentement. Va dans l'onglet En direct pour voir ce qui joue.",
@@ -312,7 +314,8 @@ const fr: Translations = {
     userId: "ID utilisateur",
     anonymousUser: "Anonyme",
     deleteAllReminders: "Supprimer Tous les Rappels",
-    deleteAllRemindersConfirm: "Êtes-vous sûr de vouloir supprimer tous vos rappels ? Cette action est irréversible.",
+    deleteAllRemindersConfirm:
+      "Êtes-vous sûr de vouloir supprimer tous vos rappels ? Cette action est irréversible.",
     deleteAllRemindersSuccess: "Tous les rappels ont été supprimés.",
     deleteUserData: "Supprimer les données utilisateur",
     deleteUserDataConfirm:
@@ -335,7 +338,8 @@ const fr: Translations = {
     notificationsHint:
       "Reçois des mises à jour sur les réunions et la communauté de rétablissement",
     notificationsDisabledTitle: "Notifications désactivées",
-    notificationsDisabledMessage: "Les notifications push sont désactivées dans les réglages de ton appareil. Veux-tu ouvrir les Réglages pour les activer?",
+    notificationsDisabledMessage:
+      "Les notifications push sont désactivées dans les réglages de ton appareil. Veux-tu ouvrir les Réglages pour les activer?",
     openSettings: "Ouvrir les Réglages",
     // Attendance Section
     attendanceSection: "Présence",

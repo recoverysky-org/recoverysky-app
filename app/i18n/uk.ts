@@ -10,7 +10,8 @@ const uk: Translations = {
     apply: "Застосувати",
     closeApp: "Закрити додаток",
     configErrorTitle: "Не вдалося підключитися",
-    configErrorMessage: "RecoverySky не вдалося завантажити конфігурацію. Перевір підключення до інтернету та спробуй знову.\n\nЯкщо проблема не зникне, звернися до support@recoverysky.app",
+    configErrorMessage:
+      "RecoverySky не вдалося завантажити конфігурацію. Перевір підключення до інтернету та спробуй знову.\n\nЯкщо проблема не зникне, звернися до support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Мабуть, твій додаток виглядає не так.",
@@ -107,7 +108,8 @@ const uk: Translations = {
       "Переглядай вступ до додатку будь-коли, щоб дізнатися про функції та конфіденційність.",
     restartOnboarding: "Пройти початкову анкету заново",
     navigationTitle: "Навігація",
-    navigationDescription: "Зверни увагу на вкладки внизу. Ось так ти переміщуєшся по додатку! Зараз ми на Головній :-)",
+    navigationDescription:
+      "Зверни увагу на вкладки внизу. Ось так ти переміщуєшся по додатку! Зараз ми на Головній :-)",
     liveTitle: "Зустрічі онлайн",
     liveDescription:
       "Знайди зустрічі, які відбуваються прямо зараз. Натисни на вкладку «Зараз», щоб подивитися.",
@@ -308,7 +310,8 @@ const uk: Translations = {
     userId: "ID користувача",
     anonymousUser: "Анонімний",
     deleteAllReminders: "Видалити всі нагадування",
-    deleteAllRemindersConfirm: "Ви впевнені, що хочете видалити всі нагадування? Цю дію не можна скасувати.",
+    deleteAllRemindersConfirm:
+      "Ви впевнені, що хочете видалити всі нагадування? Цю дію не можна скасувати.",
     deleteAllRemindersSuccess: "Усі нагадування видалено.",
     deleteUserData: "Видалити дані користувача",
     deleteUserDataConfirm:
@@ -330,7 +333,8 @@ const uk: Translations = {
     enableNotifications: "Push-сповіщення",
     notificationsHint: "Отримуй оновлення про зустрічі та спільноту одужання",
     notificationsDisabledTitle: "Сповіщення вимкнено",
-    notificationsDisabledMessage: "Push-сповіщення вимкнено в налаштуваннях пристрою. Бажаєш відкрити Налаштування, щоб увімкнути їх?",
+    notificationsDisabledMessage:
+      "Push-сповіщення вимкнено в налаштуваннях пристрою. Бажаєш відкрити Налаштування, щоб увімкнути їх?",
     openSettings: "Відкрити Налаштування",
     // Attendance Section
     attendanceSection: "Відвідування",

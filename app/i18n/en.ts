@@ -311,7 +311,8 @@ const en = {
     userId: "User ID",
     anonymousUser: "Anonymous",
     deleteAllReminders: "Delete All Reminders",
-    deleteAllRemindersConfirm: "Are you sure you want to delete all your reminders? This cannot be undone.",
+    deleteAllRemindersConfirm:
+      "Are you sure you want to delete all your reminders? This cannot be undone.",
     deleteAllRemindersSuccess: "All reminders have been deleted.",
     deleteUserData: "Delete User Data",
     deleteUserDataConfirm:

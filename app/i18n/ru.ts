@@ -10,7 +10,8 @@ const ru: Translations = {
     apply: "Применить",
     closeApp: "Закрыть приложение",
     configErrorTitle: "Не удалось подключиться",
-    configErrorMessage: "RecoverySky не удалось загрузить конфигурацию. Проверь подключение к интернету и попробуй снова.\n\nЕсли проблема не исчезнет, обратись в support@recoverysky.app",
+    configErrorMessage:
+      "RecoverySky не удалось загрузить конфигурацию. Проверь подключение к интернету и попробуй снова.\n\nЕсли проблема не исчезнет, обратись в support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Скорее всего, твоё приложение выглядит не так.",
@@ -107,7 +108,8 @@ const ru: Translations = {
       "Ознакомься с введением в приложение в любое время, чтобы узнать о функциях и конфиденциальности.",
     restartOnboarding: "Пройти начальную анкету заново",
     navigationTitle: "Навигация",
-    navigationDescription: "Обрати внимание на вкладки внизу. Так ты перемещаешься по приложению! Сейчас мы на Главной :-)",
+    navigationDescription:
+      "Обрати внимание на вкладки внизу. Так ты перемещаешься по приложению! Сейчас мы на Главной :-)",
     liveTitle: "Собрания онлайн",
     liveDescription:
       "Найди собрания, которые идут прямо сейчас. Нажми на вкладку «Сейчас», чтобы посмотреть.",
@@ -309,7 +311,8 @@ const ru: Translations = {
     userId: "ID пользователя",
     anonymousUser: "Анонимный",
     deleteAllReminders: "Удалить все напоминания",
-    deleteAllRemindersConfirm: "Вы уверены, что хотите удалить все напоминания? Это действие нельзя отменить.",
+    deleteAllRemindersConfirm:
+      "Вы уверены, что хотите удалить все напоминания? Это действие нельзя отменить.",
     deleteAllRemindersSuccess: "Все напоминания удалены.",
     deleteUserData: "Удалить данные пользователя",
     deleteUserDataConfirm:
@@ -331,7 +334,8 @@ const ru: Translations = {
     enableNotifications: "Push-уведомления",
     notificationsHint: "Получай обновления о собраниях и сообществе выздоровления",
     notificationsDisabledTitle: "Уведомления отключены",
-    notificationsDisabledMessage: "Push-уведомления отключены в настройках устройства. Хочешь открыть Настройки, чтобы включить их?",
+    notificationsDisabledMessage:
+      "Push-уведомления отключены в настройках устройства. Хочешь открыть Настройки, чтобы включить их?",
     openSettings: "Открыть Настройки",
     // Attendance Section
     attendanceSection: "Посещения",

@@ -10,7 +10,8 @@ const ar: Translations = {
     apply: "تطبيق",
     closeApp: "إغلاق التطبيق",
     configErrorTitle: "تعذّر الاتصال",
-    configErrorMessage: "لم يتمكن RecoverySky من تحميل إعداداته. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت هذه المشكلة، تواصل مع support@recoverysky.app",
+    configErrorMessage:
+      "لم يتمكن RecoverySky من تحميل إعداداته. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت هذه المشكلة، تواصل مع support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "على الأرجح تطبيقك لا يبدو هكذا.",
@@ -103,7 +104,8 @@ const ar: Translations = {
     onboardingDescription: "راجع مقدمة التطبيق في أي وقت للتعرف على الميزات والخصوصية.",
     restartOnboarding: "إعادة الاستبيان الأولي",
     navigationTitle: "التنقل",
-    navigationDescription: "لاحظ علامات التبويب في الأسفل. هكذا تتنقل في التطبيق! نحن الآن في الرئيسية :-)",
+    navigationDescription:
+      "لاحظ علامات التبويب في الأسفل. هكذا تتنقل في التطبيق! نحن الآن في الرئيسية :-)",
     liveTitle: "اجتماعات مباشرة",
     liveDescription: "اعثر على اجتماعات تجري الآن. اضغط على تبويب «مباشر» لترى ما هو متاح.",
     goToLive: "الذهاب للمباشر",
@@ -301,7 +303,8 @@ const ar: Translations = {
     userId: "معرّف المستخدم",
     anonymousUser: "مجهول",
     deleteAllReminders: "حذف جميع التذكيرات",
-    deleteAllRemindersConfirm: "هل أنت متأكد أنك تريد حذف جميع التذكيرات؟ لا يمكن التراجع عن هذا الإجراء.",
+    deleteAllRemindersConfirm:
+      "هل أنت متأكد أنك تريد حذف جميع التذكيرات؟ لا يمكن التراجع عن هذا الإجراء.",
     deleteAllRemindersSuccess: "تم حذف جميع التذكيرات.",
     deleteUserData: "حذف بيانات المستخدم",
     deleteUserDataConfirm:
@@ -322,7 +325,8 @@ const ar: Translations = {
     enableNotifications: "الإشعارات الفورية",
     notificationsHint: "تلقَّ تحديثات حول الاجتماعات ومجتمع التعافي",
     notificationsDisabledTitle: "الإشعارات معطّلة",
-    notificationsDisabledMessage: "إشعارات الدفع معطّلة في إعدادات جهازك. هل ترغب في فتح الإعدادات لتفعيلها؟",
+    notificationsDisabledMessage:
+      "إشعارات الدفع معطّلة في إعدادات جهازك. هل ترغب في فتح الإعدادات لتفعيلها؟",
     openSettings: "فتح الإعدادات",
     // Attendance Section
     attendanceSection: "الحضور",

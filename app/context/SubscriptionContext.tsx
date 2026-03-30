@@ -156,7 +156,9 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
           if (syncResult.ok) {
             log.info("Migration sync succeeded — marking as complete")
           } else {
-            log.warn("Migration sync failed — will retry on next launch", { error: syncResult.error })
+            log.warn("Migration sync failed — will retry on next launch", {
+              error: syncResult.error,
+            })
           }
           // Only mark complete on success so it retries on failure
           if (syncResult.ok) saveString("rc_purchases_synced", "1")

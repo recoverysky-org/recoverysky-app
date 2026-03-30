@@ -107,7 +107,8 @@ const es: Translations = {
       "Revisa la introducción de la app en cualquier momento para conocer las funciones y la privacidad.",
     restartOnboarding: "Reiniciar Cuestionario Inicial",
     navigationTitle: "Navegación",
-    navigationDescription: "Fíjate en las pestañas de abajo. ¡Así es como te mueves por la app! Estamos en Inicio :-)",
+    navigationDescription:
+      "Fíjate en las pestañas de abajo. ¡Así es como te mueves por la app! Estamos en Inicio :-)",
     liveTitle: "Reuniones en Vivo",
     liveDescription:
       "Encuentra reuniones que están sucediendo ahora. Toca la pestaña En Vivo para ver qué hay.",
@@ -309,7 +310,8 @@ const es: Translations = {
     userId: "ID de Usuario",
     anonymousUser: "Anónimo",
     deleteAllReminders: "Eliminar Todos los Recordatorios",
-    deleteAllRemindersConfirm: "¿Estás seguro de que quieres eliminar todos tus recordatorios? Esto no se puede deshacer.",
+    deleteAllRemindersConfirm:
+      "¿Estás seguro de que quieres eliminar todos tus recordatorios? Esto no se puede deshacer.",
     deleteAllRemindersSuccess: "Todos los recordatorios han sido eliminados.",
     deleteUserData: "Eliminar Datos de Usuario",
     deleteUserDataConfirm:

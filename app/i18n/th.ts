@@ -10,7 +10,8 @@ const th: Translations = {
     apply: "ใช้งาน",
     closeApp: "ปิดแอป",
     configErrorTitle: "ไม่สามารถเชื่อมต่อได้",
-    configErrorMessage: "RecoverySky ไม่สามารถโหลดการตั้งค่าได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหานี้ยังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
+    configErrorMessage:
+      "RecoverySky ไม่สามารถโหลดการตั้งค่าได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหานี้ยังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "แอปของคุณอาจไม่ได้หน้าตาแบบนี้นะ",
@@ -104,7 +105,8 @@ const th: Translations = {
       "ดูการแนะนำแอปได้ตลอดเวลาเพื่อเรียนรู้เกี่ยวกับฟีเจอร์และความเป็นส่วนตัว",
     restartOnboarding: "เริ่มแบบสอบถามเริ่มต้นใหม่",
     navigationTitle: "การนำทาง",
-    navigationDescription: "สังเกตแท็บด้านล่าง นั่นคือวิธีที่คุณไปยังส่วนต่าง ๆ ได้! ตอนนี้เราอยู่ที่หน้าหลัก :-)",
+    navigationDescription:
+      "สังเกตแท็บด้านล่าง นั่นคือวิธีที่คุณไปยังส่วนต่าง ๆ ได้! ตอนนี้เราอยู่ที่หน้าหลัก :-)",
     liveTitle: "ประชุมสด",
     liveDescription: "ค้นหาประชุมที่กำลังดำเนินอยู่ตอนนี้ แตะที่แท็บ สด เพื่อดูว่ามีอะไรบ้าง",
     goToLive: "ไปที่สด",
@@ -304,7 +306,8 @@ const th: Translations = {
     userId: "รหัสผู้ใช้",
     anonymousUser: "ไม่ระบุตัวตน",
     deleteAllReminders: "ลบการแจ้งเตือนทั้งหมด",
-    deleteAllRemindersConfirm: "คุณแน่ใจหรือไม่ว่าต้องการลบการแจ้งเตือนทั้งหมด? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
+    deleteAllRemindersConfirm:
+      "คุณแน่ใจหรือไม่ว่าต้องการลบการแจ้งเตือนทั้งหมด? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
     deleteAllRemindersSuccess: "ลบการแจ้งเตือนทั้งหมดแล้ว",
     deleteUserData: "ลบข้อมูลผู้ใช้",
     deleteUserDataConfirm:
@@ -325,7 +328,8 @@ const th: Translations = {
     enableNotifications: "การแจ้งเตือนแบบพุช",
     notificationsHint: "รับข่าวสารเกี่ยวกับการประชุมและชุมชนการฟื้นตัว",
     notificationsDisabledTitle: "การแจ้งเตือนถูกปิด",
-    notificationsDisabledMessage: "การแจ้งเตือนแบบพุชถูกปิดในการตั้งค่าอุปกรณ์ของคุณ คุณต้องการเปิดการตั้งค่าเพื่อเปิดใช้งานหรือไม่?",
+    notificationsDisabledMessage:
+      "การแจ้งเตือนแบบพุชถูกปิดในการตั้งค่าอุปกรณ์ของคุณ คุณต้องการเปิดการตั้งค่าเพื่อเปิดใช้งานหรือไม่?",
     openSettings: "เปิดการตั้งค่า",
     // Attendance Section
     attendanceSection: "การเข้าร่วม",

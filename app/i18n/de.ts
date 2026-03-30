@@ -10,7 +10,8 @@ const de: Translations = {
     apply: "Anwenden",
     closeApp: "App schließen",
     configErrorTitle: "Verbindung nicht möglich",
-    configErrorMessage: "RecoverySky konnte seine Konfiguration nicht laden. Bitte überprüfe deine Internetverbindung und versuche es erneut.\n\nWenn dieses Problem weiterhin besteht, kontaktiere support@recoverysky.app",
+    configErrorMessage:
+      "RecoverySky konnte seine Konfiguration nicht laden. Bitte überprüfe deine Internetverbindung und versuche es erneut.\n\nWenn dieses Problem weiterhin besteht, kontaktiere support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "So sieht deine App wahrscheinlich nicht aus.",
@@ -107,7 +108,8 @@ const de: Translations = {
       "Schau dir die App-Einführung jederzeit an, um mehr über Funktionen und Datenschutz zu erfahren.",
     restartOnboarding: "Einführungsfragen neu starten",
     navigationTitle: "Navigation",
-    navigationDescription: "Schau dir die Tabs unten an. So navigierst du durch die App! Wir sind gerade auf Startseite :-)",
+    navigationDescription:
+      "Schau dir die Tabs unten an. So navigierst du durch die App! Wir sind gerade auf Startseite :-)",
     liveTitle: "Live-Meetings",
     liveDescription:
       "Finde Meetings, die gerade stattfinden. Tippe auf den Live-Tab, um zu sehen, was läuft.",
@@ -310,7 +312,8 @@ const de: Translations = {
     userId: "Benutzer-ID",
     anonymousUser: "Anonym",
     deleteAllReminders: "Alle Erinnerungen Löschen",
-    deleteAllRemindersConfirm: "Sind Sie sicher, dass Sie alle Erinnerungen löschen möchten? Dies kann nicht rückgängig gemacht werden.",
+    deleteAllRemindersConfirm:
+      "Sind Sie sicher, dass Sie alle Erinnerungen löschen möchten? Dies kann nicht rückgängig gemacht werden.",
     deleteAllRemindersSuccess: "Alle Erinnerungen wurden gelöscht.",
     deleteUserData: "Benutzerdaten löschen",
     deleteUserDataConfirm:
@@ -332,7 +335,8 @@ const de: Translations = {
     enableNotifications: "Push-Benachrichtigungen",
     notificationsHint: "Erhalte Updates zu Meetings und der Genesungsgemeinschaft",
     notificationsDisabledTitle: "Benachrichtigungen deaktiviert",
-    notificationsDisabledMessage: "Push-Benachrichtigungen sind in deinen Geräteeinstellungen deaktiviert. Möchtest du die Einstellungen öffnen, um sie zu aktivieren?",
+    notificationsDisabledMessage:
+      "Push-Benachrichtigungen sind in deinen Geräteeinstellungen deaktiviert. Möchtest du die Einstellungen öffnen, um sie zu aktivieren?",
     openSettings: "Einstellungen öffnen",
     // Attendance Section
     attendanceSection: "Teilnahme",

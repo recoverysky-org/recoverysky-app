@@ -46,8 +46,7 @@ import type { ZoomInitState, ZoomJoinConfig } from "./zoomTypes"
 const log = logger.child({ module: "ZoomMeetingProvider" })
 
 /** Minimum credit time in milliseconds */
-const MIN_CREDIT_MS =
-  (Number(process.env.EXPO_PUBLIC_MIN_CREDIT_MINUTES) || 1) * 60 * 1000
+const MIN_CREDIT_MS = (Number(process.env.EXPO_PUBLIC_MIN_CREDIT_MINUTES) || 1) * 60 * 1000
 
 /** Architectures supported by the Zoom SDK */
 const ZOOM_SUPPORTED_ARCHS = ["arm64-v8a", "armeabi-v7a"]

@@ -10,7 +10,8 @@ const pt: Translations = {
     apply: "Aplicar",
     closeApp: "Fechar App",
     configErrorTitle: "Não Foi Possível Conectar",
-    configErrorMessage: "O RecoverySky não conseguiu carregar sua configuração. Verifique sua conexão com a internet e tente novamente.\n\nSe o problema persistir, entre em contato com support@recoverysky.app",
+    configErrorMessage:
+      "O RecoverySky não conseguiu carregar sua configuração. Verifique sua conexão com a internet e tente novamente.\n\nSe o problema persistir, entre em contato com support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Provavelmente não é assim que seu app vai ficar.",
@@ -106,7 +107,8 @@ const pt: Translations = {
       "Reveja a introdução do app a qualquer momento pra conhecer os recursos e a privacidade.",
     restartOnboarding: "Refazer Questionário Inicial",
     navigationTitle: "Navegação",
-    navigationDescription: "Repare nas abas lá embaixo. É assim que você navega! Estamos em Início :-)",
+    navigationDescription:
+      "Repare nas abas lá embaixo. É assim que você navega! Estamos em Início :-)",
     liveTitle: "Reuniões ao Vivo",
     liveDescription:
       "Encontre reuniões acontecendo agora. Toque na aba Ao Vivo pra ver o que está rolando.",
@@ -309,7 +311,8 @@ const pt: Translations = {
     userId: "ID do Usuário",
     anonymousUser: "Anônimo",
     deleteAllReminders: "Excluir Todos os Lembretes",
-    deleteAllRemindersConfirm: "Tem certeza de que deseja excluir todos os seus lembretes? Isso não pode ser desfeito.",
+    deleteAllRemindersConfirm:
+      "Tem certeza de que deseja excluir todos os seus lembretes? Isso não pode ser desfeito.",
     deleteAllRemindersSuccess: "Todos os lembretes foram excluídos.",
     deleteUserData: "Excluir Dados do Usuário",
     deleteUserDataConfirm:
@@ -330,7 +333,8 @@ const pt: Translations = {
     enableNotifications: "Notificações Push",
     notificationsHint: "Receba atualizações sobre reuniões e a comunidade de recuperação",
     notificationsDisabledTitle: "Notificações Desativadas",
-    notificationsDisabledMessage: "As notificações push estão desativadas nas configurações do seu dispositivo. Deseja abrir os Ajustes pra ativá-las?",
+    notificationsDisabledMessage:
+      "As notificações push estão desativadas nas configurações do seu dispositivo. Deseja abrir os Ajustes pra ativá-las?",
     openSettings: "Abrir Ajustes",
     // Attendance Section
     attendanceSection: "Presença",

@@ -185,12 +185,18 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
           pendingMeetingIdRef.current = undefined
           setSelectedMeeting(meetingWithTrex)
         } else {
-          log.warn("Failed to fetch schedule for meetingId", { meetingId: targetId, kind: result.kind })
+          log.warn("Failed to fetch schedule for meetingId", {
+            meetingId: targetId,
+            kind: result.kind,
+          })
           consumedMeetingIdRef.current = targetId
           pendingMeetingIdRef.current = undefined
         }
       } catch (err) {
-        log.error("Error fetching schedule for meetingId", { meetingId: targetId, error: String(err) })
+        log.error("Error fetching schedule for meetingId", {
+          meetingId: targetId,
+          error: String(err),
+        })
         consumedMeetingIdRef.current = targetId
         pendingMeetingIdRef.current = undefined
       }

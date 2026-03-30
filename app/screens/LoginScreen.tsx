@@ -85,7 +85,8 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     setContentLoading(true)
     Promise.all([api.getContent("disclaimer"), api.getContent("EULA")])
       .then(([disclaimerResult, eulaResult]) => {
-        if (disclaimerResult.kind === "ok") setDisclaimerContent(htmlToText(disclaimerResult.content))
+        if (disclaimerResult.kind === "ok")
+          setDisclaimerContent(htmlToText(disclaimerResult.content))
         if (eulaResult.kind === "ok") setEulaContent(htmlToText(eulaResult.content))
         contentLoaded.current = true
       })
