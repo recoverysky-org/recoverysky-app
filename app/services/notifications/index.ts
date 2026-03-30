@@ -9,4 +9,5 @@ export {
   getOptedIn as getNotificationsOptedIn,
   setLanguage as setNotificationLanguage,
   addClickHandler as addNotificationClickHandler,
+  getLastNotificationResponse,
 } from "./expoNotificationService"

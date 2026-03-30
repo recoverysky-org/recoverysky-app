@@ -294,3 +294,33 @@ export function addClickHandler(
   })
   return () => subscription.remove()
 }
+
+/**
+ * Check for a notification response that launched the app (cold start).
+ * addNotificationResponseReceivedListener only fires for warm-start taps;
+ * cold-start taps must be retrieved via getLastNotificationResponseAsync.
+ */
+export async function getLastNotificationResponse(): Promise<{
+  screen?: string
+  section?: string
+  segment?: string
+  meetingId?: string
+} | null> {
+  const response = await Notifications.getLastNotificationResponseAsync()
+  if (!response) {
+    log.debug("getLastNotificationResponse: none")
+    return null
+  }
+
+  const data = response.notification.request.content.data as
+    | { screen?: string; section?: string; segment?: string; meetingId?: string }
+    | undefined
+
+  log.debug("getLastNotificationResponse: found", {
+    screen: data?.screen,
+    section: data?.section,
+    meetingId: data?.meetingId,
+  })
+
+  return data ?? null
+}

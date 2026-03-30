@@ -177,6 +177,71 @@ export function useNavigationPersistence(storage: Storage, persistenceKey: strin
 let pendingNavigation: { name: unknown; params?: unknown } | null = null
 
 /**
+ * Pending Meeting ID — notification → schedule popup bridge
+ *
+ * When a push notification carries a meetingId, we need to open the SchedulePopup
+ * on the Meetings/Live screen. This is surprisingly tricky because:
+ *
+ * 1. Route params are unreliable — MeetingsScreen clears meetingId from params
+ *    immediately to prevent re-triggering on app restart, but this races with
+ *    LiveContent's useEffect that reads the param.
+ *
+ * 2. Cold-start remounts — during cold start, auth state sync causes the entire
+ *    AppNavigator tree (including LiveContent) to unmount and remount. Any
+ *    component-level state or refs from the first mount are lost.
+ *
+ * 3. Warm-start needs reactivity — when the app is already running and a
+ *    notification is tapped, LiveContent is already mounted. We need to trigger
+ *    its useEffect to re-fire with the new meetingId.
+ *
+ * Solution: Store the meetingId in a module-level variable (survives remounts)
+ * with a pub/sub mechanism (triggers re-renders for warm start).
+ *
+ * Flow:
+ *   app.tsx handleNotificationData → setPendingMeetingId(id) → navigate("Meetings")
+ *   LiveContent subscribes via usePendingMeetingId() → effect fires →
+ *   peekPendingMeetingId() reads ID → fetches schedule from API → opens popup →
+ *   consumePendingMeetingId() clears it
+ *
+ * The peek/consume split ensures the ID isn't lost if the component unmounts
+ * before the API response arrives (cold-start remount scenario).
+ */
+let _pendingMeetingId: string | undefined
+const _meetingIdListeners = new Set<() => void>()
+
+/** Store a meetingId from a notification tap. Notifies usePendingMeetingId() subscribers. */
+export function setPendingMeetingId(id: string) {
+  _pendingMeetingId = id
+  _meetingIdListeners.forEach((fn) => fn())
+}
+
+/** Read the pending meetingId without consuming it. Safe to call multiple times. */
+export function peekPendingMeetingId(): string | undefined {
+  return _pendingMeetingId
+}
+
+/** Clear the pending meetingId. Call only after the popup has been shown. */
+export function consumePendingMeetingId(): void {
+  _pendingMeetingId = undefined
+}
+
+/**
+ * React hook that re-renders when setPendingMeetingId is called.
+ * Returns the current pending meetingId (without consuming it).
+ * Used as a useEffect dependency in LiveContent to trigger popup logic.
+ */
+export function usePendingMeetingId(): string | undefined {
+  const { useSyncExternalStore } = require("react")
+  return useSyncExternalStore(
+    (cb: () => void) => {
+      _meetingIdListeners.add(cb)
+      return () => _meetingIdListeners.delete(cb)
+    },
+    () => _pendingMeetingId,
+  )
+}
+
+/**
  * use this to navigate without the navigation
  * prop. If you have access to the navigation prop, do not use this.
  * @see {@link https://reactnavigation.org/docs/navigating-without-navigation-prop/}

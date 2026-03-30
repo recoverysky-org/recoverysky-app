@@ -67,6 +67,7 @@ import {
   optInNotifications,
   optOutNotifications,
   addNotificationClickHandler,
+  getLastNotificationResponse,
   setNotificationLanguage,
 } from "./services/notifications"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
@@ -336,17 +337,39 @@ export function App() {
             },
           )
 
-          // Handle notification click → deep link to specific tab with optional params
-          addNotificationClickHandler((data) => {
+          // Handle notification click → navigate to screen and open SchedulePopup
+          // if meetingId is present. setPendingMeetingId stores the meetingId in a
+          // module-level variable that LiveContent subscribes to — this is the
+          // reliable path for opening the popup (route params race with clearing).
+          // See navigationUtilities.ts for the full explanation.
+          const handleNotificationData = (data: {
+            screen?: string
+            section?: string
+            segment?: string
+            meetingId?: string
+          }) => {
             if (data?.screen) {
               log.info("Notification clicked, navigating", { screen: data.screen, ...data })
-              const { navigate: navTo } = require("./navigators/navigationUtilities")
+              const { navigate: navTo, setPendingMeetingId } =
+                require("./navigators/navigationUtilities")
               const params: Record<string, string> = {}
               if (data.section) params.section = data.section
               if (data.segment) params.segment = data.segment
-              if (data.meetingId) params.meetingId = data.meetingId
+              if (data.meetingId) {
+                params.meetingId = data.meetingId
+                setPendingMeetingId(data.meetingId)
+              }
               navTo(data.screen as never, Object.keys(params).length > 0 ? params : undefined)
             }
+          }
+
+          // Warm-start: listener fires when user taps notification while app is running
+          addNotificationClickHandler(handleNotificationData)
+
+          // Cold-start: check if app was launched by tapping a notification
+          // (addNotificationResponseReceivedListener doesn't fire for the launch notification)
+          getLastNotificationResponse().then((data) => {
+            if (data) handleNotificationData(data)
           })
         }
 

@@ -24,7 +24,12 @@ import { useLivePolling } from "@/hooks/useLivePolling"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { navigate } from "@/navigators/navigationUtilities"
+import {
+  navigate,
+  peekPendingMeetingId,
+  consumePendingMeetingId,
+  usePendingMeetingId,
+} from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -141,34 +146,42 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
-  // Auto-open schedule popup when meetingId param is provided (notification or post-subscription return)
-  // Capture meetingId into a ref during render so it survives route param clearing
-  const pendingMeetingIdRef = useRef<string | undefined>(undefined)
+  // ---------------------------------------------------------------------------
+  // Notification → SchedulePopup auto-open
+  //
+  // When a push notification carries a meetingId, open the SchedulePopup for
+  // that meeting. We read from the module-level pending meetingId store
+  // (see navigationUtilities.ts for the full explanation of why route params
+  // can't be used here — they race with MeetingsScreen's param-clearing and
+  // are lost across the cold-start AppNavigator remount).
+  //
+  // usePendingMeetingId() subscribes to the store so the effect re-fires on
+  // both cold start (mount) and warm start (notification tap while mounted).
+  // We peek (not consume) until the popup is actually shown, so a remount
+  // mid-API-fetch doesn't lose the meetingId.
+  // ---------------------------------------------------------------------------
+  const pendingMeetingId = usePendingMeetingId()
   const consumedMeetingIdRef = useRef<string | undefined>(undefined)
-  if (meetingId && meetingId !== consumedMeetingIdRef.current) {
-    pendingMeetingIdRef.current = meetingId
-  }
 
   useEffect(() => {
-    const targetId = pendingMeetingIdRef.current
+    const targetId = peekPendingMeetingId()
     if (!targetId || targetId === consumedMeetingIdRef.current) return
 
-    async function openMeetingPopup() {
-      // 1. Try finding in already-loaded live meetings
-      const found = liveMeetings.find((m) => m.id === targetId)
-      if (found) {
-        consumedMeetingIdRef.current = targetId
-        pendingMeetingIdRef.current = undefined
-        setSelectedMeeting(found)
-        return
-      }
+    log.debug("Opening schedule popup for meetingId", { meetingId: targetId })
 
-      // 2. If still loading, wait — effect will re-fire when isLoading/liveMeetings changes
-      if (isLoading) return
+    // Fast path: meeting already in the live meetings context
+    const found = liveMeetings.find((m) => m.id === targetId)
+    if (found) {
+      consumedMeetingIdRef.current = targetId
+      consumePendingMeetingId()
+      setSelectedMeeting(found)
+      return
+    }
 
-      // 3. Not in context and done loading — fetch from API
-      try {
-        const result = await api.getScheduleByMeetingId(targetId!)
+    // Slow path: fetch schedule data from API (meeting may not be live)
+    api
+      .getScheduleByMeetingId(targetId)
+      .then((result) => {
         if (result.kind === "ok") {
           const s = result.schedule
           const meetingWithTrex: MeetingWithTrex = {
@@ -182,7 +195,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             scheduleData: s.data,
           }
           consumedMeetingIdRef.current = targetId
-          pendingMeetingIdRef.current = undefined
+          consumePendingMeetingId()
           setSelectedMeeting(meetingWithTrex)
         } else {
           log.warn("Failed to fetch schedule for meetingId", {
@@ -190,20 +203,18 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             kind: result.kind,
           })
           consumedMeetingIdRef.current = targetId
-          pendingMeetingIdRef.current = undefined
+          consumePendingMeetingId()
         }
-      } catch (err) {
+      })
+      .catch((err) => {
         log.error("Error fetching schedule for meetingId", {
           meetingId: targetId,
           error: String(err),
         })
         consumedMeetingIdRef.current = targetId
-        pendingMeetingIdRef.current = undefined
-      }
-    }
-
-    openMeetingPopup()
-  }, [meetingId, liveMeetings, isLoading])
+        consumePendingMeetingId()
+      })
+  }, [pendingMeetingId, liveMeetings])
 
   // Auto-refresh at 15-minute marks (:00, :15, :30, :45)
   useLivePolling({

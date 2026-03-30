@@ -551,7 +551,7 @@ export class Api {
     log.debug("Fetching schedule by meeting ID", { mid })
 
     const response = await this.recoverySkyApi.get<{
-      schedule: LiveSchedule
+      schedules: LiveSchedule[]
     }>(`/schedules/meeting/${mid}`)
 
     if (!response.ok) {
@@ -560,11 +560,12 @@ export class Api {
       return { kind: "unknown", temporary: true }
     }
 
-    if (!response.data?.schedule) {
+    const schedule = response.data?.schedules?.[0]
+    if (!schedule) {
       return { kind: "bad-data" }
     }
 
-    return { kind: "ok", schedule: response.data.schedule }
+    return { kind: "ok", schedule }
   }
 
   /**
