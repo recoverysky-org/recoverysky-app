@@ -88,7 +88,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             text: t("reminderEditor:goToSettings"),
             onPress: () => {
               onClose()
-              navigate("Settings" as never, { section: "subscription" } as never)
+              navigate(
+                "Settings" as never,
+                {
+                  section: "subscription",
+                  returnTo: `Meetings:meetingId:${meeting!.id}`,
+                } as never,
+              )
             },
           },
         ])

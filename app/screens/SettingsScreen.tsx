@@ -369,8 +369,14 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     if (!returnTo) return
     subscriptionReturnRef.current = null
     remove("SUBSCRIPTION_RETURN")
-    const [screen, section] = returnTo.split(":")
-    navigation.navigate(screen as any, section ? { section } : undefined)
+    const parts = returnTo.split(":")
+    const screen = parts[0]
+    if (screen === "Meetings" && parts[1] === "meetingId" && parts[2]) {
+      navigation.navigate("Meetings" as any, { segment: "live", meetingId: parts[2] })
+    } else {
+      const section = parts[1]
+      navigation.navigate(screen as any, section ? { section } : undefined)
+    }
   }, [navigation])
 
   const handleUpgrade = async () => {

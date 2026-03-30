@@ -1,4 +1,4 @@
-import { FC, useCallback, useState, useMemo, useEffect } from "react"
+import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
 import {
   ViewStyle,
   FlatList,
@@ -25,6 +25,7 @@ import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { navigate } from "@/navigators/navigationUtilities"
+import { api } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -46,7 +47,11 @@ const SELECTABLE_FELLOWSHIPS = [
  * Contains all the logic for displaying live meetings with filtering,
  * sorting, and feedback integration.
  */
-export const LiveContent: FC = observer(function LiveContent() {
+interface LiveContentProps {
+  meetingId?: string
+}
+
+export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({ meetingId }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
@@ -135,6 +140,53 @@ export const LiveContent: FC = observer(function LiveContent() {
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+
+  // Auto-open schedule popup when meetingId param is provided (notification or post-subscription return)
+  const consumedMeetingIdRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (!meetingId || meetingId === consumedMeetingIdRef.current) return
+
+    async function openMeetingPopup() {
+      // 1. Try finding in already-loaded live meetings
+      const found = liveMeetings.find((m) => m.id === meetingId)
+      if (found) {
+        consumedMeetingIdRef.current = meetingId
+        setSelectedMeeting(found)
+        return
+      }
+
+      // 2. If still loading, wait — effect will re-fire when isLoading/liveMeetings changes
+      if (isLoading) return
+
+      // 3. Not in context and done loading — fetch from API
+      try {
+        const result = await api.getScheduleByMeetingId(meetingId!)
+        if (result.kind === "ok") {
+          const s = result.schedule
+          const meetingWithTrex: MeetingWithTrex = {
+            ...s.meeting,
+            password: s.password || s.meeting.password || "",
+            passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
+            feedback: feedbackCache.get(s.meeting.id),
+            sid: s.sid,
+            millis: s.millis,
+            duration_ms: s.duration_ms ?? 0,
+            scheduleData: s.data,
+          }
+          consumedMeetingIdRef.current = meetingId
+          setSelectedMeeting(meetingWithTrex)
+        } else {
+          log.warn("Failed to fetch schedule for meetingId", { meetingId, kind: result.kind })
+          consumedMeetingIdRef.current = meetingId
+        }
+      } catch (err) {
+        log.error("Error fetching schedule for meetingId", { meetingId, error: String(err) })
+        consumedMeetingIdRef.current = meetingId
+      }
+    }
+
+    openMeetingPopup()
+  }, [meetingId, liveMeetings, isLoading])
 
   // Auto-refresh at 15-minute marks (:00, :15, :30, :45)
   useLivePolling({

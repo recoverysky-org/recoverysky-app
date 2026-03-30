@@ -40,11 +40,18 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
     // Sync segment only when route params change from navigation (not local state)
     useEffect(() => {
       const newSegment = route.params?.segment
+      const meetingId = route.params?.meetingId
+      // Force live segment when meetingId is provided
+      if (meetingId && activeSegment !== "live") {
+        setActiveSegment("live")
+        lastRouteSegment.current = "live"
+        return
+      }
       if (newSegment && newSegment !== lastRouteSegment.current) {
         lastRouteSegment.current = newSegment
         setActiveSegment(newSegment)
       }
-    }, [route.params?.segment])
+    }, [route.params?.segment, route.params?.meetingId])
 
     const handleSegmentChange = useCallback((index: number) => {
       setActiveSegment(index === 0 ? "live" : "listings")
@@ -65,7 +72,7 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(
 
         {/* Content Views - both mounted, inactive one hidden */}
         <View style={[$content, activeSegment === "live" ? $contentVisible : $contentHidden]}>
-          <LiveContent />
+          <LiveContent meetingId={route.params?.meetingId} />
         </View>
         <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
           <ListingsContent />

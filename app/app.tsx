@@ -336,7 +336,7 @@ export function App() {
           // Handle notification click → deep link to specific tab with optional params
           addNotificationClickHandler((event) => {
             const data = event.notification.additionalData as
-              | { screen?: string; section?: string; segment?: string }
+              | { screen?: string; section?: string; segment?: string; meetingId?: string }
               | undefined
             if (data?.screen) {
               log.info("Notification clicked, navigating", { screen: data.screen, ...data })
@@ -344,6 +344,7 @@ export function App() {
               const params: Record<string, string> = {}
               if (data.section) params.section = data.section
               if (data.segment) params.segment = data.segment
+              if (data.meetingId) params.meetingId = data.meetingId
               navTo(data.screen as never, Object.keys(params).length > 0 ? params : undefined)
             }
           })

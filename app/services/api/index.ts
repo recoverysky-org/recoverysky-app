@@ -535,6 +535,38 @@ export class Api {
   }
 
   /**
+   * Get a single schedule by meeting ID
+   *
+   * Used when navigating to a specific meeting (e.g., from notification or post-subscription return)
+   * that may not be currently live in the MeetingContext.
+   *
+   * @param mid - The meeting ID (UUID)
+   * @returns The schedule containing the meeting
+   */
+  async getScheduleByMeetingId(
+    mid: string,
+  ): Promise<{ kind: "ok"; schedule: LiveSchedule } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching schedule by meeting ID", { mid })
+
+    const response = await this.recoverySkyApi.get<{
+      schedule: LiveSchedule
+    }>(`/schedules/meeting/${mid}`)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data?.schedule) {
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", schedule: response.data.schedule }
+  }
+
+  /**
    * Get Zoom JWT token from the backend
    *
    * The backend generates the JWT using Zoom SDK credentials (kept secure server-side).

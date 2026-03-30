@@ -31,7 +31,7 @@ export type MainTabParamList = {
   Live: undefined
   Listings: undefined
   Attendance: { section?: AttendanceSection } | undefined
-  Meetings: { segment?: MeetingsSegment } | undefined
+  Meetings: { segment?: MeetingsSegment; meetingId?: string } | undefined
   Schedule: undefined
   Agent: undefined
   Settings: { section?: SettingsSection; returnTo?: string } | undefined
