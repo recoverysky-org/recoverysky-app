@@ -80,7 +80,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
     try {
       const byUser = await reminderRepo.findByUserId(uid)
       if (byUser.ok) {
-        setReminders(byUser.value.filter((r) => gridMids.has(r.mid) || (sid && r.sid === sid)))
+        setReminders(byUser.value.filter((r) => gridMids.has(r.mid ?? "") || (sid && r.sid === sid)))
       } else {
         setReminders([])
       }
@@ -128,7 +128,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
           type: "created",
           id,
           record: created,
-          mid: created.mid,
+          mid: created.mid ?? undefined,
           sid: created.sid || undefined,
         })
 
@@ -138,7 +138,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
             id,
             uid,
             did,
-            mid: created.mid,
+            mid: created.mid ?? "",
             sid: created.sid || undefined,
             scope: created.scope,
             name: created.name,
@@ -172,7 +172,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
         type: "updated",
         id,
         record: updated ?? undefined,
-        mid: updated?.mid,
+        mid: updated?.mid ?? undefined,
         sid: updated?.sid || undefined,
       })
 
@@ -211,7 +211,7 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
       reminderEvents.emit({
         type: "deleted",
         id,
-        mid: existing?.mid,
+        mid: existing?.mid ?? undefined,
         sid: existing?.sid || undefined,
       })
 
