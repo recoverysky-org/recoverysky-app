@@ -8,6 +8,9 @@ const de: Translations = {
     back: "Zurück",
     logOut: "Abmelden",
     apply: "Anwenden",
+    closeApp: "App schließen",
+    configErrorTitle: "Verbindung nicht möglich",
+    configErrorMessage: "RecoverySky konnte seine Konfiguration nicht laden. Bitte überprüfe deine Internetverbindung und versuche es erneut.\n\nWenn dieses Problem weiterhin besteht, kontaktiere support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "So sieht deine App wahrscheinlich nicht aus.",
@@ -328,6 +331,9 @@ const de: Translations = {
     notificationsSection: "Benachrichtigungen",
     enableNotifications: "Push-Benachrichtigungen",
     notificationsHint: "Erhalte Updates zu Meetings und der Genesungsgemeinschaft",
+    notificationsDisabledTitle: "Benachrichtigungen deaktiviert",
+    notificationsDisabledMessage: "Push-Benachrichtigungen sind in deinen Geräteeinstellungen deaktiviert. Möchtest du die Einstellungen öffnen, um sie zu aktivieren?",
+    openSettings: "Einstellungen öffnen",
     // Attendance Section
     attendanceSection: "Teilnahme",
     enableAttendance: "Teilnahme aktivieren",

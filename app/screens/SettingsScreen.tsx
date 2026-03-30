@@ -39,7 +39,6 @@ import {
   optInNotifications,
   optOutNotifications,
   requestNotificationPermission,
-  hasNotificationPermission,
   logoutOneSignalUser,
 } from "@/services/notifications"
 import { requestReviewFromSettings } from "@/services/review"
@@ -259,13 +258,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       profileStore.setNotificationsEnabled(value)
       trackEvent("notification_toggle", { enabled: value })
       if (value) {
-        const hasPermission = await hasNotificationPermission()
-        if (!hasPermission) {
-          const granted = await requestNotificationPermission()
-          if (!granted) {
-            profileStore.setNotificationsEnabled(false)
-            return
-          }
+        const granted = await requestNotificationPermission()
+        if (!granted) {
+          profileStore.setNotificationsEnabled(false)
+          return
         }
         optInNotifications()
       } else {

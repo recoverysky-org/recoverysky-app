@@ -23,7 +23,7 @@ if (__DEV__) {
 import "./utils/gestureHandler"
 
 import { useEffect, useRef, useState } from "react"
-import { AppState, AppStateStatus, Platform } from "react-native"
+import { Alert, AppState, AppStateStatus, BackHandler, Platform } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
@@ -47,7 +47,7 @@ import {
   ChatHydrator,
   ReportPollingResumer,
 } from "./db"
-import { initI18n } from "./i18n"
+import { initI18n, translate } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -63,7 +63,6 @@ import {
   initializeOneSignal,
   loginOneSignalUser,
   logoutOneSignalUser,
-  requestNotificationPermission,
   hasNotificationPermission,
   optInNotifications,
   optOutNotifications,
@@ -259,8 +258,29 @@ export function App() {
         await initializeDeviceAuthorization(deviceId)
 
         // Fetch server config (keys, secrets, URLs from /config endpoint)
-        // Non-fatal: falls back to defaults on failure
-        await _rootStore.configStore.fetchConfig()
+        // Critical: retries 3x, then shows support contact and exits
+        await _rootStore.configStore.fetchConfig().catch(() => {
+          return new Promise<never>(() => {
+            Alert.alert(
+              translate("common:configErrorTitle"),
+              translate("common:configErrorMessage"),
+              [
+                {
+                  text: translate("common:closeApp"),
+                  onPress: () => {
+                    if (Platform.OS === "ios") {
+                      // iOS doesn't allow programmatic exit; suspending hides the app
+                      Linking.openURL("app-settings:")
+                    } else {
+                      BackHandler.exitApp()
+                    }
+                  },
+                },
+              ],
+              { cancelable: false },
+            )
+          })
+        })
 
         // Update logger with server-provided OTLP key
         if (_rootStore.configStore.otlpApiKey) {
@@ -288,7 +308,9 @@ export function App() {
         )
 
         // Initialize OneSignal push notifications (non-fatal)
-        if (_rootStore.configStore.oneSignalAppId) {
+        if (!_rootStore.configStore.oneSignalAppId) {
+          log.debug("OneSignal skipped: no appId in config")
+        } else {
           initializeOneSignal(_rootStore.configStore.oneSignalAppId)
 
           // Set initial user identity

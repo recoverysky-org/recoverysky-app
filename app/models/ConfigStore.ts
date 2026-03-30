@@ -77,40 +77,65 @@ export const ConfigStoreModel = types
       store.isLoading = true
       log.info("Fetching config from server")
 
+      const MAX_RETRIES = 3
+      const RETRY_DELAYS = [2000, 4000, 8000]
+
       try {
-        const result = yield api.getConfig()
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            const result = yield api.getConfig()
 
-        if (result.kind === "ok") {
-          const { config } = result
-          if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
-          if (config.ZOOM_SDK_KEY) store.zoomSdkKey = config.ZOOM_SDK_KEY
-          if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
-          if (config.REVENUE_CAT_API_TEST_KEY)
-            store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
-          if (config.REVENUE_CAT_API_APPLE_KEY)
-            store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
-          if (config.REVENUE_CAT_API_GOOGLE_KEY)
-            store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
-          if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
-          if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
-          if (config.ONE_SIGNAL_APP_ID) store.oneSignalAppId = config.ONE_SIGNAL_APP_ID
-          if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
-          if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
-          if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
-          store.isLoaded = true
+            if (result.kind === "ok") {
+              const { config } = result
+              if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
+              if (config.ZOOM_SDK_KEY) store.zoomSdkKey = config.ZOOM_SDK_KEY
+              if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
+              if (config.REVENUE_CAT_API_TEST_KEY)
+                store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
+              if (config.REVENUE_CAT_API_APPLE_KEY)
+                store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
+              if (config.REVENUE_CAT_API_GOOGLE_KEY)
+                store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
+              if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
+              if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
+              if (config.ONE_SIGNAL_APP_ID) store.oneSignalAppId = config.ONE_SIGNAL_APP_ID
+              if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
+              if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
+              if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
+              store.isLoaded = true
 
-          log.info("Config loaded from server", {
-            hasZoomKey: !!store.zoomSdkKey,
-            hasZoomSecret: !!store.zoomSdkSecret,
-            zoomKeyPreview: store.zoomSdkKey ? store.zoomSdkKey.slice(0, 8) + "..." : "EMPTY",
-          })
-        } else {
-          log.warn("Failed to fetch config, using defaults", { kind: result.kind })
+              const zoomKeyPreview = store.zoomSdkKey
+                ? store.zoomSdkKey.slice(0, 8) + "..."
+                : "EMPTY"
+              log.info("Config loaded from server", {
+                attempt,
+                hasZoomKey: !!store.zoomSdkKey,
+                hasZoomSecret: !!store.zoomSdkSecret,
+                zoomKeyPreview,
+              })
+              return // success
+            }
+
+            log.warn("Config fetch failed", { attempt, kind: result.kind })
+          } catch (error) {
+            log.error("Config fetch error", {
+              attempt,
+              error: error instanceof Error ? error.message : String(error),
+            })
+          }
+
+          // Wait before retrying (unless this was the last attempt)
+          if (attempt < MAX_RETRIES) {
+            log.info("Retrying config fetch", {
+              nextAttempt: attempt + 1,
+              delay: RETRY_DELAYS[attempt - 1],
+            })
+            yield new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
+          }
         }
-      } catch (error) {
-        log.error("Config fetch error", {
-          error: error instanceof Error ? error.message : String(error),
-        })
+
+        // All retries exhausted
+        throw new Error("Failed to load configuration after " + MAX_RETRIES + " attempts")
       } finally {
         store.isLoading = false
       }

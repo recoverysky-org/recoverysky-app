@@ -6,6 +6,10 @@ const en = {
     back: "Back",
     logOut: "Log Out",
     apply: "Apply",
+    closeApp: "Close App",
+    configErrorTitle: "Unable to Connect",
+    configErrorMessage:
+      "RecoverySky could not load its configuration. Please check your internet connection and try again.\n\nIf this problem persists, contact support@recoverysky.app",
   },
   welcomeScreen: {
     postscript:
@@ -328,6 +332,10 @@ const en = {
     notificationsSection: "Notifications",
     enableNotifications: "Push Notifications",
     notificationsHint: "Receive updates about meetings and recovery community",
+    notificationsDisabledTitle: "Notifications Disabled",
+    notificationsDisabledMessage:
+      "Push notifications are turned off in your device settings. Would you like to open Settings to enable them?",
+    openSettings: "Open Settings",
     // Attendance Section
     attendanceSection: "Attendance",
     enableAttendance: "Enable Attendance",

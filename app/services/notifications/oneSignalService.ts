@@ -5,10 +5,11 @@
  * Follows the same pattern as services/purchases/revenueCatService.ts.
  */
 
-import { Platform } from "react-native"
+import { Alert, Linking, Platform } from "react-native"
 import { OneSignal, LogLevel } from "react-native-onesignal"
 import type { NotificationClickEvent } from "react-native-onesignal"
 
+import { translate } from "@/i18n"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "OneSignalService" })
@@ -30,13 +31,19 @@ export function initializeOneSignal(appId: string): void {
     return
   }
 
-  if (__DEV__) {
-    OneSignal.Debug.setLogLevel(LogLevel.Verbose)
-  }
+  try {
+    if (__DEV__) {
+      OneSignal.Debug.setLogLevel(LogLevel.Verbose)
+    }
 
-  OneSignal.initialize(appId)
-  isInitialized = true
-  log.info("OneSignal initialized", { appId: appId.slice(0, 8) + "..." })
+    OneSignal.initialize(appId)
+    isInitialized = true
+    log.info("OneSignal initialized", { appId: appId.slice(0, 8) + "..." })
+  } catch (error) {
+    log.debug("OneSignal initialization failed", {
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 /**
@@ -60,21 +67,44 @@ export function logoutUser(): void {
 
 /**
  * Show the native push notification permission dialog.
+ * If the OS won't show the prompt (user already denied once), offers to open Settings.
  * Returns whether permission was granted.
  */
 export async function requestPermission(): Promise<boolean> {
-  if (!isInitialized || Platform.OS === "web") return false
+  if (Platform.OS === "web") return false
 
-  const canRequest = await OneSignal.Notifications.canRequestPermission()
-  if (!canRequest) {
-    log.info("Cannot request notification permission (already determined)")
-    return OneSignal.Notifications.getPermissionAsync()
+  if (isInitialized) {
+    // Already have permission — nothing to do
+    const alreadyGranted = await OneSignal.Notifications.getPermissionAsync()
+    if (alreadyGranted) return true
+
+    const canRequest = await OneSignal.Notifications.canRequestPermission()
+    if (canRequest) {
+      log.info("Requesting notification permission")
+      const granted = await OneSignal.Notifications.requestPermission(true)
+      log.info("Notification permission result", { granted })
+      return granted
+    }
   }
 
-  log.info("Requesting notification permission")
-  const granted = await OneSignal.Notifications.requestPermission(true)
-  log.info("Notification permission result", { granted })
-  return granted
+  // OneSignal not initialized or OS won't show the prompt — offer to open Settings
+  log.info("Prompting user to open Settings for notification permission", { isInitialized })
+  return new Promise((resolve) => {
+    Alert.alert(
+      translate("settingsScreen:notificationsDisabledTitle"),
+      translate("settingsScreen:notificationsDisabledMessage"),
+      [
+        { text: translate("common:cancel"), style: "cancel", onPress: () => resolve(false) },
+        {
+          text: translate("settingsScreen:openSettings"),
+          onPress: () => {
+            Linking.openSettings()
+            resolve(false)
+          },
+        },
+      ],
+    )
+  })
 }
 
 /** Check current notification permission status */

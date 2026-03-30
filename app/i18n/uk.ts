@@ -8,6 +8,9 @@ const uk: Translations = {
     back: "Назад",
     logOut: "Вийти",
     apply: "Застосувати",
+    closeApp: "Закрити додаток",
+    configErrorTitle: "Не вдалося підключитися",
+    configErrorMessage: "RecoverySky не вдалося завантажити конфігурацію. Перевір підключення до інтернету та спробуй знову.\n\nЯкщо проблема не зникне, звернися до support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Мабуть, твій додаток виглядає не так.",
@@ -326,6 +329,9 @@ const uk: Translations = {
     notificationsSection: "Сповіщення",
     enableNotifications: "Push-сповіщення",
     notificationsHint: "Отримуй оновлення про зустрічі та спільноту одужання",
+    notificationsDisabledTitle: "Сповіщення вимкнено",
+    notificationsDisabledMessage: "Push-сповіщення вимкнено в налаштуваннях пристрою. Бажаєш відкрити Налаштування, щоб увімкнути їх?",
+    openSettings: "Відкрити Налаштування",
     // Attendance Section
     attendanceSection: "Відвідування",
     enableAttendance: "Облік відвідувань",

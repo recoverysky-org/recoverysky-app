@@ -8,6 +8,10 @@ const es: Translations = {
     back: "Volver",
     logOut: "Cerrar sesión",
     apply: "Aplicar",
+    closeApp: "Cerrar App",
+    configErrorTitle: "No se pudo conectar",
+    configErrorMessage:
+      "RecoverySky no pudo cargar su configuración. Verifica tu conexión a internet e intenta de nuevo.\n\nSi el problema persiste, contacta a support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Probablemente esto no es lo que tu app luce.",
@@ -326,6 +330,10 @@ const es: Translations = {
     notificationsSection: "Notificaciones",
     enableNotifications: "Notificaciones Push",
     notificationsHint: "Recibe actualizaciones sobre reuniones y la comunidad de recuperación",
+    notificationsDisabledTitle: "Notificaciones Desactivadas",
+    notificationsDisabledMessage:
+      "Las notificaciones push están desactivadas en la configuración de tu dispositivo. ¿Deseas abrir Configuración para activarlas?",
+    openSettings: "Abrir Configuración",
     // Attendance Section
     attendanceSection: "Asistencia",
     enableAttendance: "Habilitar Asistencia",

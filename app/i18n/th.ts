@@ -8,6 +8,9 @@ const th: Translations = {
     back: "กลับ",
     logOut: "ออกจากระบบ",
     apply: "ใช้งาน",
+    closeApp: "ปิดแอป",
+    configErrorTitle: "ไม่สามารถเชื่อมต่อได้",
+    configErrorMessage: "RecoverySky ไม่สามารถโหลดการตั้งค่าได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหานี้ยังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "แอปของคุณอาจไม่ได้หน้าตาแบบนี้นะ",
@@ -321,6 +324,9 @@ const th: Translations = {
     notificationsSection: "การแจ้งเตือน",
     enableNotifications: "การแจ้งเตือนแบบพุช",
     notificationsHint: "รับข่าวสารเกี่ยวกับการประชุมและชุมชนการฟื้นตัว",
+    notificationsDisabledTitle: "การแจ้งเตือนถูกปิด",
+    notificationsDisabledMessage: "การแจ้งเตือนแบบพุชถูกปิดในการตั้งค่าอุปกรณ์ของคุณ คุณต้องการเปิดการตั้งค่าเพื่อเปิดใช้งานหรือไม่?",
+    openSettings: "เปิดการตั้งค่า",
     // Attendance Section
     attendanceSection: "การเข้าร่วม",
     enableAttendance: "เปิดใช้การเข้าร่วม",

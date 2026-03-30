@@ -8,6 +8,9 @@ const ar: Translations = {
     back: "رجوع",
     logOut: "تسجيل الخروج",
     apply: "تطبيق",
+    closeApp: "إغلاق التطبيق",
+    configErrorTitle: "تعذّر الاتصال",
+    configErrorMessage: "لم يتمكن RecoverySky من تحميل إعداداته. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت هذه المشكلة، تواصل مع support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "على الأرجح تطبيقك لا يبدو هكذا.",
@@ -318,6 +321,9 @@ const ar: Translations = {
     notificationsSection: "الإشعارات",
     enableNotifications: "الإشعارات الفورية",
     notificationsHint: "تلقَّ تحديثات حول الاجتماعات ومجتمع التعافي",
+    notificationsDisabledTitle: "الإشعارات معطّلة",
+    notificationsDisabledMessage: "إشعارات الدفع معطّلة في إعدادات جهازك. هل ترغب في فتح الإعدادات لتفعيلها؟",
+    openSettings: "فتح الإعدادات",
     // Attendance Section
     attendanceSection: "الحضور",
     enableAttendance: "تفعيل الحضور",

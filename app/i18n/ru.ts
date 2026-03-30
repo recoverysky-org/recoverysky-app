@@ -8,6 +8,9 @@ const ru: Translations = {
     back: "Назад",
     logOut: "Выйти",
     apply: "Применить",
+    closeApp: "Закрыть приложение",
+    configErrorTitle: "Не удалось подключиться",
+    configErrorMessage: "RecoverySky не удалось загрузить конфигурацию. Проверь подключение к интернету и попробуй снова.\n\nЕсли проблема не исчезнет, обратись в support@recoverysky.app",
   },
   welcomeScreen: {
     postscript: "Скорее всего, твоё приложение выглядит не так.",
@@ -327,6 +330,9 @@ const ru: Translations = {
     notificationsSection: "Уведомления",
     enableNotifications: "Push-уведомления",
     notificationsHint: "Получай обновления о собраниях и сообществе выздоровления",
+    notificationsDisabledTitle: "Уведомления отключены",
+    notificationsDisabledMessage: "Push-уведомления отключены в настройках устройства. Хочешь открыть Настройки, чтобы включить их?",
+    openSettings: "Открыть Настройки",
     // Attendance Section
     attendanceSection: "Посещения",
     enableAttendance: "Учёт посещений",
