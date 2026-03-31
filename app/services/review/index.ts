@@ -1,124 +1,105 @@
 /**
  * App Store review prompt service
  *
- * Cycle-based prompting strategy:
- * - During a cycle (up to 5 unique days of app usage), prompt on every
- *   odd-numbered meeting joined (1st, 3rd, 5th, ...).
- * - If the user rates via Settings, the cycle ends and a cooldown begins.
- * - If 5 unique days pass without rating, the cycle ends and cooldown begins.
- * - After EXPO_PUBLIC_REVIEW_POST_REVIEW_DAYS, a new cycle starts.
- * - Users who already rated also re-enter a cycle after the cooldown.
+ * 1. !REVIEW_ENABLED || disabled → skip
+ * 2. meetingCount === MIN_MEETINGS → native StoreReview
+ * 3. (meetingCount - MIN_MEETINGS) % REMINDER_MEETINGS === 0 → reminder dialog
+ * 4. OK → Settings → Rate
+ * 5. "Don't show again" → disabled
+ * 6. Settings "Rate" button → disabled
  */
 
-import { Platform } from "react-native"
+import { Alert, Platform } from "react-native"
 import * as StoreReview from "expo-store-review"
 
+import { meetingEvents } from "@/db/meetingEvents"
+import { translate } from "@/i18n"
+import { navigate } from "@/navigators/navigationUtilities"
+import { logger } from "@/utils/logger"
 import { load, save } from "@/utils/storage"
 
-const STORAGE_KEY = "app-review-state-v2"
+const STORAGE_KEY = "app-review-state-v4"
 
-/** Kill switch — set EXPO_PUBLIC_REVIEW_ENABLED=true to activate the review system */
 const REVIEW_ENABLED = process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
-
-/** Max unique days of app usage before a cycle expires */
-const MAX_CYCLE_DAYS = 5
-
-/** Days to wait after a cycle ends (rated or exhausted) before starting a new one */
-const POST_REVIEW_DAYS = Number(process.env.EXPO_PUBLIC_REVIEW_POST_REVIEW_DAYS) || 14
-const POST_REVIEW_MS = POST_REVIEW_DAYS * 24 * 60 * 60 * 1000
+const MIN_MEETINGS = Number(process.env.EXPO_PUBLIC_REVIEW_MIN_MEETINGS) || 5
+const REMINDER_MEETINGS = Number(process.env.EXPO_PUBLIC_REVIEW_REMINDER_MEETINGS) || 5
 
 interface ReviewState {
-  /** Meetings joined in the current cycle */
-  meetingsInCycle: number
-  /** Unique YYYY-MM-DD dates the app was used during this cycle */
-  uniqueDays: string[]
-  /** Timestamp when the cycle ended (0 = cycle is active) */
-  cycleEndedAt: number
+  totalMeetings: number
+  disabled: boolean
 }
 
 function getState(): ReviewState {
-  return (
-    load<ReviewState>(STORAGE_KEY) ?? {
-      meetingsInCycle: 0,
-      uniqueDays: [],
-      cycleEndedAt: 0,
-    }
-  )
+  return load<ReviewState>(STORAGE_KEY) ?? { totalMeetings: 0, disabled: false }
 }
 
 function setState(state: ReviewState): void {
   save(STORAGE_KEY, state)
 }
 
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function freshCycle(): ReviewState {
-  return { meetingsInCycle: 0, uniqueDays: [], cycleEndedAt: 0 }
-}
-
-/**
- * Call when the user finishes a Zoom meeting.
- * Tracks meeting count and unique usage days for the current review cycle.
- */
-export function recordMeetingJoined(): void {
-  if (!REVIEW_ENABLED) return
-
-  let state = getState()
-
-  // If cycle ended and cooldown has passed, start a fresh cycle
-  if (state.cycleEndedAt > 0 && Date.now() - state.cycleEndedAt >= POST_REVIEW_MS) {
-    state = freshCycle()
-  }
-
-  // Still in cooldown — don't count meetings
-  if (state.cycleEndedAt > 0) {
-    return
-  }
-
-  // Track unique day
-  const day = todayString()
-  if (!state.uniqueDays.includes(day)) {
-    state.uniqueDays.push(day)
-  }
-
-  state.meetingsInCycle += 1
-  setState(state)
-}
-
-/**
- * Call after recordMeetingJoined(). Shows the review prompt on odd-numbered
- * meetings (1st, 3rd, 5th, ...) within the active cycle window.
- */
-export async function maybeRequestReview(): Promise<void> {
+async function handleMeetingCompleted(): Promise<void> {
   if (!REVIEW_ENABLED) return
   if (Platform.OS === "web") return
 
-  const available = await StoreReview.isAvailableAsync()
-  if (!available) return
-
   const state = getState()
+  state.totalMeetings += 1
+  setState(state)
 
-  // In cooldown — skip
-  if (state.cycleEndedAt > 0) return
+  const tm = state.totalMeetings
+  logger.debug("review: meeting recorded", {
+    tm,
+    MIN_MEETINGS,
+    REMINDER_MEETINGS,
+    disabled: state.disabled,
+  })
 
-  // Cycle exhausted (used app on more than MAX_CYCLE_DAYS unique days) — end cycle
-  if (state.uniqueDays.length > MAX_CYCLE_DAYS) {
-    state.cycleEndedAt = Date.now()
-    setState(state)
+  if (state.disabled) return
+
+  // Native StoreReview at exactly MIN_MEETINGS
+  if (tm === MIN_MEETINGS) {
+    logger.debug("review: showing native StoreReview", { tm })
+    const available = await StoreReview.isAvailableAsync()
+    if (available) await StoreReview.requestReview()
     return
   }
 
-  // Prompt on odd meeting numbers: 1, 3, 5, 7, ...
-  if (state.meetingsInCycle > 0 && state.meetingsInCycle % 2 === 1) {
-    await StoreReview.requestReview()
+  // Reminder dialog every REMINDER_MEETINGS after MIN_MEETINGS
+  if (tm > MIN_MEETINGS && (tm - MIN_MEETINGS) % REMINDER_MEETINGS === 0) {
+    logger.debug("review: showing reminder dialog", { tm })
+    Alert.alert(
+      translate("common:reviewReminderTitle"),
+      translate("common:reviewReminderMessage"),
+      [
+        {
+          text: translate("common:ok"),
+          style: "default",
+          onPress: () => navigate("Settings" as never, { section: "legal" } as never),
+        },
+        {
+          text: translate("common:dontShowAgain"),
+          style: "cancel",
+          onPress: () => {
+            const s = getState()
+            s.disabled = true
+            setState(s)
+          },
+        },
+      ],
+    )
   }
 }
 
 /**
- * Explicit review request from Settings. Always shows the prompt (if available)
- * and ends the current cycle, starting a cooldown before the next cycle.
+ * Subscribe to meeting completed events. Call once at app startup.
+ */
+export function initReviewService(): void {
+  meetingEvents.subscribe((event) => {
+    if (event.type === "completed") handleMeetingCompleted()
+  })
+}
+
+/**
+ * Explicit review request from Settings "Rate App" button.
  */
 export async function requestReviewFromSettings(): Promise<void> {
   if (!REVIEW_ENABLED) return
@@ -129,8 +110,7 @@ export async function requestReviewFromSettings(): Promise<void> {
 
   await StoreReview.requestReview()
 
-  // Rating from Settings ends the cycle → cooldown before next cycle
   const state = getState()
-  state.cycleEndedAt = Date.now()
+  state.disabled = true
   setState(state)
 }

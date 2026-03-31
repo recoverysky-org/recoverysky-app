@@ -70,6 +70,7 @@ import {
   getLastNotificationResponse,
   setNotificationLanguage,
 } from "./services/notifications"
+import { initReviewService } from "./services/review"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
@@ -390,6 +391,8 @@ export function App() {
             (id) => setTrackingUserId(id || undefined),
           )
         }
+
+        initReviewService()
 
         setRootStore(_rootStore)
         trackEvent("app_initialized", { sessionId })

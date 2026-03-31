@@ -26,7 +26,7 @@ import {
 } from "@/db"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
-import { recordMeetingJoined, maybeRequestReview } from "@/services/review"
+import { meetingEvents } from "@/db/meetingEvents"
 import { getZakToken } from "@/services/zak"
 import { logger } from "@/utils/logger"
 
@@ -96,6 +96,7 @@ interface MeetingContext {
  * instance still see the context that was set by the old instance's joinMeeting.
  */
 let meetingContext: MeetingContext | null = null
+let wasInMeeting = false
 
 /**
  * Context value provided by ZoomMeetingProvider
@@ -183,7 +184,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         [
           { text: translate("common:ok"), style: "default" },
           {
-            text: translate("zoomMeeting:dontShowAgain"),
+            text: translate("common:dontShowAgain"),
             style: "cancel",
             onPress: () => profileStore.setDontShowShortMeetingWarning(true),
           },
@@ -308,6 +309,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
       // Track when we actually enter the meeting
       if (event.stateName === "inMeeting") {
+        wasInMeeting = true
         if (meetingContext) {
           meetingContext.inMeetingAt = Date.now()
           log.debug("inMeeting", { attendanceId: meetingContext.attendanceId })
@@ -373,8 +375,11 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       addEvent("Meeting ended", { reason: event.reasonName, code: event.reason })
       setMeetingState("idle")
 
-      recordMeetingJoined()
-      maybeRequestReview()
+      if (wasInMeeting) {
+        wasInMeeting = false
+        log.info("Meeting completed, emitting housekeeping event", { reason: event.reasonName })
+        meetingEvents.completed(event.reasonName)
+      }
     },
     onAuthReturn: (event: ZoomAuthEvent) => {
       log.info("Auth", { success: event.success })
