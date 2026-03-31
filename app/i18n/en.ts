@@ -10,6 +10,9 @@ const en = {
     configErrorTitle: "Unable to Connect",
     configErrorMessage:
       "RecoverySky could not load its configuration. Please check your internet connection and try again.\n\nIf this problem persists, contact support@recoverysky.app",
+    dontShowAgain: "Don't show again",
+    reviewReminderTitle: "Enjoying RecoverySky?",
+    reviewReminderMessage: "You can rate the app anytime in Settings.",
   },
   welcomeScreen: {
     postscript:
@@ -130,6 +133,10 @@ const en = {
     ratingsTitle: "Rate Meetings",
     ratingsDescription:
       "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
+    // Rate App
+    rateAppTitle: "Enjoying RecoverySky?",
+    rateAppDescription: "If the app has been helpful, a quick rating goes a long way!",
+    rateApp: "Rate App",
     // Support
     supportTitle: "Need Help?",
     supportDescription: "Have a question, or need help?",
@@ -465,7 +472,6 @@ const en = {
     shortMeetingTitle: "Meeting Too Short",
     shortMeetingMessage:
       "Your meeting was only {{minutes}} minute(s). At least {{required}} minute(s) are required to receive attendance credit. This record will not appear in your attendance history.",
-    dontShowAgain: "Don't show again",
     attendanceSaved: "Attendance Saved",
   },
   // Dev Screen (hidden)

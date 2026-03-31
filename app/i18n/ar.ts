@@ -12,6 +12,9 @@ const ar: Translations = {
     configErrorTitle: "تعذّر الاتصال",
     configErrorMessage:
       "لم يتمكن RecoverySky من تحميل إعداداته. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت هذه المشكلة، تواصل مع support@recoverysky.app",
+    dontShowAgain: "لا تظهر مرة أخرى",
+    reviewReminderTitle: "هل تستمتع بـ RecoverySky؟",
+    reviewReminderMessage: "يمكنك تقييم التطبيق في أي وقت من الإعدادات.",
   },
   welcomeScreen: {
     postscript: "على الأرجح تطبيقك لا يبدو هكذا.",
@@ -125,6 +128,9 @@ const ar: Translations = {
     ratingsTitle: "قيّم الاجتماعات",
     ratingsDescription:
       "استخدم النجوم لتقييم الاجتماعات حسب تجربتك. الاجتماعات الأعلى تقييماً تظهر أولاً. تقييماتك شخصية ولا تُشارَك أبداً.",
+    rateAppTitle: "هل تستمتع بـ RecoverySky؟",
+    rateAppDescription: "إذا كان التطبيق مفيداً لك، تقييم سريع يساعدنا كثيراً!",
+    rateApp: "قيّم التطبيق",
     supportTitle: "هل تحتاج مساعدة؟",
     supportDescription: "هل لديك سؤال أو تحتاج مساعدة؟",
     goToSupport: "الحصول على الدعم",
@@ -449,7 +455,6 @@ const ar: Translations = {
     shortMeetingTitle: "الاجتماع قصير جداً",
     shortMeetingMessage:
       "كان اجتماعك {{minutes}} دقيقة/دقائق فقط. يلزم {{required}} دقيقة/دقائق على الأقل لاحتساب الحضور. لن يظهر هذا السجل في سجل حضورك.",
-    dontShowAgain: "لا تظهر مرة أخرى",
     attendanceSaved: "تم حفظ الحضور",
   },
   devScreen: {

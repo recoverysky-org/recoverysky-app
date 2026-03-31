@@ -12,6 +12,9 @@ const fr: Translations = {
     configErrorTitle: "Connexion impossible",
     configErrorMessage:
       "RecoverySky n'a pas pu charger sa configuration. Vérifie ta connexion Internet et réessaie.\n\nSi ce problème persiste, contacte support@recoverysky.app",
+    dontShowAgain: "Ne plus afficher",
+    reviewReminderTitle: "Tu aimes RecoverySky ?",
+    reviewReminderMessage: "Tu peux évaluer l'app à tout moment dans les Réglages.",
   },
   welcomeScreen: {
     postscript: "Ça ressemble probablement pas à ton app.",
@@ -132,6 +135,9 @@ const fr: Translations = {
     ratingsTitle: "Évaluer les réunions",
     ratingsDescription:
       "Utilise les étoiles pour évaluer les réunions selon ton expérience. Les réunions les mieux cotées apparaissent en premier. Tes évaluations sont personnelles et jamais partagées.",
+    rateAppTitle: "Tu aimes RecoverySky ?",
+    rateAppDescription: "Si l'app t'a aidé, une évaluation rapide nous aide énormément !",
+    rateApp: "Évaluer l'app",
     // Support
     supportTitle: "Besoin d'aide ?",
     supportDescription: "Tu as une question ou besoin d'aide ?",
@@ -468,7 +474,6 @@ const fr: Translations = {
     shortMeetingTitle: "Réunion trop courte",
     shortMeetingMessage:
       "Ta réunion a duré seulement {{minutes}} minute(s). Au moins {{required}} minute(s) sont requises pour recevoir un crédit de présence. Ce registre n'apparaîtra pas dans ton historique de présence.",
-    dontShowAgain: "Ne plus afficher",
     attendanceSaved: "Présence enregistrée",
   },
   devScreen: {

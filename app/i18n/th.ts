@@ -12,6 +12,9 @@ const th: Translations = {
     configErrorTitle: "ไม่สามารถเชื่อมต่อได้",
     configErrorMessage:
       "RecoverySky ไม่สามารถโหลดการตั้งค่าได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหานี้ยังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
+    dontShowAgain: "ไม่ต้องแสดงอีก",
+    reviewReminderTitle: "ชอบ RecoverySky ไหม?",
+    reviewReminderMessage: "คุณสามารถให้คะแนนแอปได้ตลอดเวลาในการตั้งค่า",
   },
   welcomeScreen: {
     postscript: "แอปของคุณอาจไม่ได้หน้าตาแบบนี้นะ",
@@ -126,6 +129,9 @@ const th: Translations = {
     ratingsTitle: "ให้คะแนนประชุม",
     ratingsDescription:
       "ใช้ดาวเพื่อให้คะแนนประชุมตามประสบการณ์ของคุณ ประชุมที่คะแนนสูงจะแสดงก่อน คะแนนของคุณเป็นส่วนตัวและไม่ถูกแชร์ให้ใครนะ",
+    rateAppTitle: "ชอบ RecoverySky ไหม?",
+    rateAppDescription: "ถ้าแอปช่วยคุณได้ การให้คะแนนสั้นๆ จะช่วยเราได้มากเลยนะ!",
+    rateApp: "ให้คะแนนแอป",
     supportTitle: "ต้องการความช่วยเหลือ?",
     supportDescription: "มีคำถามหรือต้องการความช่วยเหลือ?",
     goToSupport: "รับการสนับสนุน",
@@ -453,7 +459,6 @@ const th: Translations = {
     shortMeetingTitle: "ประชุมสั้นเกินไป",
     shortMeetingMessage:
       "การประชุมของคุณอยู่เพียง {{minutes}} นาที ต้องเข้าร่วมอย่างน้อย {{required}} นาทีจึงจะได้รับเครดิตการเข้าร่วม บันทึกนี้จะไม่ปรากฏในประวัติการเข้าร่วมของคุณนะ",
-    dontShowAgain: "ไม่ต้องแสดงอีก",
     attendanceSaved: "บันทึกการเข้าร่วมแล้ว",
   },
   devScreen: {

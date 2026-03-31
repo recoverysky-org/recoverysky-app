@@ -12,6 +12,9 @@ const de: Translations = {
     configErrorTitle: "Verbindung nicht möglich",
     configErrorMessage:
       "RecoverySky konnte seine Konfiguration nicht laden. Bitte überprüfe deine Internetverbindung und versuche es erneut.\n\nWenn dieses Problem weiterhin besteht, kontaktiere support@recoverysky.app",
+    dontShowAgain: "Nicht mehr anzeigen",
+    reviewReminderTitle: "Gefällt dir RecoverySky?",
+    reviewReminderMessage: "Du kannst die App jederzeit in den Einstellungen bewerten.",
   },
   welcomeScreen: {
     postscript: "So sieht deine App wahrscheinlich nicht aus.",
@@ -132,6 +135,9 @@ const de: Translations = {
     ratingsTitle: "Meetings bewerten",
     ratingsDescription:
       "Nutze Sterne, um Meetings nach deiner Erfahrung zu bewerten. Höher bewertete Meetings erscheinen zuerst. Deine Bewertungen sind persönlich und werden nie geteilt.",
+    rateAppTitle: "Gefällt dir RecoverySky?",
+    rateAppDescription: "Wenn die App dir geholfen hat, hilft uns eine kurze Bewertung sehr!",
+    rateApp: "App bewerten",
     supportTitle: "Brauchst du Hilfe?",
     supportDescription: "Hast du eine Frage oder brauchst Hilfe?",
     goToSupport: "Support erhalten",
@@ -465,7 +471,6 @@ const de: Translations = {
     shortMeetingTitle: "Meeting zu kurz",
     shortMeetingMessage:
       "Dein Meeting dauerte nur {{minutes}} Minute(n). Mindestens {{required}} Minute(n) sind erforderlich, um einen Teilnahme-Nachweis zu erhalten. Dieser Eintrag wird nicht in deiner Teilnahme-Historie erscheinen.",
-    dontShowAgain: "Nicht mehr anzeigen",
     attendanceSaved: "Teilnahme gespeichert",
   },
   devScreen: {

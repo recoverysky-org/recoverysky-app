@@ -12,6 +12,9 @@ const uk: Translations = {
     configErrorTitle: "Не вдалося підключитися",
     configErrorMessage:
       "RecoverySky не вдалося завантажити конфігурацію. Перевір підключення до інтернету та спробуй знову.\n\nЯкщо проблема не зникне, звернися до support@recoverysky.app",
+    dontShowAgain: "Більше не показувати",
+    reviewReminderTitle: "Подобається RecoverySky?",
+    reviewReminderMessage: "Ти можеш оцінити додаток у будь-який час у Налаштуваннях.",
   },
   welcomeScreen: {
     postscript: "Мабуть, твій додаток виглядає не так.",
@@ -131,6 +134,9 @@ const uk: Translations = {
     ratingsTitle: "Оціни зустрічі",
     ratingsDescription:
       "Використовуй зірки, щоб оцінити зустрічі за своїм досвідом. Зустрічі з вищим рейтингом відображаються першими. Твої оцінки особисті та ніколи не передаються.",
+    rateAppTitle: "Подобається RecoverySky?",
+    rateAppDescription: "Якщо додаток був корисним, швидка оцінка дуже нам допоможе!",
+    rateApp: "Оцінити",
     supportTitle: "Потрібна допомога?",
     supportDescription: "Маєте запитання або потрібна допомога?",
     goToSupport: "Отримати підтримку",
@@ -461,7 +467,6 @@ const uk: Translations = {
     shortMeetingTitle: "Зустріч занадто коротка",
     shortMeetingMessage:
       "Твоя зустріч тривала лише {{minutes}} хв. Для заліку відвідування потрібно щонайменше {{required}} хв. Цей запис не з'явиться в твоїй історії відвідувань.",
-    dontShowAgain: "Більше не показувати",
     attendanceSaved: "Відвідування збережено",
   },
   devScreen: {

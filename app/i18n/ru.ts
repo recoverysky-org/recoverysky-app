@@ -12,6 +12,9 @@ const ru: Translations = {
     configErrorTitle: "Не удалось подключиться",
     configErrorMessage:
       "RecoverySky не удалось загрузить конфигурацию. Проверь подключение к интернету и попробуй снова.\n\nЕсли проблема не исчезнет, обратись в support@recoverysky.app",
+    dontShowAgain: "Больше не показывать",
+    reviewReminderTitle: "Нравится RecoverySky?",
+    reviewReminderMessage: "Ты можешь оценить приложение в любое время в Настройках.",
   },
   welcomeScreen: {
     postscript: "Скорее всего, твоё приложение выглядит не так.",
@@ -132,6 +135,9 @@ const ru: Translations = {
     ratingsTitle: "Оцени собрания",
     ratingsDescription:
       "Используй звёзды, чтобы оценить собрания по своему опыту. Собрания с высоким рейтингом отображаются первыми. Твои оценки личные и никогда не передаются.",
+    rateAppTitle: "Нравится RecoverySky?",
+    rateAppDescription: "Если приложение было полезно, быстрая оценка очень нам поможет!",
+    rateApp: "Оценить",
     supportTitle: "Нужна помощь?",
     supportDescription: "Есть вопрос или нужна помощь?",
     goToSupport: "Получить поддержку",
@@ -463,7 +469,6 @@ const ru: Translations = {
     shortMeetingTitle: "Собрание слишком короткое",
     shortMeetingMessage:
       "Твоё собрание длилось всего {{minutes}} мин. Для зачёта посещения требуется не менее {{required}} мин. Эта запись не появится в твоей истории посещений.",
-    dontShowAgain: "Больше не показывать",
     attendanceSaved: "Посещение сохранено",
   },
   devScreen: {
