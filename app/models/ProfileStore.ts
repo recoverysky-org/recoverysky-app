@@ -79,7 +79,7 @@ export const ProfileStoreModel = types
   })
   .volatile(() => ({
     // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
-    shortName: "Anonymous",
+    shortName: "Anon M.",
     pronouns: null as Pronouns,
     recoveryDate: new Date().toISOString().split("T")[0],
     fellowship: "AA",
@@ -363,7 +363,7 @@ export const ProfileStoreModel = types
        */
       reset() {
         // Reset volatile (sensitive) data
-        self.shortName = "Anonymous"
+        self.shortName = "Anon M."
         self.pronouns = null
         self.recoveryDate = new Date().toISOString().split("T")[0]
         self.fellowship = "AA"

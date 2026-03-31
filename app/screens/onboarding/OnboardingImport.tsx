@@ -76,7 +76,7 @@ async function importUserProfile(
   const secureData: Record<string, string | null> = {}
   const today = new Date().toISOString().split("T")[0]
 
-  if (profile.shortName && profileStore.shortName === "Anonymous") {
+  if (profile.shortName && profileStore.shortName === "Anon M.") {
     secureData.shortName = profile.shortName
   }
   if (profile.pronouns && profileStore.pronouns === null) {
