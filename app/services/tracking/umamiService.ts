@@ -135,10 +135,17 @@ function send(payload: UmamiPayload): void {
   const eventName = payload.name ?? payload.title ?? payload.url
 
   // Fire-and-forget — analytics should never crash the app
+  // User-Agent must look browser-like or Umami's isbot filter silently drops the event (returns 200)
+  const ua =
+    Platform.OS === "ios"
+      ? `Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) RecoverySky/${appVersion}`
+      : `Mozilla/5.0 (Linux; Android 14) RecoverySky/${appVersion}`
+
   fetch(`${hostUrl}/api/send`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "User-Agent": ua,
       ...(apiKey && { "X-API-Key": apiKey }),
     },
     body,
@@ -150,7 +157,7 @@ function send(payload: UmamiPayload): void {
         log.warn("Umami send failed", { event: eventName, status: r.status })
       }
     })
-    .catch(() => {
-      // Silently drop network failures
+    .catch((e) => {
+      log.warn("Umami send error", { event: eventName, error: String(e) })
     })
 }
