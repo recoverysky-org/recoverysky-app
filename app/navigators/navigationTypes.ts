@@ -24,6 +24,7 @@ export type SettingsSection =
   | "zoom"
   | "account"
   | "import"
+  | "legal"
 
 // Main Tab Navigator types
 export type MainTabParamList = {

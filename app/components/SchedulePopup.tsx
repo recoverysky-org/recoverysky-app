@@ -25,6 +25,7 @@ import {
   StyleSheet,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import { useIsFocused } from "@react-navigation/native"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
@@ -61,6 +62,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const isFocused = useIsFocused()
+
+  // Auto-close when parent screen loses focus (e.g. navigating to Settings from review prompt)
+  useEffect(() => {
+    if (!isFocused && visible) onClose()
+  }, [isFocused, visible, onClose])
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const { isPremium } = useSubscription()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)

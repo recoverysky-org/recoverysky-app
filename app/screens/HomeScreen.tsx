@@ -10,7 +10,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { translate, type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
-import { MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
+import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -30,7 +30,7 @@ interface HelpCardDef {
   descriptionTx: TxKeyPath
   actionTx?: TxKeyPath
   actionTab?: "Meetings" | "Attendance" | "Settings"
-  actionParams?: { segment?: MeetingsSegment }
+  actionParams?: Record<string, string>
   actionUrl?: string
 }
 
@@ -102,6 +102,15 @@ const HELP_CARDS: HelpCardDef[] = [
     titleTx: "homeScreen:ratingsTitle",
     descriptionTx: "homeScreen:ratingsDescription",
   },
+  {
+    id: "rate-app",
+    icon: "star",
+    titleTx: "homeScreen:rateAppTitle",
+    descriptionTx: "homeScreen:rateAppDescription",
+    actionTx: "homeScreen:rateApp",
+    actionTab: "Settings",
+    actionParams: { section: "legal" },
+  },
 ]
 
 /**
@@ -153,9 +162,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       } else if (card.actionUrl) {
         Linking.openURL(card.actionUrl)
       } else if (card.actionTab) {
-        // Navigate to the tab with optional params
-        // @ts-expect-error - Navigation params typing is complex with segment params
-        navigation.navigate(card.actionTab, card.actionParams)
+        navigation.navigate(card.actionTab, card.actionParams as never)
       }
     },
     [navigation, profileStore],

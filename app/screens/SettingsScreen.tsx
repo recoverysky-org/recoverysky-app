@@ -1129,7 +1129,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Legal Section */}
-      <View style={themed($section)}>
+      <View style={themed($section)} onLayout={trackSection("legal")}>
         <TouchableOpacity
           style={themed($upgradeButton)}
           onPress={() => requestReviewFromSettings()}
