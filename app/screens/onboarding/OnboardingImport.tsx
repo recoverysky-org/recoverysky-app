@@ -343,13 +343,12 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
           style={[
             themed($button),
             {
-              borderColor: profileStore.imported ? theme.colors.textDim : theme.colors.tint,
+              borderColor: theme.colors.tint,
               shadowColor: theme.colors.tint,
-              opacity: profileStore.imported ? 0.4 : 1,
             },
           ]}
           onPress={handleImportCloudData}
-          disabled={importing || profileStore.imported}
+          disabled={importing}
           accessibilityRole="button"
           accessibilityLabel={translate("onboarding:importCloudData")}
         >
@@ -358,14 +357,14 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
           ) : (
             <>
               <Ionicons
-                name={profileStore.imported ? "checkmark-circle" : "cloud-download-outline"}
+                name="cloud-download-outline"
                 size={20}
-                color={profileStore.imported ? theme.colors.textDim : theme.colors.tint}
+                color={theme.colors.tint}
               />
               <Text
                 style={[
                   themed($buttonText),
-                  { color: profileStore.imported ? theme.colors.textDim : theme.colors.tint },
+                  { color: theme.colors.tint },
                 ]}
                 tx="onboarding:importCloudData"
               />
