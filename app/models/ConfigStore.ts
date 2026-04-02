@@ -149,8 +149,8 @@ export const ConfigStoreModel = types
           }
         }
 
-        // All retries exhausted
-        throw new Error("Failed to load configuration after " + MAX_RETRIES + " attempts")
+        // All retries exhausted — continue with baked-in env var defaults
+        log.warn("Config fetch failed after " + MAX_RETRIES + " attempts, using env var defaults")
       } finally {
         store.isLoading = false
       }

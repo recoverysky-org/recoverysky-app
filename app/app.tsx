@@ -260,27 +260,10 @@ export function App() {
         await initializeDeviceAuthorization(deviceId)
 
         // Fetch server config (keys, secrets, URLs from /config endpoint)
-        // Critical: retries 3x, then shows support contact and exits
-        await _rootStore.configStore.fetchConfig().catch(() => {
-          return new Promise<never>(() => {
-            Alert.alert(
-              translate("common:configErrorTitle"),
-              translate("common:configErrorMessage"),
-              [
-                {
-                  text: translate("common:closeApp"),
-                  onPress: () => {
-                    if (Platform.OS === "ios") {
-                      // iOS doesn't allow programmatic exit; suspending hides the app
-                      Linking.openURL("app-settings:")
-                    } else {
-                      BackHandler.exitApp()
-                    }
-                  },
-                },
-              ],
-              { cancelable: false },
-            )
+        // Non-fatal: env var defaults are baked into ConfigStore props
+        await _rootStore.configStore.fetchConfig().catch((err) => {
+          log.warn("Config fetch failed, using baked-in env var defaults", {
+            error: err instanceof Error ? err.message : String(err),
           })
         })
 
