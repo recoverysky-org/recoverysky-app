@@ -31,22 +31,39 @@ export const ConfigStoreModel = types
     zoomSdkSecret: types.optional(types.string, process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""),
     /** Anonymous auth API key */
     authKey: types.optional(types.string, process.env.EXPO_PUBLIC_AUTH_KEY || ""),
-    /** RevenueCat test API key (from server /config) */
-    revenueCatTestKey: types.optional(types.string, ""),
-    /** RevenueCat Apple API key (from server /config) */
-    revenueCatAppleKey: types.optional(types.string, ""),
-    /** RevenueCat Google API key (from server /config) */
-    revenueCatGoogleKey: types.optional(types.string, ""),
-    /** ZAK service API key (from server /config) */
-    zakApiKey: types.optional(types.string, ""),
-    /** OTLP collector API key (from server /config) */
-    otlpApiKey: types.optional(types.string, ""),
-    /** Umami analytics URL (from server /config) */
-    umamiUrl: types.optional(types.string, ""),
-    /** Umami website ID (from server /config) */
-    umamiWebsiteId: types.optional(types.string, ""),
-    /** Umami X-API-Key (from server /config) */
-    umamiApiKey: types.optional(types.string, ""),
+    /** RevenueCat test API key */
+    revenueCatTestKey: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_REVENUE_CAT_API_TEST_KEY || "",
+    ),
+    /** RevenueCat Apple API key */
+    revenueCatAppleKey: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_REVENUE_CAT_API_APPLE_KEY || "",
+    ),
+    /** RevenueCat Google API key */
+    revenueCatGoogleKey: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_REVENUE_CAT_API_GOOGLE_KEY || "",
+    ),
+    /** ZAK service API key */
+    zakApiKey: types.optional(types.string, process.env.EXPO_PUBLIC_ZAK_API_KEY || ""),
+    /** OneSignal app ID */
+    oneSignalAppId: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_ONE_SIGNAL_APP_ID || "",
+    ),
+    /** OTLP collector API key */
+    otlpApiKey: types.optional(types.string, process.env.EXPO_PUBLIC_OTLP_API_KEY || ""),
+    /** Umami analytics URL */
+    umamiUrl: types.optional(types.string, process.env.EXPO_PUBLIC_UMAMI_URL || ""),
+    /** Umami website ID */
+    umamiWebsiteId: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || "",
+    ),
+    /** Umami X-API-Key */
+    umamiApiKey: types.optional(types.string, process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -95,6 +112,7 @@ export const ConfigStoreModel = types
               if (config.REVENUE_CAT_API_GOOGLE_KEY)
                 store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
               if (config.ZAK_API_KEY) store.zakApiKey = config.ZAK_API_KEY
+              if (config.ONE_SIGNAL_APP_ID) store.oneSignalAppId = config.ONE_SIGNAL_APP_ID
               if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
               if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
               if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
@@ -147,14 +165,15 @@ export const ConfigStoreModel = types
       store.zoomSdkKey = process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""
       store.zoomSdkSecret = process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""
       store.authKey = process.env.EXPO_PUBLIC_AUTH_KEY || ""
-      store.revenueCatTestKey = ""
-      store.revenueCatAppleKey = ""
-      store.revenueCatGoogleKey = ""
-      store.zakApiKey = ""
-      store.otlpApiKey = ""
-      store.umamiUrl = ""
-      store.umamiWebsiteId = ""
-      store.umamiApiKey = ""
+      store.revenueCatTestKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_TEST_KEY || ""
+      store.revenueCatAppleKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_APPLE_KEY || ""
+      store.revenueCatGoogleKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_GOOGLE_KEY || ""
+      store.zakApiKey = process.env.EXPO_PUBLIC_ZAK_API_KEY || ""
+      store.oneSignalAppId = process.env.EXPO_PUBLIC_ONE_SIGNAL_APP_ID || ""
+      store.otlpApiKey = process.env.EXPO_PUBLIC_OTLP_API_KEY || ""
+      store.umamiUrl = process.env.EXPO_PUBLIC_UMAMI_URL || ""
+      store.umamiWebsiteId = process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || ""
+      store.umamiApiKey = process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""
       store.isLoaded = false
     },
   }))
