@@ -39,7 +39,7 @@ export function initializeUmami(url: string, id: string, key: string): void {
   websiteId = id
   apiKey = key
   isInitialized = true
-  log.info("Umami initialized", { url: hostUrl, websiteId: websiteId.slice(0, 8) + "..." })
+  log.debug("Umami initialized", { url: hostUrl, websiteId: websiteId.slice(0, 8) + "..." })
 }
 
 /**
@@ -129,19 +129,22 @@ function send(payload: UmamiPayload): void {
       language: getLanguage(),
       screen: getScreenDimensions(),
       id: userId,
+      userAgent: `Mozilla/5.0 (RecoverySky/${appVersion}; ${Platform.OS})`,
     },
   })
 
   const eventName = payload.name ?? payload.title ?? payload.url
 
-  // Fire-and-forget — analytics should never crash the app
+  const endpoint = `${hostUrl}/api/send`
+
   // User-Agent must look browser-like or Umami's isbot filter silently drops the event (returns 200)
   const ua =
     Platform.OS === "ios"
       ? `Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) RecoverySky/${appVersion}`
       : `Mozilla/5.0 (Linux; Android 14) RecoverySky/${appVersion}`
 
-  fetch(`${hostUrl}/api/send`, {
+  // Fire-and-forget — analytics should never crash the app
+  fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -150,14 +153,19 @@ function send(payload: UmamiPayload): void {
     },
     body,
   })
-    .then((r) => {
+    .then(async (r) => {
+      const text = await r.text().catch(() => "")
       if (r.ok) {
-        log.info("Umami event sent", { event: eventName, status: r.status })
+        log.debug("Umami event sent", { event: eventName, status: r.status, body: text })
       } else {
-        log.warn("Umami send failed", { event: eventName, status: r.status })
+        log.warn("Umami send failed", { event: eventName, status: r.status, body: text })
       }
     })
-    .catch((e) => {
-      log.warn("Umami send error", { event: eventName, error: String(e) })
+    .catch((err) => {
+      log.error("Umami fetch error", {
+        event: eventName,
+        endpoint,
+        error: err instanceof Error ? err.message : String(err),
+      })
     })
 }
