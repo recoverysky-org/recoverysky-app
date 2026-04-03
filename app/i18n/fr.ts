@@ -390,7 +390,7 @@ const fr: Translations = {
     importSubtitle: "On a trouvé des données de AA/NA Live! Tu veux les importer?",
     importJournalHint:
       "Le journal n'est pas disponible dans cette app, mais tu peux exporter les données de ton ancien journal en PDF.",
-    importCloudData: "Importer les données du nuage",
+    importCloudData: "Importer la présence",
     exportJournalPdf: "Exporter le journal en PDF",
     importSkip: "Continuer",
     importCompleteTitle: "Importation terminée!",

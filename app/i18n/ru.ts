@@ -386,7 +386,7 @@ const ru: Translations = {
     importSubtitle: "Мы нашли данные из AA/NA Live! Хочешь их импортировать?",
     importJournalHint:
       "Дневник недоступен в этом приложении, но ты можешь экспортировать данные старого дневника в PDF.",
-    importCloudData: "Импортировать из облака",
+    importCloudData: "Импортировать посещаемость",
     exportJournalPdf: "Экспорт дневника в PDF",
     importSkip: "Продолжить",
     importCompleteTitle: "Импорт завершён!",

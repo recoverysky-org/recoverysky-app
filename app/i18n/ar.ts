@@ -377,7 +377,7 @@ const ar: Translations = {
     importSubtitle: "وجدنا بيانات من AA/NA Live! هل تريد استيرادها؟",
     importJournalHint:
       "المذكرات غير متاحة في هذا التطبيق، لكن يمكنك تصدير بيانات مذكراتك القديمة كملف PDF.",
-    importCloudData: "استيراد البيانات السحابية",
+    importCloudData: "استيراد الحضور",
     exportJournalPdf: "تصدير المذكرات كـ PDF",
     importSkip: "متابعة",
     importCompleteTitle: "تم الاستيراد!",

@@ -386,7 +386,7 @@ const es: Translations = {
     importSubtitle: "Encontramos datos de AA/NA Live! ¿Te gustaría importarlos?",
     importJournalHint:
       "El diario no está disponible en esta aplicación, pero puedes exportar los datos de tu diario anterior como PDF.",
-    importCloudData: "Importar Datos de la Nube",
+    importCloudData: "Importar Asistencia",
     exportJournalPdf: "Exportar Diario PDF",
     importSkip: "Continuar",
     importCompleteTitle: "Importación Completa!",

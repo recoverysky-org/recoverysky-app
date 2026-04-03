@@ -380,7 +380,7 @@ const th: Translations = {
     importSubtitle: "เราพบข้อมูลจาก AA/NA Live! ต้องการนำเข้าไหม?",
     importJournalHint:
       "ไดอารี่ไม่พร้อมใช้งานในแอปนี้ แต่คุณสามารถส่งออกข้อมูลไดอารี่เก่าเป็น PDF ได้นะ",
-    importCloudData: "นำเข้าข้อมูลจากคลาวด์",
+    importCloudData: "นำเข้าการเข้าร่วม",
     exportJournalPdf: "ส่งออกไดอารี่เป็น PDF",
     importSkip: "ข้ามไป",
     importCompleteTitle: "นำเข้าเสร็จแล้ว!",

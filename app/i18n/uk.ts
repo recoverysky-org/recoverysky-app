@@ -385,7 +385,7 @@ const uk: Translations = {
     importSubtitle: "Ми знайшли дані з AA/NA Live! Хочеш їх імпортувати?",
     importJournalHint:
       "Щоденник недоступний у цьому додатку, але ти можеш експортувати дані старого щоденника у PDF.",
-    importCloudData: "Імпортувати з хмари",
+    importCloudData: "Імпортувати відвідуваність",
     exportJournalPdf: "Експорт щоденника у PDF",
     importSkip: "Продовжити",
     importCompleteTitle: "Імпорт завершено!",

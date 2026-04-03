@@ -387,7 +387,7 @@ const de: Translations = {
     importSubtitle: "Wir haben Daten von AA/NA Live gefunden! Möchtest du sie importieren?",
     importJournalHint:
       "Das Tagebuch ist in dieser App nicht verfügbar, aber du kannst deine alten Tagebuchdaten als PDF exportieren.",
-    importCloudData: "Cloud-Daten importieren",
+    importCloudData: "Anwesenheit importieren",
     exportJournalPdf: "Tagebuch als PDF exportieren",
     importSkip: "Weiter",
     importCompleteTitle: "Import abgeschlossen!",

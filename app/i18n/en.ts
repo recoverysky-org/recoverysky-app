@@ -389,7 +389,7 @@ const en = {
     importSubtitle: "We found data from AA/NA Live! Would you like to import it?",
     importJournalHint:
       "The journal is not available in this app, but you may export your old journal data as a PDF.",
-    importCloudData: "Import Cloud Data",
+    importCloudData: "Import Attendance",
     exportJournalPdf: "Export Journal PDF",
     importSkip: "Continue",
     importCompleteTitle: "Import Complete!",
