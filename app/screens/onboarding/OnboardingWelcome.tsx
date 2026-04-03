@@ -64,10 +64,6 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
       }
     }
 
-    const handleSkip = () => {
-      profileStore.completeOnboarding()
-    }
-
     return (
       <Screen
         preset="fixed"
@@ -111,14 +107,6 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
             )}
           </Pressable>
 
-          <Pressable
-            onPress={handleSkip}
-            style={$skipButton}
-            accessibilityRole="button"
-            accessibilityLabel={translate("onboarding:skipForNow")}
-          >
-            <Text style={themed($skipText)} tx="onboarding:skipForNow" />
-          </Pressable>
         </View>
       </Screen>
     )
@@ -187,12 +175,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontWeight: "600",
 })
 
-const $skipButton: ViewStyle = {
-  alignItems: "center",
-  paddingVertical: 12,
-}
-
-const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})
