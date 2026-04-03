@@ -365,6 +365,13 @@ const de: Translations = {
     restartImport: "Import neu starten",
     rateApp: "RecoverySky bewerten",
     support: "Hilfe & Support",
+    sendErrorReport: "Fehlerbericht senden",
+    errorReportTitle: "Fehlerbericht senden",
+    errorReportPrompt: "Beschreibe das aufgetretene Problem:",
+    errorReportSuccess: "Bericht erfolgreich gesendet",
+    errorReportSuccessMessage: "Vielen Dank! Dein Bericht wurde übermittelt.",
+    errorReportFailed: "Senden fehlgeschlagen",
+    errorReportFailedMessage: "Der Fehlerbericht konnte nicht gesendet werden. Bitte versuche es später erneut.",
     // Advanced Section
     advancedSection: "Erweitert",
     allowExternalZoom: "Externe Zoom-Meetings erlauben",

@@ -358,6 +358,13 @@ const th: Translations = {
     restartImport: "นำเข้าใหม่",
     rateApp: "ให้คะแนน RecoverySky",
     support: "สนับสนุน",
+    sendErrorReport: "ส่งรายงานข้อผิดพลาด",
+    errorReportTitle: "ส่งรายงานข้อผิดพลาด",
+    errorReportPrompt: "อธิบายปัญหาที่คุณพบ:",
+    errorReportSuccess: "ส่งรายงานสำเร็จแล้ว",
+    errorReportSuccessMessage: "ขอบคุณ! รายงานของคุณถูกส่งแล้ว",
+    errorReportFailed: "ส่งไม่สำเร็จ",
+    errorReportFailedMessage: "ไม่สามารถส่งรายงานข้อผิดพลาดได้ กรุณาลองใหม่ภายหลัง",
     // Advanced Section
     advancedSection: "ขั้นสูง",
     allowExternalZoom: "อนุญาตการประชุม Zoom ภายนอก",

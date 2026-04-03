@@ -180,6 +180,10 @@ class LoggerImpl implements Logger {
     this.context = { ...this.context, ...context }
   }
 
+  getContext(): LoggerContext {
+    return { ...this.context }
+  }
+
   clearContext(): void {
     this.context = {}
   }

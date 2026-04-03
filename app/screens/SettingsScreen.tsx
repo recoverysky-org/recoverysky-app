@@ -42,6 +42,7 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
+import { logger } from "@/utils/logger"
 import { requestReviewFromSettings } from "@/services/review"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
@@ -444,6 +445,35 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       return translate("settingsScreen:subscriptionAttendance")
     }
     return translate("settingsScreen:subscriptionFree")
+  }
+
+  const handleSendErrorReport = () => {
+    Alert.prompt(
+      translate("settingsScreen:errorReportTitle"),
+      translate("settingsScreen:errorReportPrompt"),
+      async (description) => {
+        if (!description?.trim()) return
+        const { sessionId } = logger.getContext()
+        const result = await api.sendBugReport({
+          deviceId: authStore.deviceId ?? "unknown",
+          sessionId: sessionId ?? "unknown",
+          description: description.trim(),
+          email: "support@recoverysky.org",
+        })
+        if (result.kind === "ok") {
+          Alert.alert(
+            translate("settingsScreen:errorReportSuccess"),
+            translate("settingsScreen:errorReportSuccessMessage"),
+          )
+        } else {
+          Alert.alert(
+            translate("settingsScreen:errorReportFailed"),
+            translate("settingsScreen:errorReportFailedMessage"),
+          )
+        }
+      },
+      "plain-text",
+    )
   }
 
   return (
@@ -1148,6 +1178,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         >
           <Ionicons name="help-circle-outline" size={18} color={theme.colors.tint} />
           <Text style={themed($upgradeButtonText)} tx="settingsScreen:support" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($upgradeButton)}
+          onPress={handleSendErrorReport}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:sendErrorReport")}
+        >
+          <Ionicons name="bug-outline" size={18} color={theme.colors.tint} />
+          <Text style={themed($upgradeButtonText)} tx="settingsScreen:sendErrorReport" />
         </TouchableOpacity>
 
         <View style={themed($sectionHeader)}>

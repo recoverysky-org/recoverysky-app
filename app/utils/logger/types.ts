@@ -58,6 +58,8 @@ export interface Logger {
   clearTraceContext(): void
   /** Set persistent context (userId, deviceId, sessionId, appVersion) */
   setContext(context: Partial<LoggerContext>): void
+  /** Get current context (sessionId, deviceId, appVersion) */
+  getContext(): LoggerContext
   /** Clear persistent context */
   clearContext(): void
   /** Create a child logger with additional attributes */

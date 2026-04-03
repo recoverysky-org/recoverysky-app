@@ -366,6 +366,13 @@ const en = {
     // Review
     rateApp: "Rate RecoverySky",
     support: "Support",
+    sendErrorReport: "Send Error Report",
+    errorReportTitle: "Send Error Report",
+    errorReportPrompt: "Describe the issue you experienced:",
+    errorReportSuccess: "Report Sent Successfully",
+    errorReportSuccessMessage: "Thank you! Your report has been submitted.",
+    errorReportFailed: "Send Failed",
+    errorReportFailedMessage: "Unable to send the error report. Please try again later.",
     // Advanced Section
     advancedSection: "Advanced",
     allowExternalZoom: "Allow External Zoom Meetings",

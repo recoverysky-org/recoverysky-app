@@ -364,6 +364,13 @@ const ru: Translations = {
     restartImport: "Повторить импорт",
     rateApp: "Оценить RecoverySky",
     support: "Поддержка",
+    sendErrorReport: "Отправить отчёт об ошибке",
+    errorReportTitle: "Отправить отчёт об ошибке",
+    errorReportPrompt: "Опишите проблему, с которой вы столкнулись:",
+    errorReportSuccess: "Отчёт успешно отправлен",
+    errorReportSuccessMessage: "Спасибо! Ваш отчёт был отправлен.",
+    errorReportFailed: "Ошибка отправки",
+    errorReportFailedMessage: "Не удалось отправить отчёт об ошибке. Попробуйте позже.",
     // Advanced Section
     advancedSection: "Дополнительно",
     allowExternalZoom: "Разрешить внешние встречи Zoom",

@@ -363,6 +363,13 @@ const pt: Translations = {
     restartImport: "Refazer Importação",
     rateApp: "Avaliar RecoverySky",
     support: "Suporte",
+    sendErrorReport: "Enviar Relatório de Erro",
+    errorReportTitle: "Enviar Relatório de Erro",
+    errorReportPrompt: "Descreva o problema que você encontrou:",
+    errorReportSuccess: "Relatório Enviado com Sucesso",
+    errorReportSuccessMessage: "Obrigado! Seu relatório foi enviado.",
+    errorReportFailed: "Falha ao Enviar",
+    errorReportFailedMessage: "Não foi possível enviar o relatório de erro. Tente novamente mais tarde.",
     // Advanced Section
     advancedSection: "Avançado",
     allowExternalZoom: "Permitir reuniões externas do Zoom",

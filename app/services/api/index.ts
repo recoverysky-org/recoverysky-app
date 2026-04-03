@@ -1081,6 +1081,35 @@ export class Api {
     log.info("Push token registered")
     return { kind: "ok" }
   }
+  // ==========================================================================
+  // Bug Reports
+  // ==========================================================================
+
+  /**
+   * Send a bug report with device and session context
+   * POST /issues
+   */
+  async sendBugReport(params: {
+    deviceId: string
+    sessionId: string
+    description: string
+    email: string
+  }): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.info("Sending bug report", { deviceId: params.deviceId, sessionId: params.sessionId })
+
+    const response = await this.recoverySkyApi.post("/issues", params)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Bug report send failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.info("Bug report sent successfully")
+    return { kind: "ok" }
+  }
 }
 
 // Singleton instance of the API for convenience

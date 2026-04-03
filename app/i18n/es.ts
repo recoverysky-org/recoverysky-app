@@ -364,6 +364,13 @@ const es: Translations = {
     restartImport: "Reiniciar Importación",
     rateApp: "Calificar RecoverySky",
     support: "Soporte",
+    sendErrorReport: "Enviar Informe de Error",
+    errorReportTitle: "Enviar Informe de Error",
+    errorReportPrompt: "Describe el problema que experimentaste:",
+    errorReportSuccess: "Informe Enviado Exitosamente",
+    errorReportSuccessMessage: "¡Gracias! Tu informe ha sido enviado.",
+    errorReportFailed: "Error al Enviar",
+    errorReportFailedMessage: "No se pudo enviar el informe de error. Inténtalo más tarde.",
     // Advanced Section
     advancedSection: "Avanzado",
     allowExternalZoom: "Permitir reuniones externas de Zoom",

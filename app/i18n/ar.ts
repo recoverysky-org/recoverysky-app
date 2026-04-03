@@ -355,6 +355,13 @@ const ar: Translations = {
     restartImport: "إعادة الاستيراد",
     rateApp: "قيّم RecoverySky",
     support: "الدعم",
+    sendErrorReport: "إرسال تقرير خطأ",
+    errorReportTitle: "إرسال تقرير خطأ",
+    errorReportPrompt: "صف المشكلة التي واجهتها:",
+    errorReportSuccess: "تم إرسال التقرير بنجاح",
+    errorReportSuccessMessage: "شكراً لك! تم إرسال تقريرك.",
+    errorReportFailed: "فشل الإرسال",
+    errorReportFailedMessage: "تعذر إرسال تقرير الخطأ. يرجى المحاولة لاحقاً.",
     // Advanced Section
     advancedSection: "متقدم",
     allowExternalZoom: "السماح باجتماعات Zoom الخارجية",

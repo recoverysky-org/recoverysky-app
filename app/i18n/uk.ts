@@ -363,6 +363,13 @@ const uk: Translations = {
     restartImport: "Повторити імпорт",
     rateApp: "Оцінити RecoverySky",
     support: "Підтримка",
+    sendErrorReport: "Надіслати звіт про помилку",
+    errorReportTitle: "Надіслати звіт про помилку",
+    errorReportPrompt: "Опишіть проблему, з якою ви зіткнулися:",
+    errorReportSuccess: "Звіт успішно надіслано",
+    errorReportSuccessMessage: "Дякуємо! Ваш звіт було надіслано.",
+    errorReportFailed: "Помилка надсилання",
+    errorReportFailedMessage: "Не вдалося надіслати звіт про помилку. Спробуйте пізніше.",
     // Advanced Section
     advancedSection: "Додатково",
     allowExternalZoom: "Дозволити зовнішні зустрічі Zoom",
