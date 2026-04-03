@@ -662,7 +662,7 @@ const ARCH_SUPPORTED = isArchitectureSupported()
 const IS_SIMULATOR = !Device.isDevice
 
 export const ZoomMeetingProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // Zoom SDK 6.7.2 crashes on iOS simulator — skip initialization entirely
+  // Zoom SDK crashes on iOS simulator — skip initialization entirely
   if (IS_SIMULATOR) {
     return (
       <ZoomFallbackProvider initState="error" error="Zoom SDK disabled on simulator">

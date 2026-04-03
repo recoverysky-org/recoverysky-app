@@ -317,18 +317,19 @@ Zoom SDK in `app/services/zoom/`:
 
 ### Running on iOS Simulator (Intel Mac)
 
-ZoomMeetingSDK `6.7.5` dropped x86_64 simulator support (ships arm64-simulator only). The dev machine is an Intel i9 Mac which requires x86_64 simulator builds. To run on the iOS simulator:
+ZoomMeetingSDK `6.7.5` dropped x86_64 simulator support (ships arm64-simulator only). The dev machine is an Intel i9 Mac which requires x86_64 simulator builds.
 
-1. Add a temporary pod pin in `ios/Podfile` inside the `recoveryskyapp` target:
-   ```ruby
-   pod 'ZoomMeetingSDK', '6.7.2'
-   ```
-2. Run `cd ios && pod update ZoomMeetingSDK && cd ..`
-3. Build: `npm run ios`
+The Podfile automatically pins to ZoomMeetingSDK `6.7.2` for local dev (which ships a fat binary with both x86_64 and arm64). No manual Podfile changes needed.
 
-ZoomMeetingSDK `6.7.2` ships a fat simulator binary with **both x86_64 and arm64**. The Zoom SDK runs fully in the simulator (meetings, UI, everything).
+For production Xcode builds, opt into `6.7.5` (~88MB smaller) before `pod install`:
+```bash
+cd ios && ZOOM_PRODUCTION=1 pod install && cd ..
+```
 
-**Before committing or building for production/TestFlight**, remove the `pod 'ZoomMeetingSDK', '6.7.2'` line so the podspec resolves to `6.7.5` (smaller binary, device-only architectures).
+To switch back to dev (simulator support):
+```bash
+cd ios && pod install && cd ..
+```
 
 ## Pending Upgrades
 
@@ -346,7 +347,7 @@ The patch at `patches/@zoom+meetingsdk-react-native+6.7.2.patch` covers:
 - Android build.gradle: replaced Maven `us.zoom.meetingsdk:zoomsdk:6.7.2` with local `mobilertc.aar`
 - podspec: loosened `ZoomMeetingSDK` dependency from `'6.7.2'` to `'>= 6.7.2', '< 7.0'`
 
-The podspec dependency `'>= 6.7.2', '< 7.0'` resolves to `6.7.5` (latest). For simulator builds on Intel Macs, temporarily pin `pod 'ZoomMeetingSDK', '6.7.2'` in the Podfile (see "Running on iOS Simulator" above).
+The podspec dependency `'>= 6.7.2', '< 7.0'` resolves to `6.7.5` when `ZOOM_PRODUCTION=1` is set. By default, the Podfile pins to `6.7.2` for x86_64 simulator support (see "Running on iOS Simulator" above).
 
 #### Android AAR setup
 

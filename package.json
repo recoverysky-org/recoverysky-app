@@ -19,6 +19,8 @@
     "prebuild:clean": "npx expo prebuild --clean && npm run patch:android && npm run patch:ios && npm run patch:zoom:android",
     "patch:android": "bash scripts/patch-android.sh",
     "patch:ios": "bash scripts/patch-ios.sh",
+    "pods": "cd ios && pod install && cd ..",
+    "pods:prod": "cd ios && ZOOM_PRODUCTION=1 pod install && cd ..",
     "generate:icons": "bash scripts/generate-icons.sh",
     "compile": "tsc --noEmit -p . --pretty",
     "lint": "eslint . --fix",
