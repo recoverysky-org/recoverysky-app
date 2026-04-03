@@ -10,7 +10,7 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "prebuild:ios:clean": "npx expo prebuild --platform ios --clean && npm run patch:ios",
-    "prebuild:android:clean": "npx expo prebuild --platform android --clean && npm run patch:android && npm run patch:zoom:android",
+    "prebuild:android:clean": "ZOOM_PRODUCTION=1 npx expo prebuild --platform android --clean && npm run patch:android && npm run patch:zoom:android",
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "web": "expo start --web",
