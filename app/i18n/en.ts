@@ -110,7 +110,7 @@ const en = {
     onboardingDescription:
       "Review the app introduction anytime to learn about features and privacy.",
     restartOnboarding: "Restart Initial Questionnaire",
-    navigationTitle: "Navigation",
+    navigationTitle: "App Navigation",
     navigationDescription:
       "Note the tabs at the bottom. That's how you get around! We are on Home 😊",
     liveTitle: "Live Meetings",

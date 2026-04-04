@@ -107,7 +107,7 @@ const th: Translations = {
     onboardingDescription:
       "ดูการแนะนำแอปได้ตลอดเวลาเพื่อเรียนรู้เกี่ยวกับฟีเจอร์และความเป็นส่วนตัว",
     restartOnboarding: "เริ่มแบบสอบถามเริ่มต้นใหม่",
-    navigationTitle: "การนำทาง",
+    navigationTitle: "การนำทางแอป",
     navigationDescription:
       "สังเกตแท็บด้านล่าง นั่นคือวิธีที่คุณไปยังส่วนต่าง ๆ ได้! ตอนนี้เราอยู่ที่หน้าหลัก 😊",
     liveTitle: "ประชุมสด",

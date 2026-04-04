@@ -110,7 +110,7 @@ const uk: Translations = {
     onboardingDescription:
       "Переглядай вступ до додатку будь-коли, щоб дізнатися про функції та конфіденційність.",
     restartOnboarding: "Пройти початкову анкету заново",
-    navigationTitle: "Навігація",
+    navigationTitle: "Навігація додатку",
     navigationDescription:
       "Зверни увагу на вкладки внизу. Ось так ти переміщуєшся по додатку! Зараз ми на Головній 😊",
     liveTitle: "Зустрічі онлайн",

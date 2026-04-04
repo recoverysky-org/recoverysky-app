@@ -109,7 +109,7 @@ const es: Translations = {
     onboardingDescription:
       "Revisa la introducción de la app en cualquier momento para conocer las funciones y la privacidad.",
     restartOnboarding: "Reiniciar Cuestionario Inicial",
-    navigationTitle: "Navegación",
+    navigationTitle: "Navegación de la App",
     navigationDescription:
       "Fíjate en las pestañas de abajo. ¡Así es como te mueves por la app! Estamos en Inicio 😊",
     liveTitle: "Reuniones en Vivo",

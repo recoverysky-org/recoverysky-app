@@ -110,7 +110,7 @@ const de: Translations = {
     onboardingDescription:
       "Schau dir die App-Einführung jederzeit an, um mehr über Funktionen und Datenschutz zu erfahren.",
     restartOnboarding: "Einführungsfragen neu starten",
-    navigationTitle: "Navigation",
+    navigationTitle: "App-Navigation",
     navigationDescription:
       "Schau dir die Tabs unten an. So navigierst du durch die App! Wir sind gerade auf Startseite 😊",
     liveTitle: "Live-Meetings",
