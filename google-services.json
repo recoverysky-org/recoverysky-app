@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "568757477015",
+    "project_id": "meetingmakerapp",
+    "storage_bucket": "meetingmakerapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:568757477015:android:21f4e7fc2c02ac62f7d3d2",
+        "android_client_info": {
+          "package_name": "live.meetingmaker.app.prod"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "568757477015-40cgjmd0ps7jovje61m2k4kc7be9ugl8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBB3ME5ci4aV8TO4rEufU2fJulgKQ8m2EU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "568757477015-40cgjmd0ps7jovje61m2k4kc7be9ugl8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "568757477015-1p9ldphavu34tu9k266g7r11aroov69s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "asdf.asdf.asdf.asdf"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

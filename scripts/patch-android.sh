@@ -9,6 +9,16 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "Patching Android configuration..."
 
+# Copy google-services.json for Firebase/FCM push notifications
+GOOGLE_SERVICES_SRC="$PROJECT_DIR/google-services.json"
+GOOGLE_SERVICES_DST="$PROJECT_DIR/android/app/google-services.json"
+if [ -f "$GOOGLE_SERVICES_SRC" ]; then
+  cp "$GOOGLE_SERVICES_SRC" "$GOOGLE_SERVICES_DST"
+  echo "Copied google-services.json to android/app/"
+else
+  echo "Warning: google-services.json not found at project root"
+fi
+
 MANIFEST="$PROJECT_DIR/android/app/src/main/AndroidManifest.xml"
 RES_DIR="$PROJECT_DIR/android/app/src/main/res"
 XML_DIR="$RES_DIR/xml"

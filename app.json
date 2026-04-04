@@ -20,6 +20,7 @@
     "label": "RecoverySky",
     "icon": "./assets/images/app-icon-android-legacy.png",
     "package": "live.meetingmaker.app.prod",
+    "googleServicesFile": "./google-services.json",
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
