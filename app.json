@@ -7,7 +7,7 @@
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
   "runtimeVersion": {
-    "policy": "appVersion"
+    "policy": "fingerprint"
   },
   "updates": {
     "enabled": true,
