@@ -109,7 +109,7 @@ const ru: Translations = {
     onboardingTitle: "Добро пожаловать в RecoverySky",
     onboardingDescription:
       "Ознакомься с введением в приложение в любое время, чтобы узнать о функциях и конфиденциальности.",
-    restartOnboarding: "Пройти начальную анкету заново",
+    restartOnboarding: "Перезапустить начальную настройку",
     navigationTitle: "Навигация приложения",
     navigationDescription:
       "Обрати внимание на вкладки внизу. Так ты перемещаешься по приложению! Сейчас мы на Главной 😊",

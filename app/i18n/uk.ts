@@ -109,7 +109,7 @@ const uk: Translations = {
     onboardingTitle: "Ласкаво просимо до RecoverySky",
     onboardingDescription:
       "Переглядай вступ до додатку будь-коли, щоб дізнатися про функції та конфіденційність.",
-    restartOnboarding: "Пройти початкову анкету заново",
+    restartOnboarding: "Перезапустити початкове налаштування",
     navigationTitle: "Навігація додатку",
     navigationDescription:
       "Зверни увагу на вкладки внизу. Ось так ти переміщуєшся по додатку! Зараз ми на Головній 😊",

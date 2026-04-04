@@ -105,7 +105,7 @@ const ar: Translations = {
     // Help Cards
     onboardingTitle: "مرحباً بك في RecoverySky",
     onboardingDescription: "راجع مقدمة التطبيق في أي وقت للتعرف على الميزات والخصوصية.",
-    restartOnboarding: "إعادة الاستبيان الأولي",
+    restartOnboarding: "إعادة الإعداد الأولي",
     navigationTitle: "تنقل التطبيق",
     navigationDescription:
       "لاحظ علامات التبويب في الأسفل. هكذا تتنقل في التطبيق! نحن الآن في الرئيسية 😊",

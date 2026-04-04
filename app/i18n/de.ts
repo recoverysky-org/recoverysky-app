@@ -109,7 +109,7 @@ const de: Translations = {
     onboardingTitle: "Willkommen bei RecoverySky",
     onboardingDescription:
       "Schau dir die App-Einführung jederzeit an, um mehr über Funktionen und Datenschutz zu erfahren.",
-    restartOnboarding: "Einführungsfragen neu starten",
+    restartOnboarding: "Einführung neu starten",
     navigationTitle: "App-Navigation",
     navigationDescription:
       "Schau dir die Tabs unten an. So navigierst du durch die App! Wir sind gerade auf Startseite 😊",
