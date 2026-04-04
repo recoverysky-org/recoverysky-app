@@ -14,13 +14,21 @@ import * as StoreReview from "expo-store-review"
 
 import { meetingEvents } from "@/db/meetingEvents"
 import { translate } from "@/i18n"
+import type { ConfigStore } from "@/models/ConfigStore"
 import { navigate } from "@/navigators/navigationUtilities"
 import { logger } from "@/utils/logger"
 import { load, save } from "@/utils/storage"
 
 const STORAGE_KEY = "app-review-state-v4"
 
-const REVIEW_ENABLED = process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
+/** ConfigStore reference, set at init time */
+let _configStore: ConfigStore | null = null
+
+/** Check if review prompts are enabled (server config overrides env var) */
+function isReviewEnabled(): boolean {
+  if (_configStore) return _configStore.reviewEnabled
+  return process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
+}
 const MIN_MEETINGS = Number(process.env.EXPO_PUBLIC_REVIEW_MIN_MEETINGS) || 5
 const REMINDER_MEETINGS = Number(process.env.EXPO_PUBLIC_REVIEW_REMINDER_MEETINGS) || 5
 
@@ -38,7 +46,7 @@ function setState(state: ReviewState): void {
 }
 
 async function handleMeetingCompleted(): Promise<void> {
-  if (!REVIEW_ENABLED) return
+  if (!isReviewEnabled()) return
   if (Platform.OS === "web") return
 
   const state = getState()
@@ -92,7 +100,8 @@ async function handleMeetingCompleted(): Promise<void> {
 /**
  * Subscribe to meeting completed events. Call once at app startup.
  */
-export function initReviewService(): void {
+export function initReviewService(configStore?: ConfigStore): void {
+  if (configStore) _configStore = configStore
   meetingEvents.subscribe((event) => {
     if (event.type === "completed") handleMeetingCompleted()
   })
@@ -102,7 +111,7 @@ export function initReviewService(): void {
  * Explicit review request from Settings "Rate App" button.
  */
 export async function requestReviewFromSettings(): Promise<void> {
-  if (!REVIEW_ENABLED) return
+  if (!isReviewEnabled()) return
   if (Platform.OS === "web") return
 
   const available = await StoreReview.isAvailableAsync()

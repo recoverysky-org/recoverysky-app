@@ -619,6 +619,7 @@ export class Api {
           UMAMI_URL: string
           UMAMI_WEBSITE_ID: string
           UMAMI_X_API_KEY: string
+          REVIEW_ENABLED?: boolean
         }
       }
     | GeneralApiProblem
@@ -637,6 +638,7 @@ export class Api {
       UMAMI_URL: string
       UMAMI_WEBSITE_ID: string
       UMAMI_X_API_KEY: string
+      REVIEW_ENABLED?: boolean
     }>("/config")
 
     if (!response.ok) {

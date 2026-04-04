@@ -59,6 +59,11 @@ export const ConfigStoreModel = types
     ),
     /** Umami X-API-Key */
     umamiApiKey: types.optional(types.string, process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""),
+    /** Whether app review prompts are enabled */
+    reviewEnabled: types.optional(
+      types.boolean,
+      process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true",
+    ),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -111,6 +116,8 @@ export const ConfigStoreModel = types
               if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
               if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
               if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
+              if (config.REVIEW_ENABLED !== undefined)
+                store.reviewEnabled = config.REVIEW_ENABLED
               store.isLoaded = true
 
               const zoomKeyPreview = store.zoomSdkKey
@@ -167,6 +174,7 @@ export const ConfigStoreModel = types
       store.umamiUrl = process.env.EXPO_PUBLIC_UMAMI_URL || ""
       store.umamiWebsiteId = process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || ""
       store.umamiApiKey = process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""
+      store.reviewEnabled = process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
       store.isLoaded = false
     },
   }))

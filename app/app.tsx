@@ -380,7 +380,7 @@ export function App() {
           )
         }
 
-        initReviewService()
+        initReviewService(_rootStore.configStore)
 
         setRootStore(_rootStore)
         trackEvent("app_initialized", { sessionId })
