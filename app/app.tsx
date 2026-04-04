@@ -392,11 +392,11 @@ export function App() {
     })()
   }, [])
 
-  // Check for OTA updates (non-blocking, silent hot-swap)
+  // Check for OTA updates after app is initialized (non-blocking, silent hot-swap)
   useEffect(() => {
-    if (__DEV__) return
+    if (__DEV__ || !rootStore) return
 
-    ;(async () => {
+    const timeout = setTimeout(async () => {
       try {
         const update = await Updates.checkForUpdateAsync()
         if (update.isAvailable) {
@@ -408,8 +408,10 @@ export function App() {
       } catch (e) {
         log.debug("Update check skipped or failed", { error: String(e) })
       }
-    })()
-  }, [])
+    }, 3000)
+
+    return () => clearTimeout(timeout)
+  }, [rootStore])
 
   // Foreground re-attestation: re-attest when app comes to foreground with expired JWT
   useEffect(() => {
