@@ -602,7 +602,6 @@ export class Api {
    * Get app configuration from server
    *
    * Returns URLs and keys that may be updated server-side.
-   * Note: This does NOT wait for attestation since it may be called during init
    */
   async getConfig(): Promise<
     | {
@@ -624,6 +623,7 @@ export class Api {
       }
     | GeneralApiProblem
   > {
+    await this.waitForAttestation()
     log.debug("Fetching config from API")
 
     const response = await this.recoverySkyApi.get<{
@@ -1112,11 +1112,17 @@ export class Api {
    * Get current news/announcement for the home screen
    * GET /news
    */
-  async getNews(): Promise<{ kind: "ok"; news: string } | GeneralApiProblem> {
+  async getNews(): Promise<{ kind: "ok"; title: string; body: string } | GeneralApiProblem> {
     await this.waitForAttestation()
     log.debug("Fetching news from API")
 
-    const response = await this.recoverySkyApi.get<{ news: string }>("/news")
+    const response = await this.recoverySkyApi.get<{
+      id: string
+      title: string
+      body: string
+      start: number
+      end: number
+    }>("/news")
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
@@ -1125,13 +1131,17 @@ export class Api {
       return { kind: "unknown", temporary: true }
     }
 
-    if (!response.data || typeof response.data.news !== "string") {
+    if (
+      !response.data ||
+      typeof response.data.title !== "string" ||
+      typeof response.data.body !== "string"
+    ) {
       log.warn("Invalid news response format")
       return { kind: "bad-data" }
     }
 
-    log.debug("News received", { length: response.data.news.length })
-    return { kind: "ok", news: response.data.news }
+    log.debug("News received", { title: response.data.title })
+    return { kind: "ok", title: response.data.title, body: response.data.body }
   }
 }
 

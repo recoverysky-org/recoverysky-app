@@ -139,8 +139,6 @@ const pt: Translations = {
     supportTitle: "Precisa de ajuda?",
     supportDescription: "Tem uma pergunta ou precisa de ajuda?",
     goToSupport: "Obter suporte",
-    // News card
-    newsTitle: "Notícias",
     // Dashboard
     gettingStarted: "Primeiros Passos",
     cleanDays: "Dias Limpo",

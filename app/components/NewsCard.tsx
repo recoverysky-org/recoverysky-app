@@ -3,7 +3,7 @@
  *
  * Dismissible news/announcement card for the Home screen.
  * Features:
- * - Icon + i18n title + plain-text content from API
+ * - Icon + dynamic title + body from API
  * - Dismiss X button (top-right)
  * - Slide-out animation on dismiss (same as HelpCard)
  */
@@ -19,13 +19,15 @@ import type { ThemedStyle } from "@/theme/types"
 const SCREEN_WIDTH = Dimensions.get("window").width
 
 export interface NewsCardProps {
-  /** The plain-text news content from the API */
-  content: string
+  /** The news title from the API */
+  title: string
+  /** The news body from the API */
+  body: string
   /** Called when card is dismissed */
   onDismiss: () => void
 }
 
-export const NewsCard: FC<NewsCardProps> = function NewsCard({ content, onDismiss }) {
+export const NewsCard: FC<NewsCardProps> = function NewsCard({ title, body, onDismiss }) {
   const { themed, theme } = useAppTheme()
   const slideAnim = useRef(new Animated.Value(0)).current
 
@@ -60,11 +62,11 @@ export const NewsCard: FC<NewsCardProps> = function NewsCard({ content, onDismis
       {/* Icon + Title row */}
       <View style={$headerRow}>
         <Ionicons name="megaphone-outline" size={24} color={theme.colors.tint} />
-        <Text style={themed($title)} tx="homeScreen:newsTitle" />
+        <Text style={themed($title)} text={title} />
       </View>
 
-      {/* News content (plain string, not i18n) */}
-      <Text style={themed($description)} text={content} />
+      {/* News body (plain string from API) */}
+      <Text style={themed($description)} text={body} />
     </Animated.View>
   )
 }

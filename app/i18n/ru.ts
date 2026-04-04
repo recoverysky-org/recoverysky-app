@@ -141,8 +141,6 @@ const ru: Translations = {
     supportTitle: "Нужна помощь?",
     supportDescription: "Есть вопрос или нужна помощь?",
     goToSupport: "Получить поддержку",
-    // News card
-    newsTitle: "Новости",
     // Dashboard
     gettingStarted: "Начало работы",
     cleanDays: "Дней трезвости",

@@ -140,8 +140,6 @@ const uk: Translations = {
     supportTitle: "Потрібна допомога?",
     supportDescription: "Маєте запитання або потрібна допомога?",
     goToSupport: "Отримати підтримку",
-    // News card
-    newsTitle: "Новини",
     // Dashboard
     gettingStarted: "Початок роботи",
     cleanDays: "Днів тверезості",

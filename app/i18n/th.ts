@@ -135,8 +135,6 @@ const th: Translations = {
     supportTitle: "ต้องการความช่วยเหลือ?",
     supportDescription: "มีคำถามหรือต้องการความช่วยเหลือ?",
     goToSupport: "รับการสนับสนุน",
-    // News card
-    newsTitle: "ข่าวสาร",
     // Dashboard
     gettingStarted: "เริ่มต้นใช้งาน",
     cleanDays: "วันที่สะอาด",
