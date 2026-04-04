@@ -54,7 +54,7 @@ const de: Translations = {
       "Melde dich an, um auf Abonnements und Premium-Funktionen zuzugreifen. Für Abonnements ist ein Konto erforderlich, oder fahre anonym mit den kostenlosen Grundfunktionen fort.\n\nDu kannst dich jederzeit in den Einstellungen an- und abmelden.",
     loginButton: "Anmelden",
     signupButton: "Registrieren",
-    continueAnonymously: "Anonym fortfahren",
+    continueAnonymously: "",
     openingBrowser: "Browser wird für die Anmeldung geöffnet...",
     euaTitle: "Rechtliche Vereinbarungen",
     euaAgree: "Akzeptieren",

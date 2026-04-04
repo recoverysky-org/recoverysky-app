@@ -12,6 +12,7 @@ import de from "./de"
 import en, { Translations } from "./en"
 import es from "./es"
 import fr from "./fr"
+import { platformStrings } from "./platformStrings"
 import pt from "./pt"
 import ru from "./ru"
 import th from "./th"
@@ -23,7 +24,23 @@ const fallbackLocale = "en-US"
 
 const systemLocales = Localization.getLocales()
 
-const resources = { en, es, fr, pt, ru, ar, de, th, uk }
+const baseResources: Record<string, Record<string, any>> = {
+  en, es, fr, pt, ru, ar, de, th, uk,
+}
+
+// Deep-merge platform-specific string overrides (e.g. Android-only anonymous login text).
+// Metro resolves platformStrings.ios.ts (empty) on iOS, so those strings never enter the bundle.
+const resources = Object.fromEntries(
+  Object.entries(baseResources).map(([lang, translations]) => {
+    const overrides = platformStrings[lang]
+    if (!overrides) return [lang, translations]
+    const merged = { ...translations }
+    for (const ns of Object.keys(overrides)) {
+      merged[ns] = { ...merged[ns], ...overrides[ns] }
+    }
+    return [lang, merged]
+  }),
+)
 const supportedTags = Object.keys(resources)
 
 // Language display names (in their native language)

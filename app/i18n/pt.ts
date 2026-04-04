@@ -53,7 +53,7 @@ const pt: Translations = {
       "Entre na sua conta pra acessar assinaturas e recursos premium. Assinaturas precisam de uma conta ativa, ou continue anonimamente com os recursos gratuitos básicos.\n\nVocê pode entrar e sair a qualquer momento em Configurações.",
     loginButton: "Entrar",
     signupButton: "Criar Conta",
-    continueAnonymously: "Continuar Anonimamente",
+    continueAnonymously: "",
     openingBrowser: "Abrindo navegador pra autenticação...",
     euaTitle: "Acordos Legais",
     euaAgree: "Aceitar",

@@ -54,7 +54,7 @@ const fr: Translations = {
       "Connecte-toi pour accéder aux abonnements et aux fonctions premium. Les abonnements nécessitent un compte, ou continue de façon anonyme avec les fonctions gratuites de base.\n\nTu peux te connecter et te déconnecter en tout temps dans les Réglages.",
     loginButton: "Se connecter",
     signupButton: "S'inscrire",
-    continueAnonymously: "Continuer de façon anonyme",
+    continueAnonymously: "",
     openingBrowser: "Ouverture du navigateur pour l'authentification...",
     euaTitle: "Accords Juridiques",
     euaAgree: "Accepter",
