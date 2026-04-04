@@ -17,16 +17,6 @@ if [ ! -f "$PBXPROJ" ]; then
   exit 1
 fi
 
-# Fix OneSignal extension DEVELOPMENT_TEAM
-# onesignal-expo-plugin sets DEVELOPMENT_TEAM to literal "undefined"
-# instead of inheriting from the main target
-if grep -q 'DEVELOPMENT_TEAM = undefined;' "$PBXPROJ"; then
-  sed -i '' 's/DEVELOPMENT_TEAM = undefined;/DEVELOPMENT_TEAM = 75W22YQP29;/g' "$PBXPROJ"
-  echo "Fixed DEVELOPMENT_TEAM for OneSignal extension"
-else
-  echo "DEVELOPMENT_TEAM already set"
-fi
-
 # Patch Podfile: add ZoomMeetingSDK version pin for dev/production switching
 # ZoomMeetingSDK 6.7.5 dropped x86_64 simulator support. Pin to 6.7.2 for
 # local dev by default; ZOOM_PRODUCTION=1 pod install resolves to 6.7.5.

@@ -1,13 +1,18 @@
 {
-  "name": "recoverysky-app",
+  "name": "RecoverySky",
   "slug": "recoverysky-app",
   "scheme": "recoverysky-app",
   "version": "4.1.7",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
+  "runtimeVersion": {
+    "policy": "appVersion"
+  },
   "updates": {
-    "fallbackToCacheTimeout": 0
+    "enabled": true,
+    "checkAutomatically": "ON_LOAD",
+    "url": "https://u.expo.dev/21c8a3e2-5d0b-4b72-b0eb-5a9a4c973777"
   },
   "newArchEnabled": true,
   "jsEngine": "hermes",
@@ -17,7 +22,6 @@
     "assets/content/**"
   ],
   "android": {
-    "label": "RecoverySky",
     "icon": "./assets/images/app-icon-android-legacy.png",
     "package": "live.meetingmaker.app.prod",
     "googleServicesFile": "./google-services.json",
@@ -96,6 +100,7 @@
     }
   },
   "plugins": [
+    "expo-updates",
     "expo-localization",
     "expo-font",
     "expo-web-browser",

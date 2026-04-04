@@ -615,7 +615,6 @@ export class Api {
           REVENUE_CAT_API_APPLE_KEY: string
           REVENUE_CAT_API_GOOGLE_KEY: string
           ZAK_API_KEY: string
-          ONE_SIGNAL_APP_ID: string
           OTLP_API_KEY: string
           UMAMI_URL: string
           UMAMI_WEBSITE_ID: string
@@ -634,7 +633,6 @@ export class Api {
       REVENUE_CAT_API_APPLE_KEY: string
       REVENUE_CAT_API_GOOGLE_KEY: string
       ZAK_API_KEY: string
-      ONE_SIGNAL_APP_ID: string
       OTLP_API_KEY: string
       UMAMI_URL: string
       UMAMI_WEBSITE_ID: string

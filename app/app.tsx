@@ -27,6 +27,7 @@ import { Alert, AppState, AppStateStatus, BackHandler, Platform } from "react-na
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
+import * as Updates from "expo-updates"
 import { reaction } from "mobx"
 import { Auth0Provider } from "react-native-auth0"
 import { KeyboardProvider } from "react-native-keyboard-controller"
@@ -383,6 +384,25 @@ export function App() {
       } catch (error) {
         log.error("RootStore initialization failed", { error: String(error) })
         setRootStore(_rootStore)
+      }
+    })()
+  }, [])
+
+  // Check for OTA updates (non-blocking, silent hot-swap)
+  useEffect(() => {
+    if (__DEV__) return
+
+    ;(async () => {
+      try {
+        const update = await Updates.checkForUpdateAsync()
+        if (update.isAvailable) {
+          log.info("OTA update available, fetching")
+          await Updates.fetchUpdateAsync()
+          log.info("OTA update fetched, reloading")
+          await Updates.reloadAsync()
+        }
+      } catch (e) {
+        log.debug("Update check skipped or failed", { error: String(e) })
       }
     })()
   }, [])
