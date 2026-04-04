@@ -9,6 +9,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   useMemo,
@@ -192,6 +193,31 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
 
     return unsubscribe
   }, [isInitialized, loadSubscriptionInfo])
+
+  /**
+   * Sync RevenueCat identity when appUserId changes after initialization.
+   * Calls Purchases.logIn() to associate purchases with the identified account,
+   * then re-syncs on-device receipts under the new identity.
+   */
+  const prevAppUserId = useRef(appUserId)
+  useEffect(() => {
+    if (!isInitialized) return
+    if (appUserId === prevAppUserId.current) return
+    prevAppUserId.current = appUserId
+
+    const syncIdentity = async () => {
+      if (appUserId) {
+        const result = await loginUser(appUserId)
+        if (result.ok) {
+          log.info("RevenueCat identity updated after auth change", { appUserId })
+          // Re-sync receipts under new identity (bypass one-time flag)
+          await syncExistingPurchases()
+          await loadSubscriptionInfo()
+        }
+      }
+    }
+    void syncIdentity()
+  }, [appUserId, isInitialized, loadSubscriptionInfo])
 
   /**
    * Auto-enable attendance tracking on first subscription detection only.

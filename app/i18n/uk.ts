@@ -401,6 +401,7 @@ const uk: Translations = {
     importAttendanceSuccess: "{{count}} записів відвідування імпортовано",
     importReportsSuccess: "{{count}} звітів імпортовано",
     importContinue: "Продовжити",
+    restorePurchases: "Відновити покупки",
     importChecking: "Перевіряємо наявні дані...",
     // Screen 0: Welcome
     welcomeTitle: "Ласкаво просимо до RecoverySky!",
@@ -590,6 +591,11 @@ const uk: Translations = {
     milestone20Years: "20 років",
     milestone25Years: "25 років",
     milestone30Years: "30 років",
+  },
+  subscription: {
+    restoreSuccess: "Покупки відновлено!",
+    restoreFailed: "Покупки не знайдено",
+    syncSuccess: "З поверненням! Твою підписку відновлено.",
   },
 }
 

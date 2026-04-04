@@ -25,6 +25,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import { ThemeColorPicker } from "@/components/ThemeColorPicker"
+import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
@@ -172,6 +173,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     refresh: subscriptionRefresh,
     logout: logoutSubscription,
   } = useSubscription()
+  const { showToast } = useToast()
 
   // UI-only state (modals, pickers)
   const [pronounsModalVisible, setPronounsModalVisible] = useState(false)
@@ -404,15 +406,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     trackEvent("restore_purchases_tapped")
     const restored = await restore()
     if (restored) {
-      Alert.alert(
-        translate("settingsScreen:restoreSuccess"),
-        translate("settingsScreen:restoreSuccessMessage"),
-      )
+      showToast({ tx: "subscription:restoreSuccess", type: "success" })
     } else {
-      Alert.alert(
-        translate("settingsScreen:restoreNoSubscription"),
-        translate("settingsScreen:restoreNoSubscriptionMessage"),
-      )
+      showToast({ tx: "subscription:restoreFailed", type: "error" })
     }
   }
 

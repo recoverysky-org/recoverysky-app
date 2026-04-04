@@ -401,6 +401,7 @@ const pt: Translations = {
     importAttendanceSuccess: "{{count}} registros de presença importados",
     importReportsSuccess: "{{count}} relatórios importados",
     importContinue: "Continuar",
+    restorePurchases: "Restaurar Compras",
     importChecking: "Procurando dados existentes...",
     // Screen 0: Welcome
     welcomeTitle: "Bem-vindo ao RecoverySky!",
@@ -592,6 +593,11 @@ const pt: Translations = {
     milestone20Years: "20 Anos",
     milestone25Years: "25 Anos",
     milestone30Years: "30 Anos",
+  },
+  subscription: {
+    restoreSuccess: "Compras restauradas!",
+    restoreFailed: "Nenhuma compra encontrada",
+    syncSuccess: "Bem-vindo de volta! Sua assinatura foi restaurada.",
   },
 }
 

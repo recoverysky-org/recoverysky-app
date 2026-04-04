@@ -405,6 +405,7 @@ const en = {
     importAttendanceSuccess: "{{count}} attendance records imported",
     importReportsSuccess: "{{count}} reports imported",
     importContinue: "Continue",
+    restorePurchases: "Restore Purchases",
     importChecking: "Checking for existing data...",
     // Screen 0: Welcome
     welcomeTitle: "Welcome to RecoverySky!",
@@ -602,6 +603,11 @@ const en = {
     milestone20Years: "20 Years",
     milestone25Years: "25 Years",
     milestone30Years: "30 Years",
+  },
+  subscription: {
+    restoreSuccess: "Purchases restored!",
+    restoreFailed: "No purchases found",
+    syncSuccess: "Welcome back! Your subscription has been restored.",
   },
 }
 

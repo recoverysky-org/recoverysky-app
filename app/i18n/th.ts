@@ -396,6 +396,7 @@ const th: Translations = {
     importAttendanceSuccess: "นำเข้า {{count}} บันทึกการเข้าร่วมแล้ว",
     importReportsSuccess: "นำเข้า {{count}} รายงานแล้ว",
     importContinue: "ดำเนินการต่อ",
+    restorePurchases: "กู้คืนการซื้อ",
     importChecking: "กำลังตรวจสอบข้อมูลที่มีอยู่...",
     // Screen 0: Welcome
     welcomeTitle: "ยินดีต้อนรับสู่ RecoverySky!",
@@ -582,6 +583,11 @@ const th: Translations = {
     milestone20Years: "20 ปี",
     milestone25Years: "25 ปี",
     milestone30Years: "30 ปี",
+  },
+  subscription: {
+    restoreSuccess: "กู้คืนการซื้อสำเร็จ!",
+    restoreFailed: "ไม่พบการซื้อ",
+    syncSuccess: "ยินดีต้อนรับกลับ! การสมัครสมาชิกของคุณได้รับการกู้คืนแล้ว",
   },
 }
 

@@ -13,6 +13,8 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { useToast } from "@/components/Toast"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceRepo, attendanceReportRepo } from "@/db"
 import { useJournalExport } from "@/hooks/useJournalExport"
 import { translate } from "@/i18n"
@@ -182,7 +184,10 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
   const isModal = route.name === "Import"
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const { restore } = useSubscription()
+  const { showToast } = useToast()
   const [importing, setImporting] = useState(false)
+  const [restoring, setRestoring] = useState(false)
   const [results, setResults] = useState<ImportResults | null>(null)
   const { exportPdf, isExporting } = useJournalExport()
 
@@ -249,6 +254,18 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
 
   const handleExportJournal = () => {
     exportPdf()
+  }
+
+  const handleRestorePurchases = async () => {
+    setRestoring(true)
+    trackEvent("restore_purchases_tapped", { source: "onboarding" })
+    const restored = await restore()
+    setRestoring(false)
+    if (restored) {
+      showToast({ tx: "subscription:restoreSuccess", type: "success" })
+    } else {
+      showToast({ tx: "subscription:restoreFailed", type: "error" })
+    }
   }
 
   // ── Results screen ──────────────────────────────────────────────────
@@ -396,9 +413,32 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
         </Pressable>
 
         <Pressable
+          style={[
+            themed($button),
+            { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+          ]}
+          onPress={handleRestorePurchases}
+          disabled={importing || restoring}
+          accessibilityRole="button"
+          accessibilityLabel={translate("onboarding:restorePurchases")}
+        >
+          {restoring ? (
+            <ActivityIndicator color={theme.colors.tint} />
+          ) : (
+            <>
+              <Ionicons name="refresh-outline" size={20} color={theme.colors.tint} />
+              <Text
+                style={[themed($buttonText), { color: theme.colors.tint }]}
+                tx="onboarding:restorePurchases"
+              />
+            </>
+          )}
+        </Pressable>
+
+        <Pressable
           onPress={handleSkip}
           style={$skipButton}
-          disabled={importing}
+          disabled={importing || restoring}
           accessibilityRole="button"
           accessibilityLabel={translate("onboarding:importSkip")}
         >

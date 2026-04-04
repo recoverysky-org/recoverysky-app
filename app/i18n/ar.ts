@@ -393,6 +393,7 @@ const ar: Translations = {
     importAttendanceSuccess: "تم استيراد {{count}} سجل حضور",
     importReportsSuccess: "تم استيراد {{count}} تقارير",
     importContinue: "متابعة",
+    restorePurchases: "استعادة المشتريات",
     importChecking: "جارٍ البحث عن بيانات موجودة...",
     // Screen 0: Welcome
     welcomeTitle: "مرحباً بك في RecoverySky!",
@@ -577,6 +578,11 @@ const ar: Translations = {
     milestone20Years: "20 سنة",
     milestone25Years: "25 سنة",
     milestone30Years: "30 سنة",
+  },
+  subscription: {
+    restoreSuccess: "تم استعادة المشتريات!",
+    restoreFailed: "لم يتم العثور على مشتريات",
+    syncSuccess: "مرحباً بعودتك! تم استعادة اشتراكك.",
   },
 }
 
