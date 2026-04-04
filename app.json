@@ -12,7 +12,10 @@
   "updates": {
     "enabled": true,
     "checkAutomatically": "ON_LOAD",
-    "url": "https://u.expo.dev/21c8a3e2-5d0b-4b72-b0eb-5a9a4c973777"
+    "url": "https://u.expo.dev/21c8a3e2-5d0b-4b72-b0eb-5a9a4c973777",
+    "requestHeaders": {
+      "expo-channel-name": "production"
+    }
   },
   "newArchEnabled": true,
   "jsEngine": "hermes",
