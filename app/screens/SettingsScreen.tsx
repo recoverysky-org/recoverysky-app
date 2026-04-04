@@ -253,6 +253,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   const handleDarkModeToggle = (value: boolean) => {
     setThemeContextOverride(value ? "dark" : "light")
+    trackEvent("dark_mode_toggle", { enabled: value })
   }
 
   const handleNotificationsToggle = useCallback(
@@ -294,6 +295,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 // Notify Live/Listings screens to refresh reminder indicators
                 reminderEvents.emit({ type: "deleted", id: "*" })
               }
+              trackEvent("reminders_deleted")
               Alert.alert(translate("settingsScreen:deleteAllRemindersSuccess"))
             } catch (err) {
               console.error("Failed to delete reminders", err)
@@ -383,8 +385,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   }, [navigation])
 
   const handleUpgrade = async () => {
+    trackEvent("upgrade_tapped")
     const purchased = await showPaywall()
     if (purchased) {
+      trackEvent("upgrade_purchased")
       if (subscriptionReturnRef.current) {
         navigateReturn()
       } else {
@@ -397,6 +401,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   }
 
   const handleRestorePurchases = async () => {
+    trackEvent("restore_purchases_tapped")
     const restored = await restore()
     if (restored) {
       Alert.alert(
@@ -664,6 +669,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 ]}
                 onPress={() => {
                   profileStore.setPronouns(p)
+                  trackEvent("pronouns_changed", { pronouns: p || "none" })
                   setPronounsModalVisible(false)
                 }}
                 accessibilityRole="radio"
@@ -710,6 +716,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 ]}
                 onPress={() => {
                   profileStore.setFellowship(f)
+                  trackEvent("fellowship_changed", { fellowship: f })
                   setFellowshipModalVisible(false)
                 }}
                 accessibilityRole="radio"
@@ -1032,6 +1039,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                       text: translate("settingsScreen:zoomDisconnect"),
                       style: "destructive",
                       onPress: async () => {
+                        trackEvent("zoom_disconnected")
                         await disconnectZoom()
                         profileStore.setZoomConnected(false)
                       },
@@ -1049,7 +1057,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         ) : (
           <TouchableOpacity
             style={themed($zoomConnectButton)}
-            onPress={() => navigation.navigate("ZoomLogin")}
+            onPress={() => {
+            trackEvent("zoom_reconnect_tapped")
+            navigation.navigate("ZoomLogin")
+          }}
             accessibilityRole="button"
             accessibilityLabel={translate("settingsScreen:connectZoom")}
           >
@@ -1162,7 +1173,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       <View style={themed($section)} onLayout={trackSection("legal")}>
         <TouchableOpacity
           style={themed($upgradeButton)}
-          onPress={() => requestReviewFromSettings()}
+          onPress={() => {
+            trackEvent("rate_app_tapped")
+            requestReviewFromSettings()
+          }}
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:rateApp")}
         >
@@ -1172,7 +1186,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <TouchableOpacity
           style={themed($upgradeButton)}
-          onPress={() => Linking.openURL("https://www.recoverysky.org/support")}
+          onPress={() => {
+            trackEvent("support_tapped")
+            Linking.openURL("https://www.recoverysky.org/support")
+          }}
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:support")}
         >
