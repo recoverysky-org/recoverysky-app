@@ -76,6 +76,9 @@ export const ProfileStoreModel = types
 
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
+
+    // News dismissal tracking (empty string = first launch sentinel)
+    dismissedNews: types.optional(types.string, ""),
   })
   .volatile(() => ({
     // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
@@ -359,6 +362,22 @@ export const ProfileStoreModel = types
       },
 
       /**
+       * Dismiss the current news card — stores the news content so it won't show again
+       */
+      dismissNews(newsContent: string) {
+        self.dismissedNews = newsContent
+      },
+
+      /**
+       * Silently acknowledge news on first launch (set sentinel without showing)
+       */
+      acknowledgeNewsFirstLaunch(newsContent: string) {
+        if (self.dismissedNews === "") {
+          self.dismissedNews = newsContent
+        }
+      },
+
+      /**
        * Reset profile to defaults
        */
       reset() {
@@ -386,6 +405,7 @@ export const ProfileStoreModel = types
         self.imported = false
         self.aiConsentAccepted = false
         self.dismissedHomeCards.clear()
+        self.dismissedNews = ""
 
         // Persist reset to SQLite
         persistSecure({

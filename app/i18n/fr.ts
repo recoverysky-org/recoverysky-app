@@ -142,6 +142,8 @@ const fr: Translations = {
     supportTitle: "Besoin d'aide ?",
     supportDescription: "Tu as une question ou besoin d'aide ?",
     goToSupport: "Obtenir de l'aide",
+    // News card
+    newsTitle: "Actualités",
     // Dashboard
     gettingStarted: "Pour commencer",
     cleanDays: "Jours d'abstinence",

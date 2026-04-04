@@ -134,6 +134,8 @@ const ar: Translations = {
     supportTitle: "هل تحتاج مساعدة؟",
     supportDescription: "هل لديك سؤال أو تحتاج مساعدة؟",
     goToSupport: "الحصول على الدعم",
+    // News card
+    newsTitle: "أخبار",
     // Dashboard
     gettingStarted: "البداية",
     cleanDays: "أيام النظافة",

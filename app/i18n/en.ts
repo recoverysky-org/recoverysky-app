@@ -141,6 +141,8 @@ const en = {
     supportTitle: "Need Help?",
     supportDescription: "Have a question, or need help?",
     goToSupport: "Get Support",
+    // News card
+    newsTitle: "News",
     // Dashboard
     gettingStarted: "Getting Started",
     cleanDays: "Days Clean",

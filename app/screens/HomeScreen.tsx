@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect } from "react"
+import { FC, useCallback, useEffect, useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Linking } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
@@ -6,11 +6,13 @@ import { observer } from "mobx-react-lite"
 
 import { CleanTimeCard } from "@/components/CleanTimeCard"
 import { HelpCard } from "@/components/HelpCard"
+import { NewsCard } from "@/components/NewsCard"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { translate, type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { api } from "@/services/api"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -137,6 +139,42 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
     return () => log.debug("HomeScreen unmounted")
   }, [])
 
+  // === News card state ===
+  const [newsContent, setNewsContent] = useState("")
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchNews() {
+      const result = await api.getNews()
+      if (cancelled) return
+
+      if (result.kind === "ok" && result.news) {
+        // First-launch guard: silently acknowledge without showing
+        if (profileStore.dismissedNews === "") {
+          profileStore.acknowledgeNewsFirstLaunch(result.news)
+          return
+        }
+
+        // Only show if news differs from what was previously dismissed
+        if (result.news !== profileStore.dismissedNews) {
+          setNewsContent(result.news)
+        }
+      }
+    }
+
+    fetchNews()
+    return () => {
+      cancelled = true
+    }
+  }, [profileStore, profileStore.dismissedNews])
+
+  const handleDismissNews = useCallback(() => {
+    log.debug("News card dismissed")
+    profileStore.dismissNews(newsContent)
+    setNewsContent("")
+  }, [profileStore, newsContent])
+
   // Show all undismissed cards at once
   const dismissedIds = profileStore.dismissedHomeCards.slice()
   const visibleCards = HELP_CARDS.filter((card) => {
@@ -194,6 +232,13 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         )}
       </View>
 
+      {/* News announcement — always top box when visible */}
+      {newsContent !== "" && (
+        <View style={themed($newsContainer)}>
+          <NewsCard content={newsContent} onDismiss={handleDismissNews} />
+        </View>
+      )}
+
       {/* Getting Started section */}
       {visibleCards.length > 0 && (
         <View style={themed($cardsContainer)}>
@@ -245,6 +290,10 @@ const $sectionHeader: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   textTransform: "uppercase",
   letterSpacing: 1,
   marginBottom: spacing.sm,
+})
+
+const $newsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.lg,
 })
 
 const $cardsContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

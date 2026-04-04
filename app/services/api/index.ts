@@ -1107,6 +1107,32 @@ export class Api {
     log.info("Bug report sent successfully")
     return { kind: "ok" }
   }
+
+  /**
+   * Get current news/announcement for the home screen
+   * GET /news
+   */
+  async getNews(): Promise<{ kind: "ok"; news: string } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching news from API")
+
+    const response = await this.recoverySkyApi.get<{ news: string }>("/news")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("News fetch failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || typeof response.data.news !== "string") {
+      log.warn("Invalid news response format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("News received", { length: response.data.news.length })
+    return { kind: "ok", news: response.data.news }
+  }
 }
 
 // Singleton instance of the API for convenience
