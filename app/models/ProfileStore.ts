@@ -369,11 +369,12 @@ export const ProfileStoreModel = types
       },
 
       /**
-       * Silently acknowledge news on first launch (set sentinel without showing)
+       * Mark first launch complete without showing news.
+       * Uses a sentinel value so real news won't match on 2nd launch.
        */
-      acknowledgeNewsFirstLaunch(newsContent: string) {
+      acknowledgeNewsFirstLaunch() {
         if (self.dismissedNews === "") {
-          self.dismissedNews = newsContent
+          self.dismissedNews = "__initialized__"
         }
       },
 

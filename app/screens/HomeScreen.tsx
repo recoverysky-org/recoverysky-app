@@ -158,7 +158,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
 
         // First-launch guard: silently acknowledge without showing
         if (profileStore.dismissedNews === "") {
-          profileStore.acknowledgeNewsFirstLaunch(key)
+          profileStore.acknowledgeNewsFirstLaunch()
           return
         }
 
