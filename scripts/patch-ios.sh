@@ -9,10 +9,10 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "Patching iOS configuration..."
 
-PBXPROJ="$PROJECT_DIR/ios/recoveryskyapp.xcodeproj/project.pbxproj"
-
-if [ ! -f "$PBXPROJ" ]; then
-  echo "Error: project.pbxproj not found at $PBXPROJ"
+# Auto-detect xcodeproj (name derives from app.json "name" field)
+XCODEPROJ=$(find "$PROJECT_DIR/ios" -maxdepth 1 -name "*.xcodeproj" -print -quit)
+if [ -z "$XCODEPROJ" ]; then
+  echo "Error: no .xcodeproj found in $PROJECT_DIR/ios"
   echo "Run 'npx expo prebuild' first"
   exit 1
 fi
