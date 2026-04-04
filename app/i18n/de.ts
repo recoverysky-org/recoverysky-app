@@ -112,7 +112,7 @@ const de: Translations = {
     restartOnboarding: "Einführungsfragen neu starten",
     navigationTitle: "Navigation",
     navigationDescription:
-      "Schau dir die Tabs unten an. So navigierst du durch die App! Wir sind gerade auf Startseite :-)",
+      "Schau dir die Tabs unten an. So navigierst du durch die App! Wir sind gerade auf Startseite 😊",
     liveTitle: "Live-Meetings",
     liveDescription:
       "Finde Meetings, die gerade stattfinden. Tippe auf den Live-Tab, um zu sehen, was läuft.",

@@ -111,7 +111,7 @@ const pt: Translations = {
     restartOnboarding: "Refazer Questionário Inicial",
     navigationTitle: "Navegação",
     navigationDescription:
-      "Repare nas abas lá embaixo. É assim que você navega! Estamos em Início :-)",
+      "Repare nas abas lá embaixo. É assim que você navega! Estamos em Início 😊",
     liveTitle: "Reuniões ao Vivo",
     liveDescription:
       "Encontre reuniões acontecendo agora. Toque na aba Ao Vivo pra ver o que está rolando.",

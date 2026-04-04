@@ -112,7 +112,7 @@ const fr: Translations = {
     restartOnboarding: "Recommencer le questionnaire initial",
     navigationTitle: "Navigation",
     navigationDescription:
-      "Remarque les onglets en bas. C'est comme ça qu'on navigue ! On est sur Accueil :-)",
+      "Remarque les onglets en bas. C'est comme ça qu'on navigue ! On est sur Accueil 😊",
     liveTitle: "Réunions en direct",
     liveDescription:
       "Trouve des réunions en cours présentement. Va dans l'onglet En direct pour voir ce qui joue.",

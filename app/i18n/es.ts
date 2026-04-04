@@ -111,7 +111,7 @@ const es: Translations = {
     restartOnboarding: "Reiniciar Cuestionario Inicial",
     navigationTitle: "Navegación",
     navigationDescription:
-      "Fíjate en las pestañas de abajo. ¡Así es como te mueves por la app! Estamos en Inicio :-)",
+      "Fíjate en las pestañas de abajo. ¡Así es como te mueves por la app! Estamos en Inicio 😊",
     liveTitle: "Reuniones en Vivo",
     liveDescription:
       "Encuentra reuniones que están sucediendo ahora. Toca la pestaña En Vivo para ver qué hay.",
