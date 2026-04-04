@@ -30,6 +30,8 @@ import { meetingEvents } from "@/db/meetingEvents"
 import { getZakToken } from "@/services/zak"
 import { logger } from "@/utils/logger"
 
+import { trackEvent } from "@/services/tracking"
+
 import { generateZoomJwt } from "./generateJwt"
 import { checkMediaPermissions, requestMediaPermissions } from "./permissions"
 import { getZoomConfig, isZoomConfigured } from "./zoomConfig"
@@ -398,6 +400,22 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       addEvent("Auth", { success: event.success, message: event.message })
     },
   })
+
+  // Send periodic heartbeat events to Umami while in a meeting
+  // so analytics reports the user as active in the app
+  useEffect(() => {
+    if (meetingState !== "inMeeting") return
+
+    const HEARTBEAT_MS = 5 * 60 * 1000
+    const interval = setInterval(() => {
+      const elapsed = meetingContext?.inMeetingAt
+        ? Math.floor((Date.now() - meetingContext.inMeetingAt) / 1000)
+        : 0
+      trackEvent("meeting_heartbeat", { elapsed_seconds: elapsed })
+    }, HEARTBEAT_MS)
+
+    return () => clearInterval(interval)
+  }, [meetingState])
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig) => {

@@ -166,6 +166,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     }
   }, [visible, bannerOpacity])
 
+  // Track popup views
+  useEffect(() => {
+    if (visible && meeting?.id) {
+      trackEvent("schedule_popup_viewed", { fellowship: meeting.fellowship || "" })
+    }
+  }, [visible, meeting?.id])
+
   // Load feedback from cache when popup opens (synchronous read)
   useEffect(() => {
     if (visible && meeting?.id) {
