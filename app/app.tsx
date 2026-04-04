@@ -192,7 +192,10 @@ const config = {
       screens: {
         Home: "",
         Live: "live",
-        Meetings: "meetings",
+        Meetings: {
+          path: "meetings/:meetingId?",
+          parse: { meetingId: (id: string) => id || undefined },
+        },
         Schedule: "schedule",
         Agent: "agent",
         Settings: "settings",
@@ -343,6 +346,7 @@ export function App() {
               if (data.meetingId) {
                 params.meetingId = data.meetingId
                 setPendingMeetingId(data.meetingId)
+                trackEvent("notification_meeting_opened", { screen: data.screen })
               }
               navTo(data.screen as never, Object.keys(params).length > 0 ? params : undefined)
             }

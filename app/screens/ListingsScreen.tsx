@@ -34,6 +34,7 @@ import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { navigate } from "@/navigators/navigationUtilities"
 import { api, LiveSchedule } from "@/services/api"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -455,6 +456,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                 ]}
                 onPress={() => {
                   setSelectedDay(day.iso)
+                  trackEvent("listings_day_changed", { day: day.iso })
                   setDayModalVisible(false)
                 }}
               >
@@ -491,6 +493,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                 style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
                 onPress={() => {
                   setSelectedLanguage(null)
+                  trackEvent("listings_language_changed", { language: "all" })
                   setLanguageModalVisible(false)
                   listRef.current?.scrollToOffset({ offset: 0, animated: true })
                 }}
@@ -517,6 +520,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                   ]}
                   onPress={() => {
                     setSelectedLanguage(lang)
+                    trackEvent("listings_language_changed", { language: lang })
                     setLanguageModalVisible(false)
                     listRef.current?.scrollToOffset({ offset: 0, animated: true })
                   }}
@@ -559,6 +563,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                   ]}
                   onPress={() => {
                     profileStore.setFellowship(f.value)
+                    trackEvent("listings_fellowship_changed", { fellowship: f.value })
                     setFellowshipModalVisible(false)
                   }}
                 >

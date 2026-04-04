@@ -9,6 +9,8 @@ import { MainTabParamList, MainTabScreenProps, MeetingsSegment } from "@/navigat
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+import { trackEvent } from "@/services/tracking"
+
 import { ListingsContent } from "./ListingsScreen"
 import { LiveContent } from "./LiveScreen"
 
@@ -58,6 +60,7 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   // so it doesn't persist in navigation state and re-trigger on app restart
   useEffect(() => {
     if (route.params?.meetingId) {
+      trackEvent("deeplink_meeting_opened")
       meetingsNavigation.setParams({ meetingId: undefined })
     }
   }, [route.params?.meetingId, meetingsNavigation])
