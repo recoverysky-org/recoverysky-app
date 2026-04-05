@@ -264,12 +264,12 @@ export function App() {
         await initializeDeviceAuthorization(deviceId)
 
         // Fetch server config (keys, secrets, URLs from /config endpoint)
-        // Non-fatal: env var defaults are baked into ConfigStore props
-        await _rootStore.configStore.fetchConfig().catch((err) => {
-          log.warn("Config fetch failed, using baked-in env var defaults", {
-            error: err instanceof Error ? err.message : String(err),
-          })
-        })
+        // If all retries fail, enter maintenance mode — config is required to operate
+        await _rootStore.configStore.fetchConfig()
+        if (!_rootStore.configStore.isLoaded) {
+          log.warn("Config fetch exhausted all retries — entering maintenance mode")
+          _rootStore.configStore.setOutageMode()
+        }
 
         // Update logger with server-provided OTLP key
         if (_rootStore.configStore.otlpApiKey) {
@@ -391,6 +391,41 @@ export function App() {
       }
     })()
   }, [])
+
+  // Poll server config — 60s during maintenance, 15min otherwise
+  useEffect(() => {
+    if (!rootStore) return
+
+    const NORMAL_INTERVAL = 15 * 60 * 1000 // 15 minutes
+    const MAINTENANCE_INTERVAL = 60 * 1000 // 60 seconds
+
+    let interval: ReturnType<typeof setInterval>
+
+    const startPolling = (ms: number) => {
+      clearInterval(interval)
+      interval = setInterval(() => {
+        log.debug("Config poll triggered", { maintenanceMode: rootStore.configStore.maintenanceMode })
+        rootStore.configStore.fetchConfig()
+      }, ms)
+    }
+
+    // Start with appropriate interval
+    startPolling(rootStore.configStore.maintenanceMode ? MAINTENANCE_INTERVAL : NORMAL_INTERVAL)
+
+    // React to maintenance mode changes and adjust interval
+    const dispose = reaction(
+      () => rootStore.configStore.maintenanceMode,
+      (inMaintenance) => {
+        log.info("Config poll interval changed", { inMaintenance })
+        startPolling(inMaintenance ? MAINTENANCE_INTERVAL : NORMAL_INTERVAL)
+      },
+    )
+
+    return () => {
+      clearInterval(interval)
+      dispose()
+    }
+  }, [rootStore])
 
   // Check for OTA updates after app is initialized (non-blocking, silent hot-swap)
   useEffect(() => {

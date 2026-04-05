@@ -53,6 +53,7 @@ export type OnboardingParamList = {
 // App Stack Navigator types
 export type AppStackParamList = {
   Welcome: undefined
+  Maintenance: undefined
   Login: undefined
   ZoomSetup: undefined
   ZoomLogin: undefined

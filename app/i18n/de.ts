@@ -350,7 +350,7 @@ const de: Translations = {
     attendanceSection: "Teilnahme",
     enableAttendance: "Teilnahme aktivieren",
     userIdNum: "ID-Nummer",
-    userIdNumPlaceholder: "Deine Identifikationsnummer",
+    userIdNumPlaceholder: "(optional) Deine persönliche Berichtsnummer",
     exportEmail: "Export-E-Mail",
     exportEmailPlaceholder: "email@beispiel.de",
     exportAttendance: "Teilnahme exportieren",
@@ -602,6 +602,13 @@ const de: Translations = {
     milestone20Years: "20 Jahre",
     milestone25Years: "25 Jahre",
     milestone30Years: "30 Jahre",
+  },
+  maintenance: {
+    title: "Das System ist offline",
+    subtitle: "Wir sind bald zurück. Die App wird automatisch fortgesetzt.",
+    eta: "Voraussichtliche Rückkehr: {{time}}",
+    checking: "Systemstatus wird geprüft...",
+    support: "Support erhalten",
   },
   subscription: {
     restoreSuccess: "Käufe wiederhergestellt!",

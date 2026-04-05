@@ -343,7 +343,7 @@ const th: Translations = {
     attendanceSection: "การเข้าร่วม",
     enableAttendance: "เปิดใช้การเข้าร่วม",
     userIdNum: "หมายเลข ID",
-    userIdNumPlaceholder: "หมายเลขประจำตัวของคุณ",
+    userIdNumPlaceholder: "(ไม่บังคับ) หมายเลขรายงานส่วนตัวของคุณ",
     exportEmail: "อีเมลส่งออก",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "ส่งออกการเข้าร่วม",
@@ -585,6 +585,13 @@ const th: Translations = {
     milestone20Years: "20 ปี",
     milestone25Years: "25 ปี",
     milestone30Years: "30 ปี",
+  },
+  maintenance: {
+    title: "ระบบออฟไลน์",
+    subtitle: "เราจะกลับมาเร็ว ๆ นี้ แอปจะกลับมาทำงานโดยอัตโนมัติ",
+    eta: "คาดว่าจะกลับมา: {{time}}",
+    checking: "กำลังตรวจสอบสถานะระบบ...",
+    support: "รับการสนับสนุน",
   },
   subscription: {
     restoreSuccess: "กู้คืนการซื้อสำเร็จ!",

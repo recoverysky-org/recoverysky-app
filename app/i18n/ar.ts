@@ -340,7 +340,7 @@ const ar: Translations = {
     attendanceSection: "الحضور",
     enableAttendance: "تفعيل الحضور",
     userIdNum: "رقم الهوية",
-    userIdNumPlaceholder: "رقمك التعريفي",
+    userIdNumPlaceholder: "(اختياري) رقم التقارير الشخصي الخاص بك",
     exportEmail: "بريد التصدير",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "تصدير الحضور",
@@ -580,6 +580,13 @@ const ar: Translations = {
     milestone20Years: "20 سنة",
     milestone25Years: "25 سنة",
     milestone30Years: "30 سنة",
+  },
+  maintenance: {
+    title: "النظام غير متصل",
+    subtitle: "سنعود قريباً. سيتم استئناف التطبيق تلقائياً.",
+    eta: "العودة المتوقعة: {{time}}",
+    checking: "جارٍ التحقق من حالة النظام...",
+    support: "الحصول على الدعم",
   },
   subscription: {
     restoreSuccess: "تم استعادة المشتريات!",

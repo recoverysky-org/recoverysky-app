@@ -350,7 +350,7 @@ const en = {
     attendanceSection: "Attendance",
     enableAttendance: "Enable Attendance",
     userIdNum: "ID Number",
-    userIdNumPlaceholder: "Your identifying number",
+    userIdNumPlaceholder: "(optional) Your personal reporting number",
     exportEmail: "Export Email",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Export Attendance",
@@ -605,6 +605,13 @@ const en = {
     milestone20Years: "20 Years",
     milestone25Years: "25 Years",
     milestone30Years: "30 Years",
+  },
+  maintenance: {
+    title: "The system is offline",
+    subtitle: "We'll be back shortly. The app will resume automatically.",
+    eta: "Estimated return: {{time}}",
+    checking: "Checking system status...",
+    support: "Get Support",
   },
   subscription: {
     restoreSuccess: "Purchases restored!",

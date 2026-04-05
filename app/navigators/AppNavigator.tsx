@@ -10,15 +10,17 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
 
 import Config from "@/config"
-import { useAuthenticationStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
 import { LicensesScreen } from "@/screens/LicensesScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
+import { MaintenanceScreen } from "@/screens/MaintenanceScreen"
 import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
 import { TermsScreen } from "@/screens/TermsScreen"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
 import { ZoomSetupScreen } from "@/screens/ZoomSetupScreen"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { useZoomContext } from "@/services/zoom/ZoomMeetingProvider"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
@@ -43,11 +45,15 @@ const AppStack = observer(function AppStack() {
 
   useAuth0Wrapper() // Syncs Auth0 session → MST store, sets authReady
   const authStore = useAuthenticationStore()
+  const configStore = useConfigStore()
   const profileStore = useProfileStore()
+  const { meetingState } = useZoomContext()
   const isAuthenticated = authStore.isAuthenticated
   const needsZoomSetup = !profileStore.zoomConnected
   const needsOnboarding = !profileStore.onboardingCompleted
-  log.debug("Auth state retrieved", { isAuthenticated, needsZoomSetup, needsOnboarding })
+  // Defer maintenance gate while user is in a Zoom meeting
+  const showMaintenance = configStore.maintenanceMode && meetingState !== "inMeeting"
+  log.debug("Auth state retrieved", { isAuthenticated, needsZoomSetup, needsOnboarding, showMaintenance })
 
   const {
     theme: { colors },
@@ -71,16 +77,19 @@ const AppStack = observer(function AppStack() {
     return null
   }
 
-  // Determine initial route based on auth, zoom, and onboarding status
-  const initialRoute = !isAuthenticated
-    ? "Login"
-    : needsZoomSetup
-      ? "ZoomSetup"
-      : needsOnboarding
-        ? "Onboarding"
-        : "Main"
+  // Determine initial route based on maintenance, auth, zoom, and onboarding status
+  const initialRoute = showMaintenance
+    ? "Maintenance"
+    : !isAuthenticated
+      ? "Login"
+      : needsZoomSetup
+        ? "ZoomSetup"
+        : needsOnboarding
+          ? "Onboarding"
+          : "Main"
   log.debug("Determining initial route", {
     initialRoute,
+    showMaintenance,
     isAuthenticated,
     needsZoomSetup,
     needsOnboarding,
@@ -97,7 +106,9 @@ const AppStack = observer(function AppStack() {
       }}
       initialRouteName={initialRoute}
     >
-      {isAuthenticated ? (
+      {showMaintenance ? (
+        <Stack.Screen name="Maintenance" component={MaintenanceScreen} />
+      ) : isAuthenticated ? (
         needsZoomSetup ? (
           <Stack.Screen name="ZoomSetup" component={ZoomSetupScreen} />
         ) : needsOnboarding ? (

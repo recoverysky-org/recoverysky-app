@@ -348,7 +348,7 @@ const uk: Translations = {
     attendanceSection: "Відвідування",
     enableAttendance: "Облік відвідувань",
     userIdNum: "Номер ID",
-    userIdNumPlaceholder: "Твій ідентифікаційний номер",
+    userIdNumPlaceholder: "(необов'язково) Твій особистий номер для звітів",
     exportEmail: "E-mail для експорту",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Експорт відвідувань",
@@ -593,6 +593,13 @@ const uk: Translations = {
     milestone20Years: "20 років",
     milestone25Years: "25 років",
     milestone30Years: "30 років",
+  },
+  maintenance: {
+    title: "Система офлайн",
+    subtitle: "Ми скоро повернемося. Додаток відновить роботу автоматично.",
+    eta: "Орієнтовне повернення: {{time}}",
+    checking: "Перевіряємо стан системи...",
+    support: "Отримати підтримку",
   },
   subscription: {
     restoreSuccess: "Покупки відновлено!",

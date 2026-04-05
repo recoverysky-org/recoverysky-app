@@ -349,7 +349,7 @@ const ru: Translations = {
     attendanceSection: "Посещения",
     enableAttendance: "Учёт посещений",
     userIdNum: "Номер ID",
-    userIdNumPlaceholder: "Твой идентификационный номер",
+    userIdNumPlaceholder: "(необязательно) Твой личный номер для отчётов",
     exportEmail: "E-mail для экспорта",
     exportEmailPlaceholder: "email@example.com",
     exportAttendance: "Экспорт посещений",
@@ -595,6 +595,13 @@ const ru: Translations = {
     milestone20Years: "20 лет",
     milestone25Years: "25 лет",
     milestone30Years: "30 лет",
+  },
+  maintenance: {
+    title: "Система офлайн",
+    subtitle: "Мы скоро вернёмся. Приложение возобновит работу автоматически.",
+    eta: "Ориентировочное возвращение: {{time}}",
+    checking: "Проверяем состояние системы...",
+    support: "Получить поддержку",
   },
   subscription: {
     restoreSuccess: "Покупки восстановлены!",

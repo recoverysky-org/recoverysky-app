@@ -348,7 +348,7 @@ const es: Translations = {
     attendanceSection: "Asistencia",
     enableAttendance: "Habilitar Asistencia",
     userIdNum: "Número de ID",
-    userIdNumPlaceholder: "Tu número de identificación",
+    userIdNumPlaceholder: "(opcional) Tu número personal de reporte",
     exportEmail: "Correo de Exportación",
     exportEmailPlaceholder: "correo@ejemplo.com",
     exportAttendance: "Exportar Asistencia",
@@ -595,6 +595,13 @@ const es: Translations = {
     milestone20Years: "20 Años",
     milestone25Years: "25 Años",
     milestone30Years: "30 Años",
+  },
+  maintenance: {
+    title: "El sistema está fuera de línea",
+    subtitle: "Volveremos pronto. La app se reanudará automáticamente.",
+    eta: "Retorno estimado: {{time}}",
+    checking: "Verificando estado del sistema...",
+    support: "Obtener Soporte",
   },
   subscription: {
     restoreSuccess: "¡Compras restauradas!",

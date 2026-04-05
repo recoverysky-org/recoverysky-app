@@ -64,6 +64,12 @@ export const ConfigStoreModel = types
       types.boolean,
       process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true",
     ),
+    /** Server-controlled maintenance mode */
+    maintenanceMode: types.optional(types.boolean, false),
+    /** Custom maintenance message from server */
+    maintenanceMessage: types.optional(types.string, ""),
+    /** ISO timestamp for estimated maintenance end */
+    maintenanceUntil: types.optional(types.string, ""),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -118,6 +124,9 @@ export const ConfigStoreModel = types
               if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
               if (config.REVIEW_ENABLED !== undefined)
                 store.reviewEnabled = config.REVIEW_ENABLED
+              store.maintenanceMode = config.MAINTENANCE_MODE ?? false
+              store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
+              store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
               store.isLoaded = true
 
               const zoomKeyPreview = store.zoomSdkKey
@@ -158,6 +167,16 @@ export const ConfigStoreModel = types
     }),
 
     /**
+     * Enter maintenance mode due to config endpoint outage.
+     * Called when all fetchConfig retries are exhausted at startup.
+     */
+    setOutageMode() {
+      store.maintenanceMode = true
+      store.maintenanceMessage = ""
+      store.maintenanceUntil = ""
+    },
+
+    /**
      * Reset config to defaults (env vars)
      */
     reset() {
@@ -175,6 +194,9 @@ export const ConfigStoreModel = types
       store.umamiWebsiteId = process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || ""
       store.umamiApiKey = process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""
       store.reviewEnabled = process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
+      store.maintenanceMode = false
+      store.maintenanceMessage = ""
+      store.maintenanceUntil = ""
       store.isLoaded = false
     },
   }))

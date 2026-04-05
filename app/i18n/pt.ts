@@ -348,7 +348,7 @@ const pt: Translations = {
     attendanceSection: "Presença",
     enableAttendance: "Ativar Presença",
     userIdNum: "Número de ID",
-    userIdNumPlaceholder: "Seu número de identificação",
+    userIdNumPlaceholder: "(opcional) Seu número pessoal de relatório",
     exportEmail: "E-mail de Exportação",
     exportEmailPlaceholder: "email@exemplo.com",
     exportAttendance: "Exportar Presença",
@@ -595,6 +595,13 @@ const pt: Translations = {
     milestone20Years: "20 Anos",
     milestone25Years: "25 Anos",
     milestone30Years: "30 Anos",
+  },
+  maintenance: {
+    title: "O sistema está offline",
+    subtitle: "Voltaremos em breve. O app será retomado automaticamente.",
+    eta: "Retorno estimado: {{time}}",
+    checking: "Verificando status do sistema...",
+    support: "Obter Suporte",
   },
   subscription: {
     restoreSuccess: "Compras restauradas!",

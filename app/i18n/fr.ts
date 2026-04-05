@@ -353,7 +353,7 @@ const fr: Translations = {
     attendanceSection: "Présence",
     enableAttendance: "Activer la présence",
     userIdNum: "Numéro d'identification",
-    userIdNumPlaceholder: "Ton numéro d'identification",
+    userIdNumPlaceholder: "(facultatif) Ton numéro personnel de rapport",
     exportEmail: "Courriel d'exportation",
     exportEmailPlaceholder: "courriel@exemple.com",
     exportAttendance: "Exporter la présence",
@@ -600,6 +600,13 @@ const fr: Translations = {
     milestone20Years: "20 Ans",
     milestone25Years: "25 Ans",
     milestone30Years: "30 Ans",
+  },
+  maintenance: {
+    title: "Le système est hors ligne",
+    subtitle: "Nous revenons bientôt. L'app reprendra automatiquement.",
+    eta: "Retour estimé : {{time}}",
+    checking: "Vérification de l'état du système...",
+    support: "Obtenir de l'aide",
   },
   subscription: {
     restoreSuccess: "Achats restaurés !",
