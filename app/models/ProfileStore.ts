@@ -80,6 +80,17 @@ export const ProfileStoreModel = types
     // News dismissal tracking (empty string = first launch sentinel)
     dismissedNews: types.optional(types.string, ""),
 
+    // Money saved
+    moneySavedWeekly: types.optional(types.number, 0), // simple weekly total
+    moneySavedMon: types.optional(types.number, 0),
+    moneySavedTue: types.optional(types.number, 0),
+    moneySavedWed: types.optional(types.number, 0),
+    moneySavedThu: types.optional(types.number, 0),
+    moneySavedFri: types.optional(types.number, 0),
+    moneySavedSat: types.optional(types.number, 0),
+    moneySavedSun: types.optional(types.number, 0),
+    moneySavedTobacco: types.optional(types.number, 0), // daily tobacco, applied to all days
+
     // 90 in 90 challenge
     ninetyStartDate: types.optional(types.string, ""), // ISO "YYYY-MM-DD" or "" = not started
     ninetyStartEpoch: types.optional(types.number, 0), // Unix ms when challenge was started (for filtering)
@@ -385,6 +396,21 @@ export const ProfileStoreModel = types
         }
       },
 
+      // === MONEY SAVED ===
+
+      setMoneySavedWeekly(value: number) {
+        self.moneySavedWeekly = value
+      },
+
+      setMoneySavedDay(day: "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun", value: number) {
+        const key = `moneySaved${day}` as keyof typeof self
+        ;(self as any)[key] = value
+      },
+
+      setMoneySavedTobacco(value: number) {
+        self.moneySavedTobacco = value
+      },
+
       // === 90 IN 90 CHALLENGE ===
 
       setNinetyStartDate(value: string) {
@@ -441,6 +467,15 @@ export const ProfileStoreModel = types
         self.aiConsentAccepted = false
         self.dismissedHomeCards.clear()
         self.dismissedNews = ""
+        self.moneySavedWeekly = 0
+        self.moneySavedMon = 0
+        self.moneySavedTue = 0
+        self.moneySavedWed = 0
+        self.moneySavedThu = 0
+        self.moneySavedFri = 0
+        self.moneySavedSat = 0
+        self.moneySavedSun = 0
+        self.moneySavedTobacco = 0
         self.ninetyStartDate = ""
         self.ninetyStartEpoch = 0
         self.ninetyStrictMode = true

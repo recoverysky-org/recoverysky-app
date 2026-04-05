@@ -6,6 +6,7 @@ import { observer } from "mobx-react-lite"
 
 import { CleanTimeCard } from "@/components/CleanTimeCard"
 import { HelpCard } from "@/components/HelpCard"
+import { MoneySavedCard } from "@/components/MoneySavedCard"
 import { NewsCard } from "@/components/NewsCard"
 import { NinetyInNinetyCard } from "@/components/NinetyInNinetyCard"
 import { RecoveryChartCard } from "@/components/RecoveryChartCard"
@@ -68,6 +69,14 @@ const HELP_CARDS: HelpCardDef[] = [
     descriptionTx: "homeScreen:settingsDescription",
     actionTx: "homeScreen:goToSettings",
     actionTab: "Settings",
+  },
+  {
+    id: "resources",
+    icon: "book-outline",
+    titleTx: "homeScreen:resourcesTitle",
+    descriptionTx: "homeScreen:resourcesDescription",
+    actionTx: "homeScreen:goToResources",
+    actionUrl: "https://www.recoverysky.app/resources",
   },
   {
     id: "support",
@@ -225,6 +234,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   return (
     <Screen
       preset="scroll"
+      keyboardBottomOffset={100}
       safeAreaEdges={["top"]}
       contentContainerStyle={[$styles.container, themed($container)]}
     >
@@ -272,6 +282,9 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
 
       {/* Recovery Chart — gated on attendance enabled */}
       {profileStore.attendanceEnabled && <RecoveryChartCard />}
+
+      {/* Money Saved */}
+      <MoneySavedCard />
 
       {/* 90 in 90 Challenge Card — gated on attendance enabled */}
       {profileStore.attendanceEnabled && <NinetyInNinetyCard />}
