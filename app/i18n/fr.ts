@@ -13,6 +13,8 @@ const fr: Translations = {
     configErrorMessage:
       "RecoverySky n'a pas pu charger sa configuration. Vérifie ta connexion Internet et réessaie.\n\nSi ce problème persiste, contacte support@recoverysky.app",
     dontShowAgain: "Ne plus afficher",
+    updateTitle: "Mise à jour disponible",
+    updateMessage: "RecoverySky va se mettre à jour rapidement.",
     reviewReminderTitle: "Tu aimes RecoverySky ?",
     reviewReminderMessage: "Tu peux évaluer l'app à tout moment dans les Réglages.",
   },
@@ -108,7 +110,7 @@ const fr: Translations = {
     // Help Cards
     onboardingTitle: "Bienvenue sur RecoverySky",
     onboardingDescription:
-      "Consulte l'introduction de l'app en tout temps pour découvrir les fonctions et la confidentialité.",
+      "Recommence l'intégration à tout moment pour personnaliser l'app et en savoir plus sur la confidentialité.",
     restartOnboarding: "Recommencer l'intégration",
     navigationTitle: "Navigation de l'App",
     navigationDescription:

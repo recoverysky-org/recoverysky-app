@@ -13,6 +13,8 @@ const ru: Translations = {
     configErrorMessage:
       "RecoverySky не удалось загрузить конфигурацию. Проверь подключение к интернету и попробуй снова.\n\nЕсли проблема не исчезнет, обратись в support@recoverysky.app",
     dontShowAgain: "Больше не показывать",
+    updateTitle: "Доступно обновление",
+    updateMessage: "RecoverySky сейчас быстро обновится.",
     reviewReminderTitle: "Нравится RecoverySky?",
     reviewReminderMessage: "Ты можешь оценить приложение в любое время в Настройках.",
   },
@@ -108,7 +110,7 @@ const ru: Translations = {
     // Help Cards
     onboardingTitle: "Добро пожаловать в RecoverySky",
     onboardingDescription:
-      "Ознакомься с введением в приложение в любое время, чтобы узнать о функциях и конфиденциальности.",
+      "Пройди начальную настройку заново в любое время, чтобы персонализировать приложение и узнать о конфиденциальности.",
     restartOnboarding: "Перезапустить начальную настройку",
     navigationTitle: "Навигация приложения",
     navigationDescription:

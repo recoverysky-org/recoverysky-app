@@ -11,6 +11,8 @@ const en = {
     configErrorMessage:
       "RecoverySky could not load its configuration. Please check your internet connection and try again.\n\nIf this problem persists, contact support@recoverysky.app",
     dontShowAgain: "Don't show again",
+    updateTitle: "Update Available",
+    updateMessage: "RecoverySky will quickly update now.",
     reviewReminderTitle: "Enjoying RecoverySky?",
     reviewReminderMessage: "You can rate the app anytime in Settings.",
   },
@@ -108,7 +110,7 @@ const en = {
     // Help Cards
     onboardingTitle: "Welcome to RecoverySky",
     onboardingDescription:
-      "Review the app introduction anytime to learn about features and privacy.",
+      "Review the onboarding anytime to personalize the app and to learn about privacy.",
     restartOnboarding: "Restart Onboarding",
     navigationTitle: "App Navigation",
     navigationDescription:

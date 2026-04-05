@@ -13,6 +13,8 @@ const ar: Translations = {
     configErrorMessage:
       "لم يتمكن RecoverySky من تحميل إعداداته. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت هذه المشكلة، تواصل مع support@recoverysky.app",
     dontShowAgain: "لا تظهر مرة أخرى",
+    updateTitle: "تحديث متاح",
+    updateMessage: "سيتم تحديث RecoverySky بسرعة الآن.",
     reviewReminderTitle: "هل تستمتع بـ RecoverySky؟",
     reviewReminderMessage: "يمكنك تقييم التطبيق في أي وقت من الإعدادات.",
   },
@@ -104,7 +106,7 @@ const ar: Translations = {
     placeholder: "محتوى لوحة المعلومات قريباً",
     // Help Cards
     onboardingTitle: "مرحباً بك في RecoverySky",
-    onboardingDescription: "راجع مقدمة التطبيق في أي وقت للتعرف على الميزات والخصوصية.",
+    onboardingDescription: "راجع الإعداد الأولي في أي وقت لتخصيص التطبيق والتعرف على الخصوصية.",
     restartOnboarding: "إعادة الإعداد الأولي",
     navigationTitle: "تنقل التطبيق",
     navigationDescription:

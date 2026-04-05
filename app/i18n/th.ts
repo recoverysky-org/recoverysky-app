@@ -13,6 +13,8 @@ const th: Translations = {
     configErrorMessage:
       "RecoverySky ไม่สามารถโหลดการตั้งค่าได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหานี้ยังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
     dontShowAgain: "ไม่ต้องแสดงอีก",
+    updateTitle: "มีอัปเดตใหม่",
+    updateMessage: "RecoverySky จะอัปเดตอย่างรวดเร็วตอนนี้",
     reviewReminderTitle: "ชอบ RecoverySky ไหม?",
     reviewReminderMessage: "คุณสามารถให้คะแนนแอปได้ตลอดเวลาในการตั้งค่า",
   },
@@ -105,7 +107,7 @@ const th: Translations = {
     // Help Cards
     onboardingTitle: "ยินดีต้อนรับสู่ RecoverySky",
     onboardingDescription:
-      "ดูการแนะนำแอปได้ตลอดเวลาเพื่อเรียนรู้เกี่ยวกับฟีเจอร์และความเป็นส่วนตัว",
+      "เริ่มการตั้งค่าเริ่มต้นใหม่ได้ตลอดเวลาเพื่อปรับแต่งแอปและเรียนรู้เกี่ยวกับความเป็นส่วนตัว",
     restartOnboarding: "เริ่มการตั้งค่าเริ่มต้นใหม่",
     navigationTitle: "การนำทางแอป",
     navigationDescription:
