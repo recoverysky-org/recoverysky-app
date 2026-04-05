@@ -402,8 +402,13 @@ export function App() {
         if (update.isAvailable) {
           log.info("OTA update available, fetching")
           await Updates.fetchUpdateAsync()
-          log.info("OTA update fetched, reloading")
-          await Updates.reloadAsync()
+          log.info("OTA update fetched, showing reload notice")
+          Alert.alert(
+            translate("common:updateTitle"),
+            translate("common:updateMessage"),
+            [{ text: translate("common:ok"), onPress: () => Updates.reloadAsync() }],
+            { cancelable: false },
+          )
         }
       } catch (e) {
         log.debug("Update check skipped or failed", { error: String(e) })
