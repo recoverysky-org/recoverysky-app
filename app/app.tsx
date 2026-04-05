@@ -392,11 +392,11 @@ export function App() {
     })()
   }, [])
 
-  // Poll server config — 60s during maintenance, 15min otherwise
+  // Poll server config — 60s during maintenance, 5min otherwise
   useEffect(() => {
     if (!rootStore) return
 
-    const NORMAL_INTERVAL = 15 * 60 * 1000 // 15 minutes
+    const NORMAL_INTERVAL = 5 * 60 * 1000 // 5 minutes
     const MAINTENANCE_INTERVAL = 60 * 1000 // 60 seconds
 
     let interval: ReturnType<typeof setInterval>
