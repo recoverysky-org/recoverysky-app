@@ -666,6 +666,9 @@ const de: Translations = {
     subtitle: "Wir sind bald zurück. Die App wird automatisch fortgesetzt.",
     eta: "Voraussichtliche Rückkehr: {{time}}",
     checking: "Systemstatus wird geprüft...",
+    updatingTitle: "RecoverySky wird aktualisiert",
+    updatingSubtitle: "Eine neue Version wird installiert. Das dauert nur einen Moment.",
+    updating: "Update wird installiert...",
     support: "Support erhalten",
   },
   subscription: {

@@ -659,6 +659,9 @@ const es: Translations = {
     subtitle: "Volveremos pronto. La app se reanudará automáticamente.",
     eta: "Retorno estimado: {{time}}",
     checking: "Verificando estado del sistema...",
+    updatingTitle: "Actualizando RecoverySky",
+    updatingSubtitle: "Se está instalando una nueva versión. Solo tomará un momento.",
+    updating: "Instalando actualización...",
     support: "Obtener Soporte",
   },
   subscription: {

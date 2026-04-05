@@ -70,6 +70,8 @@ export const ConfigStoreModel = types
     maintenanceMessage: types.optional(types.string, ""),
     /** ISO timestamp for estimated maintenance end */
     maintenanceUntil: types.optional(types.string, ""),
+    /** Whether an OTA update should be applied when maintenance ends */
+    maintenanceUpdate: types.optional(types.boolean, false),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -127,6 +129,7 @@ export const ConfigStoreModel = types
               store.maintenanceMode = config.MAINTENANCE_MODE ?? false
               store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
               store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
+              store.maintenanceUpdate = config.MAINTENANCE_UPDATE ?? false
               store.isLoaded = true
 
               const zoomKeyPreview = store.zoomSdkKey
@@ -177,6 +180,13 @@ export const ConfigStoreModel = types
     },
 
     /**
+     * Clear the maintenance update flag after OTA update completes or fails.
+     */
+    clearMaintenanceUpdate() {
+      store.maintenanceUpdate = false
+    },
+
+    /**
      * Reset config to defaults (env vars)
      */
     reset() {
@@ -197,6 +207,7 @@ export const ConfigStoreModel = types
       store.maintenanceMode = false
       store.maintenanceMessage = ""
       store.maintenanceUntil = ""
+      store.maintenanceUpdate = false
       store.isLoaded = false
     },
   }))

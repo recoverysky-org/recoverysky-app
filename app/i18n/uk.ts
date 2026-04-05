@@ -657,6 +657,9 @@ const uk: Translations = {
     subtitle: "Ми скоро повернемося. Додаток відновить роботу автоматично.",
     eta: "Орієнтовне повернення: {{time}}",
     checking: "Перевіряємо стан системи...",
+    updatingTitle: "Оновлення RecoverySky",
+    updatingSubtitle: "Встановлюється нова версія. Це займе лише мить.",
+    updating: "Встановлення оновлення...",
     support: "Отримати підтримку",
   },
   subscription: {

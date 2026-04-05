@@ -23,6 +23,9 @@ export const MaintenanceScreen: FC = observer(function MaintenanceScreen() {
   const { themed, theme } = useAppTheme()
   const configStore = useConfigStore()
 
+  // Maintenance is off but OTA update is in progress — show updating state
+  const isUpdating = !configStore.maintenanceMode && configStore.maintenanceUpdate
+
   const hasCustomMessage = !!configStore.maintenanceMessage
   const hasEta = !!configStore.maintenanceUntil
 
@@ -40,34 +43,52 @@ export const MaintenanceScreen: FC = observer(function MaintenanceScreen() {
   return (
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
       <View style={$content}>
-        <Ionicons name="construct-outline" size={80} color={theme.colors.tint} />
-
-        <Text
-          style={themed($title)}
-          text={hasCustomMessage ? configStore.maintenanceMessage : undefined}
-          tx={hasCustomMessage ? undefined : "maintenance:title"}
+        <Ionicons
+          name={isUpdating ? "cloud-download-outline" : "construct-outline"}
+          size={80}
+          color={theme.colors.tint}
         />
 
-        {hasEta ? (
-          <Text style={themed($subtitle)} tx="maintenance:eta" txOptions={{ time: etaDisplay }} />
+        {isUpdating ? (
+          <>
+            <Text style={themed($title)} tx="maintenance:updatingTitle" />
+            <Text style={themed($subtitle)} tx="maintenance:updatingSubtitle" />
+          </>
         ) : (
-          <Text style={themed($subtitle)} tx="maintenance:subtitle" />
+          <>
+            <Text
+              style={themed($title)}
+              text={hasCustomMessage ? configStore.maintenanceMessage : undefined}
+              tx={hasCustomMessage ? undefined : "maintenance:title"}
+            />
+
+            {hasEta ? (
+              <Text style={themed($subtitle)} tx="maintenance:eta" txOptions={{ time: etaDisplay }} />
+            ) : (
+              <Text style={themed($subtitle)} tx="maintenance:subtitle" />
+            )}
+          </>
         )}
       </View>
 
       <View style={$footer}>
         <ActivityIndicator size="small" color={theme.colors.textDim} />
-        <Text style={themed($checkingText)} tx="maintenance:checking" />
+        <Text
+          style={themed($checkingText)}
+          tx={isUpdating ? "maintenance:updating" : "maintenance:checking"}
+        />
 
-        <Pressable
-          onPress={() => Linking.openURL(SUPPORT_URL)}
-          accessibilityRole="link"
-          accessibilityLabel={translate("maintenance:support")}
-          style={$supportLink}
-        >
-          <Ionicons name="help-circle-outline" size={16} color={theme.colors.tint} />
-          <Text style={[themed($supportText), { color: theme.colors.tint }]} tx="maintenance:support" />
-        </Pressable>
+        {!isUpdating && (
+          <Pressable
+            onPress={() => Linking.openURL(SUPPORT_URL)}
+            accessibilityRole="link"
+            accessibilityLabel={translate("maintenance:support")}
+            style={$supportLink}
+          >
+            <Ionicons name="help-circle-outline" size={16} color={theme.colors.tint} />
+            <Text style={[themed($supportText), { color: theme.colors.tint }]} tx="maintenance:support" />
+          </Pressable>
+        )}
       </View>
     </Screen>
   )

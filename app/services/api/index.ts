@@ -619,6 +619,10 @@ export class Api {
           UMAMI_WEBSITE_ID: string
           UMAMI_X_API_KEY: string
           REVIEW_ENABLED?: boolean
+          MAINTENANCE_MODE?: boolean
+          MAINTENANCE_MESSAGE?: string
+          MAINTENANCE_UNTIL?: string
+          MAINTENANCE_UPDATE?: boolean
         }
       }
     | GeneralApiProblem
@@ -639,6 +643,10 @@ export class Api {
       UMAMI_WEBSITE_ID: string
       UMAMI_X_API_KEY: string
       REVIEW_ENABLED?: boolean
+      MAINTENANCE_MODE?: boolean
+      MAINTENANCE_MESSAGE?: string
+      MAINTENANCE_UNTIL?: string
+      MAINTENANCE_UPDATE?: boolean
     }>("/config")
 
     if (!response.ok) {

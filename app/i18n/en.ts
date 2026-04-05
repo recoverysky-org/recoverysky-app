@@ -669,6 +669,9 @@ const en = {
     subtitle: "We'll be back shortly. The app will resume automatically.",
     eta: "Estimated return: {{time}}",
     checking: "Checking system status...",
+    updatingTitle: "Updating RecoverySky",
+    updatingSubtitle: "A new version is being installed. This will only take a moment.",
+    updating: "Installing update...",
     support: "Get Support",
   },
   subscription: {

@@ -649,6 +649,9 @@ const th: Translations = {
     subtitle: "เราจะกลับมาเร็ว ๆ นี้ แอปจะกลับมาทำงานโดยอัตโนมัติ",
     eta: "คาดว่าจะกลับมา: {{time}}",
     checking: "กำลังตรวจสอบสถานะระบบ...",
+    updatingTitle: "กำลังอัปเดต RecoverySky",
+    updatingSubtitle: "กำลังติดตั้งเวอร์ชันใหม่ ใช้เวลาเพียงครู่เดียว",
+    updating: "กำลังติดตั้งอัปเดต...",
     support: "รับการสนับสนุน",
   },
   subscription: {

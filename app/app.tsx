@@ -453,6 +453,44 @@ export function App() {
     return () => clearTimeout(timeout)
   }, [rootStore])
 
+  // OTA update on maintenance exit — when server signals MAINTENANCE_UPDATE: true
+  // and maintenance mode turns off, fetch + apply the update before resuming.
+  // The MaintenanceScreen stays visible (via maintenanceUpdate flag) showing "Updating..."
+  // until reloadAsync completes.
+  useEffect(() => {
+    if (__DEV__ || !rootStore) return
+
+    const dispose = reaction(
+      () => ({
+        inMaintenance: rootStore.configStore.maintenanceMode,
+        needsUpdate: rootStore.configStore.maintenanceUpdate,
+      }),
+      async ({ inMaintenance, needsUpdate }) => {
+        // Maintenance just ended and server flagged an update
+        if (!inMaintenance && needsUpdate) {
+          log.info("Maintenance ended with update flag, checking for OTA update")
+          try {
+            const update = await Updates.checkForUpdateAsync()
+            if (update.isAvailable) {
+              log.info("OTA update available, fetching before resume")
+              await Updates.fetchUpdateAsync()
+              log.info("OTA update fetched, reloading app")
+              await Updates.reloadAsync()
+            } else {
+              log.info("No OTA update available, clearing flag")
+              rootStore.configStore.clearMaintenanceUpdate()
+            }
+          } catch (e) {
+            log.warn("Maintenance OTA update failed, resuming normally", { error: String(e) })
+            rootStore.configStore.clearMaintenanceUpdate()
+          }
+        }
+      },
+    )
+
+    return () => dispose()
+  }, [rootStore])
+
   // Foreground re-attestation: re-attest when app comes to foreground with expired JWT
   useEffect(() => {
     // Skip if using API key fallback (simulator) or on web

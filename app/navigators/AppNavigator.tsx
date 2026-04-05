@@ -51,8 +51,10 @@ const AppStack = observer(function AppStack() {
   const isAuthenticated = authStore.isAuthenticated
   const needsZoomSetup = !profileStore.zoomConnected
   const needsOnboarding = !profileStore.onboardingCompleted
-  // Defer maintenance gate while user is in a Zoom meeting
-  const showMaintenance = configStore.maintenanceMode && meetingState !== "inMeeting"
+  // Defer maintenance gate while user is in a Zoom meeting.
+  // Also keep the gate up while an OTA update is being applied after maintenance ends.
+  const showMaintenance =
+    (configStore.maintenanceMode || configStore.maintenanceUpdate) && meetingState !== "inMeeting"
   log.debug("Auth state retrieved", { isAuthenticated, needsZoomSetup, needsOnboarding, showMaintenance })
 
   const {

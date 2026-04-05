@@ -644,6 +644,9 @@ const ar: Translations = {
     subtitle: "سنعود قريباً. سيتم استئناف التطبيق تلقائياً.",
     eta: "العودة المتوقعة: {{time}}",
     checking: "جارٍ التحقق من حالة النظام...",
+    updatingTitle: "جارٍ تحديث RecoverySky",
+    updatingSubtitle: "يتم تثبيت إصدار جديد. سيستغرق ذلك لحظة فقط.",
+    updating: "جارٍ تثبيت التحديث...",
     support: "الحصول على الدعم",
   },
   subscription: {
