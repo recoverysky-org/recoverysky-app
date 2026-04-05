@@ -60,6 +60,14 @@ const HELP_CARDS: HelpCardDef[] = [
     actionParams: { segment: "live" },
   },
   {
+    id: "settings",
+    icon: "settings-outline",
+    titleTx: "homeScreen:settingsTitle",
+    descriptionTx: "homeScreen:settingsDescription",
+    actionTx: "homeScreen:goToSettings",
+    actionTab: "Settings",
+  },
+  {
     id: "support",
     icon: "help-circle-outline",
     titleTx: "homeScreen:supportTitle",
@@ -83,14 +91,6 @@ const HELP_CARDS: HelpCardDef[] = [
     descriptionTx: "homeScreen:attendanceDescription",
     actionTx: "homeScreen:goToAttendance",
     actionTab: "Attendance",
-  },
-  {
-    id: "settings",
-    icon: "settings-outline",
-    titleTx: "homeScreen:settingsTitle",
-    descriptionTx: "homeScreen:settingsDescription",
-    actionTx: "homeScreen:goToSettings",
-    actionTab: "Settings",
   },
   {
     id: "favorites",
