@@ -7,7 +7,7 @@
 
 import { useMemo } from "react"
 import { View, ViewStyle, TextStyle } from "react-native"
-import { DateTime, FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
+import { DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -99,9 +99,6 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
     [breakdown.totalDays],
   )
 
-  const fellowshipColor =
-    FELLOWSHIP_COLORS[profileStore.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
-
   const formattedDate = useMemo(() => {
     return DateTime.fromISO(profileStore.recoveryDate)
       .setLocale(i18n.language)
@@ -153,9 +150,6 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
 
   return (
     <View style={[themed($card), cardGlowStyle]}>
-      {/* Fellowship accent bar */}
-      <View style={[$accentBar, { backgroundColor: fellowshipColor }]} />
-
       {/* Title */}
       <Text style={themed($title)}>{t("cleanTime:yourRecovery")}</Text>
 
@@ -208,14 +202,6 @@ const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   elevation: 8,
   overflow: "hidden",
 })
-
-const $accentBar: ViewStyle = {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  height: 3,
-}
 
 const $title: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 13,
