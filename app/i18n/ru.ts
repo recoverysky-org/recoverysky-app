@@ -125,7 +125,7 @@ const ru: Translations = {
     goToListings: "Смотреть каталог",
     attendanceTitle: "Учёт посещений",
     attendanceDescription:
-      "Посещение собраний отслеживается автоматически. Просматривай историю и экспортируй отчёты.",
+      "При включении посещение собраний отслеживается автоматически. Просматривай историю и экспортируй отчёты.",
     goToAttendance: "Посмотреть посещения",
     settingsTitle: "Настрой приложение",
     settingsDescription: "Укажи дату выздоровления, тему оформления и личные предпочтения.",
@@ -595,6 +595,16 @@ const ru: Translations = {
     milestone20Years: "20 лет",
     milestone25Years: "25 лет",
     milestone30Years: "30 лет",
+  },
+  recoveryChart: {
+    selectRange: "Выбрать период",
+    legend: "Минуты собраний в день",
+    days7: "7 дней",
+    days30: "30 дней",
+    days60: "60 дней",
+    days90: "90 дней",
+    allTime: "За всё время",
+    noData: "Нет данных о посещении",
   },
   ninetyInNinety: {
     title: "Челлендж 90 за 90",

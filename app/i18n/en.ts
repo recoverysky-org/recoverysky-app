@@ -123,7 +123,7 @@ const en = {
     goToListings: "View Listings",
     attendanceTitle: "Track Attendance",
     attendanceDescription:
-      "Your meeting attendance is tracked automatically. View history and export reports.",
+      "When opted in, your meeting attendance is tracked automatically. View history and export reports.",
     goToAttendance: "View Attendance",
     settingsTitle: "Customize Your App",
     settingsDescription: "Set your recovery date, theme, and personal preferences.",
@@ -605,6 +605,16 @@ const en = {
     milestone20Years: "20 Years",
     milestone25Years: "25 Years",
     milestone30Years: "30 Years",
+  },
+  recoveryChart: {
+    selectRange: "Select Range",
+    legend: "Meeting Minutes per Day",
+    days7: "7 Days",
+    days30: "30 Days",
+    days60: "60 Days",
+    days90: "90 Days",
+    allTime: "All Time",
+    noData: "No attendance data yet",
   },
   ninetyInNinety: {
     title: "90 in 90 Challenge",

@@ -8,7 +8,7 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { Alert, Pressable, ScrollView, View, ViewStyle, TextStyle } from "react-native"
-// import * as Crypto from "expo-crypto"
+import * as Crypto from "expo-crypto"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
@@ -16,10 +16,9 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/Button"
 import { Text } from "@/components/Text"
 import { useToast } from "@/components/Toast"
-// import { attendanceRepo } from "@/db"
+import { attendanceRepo } from "@/db"
 import { useNinetyInNinety, type DailyMinutes } from "@/hooks/useNinetyInNinety"
-// import { useAuthenticationStore } from "@/models"
-import { useProfileStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import {
   generateAndStoreCertificate,
   shareNinetyCertificate,
@@ -92,7 +91,7 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
-  // const authStore = useAuthenticationStore()
+  const authStore = useAuthenticationStore()
   const stats = useNinetyInNinety()
   const toast = useToast()
   const [isGenerating, setIsGenerating] = useState(false)
@@ -146,59 +145,62 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
   //   [profileStore],
   // )
 
-  // const handleDebugInsert = useCallback(async () => {
-  //   if (!__DEV__) return
-  //   const uid = authStore.userId
-  //   if (!uid || !profileStore.ninetyStartDate) return
-  //   const dayOffset = profileStore.ninetyDebugDay
-  //   const startDate = new Date(profileStore.ninetyStartDate + "T00:00:00")
-  //   const meetingDate = new Date(startDate)
-  //   meetingDate.setDate(meetingDate.getDate() + dayOffset)
-  //   const creditMinutes = 60 + Math.floor(Math.random() * 61)
-  //   const creditMs = creditMinutes * 60_000
-  //   const startMs = meetingDate.getTime() + 10 * 3_600_000
-  //   const endMs = startMs + creditMs
-  //   try {
-  //     await attendanceRepo.create({
-  //       id: Crypto.randomUUID(),
-  //       uid,
-  //       mid: `debug-ninety-${dayOffset}`,
-  //       zid: `debug-zid-${dayOffset}`,
-  //       created: Date.now(),
-  //       valid: true,
-  //       processed: Date.now(),
-  //       start: startMs,
-  //       end: endMs,
-  //       credit: creditMs,
-  //       meetingName: `Debug Meeting Day ${dayOffset + 1}`,
-  //       meetingHost: "Debug",
-  //     })
-  //     profileStore.setNinetyDebugDay(dayOffset + 1)
-  //     toast.showToast({ message: `Day ${dayOffset + 1}: ${creditMinutes}min added`, type: "success" })
-  //     log.info("Debug attendance inserted", { day: dayOffset + 1, creditMinutes })
-  //     await stats.refresh()
-  //   } catch (error) {
-  //     log.error("Debug insert failed", { error: String(error) })
-  //     toast.showToast({ message: "Debug insert failed", type: "error" })
-  //   }
-  // }, [authStore.userId, profileStore, stats, toast])
+  const handleDebugInsert = useCallback(async () => {
+    if (!__DEV__) return
+    const uid = authStore.userId
+    if (!uid || !profileStore.ninetyStartDate) return
+    const dayOffset = profileStore.ninetyDebugDay
+    const startDate = new Date(profileStore.ninetyStartDate + "T00:00:00")
+    const meetingDate = new Date(startDate)
+    meetingDate.setDate(meetingDate.getDate() + dayOffset)
+    const creditMinutes = 60 + Math.floor(Math.random() * 61)
+    const creditMs = creditMinutes * 60_000
+    const startMs = meetingDate.getTime() + 10 * 3_600_000
+    const endMs = startMs + creditMs
+    try {
+      await attendanceRepo.create({
+        id: Crypto.randomUUID(),
+        uid,
+        mid: `debug-ninety-${dayOffset}`,
+        zid: `debug-zid-${dayOffset}`,
+        created: Date.now(),
+        valid: true,
+        processed: Date.now(),
+        start: startMs,
+        end: endMs,
+        credit: creditMs,
+        meetingName: `Debug Meeting Day ${dayOffset + 1}`,
+        meetingHost: "Debug",
+      })
+      profileStore.setNinetyDebugDay(dayOffset + 1)
+      toast.showToast({
+        message: `Day ${dayOffset + 1}: ${creditMinutes}min added`,
+        type: "success",
+      })
+      log.info("Debug attendance inserted", { day: dayOffset + 1, creditMinutes })
+      await stats.refresh()
+    } catch (error) {
+      log.error("Debug insert failed", { error: String(error) })
+      toast.showToast({ message: "Debug insert failed", type: "error" })
+    }
+  }, [authStore.userId, profileStore, stats, toast])
 
-  // const handleDebugDeleteAll = useCallback(async () => {
-  //   if (!__DEV__) return
-  //   try {
-  //     const result = await attendanceRepo.findAll()
-  //     if (result.ok) {
-  //       for (const r of result.value) {
-  //         await attendanceRepo.delete(r.id)
-  //       }
-  //       profileStore.setNinetyDebugDay(0)
-  //       toast.showToast({ message: `Deleted ${result.value.length} records`, type: "info" })
-  //       await stats.refresh()
-  //     }
-  //   } catch (error) {
-  //     log.error("Debug delete failed", { error: String(error) })
-  //   }
-  // }, [profileStore, stats, toast])
+  const handleDebugDeleteAll = useCallback(async () => {
+    if (!__DEV__) return
+    try {
+      const result = await attendanceRepo.findAll()
+      if (result.ok) {
+        for (const r of result.value) {
+          await attendanceRepo.delete(r.id)
+        }
+        profileStore.setNinetyDebugDay(0)
+        toast.showToast({ message: `Deleted ${result.value.length} records`, type: "info" })
+        await stats.refresh()
+      }
+    } catch (error) {
+      log.error("Debug delete failed", { error: String(error) })
+    }
+  }, [profileStore, stats, toast])
 
   const handleGetCertificate = useCallback(async () => {
     setIsGenerating(true)
@@ -398,7 +400,7 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
       </View>
       */}
 
-      {/* Debug buttons — DEV only
+      {/* Debug buttons — DEV only */}
       {__DEV__ && (
         <>
           <Button
@@ -415,7 +417,6 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
           />
         </>
       )}
-      */}
 
       {/* Reset */}
       <Pressable onPress={handleReset} style={themed($resetPressable)}>

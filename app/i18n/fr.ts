@@ -125,7 +125,7 @@ const fr: Translations = {
     goToListings: "Voir le répertoire",
     attendanceTitle: "Suivre la présence",
     attendanceDescription:
-      "Ta présence aux réunions est suivie automatiquement. Consulte l'historique et exporte des rapports.",
+      "Lorsque activé, ta présence aux réunions est suivie automatiquement. Consulte l'historique et exporte des rapports.",
     goToAttendance: "Voir la présence",
     settingsTitle: "Personnalise ton app",
     settingsDescription: "Configure ta date de rétablissement, ton thème et tes préférences.",
@@ -600,6 +600,16 @@ const fr: Translations = {
     milestone20Years: "20 Ans",
     milestone25Years: "25 Ans",
     milestone30Years: "30 Ans",
+  },
+  recoveryChart: {
+    selectRange: "Sélectionner la période",
+    legend: "Minutes de réunion par jour",
+    days7: "7 Jours",
+    days30: "30 Jours",
+    days60: "60 Jours",
+    days90: "90 Jours",
+    allTime: "Tout le temps",
+    noData: "Aucune donnée de présence",
   },
   ninetyInNinety: {
     title: "Défi 90 en 90",

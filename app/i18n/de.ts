@@ -125,7 +125,7 @@ const de: Translations = {
     goToListings: "Verzeichnis ansehen",
     attendanceTitle: "Teilnahme verfolgen",
     attendanceDescription:
-      "Deine Meeting-Teilnahme wird automatisch erfasst. Sieh dir den Verlauf an und exportiere Berichte.",
+      "Wenn aktiviert, wird deine Meeting-Teilnahme automatisch erfasst. Sieh dir den Verlauf an und exportiere Berichte.",
     goToAttendance: "Teilnahme ansehen",
     settingsTitle: "App anpassen",
     settingsDescription: "Lege dein Genesungsdatum, Farbschema und persönliche Einstellungen fest.",
@@ -602,6 +602,16 @@ const de: Translations = {
     milestone20Years: "20 Jahre",
     milestone25Years: "25 Jahre",
     milestone30Years: "30 Jahre",
+  },
+  recoveryChart: {
+    selectRange: "Zeitraum wählen",
+    legend: "Meetingminuten pro Tag",
+    days7: "7 Tage",
+    days30: "30 Tage",
+    days60: "60 Tage",
+    days90: "90 Tage",
+    allTime: "Gesamte Zeit",
+    noData: "Noch keine Anwesenheitsdaten",
   },
   ninetyInNinety: {
     title: "90 in 90 Challenge",

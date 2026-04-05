@@ -123,7 +123,7 @@ const es: Translations = {
     goToListings: "Ver Listado",
     attendanceTitle: "Registrar Asistencia",
     attendanceDescription:
-      "Tu asistencia a reuniones se registra automáticamente. Ve el historial y exporta informes.",
+      "Cuando estés inscrito, tu asistencia a reuniones se registra automáticamente. Ve el historial y exporta informes.",
     goToAttendance: "Ver Asistencia",
     settingsTitle: "Personaliza Tu App",
     settingsDescription: "Configura tu fecha de recuperación, tema y preferencias personales.",
@@ -595,6 +595,16 @@ const es: Translations = {
     milestone20Years: "20 Años",
     milestone25Years: "25 Años",
     milestone30Years: "30 Años",
+  },
+  recoveryChart: {
+    selectRange: "Seleccionar Rango",
+    legend: "Minutos de Reunión por Día",
+    days7: "7 Días",
+    days30: "30 Días",
+    days60: "60 Días",
+    days90: "90 Días",
+    allTime: "Todo el Tiempo",
+    noData: "Sin datos de asistencia aún",
   },
   ninetyInNinety: {
     title: "Reto 90 en 90",

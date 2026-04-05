@@ -8,6 +8,7 @@ import { CleanTimeCard } from "@/components/CleanTimeCard"
 import { HelpCard } from "@/components/HelpCard"
 import { NewsCard } from "@/components/NewsCard"
 import { NinetyInNinetyCard } from "@/components/NinetyInNinetyCard"
+import { RecoveryChartCard } from "@/components/RecoveryChartCard"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { translate, type TxKeyPath } from "@/i18n"
@@ -268,6 +269,9 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
 
       {/* Clean Time Card — below cards, floats up as cards are dismissed */}
       <CleanTimeCard />
+
+      {/* Recovery Chart — gated on attendance enabled */}
+      {profileStore.attendanceEnabled && <RecoveryChartCard />}
 
       {/* 90 in 90 Challenge Card — gated on attendance enabled */}
       {profileStore.attendanceEnabled && <NinetyInNinetyCard />}

@@ -124,7 +124,7 @@ const uk: Translations = {
     goToListings: "Переглянути каталог",
     attendanceTitle: "Облік відвідувань",
     attendanceDescription:
-      "Відвідування зустрічей відстежується автоматично. Переглядай історію та експортуй звіти.",
+      "Коли увімкнено, відвідування зустрічей відстежується автоматично. Переглядай історію та експортуй звіти.",
     goToAttendance: "Переглянути відвідування",
     settingsTitle: "Налаштуй додаток",
     settingsDescription: "Встанови дату одужання, тему оформлення та особисті налаштування.",
@@ -593,6 +593,16 @@ const uk: Translations = {
     milestone20Years: "20 років",
     milestone25Years: "25 років",
     milestone30Years: "30 років",
+  },
+  recoveryChart: {
+    selectRange: "Вибрати період",
+    legend: "Хвилини зустрічей на день",
+    days7: "7 днів",
+    days30: "30 днів",
+    days60: "60 днів",
+    days90: "90 днів",
+    allTime: "За весь час",
+    noData: "Ще немає даних про відвідування",
   },
   ninetyInNinety: {
     title: "Челендж 90 за 90",
