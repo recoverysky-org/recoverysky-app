@@ -98,6 +98,7 @@
     "expo-dev-client": "~6.0.12",
     "expo-device": "~8.0.10",
     "expo-font": "~14.0.11",
+    "expo-insights": "^55.0.14",
     "expo-linking": "~8.0.8",
     "expo-localization": "~17.0.7",
     "expo-notifications": "~0.32.16",
