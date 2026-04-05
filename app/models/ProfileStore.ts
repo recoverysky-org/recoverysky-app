@@ -79,6 +79,13 @@ export const ProfileStoreModel = types
 
     // News dismissal tracking (empty string = first launch sentinel)
     dismissedNews: types.optional(types.string, ""),
+
+    // 90 in 90 challenge
+    ninetyStartDate: types.optional(types.string, ""), // ISO "YYYY-MM-DD" or "" = not started
+    ninetyStartEpoch: types.optional(types.number, 0), // Unix ms when challenge was started (for filtering)
+    ninetyStrictMode: types.optional(types.boolean, true),
+    ninetyCertificatePath: types.optional(types.string, ""),
+    ninetyDebugDay: types.optional(types.number, 0), // DEV only: next day offset for debug insert
   })
   .volatile(() => ({
     // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
@@ -378,6 +385,33 @@ export const ProfileStoreModel = types
         }
       },
 
+      // === 90 IN 90 CHALLENGE ===
+
+      setNinetyStartDate(value: string) {
+        self.ninetyStartDate = value
+        self.ninetyStartEpoch = value ? Date.now() : 0
+      },
+
+      setNinetyStrictMode(value: boolean) {
+        self.ninetyStrictMode = value
+      },
+
+      setNinetyCertificatePath(value: string) {
+        self.ninetyCertificatePath = value
+      },
+
+      setNinetyDebugDay(value: number) {
+        self.ninetyDebugDay = value
+      },
+
+      resetNinetyChallenge() {
+        self.ninetyStartDate = ""
+        self.ninetyStartEpoch = 0
+        self.ninetyStrictMode = true
+        self.ninetyCertificatePath = ""
+        self.ninetyDebugDay = 0
+      },
+
       /**
        * Reset profile to defaults
        */
@@ -407,6 +441,11 @@ export const ProfileStoreModel = types
         self.aiConsentAccepted = false
         self.dismissedHomeCards.clear()
         self.dismissedNews = ""
+        self.ninetyStartDate = ""
+        self.ninetyStartEpoch = 0
+        self.ninetyStrictMode = true
+        self.ninetyCertificatePath = ""
+        self.ninetyDebugDay = 0
 
         // Persist reset to SQLite
         persistSecure({
