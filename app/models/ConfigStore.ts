@@ -168,8 +168,18 @@ export const ConfigStoreModel = types
           }
         }
 
-        // All retries exhausted — continue with baked-in env var defaults
-        log.warn("Config fetch failed after " + MAX_RETRIES + " attempts, using env var defaults")
+        // All retries exhausted
+        if (store.isLoaded) {
+          // Config was previously loaded (polling failure) — enter maintenance mode
+          // so the user sees the maintenance screen instead of stale data.
+          log.warn("Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode")
+          store.maintenanceMode = true
+          store.maintenanceMessage = ""
+          store.maintenanceUntil = ""
+        } else {
+          // Initial startup failure — caller (app.tsx) handles via setOutageMode()
+          log.warn("Config fetch failed after " + MAX_RETRIES + " attempts, using env var defaults")
+        }
       } finally {
         store.isLoading = false
       }

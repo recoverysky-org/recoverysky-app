@@ -14,10 +14,11 @@ import {
   useMemo,
   type ReactNode,
 } from "react"
+import { reaction } from "mobx"
 import { type meeting } from "@recoverysky-org/common/browser"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
-import { useProfileStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
 import { api, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
 
@@ -167,6 +168,7 @@ interface MeetingProviderProps {
 
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   log.debug("MeetingProvider initializing")
+  const configStore = useConfigStore()
   const profileStore = useProfileStore()
 
   // Live meetings data
@@ -178,6 +180,20 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("unknown")
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  // Auto-refresh when maintenance mode ends so meetings are up to date
+  useEffect(() => {
+    const dispose = reaction(
+      () => configStore.maintenanceMode,
+      (inMaintenance, was) => {
+        if (was && !inMaintenance) {
+          log.info("Maintenance ended, refreshing live meetings")
+          setRefreshTrigger((prev) => prev + 1)
+        }
+      },
+    )
+    return () => dispose()
+  }, [configStore])
 
   // ============================================================================
   // Check API status (with retry)
