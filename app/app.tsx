@@ -392,12 +392,14 @@ export function App() {
     })()
   }, [])
 
-  // Poll server config — 60s during maintenance, 5min otherwise
+  // Poll server config — faster during maintenance to detect when it ends
   useEffect(() => {
     if (!rootStore) return
 
-    const NORMAL_INTERVAL = 5 * 60 * 1000 // 5 minutes
-    const MAINTENANCE_INTERVAL = 60 * 1000 // 60 seconds
+    const NORMAL_INTERVAL =
+      (Number(process.env.EXPO_PUBLIC_CONFIG_POLL_SECONDS) || 60) * 1000
+    const MAINTENANCE_INTERVAL =
+      (Number(process.env.EXPO_PUBLIC_CONFIG_POLL_MAINTENANCE_SECONDS) || 15) * 1000
 
     let interval: ReturnType<typeof setInterval>
 
@@ -458,16 +460,23 @@ export function App() {
   // The MaintenanceScreen stays visible (via maintenanceUpdate flag) showing "Updating..."
   // until reloadAsync completes.
   useEffect(() => {
-    if (__DEV__ || !rootStore) return
+    if (!rootStore) return
 
     const dispose = reaction(
       () => ({
         inMaintenance: rootStore.configStore.maintenanceMode,
         needsUpdate: rootStore.configStore.maintenanceUpdate,
       }),
-      async ({ inMaintenance, needsUpdate }) => {
-        // Maintenance just ended and server flagged an update
-        if (!inMaintenance && needsUpdate) {
+      async ({ inMaintenance, needsUpdate }, prev) => {
+        // Only act on the real transition: maintenance was ON, now OFF, with update flag.
+        if (prev.inMaintenance && !inMaintenance && needsUpdate) {
+          // OTA updates require a production build — skip in dev
+          if (__DEV__) {
+            log.info("Maintenance update flag set but skipping OTA in dev mode")
+            rootStore.configStore.clearMaintenanceUpdate()
+            return
+          }
+
           log.info("Maintenance ended with update flag, checking for OTA update")
           try {
             const update = await Updates.checkForUpdateAsync()
@@ -484,6 +493,12 @@ export function App() {
             log.warn("Maintenance OTA update failed, resuming normally", { error: String(e) })
             rootStore.configStore.clearMaintenanceUpdate()
           }
+        } else if (!inMaintenance && needsUpdate) {
+          // Stale flag — server returned MAINTENANCE_UPDATE: true but we were
+          // never in maintenance (e.g. cold start). Clear it so the navigator
+          // gate doesn't show the maintenance screen.
+          log.debug("Clearing stale maintenanceUpdate flag (never in maintenance)")
+          rootStore.configStore.clearMaintenanceUpdate()
         }
       },
     )

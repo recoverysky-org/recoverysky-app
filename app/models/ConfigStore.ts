@@ -126,10 +126,16 @@ export const ConfigStoreModel = types
               if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
               if (config.REVIEW_ENABLED !== undefined)
                 store.reviewEnabled = config.REVIEW_ENABLED
+              const wasInMaintenance = store.maintenanceMode
               store.maintenanceMode = config.MAINTENANCE_MODE ?? false
               store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
               store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
-              store.maintenanceUpdate = config.MAINTENANCE_UPDATE ?? false
+              // Only accept the update flag if we are or were in maintenance.
+              // Prevents a stale MAINTENANCE_UPDATE: true on cold start from
+              // triggering the maintenance gate when MAINTENANCE_MODE is false.
+              store.maintenanceUpdate =
+                (wasInMaintenance || store.maintenanceMode) &&
+                (config.MAINTENANCE_UPDATE ?? false)
               store.isLoaded = true
 
               const zoomKeyPreview = store.zoomSdkKey
