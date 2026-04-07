@@ -148,6 +148,25 @@ async function processApiResult(
 type ShowToast = (config: { message: string; type: "success" | "error"; duration?: number }) => void
 
 /**
+ * Roll back a failed initial send: un-produce attendance records and delete the report.
+ */
+async function rollbackInitialSend(reportId: string, attendanceIds: string[]): Promise<void> {
+  try {
+    for (const id of attendanceIds) {
+      await attendanceRepo.update(id, { produced: 0, arid: "", archived: 0 })
+    }
+    await attendanceReportRepo.delete(reportId)
+    logger.info("Rolled back failed report", { reportId, count: attendanceIds.length })
+    for (const id of attendanceIds) {
+      attendanceEvents.emit({ type: "processed", id })
+      attendanceEvents.emit({ type: "archived", id })
+    }
+  } catch (e) {
+    logger.error("Rollback failed", { reportId, error: String(e) })
+  }
+}
+
+/**
  * Unified handler for initial send, resend, and error-replace.
  * All three follow the same pattern: ensure record exists → reset status → call API.
  */
@@ -207,12 +226,13 @@ async function handleSend(
   if (op.type === "initial") {
     const attendanceResult = await attendanceRepo.findByReportId(reportId)
     if (!attendanceResult.ok) {
-      logger.warn("Failed to fetch attendance for API", {
+      logger.warn("Failed to fetch attendance for API, rolling back report", {
         reportId,
         error: String(attendanceResult.error),
       })
-      showToast({ message: "Report saved locally", type: "success" })
-      return { reportId, success: true }
+      await rollbackInitialSend(reportId, op.attendanceIds)
+      showToast({ message: "Failed to create report", type: "error" })
+      return { reportId, success: false }
     }
     apiResult = await api.sendReport({
       id: reportId,
@@ -242,6 +262,12 @@ async function handleSend(
   // Resend/replace: API may return stale confirmed state — preserve our reset
   const preserveReset = op.type === "resend" || op.type === "replace"
   const success = await processApiResult(reportId, apiResult, op.type, showToast, preserveReset)
+
+  // Roll back initial send on API failure — restore attendance to New tab
+  if (!success && op.type === "initial") {
+    await rollbackInitialSend(reportId, op.attendanceIds)
+  }
+
   if (success) trackEvent("report_sent", { type: op.type })
   logger.info("Send complete", { reportId, type: op.type, success })
   return { reportId, success }
