@@ -15,6 +15,7 @@ const de: Translations = {
     dontShowAgain: "Nicht mehr anzeigen",
     updateTitle: "Update verfügbar",
     updateMessage: "RecoverySky wird jetzt kurz aktualisiert.",
+    retry: "Erneut versuchen",
     reviewReminderTitle: "Gefällt dir RecoverySky?",
     reviewReminderMessage: "Du kannst die App jederzeit in den Einstellungen bewerten.",
   },
@@ -41,6 +42,9 @@ const de: Translations = {
   },
   errors: {
     invalidEmail: "Ungültige E-Mail-Adresse.",
+    attestationFailedTitle: "Geräteverifizierung Fehlgeschlagen",
+    attestationFailedMessage:
+      "RecoverySky konnte dieses Gerät nicht verifizieren. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.\n\nWenn das Problem weiterhin besteht, installieren Sie die App neu oder kontaktieren Sie support@recoverysky.app",
   },
   database: {
     initializing: "Datenbank wird initialisiert...",

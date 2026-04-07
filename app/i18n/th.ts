@@ -15,6 +15,7 @@ const th: Translations = {
     dontShowAgain: "ไม่ต้องแสดงอีก",
     updateTitle: "มีอัปเดตใหม่",
     updateMessage: "RecoverySky จะอัปเดตอย่างรวดเร็วตอนนี้",
+    retry: "ลองใหม่",
     reviewReminderTitle: "ชอบ RecoverySky ไหม?",
     reviewReminderMessage: "คุณสามารถให้คะแนนแอปได้ตลอดเวลาในการตั้งค่า",
   },
@@ -39,6 +40,9 @@ const th: Translations = {
   },
   errors: {
     invalidEmail: "ที่อยู่อีเมลไม่ถูกต้องนะ",
+    attestationFailedTitle: "การยืนยันอุปกรณ์ล้มเหลว",
+    attestationFailedMessage:
+      "RecoverySky ไม่สามารถยืนยันอุปกรณ์นี้ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหายังคงอยู่ กรุณาติดตั้งแอปใหม่หรือติดต่อ support@recoverysky.app",
   },
   database: {
     initializing: "กำลังเตรียมฐานข้อมูล...",

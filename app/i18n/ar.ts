@@ -15,6 +15,7 @@ const ar: Translations = {
     dontShowAgain: "لا تظهر مرة أخرى",
     updateTitle: "تحديث متاح",
     updateMessage: "سيتم تحديث RecoverySky بسرعة الآن.",
+    retry: "إعادة المحاولة",
     reviewReminderTitle: "هل تستمتع بـ RecoverySky؟",
     reviewReminderMessage: "يمكنك تقييم التطبيق في أي وقت من الإعدادات.",
   },
@@ -39,6 +40,9 @@ const ar: Translations = {
   },
   errors: {
     invalidEmail: "عنوان البريد الإلكتروني غير صالح.",
+    attestationFailedTitle: "فشل التحقق من الجهاز",
+    attestationFailedMessage:
+      "تعذّر على RecoverySky التحقق من هذا الجهاز. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت المشكلة، يرجى إعادة تثبيت التطبيق أو الاتصال بـ support@recoverysky.app",
   },
   database: {
     initializing: "جارٍ تهيئة قاعدة البيانات...",

@@ -15,6 +15,7 @@ const ru: Translations = {
     dontShowAgain: "Больше не показывать",
     updateTitle: "Доступно обновление",
     updateMessage: "RecoverySky сейчас быстро обновится.",
+    retry: "Повторить",
     reviewReminderTitle: "Нравится RecoverySky?",
     reviewReminderMessage: "Ты можешь оценить приложение в любое время в Настройках.",
   },
@@ -41,6 +42,9 @@ const ru: Translations = {
   },
   errors: {
     invalidEmail: "Неверный адрес электронной почты.",
+    attestationFailedTitle: "Ошибка Верификации Устройства",
+    attestationFailedMessage:
+      "RecoverySky не удалось верифицировать это устройство. Проверьте подключение к интернету и попробуйте снова.\n\nЕсли проблема не исчезнет, переустановите приложение или обратитесь по адресу support@recoverysky.app",
   },
   database: {
     initializing: "Инициализация базы данных...",

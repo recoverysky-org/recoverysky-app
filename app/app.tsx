@@ -114,9 +114,13 @@ function isJwtExpiredOrNearExpiry(): boolean {
   return Date.now() > jwtExpiresAt - FIVE_MINUTES_MS
 }
 
+/** Retry delays for attestation attempts (exponential backoff) */
+const ATTESTATION_RETRY_DELAYS = [1000, 2000, 3000]
+const ATTESTATION_MAX_ATTEMPTS = ATTESTATION_RETRY_DELAYS.length + 1
+
 /**
- * Perform device attestation and update API headers
- * Returns true if attestation succeeded, false otherwise
+ * Perform device attestation with retries and update API headers.
+ * Returns true if attestation succeeded, false if all attempts failed.
  */
 async function performAttestation(deviceId: string): Promise<boolean> {
   if (!isAttestationSupported()) {
@@ -124,23 +128,36 @@ async function performAttestation(deviceId: string): Promise<boolean> {
     return false
   }
 
-  log.info("Performing device attestation")
-  const result = await attestDevice(deviceId)
+  for (let attempt = 1; attempt <= ATTESTATION_MAX_ATTEMPTS; attempt++) {
+    log.info("Performing device attestation", { attempt, of: ATTESTATION_MAX_ATTEMPTS })
+    const result = await attestDevice(deviceId)
 
-  if (result.ok) {
-    api.setDeviceJwt(result.data.deviceJwt)
-    jwtExpiresAt = result.data.expiresAt
-    log.info("Device attestation complete", {
-      expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",
-    })
-    return true
-  } else {
+    if (result.ok) {
+      api.setDeviceJwt(result.data.deviceJwt)
+      jwtExpiresAt = result.data.expiresAt
+      log.info("Device attestation complete", {
+        attempt,
+        expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",
+      })
+      return true
+    }
+
     log.error("Device attestation failed", {
+      attempt,
       code: result.error.code,
       message: result.error.message,
     })
-    return false
+
+    // Wait before retrying (unless last attempt)
+    if (attempt < ATTESTATION_MAX_ATTEMPTS) {
+      const delay = ATTESTATION_RETRY_DELAYS[attempt - 1]
+      log.info("Retrying attestation", { nextAttempt: attempt + 1, delay })
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
   }
+
+  log.error("All attestation attempts exhausted", { attempts: ATTESTATION_MAX_ATTEMPTS })
+  return false
 }
 
 /**
@@ -173,10 +190,29 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
   // Perform initial attestation
   const success = await performAttestation(deviceId)
   if (!success) {
-    // Fallback to X-API-Key if attestation fails
-    log.warn("Attestation failed, falling back to X-API-Key")
-    api.setApiKeyAuth()
-    usingApiKeyFallback = true
+    log.fatal("Initial attestation failed after all retries, blocking app")
+    // Show fatal alert — user must close or retry. No API key fallback on physical devices.
+    return new Promise<void>(() => {
+      Alert.alert(
+        translate("errors:attestationFailedTitle"),
+        translate("errors:attestationFailedMessage"),
+        [
+          {
+            text: translate("common:retry"),
+            onPress: () => {
+              // Full app reload to retry from scratch
+              Updates.reloadAsync().catch(() => BackHandler.exitApp())
+            },
+          },
+          {
+            text: translate("common:close"),
+            style: "destructive",
+            onPress: () => BackHandler.exitApp(),
+          },
+        ],
+        { cancelable: false },
+      )
+    })
   }
 }
 

@@ -15,6 +15,7 @@ const uk: Translations = {
     dontShowAgain: "Більше не показувати",
     updateTitle: "Доступне оновлення",
     updateMessage: "RecoverySky зараз швидко оновиться.",
+    retry: "Повторити",
     reviewReminderTitle: "Подобається RecoverySky?",
     reviewReminderMessage: "Ти можеш оцінити додаток у будь-який час у Налаштуваннях.",
   },
@@ -40,6 +41,9 @@ const uk: Translations = {
   },
   errors: {
     invalidEmail: "Невірна електронна адреса.",
+    attestationFailedTitle: "Помилка Верифікації Пристрою",
+    attestationFailedMessage:
+      "RecoverySky не вдалося верифікувати цей пристрій. Перевірте підключення до інтернету та спробуйте знову.\n\nЯкщо проблема не зникне, перевстановіть додаток або зверніться за адресою support@recoverysky.app",
   },
   database: {
     initializing: "Ініціалізація бази даних...",

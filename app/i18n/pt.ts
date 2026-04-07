@@ -15,6 +15,7 @@ const pt: Translations = {
     dontShowAgain: "Não mostrar de novo",
     updateTitle: "Atualização Disponível",
     updateMessage: "O RecoverySky vai atualizar rapidamente agora.",
+    retry: "Tentar Novamente",
     reviewReminderTitle: "Curtindo o RecoverySky?",
     reviewReminderMessage: "Você pode avaliar o app a qualquer momento nos Ajustes.",
   },
@@ -40,6 +41,9 @@ const pt: Translations = {
   },
   errors: {
     invalidEmail: "Endereço de e-mail inválido.",
+    attestationFailedTitle: "Falha na Verificação do Dispositivo",
+    attestationFailedMessage:
+      "O RecoverySky não conseguiu verificar este dispositivo. Verifique sua conexão com a internet e tente novamente.\n\nSe o problema persistir, reinstale o aplicativo ou entre em contato com support@recoverysky.app",
   },
   database: {
     initializing: "Inicializando banco de dados...",

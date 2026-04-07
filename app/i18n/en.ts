@@ -13,6 +13,7 @@ const en = {
     dontShowAgain: "Don't show again",
     updateTitle: "Update Available",
     updateMessage: "RecoverySky will quickly update now.",
+    retry: "Retry",
     reviewReminderTitle: "Enjoying RecoverySky?",
     reviewReminderMessage: "You can rate the app anytime in Settings.",
   },
@@ -39,6 +40,9 @@ const en = {
   },
   errors: {
     invalidEmail: "Invalid email address.",
+    attestationFailedTitle: "Device Verification Failed",
+    attestationFailedMessage:
+      "RecoverySky could not verify this device. Please check your internet connection and try again.\n\nIf this problem persists, please reinstall the app or contact support@recoverysky.app",
   },
   database: {
     initializing: "Initializing database...",
