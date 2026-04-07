@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   Modal,
 } from "react-native"
+import * as Crypto from "expo-crypto"
 import { Ionicons } from "@expo/vector-icons"
 import { useRoute, type RouteProp } from "@react-navigation/native"
 import { DateTime } from "@recoverysky-org/common/browser"
@@ -43,7 +44,7 @@ import {
 } from "@/db"
 import { useReportSender } from "@/hooks/useReportSender"
 import { translate } from "@/i18n"
-import { useProfileStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import {
   MainTabScreenProps,
   type MainTabParamList,
@@ -215,7 +216,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
 
   useEffect(() => {
     return attendanceEvents.subscribe((event) => {
-      if (event.type === "processed") {
+      if (event.type === "processed" || event.type === "created") {
         void loadRecords()
       }
     })
@@ -768,6 +769,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
     const { themed, theme } = useAppTheme()
     const toast = useToast()
     const route = useRoute<RouteProp<MainTabParamList, "Attendance">>()
+    const authStore = useAuthenticationStore()
 
     // Initialize section from route params or default to "new"
     const [activeSection, setActiveSection] = useState<AttendanceSection>(
@@ -805,6 +807,32 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       })
     }, [toast, navigation])
 
+    // DEV: Create a fake 5-minute attendance record for simulator testing
+    const handleDevAddRecord = useCallback(async () => {
+      if (!__DEV__) return
+      const now = Date.now()
+      const fiveMin = 5 * 60_000
+      try {
+        await attendanceRepo.create({
+          id: Crypto.randomUUID(),
+          uid: authStore.userId ?? "dev-user",
+          mid: `dev-${now}`,
+          zid: `dev-zid-${now}`,
+          created: now,
+          valid: true,
+          start: now - fiveMin,
+          end: now,
+          credit: fiveMin,
+          meetingName: `Dev Meeting ${new Date().toLocaleTimeString()}`,
+          meetingHost: "Simulator",
+        })
+        attendanceEvents.emit({ type: "created", id: `dev-${now}` })
+        toast.showToast({ message: "Dev attendance record added", type: "success" })
+      } catch (e) {
+        logger.error("Dev attendance create failed", { error: String(e) })
+      }
+    }, [authStore.userId, toast])
+
     const handleNavigateSettings = useCallback(() => {
       navigation.navigate("Settings", { section: "attendance" })
     }, [navigation])
@@ -825,9 +853,16 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
         {/* Header */}
         <View style={themed($screenHeader)}>
           <Text preset="heading" tx="attendanceScreen:title" />
-          <TouchableOpacity onPress={handleNavigateSettings} hitSlop={8}>
-            <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
-          </TouchableOpacity>
+          <View style={$headerActions}>
+            {__DEV__ && (
+              <TouchableOpacity onPress={handleDevAddRecord} hitSlop={8}>
+                <Ionicons name="add-circle-outline" size={22} color={theme.colors.tint} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleNavigateSettings} hitSlop={8}>
+              <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Section Selector */}
@@ -870,6 +905,12 @@ const $screenHeader: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.xs,
   paddingBottom: spacing.sm,
 })
+
+const $headerActions: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 12,
+}
 
 const $segmentWrapper: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.sm,
