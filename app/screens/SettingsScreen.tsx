@@ -654,7 +654,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           onPress={() => setPronounsModalVisible(false)}
           accessibilityLabel={translate("common:close")}
         >
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectPronouns" />
             {(["none", "he/him", "she/her", "they/them", "em/ers"] as Pronouns[]).map((p) => (
               <TouchableOpacity
@@ -701,7 +701,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           onPress={() => setFellowshipModalVisible(false)}
           accessibilityLabel={translate("common:close")}
         >
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectFellowship" />
             {SELECTABLE_FELLOWSHIPS.map((f) => (
               <TouchableOpacity
@@ -748,7 +748,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           onPress={() => setLanguageModalVisible(false)}
           accessibilityLabel={translate("common:close")}
         >
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)} tx="settingsScreen:selectLanguage" />
             {availableLanguages.map((lang) => (
               <TouchableOpacity

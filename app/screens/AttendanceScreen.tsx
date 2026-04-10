@@ -146,6 +146,8 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
             onPress={onSendReport}
             disabled={!canSendReport}
             accessibilityRole="button"
+            accessibilityLabel={translate("attendanceScreen:sendReport")}
+            accessibilityState={{ disabled: !canSendReport }}
           >
             <Ionicons
               name="send"
@@ -164,7 +166,11 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
       ) : (
         <View style={themed($subscribePrompt)}>
           <Text style={themed($subscribeText)} tx="attendanceScreen:subscribeRequired" />
-          <TouchableOpacity onPress={onNavigateSubscription}>
+          <TouchableOpacity
+            onPress={onNavigateSubscription}
+            accessibilityRole="link"
+            accessibilityLabel={translate("attendanceScreen:goToSettings")}
+          >
             <Text style={themed($subscribeLink)} tx="attendanceScreen:goToSettings" />
           </TouchableOpacity>
         </View>
@@ -736,13 +742,15 @@ const ReportsContent: FC = observer(function ReportsContent() {
         presentationStyle="pageSheet"
         onRequestClose={() => setSelectedReport(null)}
       >
-        <View style={themed($modalContainer)}>
+        <View style={themed($modalContainer)} accessibilityViewIsModal>
           <View style={[themed($modalHeader), { paddingTop: insets.top + 12 }]}>
             <Text style={themed($modalTitle)}>{modalDateStr}</Text>
             <TouchableOpacity
               onPress={() => setSelectedReport(null)}
               style={$modalCloseButton}
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={translate("common:close")}
             >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>

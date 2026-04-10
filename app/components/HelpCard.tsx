@@ -14,7 +14,7 @@ import { View, ViewStyle, TextStyle, Pressable, Animated, Dimensions } from "rea
 import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
-import type { TxKeyPath } from "@/i18n"
+import { translate, type TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -71,6 +71,8 @@ export const HelpCard: FC<HelpCardProps> = function HelpCard({
         style={themed($dismissButton)}
         onPress={handleDismiss}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel={translate("common:close")}
       >
         <Text style={[themed($dismissText), { color: theme.colors.tint }]} tx="common:close" />
       </Pressable>
@@ -92,6 +94,8 @@ export const HelpCard: FC<HelpCardProps> = function HelpCard({
             { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
           ]}
           onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={translate(actionTx)}
         >
           <Text style={[themed($actionButtonText), { color: theme.colors.tint }]} tx={actionTx} />
         </Pressable>

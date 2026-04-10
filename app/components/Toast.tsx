@@ -14,10 +14,10 @@ import {
   useRef,
   useState,
 } from "react"
-import { Animated, Pressable, StyleSheet, ViewStyle, TextStyle } from "react-native"
+import { AccessibilityInfo, Animated, Pressable, StyleSheet, ViewStyle, TextStyle } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
-import { TxKeyPath } from "@/i18n"
+import { translate, TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 
 import { Text } from "./Text"
@@ -98,6 +98,12 @@ export const ToastProvider: FC<ToastProviderProps> = ({ children }) => {
 
       setToast(config)
 
+      // Announce to VoiceOver so blind users hear the toast
+      const announcement = config.tx ? translate(config.tx) : config.message
+      if (announcement) {
+        AccessibilityInfo.announceForAccessibility(announcement)
+      }
+
       // Animate in
       Animated.parallel([
         Animated.spring(translateY, {
@@ -147,6 +153,7 @@ export const ToastProvider: FC<ToastProviderProps> = ({ children }) => {
       {children}
       {toast && (
         <Animated.View
+          accessibilityLiveRegion="polite"
           style={[
             styles.container,
             {

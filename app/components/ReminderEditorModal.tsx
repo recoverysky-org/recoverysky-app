@@ -339,7 +339,7 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
-        <View style={themed($content)}>
+        <View style={themed($content)} accessibilityViewIsModal>
           <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={themed($header)}>
@@ -347,7 +347,12 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
               <Text style={themed($headerTitle)}>
                 {t(isEditing ? "reminderEditor:editReminder" : "reminderEditor:newReminder")}
               </Text>
-              <Pressable onPress={onClose} style={themed($closeButton)}>
+              <Pressable
+                onPress={onClose}
+                style={themed($closeButton)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common:close")}
+              >
                 <Ionicons name="close" size={22} color={theme.colors.textDim} />
               </Pressable>
             </View>
@@ -355,20 +360,33 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
             {/* Action buttons */}
             <View style={themed($actionRow)}>
               {isEditing && (
-                <Pressable style={themed($deleteButton)} onPress={handleDelete}>
+                <Pressable
+                  style={themed($deleteButton)}
+                  onPress={handleDelete}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("reminderEditor:delete")}
+                >
                   <Ionicons name="trash-outline" size={18} color="#ef4444" />
                   <Text style={$deleteButtonText}>{t("reminderEditor:delete")}</Text>
                 </Pressable>
               )}
 
               <View style={themed($rightActions)}>
-                <Pressable style={themed($cancelButton)} onPress={onClose}>
+                <Pressable
+                  style={themed($cancelButton)}
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("reminderEditor:cancel")}
+                >
                   <Text style={themed($cancelButtonText)}>{t("reminderEditor:cancel")}</Text>
                 </Pressable>
                 <Pressable
                   style={[themed($saveButton), !canSave && $savingDisabled]}
                   onPress={handleSave}
                   disabled={!canSave}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("reminderEditor:save")}
+                  accessibilityState={{ disabled: !canSave }}
                 >
                   <Ionicons name="checkmark" size={18} color="#000" />
                   <Text style={$saveButtonText}>{t("reminderEditor:save")}</Text>

@@ -15,6 +15,7 @@ import { DateTime } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
 import type { AttendanceRecord } from "@/db"
+import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -74,6 +75,9 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           onPress={onToggleSelect}
           hitSlop={8}
           style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={translate("accessibility:selectForReport")}
+          accessibilityState={{ selected: isSelected }}
         >
           <Ionicons
             name={isSelected ? "checkmark-circle" : "add-circle-outline"}
@@ -100,6 +104,8 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           onPress={onArchive}
           hitSlop={8}
           style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={translate("common:archive")}
         >
           <Ionicons name="archive-outline" size={22} color={theme.colors.textDim} />
         </Pressable>
@@ -111,6 +117,8 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           onPress={onDelete}
           hitSlop={8}
           style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={translate("common:delete")}
         >
           <Ionicons name="trash-outline" size={22} color={theme.colors.textDim} />
         </Pressable>

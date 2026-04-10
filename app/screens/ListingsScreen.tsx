@@ -318,6 +318,8 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           <TouchableOpacity
             onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("mainNavigator:settingsTab")}
           >
             <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
           </TouchableOpacity>
@@ -327,6 +329,8 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <TouchableOpacity
           style={themed($fellowshipSelector)}
           onPress={() => setFellowshipModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("settingsScreen:recoveryFellowship")}, ${profileStore.fellowship || "AA"}`}
         >
           <Text style={themed($fellowshipLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
           <View style={$selectorValueRow}>
@@ -341,6 +345,8 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={() => setDayModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
           >
             <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
             <View style={$selectorValueRow}>
@@ -353,6 +359,8 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={() => setLanguageModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("listingsScreen:languageLabel")}, ${selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}`}
           >
             <Text style={themed($selectorLabel)}>{t("listingsScreen:languageLabel")}</Text>
             <View style={$selectorValueRow}>
@@ -371,12 +379,19 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           <TouchableOpacity
             style={themed($timeButton)}
             onPress={() => setTimePickerVisible("start")}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("listingsScreen:startLabel")}, ${formatHour(startHour)}`}
           >
             <Text style={themed($timeButtonLabel)}>{t("listingsScreen:startLabel")}</Text>
             <Text style={themed($timeButtonValue)}>{formatHour(startHour)}</Text>
           </TouchableOpacity>
           <Text style={themed($timeSeparator)}>{t("listingsScreen:toSeparator")}</Text>
-          <TouchableOpacity style={themed($timeButton)} onPress={() => setTimePickerVisible("end")}>
+          <TouchableOpacity
+            style={themed($timeButton)}
+            onPress={() => setTimePickerVisible("end")}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("listingsScreen:endLabel")}, ${formatHour(endHour)}`}
+          >
             <Text style={themed($timeButtonLabel)}>{t("listingsScreen:endLabel")}</Text>
             <Text style={themed($timeButtonValue)}>{formatHour(endHour)}</Text>
           </TouchableOpacity>
@@ -445,7 +460,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         onRequestClose={() => setDayModalVisible(false)}
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setDayModalVisible(false)}>
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("listingsScreen:selectDay")}</Text>
             {ISO_DAYS.map((day) => (
               <TouchableOpacity
@@ -459,6 +474,8 @@ export const ListingsContent: FC = observer(function ListingsContent() {
                   trackEvent("listings_day_changed", { day: day.iso })
                   setDayModalVisible(false)
                 }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: selectedDay === day.iso }}
               >
                 <Text
                   style={[
@@ -485,7 +502,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         onRequestClose={() => setLanguageModalVisible(false)}
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("listingsScreen:selectLanguage")}</Text>
             <ScrollView bounces={false}>
               {/* All option */}
@@ -551,7 +568,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         onRequestClose={() => setFellowshipModalVisible(false)}
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
             <ScrollView bounces={false}>
               {SELECTABLE_FELLOWSHIPS.map((f) => (
@@ -593,7 +610,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         onRequestClose={() => setTimePickerVisible(null)}
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setTimePickerVisible(null)}>
-          <View style={themed($timePickerContent)}>
+          <View style={themed($timePickerContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>
               {timePickerVisible === "start"
                 ? t("listingsScreen:startTime")

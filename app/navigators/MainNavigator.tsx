@@ -86,11 +86,14 @@ export const MainNavigator = observer(function MainNavigator() {
         component={MeetingsScreen}
         options={{
           tabBarLabel: t("mainNavigator:meetingsTab"),
+          tabBarAccessibilityLabel: liveMeetings.length > 0
+            ? `${t("mainNavigator:meetingsTab")}, ${liveMeetings.length} live`
+            : t("mainNavigator:meetingsTab"),
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
               <Ionicons name="videocam" size={24} color={focused ? colors.tint : colors.textDim} />
               {liveMeetings.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.tint }]}>
+                <View style={[styles.badge, { backgroundColor: colors.tint }]} accessible={false}>
                   <Text style={styles.badgeText}>
                     {liveMeetings.length > 99 ? "99+" : liveMeetings.length}
                   </Text>
@@ -106,6 +109,9 @@ export const MainNavigator = observer(function MainNavigator() {
           component={AttendanceScreen}
           options={{
             tabBarLabel: t("mainNavigator:attendanceTab"),
+            tabBarAccessibilityLabel: validUnproducedCount > 0
+              ? `${t("mainNavigator:attendanceTab")}, ${validUnproducedCount} new`
+              : t("mainNavigator:attendanceTab"),
             tabBarIcon: ({ focused }) => (
               <View style={styles.iconContainer}>
                 <Ionicons
@@ -114,7 +120,7 @@ export const MainNavigator = observer(function MainNavigator() {
                   color={focused ? colors.tint : colors.textDim}
                 />
                 {validUnproducedCount > 0 && (
-                  <View style={[styles.badge, { backgroundColor: colors.tint }]}>
+                  <View style={[styles.badge, { backgroundColor: colors.tint }]} accessible={false}>
                     <Text style={styles.badgeText}>
                       {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
                     </Text>

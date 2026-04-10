@@ -295,7 +295,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
-        <Pressable style={themed($content)} onPress={onClose}>
+        <Pressable style={themed($content)} onPress={onClose} accessibilityViewIsModal>
           {/* Attendance banner */}
           {showBanner && (
             <Pressable
@@ -339,7 +339,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             </Text>
 
             {/* Close button */}
-            <Pressable onPress={onClose} style={themed($closeButton)}>
+            <Pressable
+              onPress={onClose}
+              style={themed($closeButton)}
+              accessibilityRole="button"
+              accessibilityLabel={t("common:close")}
+            >
               <Ionicons name="chevron-up" size={24} color={theme.colors.textDim} />
             </Pressable>
           </View>
@@ -393,6 +398,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 onPress={handleJoin}
                 style={[themed($joinButton), isJoining && themed($joinButtonDisabled)]}
                 disabled={isJoining}
+                accessibilityRole="button"
+                accessibilityLabel={isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
+                accessibilityState={{ disabled: isJoining }}
               >
                 <Text style={themed($joinButtonText)}>
                   {isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
@@ -409,7 +417,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             <View style={themed($feedbackSection)}>
               {/* Heart and Stars row */}
               <View style={themed($heartStarsRow)}>
-                <Pressable onPress={handleToggleLove} style={themed($heartButton)}>
+                <Pressable
+                  onPress={handleToggleLove}
+                  style={themed($heartButton)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("accessibility:favoriteToggle")}
+                  accessibilityState={{ selected: isFavorite }}
+                >
                   <Ionicons
                     name={isFavorite ? "heart" : "heart-outline"}
                     size={26}
@@ -418,7 +432,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 </Pressable>
                 <View style={themed($ratingContainer)}>
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Pressable key={star} onPress={() => handleSetRating(star)}>
+                    <Pressable
+                      key={star}
+                      onPress={() => handleSetRating(star)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("accessibility:rateStars", { count: star })}
+                      accessibilityState={{ selected: star <= rating }}
+                    >
                       <Ionicons
                         name={star <= rating ? "star" : "star-outline"}
                         size={20}
@@ -444,7 +464,11 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
           {/* Description - tap to expand */}
           {meeting.description ? (
-            <Pressable onPress={() => setDescriptionExpanded(!descriptionExpanded)}>
+            <Pressable
+              onPress={() => setDescriptionExpanded(!descriptionExpanded)}
+              accessibilityRole="button"
+              accessibilityLabel={t("accessibility:expandDescription")}
+            >
               <Text
                 style={themed($description)}
                 numberOfLines={descriptionExpanded ? undefined : 5}

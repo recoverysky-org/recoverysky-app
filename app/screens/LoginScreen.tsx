@@ -272,7 +272,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         presentationStyle="pageSheet"
         onRequestClose={handleEuaCancel}
       >
-        <View style={themed($modalContainer)}>
+        <View style={themed($modalContainer)} accessibilityViewIsModal>
           {/* Modal Header */}
           <View style={themed($modalHeader)}>
             <Text style={themed($modalTitle)} tx="loginScreen:euaTitle" />

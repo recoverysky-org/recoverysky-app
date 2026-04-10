@@ -162,7 +162,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
             onPress={() => setFellowshipModalVisible(false)}
             accessibilityLabel={translate("common:close")}
           >
-            <View style={themed($modalContent)}>
+            <View style={themed($modalContent)} accessibilityViewIsModal>
               <Text style={themed($modalTitle)} tx="onboarding:selectFellowship" />
               {FELLOWSHIPS.map((f) => (
                 <TouchableOpacity

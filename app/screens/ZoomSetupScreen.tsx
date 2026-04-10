@@ -193,7 +193,7 @@ export const ZoomSetupScreen: FC<ZoomSetupScreenProps> = observer(function ZoomS
         presentationStyle="pageSheet"
         onRequestClose={() => setShowSignupModal(false)}
       >
-        <View style={themed($modalContainer)}>
+        <View style={themed($modalContainer)} accessibilityViewIsModal>
           {/* Modal Header */}
           <View style={themed($modalHeader)}>
             <Text style={themed($modalTitle)} tx="zoomSetupScreen:signupModalTitle" />

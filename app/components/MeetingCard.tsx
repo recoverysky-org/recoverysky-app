@@ -11,6 +11,7 @@ import { FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
@@ -74,7 +75,13 @@ export const MeetingCard: FC<MeetingCardProps> = function MeetingCard({ meeting 
 
         {/* Join button */}
         {meeting.url && (
-          <Pressable onPress={handleJoin} style={themed($joinButton)}>
+          <Pressable
+            onPress={handleJoin}
+            style={themed($joinButton)}
+            accessibilityRole="button"
+            accessibilityLabel={translate("liveScreen:joinMeeting")}
+            accessibilityHint={translate("accessibility:doubleTapToJoin")}
+          >
             <Text style={$joinButtonText} tx="liveScreen:joinMeeting" />
           </Pressable>
         )}

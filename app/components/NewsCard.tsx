@@ -13,6 +13,7 @@ import { View, ViewStyle, TextStyle, Pressable, Animated, Dimensions } from "rea
 import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -55,6 +56,8 @@ export const NewsCard: FC<NewsCardProps> = function NewsCard({ title, body, onDi
         style={themed($dismissButton)}
         onPress={handleDismiss}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel={translate("common:close")}
       >
         <Text style={[themed($dismissText), { color: theme.colors.tint }]} tx="common:close" />
       </Pressable>

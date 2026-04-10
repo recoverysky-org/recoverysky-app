@@ -2,7 +2,7 @@ import { FC } from "react"
 import { Pressable, StyleProp, TextStyle, View, ViewStyle } from "react-native"
 import { TOptions } from "i18next"
 
-import { TxKeyPath } from "@/i18n"
+import { translate, TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -54,7 +54,7 @@ export const SegmentedControl: FC<SegmentedControlProps> = function SegmentedCon
             onPress={() => onChange(index)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={segment.label}
+            accessibilityLabel={segment.label || (segment.tx ? translate(segment.tx, segment.txOptions) : undefined)}
           >
             <Text
               tx={segment.tx}

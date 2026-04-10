@@ -13,6 +13,7 @@ import { FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
@@ -63,7 +64,13 @@ export const LiveMeetingRow: FC<LiveMeetingRowProps> = ({
   }, [meeting.fellowship])
 
   return (
-    <Pressable style={themed($container)} onPress={() => onPress?.(meeting)}>
+    <Pressable
+      style={themed($container)}
+      onPress={() => onPress?.(meeting)}
+      accessibilityRole="button"
+      accessibilityLabel={`${meeting.fellowship || ""} ${meeting.name}, ${startTime}`.trim()}
+      accessibilityHint={translate("accessibility:doubleTapToView")}
+    >
       {/* Fellowship Badge */}
       <View
         style={[

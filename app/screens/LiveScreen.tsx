@@ -269,6 +269,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         <TouchableOpacity
           onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("mainNavigator:settingsTab")}
         >
           <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
         </TouchableOpacity>
@@ -278,6 +280,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       <TouchableOpacity
         style={themed($selectorButton)}
         onPress={() => setFellowshipModalVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${t("settingsScreen:recoveryFellowship")}, ${filterFellowship || t("liveScreen:defaultFellowship")}`}
       >
         <Text style={themed($selectorLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
         <View style={$selectorValueRow}>
@@ -296,7 +300,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         onRequestClose={() => setFellowshipModalVisible(false)}
       >
         <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
-          <View style={themed($modalContent)}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
             {SELECTABLE_FELLOWSHIPS.map((f) => (
               <TouchableOpacity
@@ -313,6 +317,9 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
                   setFilterFellowship(f.value)
                   setFellowshipModalVisible(false)
                 }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: filterFellowship === f.value }}
+                accessibilityLabel={f.label}
               >
                 <Text
                   style={[

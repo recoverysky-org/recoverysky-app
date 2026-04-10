@@ -77,7 +77,7 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({ visible, onClose }
       <View style={themed($modalOverlay)}>
         <Pressable style={themed($backdropPress)} onPress={onClose} />
 
-        <View style={themed($modalContent)}>
+        <View style={themed($modalContent)} accessibilityViewIsModal>
           <Text style={themed($modalTitle)}>Theme Color</Text>
 
           {/* Preset Colors Grid */}
@@ -93,6 +93,9 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({ visible, onClose }
                     isSelected && themed($selectedCircle),
                   ]}
                   onPress={() => handlePresetSelect(color.hex)}
+                  accessibilityRole="button"
+                  accessibilityLabel={color.name}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   {isSelected && <Ionicons name="checkmark" size={20} color="#fff" />}
                 </Pressable>
