@@ -576,21 +576,31 @@ const ReportsContent: FC = observer(function ReportsContent() {
           : translate("attendanceScreen:unknownDate")
 
       return (
-        <TouchableOpacity
-          style={themed($reportRow)}
-          onPress={() => handleRowTap(item)}
-          activeOpacity={0.7}
-        >
-          <Ionicons name={status.name} size={22} color={status.color} />
-          <View style={$reportContent}>
-            <Text style={themed($reportDate)}>{dateStr}</Text>
-            <Text style={themed($reportMeta)}>
-              {item.email}
-              {count > 0 &&
-                ` · ${count} ${translate(count === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}`}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => handleResendTap(item)} style={$viewButton} hitSlop={8}>
+        <View style={themed($reportRow)}>
+          <TouchableOpacity
+            onPress={() => handleRowTap(item)}
+            activeOpacity={0.7}
+            style={$reportInfoTouchable}
+            accessibilityRole="button"
+            accessibilityLabel={`${dateStr}, ${item.email}${count > 0 ? `, ${count} ${translate(count === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}` : ""}`}
+          >
+            <Ionicons name={status.name} size={22} color={status.color} accessible={false} />
+            <View style={$reportContent}>
+              <Text style={themed($reportDate)}>{dateStr}</Text>
+              <Text style={themed($reportMeta)}>
+                {item.email}
+                {count > 0 &&
+                  ` · ${count} ${translate(count === 1 ? "attendanceScreen:record" : "attendanceScreen:records")}`}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleResendTap(item)}
+            style={$viewButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={translate("attendanceScreen:forwardReport")}
+          >
             <Ionicons name="arrow-redo-outline" size={22} color={theme.colors.tint} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -598,6 +608,9 @@ const ReportsContent: FC = observer(function ReportsContent() {
             style={$viewButton}
             hitSlop={8}
             disabled={item.error || item.confirmed === 0}
+            accessibilityRole="button"
+            accessibilityLabel={translate("attendanceScreen:viewReport")}
+            accessibilityState={{ disabled: !!(item.error || item.confirmed === 0) }}
           >
             <Ionicons
               name="eye-outline"
@@ -605,7 +618,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
               color={item.error || item.confirmed === 0 ? theme.colors.border : theme.colors.tint}
             />
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       )
     },
     [themed, theme, getStatusIcon, recordCounts, handleViewReport, handleResendTap, handleRowTap],
@@ -1064,6 +1077,13 @@ const $reportRow: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   backgroundColor: colors.card,
   borderRadius: 8,
 })
+
+const $reportInfoTouchable: ViewStyle = {
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+}
 
 const $reportContent: ViewStyle = {
   flex: 1,

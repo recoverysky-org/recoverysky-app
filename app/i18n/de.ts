@@ -264,6 +264,7 @@ const de: Translations = {
     noReportsSubtext: "Berichte erscheinen hier, nachdem du Teilnahme-Einträge gesendet hast",
     resendReport: "Bericht erneut senden",
     forwardReport: "Bericht weiterleiten",
+    viewReport: "Bericht anzeigen",
     recipientPlaceholder: "empfaenger@beispiel.de",
     sending: "Wird gesendet...",
     send: "Senden",

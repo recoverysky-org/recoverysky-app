@@ -263,6 +263,7 @@ const pt: Translations = {
       "Os relatórios vão aparecer aqui depois que você enviar registros de presença",
     resendReport: "Reenviar Relatório",
     forwardReport: "Encaminhar Relatório",
+    viewReport: "Ver Relatório",
     recipientPlaceholder: "destinatario@exemplo.com",
     sending: "Enviando...",
     send: "Enviar",

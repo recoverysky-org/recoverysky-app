@@ -263,6 +263,7 @@ const uk: Translations = {
     noReportsSubtext: "Звіти з'являться тут після надсилання записів відвідування",
     resendReport: "Надіслати повторно",
     forwardReport: "Переслати звіт",
+    viewReport: "Переглянути звіт",
     recipientPlaceholder: "otrymuvach@example.com",
     sending: "Надсилання...",
     send: "Надіслати",

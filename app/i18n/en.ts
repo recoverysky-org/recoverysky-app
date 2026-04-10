@@ -264,6 +264,7 @@ const en = {
     noReportsSubtext: "Reports will appear here after you send attendance records",
     resendReport: "Resend Report",
     forwardReport: "Forward Report",
+    viewReport: "View Report",
     recipientPlaceholder: "recipient@example.com",
     sending: "Sending...",
     send: "Send",

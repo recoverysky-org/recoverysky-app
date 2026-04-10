@@ -258,6 +258,7 @@ const th: Translations = {
     noReportsSubtext: "รายงานจะปรากฏที่นี่หลังจากส่งบันทึกการเข้าร่วมแล้วนะ",
     resendReport: "ส่งรายงานอีกครั้ง",
     forwardReport: "ส่งต่อรายงาน",
+    viewReport: "ดูรายงาน",
     recipientPlaceholder: "ผู้รับ@example.com",
     sending: "กำลังส่ง...",
     send: "ส่ง",

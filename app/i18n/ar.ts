@@ -256,6 +256,7 @@ const ar: Translations = {
     noReportsSubtext: "ستظهر التقارير هنا بعد إرسال سجلات الحضور",
     resendReport: "إعادة إرسال التقرير",
     forwardReport: "إعادة توجيه التقرير",
+    viewReport: "عرض التقرير",
     recipientPlaceholder: "mustaqbil@example.com",
     sending: "جارٍ الإرسال...",
     send: "إرسال",

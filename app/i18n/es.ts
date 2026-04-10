@@ -262,6 +262,7 @@ const es: Translations = {
     noReportsSubtext: "Los informes aparecerán aquí después de enviar registros de asistencia",
     resendReport: "Reenviar Informe",
     forwardReport: "Reenviar a Otro",
+    viewReport: "Ver Reporte",
     recipientPlaceholder: "destinatario@ejemplo.com",
     sending: "Enviando...",
     send: "Enviar",

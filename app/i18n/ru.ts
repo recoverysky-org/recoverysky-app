@@ -264,6 +264,7 @@ const ru: Translations = {
     noReportsSubtext: "Отчёты появятся здесь после отправки записей посещения",
     resendReport: "Отправить повторно",
     forwardReport: "Переслать отчёт",
+    viewReport: "Просмотреть отчёт",
     recipientPlaceholder: "poluchatel@example.com",
     sending: "Отправка...",
     send: "Отправить",
