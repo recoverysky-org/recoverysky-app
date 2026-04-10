@@ -18,6 +18,10 @@ const th: Translations = {
     retry: "ลองใหม่",
     reviewReminderTitle: "ชอบ RecoverySky ไหม?",
     reviewReminderMessage: "คุณสามารถให้คะแนนแอปได้ตลอดเวลาในการตั้งค่า",
+    select: "Select",
+    archive: "Archive",
+    delete: "Delete",
+    loading: "Loading",
   },
   welcomeScreen: {
     postscript: "แอปของคุณอาจไม่ได้หน้าตาแบบนี้นะ",
@@ -670,6 +674,22 @@ const th: Translations = {
     restoreSuccess: "กู้คืนการซื้อสำเร็จ!",
     restoreFailed: "ไม่พบการซื้อ",
     syncSuccess: "ยินดีต้อนรับกลับ! การสมัครสมาชิกของคุณได้รับการกู้คืนแล้ว",
+  },
+  accessibility: {
+    doubleTapToView: "Double-tap to view details",
+    doubleTapToJoin: "Double-tap to join meeting",
+    favoriteToggle: "Toggle favorite",
+    rateStars: "Rate {{count}} stars",
+    expandDescription: "Expand description",
+    dismissCard: "Dismiss",
+    joinMeeting: "Join meeting",
+    closeMeeting: "Close meeting details",
+    selectForReport: "Select for report",
+    settings: "Settings",
+    selectFellowship: "Select fellowship, current: {{value}}",
+    selectDay: "Select day",
+    selectLanguage: "Select language",
+    selectTime: "Select time",
   },
 }
 

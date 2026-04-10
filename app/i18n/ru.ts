@@ -18,6 +18,10 @@ const ru: Translations = {
     retry: "Повторить",
     reviewReminderTitle: "Нравится RecoverySky?",
     reviewReminderMessage: "Ты можешь оценить приложение в любое время в Настройках.",
+    select: "Select",
+    archive: "Archive",
+    delete: "Delete",
+    loading: "Loading",
   },
   welcomeScreen: {
     postscript: "Скорее всего, твоё приложение выглядит не так.",
@@ -680,6 +684,22 @@ const ru: Translations = {
     restoreSuccess: "Покупки восстановлены!",
     restoreFailed: "Покупки не найдены",
     syncSuccess: "С возвращением! Твоя подписка восстановлена.",
+  },
+  accessibility: {
+    doubleTapToView: "Double-tap to view details",
+    doubleTapToJoin: "Double-tap to join meeting",
+    favoriteToggle: "Toggle favorite",
+    rateStars: "Rate {{count}} stars",
+    expandDescription: "Expand description",
+    dismissCard: "Dismiss",
+    joinMeeting: "Join meeting",
+    closeMeeting: "Close meeting details",
+    selectForReport: "Select for report",
+    settings: "Settings",
+    selectFellowship: "Select fellowship, current: {{value}}",
+    selectDay: "Select day",
+    selectLanguage: "Select language",
+    selectTime: "Select time",
   },
 }
 

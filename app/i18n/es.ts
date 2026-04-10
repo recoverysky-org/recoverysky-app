@@ -18,6 +18,10 @@ const es: Translations = {
     retry: "Reintentar",
     reviewReminderTitle: "¿Te gusta RecoverySky?",
     reviewReminderMessage: "Puedes calificar la app en cualquier momento en Ajustes.",
+    select: "Select",
+    archive: "Archive",
+    delete: "Delete",
+    loading: "Loading",
   },
   welcomeScreen: {
     postscript: "Probablemente esto no es lo que tu app luce.",
@@ -680,6 +684,22 @@ const es: Translations = {
     restoreSuccess: "¡Compras restauradas!",
     restoreFailed: "No se encontraron compras",
     syncSuccess: "¡Bienvenido de nuevo! Tu suscripción ha sido restaurada.",
+  },
+  accessibility: {
+    doubleTapToView: "Double-tap to view details",
+    doubleTapToJoin: "Double-tap to join meeting",
+    favoriteToggle: "Toggle favorite",
+    rateStars: "Rate {{count}} stars",
+    expandDescription: "Expand description",
+    dismissCard: "Dismiss",
+    joinMeeting: "Join meeting",
+    closeMeeting: "Close meeting details",
+    selectForReport: "Select for report",
+    settings: "Settings",
+    selectFellowship: "Select fellowship, current: {{value}}",
+    selectDay: "Select day",
+    selectLanguage: "Select language",
+    selectTime: "Select time",
   },
 }
 
