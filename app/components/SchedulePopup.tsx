@@ -295,7 +295,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
-        <Pressable style={themed($content)} onPress={onClose} accessibilityViewIsModal>
+        <View style={themed($content)} accessibilityViewIsModal>
           {/* Attendance banner */}
           {showBanner && (
             <Pressable
@@ -493,7 +493,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           />
 
           <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />
-        </Pressable>
+        </View>
       </View>
 
       {/* Reminder Editor Modal */}
