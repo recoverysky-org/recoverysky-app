@@ -10,10 +10,15 @@ index 8138ecd..a54555d 100644
 +  implementation(name: 'mobilertc', ext: 'aar')
  }
 diff --git a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
-index ac6e2e4..139bda9 100644
+index ac6e2e4..71d843f 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
 +++ b/node_modules/@zoom/meetingsdk-react-native/android/src/main/java/com/reactnativezoom/sdk/RNZoomSDKModule.java
-@@ -69,9 +69,10 @@ import us.zoom.sdk.ShareSettingType;
+@@ -66,12 +66,16 @@ import us.zoom.sdk.InMeetingShareController;
+ import us.zoom.sdk.InMeetingShareController.InMeetingShareListener;
+ import us.zoom.sdk.SharingStatus;
+ import us.zoom.sdk.ShareSettingType;
++import us.zoom.sdk.InMeetingService;
++import us.zoom.sdk.InMeetingUserInfo;
  import us.zoom.sdk.StartMeetingOptions;
  import us.zoom.sdk.StartMeetingParamsWithoutLogin;
  
@@ -22,10 +27,11 @@ index ac6e2e4..139bda9 100644
  
    private final String DEBUG_TAG = "ZoomSDKDebug";
 +  private boolean wasInMeeting = false;
++  private MeetingParameter lastMeetingParam = null;
    private final ReactApplicationContext reactContext;
  
    protected Display display;
-@@ -94,6 +95,11 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+@@ -94,6 +98,11 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
  
    public String[] supportedEvents() {
      return new String[] {
@@ -37,7 +43,7 @@ index ac6e2e4..139bda9 100644
      };
    }
  
-@@ -144,6 +150,13 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+@@ -144,6 +153,13 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
  
          zoomSDK.initialize(reactContext.getCurrentActivity(), RNZoomSDKModule.this, initParams);
  
@@ -51,7 +57,7 @@ index ac6e2e4..139bda9 100644
          Log.d(DEBUG_TAG, "SDK initialized successfully");
  
          promise.resolve(true);
-@@ -311,18 +324,206 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+@@ -311,18 +327,339 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
      });
    }
  
@@ -204,6 +210,139 @@ index ac6e2e4..139bda9 100644
 +    });
 +  }
 +
++  @ReactMethod
++  public void getMeetingInfo(Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) { return; }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          WritableMap result = Arguments.createMap();
++          ZoomSDK zoomSDK = ZoomSDK.getInstance();
++          InMeetingService inMeetingService = zoomSDK.getInMeetingService();
++
++          if (inMeetingService == null) {
++            result.putBoolean("inMeeting", false);
++            promise.resolve(result);
++            return;
++          }
++
++          result.putBoolean("inMeeting", true);
++
++          // Meeting number
++          long meetingNumber = inMeetingService.getCurrentMeetingNumber();
++          result.putString("meetingNumber", String.valueOf(meetingNumber));
++
++          // Topic — from cached MeetingParameter
++          String topic = (lastMeetingParam != null && lastMeetingParam.meeting_topic != null)
++              ? lastMeetingParam.meeting_topic : "";
++          result.putString("topic", topic);
++
++          // Host — walk user list, fall back to MeetingParameter
++          String hostName = "";
++          List<Long> userList = inMeetingService.getInMeetingUserList();
++          if (userList != null) {
++            for (Long uid : userList) {
++              InMeetingUserInfo info = inMeetingService.getUserInfoById(uid);
++              if (info != null && info.isHost()) {
++                hostName = info.getUserName();
++                break;
++              }
++            }
++          }
++          if ((hostName == null || hostName.isEmpty())
++              && lastMeetingParam != null
++              && lastMeetingParam.meeting_host != null) {
++            hostName = lastMeetingParam.meeting_host;
++          }
++          result.putString("hostName", hostName != null ? hostName : "");
++
++          // Current user's role
++          long myUserId = inMeetingService.getMyUserID();
++          InMeetingUserInfo myInfo = inMeetingService.getUserInfoById(myUserId);
++          result.putBoolean("isHost", myInfo != null && myInfo.isHost());
++          result.putBoolean("isCoHost", myInfo != null && myInfo.isCoHost());
++          result.putString("password", "");
++
++          Log.d(DEBUG_TAG, "[RNZoomSDK] getMeetingInfo: host=" + hostName + ", topic=" + topic);
++          promise.resolve(result);
++        } catch (Exception e) {
++          promise.reject("meeting_info_error", e.getMessage());
++        }
++      }
++    });
++  }
++
++  @ReactMethod
++  public void getMyUserInfo(Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) { return; }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          WritableMap result = Arguments.createMap();
++          ZoomSDK zoomSDK = ZoomSDK.getInstance();
++          InMeetingService inMeetingService = zoomSDK.getInMeetingService();
++
++          if (inMeetingService == null) {
++            result.putBoolean("inMeeting", false);
++            promise.resolve(result);
++            return;
++          }
++
++          long myUserId = inMeetingService.getMyUserID();
++          InMeetingUserInfo myInfo = inMeetingService.getUserInfoById(myUserId);
++
++          result.putBoolean("inMeeting", true);
++          result.putInt("userId", (int) myUserId);
++          result.putString("userName", myInfo != null ? myInfo.getUserName() : "");
++          result.putBoolean("isHost", myInfo != null && myInfo.isHost());
++          result.putBoolean("isCoHost", myInfo != null && myInfo.isCoHost());
++          result.putBoolean("isAudioMuted", myInfo != null && myInfo.getAudioStatus() != null
++              && myInfo.getAudioStatus().isMuted());
++          result.putBoolean("isVideoOn", myInfo != null && myInfo.getVideoStatus() != null
++              && myInfo.getVideoStatus().isSending());
++
++          Log.d(DEBUG_TAG, "[RNZoomSDK] getMyUserInfo: userId=" + myUserId);
++          promise.resolve(result);
++        } catch (Exception e) {
++          promise.reject("user_info_error", e.getMessage());
++        }
++      }
++    });
++  }
++
++  @ReactMethod
++  public void getParticipantCount(Promise promise) {
++    if (Utils.checkRNActivity(reactContext, promise)) { return; }
++    reactContext.getCurrentActivity().runOnUiThread(new Runnable() {
++      @Override
++      public void run() {
++        try {
++          WritableMap result = Arguments.createMap();
++          ZoomSDK zoomSDK = ZoomSDK.getInstance();
++          InMeetingService inMeetingService = zoomSDK.getInMeetingService();
++
++          if (inMeetingService == null) {
++            result.putBoolean("inMeeting", false);
++            result.putInt("count", 0);
++            promise.resolve(result);
++            return;
++          }
++
++          List<Long> userList = inMeetingService.getInMeetingUserList();
++          result.putBoolean("inMeeting", true);
++          result.putInt("count", userList != null ? userList.size() : 0);
++
++          Log.d(DEBUG_TAG, "[RNZoomSDK] getParticipantCount: " + (userList != null ? userList.size() : 0));
++          promise.resolve(result);
++        } catch (Exception e) {
++          promise.reject("participant_count_error", e.getMessage());
++        }
++      }
++    });
++  }
++
    // -----------------------------------------------------------------------------------------------
    // region ZoomSDKInitializeListener
    // -----------------------------------------------------------------------------------------------
@@ -260,7 +399,7 @@ index ac6e2e4..139bda9 100644
    }
  
    // -----------------------------------------------------------------------------------------------
-@@ -348,7 +549,90 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
+@@ -348,7 +685,92 @@ public class RNZoomSDKModule extends ReactContextBaseJavaModule implements ZoomS
      Log.d(DEBUG_TAG, "onHostDestroy");
    }
  
@@ -327,7 +466,7 @@ index ac6e2e4..139bda9 100644
 +      sendEvent(reactContext, "onMeetingEndedReason", endParams);
 +      Log.d(DEBUG_TAG, "[RNZoomSDK] Synthesized onMeetingEndedReason (selfLeave)");
 +    }
- 
++
 +    WritableMap params = Arguments.createMap();
 +    params.putInt("state", meetingStatus.ordinal());
 +    params.putString("stateName", stateName);
@@ -343,24 +482,27 @@ index ac6e2e4..139bda9 100644
 +      sendEvent(reactContext, "onMeetingError", errorParams);
 +    }
 +  }
-+
+ 
 +  @Override
 +  public void onMeetingParameterNotification(MeetingParameter meetingParameter) {
-+    Log.d(DEBUG_TAG, "[RNZoomSDK] onMeetingParameterNotification");
++    Log.d(DEBUG_TAG, "[RNZoomSDK] onMeetingParameterNotification: host=" +
++        (meetingParameter != null ? meetingParameter.meeting_host : "null"));
++    lastMeetingParam = meetingParameter;
 +  }
  
    // -----------------------------------------------------------------------------------------------
    // endregion
 diff --git a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-index 42faf67..472da8b 100644
+index 42faf67..74033ff 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 +++ b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-@@ -2,15 +2,42 @@
+@@ -2,15 +2,43 @@
  #import "RNZoomSDK.h"
  
  @implementation RNZoomSDK
 +{
 +    BOOL _hasListeners;
++    MobileRTCMeetingParameter *_lastMeetingParam;
 +}
  
  - (dispatch_queue_t)methodQueue
@@ -398,7 +540,7 @@ index 42faf67..472da8b 100644
      ];
  }
  
-@@ -57,6 +84,9 @@ - (dispatch_queue_t)methodQueue
+@@ -57,6 +85,9 @@ - (dispatch_queue_t)methodQueue
      MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
      MobileRTCMeetingJoinParam *params;
      if (meetService) {
@@ -408,7 +550,7 @@ index 42faf67..472da8b 100644
          params = [[MobileRTCMeetingJoinParam alloc] init];
          params.meetingNumber = [config valueForKey:@"meetingNumber"];
          params.password = [config valueForKey:@"password"];
-@@ -171,31 +201,169 @@ - (dispatch_queue_t)methodQueue
+@@ -171,31 +202,280 @@ - (dispatch_queue_t)methodQueue
      });
  }
  
@@ -434,6 +576,111 @@ index 42faf67..472da8b 100644
 +        } else {
 +            reject(@"no_meeting", @"No active meeting", nil);
 +        }
++    });
++}
++
++// ============================================================================
++// Meeting Info
++// ============================================================================
++
++RCT_REMAP_METHOD(getMeetingInfo,
++        getMeetingInfoWithResolver:(RCTPromiseResolveBlock)resolve
++        withRejecter:(RCTPromiseRejectBlock)reject)
++{
++    dispatch_async(dispatch_get_main_queue(), ^{
++        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
++        if (!meetService) {
++            resolve(@{ @"inMeeting": @(NO) });
++            return;
++        }
++
++        // Host name — prefer MeetingParameter, fall back to walking user list
++        NSString *hostName = _lastMeetingParam.meetingHost ?: @"";
++        if (hostName.length == 0) {
++            NSArray *userList = [meetService getInMeetingUserList];
++            for (NSNumber *uid in userList) {
++                MobileRTCMeetingUserInfo *info = [meetService userInfoByID:[uid unsignedIntegerValue]];
++                if (info && info.isHost) {
++                    hostName = info.userName ?: @"";
++                    break;
++                }
++            }
++        }
++
++        // Topic — from cached MeetingParameter
++        NSString *topic = _lastMeetingParam.meetingTopic ?: @"";
++
++        // Meeting number — from cached MeetingParameter
++        NSString *meetingNumber = _lastMeetingParam
++            ? [NSString stringWithFormat:@"%llu", _lastMeetingParam.meetingNumber]
++            : @"";
++
++        // Current user's role
++        NSUInteger myUserId = [meetService myselfUserID];
++        MobileRTCMeetingUserInfo *myInfo = [meetService userInfoByID:myUserId];
++        BOOL isHost = myInfo ? myInfo.isHost : NO;
++        BOOL isCoHost = myInfo ? myInfo.isCohost : NO;
++
++        NSLog(@"[RNZoomSDK] getMeetingInfo: host=%@, topic=%@, number=%@", hostName, topic, meetingNumber);
++
++        resolve(@{
++            @"inMeeting": @(YES),
++            @"meetingNumber": meetingNumber,
++            @"topic": topic,
++            @"hostName": hostName,
++            @"password": @"",
++            @"isHost": @(isHost),
++            @"isCoHost": @(isCoHost)
++        });
++    });
++}
++
++RCT_REMAP_METHOD(getMyUserInfo,
++        getMyUserInfoWithResolver:(RCTPromiseResolveBlock)resolve
++        withRejecter:(RCTPromiseRejectBlock)reject)
++{
++    dispatch_async(dispatch_get_main_queue(), ^{
++        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
++        if (!meetService) {
++            resolve(@{ @"inMeeting": @(NO) });
++            return;
++        }
++
++        NSUInteger myUserId = [meetService myselfUserID];
++        MobileRTCMeetingUserInfo *myInfo = [meetService userInfoByID:myUserId];
++
++        NSLog(@"[RNZoomSDK] getMyUserInfo: userId=%lu, userName=%@", (unsigned long)myUserId, myInfo.userName);
++
++        resolve(@{
++            @"inMeeting": @(YES),
++            @"userId": @(myUserId),
++            @"userName": myInfo.userName ?: @"",
++            @"isHost": @(myInfo ? myInfo.isHost : NO),
++            @"isCoHost": @(myInfo ? myInfo.isCohost : NO),
++            @"isAudioMuted": @(myInfo.audioStatus ? myInfo.audioStatus.isMuted : NO),
++            @"isVideoOn": @(myInfo.videoStatus ? myInfo.videoStatus.isSending : NO)
++        });
++    });
++}
++
++RCT_REMAP_METHOD(getParticipantCount,
++        getParticipantCountWithResolver:(RCTPromiseResolveBlock)resolve
++        withRejecter:(RCTPromiseRejectBlock)reject)
++{
++    dispatch_async(dispatch_get_main_queue(), ^{
++        MobileRTCMeetingService *meetService = [[MobileRTC sharedRTC] getMeetingService];
++        if (!meetService) {
++            resolve(@{ @"inMeeting": @(NO), @"count": @(0) });
++            return;
++        }
++
++        NSArray *userList = [meetService getInMeetingUserList];
++        NSLog(@"[RNZoomSDK] getParticipantCount: %lu", (unsigned long)(userList ? userList.count : 0));
++
++        resolve(@{
++            @"inMeeting": @(YES),
++            @"count": @(userList ? userList.count : 0)
++        });
 +    });
 +}
 +
@@ -547,7 +794,7 @@ index 42faf67..472da8b 100644
 +        @"state": @(state),
 +        @"stateName": stateName
 +    }];
- }
++}
 +
 +- (void)onMeetingEndedReason:(MobileRTCMeetingEndReason)reason {
 +    NSLog(@"[RNZoomSDK] onMeetingEndedReason: %u", reason);
@@ -586,6 +833,12 @@ index 42faf67..472da8b 100644
 +        @"reason": @(reason),
 +        @"reasonName": reasonName
 +    }];
+ }
++
++- (void)onMeetingParameterNotification:(MobileRTCMeetingParameter *_Nullable)meetingParam {
++    NSLog(@"[RNZoomSDK] onMeetingParameterNotification: host=%@, topic=%@",
++          meetingParam.meetingHost, meetingParam.meetingTopic);
++    _lastMeetingParam = meetingParam;
 +}
 +
  @end

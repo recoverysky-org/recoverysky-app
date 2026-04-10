@@ -43,6 +43,7 @@ import {
   type ZoomMeetingEndedEvent,
   type ZoomAuthEvent,
 } from "./zoomEvents"
+import { getMeetingInfo, getMyUserInfo } from "./zoomControls"
 import type { ZoomInitState, ZoomJoinConfig } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeetingProvider" })
@@ -308,7 +309,50 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           // Only set on first inMeeting — preserve original join time across reconnections
           if (!meetingContext.inMeetingAt) {
             meetingContext.inMeetingAt = Date.now()
-            log.debug("inMeeting", { attendanceId: meetingContext.attendanceId })
+            log.info("In meeting — attendance tracking started", { attendanceId: meetingContext.attendanceId })
+
+            // Query meeting info after SDK has populated user list and meeting params
+            const ctx = meetingContext
+            setTimeout(async () => {
+              try {
+                const [meetingInfo, myUserInfo] = await Promise.all([
+                  getMeetingInfo(),
+                  getMyUserInfo(),
+                ])
+
+                if (meetingInfo.inMeeting) {
+                  addEvent("Meeting info", {
+                    hostName: meetingInfo.hostName,
+                    topic: meetingInfo.topic,
+                    meetingNumber: meetingInfo.meetingNumber,
+                    isHost: meetingInfo.isHost,
+                    isCoHost: meetingInfo.isCoHost,
+                  })
+                }
+
+                if (myUserInfo.inMeeting) {
+                  addEvent("My user info", {
+                    userId: myUserInfo.userId,
+                    userName: myUserInfo.userName,
+                    isHost: myUserInfo.isHost,
+                  })
+                }
+
+                // Persist host and user ID to attendance record
+                if (meetingInfo.hostName) {
+                  await attendanceRepo.update(ctx.attendanceId, {
+                    meetingHost: meetingInfo.hostName,
+                  })
+                }
+                if (myUserInfo.userId) {
+                  await attendanceRepo.update(ctx.attendanceId, {
+                    uzid: String(myUserInfo.userId),
+                  })
+                }
+              } catch (err) {
+                log.warn("Failed to retrieve meeting info", { error: String(err) })
+              }
+            }, 3000)
           } else {
             log.debug("inMeeting (reconnect, keeping original timestamp)", {
               attendanceId: meetingContext.attendanceId,
@@ -351,7 +395,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           ctx.events.push(syntheticEnd)
           attendanceRepo.addEvent(ctx.attendanceId, syntheticEnd).catch(() => {})
 
-          log.debug("Starting processAttendance", { attendanceId: ctx.attendanceId })
+          log.info("Processing attendance record", { attendanceId: ctx.attendanceId })
           processAttendance(ctx).catch((err) => {
             log.error("processAttendance failed", {
               attendanceId: ctx.attendanceId,
@@ -380,7 +424,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       addEvent("Join confirmed", { code: 0 })
     },
     onMeetingEndedReason: (event: ZoomMeetingEndedEvent) => {
-      log.debug("Meeting ended", {
+      log.info("Meeting ended", {
         reason: event.reasonName,
         code: event.reason,
         hasContext: !!meetingContext,
@@ -510,7 +554,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
             inMeetingAt: null,
             events: [],
           }
-          log.debug("Meeting context set", { attendanceId })
+          log.info("Meeting context set — attendance tracking active", { attendanceId })
         }
       } else {
         log.debug("Attendance tracking disabled, skipping record creation")
