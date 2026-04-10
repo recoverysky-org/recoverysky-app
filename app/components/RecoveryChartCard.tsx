@@ -203,6 +203,7 @@ export const RecoveryChartCard = observer(function RecoveryChartCard() {
         onPress={() => setModalVisible(true)}
         accessibilityRole="button"
         accessibilityLabel={`${t("recoveryChart:selectRange")}, ${t(selectedLabel)}`}
+        accessibilityHint={t("accessibility:doubleTapToChoose")}
       >
         <Text style={themed($selectorValue)}>{t(selectedLabel)}</Text>
         <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />

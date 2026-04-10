@@ -8,8 +8,8 @@
  * - Add to Report button (for valid records)
  */
 
-import { FC, useMemo } from "react"
-import { View, ViewStyle, TextStyle, Pressable } from "react-native"
+import { FC, useCallback, useMemo } from "react"
+import { AccessibilityActionEvent, View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { DateTime } from "@recoverysky-org/common/browser"
 
@@ -67,8 +67,33 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
     return startDt.toFormat("MMM d, h:mma").toLowerCase()
   }, [startDt])
 
+  const accessibilityActions = useMemo(() => {
+    const actions: { name: string; label: string }[] = []
+    if (onArchive) actions.push({ name: "archive", label: translate("accessibility:actionArchive") })
+    if (onDelete) actions.push({ name: "delete", label: translate("accessibility:actionDelete") })
+    return actions
+  }, [onArchive, onDelete])
+
+  const handleAccessibilityAction = useCallback(
+    (event: AccessibilityActionEvent) => {
+      switch (event.nativeEvent.actionName) {
+        case "archive":
+          onArchive?.()
+          break
+        case "delete":
+          onDelete?.()
+          break
+      }
+    },
+    [onArchive, onDelete],
+  )
+
   return (
-    <View style={themed($container)}>
+    <View
+      style={themed($container)}
+      accessibilityActions={accessibilityActions.length > 0 ? accessibilityActions : undefined}
+      onAccessibilityAction={accessibilityActions.length > 0 ? handleAccessibilityAction : undefined}
+    >
       {/* Report selection toggle (far left) */}
       {showReportSelect && (
         <Pressable
@@ -78,6 +103,7 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           accessibilityRole="button"
           accessibilityLabel={translate("accessibility:selectForReport")}
           accessibilityState={{ selected: isSelected }}
+          accessibilityHint={translate("accessibility:doubleTapToSelect")}
         >
           <Ionicons
             name={isSelected ? "checkmark-circle" : "add-circle-outline"}
@@ -110,6 +136,7 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
           accessibilityRole="button"
           accessibilityLabel={translate("common:archive")}
+          accessibilityHint={translate("accessibility:doubleTapToArchive")}
         >
           <Ionicons name="archive-outline" size={22} color={theme.colors.textDim} />
         </Pressable>
@@ -123,6 +150,7 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
           accessibilityRole="button"
           accessibilityLabel={translate("common:delete")}
+          accessibilityHint={translate("accessibility:doubleTapToDelete")}
         >
           <Ionicons name="trash-outline" size={22} color={theme.colors.textDim} />
         </Pressable>

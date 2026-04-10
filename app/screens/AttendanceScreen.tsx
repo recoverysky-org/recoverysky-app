@@ -11,6 +11,7 @@
 
 import { FC, useCallback, useState, useEffect } from "react"
 import {
+  AccessibilityInfo,
   ViewStyle,
   FlatList,
   RefreshControl,
@@ -233,8 +234,10 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
       const next = new Set(prev)
       if (next.has(id)) {
         next.delete(id)
+        AccessibilityInfo.announceForAccessibility(translate("accessibility:recordDeselected"))
       } else {
         next.add(id)
+        AccessibilityInfo.announceForAccessibility(translate("accessibility:recordSelected"))
       }
       return next
     })
@@ -253,6 +256,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
             try {
               await attendanceRepo.update(record.id, { valid: false })
               setRecords((prev) => prev.filter((r) => r.id !== record.id))
+              AccessibilityInfo.announceForAccessibility(translate("accessibility:recordDeleted"))
               logger.info("Attendance marked invalid", { id: record.id })
             } catch (error) {
               logger.error("Failed to delete attendance", { error: String(error) })

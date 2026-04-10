@@ -208,6 +208,7 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
         accessibilityRole="button"
         accessibilityLabel={t("moneySaved:details")}
         accessibilityState={{ expanded }}
+        accessibilityHint={t("accessibility:doubleTapToExpand")}
       >
         <Text style={themed($expanderText)}>{t("moneySaved:details")}</Text>
         <Ionicons
@@ -257,6 +258,7 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
             style={themed($saveButton)}
             accessibilityRole="button"
             accessibilityLabel={t("moneySaved:save")}
+            accessibilityHint={t("accessibility:doubleTapToSave")}
             onPress={() => {
               DAYS.forEach((d) => handleDayBlur(d))
               handleTobaccoBlur()

@@ -423,6 +423,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                   accessibilityRole="button"
                   accessibilityLabel={t("accessibility:favoriteToggle")}
                   accessibilityState={{ selected: isFavorite }}
+                  accessibilityHint={t("accessibility:doubleTapToToggleFavorite")}
                 >
                   <Ionicons
                     name={isFavorite ? "heart" : "heart-outline"}
@@ -438,6 +439,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                       accessibilityRole="button"
                       accessibilityLabel={t("accessibility:rateStars", { count: star })}
                       accessibilityState={{ selected: star <= rating }}
+                      accessibilityHint={t("accessibility:doubleTapToRate")}
                     >
                       <Ionicons
                         name={star <= rating ? "star" : "star-outline"}
@@ -468,6 +470,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
               onPress={() => setDescriptionExpanded(!descriptionExpanded)}
               accessibilityRole="button"
               accessibilityLabel={t("accessibility:expandDescription")}
+              accessibilityHint={t("accessibility:doubleTapToExpand")}
             >
               <Text
                 style={themed($description)}

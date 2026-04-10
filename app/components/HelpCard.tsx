@@ -73,6 +73,7 @@ export const HelpCard: FC<HelpCardProps> = function HelpCard({
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityRole="button"
         accessibilityLabel={translate("common:close")}
+        accessibilityHint={translate("accessibility:doubleTapToDismiss")}
       >
         <Text style={[themed($dismissText), { color: theme.colors.tint }]} tx="common:close" />
       </Pressable>
