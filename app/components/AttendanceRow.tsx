@@ -88,7 +88,11 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
       )}
 
       {/* Meeting info */}
-      <View style={$content}>
+      <View
+        style={$content}
+        accessible
+        accessibilityLabel={`${record.meetingName ?? "Unknown Meeting"}, ${dateTimeStr}${duration > 0 ? `, ${duration} min` : ""}`}
+      >
         <Text style={themed($meetingName)} numberOfLines={1}>
           {record.meetingName ?? "Unknown Meeting"}
         </Text>

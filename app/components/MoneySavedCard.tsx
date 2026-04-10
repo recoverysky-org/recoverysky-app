@@ -58,6 +58,7 @@ function MoneyInput({
   value,
   onChange,
   onBlur,
+  accessibilityLabel,
   textColor,
   dimColor,
   bgColor,
@@ -66,6 +67,7 @@ function MoneyInput({
   value: string
   onChange: (v: string) => void
   onBlur?: () => void
+  accessibilityLabel?: string
   textColor: string
   dimColor: string
   bgColor: string
@@ -73,7 +75,7 @@ function MoneyInput({
 }) {
   return (
     <View style={[$inputWrapper, { backgroundColor: bgColor, borderColor }]}>
-      <Text style={[$currencySymbol, { color: dimColor }]}>$</Text>
+      <Text style={[$currencySymbol, { color: dimColor }]} accessible={false}>$</Text>
       <TextInput
         style={[$input, { color: textColor }]}
         value={value}
@@ -83,6 +85,7 @@ function MoneyInput({
         placeholder="0"
         placeholderTextColor={dimColor}
         returnKeyType="done"
+        accessibilityLabel={accessibilityLabel}
       />
     </View>
   )
@@ -189,6 +192,7 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
             value={weeklyInput}
             onChange={setWeeklyInput}
             onBlur={handleWeeklyBlur}
+            accessibilityLabel={t("moneySaved:weeklySpending")}
             textColor={theme.colors.text}
             dimColor={theme.colors.textDim}
             bgColor={theme.colors.background}
@@ -198,7 +202,13 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
       </View>
 
       {/* Details expander */}
-      <Pressable style={themed($expanderRow)} onPress={() => setExpanded(!expanded)}>
+      <Pressable
+        style={themed($expanderRow)}
+        onPress={() => setExpanded(!expanded)}
+        accessibilityRole="button"
+        accessibilityLabel={t("moneySaved:details")}
+        accessibilityState={{ expanded }}
+      >
         <Text style={themed($expanderText)}>{t("moneySaved:details")}</Text>
         <Ionicons
           name={expanded ? "chevron-up" : "chevron-down"}
@@ -217,6 +227,7 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
               <MoneyInput
                 value={dayInputs[day]}
                 onChange={(v) => updateDayInput(day, v)}
+                accessibilityLabel={t(`moneySaved:${day}` as any)}
                 textColor={theme.colors.text}
                 dimColor={theme.colors.textDim}
                 bgColor={theme.colors.background}
@@ -232,6 +243,7 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
               <MoneyInput
                 value={tobaccoInput}
                 onChange={setTobaccoInput}
+                accessibilityLabel={t("moneySaved:tobacco")}
                 textColor={theme.colors.text}
                 dimColor={theme.colors.textDim}
                 bgColor={theme.colors.background}
@@ -243,6 +255,8 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
           {/* Save button — persist per-day values, sum into weekly, close */}
           <Pressable
             style={themed($saveButton)}
+            accessibilityRole="button"
+            accessibilityLabel={t("moneySaved:save")}
             onPress={() => {
               DAYS.forEach((d) => handleDayBlur(d))
               handleTobaccoBlur()

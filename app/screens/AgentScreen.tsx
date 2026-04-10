@@ -377,7 +377,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                   message.role === "user" ? themed($userBubble) : themed($assistantBubble),
                 ]}
               >
-                <View style={themed($messageHeader)}>
+                <View style={themed($messageHeader)} accessible={false}>
                   <Ionicons
                     name={message.role === "user" ? "person-circle" : "sparkles"}
                     size={16}
@@ -470,7 +470,12 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
           {/* Loading indicator */}
           {isLoading && (
-            <View style={themed($loadingContainer)}>
+            <View
+              style={themed($loadingContainer)}
+              accessible
+              accessibilityLabel={translate("agentScreen:thinking")}
+              accessibilityLiveRegion="polite"
+            >
               <ActivityIndicator size="small" color={theme.colors.tint} />
               <Text style={themed($loadingText)} tx="agentScreen:thinking" />
             </View>

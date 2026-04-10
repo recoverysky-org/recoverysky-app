@@ -198,7 +198,12 @@ export const RecoveryChartCard = observer(function RecoveryChartCard() {
   return (
     <View style={themed($card)}>
       {/* Range selector */}
-      <TouchableOpacity style={themed($selectorButton)} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity
+        style={themed($selectorButton)}
+        onPress={() => setModalVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${t("recoveryChart:selectRange")}, ${t(selectedLabel)}`}
+      >
         <Text style={themed($selectorValue)}>{t(selectedLabel)}</Text>
         <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
       </TouchableOpacity>
@@ -210,8 +215,12 @@ export const RecoveryChartCard = observer(function RecoveryChartCard() {
         animationType="fade"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable style={themed($modalOverlay)} onPress={() => setModalVisible(false)}>
-          <View style={themed($modalContent)}>
+        <Pressable
+          style={themed($modalOverlay)}
+          onPress={() => setModalVisible(false)}
+          accessibilityLabel={t("common:close")}
+        >
+          <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("recoveryChart:selectRange")}</Text>
             {RANGE_OPTIONS.map((opt) => (
               <TouchableOpacity
@@ -221,6 +230,9 @@ export const RecoveryChartCard = observer(function RecoveryChartCard() {
                   setRange(opt.value)
                   setModalVisible(false)
                 }}
+                accessibilityRole="radio"
+                accessibilityLabel={t(opt.labelKey)}
+                accessibilityState={{ selected: range === opt.value }}
               >
                 <Text
                   style={[

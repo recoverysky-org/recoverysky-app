@@ -314,7 +314,12 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
           )}
         </View>
 
-        <Pressable onPress={handleReset} style={themed($resetPressable)}>
+        <Pressable
+          onPress={handleReset}
+          style={themed($resetPressable)}
+          accessibilityRole="button"
+          accessibilityLabel={t("ninetyInNinety:startNew")}
+        >
           <Text style={themed($resetText)}>{t("ninetyInNinety:startNew")}</Text>
         </Pressable>
       </View>
