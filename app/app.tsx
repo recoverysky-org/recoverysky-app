@@ -49,6 +49,7 @@ import {
   ReportPollingResumer,
 } from "./db"
 import { initI18n, translate } from "./i18n"
+import { checkForUpdates } from "./utils/checkForUpdates"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -465,24 +466,13 @@ export function App() {
     }
   }, [rootStore])
 
-  // Check for OTA updates after app is initialized (non-blocking, silent hot-swap)
+  // Check for store + OTA updates after app is initialized (non-blocking)
   useEffect(() => {
     if (__DEV__ || !rootStore) return
 
     const timeout = setTimeout(async () => {
       try {
-        const update = await Updates.checkForUpdateAsync()
-        if (update.isAvailable) {
-          log.info("OTA update available, fetching")
-          await Updates.fetchUpdateAsync()
-          log.info("OTA update fetched, showing reload notice")
-          Alert.alert(
-            translate("common:updateTitle"),
-            translate("common:updateMessage"),
-            [{ text: translate("common:ok"), onPress: () => Updates.reloadAsync() }],
-            { cancelable: false },
-          )
-        }
+        await checkForUpdates(rootStore.configStore.latestVersion)
       } catch (e) {
         log.debug("Update check skipped or failed", { error: String(e) })
       }

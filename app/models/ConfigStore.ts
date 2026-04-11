@@ -72,6 +72,8 @@ export const ConfigStoreModel = types
     maintenanceUntil: types.optional(types.string, ""),
     /** Whether an OTA update should be applied when maintenance ends */
     maintenanceUpdate: types.optional(types.boolean, false),
+    /** Latest native app version available in the App Store / Play Store */
+    latestVersion: types.optional(types.string, ""),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -136,6 +138,7 @@ export const ConfigStoreModel = types
               store.maintenanceUpdate =
                 (wasInMaintenance || store.maintenanceMode) &&
                 (config.MAINTENANCE_UPDATE ?? false)
+              if (config.LATEST_VERSION) store.latestVersion = config.LATEST_VERSION
               store.isLoaded = true
 
               const zoomKeyPreview = store.zoomSdkKey

@@ -13,6 +13,10 @@ const en = {
     dontShowAgain: "Don't show again",
     updateTitle: "Update Available",
     updateMessage: "RecoverySky will quickly update now.",
+    storeUpdateTitle: "New Version Available",
+    storeUpdateMessage:
+      "A new version of RecoverySky is available. Please update to get the latest features and fixes.",
+    storeUpdateButton: "Update Now",
     retry: "Retry",
     reviewReminderTitle: "Enjoying RecoverySky?",
     reviewReminderMessage: "You can rate the app anytime in Settings.",
@@ -388,6 +392,10 @@ const en = {
     errorReportSuccessMessage: "Thank you! Your report has been submitted.",
     errorReportFailed: "Send Failed",
     errorReportFailedMessage: "Unable to send the error report. Please try again later.",
+    checkForUpdates: "Check for Updates",
+    checkingForUpdates: "Checking...",
+    noUpdatesAvailable: "You're Up to Date",
+    noUpdatesMessage: "You're running the latest version of RecoverySky.",
     // Advanced Section
     advancedSection: "Advanced",
     allowExternalZoom: "Allow External Zoom Meetings",

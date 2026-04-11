@@ -29,7 +29,7 @@ import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
-import { useProfileStore, useAuthenticationStore, useConversationStore } from "@/models"
+import { useProfileStore, useAuthenticationStore, useConversationStore, useConfigStore } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { useZoomAuth } from "@/services/auth"
@@ -44,6 +44,7 @@ import {
   requestNotificationPermission,
 } from "@/services/notifications"
 import { logger } from "@/utils/logger"
+import { checkForUpdates } from "@/utils/checkForUpdates"
 import { requestReviewFromSettings } from "@/services/review"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
@@ -132,6 +133,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const profileStore = useProfileStore()
   const authStore = useAuthenticationStore()
   const conversationStore = useConversationStore()
+  const configStore = useConfigStore()
 
   // Local buffer for shortName — decouples TextInput from MobX re-renders
   // to prevent React Native's controlled TextInput from firing stale onChangeText events
@@ -446,6 +448,27 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       return translate("settingsScreen:subscriptionAttendance")
     }
     return translate("settingsScreen:subscriptionFree")
+  }
+
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+
+  const handleCheckForUpdates = async () => {
+    if (__DEV__) {
+      Alert.alert(translate("settingsScreen:noUpdatesAvailable"), translate("settingsScreen:noUpdatesMessage"))
+      return
+    }
+    setIsCheckingUpdate(true)
+    try {
+      const found = await checkForUpdates(configStore.latestVersion)
+      if (!found) {
+        Alert.alert(translate("settingsScreen:noUpdatesAvailable"), translate("settingsScreen:noUpdatesMessage"))
+      }
+    } catch (e) {
+      logger.warn("Manual update check failed", { error: String(e) })
+      Alert.alert(translate("settingsScreen:noUpdatesAvailable"), translate("settingsScreen:noUpdatesMessage"))
+    } finally {
+      setIsCheckingUpdate(false)
+    }
   }
 
   const handleSendErrorReport = () => {
@@ -1215,6 +1238,23 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           <Text style={themed($upgradeButtonText)} tx="settingsScreen:sendErrorReport" />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={themed($upgradeButton)}
+          onPress={handleCheckForUpdates}
+          disabled={isCheckingUpdate}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:checkForUpdates")}
+        >
+          {isCheckingUpdate ? (
+            <ActivityIndicator size={18} color={theme.colors.tint} />
+          ) : (
+            <Ionicons name="cloud-download-outline" size={18} color={theme.colors.tint} />
+          )}
+          <Text style={themed($upgradeButtonText)}>
+            {translate(isCheckingUpdate ? "settingsScreen:checkingForUpdates" : "settingsScreen:checkForUpdates")}
+          </Text>
+        </TouchableOpacity>
+
         <View style={themed($sectionHeader)}>
           <Ionicons name="document-text-outline" size={20} color={themed($legalIconColor).color} />
           <Text style={themed($sectionTitle)} tx="settingsScreen:legalSection" />
@@ -1292,7 +1332,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Version */}
-      <Text style={themed($versionText)}>v{require("../../package.json").version}</Text>
+      <Text style={themed($versionText)}>v{require("../../package.json").version}{require("../../package.json").update ? ` update ${require("../../package.json").update}` : ""}</Text>
 
       {/* Theme Color Picker Modal */}
       <ThemeColorPicker visible={colorPickerVisible} onClose={() => setColorPickerVisible(false)} />

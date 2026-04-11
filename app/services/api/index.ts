@@ -623,6 +623,7 @@ export class Api {
           MAINTENANCE_MESSAGE?: string
           MAINTENANCE_UNTIL?: string
           MAINTENANCE_UPDATE?: boolean
+          LATEST_VERSION?: string
         }
       }
     | GeneralApiProblem
@@ -647,6 +648,7 @@ export class Api {
       MAINTENANCE_MESSAGE?: string
       MAINTENANCE_UNTIL?: string
       MAINTENANCE_UPDATE?: boolean
+      LATEST_VERSION?: string
     }>("/config")
 
     if (!response.ok) {
