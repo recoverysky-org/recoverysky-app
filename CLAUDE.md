@@ -271,6 +271,27 @@ const log = useLogger("ScreenName")
 log.error("API failed", { endpoint: "/users" })
 ```
 
+## Runtime Version & OTA Updates
+
+The `runtimeVersion` in `app.json` is a manually managed string (currently `"4.2.0"`) that ties OTA updates to a specific native build. Users only receive OTA updates matching their build's runtime version.
+
+**⚠️ MANDATORY: Bump `runtimeVersion` in `app.json` when ANY of the following change:**
+- New, removed, or upgraded native dependency (anything that adds/changes native code)
+- Changed `app.json` native config (permissions, plugins, bundle ID, splash, etc.)
+- Changed `ios/Podfile`, `ios/Podfile.lock`, or CocoaPods configuration
+- Changed `android/build.gradle`, `android/app/build.gradle`, or native Android config
+- Changed or added EAS build plugins
+- Changed Expo SDK version
+
+**Do NOT bump for:**
+- JS-only changes (screens, components, styles, i18n, hooks, utils)
+- Asset changes (images, fonts)
+- OTA-publishable config changes
+
+**Convention:** Keep `runtimeVersion` in sync with `version` in `app.json`. When making a native change, bump both together (e.g., `"4.2.0"` → `"4.3.0"`). Reset `package.json` `update` field to `"0"` on each native version bump.
+
+The server's `/config` endpoint returns `LATEST_VERSION` which the app compares against `Application.nativeApplicationVersion`. If the user's native build is behind, they are prompted to update from the store before checking for OTA patches. See `app/utils/checkForUpdates.ts`.
+
 ## Environment Variables
 
 `EXPO_PUBLIC_*` variables are baked in at build time. For local development:

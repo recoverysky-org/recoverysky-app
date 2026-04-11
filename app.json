@@ -6,9 +6,7 @@
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
-  "runtimeVersion": {
-    "policy": "fingerprint"
-  },
+  "runtimeVersion": "4.2.0",
   "updates": {
     "enabled": true,
     "checkAutomatically": "ON_LOAD",

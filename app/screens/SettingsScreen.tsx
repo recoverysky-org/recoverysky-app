@@ -1332,7 +1332,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Version */}
-      <Text style={themed($versionText)}>v{require("../../package.json").version}{require("../../package.json").update ? ` update ${require("../../package.json").update}` : ""}</Text>
+      <Text style={themed($versionText)}>v{require("../../package.json").version}-{require("../../package.json").update ?? "0"}</Text>
 
       {/* Theme Color Picker Modal */}
       <ThemeColorPicker visible={colorPickerVisible} onClose={() => setColorPickerVisible(false)} />
