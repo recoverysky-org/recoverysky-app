@@ -112,6 +112,7 @@ const es: Translations = {
     meetingsTab: "Reuniones",
     scheduleTab: "Horario",
     agentTab: "Agente",
+    socialTab: "Social",
     settingsTab: "Perfil",
   },
   homeScreen: {

@@ -110,6 +110,7 @@ const ar: Translations = {
     meetingsTab: "الاجتماعات",
     scheduleTab: "الجدول",
     agentTab: "المساعد",
+    socialTab: "مجتمع",
     settingsTab: "الإعدادات",
   },
   homeScreen: {

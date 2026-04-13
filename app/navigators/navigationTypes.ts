@@ -35,6 +35,7 @@ export type MainTabParamList = {
   Meetings: { segment?: MeetingsSegment; meetingId?: string } | undefined
   Schedule: undefined
   Agent: undefined
+  Social: undefined
   Settings: { section?: SettingsSection; returnTo?: string } | undefined
 }
 

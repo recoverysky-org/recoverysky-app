@@ -110,6 +110,7 @@ const th: Translations = {
     meetingsTab: "ประชุม",
     scheduleTab: "ตาราง",
     agentTab: "ผู้ช่วย",
+    socialTab: "โซเชียล",
     settingsTab: "ตั้งค่า",
   },
   homeScreen: {

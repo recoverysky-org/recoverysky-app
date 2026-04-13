@@ -599,6 +599,35 @@ export class Api {
   }
 
   /**
+   * Get a pre-signed Replyke JWT for the current authenticated user.
+   *
+   * The backend holds the Replyke secret key and signs a token scoped to
+   * the user's Auth0 identity. The token is injected into the Social
+   * WebView via postMessage({ type: "replyke_token", token }).
+   */
+  async getReplykeToken(): Promise<{ kind: "ok"; token: string } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching Replyke token from API")
+
+    const response = await this.recoverySkyApi.post<{ token: string }>("/api/replyke/sign-token")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Replyke token request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || typeof response.data.token !== "string") {
+      log.warn("Invalid Replyke token response format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received Replyke token")
+    return { kind: "ok", token: response.data.token }
+  }
+
+  /**
    * Get app configuration from server
    *
    * Returns URLs and keys that may be updated server-side.
@@ -608,6 +637,7 @@ export class Api {
         kind: "ok"
         config: {
           AGENT_URL: string
+          SOCIAL_URL?: string
           ZOOM_SDK_KEY: string
           ZOOM_SDK_SECRET: string
           REVENUE_CAT_API_TEST_KEY: string

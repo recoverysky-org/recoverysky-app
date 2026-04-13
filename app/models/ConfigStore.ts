@@ -25,6 +25,11 @@ export const ConfigStoreModel = types
       types.string,
       process.env.EXPO_PUBLIC_AGENT_URL || "https://agent.recoverysky.app",
     ),
+    /** Social (Replyke-hosted community site) URL */
+    socialUrl: types.optional(
+      types.string,
+      process.env.EXPO_PUBLIC_SOCIAL_URL || "https://social.recoverysky.app",
+    ),
     /** Zoom SDK key */
     zoomSdkKey: types.optional(types.string, process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""),
     /** Zoom SDK secret */
@@ -113,6 +118,7 @@ export const ConfigStoreModel = types
             if (result.kind === "ok") {
               const { config } = result
               if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
+              if (config.SOCIAL_URL) store.socialUrl = config.SOCIAL_URL
               if (config.ZOOM_SDK_KEY) store.zoomSdkKey = config.ZOOM_SDK_KEY
               if (config.ZOOM_SDK_SECRET) store.zoomSdkSecret = config.ZOOM_SDK_SECRET
               if (config.REVENUE_CAT_API_TEST_KEY)
@@ -211,6 +217,7 @@ export const ConfigStoreModel = types
     reset() {
       store.apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app"
       store.agentUrl = process.env.EXPO_PUBLIC_AGENT_URL || "https://agent.recoverysky.app"
+      store.socialUrl = process.env.EXPO_PUBLIC_SOCIAL_URL || "https://social.recoverysky.app"
       store.zoomSdkKey = process.env.EXPO_PUBLIC_ZOOM_SDK_KEY || ""
       store.zoomSdkSecret = process.env.EXPO_PUBLIC_ZOOM_SDK_SECRET || ""
       store.authKey = process.env.EXPO_PUBLIC_AUTH_KEY || ""

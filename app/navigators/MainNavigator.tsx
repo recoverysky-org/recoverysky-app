@@ -12,11 +12,12 @@ import { useMeetings } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
 import { useProfileStore } from "@/models"
-// import { AgentScreen } from "@/screens/AgentScreen" // Hidden until ready
+import { AgentScreen } from "@/screens/AgentScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
+import { SocialScreen } from "@/screens/SocialScreen"
 import { useAppTheme } from "@/theme/context"
 import { loadString, remove } from "@/utils/storage"
 
@@ -42,7 +43,8 @@ export const MainNavigator = observer(function MainNavigator() {
   const { liveMeetings } = useMeetings()
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
-  const { isPremium: _isPremium } = useSubscription() // Agent tab hidden
+  const { isPremium } = useSubscription()
+  const premiumTabsVisible = __DEV__ || isPremium
 
   // Post-login redirect: if a section was saved before logout, open Settings tab first
   const postLoginSectionRef = useRef(loadString("POST_LOGIN_SECTION") as SettingsSection | null)
@@ -131,8 +133,7 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
-      {/* Agent tab hidden until ready for release
-      {isPremium && (
+      {premiumTabsVisible && (
         <Tab.Screen
           name="Agent"
           component={AgentScreen}
@@ -144,7 +145,18 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
-      */}
+      {premiumTabsVisible && (
+        <Tab.Screen
+          name="Social"
+          component={SocialScreen}
+          options={{
+            tabBarLabel: t("mainNavigator:socialTab"),
+            tabBarIcon: ({ focused }) => (
+              <Ionicons name="people" size={24} color={focused ? colors.tint : colors.textDim} />
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}

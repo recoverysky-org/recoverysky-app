@@ -113,6 +113,7 @@ const en = {
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
     agentTab: "Agent",
+    socialTab: "Social",
     settingsTab: "Settings",
   },
   // Main Screens

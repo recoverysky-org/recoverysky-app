@@ -113,6 +113,7 @@ const ru: Translations = {
     meetingsTab: "Собрания",
     scheduleTab: "Расписание",
     agentTab: "Агент",
+    socialTab: "Сообщество",
     settingsTab: "Настройки",
   },
   homeScreen: {

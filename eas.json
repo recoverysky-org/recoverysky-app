@@ -10,6 +10,7 @@
         "EXPO_PUBLIC_RESEED_DB": "false",
         "EXPO_PUBLIC_API_URL": "https://api.recoverysky.app",
         "EXPO_PUBLIC_AGENT_URL": "https://agent.recoverysky.app",
+        "EXPO_PUBLIC_SOCIAL_URL": "https://social.recoverysky.app",
         "EXPO_PUBLIC_UMAMI_URL": "https://umami.recoverysky.app",
         "EXPO_PUBLIC_UMAMI_WEBSITE_ID": "de38e9ea-85fa-4572-aa6f-83e97e0ff45a",
         "EXPO_PUBLIC_MIN_CREDIT_MINUTES": "10",

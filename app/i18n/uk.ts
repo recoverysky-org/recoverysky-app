@@ -113,6 +113,7 @@ const uk: Translations = {
     meetingsTab: "Зустрічі",
     scheduleTab: "Розклад",
     agentTab: "Помічник",
+    socialTab: "Спільнота",
     settingsTab: "Налаштування",
   },
   homeScreen: {
