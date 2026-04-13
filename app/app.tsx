@@ -419,6 +419,49 @@ export function App() {
 
         initReviewService(_rootStore.configStore)
 
+        // Sync shortName → Auth0 profile, debounced.
+        // Mounted once here so it covers every edit site (onboarding, settings,
+        // import, etc.) without per-screen wiring. Skips the first emission
+        // after hydration so we don't re-POST the existing value on cold start.
+        {
+          const profileStore = _rootStore.profileStore
+          let debounceTimer: ReturnType<typeof setTimeout> | undefined
+          let lastSynced: string | undefined
+
+          reaction(
+            () => ({
+              name: profileStore.shortName,
+              hydrated: profileStore.isHydrated,
+              isAnonymous: authStore.isAnonymous,
+            }),
+            ({ name, hydrated, isAnonymous }) => {
+              if (!hydrated) return
+              if (isAnonymous) return
+              if (lastSynced === undefined) {
+                // First emission after hydration — prime the cache, don't POST.
+                lastSynced = name
+                return
+              }
+              if (name === lastSynced) return
+
+              if (debounceTimer) clearTimeout(debounceTimer)
+              debounceTimer = setTimeout(async () => {
+                // Backend constraint: trimmed, 1–300 chars.
+                const value = name.trim().slice(0, 300)
+                if (!value) return
+                const result = await api.updateAuth0Profile({ name: value })
+                if (result.kind === "ok") {
+                  lastSynced = name
+                  log.debug("Auth0 profile synced", { name: value })
+                } else {
+                  // Don't update lastSynced on failure — next edit retries.
+                  log.warn("Auth0 profile sync failed", { kind: result.kind })
+                }
+              }, 800)
+            },
+          )
+        }
+
         setRootStore(_rootStore)
         trackEvent("app_initialized", { sessionId })
         log.info("App initialization complete")

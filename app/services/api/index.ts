@@ -628,6 +628,30 @@ export class Api {
   }
 
   /**
+   * Update the user's Auth0 profile (name) via the backend.
+   *
+   * The backend proxies to the Auth0 Management API using its own
+   * management token. The app passes the fields it wants persisted.
+   */
+  async updateAuth0Profile(
+    fields: { name: string },
+  ): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Updating Auth0 profile", { hasName: !!fields.name })
+
+    const response = await this.recoverySkyApi.post("/auth0/profile", fields)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Auth0 profile update failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    return { kind: "ok" }
+  }
+
+  /**
    * Get app configuration from server
    *
    * Returns URLs and keys that may be updated server-side.
