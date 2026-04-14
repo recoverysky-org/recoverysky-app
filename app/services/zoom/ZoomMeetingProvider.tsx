@@ -144,6 +144,18 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   children,
   reinitializeSDK,
 }) => {
+  useEffect(() => {
+    log.trace("ZoomSDKConsumer mounted", {
+      hasExistingContext: !!meetingContext,
+      existingWasInMeeting: wasInMeeting,
+    })
+    return () => {
+      log.trace("ZoomSDKConsumer unmounting", {
+        hasContext: !!meetingContext,
+        wasInMeeting,
+      })
+    }
+  }, [])
   const zoom = useZoom()
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
@@ -211,6 +223,15 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   // No re-check here — if the record was created, it should be processed.
   const processAttendance = async (ctx: MeetingContext) => {
     const eventMessages = ctx.events.map((e) => e.message)
+    log.trace("processAttendance enter", {
+      attendanceId: ctx.attendanceId,
+      mid: ctx.mid,
+      zid: ctx.zid,
+      eventCount: ctx.events.length,
+      joinedAt: ctx.joinedAt,
+      inMeetingAt: ctx.inMeetingAt ?? "never",
+      eventTrail: eventMessages.join(" | "),
+    })
     log.debug("Processing attendance events", {
       attendanceId: ctx.attendanceId,
       mid: ctx.mid,
@@ -312,6 +333,16 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   // Subscribe to native SDK events
   useZoomEvents({
     onMeetingStateChange: (event: ZoomMeetingStateEvent) => {
+      log.trace("onMeetingStateChange enter", {
+        stateName: event.stateName,
+        state: event.state,
+        errorCode: event.errorCode ?? -1,
+        internalErrorCode: event.internalErrorCode ?? -1,
+        hasContext: !!meetingContext,
+        wasInMeeting,
+        inMeetingAt: meetingContext?.inMeetingAt ?? "none",
+        attendanceId: meetingContext?.attendanceId ?? "none",
+      })
       log.info("Meeting state", { state: event.stateName, code: event.state })
       addEvent("Meeting state", { state: event.stateName, code: event.state })
       setMeetingState(event.stateName)
@@ -323,7 +354,13 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           // Only set on first inMeeting — preserve original join time across reconnections
           if (!meetingContext.inMeetingAt) {
             meetingContext.inMeetingAt = Date.now()
-            log.info("In meeting — attendance tracking started", { attendanceId: meetingContext.attendanceId })
+            log.info("In meeting — attendance tracking started", {
+              attendanceId: meetingContext.attendanceId,
+            })
+            log.trace("inMeeting: first entry (stamping inMeetingAt)", {
+              attendanceId: meetingContext.attendanceId,
+              inMeetingAt: meetingContext.inMeetingAt,
+            })
 
             // Query meeting info after SDK has populated user list and meeting params
             const ctx = meetingContext
@@ -371,10 +408,32 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
             log.debug("inMeeting (reconnect, keeping original timestamp)", {
               attendanceId: meetingContext.attendanceId,
             })
+            log.trace("inMeeting: repeat entry (preserving timestamp)", {
+              attendanceId: meetingContext.attendanceId,
+              originalInMeetingAt: meetingContext.inMeetingAt,
+            })
           }
         } else {
           log.debug("inMeeting but no context")
+          log.trace("inMeeting WITHOUT meetingContext — attendance will not be recorded")
         }
+      }
+
+      // Trace non-terminal states we don't act on — these are the prime suspects
+      // for the stuck-spinner bug if they're the last state we see.
+      if (
+        event.stateName === "disconnecting" ||
+        event.stateName === "reconnecting" ||
+        event.stateName === "failed" ||
+        event.stateName === "connecting" ||
+        event.stateName === "waitingForHost" ||
+        event.stateName === "inWaitingRoom"
+      ) {
+        log.trace("Non-terminal transitional state (not processing attendance)", {
+          stateName: event.stateName,
+          hasContext: !!meetingContext,
+          inMeetingAt: meetingContext?.inMeetingAt ?? "none",
+        })
       }
 
       // Process and clear when meeting ends
@@ -385,11 +444,20 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           inMeetingAt: meetingContext?.inMeetingAt ?? "none",
           attendanceId: meetingContext?.attendanceId ?? "none",
         })
+        log.trace("Terminal state branch entered", {
+          stateName: event.stateName,
+          hasContext: !!meetingContext,
+          wasInMeeting,
+        })
         if (meetingContext) {
           // If user was never actually in the meeting (e.g. waiting room cycle),
           // keep the context alive for the next SDK cycle instead of processing
           if (!meetingContext.inMeetingAt) {
             log.debug("Meeting ended before inMeeting, keeping context for next cycle")
+            log.trace("Skipping processAttendance (never reached inMeeting)", {
+              attendanceId: meetingContext.attendanceId,
+              eventCount: meetingContext.events.length,
+            })
             return
           }
 
@@ -397,6 +465,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           // "ended" and "idle" fire in quick succession
           const ctx = meetingContext
           meetingContext = null
+          log.trace("Captured ctx, nulled meetingContext", {
+            attendanceId: ctx.attendanceId,
+            eventCount: ctx.events.length,
+          })
 
           // Inject synthetic end event — guarantees processAttendance() always
           // has an end event regardless of onMeetingEndedReason timing.
@@ -410,6 +482,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           attendanceRepo.addEvent(ctx.attendanceId, syntheticEnd).catch(() => {})
 
           log.info("Processing attendance record", { attendanceId: ctx.attendanceId })
+          log.trace("processAttendance about to run", {
+            attendanceId: ctx.attendanceId,
+            path: "state-change-terminal",
+          })
           processAttendance(ctx).catch((err) => {
             log.error("processAttendance failed", {
               attendanceId: ctx.attendanceId,
@@ -418,10 +494,20 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           })
         } else {
           log.debug("End state but no context to process")
+          log.trace("Terminal state but meetingContext is null", {
+            stateName: event.stateName,
+            wasInMeeting,
+          })
         }
       }
     },
     onMeetingError: (event: ZoomMeetingErrorEvent) => {
+      log.trace("onMeetingError enter", {
+        errorCode: event.errorCode,
+        message: event.message ?? "",
+        hasContext: !!meetingContext,
+        wasInMeeting,
+      })
       // Error code 0 means success - don't log as error
       if (event.errorCode === 0) {
         log.info("Meeting status", { code: event.errorCode, message: event.message })
@@ -434,10 +520,23 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       }
     },
     onMeetingJoinConfirmed: () => {
+      log.trace("onMeetingJoinConfirmed enter", {
+        hasContext: !!meetingContext,
+        wasInMeeting,
+        attendanceId: meetingContext?.attendanceId ?? "none",
+      })
       log.info("Join confirmed", { code: 0 })
       addEvent("Join confirmed", { code: 0 })
     },
     onMeetingEndedReason: (event: ZoomMeetingEndedEvent) => {
+      log.trace("onMeetingEndedReason enter", {
+        reason: event.reason,
+        reasonName: event.reasonName,
+        hasContext: !!meetingContext,
+        wasInMeeting,
+        inMeetingAt: meetingContext?.inMeetingAt ?? "none",
+        attendanceId: meetingContext?.attendanceId ?? "none",
+      })
       log.info("Meeting ended", {
         reason: event.reasonName,
         code: event.reason,
@@ -450,10 +549,18 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       if (wasInMeeting) {
         wasInMeeting = false
         log.info("Meeting completed, emitting housekeeping event", { reason: event.reasonName })
+        log.trace("wasInMeeting=true branch, firing housekeeping")
         meetingEvents.completed(event.reasonName)
+      } else {
+        log.trace("wasInMeeting=false branch, no housekeeping")
       }
     },
     onAuthReturn: (event: ZoomAuthEvent) => {
+      log.trace("onAuthReturn enter", {
+        success: event.success,
+        errorCode: event.errorCode,
+        message: event.message ?? "",
+      })
       log.info("Auth", { success: event.success })
       addEvent("Auth", { success: event.success, message: event.message })
     },
@@ -477,6 +584,17 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig) => {
+      log.trace("joinMeeting called", {
+        meetingId: config.meetingId,
+        meetingNumber: config.meetingNumber,
+        userName: config.userName,
+        hasPassword: !!config.password,
+        hasZak: !!config.zak,
+        external: !!config.external,
+        hasMeetingUrl: !!config.meetingUrl,
+        existingContext: !!meetingContext,
+        existingWasInMeeting: wasInMeeting,
+      })
       // Check and request media permissions BEFORE joining
       // This prevents the black screen issue when permissions are granted after SDK init
       const perms = await checkMediaPermissions()
@@ -584,6 +702,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
       try {
         // Check SDK initialization state
+        log.trace("Checking SDK initialization")
         const isInit = await zoom.isInitialized()
         log.info("SDK init check", { isInitialized: isInit })
         if (!isInit) {
@@ -640,6 +759,12 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
           zakPreview: zakToken ? zakToken.slice(0, 20) + "..." : "none",
         })
 
+        log.trace("Invoking native zoom.joinMeeting()", {
+          meetingNumber: zidToJoin,
+          userName: config.userName,
+          hasPassword: !!sdkPassword,
+          hasZak: !!zakToken,
+        })
         const statusCode = await zoom.joinMeeting({
           meetingNumber: zidToJoin,
           userName: config.userName,
@@ -648,6 +773,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
         })
 
         log.info("Join sent", { statusCode: statusCode ?? 0 })
+        log.trace("Native zoom.joinMeeting() returned", {
+          statusCode: statusCode ?? 0,
+          attendanceId: meetingContext?.attendanceId ?? "none",
+        })
         addEvent("Join sent", { statusCode: statusCode ?? 0 })
 
         if (statusCode !== undefined && statusCode !== 0) {
@@ -810,6 +939,11 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
   // Callback to reinitialize SDK (e.g., after permissions granted)
   const reinitializeSDK = useCallback(() => {
     log.info("Reinitializing SDK", { previousVersion: sdkVersion })
+    log.trace("reinitializeSDK called — will remount ZoomSDKProvider", {
+      previousVersion: sdkVersion,
+      hasContext: !!meetingContext,
+      wasInMeeting,
+    })
     setSdkVersion((v) => v + 1)
   }, [sdkVersion])
 
@@ -820,6 +954,12 @@ const ZoomMeetingProviderInner: FC<{ children: ReactNode }> = ({ children }) => 
       configured,
       hasKey: !!zoomSdkKey,
       hasSecret: !!zoomSdkSecret,
+    })
+    log.trace("SDK init effect running", {
+      configured,
+      sdkVersion,
+      hasContext: !!meetingContext,
+      wasInMeeting,
     })
 
     if (!configured) {

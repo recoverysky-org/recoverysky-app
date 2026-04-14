@@ -75,7 +75,7 @@
       "channel": "production",
       "env": {
         "EXPO_NO_CAPABILITY_SYNC": "1",
-        "EXPO_PUBLIC_LOG_LEVEL": "debug"
+        "EXPO_PUBLIC_LOG_LEVEL": "trace"
       },
       "ios": {
         "resourceClass": "m-medium",

@@ -33,6 +33,14 @@ export async function getZakToken(
 
   try {
     log.info("Fetching ZAK token", { mode: isAuthenticated ? "authenticated" : "anonymous" })
+    log.trace("ZAK fetch request", {
+      endpoint: ZOOM_ENDPOINTS.zakMe,
+      mode: isAuthenticated ? "authenticated" : "anonymous",
+      hasApiKey: !!(apiKey || ZOOM_ENDPOINTS.apiKey),
+      hasAccessToken: !!zoomAuth?.accessToken,
+      hasRefreshToken: !!zoomAuth?.refreshToken,
+      deviceId: deviceId ?? "none",
+    })
 
     const response = await fetch(ZOOM_ENDPOINTS.zakMe, {
       method: "POST",
@@ -45,6 +53,7 @@ export async function getZakToken(
         refresh_token: zoomAuth?.refreshToken ?? null,
       }),
     })
+    log.trace("ZAK fetch response", { status: response.status, ok: response.ok })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -78,6 +87,12 @@ export async function getZakToken(
     log.info("ZAK token retrieved", {
       mode: isAuthenticated ? "authenticated" : "anonymous",
       wasRefreshed: data.was_refreshed,
+    })
+    log.trace("ZAK token retrieved (detail)", {
+      mode: isAuthenticated ? "authenticated" : "anonymous",
+      wasRefreshed: !!data.was_refreshed,
+      hasZak: !!data.zak,
+      zakLength: data.zak ? data.zak.length : 0,
     })
 
     return data.zak

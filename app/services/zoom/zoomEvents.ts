@@ -18,6 +18,12 @@ const { RNZoomSDK } = NativeModules
 // Create event emitter - only if native module exists
 const zoomEventEmitter = RNZoomSDK ? new NativeEventEmitter(RNZoomSDK) : null
 
+log.trace("Zoom event module loaded", {
+  hasNativeModule: !!RNZoomSDK,
+  hasEmitter: !!zoomEventEmitter,
+  nativeModuleKeys: RNZoomSDK ? Object.keys(RNZoomSDK).join(",") : "none",
+})
+
 // ============================================================================
 // Event Types
 // ============================================================================
@@ -125,11 +131,28 @@ export function subscribeToZoomEvent<T>(
     return () => {}
   }
 
-  log.debug("Subscribing to Zoom event", { eventName })
-  const subscription = zoomEventEmitter.addListener(eventName, handler)
+  log.trace("Subscribing to Zoom event", { eventName })
+
+  // Chokepoint trace: every native→JS event goes through here.
+  // Logs the raw payload before delegating to the user handler so we have
+  // ground truth about what the native SDK is emitting, independent of
+  // any branching in downstream code.
+  const wrapped = (event: T) => {
+    try {
+      log.trace("Native Zoom event", {
+        eventName,
+        payload: JSON.stringify(event ?? null),
+      })
+    } catch {
+      log.trace("Native Zoom event (unserializable)", { eventName })
+    }
+    handler(event)
+  }
+
+  const subscription = zoomEventEmitter.addListener(eventName, wrapped)
 
   return () => {
-    log.debug("Unsubscribing from Zoom event", { eventName })
+    log.trace("Unsubscribing from Zoom event", { eventName })
     subscription.remove()
   }
 }
@@ -209,6 +232,13 @@ export function useZoomEvents(handlers: ZoomEventHandlers): void {
     }
 
     log.info("Setting up Zoom event listeners")
+    log.trace("useZoomEvents mount", {
+      hasMeetingStateChange: !!handlersRef.current.onMeetingStateChange,
+      hasMeetingError: !!handlersRef.current.onMeetingError,
+      hasJoinConfirmed: !!handlersRef.current.onMeetingJoinConfirmed,
+      hasEndedReason: !!handlersRef.current.onMeetingEndedReason,
+      hasAuthReturn: !!handlersRef.current.onAuthReturn,
+    })
 
     const stableHandlers: ZoomEventHandlers = {
       onMeetingStateChange: (event) => handlersRef.current.onMeetingStateChange?.(event),

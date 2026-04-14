@@ -143,6 +143,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
       try {
         // Password-protected meetings open in external Zoom app (when enabled)
         if (profileStore.allowExternalZoom && config.external) {
+          log.trace("Routing: external Zoom app (password-protected)", { mid: config.meetingId })
           log.info("Password-protected meeting, opening in Zoom app", { mid: config.meetingId })
           const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
           await openInZoomApp(zoomUrl)
@@ -152,13 +153,20 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
 
         // Try native SDK first if available
         if (isSDKReady && zoomContext) {
+          log.trace("Routing: native SDK", { mid: config.meetingId })
           log.info("Using native Zoom SDK", { mid: config.meetingId })
           await zoomContext.joinMeeting(config)
+          log.trace("zoomContext.joinMeeting resolved", { mid: config.meetingId })
           setState("inMeeting")
           return { success: true }
         }
 
         // Fallback to external Zoom app (use original URL which has encrypted pwd)
+        log.trace("Routing: external Zoom app (SDK unavailable fallback)", {
+          mid: config.meetingId,
+          isSDKReady,
+          hasContext: !!zoomContext,
+        })
         log.info("SDK not available, using external app", { mid: config.meetingId })
         const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
         await openInZoomApp(zoomUrl)
@@ -168,6 +176,11 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error"
         log.error("Failed to join meeting", { mid: config.meetingId, error: errorMessage })
+        log.trace("joinMeeting threw", {
+          mid: config.meetingId,
+          error: errorMessage,
+          stack: err instanceof Error ? (err.stack ?? "") : "",
+        })
         setError(errorMessage)
         setState("error")
         return { success: false, error: errorMessage }

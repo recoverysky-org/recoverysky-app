@@ -56,6 +56,7 @@ export interface MyUserInfoResult {
  * @param endMeeting - If true and you're the host, ends the meeting for everyone
  */
 export async function leaveMeeting(endMeeting: boolean = false): Promise<boolean> {
+  log.trace("leaveMeeting called", { endMeeting, hasRNZoomSDK: !!RNZoomSDK })
   if (!RNZoomSDK) {
     log.warn("RNZoomSDK not available")
     return false
@@ -65,9 +66,14 @@ export async function leaveMeeting(endMeeting: boolean = false): Promise<boolean
     log.info("Leaving meeting", { endMeeting })
     const result = await RNZoomSDK.leaveMeeting(endMeeting)
     log.info("Left meeting successfully")
+    log.trace("leaveMeeting native returned", { result: String(result) })
     return result
   } catch (error) {
     log.error("Failed to leave meeting", { error: String(error) })
+    log.trace("leaveMeeting native threw", {
+      error: String(error),
+      stack: error instanceof Error ? (error.stack ?? "") : "",
+    })
     throw error
   }
 }
@@ -150,6 +156,10 @@ export async function getMeetingStatus(): Promise<MeetingStatusResult> {
   try {
     const result = await RNZoomSDK.getMeetingStatus()
     log.debug("Got meeting status", { stateName: result.stateName })
+    log.trace("getMeetingStatus native result", {
+      state: result.state,
+      stateName: result.stateName,
+    })
     return result
   } catch (error) {
     log.error("Failed to get meeting status", { error: String(error) })
