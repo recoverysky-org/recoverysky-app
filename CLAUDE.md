@@ -58,7 +58,7 @@ MST with MMKV persistence in `app/models/`:
   - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never persisted to MMKV
   - Computed: `isAuthenticated`
 - **ProfileStore**: User profile and preferences with two storage tiers:
-  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, notificationsEnabled, reportEmail, `imported`
+  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, notificationsEnabled, reportEmail, `imported`, `useExternalZoom`
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
@@ -322,13 +322,33 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 ## Zoom Integration
 
 Zoom SDK in `app/services/zoom/`:
-- **ZoomMeetingProvider**: Context wrapper for meeting state
-- **useZoomMeeting**: Hook for joining meetings
+- **ZoomMeetingProvider**: Context wrapper for meeting state and the join flow through the native SDK
+- **useZoomMeeting**: Hook that routes a join request — native SDK, external Zoom app (per `useExternalZoom`), or non-Zoom URL fallback
 - **useZoomAuth**: OAuth flow for authenticated meeting joins (ZAK token), credentials stored in encrypted SQLite via `zoomAuthRepo`
 - Requires EAS build (native SDK, not Expo Go compatible)
 - Uses `expo-audio` for audio permissions (migrated from deprecated `expo-av`)
 - **ZoomSetupScreen**: Required gate before onboarding — user must connect Zoom account
 - **ZoomLoginScreen**: Dismissible modal from Settings for reconnection
+
+### Password precedence
+Both the external-launch URL builder and the native SDK join prefer `passwordEnc` (the encrypted share-link pwd) over plaintext `password`. The helper `buildExternalZoomUrl({ meetingNumber, meetingUrl, password, passwordEnc })` constructs `https://zoom.us/j/<zid>?pwd=<encrypted|plaintext>` when either is available, otherwise falls back to `meetingUrl`. The SDK path resolves `overridePw || config.passwordEnc || config.password || ""` and logs `pwdSource` on every join so the chosen source is visible in traces.
+
+### External Zoom mode (`useExternalZoom`)
+When on in Settings → Advanced:
+- **Listings**: `includeExternal: true` is sent to `/schedules/live` and `/schedules/daily` so external-only meetings appear (rendered with a "Z" badge in `LiveMeetingRow.tsx`)
+- **Join**: all meetings open in the installed Zoom app; the native SDK is bypassed entirely
+- **Attendance path**: a separate, user-confirmed timer flow replaces SDK state tracking (see below)
+
+Refresh-on-toggle is owned by `MeetingProvider` itself via a MobX `reaction` on `profileStore.useExternalZoom` — the listings refetch regardless of which screen is mounted when the user flips the setting. Earlier versions routed this through `LiveScreen`'s subscriber, which silently broke when that tab wasn't mounted.
+
+### External Zoom Timer attendance
+`app/services/zoom/externalAttendance.ts` exposes `saveTimerAttendance()` and `EXTERNAL_MIN_CREDIT_MS`. When `useExternalZoom` + `attendanceEnabled` are both on, `SchedulePopup.handleJoin` shows `ExternalZoomTimerModal` instead of calling `joinMeeting`. The modal launches Zoom via `Linking.openURL`, runs a foreground timer (AppState-resynced so it doesn't drift while backgrounded), gates Save on `elapsed >= EXTERNAL_MIN_CREDIT_MS`, and on Save writes an attendance record with stubbed events (`"Timer started"`, `"External Zoom launched"`, `"Timer saved"`) all JSON-tagged `source: "external-zoom-timer"` so these records are filterable downstream. Emits the same `attendanceEvents.processed` + `created` that the SDK path does, which is why the existing attendance banner in `SchedulePopup` works unchanged. If `useExternalZoom` is on but `attendanceEnabled` is off, Zoom opens directly with no modal.
+
+### Tracing
+Zoom SDK paths are instrumented at trace level end-to-end:
+- `zoomEvents.ts` wraps `subscribeToZoomEvent` so every native→JS event is trace-logged with its raw payload at the chokepoint (ground truth independent of handler branching)
+- `ZoomMeetingProvider` traces every handler entry and every branch in the terminal-state logic, including the non-terminal states (`disconnecting` / `reconnecting` / `failed` / etc.) that were prime suspects in a "stuck Zoom HUD" bug
+- Production `EXPO_PUBLIC_LOG_LEVEL` is `trace` — revert to `debug` after a target session is captured if volume becomes a concern
 
 ## Development Tools
 
