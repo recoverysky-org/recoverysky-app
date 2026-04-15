@@ -12,6 +12,7 @@
 import { FC, useCallback, useState, useEffect } from "react"
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   ViewStyle,
   FlatList,
   RefreshControl,
@@ -76,6 +77,7 @@ interface NewListHeaderProps {
   recordCount: number
   hasAttendance: boolean
   selectedCount: number
+  isSending: boolean
   onNavigateSubscription: () => void
   onSendReport: () => void
 }
@@ -84,6 +86,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
   recordCount,
   hasAttendance,
   selectedCount,
+  isSending,
   onNavigateSubscription,
   onSendReport,
 }) {
@@ -91,7 +94,8 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
   const profileStore = useProfileStore()
   const [emailValid, setEmailValid] = useState<boolean | null>(null)
 
-  const canSendReport = selectedCount > 0 && isValidEmail(profileStore.reportEmail)
+  const canSendReport =
+    selectedCount > 0 && isValidEmail(profileStore.reportEmail) && !isSending
 
   // Debounced email validation indicator
   useEffect(() => {
@@ -148,16 +152,20 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
             disabled={!canSendReport}
             accessibilityRole="button"
             accessibilityLabel={translate("attendanceScreen:sendReport")}
-            accessibilityState={{ disabled: !canSendReport }}
+            accessibilityState={{ disabled: !canSendReport, busy: isSending }}
           >
-            <Ionicons
-              name="send"
-              size={18}
-              color={canSendReport ? theme.colors.tint : theme.colors.textDim}
-            />
+            {isSending ? (
+              <ActivityIndicator size="small" color={theme.colors.textDim} />
+            ) : (
+              <Ionicons
+                name="send"
+                size={18}
+                color={canSendReport ? theme.colors.tint : theme.colors.textDim}
+              />
+            )}
             <Text
               style={themed(canSendReport ? $sendButtonText : $sendButtonTextDisabled)}
-              tx="attendanceScreen:sendReport"
+              tx={isSending ? "attendanceScreen:sending" : "attendanceScreen:sendReport"}
             />
           </TouchableOpacity>
 
@@ -190,7 +198,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
   const { themed, theme } = useAppTheme()
   const { hasAttendance } = useSubscription()
   const profileStore = useProfileStore()
-  const { send: sendReport } = useReportSender()
+  const { send: sendReport, isSending } = useReportSender()
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -299,7 +307,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
   const handleSendReport = useCallback(async () => {
-    if (selectedIds.size === 0) return
+    if (selectedIds.size === 0 || isSending) return
     const result = await sendReport({
       type: "initial",
       attendanceIds: Array.from(selectedIds),
@@ -309,7 +317,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
       setRecords((prev) => prev.filter((r) => !selectedIds.has(r.id)))
       setSelectedIds(new Set())
     }
-  }, [selectedIds, profileStore.reportEmail, sendReport])
+  }, [selectedIds, isSending, profileStore.reportEmail, sendReport])
 
   return (
     <FlatList
@@ -322,6 +330,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
           recordCount={records.length}
           hasAttendance={hasAttendance}
           selectedCount={selectedIds.size}
+          isSending={isSending}
           onNavigateSubscription={onNavigateSubscription}
           onSendReport={handleSendReport}
         />
@@ -607,15 +616,15 @@ const ReportsContent: FC = observer(function ReportsContent() {
             onPress={() => handleViewReport(item)}
             style={$viewButton}
             hitSlop={8}
-            disabled={item.error || item.confirmed === 0}
+            disabled={!item.html}
             accessibilityRole="button"
             accessibilityLabel={translate("attendanceScreen:viewReport")}
-            accessibilityState={{ disabled: !!(item.error || item.confirmed === 0) }}
+            accessibilityState={{ disabled: !item.html }}
           >
             <Ionicons
               name="eye-outline"
               size={22}
-              color={item.error || item.confirmed === 0 ? theme.colors.border : theme.colors.tint}
+              color={!item.html ? theme.colors.border : theme.colors.tint}
             />
           </TouchableOpacity>
         </View>
