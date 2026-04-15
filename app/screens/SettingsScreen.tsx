@@ -1187,15 +1187,15 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
         <View style={themed($settingsRow)}>
           <View style={$styles.flex1}>
-            <Text style={themed($rowLabel)} tx="settingsScreen:allowExternalZoom" />
-            <Text style={themed($rowHint)} tx="settingsScreen:allowExternalZoomHint" />
+            <Text style={themed($rowLabel)} tx="settingsScreen:useExternalZoom" />
+            <Text style={themed($rowHint)} tx="settingsScreen:useExternalZoomHint" />
           </View>
           <Switch
-            value={profileStore.allowExternalZoom}
-            onValueChange={profileStore.setAllowExternalZoom}
+            value={profileStore.useExternalZoom}
+            onValueChange={profileStore.setUseExternalZoom}
             trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
             thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:allowExternalZoom")}
+            accessibilityLabel={translate("settingsScreen:useExternalZoom")}
           />
         </View>
       </View>

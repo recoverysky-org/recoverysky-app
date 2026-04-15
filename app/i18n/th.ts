@@ -390,9 +390,9 @@ const th: Translations = {
     noUpdatesMessage: "คุณกำลังใช้ RecoverySky เวอร์ชันล่าสุด",
     // Advanced Section
     advancedSection: "ขั้นสูง",
-    allowExternalZoom: "อนุญาตการประชุม Zoom ภายนอก",
-    allowExternalZoomHint:
-      "เปิดการประชุมในแอป Zoom แทนการใช้ในแอป การเข้าร่วมไม่ถูกบันทึกและไม่ได้ตรวจสอบว่าการประชุมทำงานได้",
+    useExternalZoom: "ใช้ Zoom ภายนอก",
+    useExternalZoomHint:
+      "การประชุมทั้งหมดจะเปิดในแอป Zoom ที่ติดตั้งไว้แทนการใช้ในแอป แสดงการประชุมเพิ่มเติมที่มีเฉพาะในแอป Zoom เท่านั้น",
     // Legal Section
     legalSection: "กฎหมาย",
     eula: "ข้อตกลงสิทธิ์การใช้งาน",
@@ -498,6 +498,11 @@ const th: Translations = {
     placeholder: "เช่น ขั้นที่ 4 ความกตัญญู การเป็นสปอนเซอร์…",
     save: "บันทึก",
     skip: "ข้าม",
+  },
+  externalZoomTimer: {
+    title: "ตัวจับเวลาการเข้าร่วม",
+    hint: "กลับมาที่นี่เมื่อการประชุมสิ้นสุด การบันทึกต้องใช้เวลาอย่างน้อย {{minutes}} นาที",
+    save: "บันทึก",
   },
   devScreen: {
     title: "เครื่องมือนักพัฒนา",

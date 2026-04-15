@@ -748,12 +748,21 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
 
         // Pass both password and ZAK — they serve different purposes:
         // ZAK identifies the user, password grants access to the meeting.
-        const sdkPassword = overridePw || config.password || ""
+        // Prefer passwordEnc (encrypted share-link pwd) when present, fall
+        // back to plaintext password — mirrors the external-launch precedence.
+        const sdkPassword = overridePw || config.passwordEnc || config.password || ""
 
         log.info("Calling SDK joinMeeting", {
           meetingNumber: zidToJoin,
           userName: config.userName,
           password: sdkPassword ? "SET" : "empty",
+          pwdSource: overridePw
+            ? "override"
+            : config.passwordEnc
+              ? "passwordEnc"
+              : config.password
+                ? "password"
+                : "none",
           useZak,
           hasZak: !!zakToken,
           zakPreview: zakToken ? zakToken.slice(0, 20) + "..." : "none",

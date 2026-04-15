@@ -399,9 +399,9 @@ const en = {
     noUpdatesMessage: "You're running the latest version of RecoverySky.",
     // Advanced Section
     advancedSection: "Advanced",
-    allowExternalZoom: "Allow External Zoom Meetings",
-    allowExternalZoomHint:
-      "Opens meetings in the Zoom app instead of in-app. Attendance is not tracked and meetings have not been verified to be functional.",
+    useExternalZoom: "Use External Zoom",
+    useExternalZoomHint:
+      "All meetings open in the installed Zoom app instead of in-app. Shows additional Zoom App only meetings.",
     // Legal Section
     legalSection: "Legal",
     eula: "End User License Agreement",
@@ -512,6 +512,11 @@ const en = {
     placeholder: "e.g. Step 4, Gratitude, Sponsorship…",
     save: "Save",
     skip: "Skip",
+  },
+  externalZoomTimer: {
+    title: "Attendance Timer",
+    hint: "Return here when your meeting ends. Save requires at least {{minutes}} min.",
+    save: "Save",
   },
   // Dev Screen (hidden)
   devScreen: {

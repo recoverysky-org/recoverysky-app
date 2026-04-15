@@ -387,9 +387,9 @@ const ar: Translations = {
     noUpdatesMessage: "أنت تستخدم أحدث إصدار من RecoverySky.",
     // Advanced Section
     advancedSection: "متقدم",
-    allowExternalZoom: "السماح باجتماعات Zoom الخارجية",
-    allowExternalZoomHint:
-      "يفتح الاجتماعات في تطبيق Zoom بدلاً من داخل التطبيق. لا يتم تتبع الحضور ولم يتم التحقق من عمل الاجتماعات.",
+    useExternalZoom: "استخدام Zoom الخارجي",
+    useExternalZoomHint:
+      "تُفتح جميع الاجتماعات في تطبيق Zoom المثبّت بدلاً من داخل التطبيق. يعرض اجتماعات إضافية متاحة فقط في تطبيق Zoom.",
     // Legal Section
     legalSection: "قانوني",
     eula: "اتفاقية ترخيص المستخدم",
@@ -494,6 +494,11 @@ const ar: Translations = {
     placeholder: "مثال: الخطوة 4، الامتنان، الإرشاد…",
     save: "حفظ",
     skip: "تخطي",
+  },
+  externalZoomTimer: {
+    title: "مؤقت الحضور",
+    hint: "عد إلى هنا عند انتهاء اجتماعك. يتطلب الحفظ على الأقل {{minutes}} دقيقة.",
+    save: "حفظ",
   },
   devScreen: {
     title: "أدوات المطور",

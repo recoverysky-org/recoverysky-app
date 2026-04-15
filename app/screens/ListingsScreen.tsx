@@ -204,7 +204,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
 
     try {
       const result = await api.getDailySchedules(selectedDay, fellowship, {
-        includeExternal: profileStore.allowExternalZoom,
+        includeExternal: profileStore.useExternalZoom,
       })
 
       if (result.kind !== "ok") {
@@ -243,7 +243,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedDay, profileStore.fellowship, profileStore.allowExternalZoom])
+  }, [selectedDay, profileStore.fellowship, profileStore.useExternalZoom])
 
   // Fetch when day or fellowship changes
   useEffect(() => {

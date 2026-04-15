@@ -395,9 +395,9 @@ const uk: Translations = {
     noUpdatesMessage: "Ти використовуєш останню версію RecoverySky.",
     // Advanced Section
     advancedSection: "Додатково",
-    allowExternalZoom: "Дозволити зовнішні зустрічі Zoom",
-    allowExternalZoomHint:
-      "Відкриває зустрічі в додатку Zoom замість вбудованого. Відвідуваність не відстежується і працездатність зустрічей не перевірена.",
+    useExternalZoom: "Використовувати зовнішній Zoom",
+    useExternalZoomHint:
+      "Усі зустрічі відкриваються у встановленому додатку Zoom замість вбудованого. Показує додаткові зустрічі, доступні лише в додатку Zoom.",
     // Legal Section
     legalSection: "Правова інформація",
     eula: "Ліцензійна угода",
@@ -506,6 +506,11 @@ const uk: Translations = {
     placeholder: "Напр. Крок 4, Вдячність, Наставництво…",
     save: "Зберегти",
     skip: "Пропустити",
+  },
+  externalZoomTimer: {
+    title: "Таймер відвідування",
+    hint: "Поверніться сюди, коли зустріч завершиться. Для збереження потрібно щонайменше {{minutes}} хв.",
+    save: "Зберегти",
   },
   devScreen: {
     title: "Інструменти розробника",

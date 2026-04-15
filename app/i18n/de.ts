@@ -397,9 +397,9 @@ const de: Translations = {
     noUpdatesMessage: "Du verwendest die neueste Version von RecoverySky.",
     // Advanced Section
     advancedSection: "Erweitert",
-    allowExternalZoom: "Externe Zoom-Meetings erlauben",
-    allowExternalZoomHint:
-      "Öffnet Meetings in der Zoom-App statt in der App. Die Anwesenheit wird nicht erfasst und die Funktionalität der Meetings wurde nicht überprüft.",
+    useExternalZoom: "Externes Zoom verwenden",
+    useExternalZoomHint:
+      "Alle Meetings werden in der installierten Zoom-App geöffnet statt in der App. Zeigt zusätzliche Meetings, die nur in der Zoom-App verfügbar sind.",
     // Legal Section
     legalSection: "Rechtliches",
     eula: "Endbenutzer-Lizenzvereinbarung",
@@ -510,6 +510,11 @@ const de: Translations = {
     placeholder: "z. B. Schritt 4, Dankbarkeit, Patenschaft…",
     save: "Speichern",
     skip: "Überspringen",
+  },
+  externalZoomTimer: {
+    title: "Teilnahme-Timer",
+    hint: "Kehre hierher zurück, wenn dein Meeting endet. Speichern erfordert mindestens {{minutes}} Min.",
+    save: "Speichern",
   },
   devScreen: {
     title: "Entwicklertools",

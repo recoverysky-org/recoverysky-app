@@ -43,6 +43,27 @@ export function extractZoomPassword(url: string): string | null {
   return match?.[1] ?? null
 }
 
+/**
+ * Build the URL used to launch a meeting in the external Zoom app. Prefers
+ * `passwordEnc` (the encrypted share-link pwd) when present; otherwise falls
+ * back to the plaintext `password`. Either is appended as `?pwd=<value>` on a
+ * freshly-constructed join URL so it matches what Zoom's own share links
+ * look like. If neither is available, falls back to the stored meetingUrl,
+ * then to a bare join URL.
+ */
+export function buildExternalZoomUrl(opts: {
+  meetingNumber: string
+  meetingUrl?: string | null
+  password?: string | null
+  passwordEnc?: string | null
+}): string {
+  const pwd = opts.passwordEnc || opts.password
+  if (pwd && opts.meetingNumber) {
+    return `https://zoom.us/j/${opts.meetingNumber}?pwd=${encodeURIComponent(pwd)}`
+  }
+  return opts.meetingUrl || `https://zoom.us/j/${opts.meetingNumber}`
+}
+
 export interface UseZoomMeetingReturn {
   /** Current meeting state */
   state: ZoomMeetingState
@@ -109,18 +130,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
   const openInZoomApp = useCallback(async (url: string) => {
     log.info("Opening meeting in Zoom app", { url })
     try {
-      const canOpen = await Linking.canOpenURL(url)
-      if (canOpen) {
-        await Linking.openURL(url)
-      } else {
-        const meetingNumber = extractZoomMeetingNumber(url)
-        if (meetingNumber) {
-          const zoomUrl = `zoomus://zoom.us/join?confno=${meetingNumber}`
-          await Linking.openURL(zoomUrl)
-        } else {
-          throw new Error("Unable to open Zoom meeting")
-        }
-      }
+      await Linking.openURL(url)
     } catch (err) {
       log.error("Failed to open Zoom app", { error: String(err) })
       throw err
@@ -141,11 +151,23 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
       setError(null)
 
       try {
-        // Password-protected meetings open in external Zoom app (when enabled)
-        if (profileStore.allowExternalZoom && config.external) {
-          log.trace("Routing: external Zoom app (password-protected)", { mid: config.meetingId })
-          log.info("Password-protected meeting, opening in Zoom app", { mid: config.meetingId })
-          const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
+        // When "Use External Zoom" is on, every meeting opens in the installed
+        // Zoom app instead of the in-app SDK. Attendance is not tracked in this
+        // mode — the SDK path is what records attendance events.
+        if (profileStore.useExternalZoom) {
+          log.trace("Routing: external Zoom app (useExternalZoom=on)", {
+            mid: config.meetingId,
+            external: !!config.external,
+            hasPassword: !!config.password,
+            hasPasswordEnc: !!config.passwordEnc,
+          })
+          log.info("Opening meeting in external Zoom app", { mid: config.meetingId })
+          const zoomUrl = buildExternalZoomUrl({
+            meetingNumber: config.meetingNumber,
+            meetingUrl: config.meetingUrl,
+            password: config.password,
+            passwordEnc: config.passwordEnc,
+          })
           await openInZoomApp(zoomUrl)
           setState("idle")
           return { success: true }
@@ -168,7 +190,12 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
           hasContext: !!zoomContext,
         })
         log.info("SDK not available, using external app", { mid: config.meetingId })
-        const zoomUrl = config.meetingUrl || `https://zoom.us/j/${config.meetingNumber}`
+        const zoomUrl = buildExternalZoomUrl({
+          meetingNumber: config.meetingNumber,
+          meetingUrl: config.meetingUrl,
+          password: config.password,
+          passwordEnc: config.passwordEnc,
+        })
         await openInZoomApp(zoomUrl)
 
         setState("idle")
@@ -186,7 +213,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
         return { success: false, error: errorMessage }
       }
     },
-    [isSDKReady, zoomContext, openInZoomApp, profileStore.allowExternalZoom],
+    [isSDKReady, zoomContext, openInZoomApp, profileStore.useExternalZoom],
   )
 
   return {

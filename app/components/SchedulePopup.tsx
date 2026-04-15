@@ -30,6 +30,7 @@ import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
@@ -40,7 +41,7 @@ import { useReminders } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { trackEvent } from "@/services/tracking"
-import { useZoomMeeting, extractZoomMeetingNumber } from "@/services/zoom"
+import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
@@ -71,6 +72,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
   const { isPremium } = useSubscription()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+
+  // External Zoom timer modal state
+  const [timerVisible, setTimerVisible] = useState(false)
 
   // Reminder state
   const [reminderEditorVisible, setReminderEditorVisible] = useState(false)
@@ -267,6 +271,26 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       return
     }
 
+    // External Zoom mode: show timer modal instead of the SDK join flow.
+    // The modal itself launches the Zoom app and tracks a user-confirmed
+    // attendance window. Skip the timer if the user hasn't opted into
+    // attendance tracking — just open Zoom.
+    if (profileStore.useExternalZoom) {
+      if (profileStore.attendanceEnabled) {
+        setTimerVisible(true)
+      } else {
+        const { Linking } = await import("react-native")
+        const zoomUrl = buildExternalZoomUrl({
+          meetingNumber,
+          meetingUrl: meeting.url,
+          password: meeting.password,
+          passwordEnc: meeting.passwordEnc,
+        })
+        await Linking.openURL(zoomUrl)
+      }
+      return
+    }
+
     try {
       await joinMeeting({
         meetingId: meeting.id,
@@ -274,6 +298,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         userName: profileStore.displayName,
         meetingName: meeting.name,
         password,
+        passwordEnc: meeting.passwordEnc,
         meetingUrl: meeting.url,
         external: meeting.external,
       })
@@ -495,6 +520,28 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />
         </View>
       </View>
+
+      {/* External Zoom Timer Modal */}
+      {meeting && (
+        <ExternalZoomTimerModal
+          visible={timerVisible}
+          meeting={
+            meeting.url && meeting.id
+              ? {
+                  id: meeting.id,
+                  name: meeting.name,
+                  url: buildExternalZoomUrl({
+                    meetingNumber: extractZoomMeetingNumber(meeting.url) ?? "",
+                    meetingUrl: meeting.url,
+                    password: meeting.password,
+                    passwordEnc: meeting.passwordEnc,
+                  }),
+                }
+              : null
+          }
+          onClose={() => setTimerVisible(false)}
+        />
+      )}
 
       {/* Reminder Editor Modal */}
       {meeting && (

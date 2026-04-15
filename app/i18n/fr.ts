@@ -400,9 +400,9 @@ const fr: Translations = {
     noUpdatesMessage: "Tu utilises la dernière version de RecoverySky.",
     // Advanced Section
     advancedSection: "Avancé",
-    allowExternalZoom: "Autoriser les réunions Zoom externes",
-    allowExternalZoomHint:
-      "Ouvre les réunions dans l'application Zoom au lieu de l'application intégrée. La présence n'est pas suivie et le fonctionnement des réunions n'a pas été vérifié.",
+    useExternalZoom: "Utiliser Zoom externe",
+    useExternalZoomHint:
+      "Toutes les réunions s'ouvrent dans l'application Zoom installée au lieu de l'application intégrée. Affiche des réunions supplémentaires réservées à l'app Zoom.",
     // Legal Section
     legalSection: "Légal",
     eula: "Contrat de Licence Utilisateur",
@@ -513,6 +513,11 @@ const fr: Translations = {
     placeholder: "Ex. Étape 4, Gratitude, Parrainage…",
     save: "Enregistrer",
     skip: "Passer",
+  },
+  externalZoomTimer: {
+    title: "Minuteur de présence",
+    hint: "Revenez ici lorsque votre réunion se termine. Enregistrer nécessite au moins {{minutes}} min.",
+    save: "Enregistrer",
   },
   devScreen: {
     title: "Outils de développement",

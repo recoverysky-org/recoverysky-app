@@ -195,6 +195,23 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     return () => dispose()
   }, [configStore])
 
+  // Auto-refresh when preferences that affect the query change. Owning this
+  // here (rather than relying on LiveScreen to emit liveEvents and call
+  // refresh()) means the list re-fetches regardless of which screen is
+  // currently mounted when the user toggles the setting.
+  useEffect(() => {
+    const dispose = reaction(
+      () => profileStore.useExternalZoom,
+      (next, prev) => {
+        if (next !== prev) {
+          log.info("useExternalZoom changed, refreshing live meetings", { next })
+          setRefreshTrigger((p) => p + 1)
+        }
+      },
+    )
+    return () => dispose()
+  }, [profileStore])
+
   // ============================================================================
   // Check API status (with retry)
   // ============================================================================
@@ -231,7 +248,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       const outcome = await retryWithBackoff(
         () =>
           api.getLiveSchedules({
-            includeExternal: profileStore.allowExternalZoom,
+            includeExternal: profileStore.useExternalZoom,
           }),
         (result) => result.kind === "ok",
         "getLiveSchedules",

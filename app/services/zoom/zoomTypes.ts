@@ -14,8 +14,13 @@ export interface ZoomJoinConfig {
   userName: string
   /** Meeting name (for attendance record display) */
   meetingName?: string
-  /** Plaintext meeting passcode for SDK join (NOT the encrypted pwd from URLs) */
+  /** Plaintext meeting passcode. Used as fallback when passwordEnc is absent. */
   password?: string
+  /**
+   * Encrypted share-link pwd token. Preferred over `password` for both
+   * external app launches (`?pwd=<passwordEnc>`) and SDK joins.
+   */
+  passwordEnc?: string
   /** Full Zoom meeting URL for external app fallback */
   meetingUrl?: string
   /** ZAK token for authenticated join (optional - joins anonymously if not provided) */
