@@ -349,6 +349,7 @@ const th: Translations = {
     // Attendance Section
     attendanceSection: "การเข้าร่วม",
     enableAttendance: "เปิดใช้การเข้าร่วม",
+    enableMeetingTopic: "เปิดใช้หัวข้อการประชุม",
     userIdNum: "หมายเลข ID",
     userIdNumPlaceholder: "(ไม่บังคับ) หมายเลขรายงานส่วนตัวของคุณ",
     exportEmail: "อีเมลส่งออก",
@@ -477,6 +478,13 @@ const th: Translations = {
     shortMeetingMessage:
       "การประชุมของคุณอยู่เพียง {{minutes}} นาที ต้องเข้าร่วมอย่างน้อย {{required}} นาทีจึงจะได้รับเครดิตการเข้าร่วม บันทึกนี้จะไม่ปรากฏในประวัติการเข้าร่วมของคุณนะ",
     attendanceSaved: "บันทึกการเข้าร่วมแล้ว",
+  },
+  topicPrompt: {
+    title: "หัวข้อการประชุม",
+    hint: "หัวข้อวันนี้คืออะไร? จะบันทึกไว้พร้อมกับการเข้าร่วมของคุณ",
+    placeholder: "เช่น ขั้นที่ 4 ความกตัญญู การเป็นสปอนเซอร์…",
+    save: "บันทึก",
+    skip: "ข้าม",
   },
   devScreen: {
     title: "เครื่องมือนักพัฒนา",

@@ -355,6 +355,7 @@ const ru: Translations = {
     // Attendance Section
     attendanceSection: "Посещения",
     enableAttendance: "Учёт посещений",
+    enableMeetingTopic: "Тема встречи",
     userIdNum: "Номер ID",
     userIdNumPlaceholder: "(необязательно) Твой личный номер для отчётов",
     exportEmail: "E-mail для экспорта",
@@ -487,6 +488,13 @@ const ru: Translations = {
     shortMeetingMessage:
       "Твоё собрание длилось всего {{minutes}} мин. Для зачёта посещения требуется не менее {{required}} мин. Эта запись не появится в твоей истории посещений.",
     attendanceSaved: "Посещение сохранено",
+  },
+  topicPrompt: {
+    title: "Тема встречи",
+    hint: "Какая была тема сегодня? Она будет сохранена вместе с записью посещения.",
+    placeholder: "Напр. Шаг 4, Благодарность, Наставничество…",
+    save: "Сохранить",
+    skip: "Пропустить",
   },
   devScreen: {
     title: "Инструменты разработчика",

@@ -354,6 +354,7 @@ const pt: Translations = {
     // Attendance Section
     attendanceSection: "Presença",
     enableAttendance: "Ativar Presença",
+    enableMeetingTopic: "Ativar Tópico da Reunião",
     userIdNum: "Número de ID",
     userIdNumPlaceholder: "(opcional) Seu número pessoal de relatório",
     exportEmail: "E-mail de Exportação",
@@ -487,6 +488,13 @@ const pt: Translations = {
     shortMeetingMessage:
       "Sua reunião durou apenas {{minutes}} minuto(s). São necessários pelo menos {{required}} minuto(s) pra receber crédito de presença. Esse registro não vai aparecer no seu histórico de presença.",
     attendanceSaved: "Presença Registrada",
+  },
+  topicPrompt: {
+    title: "Tópico da Reunião",
+    hint: "Qual foi o tópico de hoje? Será salvo junto com seu registro de presença.",
+    placeholder: "Ex. Passo 4, Gratidão, Apadrinhamento…",
+    save: "Salvar",
+    skip: "Pular",
   },
   devScreen: {
     title: "Ferramentas de Desenvolvimento",

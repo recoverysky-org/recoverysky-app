@@ -356,6 +356,7 @@ const en = {
     // Attendance Section
     attendanceSection: "Attendance",
     enableAttendance: "Enable Attendance",
+    enableMeetingTopic: "Enable Meeting Topic",
     userIdNum: "ID Number",
     userIdNumPlaceholder: "(optional) Your personal reporting number",
     exportEmail: "Export Email",
@@ -490,6 +491,13 @@ const en = {
     shortMeetingMessage:
       "Your meeting was only {{minutes}} minute(s). At least {{required}} minute(s) are required to receive attendance credit. This record will not appear in your attendance history.",
     attendanceSaved: "Attendance Saved",
+  },
+  topicPrompt: {
+    title: "Meeting Topic",
+    hint: "What was today's topic? This will be saved with your attendance record.",
+    placeholder: "e.g. Step 4, Gratitude, Sponsorship…",
+    save: "Save",
+    skip: "Skip",
   },
   // Dev Screen (hidden)
   devScreen: {

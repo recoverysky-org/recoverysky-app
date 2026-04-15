@@ -354,6 +354,7 @@ const uk: Translations = {
     // Attendance Section
     attendanceSection: "Відвідування",
     enableAttendance: "Облік відвідувань",
+    enableMeetingTopic: "Тема зустрічі",
     userIdNum: "Номер ID",
     userIdNumPlaceholder: "(необов'язково) Твій особистий номер для звітів",
     exportEmail: "E-mail для експорту",
@@ -485,6 +486,13 @@ const uk: Translations = {
     shortMeetingMessage:
       "Твоя зустріч тривала лише {{minutes}} хв. Для заліку відвідування потрібно щонайменше {{required}} хв. Цей запис не з'явиться в твоїй історії відвідувань.",
     attendanceSaved: "Відвідування збережено",
+  },
+  topicPrompt: {
+    title: "Тема зустрічі",
+    hint: "Яка сьогодні була тема? Вона буде збережена разом із записом відвідування.",
+    placeholder: "Напр. Крок 4, Вдячність, Наставництво…",
+    save: "Зберегти",
+    skip: "Пропустити",
   },
   devScreen: {
     title: "Інструменти розробника",

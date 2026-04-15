@@ -57,6 +57,7 @@ export const ProfileStoreModel = types
 
     // Attendance settings
     attendanceEnabled: types.optional(types.boolean, true),
+    enableMeetingTopic: types.optional(types.boolean, true),
     reportEmail: types.optional(types.string, ""),
 
     // Zoom
@@ -316,6 +317,10 @@ export const ProfileStoreModel = types
         self.attendanceEnabled = value
       },
 
+      setEnableMeetingTopic(value: boolean) {
+        self.enableMeetingTopic = value
+      },
+
       setZoomConnected(value: boolean) {
         self.zoomConnected = value
       },
@@ -462,6 +467,7 @@ export const ProfileStoreModel = types
         self.zoomConnected = false
         self.notificationsEnabled = true
         self.attendanceEnabled = true
+        self.enableMeetingTopic = true
         self.reportEmail = ""
         self.imported = false
         self.aiConsentAccepted = false

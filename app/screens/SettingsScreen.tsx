@@ -886,6 +886,18 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           />
         </View>
 
+        {/* Enable Meeting Topic Toggle */}
+        <View style={themed($settingsRow)}>
+          <Text style={themed($rowLabel)} tx="settingsScreen:enableMeetingTopic" />
+          <Switch
+            value={profileStore.enableMeetingTopic}
+            onValueChange={profileStore.setEnableMeetingTopic}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+            thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:enableMeetingTopic")}
+          />
+        </View>
+
         {/* ID Number */}
         <View style={[themed($emailSection), themed($lastRow)]}>
           <Text style={themed($rowLabel)} tx="settingsScreen:userIdNum" />

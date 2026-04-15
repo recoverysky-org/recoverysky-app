@@ -354,6 +354,7 @@ const es: Translations = {
     // Attendance Section
     attendanceSection: "Asistencia",
     enableAttendance: "Habilitar Asistencia",
+    enableMeetingTopic: "Habilitar Tema de Reunión",
     userIdNum: "Número de ID",
     userIdNumPlaceholder: "(opcional) Tu número personal de reporte",
     exportEmail: "Correo de Exportación",
@@ -487,6 +488,13 @@ const es: Translations = {
     shortMeetingMessage:
       "Tu reunión duró solo {{minutes}} minuto(s). Se requieren al menos {{required}} minuto(s) para recibir crédito de asistencia. Este registro no aparecerá en tu historial de asistencia.",
     attendanceSaved: "Asistencia Guardada",
+  },
+  topicPrompt: {
+    title: "Tema de la Reunión",
+    hint: "¿Cuál fue el tema de hoy? Se guardará junto con tu registro de asistencia.",
+    placeholder: "Ej. Paso 4, Gratitud, Padrinazgo…",
+    save: "Guardar",
+    skip: "Omitir",
   },
   devScreen: {
     title: "Herramientas de desarrollo",

@@ -346,6 +346,7 @@ const ar: Translations = {
     // Attendance Section
     attendanceSection: "الحضور",
     enableAttendance: "تفعيل الحضور",
+    enableMeetingTopic: "تفعيل موضوع الاجتماع",
     userIdNum: "رقم الهوية",
     userIdNumPlaceholder: "(اختياري) رقم التقارير الشخصي الخاص بك",
     exportEmail: "بريد التصدير",
@@ -473,6 +474,13 @@ const ar: Translations = {
     shortMeetingMessage:
       "كان اجتماعك {{minutes}} دقيقة/دقائق فقط. يلزم {{required}} دقيقة/دقائق على الأقل لاحتساب الحضور. لن يظهر هذا السجل في سجل حضورك.",
     attendanceSaved: "تم حفظ الحضور",
+  },
+  topicPrompt: {
+    title: "موضوع الاجتماع",
+    hint: "ما كان موضوع اليوم؟ سيتم حفظه مع سجل حضورك.",
+    placeholder: "مثال: الخطوة 4، الامتنان، الإرشاد…",
+    save: "حفظ",
+    skip: "تخطي",
   },
   devScreen: {
     title: "أدوات المطور",

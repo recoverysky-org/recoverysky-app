@@ -356,6 +356,7 @@ const de: Translations = {
     // Attendance Section
     attendanceSection: "Teilnahme",
     enableAttendance: "Teilnahme aktivieren",
+    enableMeetingTopic: "Meeting-Thema aktivieren",
     userIdNum: "ID-Nummer",
     userIdNumPlaceholder: "(optional) Deine persönliche Berichtsnummer",
     exportEmail: "Export-E-Mail",
@@ -489,6 +490,13 @@ const de: Translations = {
     shortMeetingMessage:
       "Dein Meeting dauerte nur {{minutes}} Minute(n). Mindestens {{required}} Minute(n) sind erforderlich, um einen Teilnahme-Nachweis zu erhalten. Dieser Eintrag wird nicht in deiner Teilnahme-Historie erscheinen.",
     attendanceSaved: "Teilnahme gespeichert",
+  },
+  topicPrompt: {
+    title: "Meeting-Thema",
+    hint: "Was war das heutige Thema? Es wird zusammen mit deiner Teilnahme gespeichert.",
+    placeholder: "z. B. Schritt 4, Dankbarkeit, Patenschaft…",
+    save: "Speichern",
+    skip: "Überspringen",
   },
   devScreen: {
     title: "Entwicklertools",
