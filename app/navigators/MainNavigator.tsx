@@ -44,7 +44,8 @@ export const MainNavigator = observer(function MainNavigator() {
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
   const { isPremium } = useSubscription()
-  const premiumTabsVisible = __DEV__ || isPremium
+  void isPremium
+  const premiumTabsVisible = false
 
   // Post-login redirect: if a section was saved before logout, open Settings tab first
   const postLoginSectionRef = useRef(loadString("POST_LOGIN_SECTION") as SettingsSection | null)
