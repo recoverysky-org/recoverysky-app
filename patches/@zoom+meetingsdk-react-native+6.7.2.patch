@@ -493,7 +493,7 @@ index ac6e2e4..71d843f 100644
    // -----------------------------------------------------------------------------------------------
    // endregion
 diff --git a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
-index 42faf67..74033ff 100644
+index 42faf67..7616672 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 +++ b/node_modules/@zoom/meetingsdk-react-native/ios/RNZoomSDK.m
 @@ -2,15 +2,43 @@
@@ -550,7 +550,7 @@ index 42faf67..74033ff 100644
          params = [[MobileRTCMeetingJoinParam alloc] init];
          params.meetingNumber = [config valueForKey:@"meetingNumber"];
          params.password = [config valueForKey:@"password"];
-@@ -171,31 +202,280 @@ - (dispatch_queue_t)methodQueue
+@@ -171,31 +202,281 @@ - (dispatch_queue_t)methodQueue
      });
  }
  
@@ -594,17 +594,18 @@ index 42faf67..74033ff 100644
 +            return;
 +        }
 +
-+        // Host name — prefer MeetingParameter, fall back to walking user list
-+        NSString *hostName = _lastMeetingParam.meetingHost ?: @"";
-+        if (hostName.length == 0) {
-+            NSArray *userList = [meetService getInMeetingUserList];
-+            for (NSNumber *uid in userList) {
-+                MobileRTCMeetingUserInfo *info = [meetService userInfoByID:[uid unsignedIntegerValue]];
-+                if (info && info.isHost) {
-+                    hostName = info.userName ?: @"";
-+                    break;
-+                }
++        // Host name — walk user list first, fall back to MeetingParameter
++        NSString *hostName = @"";
++        NSArray *userList = [meetService getInMeetingUserList];
++        for (NSNumber *uid in userList) {
++            MobileRTCMeetingUserInfo *info = [meetService userInfoByID:[uid unsignedIntegerValue]];
++            if (info && info.isHost) {
++                hostName = info.userName ?: @"";
++                break;
 +            }
++        }
++        if (hostName.length == 0) {
++            hostName = _lastMeetingParam.meetingHost ?: @"";
 +        }
 +
 +        // Topic — from cached MeetingParameter
@@ -794,7 +795,7 @@ index 42faf67..74033ff 100644
 +        @"state": @(state),
 +        @"stateName": stateName
 +    }];
-+}
+ }
 +
 +- (void)onMeetingEndedReason:(MobileRTCMeetingEndReason)reason {
 +    NSLog(@"[RNZoomSDK] onMeetingEndedReason: %u", reason);
@@ -833,7 +834,7 @@ index 42faf67..74033ff 100644
 +        @"reason": @(reason),
 +        @"reasonName": reasonName
 +    }];
- }
++}
 +
 +- (void)onMeetingParameterNotification:(MobileRTCMeetingParameter *_Nullable)meetingParam {
 +    NSLog(@"[RNZoomSDK] onMeetingParameterNotification: host=%@, topic=%@",

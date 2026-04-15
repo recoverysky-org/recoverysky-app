@@ -17,6 +17,10 @@ import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
 import {
   Alert,
   Animated,
+  Dimensions,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
   View,
   ViewStyle,
   TextStyle,
@@ -34,9 +38,16 @@ import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
+import { TopicPromptContent } from "@/components/TopicPromptContent"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
+import {
+  attendanceEvents,
+  attendanceRepo,
+  feedbackCache,
+  type FeedbackRecord,
+  type ReminderRecord,
+} from "@/db"
 import { useReminders } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
@@ -75,6 +86,59 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
   // External Zoom timer modal state
   const [timerVisible, setTimerVisible] = useState(false)
+
+  // Topic/host prompt shown after attendance is recorded for this meeting.
+  // Rendered INLINE as a slide-up panel over the popup's body so it doesn't
+  // present a new RN Modal during the Zoom SDK's native dismiss animation
+  // (which iOS silently refuses). Both SDK and external paths funnel through
+  // the shared `attendanceEvents` "processed" subscription below.
+  const [topicActive, setTopicActive] = useState(false)
+  const topicContextRef = useRef<{ attendanceId: string; mid: string } | null>(null)
+  const attendanceSourceRef = useRef<"sdk" | "external" | null>(null)
+
+  // Slide animation for the topic panel. `progress` is 0 when hidden
+  // (translated below the card) and 1 when fully shown. We measure the
+  // popup card's layout height so the panel can translate by exactly that
+  // amount, keeping native-driver transforms.
+  const topicProgress = useRef(new Animated.Value(0)).current
+  const [contentHeight, setContentHeight] = useState(0)
+
+  // Separate driver for the card's own expansion: when the topic panel is
+  // active we grow the popup card to full screen so the topic editor gets
+  // the whole canvas. Uses `useNativeDriver: false` because layout props
+  // (minHeight/maxHeight/border radius) aren't native-drivable.
+  const cardExpansion = useRef(new Animated.Value(0)).current
+  const screenHeight = useMemo(() => Dimensions.get("window").height, [])
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(topicProgress, {
+        toValue: topicActive ? 1 : 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardExpansion, {
+        toValue: topicActive ? 1 : 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start()
+  }, [topicActive, topicProgress, cardExpansion])
+
+  // Reset the topic panel each time a fresh popup opens or the meeting
+  // changes. Without this, a prior meeting's source/context could bleed
+  // into the next one.
+  useEffect(() => {
+    if (visible) {
+      setTopicActive(false)
+      topicContextRef.current = null
+      attendanceSourceRef.current = null
+      topicProgress.setValue(0)
+      cardExpansion.setValue(0)
+    }
+  }, [visible, meeting?.id, topicProgress, cardExpansion])
 
   // Reminder state
   const [reminderEditorVisible, setReminderEditorVisible] = useState(false)
@@ -128,12 +192,35 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const bannerOpacity = useRef(new Animated.Value(0)).current
   const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Subscribe to attendance events — show banner when attendance is recorded for this meeting
+  // Subscribe to attendance events. The popup owns two reactions:
+  //   1. "processed" (valid) → if topic capture is on, slide the topic panel
+  //      in; otherwise emit "acknowledged" immediately so the banner fires.
+  //   2. "acknowledged" → show the "Attendance Saved" banner.
   useEffect(() => {
     if (!visible || !meeting?.id) return
 
     const unsub = attendanceEvents.subscribe((event) => {
-      if (event.type === "processed" && event.mid === meeting.id && event.valid) {
+      if (event.mid !== meeting.id) return
+
+      if (event.type === "processed" && event.valid) {
+        if (profileStore.enableMeetingTopic) {
+          topicContextRef.current = { attendanceId: event.id, mid: event.mid }
+          setTopicActive(true)
+        } else {
+          attendanceEvents.emit({
+            type: "acknowledged",
+            id: event.id,
+            mid: event.mid,
+            valid: true,
+          })
+        }
+        return
+      }
+
+      // Banner fires on "acknowledged" (emitted after the topic panel resolves
+      // or immediately when topic capture is disabled) so it never flashes
+      // behind the topic UI.
+      if (event.type === "acknowledged" && event.valid) {
         setShowBanner(true)
         Animated.timing(bannerOpacity, {
           toValue: 1,
@@ -156,7 +243,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       unsub()
       if (bannerTimeoutRef.current) clearTimeout(bannerTimeoutRef.current)
     }
-  }, [visible, meeting?.id, bannerOpacity])
+  }, [visible, meeting?.id, bannerOpacity, profileStore.enableMeetingTopic])
 
   // Reset banner when popup closes
   useEffect(() => {
@@ -277,6 +364,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     // attendance tracking — just open Zoom.
     if (profileStore.useExternalZoom) {
       if (profileStore.attendanceEnabled) {
+        // Tag the source so the "processed" subscription shows the host
+        // field when the topic panel slides in.
+        attendanceSourceRef.current = "external"
         setTimerVisible(true)
       } else {
         const { Linking } = await import("react-native")
@@ -291,6 +381,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       return
     }
 
+    attendanceSourceRef.current = "sdk"
     try {
       await joinMeeting({
         meetingId: meeting.id,
@@ -307,6 +398,57 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     }
   }
 
+  const handleTopicSave = useCallback(
+    async ({ topic, host }: { topic: string; host?: string }) => {
+      const pending = topicContextRef.current
+      if (!pending) return
+      topicContextRef.current = null
+      setTopicActive(false)
+      try {
+        const result = await attendanceRepo.update(pending.attendanceId, {
+          meetingTopic: topic,
+          ...(host ? { meetingHost: host } : {}),
+        })
+        if (!result.ok) {
+          log.error("Failed to persist meeting topic/host", {
+            attendanceId: pending.attendanceId,
+          })
+        } else {
+          log.info("Meeting topic saved", {
+            attendanceId: pending.attendanceId,
+            hasHost: !!host,
+          })
+        }
+      } catch (err) {
+        log.error("Failed to persist meeting topic/host", {
+          attendanceId: pending.attendanceId,
+          error: String(err),
+        })
+      }
+      attendanceEvents.emit({
+        type: "acknowledged",
+        id: pending.attendanceId,
+        mid: pending.mid,
+        valid: true,
+      })
+    },
+    [],
+  )
+
+  const handleTopicSkip = useCallback(() => {
+    const pending = topicContextRef.current
+    topicContextRef.current = null
+    setTopicActive(false)
+    if (pending) {
+      attendanceEvents.emit({
+        type: "acknowledged",
+        id: pending.attendanceId,
+        mid: pending.mid,
+        valid: true,
+      })
+    }
+  }, [])
+
   if (!meeting) return null
 
   return (
@@ -320,7 +462,31 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
-        <View style={themed($content)} accessibilityViewIsModal>
+        <Animated.View
+          style={[
+            themed($content),
+            {
+              minHeight: cardExpansion.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, screenHeight],
+              }),
+              maxHeight: cardExpansion.interpolate({
+                inputRange: [0, 1],
+                outputRange: [screenHeight * 0.85, screenHeight],
+              }),
+              borderTopLeftRadius: cardExpansion.interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, 0],
+              }),
+              borderTopRightRadius: cardExpansion.interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, 0],
+              }),
+            },
+          ]}
+          accessibilityViewIsModal
+          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+        >
           {/* Attendance banner */}
           {showBanner && (
             <Pressable
@@ -518,7 +684,45 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           />
 
           <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />
-        </View>
+
+          {/* Slide-in topic panel. Rendered inside $content (not as its own
+              Modal) so iOS doesn't have to present a second native modal
+              over the Zoom SDK's dismiss animation — which is the race that
+              broke the previous TopicPromptModal approach. */}
+          <Animated.View
+            pointerEvents={topicActive ? "auto" : "none"}
+            style={[
+              themed($topicOverlay),
+              {
+                opacity: topicProgress,
+                transform:
+                  contentHeight > 0
+                    ? [
+                        {
+                          translateY: topicProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [contentHeight, 0],
+                          }),
+                        },
+                      ]
+                    : [{ translateY: 9999 }],
+              },
+            ]}
+          >
+            <KeyboardAvoidingView
+              style={themed($topicKeyboardAvoider)}
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+              <TopicPromptContent
+                active={topicActive}
+                meetingName={meeting.name}
+                includeHost={attendanceSourceRef.current === "external"}
+                onSave={handleTopicSave}
+                onSkip={handleTopicSkip}
+              />
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </Animated.View>
       </View>
 
       {/* External Zoom Timer Modal */}
@@ -540,6 +744,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
               : null
           }
           onClose={() => setTimerVisible(false)}
+          onSaved={() => {
+            // Just close the timer. saveTimerAttendance (inside the timer
+            // modal) already emitted `attendanceEvents.processed`, which
+            // the subscription above picks up to slide in the topic panel
+            // or fire the banner directly.
+            setTimerVisible(false)
+          }}
         />
       )}
 
@@ -584,6 +795,26 @@ const $content: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingTop: spacing.md,
   paddingHorizontal: spacing.md,
   paddingBottom: spacing.xl,
+})
+
+// Slide-in panel that covers the popup body while the topic prompt is active.
+// Matches the content card's background so the transition feels like the
+// popup's contents swapping rather than a layered modal.
+const $topicOverlay: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: colors.background,
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  paddingTop: spacing.md,
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.xl,
+})
+
+// KeyboardAvoidingView handles vertical centering so that when the keyboard
+// appears, the topic card lifts above it instead of being half-covered.
+const $topicKeyboardAvoider: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  justifyContent: "center",
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({

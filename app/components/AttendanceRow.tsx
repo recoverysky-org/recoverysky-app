@@ -117,11 +117,16 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
       <View
         style={$content}
         accessible
-        accessibilityLabel={`${record.meetingName ?? "Unknown Meeting"}, ${dateTimeStr}${duration > 0 ? `, ${duration} min` : ""}`}
+        accessibilityLabel={`${record.meetingName ?? "Unknown Meeting"}${record.meetingTopic ? `, ${record.meetingTopic}` : ""}, ${dateTimeStr}${duration > 0 ? `, ${duration} min` : ""}`}
       >
         <Text style={themed($meetingName)} numberOfLines={1}>
           {record.meetingName ?? "Unknown Meeting"}
         </Text>
+        {record.meetingTopic ? (
+          <Text style={themed($topic)} numberOfLines={1}>
+            {record.meetingTopic}
+          </Text>
+        ) : null}
         <Text style={themed($meta)}>
           {dateTimeStr}
           {duration > 0 && ` · ${duration} min`}
@@ -182,6 +187,13 @@ const $meetingName: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 15,
   fontWeight: "500",
   color: colors.text,
+})
+
+const $topic: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  fontStyle: "italic",
+  color: colors.tint,
+  marginTop: 2,
 })
 
 const $meta: ThemedStyle<TextStyle> = ({ colors }) => ({

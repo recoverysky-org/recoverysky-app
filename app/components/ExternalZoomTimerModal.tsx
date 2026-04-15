@@ -41,7 +41,14 @@ interface MeetingTarget {
 interface ExternalZoomTimerModalProps {
   visible: boolean
   meeting: MeetingTarget | null
+  /** Fired for any dismissal — Save, Cancel, or backdrop tap. */
   onClose: () => void
+  /**
+   * Fired only when the user taps Save and the attendance record was written
+   * successfully. Parent uses this to distinguish a real commit (which can
+   * trigger the topic/host prompt) from a cancel/dismiss.
+   */
+  onSaved?: (attendanceId: string) => void
 }
 
 function formatElapsed(ms: number): string {
@@ -57,6 +64,7 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
   visible,
   meeting,
   onClose,
+  onSaved,
 }) => {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
@@ -126,8 +134,16 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
     setSaving(false)
     if (!result.ok) {
       log.error("Timer attendance save returned not ok", { mid: meeting.id })
+      onClose()
+      return
     }
-    onClose()
+    // Only notify the parent of a successful Save — lets the parent
+    // distinguish this from a Cancel and trigger the topic/host prompt.
+    if (result.attendanceId && onSaved) {
+      onSaved(result.attendanceId)
+    } else {
+      onClose()
+    }
   }
 
   const handleCancel = () => {

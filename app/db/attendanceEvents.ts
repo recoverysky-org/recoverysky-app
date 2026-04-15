@@ -10,6 +10,7 @@ import type { AttendanceRecord } from "./repositories"
 export type AttendanceChangeType =
   | "created"
   | "processed"
+  | "acknowledged"
   | "produced"
   | "archived"
   | "delivery_resolved"

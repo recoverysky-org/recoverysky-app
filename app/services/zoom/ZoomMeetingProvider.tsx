@@ -24,7 +24,6 @@ import {
   type AttendanceEvent,
   type ZoomAuthRecord,
 } from "@/db"
-import { TopicPromptModal } from "@/components/TopicPromptModal"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { meetingEvents } from "@/db/meetingEvents"
@@ -163,13 +162,6 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
   const [error, setError] = useState<string | null>(null)
   const [meetingState, setMeetingState] = useState<ZoomMeetingStateName>("idle")
   const [lastMeetingError, setLastMeetingError] = useState<ZoomMeetingErrorEvent | null>(null)
-  // Pending topic prompt after a valid attendance is processed. Held here
-  // (rather than inside processAttendance) so the prompt survives the async
-  // boundary and a global modal can render at the provider level.
-  const [topicPromptFor, setTopicPromptFor] = useState<{
-    attendanceId: string
-    meetingName: string
-  } | null>(null)
 
   // Helper to create an attendance event
   const createEvent = (message: string, data: Record<string, unknown>): AttendanceEvent => ({
@@ -316,12 +308,10 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
       if (!valid) {
         log.debug("Meeting too short for credit", { attendanceId: ctx.attendanceId, creditMins })
         showShortMeetingWarning(creditMins)
-      } else if (profileStore.enableMeetingTopic) {
-        // Valid attendance + topic capture opted in → ask the user what today's
-        // topic was so it can be stored alongside the record. The prompt is
-        // skippable; nothing is written if the user declines.
-        setTopicPromptFor({ attendanceId: ctx.attendanceId, meetingName: ctx.meetingName })
       }
+      // Valid attendance: SchedulePopup owns the post-meeting UI from here
+      // (topic prompt slide-in or immediate "Attendance Saved" banner). It
+      // reacts to the `"processed"` event emitted above.
     } catch (err) {
       log.error("Attendance save failed", {
         attendanceId: ctx.attendanceId,
@@ -827,36 +817,7 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
     reinitializeSDK,
   }
 
-  const handleTopicSave = async (topic: string) => {
-    const pending = topicPromptFor
-    if (!pending) return
-    setTopicPromptFor(null)
-    try {
-      const result = await attendanceRepo.update(pending.attendanceId, { meetingTopic: topic })
-      if (!result.ok) {
-        log.error("Failed to persist meeting topic", { attendanceId: pending.attendanceId })
-        return
-      }
-      log.info("Meeting topic saved", { attendanceId: pending.attendanceId })
-    } catch (err) {
-      log.error("Failed to persist meeting topic", {
-        attendanceId: pending.attendanceId,
-        error: String(err),
-      })
-    }
-  }
-
-  return (
-    <ZoomContext.Provider value={contextValue}>
-      {children}
-      <TopicPromptModal
-        visible={!!topicPromptFor}
-        meetingName={topicPromptFor?.meetingName}
-        onSave={handleTopicSave}
-        onSkip={() => setTopicPromptFor(null)}
-      />
-    </ZoomContext.Provider>
-  )
+  return <ZoomContext.Provider value={contextValue}>{children}</ZoomContext.Provider>
 }
 
 /**
