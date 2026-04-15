@@ -153,7 +153,7 @@ type ShowToast = (config: { message: string; type: "success" | "error"; duration
 async function rollbackInitialSend(reportId: string, attendanceIds: string[]): Promise<void> {
   try {
     for (const id of attendanceIds) {
-      await attendanceRepo.update(id, { produced: 0, arid: "", archived: 0 })
+      await attendanceRepo.update(id, { produced: 0, arid: "", archived: false })
     }
     await attendanceReportRepo.delete(reportId)
     logger.info("Rolled back failed report", { reportId, count: attendanceIds.length })
