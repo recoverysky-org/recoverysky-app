@@ -18,7 +18,6 @@
 
 import { FC, useCallback, useEffect, useMemo, useRef } from "react"
 import { ActivityIndicator, Platform, StyleSheet, View, ViewStyle } from "react-native"
-import { useIsFocused } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 import WebView, { type WebViewMessageEvent } from "react-native-webview"
 
@@ -46,7 +45,6 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   const authStore = useAuthenticationStore()
   const webViewRef = useRef<WebView>(null)
   const isReadyRef = useRef(false)
-  const isFocused = useIsFocused()
 
   const socialUrl = configStore.socialUrl
   const userIdentifier = authStore.userIdentifier
@@ -129,12 +127,6 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   }, [])
 
   const source = useMemo(() => ({ uri: socialUrl }), [socialUrl])
-
-  // Unmount the embed whenever the tab is not focused — this forces a
-  // fresh reload (and re-handshake) on every navigation back to Social.
-  if (!isFocused) {
-    return <Screen preset="fixed" contentContainerStyle={themed($root)} safeAreaEdges={["top"]} />
-  }
 
   if (Platform.OS === "web") {
     return (
