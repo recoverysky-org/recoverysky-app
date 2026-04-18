@@ -262,7 +262,11 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       statusBarTranslucent
     >
       <View style={themed($overlay)}>
-        <Pressable style={themed($backdrop)} onPress={handleCancel} />
+        {/* Non-dismissible backdrop — a stray tap outside the card must not
+          throw away an in-progress timer. Closing is only possible via the
+          Cancel / Save buttons (or the hardware back button, which still
+          routes through handleCancel's confirm-above-threshold flow). */}
+        <View style={themed($backdrop)} />
 
         <View style={themed($card)} accessibilityViewIsModal>
           <View style={themed($header)}>
