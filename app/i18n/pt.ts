@@ -515,6 +515,11 @@ const pt: Translations = {
     hint: "Volte aqui quando sua reunião terminar. Salvar requer pelo menos {{minutes}} min.",
     save: "Salvar",
   },
+  externalZoomEducation: {
+    title: "Atenção",
+    body: "Ao entrar em uma reunião com o Zoom externo, o aplicativo Zoom deve estar instalado. Um cronômetro será iniciado. Você deve retornar ao aplicativo RecoverySky após encerrar a reunião do Zoom para parar o cronômetro corretamente e receber crédito de presença.",
+    continue: "Continuar",
+  },
   devScreen: {
     title: "Ferramentas de Desenvolvimento",
     reportBugs: "Reportar Bugs",

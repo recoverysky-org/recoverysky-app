@@ -517,6 +517,11 @@ const de: Translations = {
     hint: "Kehre hierher zurück, wenn dein Meeting endet. Speichern erfordert mindestens {{minutes}} Min.",
     save: "Speichern",
   },
+  externalZoomEducation: {
+    title: "Hinweis",
+    body: "Wenn du einem Meeting mit externem Zoom beitrittst, muss die Zoom-App installiert sein. Ein Timer wird gestartet. Du musst nach dem Beenden des Zoom-Meetings zur RecoverySky-App zurückkehren, um den Timer ordnungsgemäß zu beenden und Teilnahmegutschrift zu erhalten.",
+    continue: "Weiter",
+  },
   devScreen: {
     title: "Entwicklertools",
     reportBugs: "Fehler melden",

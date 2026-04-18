@@ -515,6 +515,11 @@ const es: Translations = {
     hint: "Vuelve aquí cuando termine tu reunión. Guardar requiere al menos {{minutes}} min.",
     save: "Guardar",
   },
+  externalZoomEducation: {
+    title: "Atención",
+    body: "Al unirte a una reunión con Zoom externo, la aplicación de Zoom debe estar instalada. Se iniciará un temporizador. Debes regresar a la aplicación RecoverySky después de terminar la reunión de Zoom para detener correctamente el temporizador y recibir crédito de asistencia.",
+    continue: "Continuar",
+  },
   devScreen: {
     title: "Herramientas de desarrollo",
     reportBugs: "Reportar errores",

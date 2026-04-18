@@ -34,6 +34,7 @@ import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { ExternalZoomEducationModal } from "@/components/ExternalZoomEducationModal"
 import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
@@ -57,8 +58,13 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
+import { load, save } from "@/utils/storage"
 
 const log = logger.child({ module: "SchedulePopup" })
+
+// MMKV flag: shown once per install the first time the user joins a meeting
+// with External Zoom enabled. Version suffix lets us reset if copy changes.
+const EXTERNAL_ZOOM_EDUCATION_SEEN_KEY = "external-zoom-education-seen-v1"
 
 interface SchedulePopupProps {
   visible: boolean
@@ -86,6 +92,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
   // External Zoom timer modal state
   const [timerVisible, setTimerVisible] = useState(false)
+
+  // First-time External Zoom education popup. Shown once per install, gated
+  // by the MMKV flag. While visible, the actual join action is deferred and
+  // stashed in the ref, then invoked when the user taps Continue.
+  const [educationVisible, setEducationVisible] = useState(false)
+  const educationActionRef = useRef<(() => void) | null>(null)
 
   // Topic/host prompt shown after attendance is recorded for this meeting.
   // Rendered INLINE as a slide-up panel over the popup's body so it doesn't
@@ -363,21 +375,33 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     // attendance window. Skip the timer if the user hasn't opted into
     // attendance tracking — just open Zoom.
     if (profileStore.useExternalZoom) {
-      if (profileStore.attendanceEnabled) {
-        // Tag the source so the "processed" subscription shows the host
-        // field when the topic panel slides in.
-        attendanceSourceRef.current = "external"
-        setTimerVisible(true)
-      } else {
-        const { Linking } = await import("react-native")
-        const zoomUrl = buildExternalZoomUrl({
-          meetingNumber,
-          meetingUrl: meeting.url,
-          password: meeting.password,
-          passwordEnc: meeting.passwordEnc,
-        })
-        await Linking.openURL(zoomUrl)
+      const proceedExternalJoin = () => {
+        if (profileStore.attendanceEnabled) {
+          // Tag the source so the "processed" subscription shows the host
+          // field when the topic panel slides in.
+          attendanceSourceRef.current = "external"
+          setTimerVisible(true)
+        } else {
+          const zoomUrl = buildExternalZoomUrl({
+            meetingNumber,
+            meetingUrl: meeting.url,
+            password: meeting.password,
+            passwordEnc: meeting.passwordEnc,
+          })
+          import("react-native").then(({ Linking }) => Linking.openURL(zoomUrl))
+        }
       }
+
+      // First-time education: defer the actual join until the user taps
+      // Continue in the education modal.
+      const educationSeen = load<boolean>(EXTERNAL_ZOOM_EDUCATION_SEEN_KEY) === true
+      if (!educationSeen) {
+        educationActionRef.current = proceedExternalJoin
+        setEducationVisible(true)
+        return
+      }
+
+      proceedExternalJoin()
       return
     }
 
@@ -397,6 +421,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       // Error handling done in provider
     }
   }
+
+  const handleEducationContinue = useCallback(() => {
+    save(EXTERNAL_ZOOM_EDUCATION_SEEN_KEY, true)
+    setEducationVisible(false)
+    const next = educationActionRef.current
+    educationActionRef.current = null
+    if (next) next()
+  }, [])
 
   const handleTopicSave = useCallback(
     async ({ topic, host }: { topic: string; host?: string }) => {
@@ -724,6 +756,12 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           </Animated.View>
         </Animated.View>
       </View>
+
+      {/* External Zoom first-time Education Modal */}
+      <ExternalZoomEducationModal
+        visible={educationVisible}
+        onContinue={handleEducationContinue}
+      />
 
       {/* External Zoom Timer Modal */}
       {meeting && (

@@ -520,6 +520,11 @@ const fr: Translations = {
     hint: "Revenez ici lorsque votre réunion se termine. Enregistrer nécessite au moins {{minutes}} min.",
     save: "Enregistrer",
   },
+  externalZoomEducation: {
+    title: "À noter",
+    body: "Lorsque vous rejoignez une réunion avec Zoom externe, l'application Zoom doit être installée. Un minuteur sera démarré. Vous devez revenir dans l'application RecoverySky après avoir terminé la réunion Zoom pour arrêter correctement le minuteur et recevoir le crédit de présence.",
+    continue: "Continuer",
+  },
   devScreen: {
     title: "Outils de développement",
     reportBugs: "Signaler des bogues",
