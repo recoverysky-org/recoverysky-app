@@ -270,6 +270,9 @@ const en = {
     resendReport: "Resend Report",
     forwardReport: "Forward Report",
     viewReport: "View Report",
+    exportReport: "Export Report",
+    exportReportDialog: "Export Attendance Report",
+    exportReportError: "Could not export report. Please try again.",
     recipientPlaceholder: "recipient@example.com",
     sending: "Sending...",
     send: "Send",
@@ -523,6 +526,16 @@ const en = {
     title: "Heads up",
     body: "When joining a meeting with external Zoom, the Zoom app must be installed. A timer will be started. You must return to the RecoverySky app after ending the Zoom meeting to appropriately end the timer and receive attendance credit.",
     continue: "Continue",
+  },
+  attendanceEdit: {
+    title: "Edit Duration",
+    minutes: "minutes",
+    hint: "Original: {{minutes}} min. You can only reduce the duration.",
+    decrement: "Decrease by one minute",
+    increment: "Increase by one minute",
+    save: "Save",
+    saved: "Duration updated",
+    saveError: "Could not update duration. Please try again.",
   },
   // Dev Screen (hidden)
   devScreen: {

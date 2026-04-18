@@ -23,6 +23,8 @@ import {
   Modal,
 } from "react-native"
 import * as Crypto from "expo-crypto"
+import { printToFileAsync } from "expo-print"
+import { shareAsync } from "expo-sharing"
 import { Ionicons } from "@expo/vector-icons"
 import { useRoute, type RouteProp } from "@react-navigation/native"
 import { DateTime } from "@recoverysky-org/common/browser"
@@ -30,6 +32,7 @@ import { observer } from "mobx-react-lite"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { WebView } from "react-native-webview"
 
+import { AttendanceEditModal } from "@/components/AttendanceEditModal"
 import { AttendanceRow } from "@/components/AttendanceRow"
 import { Screen } from "@/components/Screen"
 import { SegmentedControl } from "@/components/SegmentedControl"
@@ -202,6 +205,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null)
 
   const loadRecords = useCallback(async () => {
     setIsLoading(true)
@@ -279,6 +283,43 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
     )
   }, [])
 
+  const handleEditSave = useCallback(
+    async (record: AttendanceRecord, newDurationMinutes: number) => {
+      const newDurationMs = newDurationMinutes * 60000
+      const newEnd = record.start + newDurationMs
+      try {
+        const result = await attendanceRepo.update(record.id, {
+          end: newEnd,
+          credit: newDurationMs,
+        })
+        if (!result.ok) {
+          logger.error("Failed to update attendance duration", {
+            id: record.id,
+            error: String(result.error),
+          })
+          Alert.alert(
+            translate("attendanceScreen:errorTitle"),
+            translate("attendanceEdit:saveError"),
+          )
+          return
+        }
+        setRecords((prev) =>
+          prev.map((r) => (r.id === record.id ? { ...r, end: newEnd, credit: newDurationMs } : r)),
+        )
+        setEditingRecord(null)
+        AccessibilityInfo.announceForAccessibility(translate("attendanceEdit:saved"))
+        logger.info("Attendance duration updated", { id: record.id, newDurationMinutes })
+      } catch (error) {
+        logger.error("Error updating attendance duration", { error: String(error) })
+        Alert.alert(
+          translate("attendanceScreen:errorTitle"),
+          translate("attendanceEdit:saveError"),
+        )
+      }
+    },
+    [],
+  )
+
   const renderItem = useCallback(
     ({ item }: { item: AttendanceRecord }) => (
       <AttendanceRow
@@ -286,6 +327,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
         isSelected={selectedIds.has(item.id)}
         showReportSelect={hasAttendance}
         onToggleSelect={() => handleToggleSelect(item.id)}
+        onEdit={() => setEditingRecord(item)}
         onDelete={() => handleDelete(item)}
       />
     ),
@@ -320,32 +362,40 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
   }, [selectedIds, isSending, profileStore.reportEmail, sendReport])
 
   return (
-    <FlatList
-      data={records}
-      renderItem={renderItem}
-      keyExtractor={keyExtractor}
-      ListEmptyComponent={ListEmptyComponent}
-      ListHeaderComponent={
-        <NewListHeader
-          recordCount={records.length}
-          hasAttendance={hasAttendance}
-          selectedCount={selectedIds.size}
-          isSending={isSending}
-          onNavigateSubscription={onNavigateSubscription}
-          onSendReport={handleSendReport}
-        />
-      }
-      ItemSeparatorComponent={ItemSeparatorComponent}
-      contentContainerStyle={themed($listContent)}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={loadRecords}
-          tintColor={theme.colors.text}
-        />
-      }
-      showsVerticalScrollIndicator={false}
-    />
+    <>
+      <FlatList
+        data={records}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ListEmptyComponent={ListEmptyComponent}
+        ListHeaderComponent={
+          <NewListHeader
+            recordCount={records.length}
+            hasAttendance={hasAttendance}
+            selectedCount={selectedIds.size}
+            isSending={isSending}
+            onNavigateSubscription={onNavigateSubscription}
+            onSendReport={handleSendReport}
+          />
+        }
+        ItemSeparatorComponent={ItemSeparatorComponent}
+        contentContainerStyle={themed($listContent)}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={loadRecords}
+            tintColor={theme.colors.text}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      />
+      <AttendanceEditModal
+        visible={editingRecord !== null}
+        record={editingRecord}
+        onClose={() => setEditingRecord(null)}
+        onSave={handleEditSave}
+      />
+    </>
   )
 })
 
@@ -459,6 +509,7 @@ const ReportsContent: FC = observer(function ReportsContent() {
   const [recordCounts, setRecordCounts] = useState<Map<string, number>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
   const [selectedReport, setSelectedReport] = useState<AttendanceReportRecord | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   // Resend state
   const [resendReport, setResendReport] = useState<AttendanceReportRecord | null>(null)
@@ -651,6 +702,28 @@ const ReportsContent: FC = observer(function ReportsContent() {
     ? DateTime.fromMillis(selectedReport.generated).toFormat("MMM d, yyyy h:mma").toLowerCase()
     : ""
 
+  const handleExportReport = useCallback(async () => {
+    if (!selectedReport?.html || isExporting) return
+    setIsExporting(true)
+    try {
+      const { uri } = await printToFileAsync({ html: selectedReport.html })
+      logger.info("Attendance report PDF generated", { uri, reportId: selectedReport.id })
+      await shareAsync(uri, {
+        mimeType: "application/pdf",
+        UTI: "com.adobe.pdf",
+        dialogTitle: translate("attendanceScreen:exportReportDialog"),
+      })
+    } catch (error) {
+      logger.error("Failed to export attendance report", { error: String(error) })
+      Alert.alert(
+        translate("attendanceScreen:errorTitle"),
+        translate("attendanceScreen:exportReportError"),
+      )
+    } finally {
+      setIsExporting(false)
+    }
+  }, [selectedReport, isExporting])
+
   return (
     <>
       <FlatList
@@ -771,15 +844,39 @@ const ReportsContent: FC = observer(function ReportsContent() {
         <View style={themed($modalContainer)} accessibilityViewIsModal>
           <View style={[themed($modalHeader), { paddingTop: insets.top + 12 }]}>
             <Text style={themed($modalTitle)}>{modalDateStr}</Text>
-            <TouchableOpacity
-              onPress={() => setSelectedReport(null)}
-              style={$modalCloseButton}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={translate("common:close")}
-            >
-              <Ionicons name="close" size={24} color={theme.colors.text} />
-            </TouchableOpacity>
+            <View style={$modalHeaderActions}>
+              <TouchableOpacity
+                onPress={handleExportReport}
+                disabled={!selectedReport?.html || isExporting}
+                style={$modalHeaderButton}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={translate("attendanceScreen:exportReport")}
+                accessibilityState={{
+                  disabled: !selectedReport?.html || isExporting,
+                  busy: isExporting,
+                }}
+              >
+                {isExporting ? (
+                  <ActivityIndicator size="small" color={theme.colors.text} />
+                ) : (
+                  <Ionicons
+                    name="download-outline"
+                    size={24}
+                    color={selectedReport?.html ? theme.colors.text : theme.colors.textDim}
+                  />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSelectedReport(null)}
+                style={$modalHeaderButton}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={translate("common:close")}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
           </View>
           {selectedReport?.html ? (
             <WebView
@@ -1138,7 +1235,13 @@ const $modalTitle: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
-const $modalCloseButton: ViewStyle = {
+const $modalHeaderActions: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+}
+
+const $modalHeaderButton: ViewStyle = {
   padding: 4,
 }
 

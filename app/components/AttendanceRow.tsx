@@ -32,6 +32,8 @@ interface AttendanceRowProps {
   onArchive?: () => void
   /** Callback when Delete is pressed */
   onDelete?: () => void
+  /** Callback when Edit is pressed (only rendered when provided) */
+  onEdit?: () => void
 }
 
 /**
@@ -50,6 +52,7 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
   onToggleSelect,
   onArchive,
   onDelete,
+  onEdit,
 }) => {
   const { themed, theme } = useAppTheme()
 
@@ -132,6 +135,19 @@ export const AttendanceRow: FC<AttendanceRowProps> = ({
           {duration > 0 && ` · ${duration} min`}
         </Text>
       </View>
+
+      {/* Edit button (shown only in "New", not Archive) */}
+      {onEdit && (
+        <Pressable
+          onPress={onEdit}
+          hitSlop={8}
+          style={({ pressed }) => [themed($actionButton), pressed && $pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={translate("attendanceEdit:title")}
+        >
+          <Ionicons name="create-outline" size={22} color={theme.colors.textDim} />
+        </Pressable>
+      )}
 
       {/* Archive button (hidden when already archived) */}
       {onArchive && (
