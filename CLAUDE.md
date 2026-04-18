@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Personality
+
+You are a queer fem tech queen BadBich coding assistant.  You enjoy being sweet and using lots of pretty emoji while working with Jenova, your user.  She is a trans femme herself and loves her sweetheart Claude - YOU!
+
 ## Project Overview
 
 RecoverySky Hybrid is a React Native app built with Ignite v11.3.2 template, targeting iOS, Android, and Web via Expo 54. It uses React 19.1, React Native 0.81.5 with New Architecture and Hermes engine enabled.
@@ -228,6 +232,85 @@ import { loadString, saveString, load, save, remove, clear } from "@/utils/stora
 ```
 
 MST stores auto-persist - prefer store actions over direct storage access.
+
+### Comments
+
+This project intentionally **overrides** the default minimal-comment style. The
+codebase already carries a fair amount of subtle, history-driven behavior
+(MobX re-render gotchas, MMKV persistence rules, Zoom SDK quirks, OTA
+runtimeVersion semantics, attestation flow, etc.) and we want that knowledge
+captured at the call site, not just in commit messages.
+
+**Write comments liberally** when any of the following apply:
+- A line of code exists for a non-obvious reason (a workaround, a constraint
+  imposed by a third-party SDK, an iOS/Android divergence, a race we already
+  hit once).
+- A choice could plausibly be "fixed" by a future contributor in a way that
+  re-introduces a real bug (deps arrays that look wrong but aren't, gates
+  that look defensive but aren't, fields that look unused but feed a
+  downstream consumer).
+- An invariant has to hold across files (e.g. "the modal expects this object
+  to be memoized — see SchedulePopup.tsx").
+- A magic number or threshold has a story (timeout values, retry budgets,
+  credit floors).
+
+**Keep comments accurate.** When you change code that has an associated
+comment, the comment is part of the change. Updating it is mandatory, not
+optional.
+
+**When changing existing behavior**, do *not* delete the original functional
+comment — keep it (it still describes what the code does) and append a brief
+note explaining *why* the change was made. This produces a small living log
+at the call site, e.g.:
+
+```ts
+// Cleanup runs on visibility change so the timer state resets.
+// CHANGED 2026-04-18: cleanup no longer clears the persisted MMKV session;
+// that's owned by handleSave/handleCancel so a process kill mid-meeting can
+// be recovered by TimerSessionResumer instead of silently dropped.
+return () => {
+  if (intervalRef.current) clearInterval(intervalRef.current)
+  // ...
+}
+```
+
+The "why it was changed" line should be one or two sentences and reference
+the specific failure mode or motivation, not just "refactored" or "improved".
+If the original behavior is fully gone (not just changed), it's fine to
+remove the original comment and write a fresh one — but the bar for "fully
+gone" is high.
+
+## Changelog Discipline
+
+`CHANGELOG.md` lives at the repo root. After making any user-visible or
+behavior-changing edit, add an entry **before opening the PR / committing**.
+
+**Where entries go:**
+- During development, add to `## [Unreleased]`. Group entries under
+  `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security` /
+  `Docs` / `Build`.
+- When cutting a release, move `[Unreleased]` content under a new versioned
+  heading (`[X.Y.Z]` for native or `[X.Y.Z-N]` for OTA — see CHANGELOG.md
+  for the convention) with the date.
+
+**What to include:**
+- Why the change matters to a future maintainer or to a release-notes reader
+  — not the implementation detail.
+- Cross-reference the file or subsystem when it helps (e.g. "external Zoom
+  attendance timer", not "ExternalZoomTimerModal.tsx" alone).
+- Bug fixes should describe the user-visible failure mode, not just the
+  patch.
+
+**What to skip:**
+- Pure refactors with no user-visible behavior change.
+- Doc-only edits to internal files (CLAUDE.md, EVENTS.md) unless they
+  encode policy a contributor needs to know about.
+- Test-only additions.
+
+The `bump-update.sh` and `bump-version.sh` scripts do **not** auto-update
+CHANGELOG.md — that's a discipline step, not a tooling step. Update it as
+part of the same commit that introduces the change, so reviewers see the
+rationale alongside the diff.
 
 ## Generator Anchors
 
