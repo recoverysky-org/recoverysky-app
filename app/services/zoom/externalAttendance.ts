@@ -102,15 +102,44 @@ export async function saveTimerAttendance(
 
   attendanceEvents.emit({ type: "created", id: attendanceId })
 
-  const processResult = await attendanceRepo.markProcessed(attendanceId, {
+  // Retry markProcessed with exponential backoff. Without this, a transient
+  // DB error (lock contention, brief I/O stall) between `create` and
+  // `markProcessed` leaves an orphaned unprocessed record that the user can't
+  // see or recover. Retries keep the two phases paired in the common failure
+  // modes; the final failure still surfaces for callers to act on.
+  const MARK_PROCESSED_RETRIES = 3
+  const MARK_PROCESSED_BACKOFF_MS = [500, 1500, 4500]
+
+  let processResult = await attendanceRepo.markProcessed(attendanceId, {
     start: input.startedAt,
     end: input.endedAt,
     credit,
     valid,
   })
 
+  for (let attempt = 0; !processResult.ok && attempt < MARK_PROCESSED_RETRIES; attempt++) {
+    const delay = MARK_PROCESSED_BACKOFF_MS[attempt]
+    log.warn("Timer attendance markProcessed failed, retrying", {
+      attendanceId,
+      mid: input.mid,
+      attempt: attempt + 1,
+      delayMs: delay,
+    })
+    await new Promise<void>((resolve) => setTimeout(resolve, delay))
+    processResult = await attendanceRepo.markProcessed(attendanceId, {
+      start: input.startedAt,
+      end: input.endedAt,
+      credit,
+      valid,
+    })
+  }
+
   if (!processResult.ok) {
-    log.error("Timer attendance markProcessed failed", { attendanceId, mid: input.mid })
+    log.error("Timer attendance markProcessed failed after retries", {
+      attendanceId,
+      mid: input.mid,
+      attempts: MARK_PROCESSED_RETRIES + 1,
+    })
     return { ok: false, attendanceId }
   }
 

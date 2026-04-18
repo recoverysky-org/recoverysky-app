@@ -47,6 +47,7 @@ import {
   ProfileHydrator,
   ChatHydrator,
   ReportPollingResumer,
+  TimerSessionResumer,
 } from "./db"
 import { initI18n, translate } from "./i18n"
 import { checkForUpdates } from "./utils/checkForUpdates"
@@ -658,6 +659,7 @@ export function App() {
                 <ProfileHydrator />
                 <ChatHydrator />
                 <ReportPollingResumer />
+                <TimerSessionResumer />
                 <MeetingProvider>
                   <ThemeProvider>
                     <ToastProvider>

@@ -515,6 +515,17 @@ const uk: Translations = {
     title: "Таймер відвідування",
     hint: "Поверніться сюди, коли зустріч завершиться. Для збереження потрібно щонайменше {{minutes}} хв.",
     save: "Зберегти",
+    cancelTitle: "Скасувати таймер?",
+    cancelMessage: "Буде втрачено {{minutes}} хвилин відвідування.",
+    keepRunning: "Залишити запущеним",
+    discard: "Скасувати",
+    recoverTitle: "Незбережене відвідування",
+    recoverMessage:
+      "У вас є {{minutes}} хвилин відвідування «{{name}}», які не були збережені. Зберегти зараз?",
+    recoverSave: "Зберегти",
+    recoverDiscard: "Скасувати",
+    recovered: "Відвідування збережено",
+    recoveryError: "Не вдалося зберегти відновлене відвідування.",
   },
   externalZoomEducation: {
     title: "Зверніть увагу",

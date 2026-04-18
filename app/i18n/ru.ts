@@ -517,6 +517,17 @@ const ru: Translations = {
     title: "Таймер посещения",
     hint: "Вернитесь сюда, когда встреча закончится. Для сохранения нужно минимум {{minutes}} мин.",
     save: "Сохранить",
+    cancelTitle: "Отменить таймер?",
+    cancelMessage: "Будут потеряны {{minutes}} минут посещения.",
+    keepRunning: "Оставить запущенным",
+    discard: "Отменить",
+    recoverTitle: "Несохранённое посещение",
+    recoverMessage:
+      "У вас есть {{minutes}} минут посещения встречи «{{name}}», которые не были сохранены. Сохранить сейчас?",
+    recoverSave: "Сохранить",
+    recoverDiscard: "Отменить",
+    recovered: "Посещение сохранено",
+    recoveryError: "Не удалось сохранить восстановленное посещение.",
   },
   externalZoomEducation: {
     title: "Обратите внимание",

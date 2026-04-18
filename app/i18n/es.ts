@@ -517,6 +517,17 @@ const es: Translations = {
     title: "Temporizador de Asistencia",
     hint: "Vuelve aquí cuando termine tu reunión. Guardar requiere al menos {{minutes}} min.",
     save: "Guardar",
+    cancelTitle: "¿Descartar temporizador?",
+    cancelMessage: "Se perderán {{minutes}} minutos de asistencia.",
+    keepRunning: "Seguir corriendo",
+    discard: "Descartar",
+    recoverTitle: "Asistencia sin guardar",
+    recoverMessage:
+      "Tienes {{minutes}} minutos de asistencia de {{name}} sin guardar. ¿Guardar ahora?",
+    recoverSave: "Guardar",
+    recoverDiscard: "Descartar",
+    recovered: "Asistencia guardada",
+    recoveryError: "No se pudo guardar la asistencia recuperada.",
   },
   externalZoomEducation: {
     title: "Atención",

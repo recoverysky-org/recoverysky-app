@@ -519,6 +519,17 @@ const de: Translations = {
     title: "Teilnahme-Timer",
     hint: "Kehre hierher zurück, wenn dein Meeting endet. Speichern erfordert mindestens {{minutes}} Min.",
     save: "Speichern",
+    cancelTitle: "Timer verwerfen?",
+    cancelMessage: "{{minutes}} Minuten Teilnahme gehen verloren.",
+    keepRunning: "Weiterlaufen lassen",
+    discard: "Verwerfen",
+    recoverTitle: "Ungesicherte Teilnahme",
+    recoverMessage:
+      "Du hast {{minutes}} Minuten Teilnahme von {{name}}, die nicht gespeichert wurden. Jetzt speichern?",
+    recoverSave: "Speichern",
+    recoverDiscard: "Verwerfen",
+    recovered: "Teilnahme gespeichert",
+    recoveryError: "Wiederhergestellte Teilnahme konnte nicht gespeichert werden.",
   },
   externalZoomEducation: {
     title: "Hinweis",

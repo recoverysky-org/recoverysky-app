@@ -507,6 +507,17 @@ const th: Translations = {
     title: "ตัวจับเวลาการเข้าร่วม",
     hint: "กลับมาที่นี่เมื่อการประชุมสิ้นสุด การบันทึกต้องใช้เวลาอย่างน้อย {{minutes}} นาที",
     save: "บันทึก",
+    cancelTitle: "ยกเลิกตัวจับเวลา?",
+    cancelMessage: "คุณจะสูญเสียเวลาการเข้าร่วม {{minutes}} นาที",
+    keepRunning: "ทำงานต่อ",
+    discard: "ยกเลิก",
+    recoverTitle: "การเข้าร่วมที่ยังไม่บันทึก",
+    recoverMessage:
+      "คุณมีเวลาการเข้าร่วม {{minutes}} นาทีจาก {{name}} ที่ยังไม่ได้บันทึก ต้องการบันทึกตอนนี้หรือไม่?",
+    recoverSave: "บันทึก",
+    recoverDiscard: "ยกเลิก",
+    recovered: "บันทึกการเข้าร่วมแล้ว",
+    recoveryError: "ไม่สามารถบันทึกการเข้าร่วมที่กู้คืนได้",
   },
   externalZoomEducation: {
     title: "โปรดทราบ",

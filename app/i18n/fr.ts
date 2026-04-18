@@ -522,6 +522,17 @@ const fr: Translations = {
     title: "Minuteur de présence",
     hint: "Revenez ici lorsque votre réunion se termine. Enregistrer nécessite au moins {{minutes}} min.",
     save: "Enregistrer",
+    cancelTitle: "Abandonner le minuteur ?",
+    cancelMessage: "{{minutes}} minutes de présence seront perdues.",
+    keepRunning: "Continuer",
+    discard: "Abandonner",
+    recoverTitle: "Présence non enregistrée",
+    recoverMessage:
+      "Vous avez {{minutes}} minutes de présence pour {{name}} qui n'ont pas été enregistrées. Enregistrer maintenant ?",
+    recoverSave: "Enregistrer",
+    recoverDiscard: "Abandonner",
+    recovered: "Présence enregistrée",
+    recoveryError: "Impossible d'enregistrer la présence récupérée.",
   },
   externalZoomEducation: {
     title: "À noter",

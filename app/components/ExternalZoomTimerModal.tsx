@@ -9,6 +9,7 @@
 
 import { FC, useEffect, useMemo, useRef, useState } from "react"
 import {
+  Alert,
   AppState,
   type AppStateStatus,
   Linking,
@@ -23,8 +24,15 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useAuthenticationStore } from "@/models"
-import { EXTERNAL_MIN_CREDIT_MS, saveTimerAttendance } from "@/services/zoom"
+import {
+  clearTimerSession,
+  EXTERNAL_MIN_CREDIT_MS,
+  loadTimerSession,
+  saveTimerAttendance,
+  saveTimerSession,
+} from "@/services/zoom"
 import { extractZoomMeetingNumber } from "@/services/zoom/useZoomMeeting"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -74,27 +82,71 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
   const [elapsed, setElapsed] = useState(0)
   const [saving, setSaving] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Real lock for the Save path. `saving` state is for visuals; state updates
+  // aren't synchronous, so a same-tick double-tap can pass the `!canSave`
+  // guard twice and create two attendance records. This ref flips
+  // synchronously and is authoritative.
+  const savingRef = useRef(false)
 
   const minMinutes = Math.ceil(EXTERNAL_MIN_CREDIT_MS / 60000)
   const canSave = elapsed >= EXTERNAL_MIN_CREDIT_MS && !saving
 
-  // Launch external Zoom + start timer on open
+  // Launch external Zoom + start timer on open.
+  //
+  // Depend on stable primitives (id/url), NOT the meeting object. The parent
+  // inlines the meeting prop as a fresh object literal on every render, so
+  // depending on `meeting` tears down and restarts the timer on every parent
+  // re-render — e.g. when the user returns from the Zoom app and MobX
+  // observers in SchedulePopup fire, resetting the elapsed counter to 00:00
+  // and re-launching Zoom. Keying on id+url pins the effect to the actual
+  // meeting being timed.
+  const meetingId = meeting?.id
+  const meetingUrl = meeting?.url
+  const meetingName = meeting?.name
+  const uid = authStore.userId || "anonymous"
   useEffect(() => {
-    if (!visible || !meeting) return
+    if (!visible || !meetingId || !meetingUrl) return
 
-    const start = Date.now()
+    // If a session for this exact meeting is already persisted — e.g. the app
+    // was killed mid-meeting and the user reopened it, or we re-entered the
+    // effect after a transient drop — adopt the existing startedAt so the
+    // clock keeps its accumulated time and we DON'T re-launch Zoom on top of
+    // the live call.
+    const persisted = loadTimerSession()
+    const isResume =
+      persisted !== null &&
+      persisted.meetingId === meetingId &&
+      persisted.meetingUrl === meetingUrl &&
+      persisted.startedAt > 0
+
+    const start = isResume ? persisted.startedAt : Date.now()
     setStartedAt(start)
-    setElapsed(0)
-    log.info("Timer started, launching external Zoom", {
-      mid: meeting.id,
-      url: meeting.url,
-    })
+    setElapsed(Date.now() - start)
 
-    // Fire and forget — failures surface in logs; the timer still runs so the
-    // user can retry opening Zoom manually if the first launch fails.
-    Linking.openURL(meeting.url).catch((err: unknown) => {
-      log.error("Failed to launch external Zoom", { error: String(err) })
-    })
+    if (isResume) {
+      log.info("Timer resumed from persisted session", {
+        mid: meetingId,
+        startedAt: start,
+        elapsedMs: Date.now() - start,
+      })
+    } else {
+      log.info("Timer started, launching external Zoom", {
+        mid: meetingId,
+        url: meetingUrl,
+      })
+      saveTimerSession({
+        startedAt: start,
+        uid,
+        meetingId,
+        meetingName: meetingName ?? "",
+        meetingUrl,
+      })
+      // Fire and forget — failures surface in logs; the timer still runs so
+      // the user can retry opening Zoom manually if the first launch fails.
+      Linking.openURL(meetingUrl).catch((err: unknown) => {
+        log.error("Failed to launch external Zoom", { error: String(err) })
+      })
+    }
 
     const tick = () => setElapsed(Date.now() - start)
     intervalRef.current = setInterval(tick, 1000)
@@ -111,10 +163,13 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       setStartedAt(null)
       setElapsed(0)
     }
-  }, [visible, meeting])
+  }, [visible, meetingId, meetingUrl, meetingName, uid])
 
   const handleSave = async () => {
-    if (!meeting || !startedAt || !canSave) return
+    // Ref lock is authoritative — blocks same-tick re-entries before React
+    // has a chance to flush the `saving` state update.
+    if (!meeting || !startedAt || !canSave || savingRef.current) return
+    savingRef.current = true
     setSaving(true)
     const endedAt = Date.now()
     log.info("Saving timer attendance", {
@@ -123,32 +178,77 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       endedAt,
       creditMs: endedAt - startedAt,
     })
-    const result = await saveTimerAttendance({
-      uid: authStore.userId || "anonymous",
-      mid: meeting.id,
-      zid: extractZoomMeetingNumber(meeting.url) ?? "",
-      meetingName: meeting.name,
-      startedAt,
-      endedAt,
-    })
-    setSaving(false)
-    if (!result.ok) {
-      log.error("Timer attendance save returned not ok", { mid: meeting.id })
-      onClose()
-      return
-    }
-    // Only notify the parent of a successful Save — lets the parent
-    // distinguish this from a Cancel and trigger the topic/host prompt.
-    if (result.attendanceId && onSaved) {
-      onSaved(result.attendanceId)
-    } else {
-      onClose()
+    try {
+      const result = await saveTimerAttendance({
+        uid: authStore.userId || "anonymous",
+        mid: meeting.id,
+        zid: extractZoomMeetingNumber(meeting.url) ?? "",
+        meetingName: meeting.name,
+        startedAt,
+        endedAt,
+      })
+      if (!result.ok) {
+        log.error("Timer attendance save returned not ok", { mid: meeting.id })
+        // Keep the persisted session so TimerSessionResumer can recover it
+        // on the next cold start rather than silently dropping the attempt.
+        onClose()
+        return
+      }
+      clearTimerSession()
+      // Only notify the parent of a successful Save — lets the parent
+      // distinguish this from a Cancel and trigger the topic/host prompt.
+      if (result.attendanceId && onSaved) {
+        onSaved(result.attendanceId)
+      } else {
+        onClose()
+      }
+    } finally {
+      savingRef.current = false
+      setSaving(false)
     }
   }
 
   const handleCancel = () => {
-    log.info("Timer cancelled", { mid: meeting?.id, elapsedMs: elapsed })
-    onClose()
+    // Below the credit threshold there's nothing to lose — close immediately.
+    if (elapsed < EXTERNAL_MIN_CREDIT_MS) {
+      log.info("Timer cancelled below credit threshold", {
+        mid: meeting?.id,
+        elapsedMs: elapsed,
+      })
+      clearTimerSession()
+      onClose()
+      return
+    }
+    // Above the threshold, an accidental backdrop tap would silently discard
+    // a saveable session. Confirm before tearing it down.
+    Alert.alert(
+      translate("externalZoomTimer:cancelTitle"),
+      translate("externalZoomTimer:cancelMessage", { minutes: Math.floor(elapsed / 60000) }),
+      [
+        {
+          text: translate("externalZoomTimer:keepRunning"),
+          style: "cancel",
+        },
+        {
+          text: translate("externalZoomTimer:save"),
+          onPress: () => {
+            void handleSave()
+          },
+        },
+        {
+          text: translate("externalZoomTimer:discard"),
+          style: "destructive",
+          onPress: () => {
+            log.info("Timer discarded after confirm", {
+              mid: meeting?.id,
+              elapsedMs: elapsed,
+            })
+            clearTimerSession()
+            onClose()
+          },
+        },
+      ],
+    )
   }
 
   const formatted = useMemo(() => formatElapsed(elapsed), [elapsed])

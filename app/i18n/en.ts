@@ -521,6 +521,17 @@ const en = {
     title: "Attendance Timer",
     hint: "Return here when your meeting ends. Save requires at least {{minutes}} min.",
     save: "Save",
+    cancelTitle: "Discard timer?",
+    cancelMessage: "You have {{minutes}} minutes of attendance that will be lost.",
+    keepRunning: "Keep Running",
+    discard: "Discard",
+    recoverTitle: "Unsaved attendance",
+    recoverMessage:
+      "You have {{minutes}} minutes of attendance from {{name}} that was not saved. Save it now?",
+    recoverSave: "Save",
+    recoverDiscard: "Discard",
+    recovered: "Attendance saved",
+    recoveryError: "Could not save recovered attendance.",
   },
   externalZoomEducation: {
     title: "Heads up",

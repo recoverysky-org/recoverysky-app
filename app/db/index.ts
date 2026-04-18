@@ -28,6 +28,7 @@ export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
 export { ProfileHydrator } from "./ProfileHydrator"
 export { ChatHydrator } from "./ChatHydrator"
 export { ReportPollingResumer } from "./ReportPollingResumer"
+export { TimerSessionResumer } from "./TimerSessionResumer"
 export {
   meetingRepo,
   scheduleRepo,

@@ -338,6 +338,29 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // Current day for highlighting (1=Mon, 7=Sun)
   const currentDow = DateTime.now().weekday
 
+  // Memoized meeting payload for ExternalZoomTimerModal — prevents the
+  // timer from resetting whenever SchedulePopup re-renders (which happens
+  // frequently as an observer). See ExternalZoomTimerModal for details.
+  const timerMeeting = useMemo(() => {
+    if (!meeting?.url || !meeting?.id) return null
+    return {
+      id: meeting.id,
+      name: meeting.name,
+      url: buildExternalZoomUrl({
+        meetingNumber: extractZoomMeetingNumber(meeting.url) ?? "",
+        meetingUrl: meeting.url,
+        password: meeting.password,
+        passwordEnc: meeting.passwordEnc,
+      }),
+    }
+  }, [
+    meeting?.id,
+    meeting?.url,
+    meeting?.name,
+    meeting?.password,
+    meeting?.passwordEnc,
+  ])
+
   const fellowshipColor = meeting
     ? FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
     : "#888"
@@ -767,20 +790,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       {meeting && (
         <ExternalZoomTimerModal
           visible={timerVisible}
-          meeting={
-            meeting.url && meeting.id
-              ? {
-                  id: meeting.id,
-                  name: meeting.name,
-                  url: buildExternalZoomUrl({
-                    meetingNumber: extractZoomMeetingNumber(meeting.url) ?? "",
-                    meetingUrl: meeting.url,
-                    password: meeting.password,
-                    passwordEnc: meeting.passwordEnc,
-                  }),
-                }
-              : null
-          }
+          meeting={timerMeeting}
           onClose={() => setTimerVisible(false)}
           onSaved={() => {
             // Just close the timer. saveTimerAttendance (inside the timer

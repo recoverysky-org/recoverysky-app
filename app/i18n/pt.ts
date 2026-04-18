@@ -517,6 +517,17 @@ const pt: Translations = {
     title: "Cronômetro de Presença",
     hint: "Volte aqui quando sua reunião terminar. Salvar requer pelo menos {{minutes}} min.",
     save: "Salvar",
+    cancelTitle: "Descartar cronômetro?",
+    cancelMessage: "{{minutes}} minutos de presença serão perdidos.",
+    keepRunning: "Continuar",
+    discard: "Descartar",
+    recoverTitle: "Presença não salva",
+    recoverMessage:
+      "Você tem {{minutes}} minutos de presença de {{name}} que não foram salvos. Salvar agora?",
+    recoverSave: "Salvar",
+    recoverDiscard: "Descartar",
+    recovered: "Presença salva",
+    recoveryError: "Não foi possível salvar a presença recuperada.",
   },
   externalZoomEducation: {
     title: "Atenção",
