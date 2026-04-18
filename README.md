@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react" alt="React Native" />
   <img src="https://img.shields.io/badge/Expo-54-000020?logo=expo" alt="Expo" />
-  <img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/License-AGPL_v3-blue" alt="License" />
 </p>
 
@@ -46,7 +46,13 @@ Full English and Spanish support with runtime language switching. More languages
 Professional iOS-style dark theme with automatic system detection. Easy on the eyes for late-night meeting searches.
 
 ### 📊 **Track Your Recovery**
-Record attendance, track your clean days, and celebrate milestones. Your recovery journey, beautifully visualized.
+Record attendance, track your clean days, and celebrate milestones. Your recovery journey, beautifully visualized — including a money-saved tracker, daily-minutes chart, and 90-in-90 challenge card on the home dashboard.
+
+### 📨 **Attendance Reports**
+Automatically capture meeting attendance, edit durations, and email PDF reports to sponsors, treatment programs, or yourself — directly from the app, with view, resend, and forward flows built in.
+
+### 📞 **External Zoom Mode**
+Join meetings with the installed Zoom app and let RecoverySky run a foreground attendance timer alongside it — no embedded SDK, full-fidelity Zoom experience, attendance still tracked.
 
 ### 🔔 **Smart Onboarding**
 Guided setup flow that respects your privacy choices. Navigate with tappable progress dots.
@@ -63,7 +69,11 @@ Guided setup flow that respects your privacy choices. Navigate with tappable pro
 | **Database** | SQLite + Drizzle ORM + SQLCipher encryption |
 | **Navigation** | React Navigation v7 (bottom tabs) |
 | **AI** | Vercel AI SDK + Claude |
-| **Auth** | Zitadel OAuth with PKCE |
+| **Auth** | Auth0 OAuth with PKCE |
+| **Subscriptions** | RevenueCat (premium entitlements, paywall) |
+| **Notifications** | expo-notifications (Expo Push) |
+| **Analytics** | Umami (self-hosted, custom event tracking) |
+| **OTA** | expo-updates with manual `runtimeVersion` policy |
 | **i18n** | i18next with runtime switching |
 | **UI** | Custom design system with themed components |
 
@@ -339,22 +349,27 @@ npm run submit:android     # Uploads the most recent .aab to Google Play Console
 
 ## 📱 App Structure
 
-### Screens
+### Tabs
 
-| Screen | Icon | Description |
-|--------|------|-------------|
-| **Home** | 🏠 | Dashboard with quick access to features |
-| **Live** | 📡 | Currently active meetings with pull-to-refresh |
-| **Guide** | 🤖 | AI-powered recovery companion chat |
-| **Settings** | ⚙️ | Profile, recovery tracking, and preferences |
+| Tab | Icon | Description |
+|-----|------|-------------|
+| **Home** | 🏠 | Dashboard: clean-time card, money saved, recovery chart, 90-in-90 challenge, news, resources |
+| **Meetings** | 📹 | Combined Live + Listings via segment control, with live-meeting badge in the tab bar |
+| **Attendance** | 📋 | Conditional on `attendanceEnabled` — New, Archive, and Reports sections (PDF export, send/resend/forward) |
+| **Settings** | ⚙️ | Profile, recovery tracking, subscription, notifications, theme, advanced options |
 
-### Hidden Screens (for power users)
+### Premium Tabs (currently hidden)
 
-| Screen | Description |
-|--------|-------------|
-| **Meetings** | Full meeting directory with search |
-| **Schedule** | Weekly schedule grid view |
-| **Attendance** | Personal attendance history |
+These tabs are gated behind the `recoverysky-premium` entitlement and are hidden in the current release pending content readiness:
+
+| Tab | Description |
+|-----|-------------|
+| **Agent** | "Sky" AI companion chat (Vercel AI SDK + Claude with tool use) |
+| **Social** | Replyke-powered community feed (WebView) |
+
+### Modals
+
+`ZoomLogin` (reconnect from Settings), `Import` (Firebase data import from old app), `Licenses` (OSS attribution), and per-screen modals like `ExternalZoomTimerModal`, `AttendanceEditModal`, and `OnboardingImport`.
 
 ---
 
@@ -376,11 +391,17 @@ const MyComponent = observer(() => {
 ```
 
 **Available Stores:**
-- 🔐 **AuthenticationStore** — Auth tokens, user identity
-- 👤 **ProfileStore** — Name, pronouns, recovery date, preferences
-- 🌐 **NetworkStore** — Online/offline status
+- 🔐 **AuthenticationStore** — Auth tokens (volatile), user identity (persisted)
+- 👤 **ProfileStore** — Name, pronouns, recovery date, preferences, feature toggles
+- 🌐 **NetworkStore** — Online/offline status, internet reachability
+- 🛠️ **ConfigStore** — Server-fetched runtime config (API keys, maintenance mode, latest version) — **not** persisted
+- 💬 **ConversationStore** — AI agent chat history
 
-All stores auto-persist to MMKV storage.
+All MST stores auto-persist to MMKV via `onSnapshot` (except `ConfigStore`). Sensitive profile fields (recoveryDate, fellowship, etc.) live in encrypted SQLite via `profileRepository`, kept out of MMKV snapshots.
+
+**React Context Providers (alongside MST):**
+- 📅 **MeetingContext** — Loads meetings from SQLite, joins with TREX schedule data, exposes live filter
+- 💎 **SubscriptionContext** — RevenueCat entitlements, paywall presentation, purchase/restore flows
 
 ### Database Layer
 
@@ -425,6 +446,17 @@ npm run lint:check   # ESLint check only
 npm run lint:deps    # Dependency validation
 npm test             # Jest tests
 ```
+
+---
+
+## 📜 Releases
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the full release history. Versioning uses two heading shapes:
+
+- `[X.Y.Z]` — native release (matching `version` and `runtimeVersion` in `app.json`); requires a new App Store / Play Store / TestFlight install.
+- `[X.Y.Z-N]` — OTA release on top of the `X.Y.Z` native build, where `N` is the `update` counter in `package.json`. Reaches every user already on a matching `runtimeVersion`. Visible in Settings as `v{version}-{update}`.
+
+Native releases are cut with `npm run patch` / `minor` / `major`; OTA releases with `npm run update` (which bumps the counter, tags, pushes, and runs `eas update --branch production --auto`).
 
 ---
 
