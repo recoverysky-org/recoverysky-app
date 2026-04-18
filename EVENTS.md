@@ -32,6 +32,7 @@ POST ${UMAMI_URL}/api/send
 | Event | Description | Data | Source |
 |---|---|---|---|
 | `app_initialized` | App startup completed (stores loaded, config fetched, services initialized) | `{ sessionId }` | `app/app.tsx` |
+| `app_foregrounded` | App returned to foreground from background/inactive | `{ backgrounded_ms }` | `app/app.tsx` (AppState listener) |
 | _(automatic)_ | Screen views fire on every navigation state change | — | `app/navigators/navigationUtilities.ts` |
 
 ### Group 2: Auth & Onboarding
@@ -98,7 +99,6 @@ These events have been identified as valuable but are not included in the initia
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `app_foregrounded` | App returned to foreground from background | — | `app/app.tsx` (AppState listener) |
 | `app_backgrounded` | App moved to background | — | `app/app.tsx` (AppState listener) |
 | `deep_link_opened` | App opened via deep link | `{ url }` | `app/app.tsx` (Linking) |
 | `error_boundary_triggered` | React error boundary caught an error | `{ componentStack }` | `app/screens/ErrorScreen/ErrorBoundary.tsx` |

@@ -533,29 +533,45 @@ export function App() {
   useEffect(() => {
     if (__DEV__ || !rootStore || Platform.OS === "web") return
 
-    const FOREGROUND_RECHECK_MS = 30 * 60 * 1000 // 30 minutes
+    const FOREGROUND_RECHECK_MS = 5 * 60 * 1000 // 5 minutes
     let appState = AppState.currentState
     let backgroundedAt: number | null = null
 
+    log.info("Foreground OTA recheck listener installed", {
+      thresholdMs: FOREGROUND_RECHECK_MS,
+      initialAppState: appState,
+    })
+
     const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      log.debug("AppState transition", { from: appState, to: nextState })
+
       if (appState === "active" && nextState.match(/inactive|background/)) {
         backgroundedAt = Date.now()
+        log.debug("App backgrounded, stamped backgroundedAt", { backgroundedAt })
       } else if (appState.match(/inactive|background/) && nextState === "active") {
         const elapsed = backgroundedAt !== null ? Date.now() - backgroundedAt : 0
         backgroundedAt = null
+        trackEvent("app_foregrounded", { backgrounded_ms: elapsed })
         if (elapsed >= FOREGROUND_RECHECK_MS) {
-          log.info("Foreground resume after long background, rechecking for updates", {
+          log.info("Foreground resume past threshold, rechecking for updates", {
             backgroundedMs: elapsed,
+            thresholdMs: FOREGROUND_RECHECK_MS,
           })
           checkForUpdates(rootStore.configStore.latestVersion).catch((e) =>
             log.debug("Foreground update check failed", { error: String(e) }),
           )
+        } else {
+          log.debug("Foreground resume below threshold, skipping recheck", {
+            backgroundedMs: elapsed,
+            thresholdMs: FOREGROUND_RECHECK_MS,
+          })
         }
       }
       appState = nextState
     })
 
     return () => {
+      log.debug("Foreground OTA recheck listener removed")
       subscription.remove()
     }
   }, [rootStore])
