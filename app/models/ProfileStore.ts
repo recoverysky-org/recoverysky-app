@@ -73,7 +73,7 @@ export const ProfileStoreModel = types
     aiConsentAccepted: types.optional(types.boolean, false),
 
     // Advanced
-    useExternalZoom: types.optional(types.boolean, false),
+    useExternalZoom: types.optional(types.boolean, true),
 
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
@@ -341,9 +341,12 @@ export const ProfileStoreModel = types
         self.aiConsentAccepted = value
       },
 
-      setUseExternalZoom(value: boolean) {
-        self.useExternalZoom = value
-        liveEvents.preferencesChanged("useExternalZoom")
+      setUseExternalZoom(_value: boolean) {
+        // External Zoom is hard-coded on for all users; setter is a no-op.
+        if (!self.useExternalZoom) {
+          self.useExternalZoom = true
+          liveEvents.preferencesChanged("useExternalZoom")
+        }
       },
 
       /**
