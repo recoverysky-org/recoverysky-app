@@ -1,7 +1,7 @@
 {
   "name": "recoverysky-app",
   "version": "4.3.2",
-  "update": "0",
+  "update": "2",
   "private": true,
   "main": "index.tsx",
   "scripts": {
@@ -66,7 +66,8 @@
     "deploy:android": "npm run install:android && npm run launch:android",
     "patch": "bash scripts/bump-version.sh patch",
     "minor": "bash scripts/bump-version.sh minor",
-    "major": "bash scripts/bump-version.sh major"
+    "major": "bash scripts/bump-version.sh major",
+    "update": "bash scripts/bump-update.sh"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.5",
