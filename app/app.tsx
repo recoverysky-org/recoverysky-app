@@ -525,6 +525,41 @@ export function App() {
     return () => clearTimeout(timeout)
   }, [rootStore])
 
+  // Foreground OTA recheck: the cold-start check above only runs once, so a
+  // user who keeps the app backgrounded for days never sees a newly published
+  // OTA until they force-quit. On resume after a sufficiently long background
+  // window, re-run checkForUpdates. Short-foregrounds (tab switches, glances)
+  // are ignored by the threshold so we don't spam the native module.
+  useEffect(() => {
+    if (__DEV__ || !rootStore || Platform.OS === "web") return
+
+    const FOREGROUND_RECHECK_MS = 30 * 60 * 1000 // 30 minutes
+    let appState = AppState.currentState
+    let backgroundedAt: number | null = null
+
+    const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      if (appState === "active" && nextState.match(/inactive|background/)) {
+        backgroundedAt = Date.now()
+      } else if (appState.match(/inactive|background/) && nextState === "active") {
+        const elapsed = backgroundedAt !== null ? Date.now() - backgroundedAt : 0
+        backgroundedAt = null
+        if (elapsed >= FOREGROUND_RECHECK_MS) {
+          log.info("Foreground resume after long background, rechecking for updates", {
+            backgroundedMs: elapsed,
+          })
+          checkForUpdates(rootStore.configStore.latestVersion).catch((e) =>
+            log.debug("Foreground update check failed", { error: String(e) }),
+          )
+        }
+      }
+      appState = nextState
+    })
+
+    return () => {
+      subscription.remove()
+    }
+  }, [rootStore])
+
   // OTA update on maintenance exit — when server signals MAINTENANCE_UPDATE: true
   // and maintenance mode turns off, fetch + apply the update before resuming.
   // The MaintenanceScreen stays visible (via maintenanceUpdate flag) showing "Updating..."
