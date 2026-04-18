@@ -111,7 +111,6 @@ export function initReviewService(configStore?: ConfigStore): void {
  * Explicit review request from Settings "Rate App" button.
  */
 export async function requestReviewFromSettings(): Promise<void> {
-  if (!isReviewEnabled()) return
   if (Platform.OS === "web") return
 
   const available = await StoreReview.isAvailableAsync()
