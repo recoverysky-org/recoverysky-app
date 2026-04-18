@@ -5,13 +5,16 @@
  * total days, clean date, and progress toward the next milestone.
  */
 
-import { useMemo } from "react"
-import { View, ViewStyle, TextStyle } from "react-native"
+import { useMemo, useRef, useState } from "react"
+import { Platform, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
+import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -86,8 +89,23 @@ function computeMilestoneProgress(totalDays: number) {
 
 export const CleanTimeCard = observer(function CleanTimeCard() {
   const { t, i18n } = useTranslation()
-  const { themed, theme } = useAppTheme()
+  const { themed, theme, themeContext } = useAppTheme()
   const profileStore = useProfileStore()
+
+  // Inline date editor — mirrors the Settings recovery-date picker so users
+  // can adjust their start date directly from the dashboard.
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const endOfYear = useRef(new Date(new Date().getFullYear(), 11, 31)).current
+  const isDarkMode = themeContext === "dark"
+
+  const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false)
+    }
+    if (selectedDate) {
+      profileStore.setRecoveryDate(selectedDate)
+    }
+  }
 
   const breakdown = useMemo(
     () => computeBreakdown(profileStore.recoveryDate),
@@ -153,6 +171,52 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
       {/* Title */}
       <Text style={themed($title)}>{t("cleanTime:yourRecovery")}</Text>
 
+      {/* Tappable date row — opens an inline picker, same UX as Settings */}
+      <TouchableOpacity
+        style={themed($dateRow)}
+        onPress={() => setShowDatePicker((v) => !v)}
+        accessibilityRole="button"
+        accessibilityLabel={translate("settingsScreen:recoveryDate")}
+        accessibilityHint={t(sinceKey, { date: formattedDate })}
+      >
+        <Text style={themed($dateRowText)}>{t(sinceKey, { date: formattedDate })}</Text>
+        <Ionicons name="calendar-outline" size={16} color={theme.colors.tint} />
+      </TouchableOpacity>
+
+      {/* Date picker — iOS shows inline w/ OK at top, Android opens system modal */}
+      {showDatePicker &&
+        (Platform.OS === "ios" ? (
+          <View style={themed($datePickerContainer)}>
+            <View style={themed($datePickerHeader)}>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(false)}
+                accessibilityRole="button"
+                accessibilityLabel={translate("common:ok")}
+              >
+                <Text style={themed($datePickerDone)} tx="common:ok" />
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={profileStore.recoveryDateAsDate}
+              mode="date"
+              display="spinner"
+              onChange={handleDateChange}
+              maximumDate={endOfYear}
+              style={$datePickerSpinner}
+              themeVariant={isDarkMode ? "dark" : "light"}
+            />
+          </View>
+        ) : (
+          <DateTimePicker
+            value={profileStore.recoveryDateAsDate}
+            mode="date"
+            display="spinner"
+            onChange={handleDateChange}
+            maximumDate={endOfYear}
+            themeVariant={isDarkMode ? "dark" : "light"}
+          />
+        ))}
+
       {/* Hero breakdown */}
       <Text style={themed($heroText)}>{heroText}</Text>
 
@@ -160,9 +224,6 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
       <Text style={themed($totalDays)}>
         {t("cleanTime:totalDays", { count: breakdown.totalDays })}
       </Text>
-
-      {/* Since date — fellowship-aware wording */}
-      <Text style={themed($cleanSince)}>{t(sinceKey, { date: formattedDate })}</Text>
 
       {/* Milestone progress */}
       {milestone.next && (
@@ -230,12 +291,50 @@ const $totalDays: ThemedStyle<TextStyle> = ({ colors }) => ({
   marginBottom: 2,
 })
 
-const $cleanSince: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-  textAlign: "center",
-  marginBottom: spacing.md,
+const $dateRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: spacing.xs,
+  paddingVertical: spacing.xs,
+  marginBottom: spacing.sm,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
 })
+
+const $dateRowText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  color: colors.tint,
+  fontWeight: "500",
+  textAlign: "center",
+})
+
+// Date Picker Styles — mirror SettingsScreen so the editor looks identical
+const $datePickerContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginBottom: spacing.sm,
+  borderRadius: 12,
+  backgroundColor: colors.card,
+  overflow: "hidden",
+})
+
+const $datePickerHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "flex-end",
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
+})
+
+const $datePickerDone: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.tint,
+})
+
+const $datePickerSpinner: ViewStyle = {
+  height: 180,
+}
 
 const $milestoneSection: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderTopWidth: 1,

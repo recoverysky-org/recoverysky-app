@@ -121,9 +121,18 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
             </Pressable>
           </View>
 
-          {/* iOS Date Picker (inline) */}
+          {/* iOS Date Picker (inline) — OK at top to mirror Settings */}
           {Platform.OS === "ios" && showDatePicker && (
             <View style={themed($datePickerContainer)}>
+              <View style={themed($datePickerHeader)}>
+                <Pressable
+                  onPress={() => setShowDatePicker(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel={translate("common:ok")}
+                >
+                  <Text style={themed($datePickerDoneText)} tx="common:ok" />
+                </Pressable>
+              </View>
               <DateTimePicker
                 value={profileStore.recoveryDateAsDate}
                 mode="date"
@@ -132,14 +141,6 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
                 maximumDate={new Date()}
                 themeVariant={theme.isDark ? "dark" : "light"}
               />
-              <Pressable
-                style={themed($datePickerDone)}
-                onPress={() => setShowDatePicker(false)}
-                accessibilityRole="button"
-                accessibilityLabel={translate("common:ok")}
-              >
-                <Text style={themed($datePickerDoneText)}>Done</Text>
-              </Pressable>
             </View>
           )}
 
@@ -284,9 +285,13 @@ const $datePickerContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   padding: spacing.sm,
 })
 
-const $datePickerDone: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "center",
-  paddingVertical: spacing.sm,
+const $datePickerHeader: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "flex-end",
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.xs,
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
 })
 
 const $datePickerDoneText: ThemedStyle<TextStyle> = ({ colors }) => ({
