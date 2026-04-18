@@ -531,7 +531,7 @@ const pt: Translations = {
   },
   externalZoomEducation: {
     title: "Atenção",
-    body: "Ao entrar em uma reunião com o Zoom externo, o aplicativo Zoom deve estar instalado. Um cronômetro será iniciado. Você deve retornar ao aplicativo RecoverySky após encerrar a reunião do Zoom para parar o cronômetro corretamente e receber crédito de presença.",
+    body: "Ao entrar em uma reunião com o Zoom externo, o aplicativo Zoom deve estar instalado.\n\nUm cronômetro será iniciado. Você deve retornar ao aplicativo RecoverySky após encerrar a reunião do Zoom para parar o cronômetro corretamente e receber crédito de presença.",
     continue: "Continuar",
   },
   attendanceEdit: {

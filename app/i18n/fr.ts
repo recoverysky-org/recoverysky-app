@@ -536,7 +536,7 @@ const fr: Translations = {
   },
   externalZoomEducation: {
     title: "À noter",
-    body: "Lorsque vous rejoignez une réunion avec Zoom externe, l'application Zoom doit être installée. Un minuteur sera démarré. Vous devez revenir dans l'application RecoverySky après avoir terminé la réunion Zoom pour arrêter correctement le minuteur et recevoir le crédit de présence.",
+    body: "Lorsque vous rejoignez une réunion avec Zoom externe, l'application Zoom doit être installée.\n\nUn minuteur sera démarré. Vous devez revenir dans l'application RecoverySky après avoir terminé la réunion Zoom pour arrêter correctement le minuteur et recevoir le crédit de présence.",
     continue: "Continuer",
   },
   attendanceEdit: {

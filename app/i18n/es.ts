@@ -531,7 +531,7 @@ const es: Translations = {
   },
   externalZoomEducation: {
     title: "Atención",
-    body: "Al unirte a una reunión con Zoom externo, la aplicación de Zoom debe estar instalada. Se iniciará un temporizador. Debes regresar a la aplicación RecoverySky después de terminar la reunión de Zoom para detener correctamente el temporizador y recibir crédito de asistencia.",
+    body: "Al unirte a una reunión con Zoom externo, la aplicación de Zoom debe estar instalada.\n\nSe iniciará un temporizador. Debes regresar a la aplicación RecoverySky después de terminar la reunión de Zoom para detener correctamente el temporizador y recibir crédito de asistencia.",
     continue: "Continuar",
   },
   attendanceEdit: {

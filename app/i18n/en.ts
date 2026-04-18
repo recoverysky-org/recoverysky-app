@@ -535,7 +535,7 @@ const en = {
   },
   externalZoomEducation: {
     title: "Heads up",
-    body: "When joining a meeting with external Zoom, the Zoom app must be installed. A timer will be started. You must return to the RecoverySky app after ending the Zoom meeting to appropriately end the timer and receive attendance credit.",
+    body: "When joining a meeting with external Zoom, the Zoom app must be installed.\n\nA timer will be started. You must return to the RecoverySky app after ending the Zoom meeting to appropriately end the timer and receive attendance credit.",
     continue: "Continue",
   },
   attendanceEdit: {
