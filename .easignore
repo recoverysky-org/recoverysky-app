@@ -114,3 +114,50 @@ app-dependency-graph.png
 
 # SQLite database files
 *.db
+
+# ---------------------------------------------------------------------------
+# Build-archive size reductions (added to keep the EAS upload small).
+# Anything below this line is NOT required for `eas build` or `eas update` to
+# succeed — purely development/test/docs/CI artifacts.
+# ---------------------------------------------------------------------------
+
+# Web export output from `npm run bundle:web` (~77 MB). Cloud builds don't
+# need this — they regenerate it on demand.
+dist/
+
+# Ignite generator templates (used by the CLI during code generation only).
+ignite/
+
+# Standalone test directory + colocated test files in app/. The cloud build
+# never runs these.
+test/
+**/*.test.ts
+**/*.test.tsx
+**/*.e2e.test.ts
+**/*.integration.test.ts
+**/__tests__/
+**/__snapshots__/
+
+# E2E flow specs (Maestro) — only executed by `npm run test:maestro` locally.
+.maestro/
+
+# Forgejo CI workflows — checked out on demand by `npm run actions`.
+.forgejo/
+
+# Internal docs that aren't shipped with the bundle. README.md and
+# LICENSE.md are intentionally NOT excluded (LICENSE.md is referenced by
+# OnboardingOSS).
+docs/
+CHANGELOG.md
+CLAUDE.md
+CONTRIBUTING.md
+EVENTS.md
+
+# Local credential staging directory (separate from credentials.json which
+# is already excluded above).
+credentials/
+
+# Editor / OS noise that isn't already covered above.
+.idea/
+*.swp
+*.swo
