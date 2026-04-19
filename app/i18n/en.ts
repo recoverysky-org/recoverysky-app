@@ -389,6 +389,7 @@ const en = {
     // Review
     rateApp: "Rate RecoverySky",
     support: "Support",
+    buyMeACoffee: "Buy me a coffee ☕",
     sendErrorReport: "Send Error Report",
     errorReportTitle: "Send Error Report",
     errorReportPrompt: "Describe the issue you experienced:",

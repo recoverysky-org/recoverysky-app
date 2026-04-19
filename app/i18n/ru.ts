@@ -386,6 +386,7 @@ const ru: Translations = {
     restartImport: "Повторить импорт",
     rateApp: "Оценить RecoverySky",
     support: "Поддержка",
+    buyMeACoffee: "Купи мне кофе ☕",
     sendErrorReport: "Отправить отчёт об ошибке",
     errorReportTitle: "Отправить отчёт об ошибке",
     errorReportPrompt: "Опишите проблему, с которой вы столкнулись:",

@@ -1334,6 +1334,20 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       {/* Version */}
       <Text style={themed($versionText)}>v{require("../../package.json").version}-{require("../../package.json").update ?? "0"}</Text>
 
+      {/* Buy Me A Coffee — supports the developer */}
+      <TouchableOpacity
+        style={themed($coffeeButton)}
+        onPress={() => {
+          trackEvent("coffee_tapped")
+          Linking.openURL("https://buymeacoffee.com/jenovamarie")
+        }}
+        accessibilityRole="link"
+        accessibilityLabel={translate("settingsScreen:buyMeACoffee")}
+      >
+        <Ionicons name="cafe" size={16} color={theme.colors.tint} />
+        <Text style={themed($coffeeButtonText)} tx="settingsScreen:buyMeACoffee" />
+      </TouchableOpacity>
+
       {/* Theme Color Picker Modal */}
       <ThemeColorPicker visible={colorPickerVisible} onClose={() => setColorPickerVisible(false)} />
     </Screen>
@@ -1556,7 +1570,23 @@ const $versionText: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   textAlign: "center",
   color: colors.textDim,
   fontSize: 13,
-  paddingVertical: spacing.lg,
+  paddingTop: spacing.lg,
+  paddingBottom: spacing.sm,
+})
+
+const $coffeeButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.xs,
+  paddingVertical: spacing.sm,
+  paddingBottom: spacing.lg,
+})
+
+const $coffeeButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.tint,
+  fontSize: 14,
+  fontWeight: "500",
 })
 
 const $tintColor: ThemedStyle<{ color: string }> = ({ colors }) => ({

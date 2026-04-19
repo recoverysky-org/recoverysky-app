@@ -385,6 +385,7 @@ const uk: Translations = {
     restartImport: "Повторити імпорт",
     rateApp: "Оцінити RecoverySky",
     support: "Підтримка",
+    buyMeACoffee: "Купи мені каву ☕",
     sendErrorReport: "Надіслати звіт про помилку",
     errorReportTitle: "Надіслати звіт про помилку",
     errorReportPrompt: "Опишіть проблему, з якою ви зіткнулися:",

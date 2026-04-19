@@ -377,6 +377,7 @@ const ar: Translations = {
     restartImport: "إعادة الاستيراد",
     rateApp: "قيّم RecoverySky",
     support: "الدعم",
+    buyMeACoffee: "ادعمني بقهوة ☕",
     sendErrorReport: "إرسال تقرير خطأ",
     errorReportTitle: "إرسال تقرير خطأ",
     errorReportPrompt: "صف المشكلة التي واجهتها:",

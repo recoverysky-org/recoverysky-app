@@ -390,6 +390,7 @@ const fr: Translations = {
     restartImport: "Recommencer l'importation",
     rateApp: "Évaluer RecoverySky",
     support: "Support",
+    buyMeACoffee: "Offrez-moi un café ☕",
     sendErrorReport: "Envoyer un rapport d'erreur",
     errorReportTitle: "Envoyer un rapport d'erreur",
     errorReportPrompt: "Décrivez le problème rencontré :",

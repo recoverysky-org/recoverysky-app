@@ -385,6 +385,7 @@ const pt: Translations = {
     restartImport: "Refazer Importação",
     rateApp: "Avaliar RecoverySky",
     support: "Suporte",
+    buyMeACoffee: "Pague-me um café ☕",
     sendErrorReport: "Enviar Relatório de Erro",
     errorReportTitle: "Enviar Relatório de Erro",
     errorReportPrompt: "Descreva o problema que você encontrou:",

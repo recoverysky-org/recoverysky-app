@@ -88,6 +88,7 @@ POST ${UMAMI_URL}/api/send
 |---|---|---|---|
 | `zoom_connected` | User connected their Zoom account | — | `app/screens/ZoomSetupScreen.tsx`, `app/screens/ZoomLoginScreen.tsx` |
 | `data_deleted` | User deleted all app data | — | `app/screens/SettingsScreen.tsx` |
+| `coffee_tapped` | User tapped the "Buy me a coffee" button at the bottom of Settings | — | `app/screens/SettingsScreen.tsx` |
 
 ---
 

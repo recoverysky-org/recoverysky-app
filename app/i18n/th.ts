@@ -380,6 +380,7 @@ const th: Translations = {
     restartImport: "นำเข้าใหม่",
     rateApp: "ให้คะแนน RecoverySky",
     support: "สนับสนุน",
+    buyMeACoffee: "เลี้ยงกาแฟผู้พัฒนา ☕",
     sendErrorReport: "ส่งรายงานข้อผิดพลาด",
     errorReportTitle: "ส่งรายงานข้อผิดพลาด",
     errorReportPrompt: "อธิบายปัญหาที่คุณพบ:",

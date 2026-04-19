@@ -386,6 +386,7 @@ const es: Translations = {
     restartImport: "Reiniciar Importación",
     rateApp: "Calificar RecoverySky",
     support: "Soporte",
+    buyMeACoffee: "Cómprame un café ☕",
     sendErrorReport: "Enviar Informe de Error",
     errorReportTitle: "Enviar Informe de Error",
     errorReportPrompt: "Describe el problema que experimentaste:",
