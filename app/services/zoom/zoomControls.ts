@@ -29,7 +29,6 @@ export interface MeetingInfoResult {
   hostName?: string
   password?: string
   isHost?: boolean
-  isCoHost?: boolean
 }
 
 export interface ParticipantCountResult {
@@ -42,7 +41,6 @@ export interface MyUserInfoResult {
   userId?: number
   userName?: string
   isHost?: boolean
-  isCoHost?: boolean
   isAudioMuted?: boolean
   isVideoOn?: boolean
 }

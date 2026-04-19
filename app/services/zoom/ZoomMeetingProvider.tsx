@@ -367,7 +367,6 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
                     topic: meetingInfo.topic,
                     meetingNumber: meetingInfo.meetingNumber,
                     isHost: meetingInfo.isHost,
-                    isCoHost: meetingInfo.isCoHost,
                   })
                 }
 
