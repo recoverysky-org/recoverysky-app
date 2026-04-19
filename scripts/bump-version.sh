@@ -33,14 +33,18 @@ esac
 
 echo "New version: $NEW_VERSION"
 
-# Update package.json
+# Update package.json — bump version AND reset the OTA `update` counter to "0".
+# Each native version starts a fresh OTA series; the counter is restarted so
+# the in-app version display (`v{version}-{update}` in Settings) doesn't carry
+# the previous native build's OTA count forward.
 node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 pkg.version = '$NEW_VERSION';
+pkg.update = '0';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 "
-echo "Updated package.json"
+echo "Updated package.json (version + update counter reset)"
 
 # Update app.json
 node -e "
@@ -73,6 +77,7 @@ git commit -m "$(cat <<EOF
 🔖 release: v$NEW_VERSION
 
 Bump version from $CURRENT_VERSION to $NEW_VERSION
+Reset OTA update counter to 0
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
