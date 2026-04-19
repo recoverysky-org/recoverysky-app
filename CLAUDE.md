@@ -38,6 +38,31 @@ npm run build:ios:device   # iOS physical device
 npm run build:android:sim  # Android emulator
 ```
 
+## ⚠️ Runtime Version & OTA Updates (READ FIRST)
+
+**The single most-forgotten thing in this repo.** OTAs only reach users whose installed native binary advertises a matching `runtimeVersion`. We manage the string manually in `app.json` (currently `"4.2.0"`), so it's on you to bump it whenever the native shape of the app changes.
+
+**⚠️ MANDATORY: Bump `runtimeVersion` in `app.json` when ANY of the following change:**
+- New, removed, or upgraded native dependency (anything that adds/changes native code)
+- Changed `app.json` native config (permissions, plugins, bundle ID, splash, etc.)
+- Changed `ios/Podfile`, `ios/Podfile.lock`, or CocoaPods configuration
+- Changed `android/build.gradle`, `android/app/build.gradle`, or native Android config
+- Changed or added EAS build plugins
+- Changed Expo SDK version
+
+**Do NOT bump for:**
+- JS-only changes (screens, components, styles, i18n, hooks, utils)
+- Asset changes (images, fonts)
+- OTA-publishable config changes
+
+**Mental shortcut:** if your change requires a fresh `npm run build:ios:prod` / `release:ios` / `release:android` to take effect, bump `runtimeVersion`. If `npm run update` (OTA) is enough, leave it alone. If you forget, your next OTA targets a runtime no installed user has → reaches nobody.
+
+**Convention:** Keep `runtimeVersion` in sync with `version` in `app.json`. When making a native change, bump both together (e.g., `"4.2.0"` → `"4.3.0"`). `bump-version.sh` (run via `npm run patch/minor/major`) automatically resets the `package.json` `update` field to `"0"` on each native version bump so the OTA counter restarts cleanly.
+
+The server's `/config` endpoint returns `LATEST_VERSION` which the app compares against `Application.nativeApplicationVersion`. If the user's native build is behind, they are prompted to update from the store before checking for OTA patches. See `app/utils/checkForUpdates.ts`.
+
+**Why not the `fingerprint` policy?** We tried it (commit `7a38e44`) and reverted (commit `aecb4f4`) because the hash came out different on local builds vs EAS — our postinstall pipeline (Zoom AAR extraction in `scripts/patch-zoom-android.sh`, the `patches/` directory, the various `patch-*.sh` scripts) is not deterministic across environments, so the local-computed fingerprint and the EAS-computed fingerprint disagreed. Plus a stale EAS GraphQL token broke fingerprint computation entirely on local builds. Significant time was spent trying to fix this; manual is the pragmatic floor. Don't revisit fingerprint without first making the postinstall pipeline reproducible across environments.
+
 ## Architecture
 
 ### Path Aliases
@@ -353,27 +378,6 @@ logger.info("User logged in", { userId: "123" })
 const log = useLogger("ScreenName")
 log.error("API failed", { endpoint: "/users" })
 ```
-
-## Runtime Version & OTA Updates
-
-The `runtimeVersion` in `app.json` is a manually managed string (currently `"4.2.0"`) that ties OTA updates to a specific native build. Users only receive OTA updates matching their build's runtime version.
-
-**⚠️ MANDATORY: Bump `runtimeVersion` in `app.json` when ANY of the following change:**
-- New, removed, or upgraded native dependency (anything that adds/changes native code)
-- Changed `app.json` native config (permissions, plugins, bundle ID, splash, etc.)
-- Changed `ios/Podfile`, `ios/Podfile.lock`, or CocoaPods configuration
-- Changed `android/build.gradle`, `android/app/build.gradle`, or native Android config
-- Changed or added EAS build plugins
-- Changed Expo SDK version
-
-**Do NOT bump for:**
-- JS-only changes (screens, components, styles, i18n, hooks, utils)
-- Asset changes (images, fonts)
-- OTA-publishable config changes
-
-**Convention:** Keep `runtimeVersion` in sync with `version` in `app.json`. When making a native change, bump both together (e.g., `"4.2.0"` → `"4.3.0"`). Reset `package.json` `update` field to `"0"` on each native version bump.
-
-The server's `/config` endpoint returns `LATEST_VERSION` which the app compares against `Application.nativeApplicationVersion`. If the user's native build is behind, they are prompted to update from the store before checking for OTA patches. See `app/utils/checkForUpdates.ts`.
 
 ## Environment Variables
 
