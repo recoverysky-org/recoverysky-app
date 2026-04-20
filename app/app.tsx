@@ -184,6 +184,17 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
     return
   }
 
+  // Dev builds on physical devices — skip attestation entirely.
+  // Play Integrity can't validate the debug signing key (not registered with
+  // Play Console), so every attempt fails, burns retries, and delays startup.
+  // Use X-API-Key fallback up front for a snappy dev loop.
+  if (__DEV__) {
+    log.info("Android dev build, skipping attestation and using X-API-Key")
+    api.setApiKeyAuth()
+    usingApiKeyFallback = true
+    return
+  }
+
   // Physical device - prepare Play Integrity for Android, then attest
   if (Platform.OS === "android" && GOOGLE_CLOUD_PROJECT_NUMBER) {
     await preparePlayIntegrity(GOOGLE_CLOUD_PROJECT_NUMBER)
@@ -376,8 +387,10 @@ export function App() {
           }) => {
             if (data?.screen) {
               log.info("Notification clicked, navigating", { screen: data.screen, ...data })
-              const { navigate: navTo, setPendingMeetingId } =
-                require("./navigators/navigationUtilities")
+              const {
+                navigate: navTo,
+                setPendingMeetingId,
+              } = require("./navigators/navigationUtilities")
               const params: Record<string, string> = {}
               if (data.section) params.section = data.section
               if (data.segment) params.segment = data.segment
@@ -477,8 +490,7 @@ export function App() {
   useEffect(() => {
     if (!rootStore) return
 
-    const NORMAL_INTERVAL =
-      (Number(process.env.EXPO_PUBLIC_CONFIG_POLL_SECONDS) || 60) * 1000
+    const NORMAL_INTERVAL = (Number(process.env.EXPO_PUBLIC_CONFIG_POLL_SECONDS) || 60) * 1000
     const MAINTENANCE_INTERVAL =
       (Number(process.env.EXPO_PUBLIC_CONFIG_POLL_MAINTENANCE_SECONDS) || 15) * 1000
 
@@ -487,7 +499,9 @@ export function App() {
     const startPolling = (ms: number) => {
       clearInterval(interval)
       interval = setInterval(() => {
-        log.debug("Config poll triggered", { maintenanceMode: rootStore.configStore.maintenanceMode })
+        log.debug("Config poll triggered", {
+          maintenanceMode: rootStore.configStore.maintenanceMode,
+        })
         rootStore.configStore.fetchConfig()
       }, ms)
     }
