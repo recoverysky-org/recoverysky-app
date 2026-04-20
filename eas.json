@@ -13,7 +13,7 @@
         "EXPO_PUBLIC_SOCIAL_URL": "https://social.recoverysky.app",
         "EXPO_PUBLIC_UMAMI_URL": "https://umami.recoverysky.app",
         "EXPO_PUBLIC_UMAMI_WEBSITE_ID": "de38e9ea-85fa-4572-aa6f-83e97e0ff45a",
-        "EXPO_PUBLIC_MIN_CREDIT_MINUTES": "10",
+        "EXPO_PUBLIC_MIN_CREDIT_MINUTES": "1",
         "EXPO_PUBLIC_REVIEW_ENABLED": "false",
         "EXPO_PUBLIC_REVIEW_MIN_MEETINGS": "4",
         "EXPO_PUBLIC_REVIEW_REMINDER_MEETINGS": "3",
@@ -25,7 +25,9 @@
         "EXPO_PUBLIC_USE_ZAK": "true",
         "EXPO_PUBLIC_AUTH0_DOMAIN": "auth.recoverysky.app",
         "EXPO_PUBLIC_AUTH0_AUDIENCE": "https://api.recoverysky.app",
-        "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "568757477015"
+        "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "568757477015",
+        "EXPO_PUBLIC_CONFIG_POLL_SECONDS": "60",
+        "EXPO_PUBLIC_CONFIG_POLL_MAINTENANCE_SECONDS": "15"
       }
     },
     "development": {
