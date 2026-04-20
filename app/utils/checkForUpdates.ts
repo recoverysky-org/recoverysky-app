@@ -5,7 +5,6 @@
  */
 
 import { Alert, Linking } from "react-native"
-import * as Application from "expo-application"
 import * as Updates from "expo-updates"
 
 import { translate } from "@/i18n"
@@ -14,6 +13,9 @@ import { logger } from "@/utils/logger"
 const log = logger.child({ module: "checkForUpdates" })
 
 const STORE_URL = "https://recoverysky.app/app#download"
+
+/** Local X.Y.Z from package.json — the OTA counter (`update`) is never compared. */
+const LOCAL_VERSION: string = require("../../package.json").version
 
 /**
  * Module-level lock that prevents stacked update prompts. Any caller (cold
@@ -24,10 +26,22 @@ const STORE_URL = "https://recoverysky.app/app#download"
  */
 let promptInFlight = false
 
-/** Returns true if current < latest (semver comparison) */
+/**
+ * Strip any `-Y` OTA-counter suffix so only the native `X.Y.Z` portion is
+ * compared. The store prompt is about native upgrades only; OTA delivery is
+ * handled separately by `Updates.checkForUpdateAsync()` below. Defensive on
+ * both sides even though today the server sends bare `X.Y.Z` — if either
+ * source ever drifts, NaN comparisons would silently skip the prompt.
+ */
+function stripOtaSuffix(v: string): string {
+  const dash = v.indexOf("-")
+  return dash === -1 ? v : v.slice(0, dash)
+}
+
+/** Returns true if current < latest (X.Y.Z only, OTA counter ignored). */
 function isVersionBehind(current: string, latest: string): boolean {
-  const c = current.split(".").map(Number)
-  const l = latest.split(".").map(Number)
+  const c = stripOtaSuffix(current).split(".").map(Number)
+  const l = stripOtaSuffix(latest).split(".").map(Number)
   for (let i = 0; i < 3; i++) {
     if ((c[i] ?? 0) < (l[i] ?? 0)) return true
     if ((c[i] ?? 0) > (l[i] ?? 0)) return false
@@ -49,11 +63,11 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
     return false
   }
 
-  const native = Application.nativeApplicationVersion ?? "0.0.0"
+  const local = LOCAL_VERSION
 
   // Step 1: Native version check
-  if (latestVersion && isVersionBehind(native, latestVersion)) {
-    log.info("Native version behind", { native, latest: latestVersion })
+  if (latestVersion && isVersionBehind(local, latestVersion)) {
+    log.info("Local version behind", { local, latest: latestVersion })
     promptInFlight = true
     return new Promise((resolve) => {
       Alert.alert(
@@ -82,7 +96,7 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
   }
 
   // Step 2: OTA update check
-  log.debug("Checking for OTA update", { native, latestVersion })
+  log.debug("Checking for OTA update", { local, latestVersion })
   let update: Updates.UpdateCheckResult
   try {
     update = await Updates.checkForUpdateAsync()
