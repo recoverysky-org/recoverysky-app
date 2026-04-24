@@ -78,9 +78,6 @@ export const ProfileStoreModel = types
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
 
-    // News dismissal tracking (empty string = first launch sentinel)
-    dismissedNews: types.optional(types.string, ""),
-
     // Money saved
     moneySavedWeekly: types.optional(types.number, 0), // simple weekly total
     moneySavedMon: types.optional(types.number, 0),
@@ -387,23 +384,6 @@ export const ProfileStoreModel = types
         self.dismissedHomeCards.clear()
       },
 
-      /**
-       * Dismiss the current news card — stores the news content so it won't show again
-       */
-      dismissNews(newsContent: string) {
-        self.dismissedNews = newsContent
-      },
-
-      /**
-       * Mark first launch complete without showing news.
-       * Uses a sentinel value so real news won't match on 2nd launch.
-       */
-      acknowledgeNewsFirstLaunch() {
-        if (self.dismissedNews === "") {
-          self.dismissedNews = "__initialized__"
-        }
-      },
-
       // === MONEY SAVED ===
 
       setMoneySavedWeekly(value: number) {
@@ -475,7 +455,6 @@ export const ProfileStoreModel = types
         self.imported = false
         self.aiConsentAccepted = false
         self.dismissedHomeCards.clear()
-        self.dismissedNews = ""
         self.moneySavedWeekly = 0
         self.moneySavedMon = 0
         self.moneySavedTue = 0

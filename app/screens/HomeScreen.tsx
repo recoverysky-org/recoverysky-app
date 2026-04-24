@@ -151,11 +151,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   }, [])
 
   // === News card state ===
+  // The news card is non-dismissible: whenever the server returns a title and
+  // body, we render it. Visibility gating (date windows, targeting, etc.) is
+  // the server's responsibility via /news.
   const [newsTitle, setNewsTitle] = useState("")
   const [newsBody, setNewsBody] = useState("")
-
-  // Combined key for dismiss comparison (changes when either title or body changes)
-  const newsKey = newsTitle && newsBody ? `${newsTitle}\n${newsBody}` : ""
 
   useEffect(() => {
     let cancelled = false
@@ -165,19 +165,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       if (cancelled) return
 
       if (result.kind === "ok" && result.title && result.body) {
-        const key = `${result.title}\n${result.body}`
-
-        // First-launch guard: silently acknowledge without showing
-        if (profileStore.dismissedNews === "") {
-          profileStore.acknowledgeNewsFirstLaunch()
-          return
-        }
-
-        // Only show if news differs from what was previously dismissed
-        if (key !== profileStore.dismissedNews) {
-          setNewsTitle(result.title)
-          setNewsBody(result.body)
-        }
+        setNewsTitle(result.title)
+        setNewsBody(result.body)
+      } else {
+        setNewsTitle("")
+        setNewsBody("")
       }
     }
 
@@ -185,14 +177,7 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
     return () => {
       cancelled = true
     }
-  }, [profileStore, profileStore.dismissedNews])
-
-  const handleDismissNews = useCallback(() => {
-    log.debug("News card dismissed")
-    profileStore.dismissNews(newsKey)
-    setNewsTitle("")
-    setNewsBody("")
-  }, [profileStore, newsKey])
+  }, [])
 
   // Show all undismissed cards at once
   const dismissedIds = profileStore.dismissedHomeCards.slice()
@@ -252,10 +237,10 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         )}
       </View>
 
-      {/* News announcement — always top box when visible */}
+      {/* News announcement — always top box when visible, non-dismissible */}
       {newsBody !== "" && (
         <View style={themed($newsContainer)}>
-          <NewsCard title={newsTitle} body={newsBody} onDismiss={handleDismissNews} />
+          <NewsCard title={newsTitle} body={newsBody} />
         </View>
       )}
 

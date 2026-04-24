@@ -1,67 +1,31 @@
 /**
  * NewsCard Component
  *
- * Dismissible news/announcement card for the Home screen.
- * Features:
- * - Icon + dynamic title + body from API
- * - Dismiss X button (top-right)
- * - Slide-out animation on dismiss (same as HelpCard)
+ * Non-dismissible news/announcement card for the Home screen. Always visible
+ * when the server returns a news payload — the card has no close affordance
+ * because the server decides whether a user should see an announcement.
  */
 
-import { FC, useRef } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Animated, Dimensions } from "react-native"
+import { FC } from "react"
+import { View, ViewStyle, TextStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 
 import { Text } from "@/components/Text"
-import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-
-const SCREEN_WIDTH = Dimensions.get("window").width
 
 export interface NewsCardProps {
   /** The news title from the API */
   title: string
   /** The news body from the API */
   body: string
-  /** Called when card is dismissed */
-  onDismiss: () => void
 }
 
-export const NewsCard: FC<NewsCardProps> = function NewsCard({ title, body, onDismiss }) {
+export const NewsCard: FC<NewsCardProps> = function NewsCard({ title, body }) {
   const { themed, theme } = useAppTheme()
-  const slideAnim = useRef(new Animated.Value(0)).current
-
-  const handleDismiss = () => {
-    Animated.timing(slideAnim, {
-      toValue: -SCREEN_WIDTH,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onDismiss()
-    })
-  }
 
   return (
-    <Animated.View
-      style={[
-        themed($card),
-        {
-          transform: [{ translateX: slideAnim }],
-        },
-      ]}
-    >
-      {/* Dismiss button */}
-      <Pressable
-        style={themed($dismissButton)}
-        onPress={handleDismiss}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="button"
-        accessibilityLabel={translate("common:close")}
-      >
-        <Text style={[themed($dismissText), { color: theme.colors.tint }]} tx="common:close" />
-      </Pressable>
-
+    <View style={themed($card)}>
       {/* Icon + Title row */}
       <View style={$headerRow}>
         <Ionicons name="megaphone-outline" size={24} color={theme.colors.tint} />
@@ -70,7 +34,7 @@ export const NewsCard: FC<NewsCardProps> = function NewsCard({ title, body, onDi
 
       {/* News body (plain string from API) */}
       <Text style={themed($description)} text={body} />
-    </Animated.View>
+    </View>
   )
 }
 
@@ -85,26 +49,11 @@ const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   marginBottom: spacing.md,
 })
 
-const $dismissButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  position: "absolute",
-  top: spacing.sm,
-  right: spacing.sm,
-  zIndex: 1,
-  paddingVertical: 2,
-  paddingHorizontal: spacing.xs,
-})
-
-const $dismissText: ThemedStyle<TextStyle> = () => ({
-  fontSize: 13,
-  fontWeight: "600",
-})
-
 const $headerRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   gap: 10,
   marginBottom: 8,
-  paddingRight: 24,
 }
 
 const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
