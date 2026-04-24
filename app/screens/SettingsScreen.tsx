@@ -1229,18 +1229,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[themed($upgradeButton), { opacity: 0.4 }]}
-          onPress={handleSendErrorReport}
-          disabled
-          accessibilityRole="button"
-          accessibilityLabel={translate("settingsScreen:sendErrorReport")}
-          accessibilityState={{ disabled: true }}
-        >
-          <Ionicons name="bug-outline" size={18} color={theme.colors.textDim} />
-          <Text style={themed($upgradeButtonText)} tx="settingsScreen:sendErrorReport" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={themed($upgradeButton)}
           onPress={handleCheckForUpdates}
           disabled={isCheckingUpdate}
