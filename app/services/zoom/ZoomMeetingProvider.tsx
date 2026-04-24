@@ -303,7 +303,13 @@ const ZoomSDKConsumer: FC<{ children: ReactNode; reinitializeSDK: () => void }> 
     try {
       await attendanceRepo.markProcessed(ctx.attendanceId, { start, end, credit, valid })
       log.info("Attendance saved", { attendanceId: ctx.attendanceId, valid, creditMins })
-      attendanceEvents.emit({ type: "processed", id: ctx.attendanceId, mid: ctx.mid, valid })
+      attendanceEvents.emit({
+        type: "processed",
+        id: ctx.attendanceId,
+        mid: ctx.mid,
+        valid,
+        source: "sdk",
+      })
 
       if (!valid) {
         log.debug("Meeting too short for credit", { attendanceId: ctx.attendanceId, creditMins })

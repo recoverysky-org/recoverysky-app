@@ -15,6 +15,8 @@ export type AttendanceChangeType =
   | "archived"
   | "delivery_resolved"
 
+export type AttendanceSource = "sdk" | "external-timer"
+
 export interface AttendanceChange {
   type: AttendanceChangeType
   id: string
@@ -24,6 +26,8 @@ export interface AttendanceChange {
   mid?: string
   /** Whether attendance met minimum duration (available on 'processed' events) */
   valid?: boolean
+  /** How the attendance was captured (available on 'processed' events) */
+  source?: AttendanceSource
   /** Attendance report ID (available on 'produced' events) */
   reportId?: string
   /** Whether delivery resolved with an error (only on 'delivery_resolved' events) */

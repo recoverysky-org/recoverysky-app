@@ -56,6 +56,7 @@ POST ${UMAMI_URL}/api/send
 
 | Event | Description | Data | Source |
 |---|---|---|---|
+| `attendance_validated` | Attendance record finished processing and met the credit threshold | `{ source: "sdk" \| "external-timer" \| "unknown" }` | `app/app.tsx` (subscriber over `attendanceEvents.processed`) |
 | `report_sent` | Attendance report sent to email | `{ type: "initial" \| "resend" \| "replace" \| "forward" }` | `app/hooks/useReportSender.ts` |
 | `report_confirmed` | Report delivery confirmed via polling | — | `app/hooks/useReportSender.ts` |
 

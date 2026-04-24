@@ -144,7 +144,13 @@ export async function saveTimerAttendance(
   }
 
   log.info("Timer attendance saved", { attendanceId, mid: input.mid, valid, creditMs: credit })
-  attendanceEvents.emit({ type: "processed", id: attendanceId, mid: input.mid, valid })
+  attendanceEvents.emit({
+    type: "processed",
+    id: attendanceId,
+    mid: input.mid,
+    valid,
+    source: "external-timer",
+  })
 
   return { ok: true, attendanceId, valid, creditMs: credit }
 }
