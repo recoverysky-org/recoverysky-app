@@ -50,6 +50,15 @@ const ar: Translations = {
     attestationFailedTitle: "فشل التحقق من الجهاز",
     attestationFailedMessage:
       "تعذّر على RecoverySky التحقق من هذا الجهاز. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.\n\nإذا استمرت المشكلة، يرجى إعادة تثبيت التطبيق أو الاتصال بـ support@recoverysky.app",
+    attestationUnsupportedTitle: "الجهاز غير مدعوم",
+    attestationUnsupportedMessage:
+      "لا يدعم هذا الجهاز التحقق الأمني المطلوب من RecoverySky.\n\nإذا كنت تعتقد أن هذا خطأ، يرجى الاتصال بـ support@recoverysky.app",
+    attestationAppleFailedTitle: "التحقق غير متاح",
+    attestationAppleFailedMessage:
+      "تعذّر على RecoverySky إكمال التحقق مع نظام الأمان في جهازك. يرجى المحاولة مرة أخرى بعد قليل.\n\nإذا استمرت المشكلة، يرجى إعادة تثبيت التطبيق أو الاتصال بـ support@recoverysky.app",
+    attestationServerFailedTitle: "تم رفض التحقق",
+    attestationServerFailedMessage:
+      "تعذّر على RecoverySky التحقق من هذا الجهاز مع خوادمنا. يرجى إعادة تثبيت التطبيق والمحاولة مرة أخرى.\n\nإذا استمرت المشكلة، يرجى الاتصال بـ support@recoverysky.app",
   },
   database: {
     initializing: "جارٍ تهيئة قاعدة البيانات...",

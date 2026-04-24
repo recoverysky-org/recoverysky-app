@@ -48,9 +48,22 @@ const en = {
   },
   errors: {
     invalidEmail: "Invalid email address.",
+    // Generic / network-flavored fallback (also used for transient connectivity issues).
     attestationFailedTitle: "Device Verification Failed",
     attestationFailedMessage:
       "RecoverySky could not verify this device. Please check your internet connection and try again.\n\nIf this problem persists, please reinstall the app or contact support@recoverysky.app",
+    // Shown when the device / OS can't participate in App Attest or Play Integrity at all.
+    attestationUnsupportedTitle: "Device Not Supported",
+    attestationUnsupportedMessage:
+      "This device does not support the security verification required by RecoverySky.\n\nIf you believe this is a mistake, please contact support@recoverysky.app",
+    // Shown when the Apple/Google framework itself failed (keygen, signing, Play Integrity API).
+    attestationAppleFailedTitle: "Verification Unavailable",
+    attestationAppleFailedMessage:
+      "RecoverySky could not complete verification with your device's security system. Please try again in a moment.\n\nIf this problem persists, please reinstall the app or contact support@recoverysky.app",
+    // Shown when our backend rejected a valid-looking attestation (401/403/400/bad-data).
+    attestationServerFailedTitle: "Verification Rejected",
+    attestationServerFailedMessage:
+      "RecoverySky could not verify this device with our servers. Please reinstall the app and try again.\n\nIf this problem persists, please contact support@recoverysky.app",
   },
   database: {
     initializing: "Initializing database...",

@@ -50,6 +50,15 @@ const th: Translations = {
     attestationFailedTitle: "การยืนยันอุปกรณ์ล้มเหลว",
     attestationFailedMessage:
       "RecoverySky ไม่สามารถยืนยันอุปกรณ์นี้ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหายังคงอยู่ กรุณาติดตั้งแอปใหม่หรือติดต่อ support@recoverysky.app",
+    attestationUnsupportedTitle: "อุปกรณ์ไม่รองรับ",
+    attestationUnsupportedMessage:
+      "อุปกรณ์นี้ไม่รองรับการยืนยันความปลอดภัยที่ RecoverySky ต้องการ\n\nหากคุณคิดว่านี่เป็นข้อผิดพลาด กรุณาติดต่อ support@recoverysky.app",
+    attestationAppleFailedTitle: "ไม่สามารถยืนยันได้ในขณะนี้",
+    attestationAppleFailedMessage:
+      "RecoverySky ไม่สามารถยืนยันกับระบบความปลอดภัยของอุปกรณ์ของคุณได้ กรุณาลองใหม่อีกครั้งในอีกสักครู่\n\nหากปัญหายังคงอยู่ กรุณาติดตั้งแอปใหม่หรือติดต่อ support@recoverysky.app",
+    attestationServerFailedTitle: "การยืนยันถูกปฏิเสธ",
+    attestationServerFailedMessage:
+      "RecoverySky ไม่สามารถยืนยันอุปกรณ์นี้กับเซิร์ฟเวอร์ของเราได้ กรุณาติดตั้งแอปใหม่แล้วลองอีกครั้ง\n\nหากปัญหายังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
   },
   database: {
     initializing: "กำลังเตรียมฐานข้อมูล...",

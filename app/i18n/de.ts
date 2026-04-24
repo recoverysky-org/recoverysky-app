@@ -52,6 +52,15 @@ const de: Translations = {
     attestationFailedTitle: "Geräteverifizierung Fehlgeschlagen",
     attestationFailedMessage:
       "RecoverySky konnte dieses Gerät nicht verifizieren. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.\n\nWenn das Problem weiterhin besteht, installieren Sie die App neu oder kontaktieren Sie support@recoverysky.app",
+    attestationUnsupportedTitle: "Gerät Nicht Unterstützt",
+    attestationUnsupportedMessage:
+      "Dieses Gerät unterstützt die von RecoverySky geforderte Sicherheitsverifizierung nicht.\n\nWenn Sie glauben, dass dies ein Fehler ist, kontaktieren Sie support@recoverysky.app",
+    attestationAppleFailedTitle: "Verifizierung Nicht Verfügbar",
+    attestationAppleFailedMessage:
+      "RecoverySky konnte die Verifizierung mit dem Sicherheitssystem Ihres Geräts nicht abschließen. Bitte versuchen Sie es in Kürze erneut.\n\nWenn das Problem weiterhin besteht, installieren Sie die App neu oder kontaktieren Sie support@recoverysky.app",
+    attestationServerFailedTitle: "Verifizierung Abgelehnt",
+    attestationServerFailedMessage:
+      "RecoverySky konnte dieses Gerät nicht mit unseren Servern verifizieren. Bitte installieren Sie die App neu und versuchen Sie es erneut.\n\nWenn das Problem weiterhin besteht, kontaktieren Sie support@recoverysky.app",
   },
   database: {
     initializing: "Datenbank wird initialisiert...",

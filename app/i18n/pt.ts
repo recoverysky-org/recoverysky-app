@@ -51,6 +51,15 @@ const pt: Translations = {
     attestationFailedTitle: "Falha na Verificação do Dispositivo",
     attestationFailedMessage:
       "O RecoverySky não conseguiu verificar este dispositivo. Verifique sua conexão com a internet e tente novamente.\n\nSe o problema persistir, reinstale o aplicativo ou entre em contato com support@recoverysky.app",
+    attestationUnsupportedTitle: "Dispositivo Não Compatível",
+    attestationUnsupportedMessage:
+      "Este dispositivo não oferece suporte à verificação de segurança exigida pelo RecoverySky.\n\nSe você acredita que isso é um engano, entre em contato com support@recoverysky.app",
+    attestationAppleFailedTitle: "Verificação Indisponível",
+    attestationAppleFailedMessage:
+      "O RecoverySky não conseguiu concluir a verificação com o sistema de segurança do seu dispositivo. Tente novamente em alguns instantes.\n\nSe o problema persistir, reinstale o aplicativo ou entre em contato com support@recoverysky.app",
+    attestationServerFailedTitle: "Verificação Rejeitada",
+    attestationServerFailedMessage:
+      "O RecoverySky não conseguiu verificar este dispositivo com nossos servidores. Reinstale o aplicativo e tente novamente.\n\nSe o problema persistir, entre em contato com support@recoverysky.app",
   },
   database: {
     initializing: "Inicializando banco de dados...",

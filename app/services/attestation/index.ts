@@ -34,7 +34,30 @@ export interface AttestationResult {
 export interface AttestationError {
   code: "UNSUPPORTED" | "SIMULATOR" | "ATTESTATION_FAILED" | "VERIFICATION_FAILED"
   message: string
+  /**
+   * For VERIFICATION_FAILED only: the underlying GeneralApiProblem.kind
+   * (e.g. "timeout", "unauthorized", "server"). Lets callers distinguish
+   * a 401 from a 5xx from a network drop without reverse-engineering
+   * the error message.
+   */
+  kind?: string
+  /**
+   * Whether another retry could plausibly succeed. UNSUPPORTED and
+   * SIMULATOR are always false; ATTESTATION_FAILED defaults to true
+   * (Apple/Play framework calls can have transient hiccups);
+   * VERIFICATION_FAILED follows the underlying GeneralApiProblem —
+   * timeouts/5xx/connection drops are temporary, 4xx/bad-data are not.
+   */
+  temporary: boolean
 }
+
+/** Map an api-layer GeneralApiProblem kind to attestation retry semantics. */
+const TEMPORARY_API_KINDS: ReadonlySet<string> = new Set([
+  "timeout",
+  "cannot-connect",
+  "server",
+  "unknown",
+])
 
 export type AttestationResponse =
   | { ok: true; data: AttestationResult }
@@ -170,7 +193,11 @@ export async function attestDevice(
     log.info("Web platform - attestation not supported")
     return {
       ok: false,
-      error: { code: "UNSUPPORTED", message: "Web platform not supported" },
+      error: {
+        code: "UNSUPPORTED",
+        message: "Web platform not supported",
+        temporary: false,
+      },
     }
   }
 
@@ -179,7 +206,11 @@ export async function attestDevice(
     log.info("Running on simulator, skipping attestation (using X-API-Key)")
     return {
       ok: false,
-      error: { code: "SIMULATOR", message: "Simulator detected, using API key fallback" },
+      error: {
+        code: "SIMULATOR",
+        message: "Simulator detected, using API key fallback",
+        temporary: false,
+      },
     }
   }
 
@@ -188,7 +219,11 @@ export async function attestDevice(
     log.warn("Attestation not supported on this device")
     return {
       ok: false,
-      error: { code: "UNSUPPORTED", message: "Device attestation not supported" },
+      error: {
+        code: "UNSUPPORTED",
+        message: "Device attestation not supported",
+        temporary: false,
+      },
     }
   }
 
@@ -221,12 +256,15 @@ export async function attestDevice(
     })
 
     if (response.kind !== "ok") {
-      log.error("Backend verification failed", { kind: response.kind })
+      const temporary = TEMPORARY_API_KINDS.has(response.kind)
+      log.error("Backend verification failed", { kind: response.kind, temporary })
       return {
         ok: false,
         error: {
           code: "VERIFICATION_FAILED",
           message: `API error: ${response.kind}`,
+          kind: response.kind,
+          temporary,
         },
       }
     }
@@ -240,9 +278,12 @@ export async function attestDevice(
     const message = err instanceof Error ? err.message : String(err)
     log.error("Attestation failed", { error: message, platform: Platform.OS })
 
+    // Apple App Attest / Play Integrity calls can have transient failures
+    // (service unavailable, network glitch while talking to Apple), so we
+    // treat framework-level errors as retryable by default.
     return {
       ok: false,
-      error: { code: "ATTESTATION_FAILED", message },
+      error: { code: "ATTESTATION_FAILED", message, temporary: true },
     }
   }
 }

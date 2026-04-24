@@ -51,6 +51,15 @@ const uk: Translations = {
     attestationFailedTitle: "Помилка Верифікації Пристрою",
     attestationFailedMessage:
       "RecoverySky не вдалося верифікувати цей пристрій. Перевірте підключення до інтернету та спробуйте знову.\n\nЯкщо проблема не зникне, перевстановіть додаток або зверніться за адресою support@recoverysky.app",
+    attestationUnsupportedTitle: "Пристрій Не Підтримується",
+    attestationUnsupportedMessage:
+      "Цей пристрій не підтримує перевірку безпеки, необхідну для RecoverySky.\n\nЯкщо ви вважаєте, що це помилка, зверніться за адресою support@recoverysky.app",
+    attestationAppleFailedTitle: "Верифікація Недоступна",
+    attestationAppleFailedMessage:
+      "RecoverySky не вдалося завершити перевірку в системі безпеки вашого пристрою. Спробуйте знову за мить.\n\nЯкщо проблема не зникне, перевстановіть додаток або зверніться за адресою support@recoverysky.app",
+    attestationServerFailedTitle: "Верифікацію Відхилено",
+    attestationServerFailedMessage:
+      "RecoverySky не вдалося підтвердити цей пристрій на наших серверах. Перевстановіть додаток і спробуйте знову.\n\nЯкщо проблема не зникне, зверніться за адресою support@recoverysky.app",
   },
   database: {
     initializing: "Ініціалізація бази даних...",

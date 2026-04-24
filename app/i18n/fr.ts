@@ -52,6 +52,15 @@ const fr: Translations = {
     attestationFailedTitle: "Échec de Vérification de l'Appareil",
     attestationFailedMessage:
       "RecoverySky n'a pas pu vérifier cet appareil. Veuillez vérifier votre connexion internet et réessayer.\n\nSi le problème persiste, réinstallez l'application ou contactez support@recoverysky.app",
+    attestationUnsupportedTitle: "Appareil Non Pris en Charge",
+    attestationUnsupportedMessage:
+      "Cet appareil ne prend pas en charge la vérification de sécurité requise par RecoverySky.\n\nSi vous pensez qu'il s'agit d'une erreur, contactez support@recoverysky.app",
+    attestationAppleFailedTitle: "Vérification Indisponible",
+    attestationAppleFailedMessage:
+      "RecoverySky n'a pas pu terminer la vérification avec le système de sécurité de votre appareil. Veuillez réessayer dans un instant.\n\nSi le problème persiste, réinstallez l'application ou contactez support@recoverysky.app",
+    attestationServerFailedTitle: "Vérification Rejetée",
+    attestationServerFailedMessage:
+      "RecoverySky n'a pas pu vérifier cet appareil auprès de nos serveurs. Veuillez réinstaller l'application et réessayer.\n\nSi le problème persiste, contactez support@recoverysky.app",
   },
   database: {
     initializing: "Initialisation de la base de données...",

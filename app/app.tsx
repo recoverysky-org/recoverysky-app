@@ -42,6 +42,7 @@ import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import {
+  attendanceEvents,
   DatabaseProvider,
   DatabaseLoadingOverlay,
   ProfileHydrator,
@@ -57,6 +58,7 @@ import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
 import {
   attestDevice,
+  type AttestationError,
   isAttestationSupported,
   isSimulator,
   preparePlayIntegrity,
@@ -122,13 +124,26 @@ const ATTESTATION_MAX_ATTEMPTS = ATTESTATION_RETRY_DELAYS.length + 1
 
 /**
  * Perform device attestation with retries and update API headers.
- * Returns true if attestation succeeded, false if all attempts failed.
+ * Returns `{ ok: true }` on success, or `{ ok: false, error }` with the
+ * last AttestationError on failure so the caller can choose a matching
+ * user-facing alert.
  */
-async function performAttestation(deviceId: string): Promise<boolean> {
+async function performAttestation(
+  deviceId: string,
+): Promise<{ ok: true } | { ok: false; error: AttestationError }> {
   if (!isAttestationSupported()) {
     log.info("Attestation not supported on this platform/device")
-    return false
+    return {
+      ok: false,
+      error: {
+        code: "UNSUPPORTED",
+        message: "Attestation not supported on this platform/device",
+        temporary: false,
+      },
+    }
   }
+
+  let lastError: AttestationError | undefined
 
   for (let attempt = 1; attempt <= ATTESTATION_MAX_ATTEMPTS; attempt++) {
     log.info("Performing device attestation", { attempt, of: ATTESTATION_MAX_ATTEMPTS })
@@ -141,14 +156,28 @@ async function performAttestation(deviceId: string): Promise<boolean> {
         attempt,
         expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",
       })
-      return true
+      return { ok: true }
     }
 
+    lastError = result.error
     log.error("Device attestation failed", {
       attempt,
       code: result.error.code,
+      kind: result.error.kind,
+      temporary: result.error.temporary,
       message: result.error.message,
     })
+
+    // Short-circuit: if the error is non-transient (unsupported device,
+    // 401/403 from backend, bad-data), no number of retries will help.
+    // Fail fast and let the caller surface a specific alert.
+    if (!result.error.temporary) {
+      log.warn("Attestation error is non-temporary — skipping remaining retries", {
+        code: result.error.code,
+        kind: result.error.kind,
+      })
+      return { ok: false, error: result.error }
+    }
 
     // Wait before retrying (unless last attempt)
     if (attempt < ATTESTATION_MAX_ATTEMPTS) {
@@ -159,7 +188,14 @@ async function performAttestation(deviceId: string): Promise<boolean> {
   }
 
   log.error("All attestation attempts exhausted", { attempts: ATTESTATION_MAX_ATTEMPTS })
-  return false
+  return {
+    ok: false,
+    error: lastError ?? {
+      code: "ATTESTATION_FAILED",
+      message: "Attestation exhausted with no error captured",
+      temporary: true,
+    },
+  }
 }
 
 /**
@@ -201,14 +237,19 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
   }
 
   // Perform initial attestation
-  const success = await performAttestation(deviceId)
-  if (!success) {
-    log.fatal("Initial attestation failed after all retries, blocking app")
+  const attestResult = await performAttestation(deviceId)
+  if (!attestResult.ok) {
+    log.fatal("Initial attestation failed, blocking app", {
+      code: attestResult.error.code,
+      kind: attestResult.error.kind,
+      temporary: attestResult.error.temporary,
+    })
+    const { titleKey, messageKey } = pickAttestationAlertStrings(attestResult.error)
     // Show fatal alert — user must close or retry. No API key fallback on physical devices.
     return new Promise<void>(() => {
       Alert.alert(
-        translate("errors:attestationFailedTitle"),
-        translate("errors:attestationFailedMessage"),
+        translate(titleKey),
+        translate(messageKey),
         [
           {
             text: translate("common:retry"),
@@ -226,6 +267,58 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
         { cancelable: false },
       )
     })
+  }
+}
+
+/**
+ * Pick the title + message i18n keys that best match an AttestationError.
+ *
+ * Mapping:
+ * - UNSUPPORTED (device/OS can't participate) → "Device Not Supported"
+ * - ATTESTATION_FAILED (Apple App Attest / Play Integrity API threw) →
+ *     "Verification Unavailable" (their service, not ours)
+ * - VERIFICATION_FAILED with transient kind (timeout / cannot-connect /
+ *     server / unknown) → generic "Device Verification Failed" with network
+ *     framing — fits the "check your internet" copy already in the string
+ * - VERIFICATION_FAILED with non-transient kind (401 / 403 / rejected /
+ *     bad-data) → "Verification Rejected" — our backend said no, retrying
+ *     won't help, user likely needs a reinstall
+ * - Fallback → generic
+ */
+function pickAttestationAlertStrings(
+  error: AttestationError,
+): { titleKey: "errors:attestationFailedTitle" | "errors:attestationUnsupportedTitle" | "errors:attestationAppleFailedTitle" | "errors:attestationServerFailedTitle"
+    messageKey: "errors:attestationFailedMessage" | "errors:attestationUnsupportedMessage" | "errors:attestationAppleFailedMessage" | "errors:attestationServerFailedMessage" } {
+  switch (error.code) {
+    case "UNSUPPORTED":
+      return {
+        titleKey: "errors:attestationUnsupportedTitle",
+        messageKey: "errors:attestationUnsupportedMessage",
+      }
+    case "ATTESTATION_FAILED":
+      return {
+        titleKey: "errors:attestationAppleFailedTitle",
+        messageKey: "errors:attestationAppleFailedMessage",
+      }
+    case "VERIFICATION_FAILED":
+      // Network-flavored failures keep the existing "check your internet"
+      // copy; everything else goes to the server-rejected variant.
+      if (error.temporary) {
+        return {
+          titleKey: "errors:attestationFailedTitle",
+          messageKey: "errors:attestationFailedMessage",
+        }
+      }
+      return {
+        titleKey: "errors:attestationServerFailedTitle",
+        messageKey: "errors:attestationServerFailedMessage",
+      }
+    case "SIMULATOR":
+    default:
+      return {
+        titleKey: "errors:attestationFailedTitle",
+        messageKey: "errors:attestationFailedMessage",
+      }
   }
 }
 
@@ -665,6 +758,22 @@ export function App() {
     return () => {
       subscription.remove()
     }
+  }, [])
+
+  // Fire Umami `attendance_validated` whenever an attendance record finishes
+  // processing with `valid === true`. We track the *validation* event rather
+  // than raw creation because records can be created optimistically (e.g. the
+  // SDK marks a meeting as joined) and then invalidated when the user cancels
+  // below the credit threshold — those should not count as attendance in
+  // analytics. One subscriber covers both the native SDK path and the
+  // external-Zoom timer path via their shared `processed` emit.
+  useEffect(() => {
+    const unsubscribe = attendanceEvents.subscribe((event) => {
+      if (event.type === "processed" && event.valid === true) {
+        trackEvent("attendance_validated", { source: event.source ?? "unknown" })
+      }
+    })
+    return unsubscribe
   }, [])
 
   // Sync OS notification permission with profileStore on foreground resume
