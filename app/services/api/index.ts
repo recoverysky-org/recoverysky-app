@@ -707,7 +707,11 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Config request failed", { problem: problem?.kind })
+      log.warn("Config request failed", {
+        problem: problem?.kind,
+        url: `${this.recoverySkyApi.getBaseURL()}/config`,
+        status: response.status ?? 0,
+      })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
