@@ -165,10 +165,14 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
     }
   }, [visible, meetingId, meetingUrl, meetingName, uid])
 
-  const handleSave = async () => {
+  const handleSave = async (force = false) => {
     // Ref lock is authoritative — blocks same-tick re-entries before React
     // has a chance to flush the `saving` state update.
-    if (!meeting || !startedAt || !canSave || savingRef.current) return
+    if (!meeting || !startedAt || savingRef.current) return
+    // `force` bypasses the credit threshold (used by the 7-tap shortcut —
+    // support path for sessions that legitimately ran long but fell through
+    // the SDK). Normal Save path still gates on canSave.
+    if (!force && !canSave) return
     savingRef.current = true
     setSaving(true)
     const endedAt = Date.now()
@@ -177,6 +181,7 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       startedAt,
       endedAt,
       creditMs: endedAt - startedAt,
+      forced: force,
     })
     try {
       const result = await saveTimerAttendance({
@@ -253,6 +258,27 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
 
   const formatted = useMemo(() => formatElapsed(elapsed), [elapsed])
 
+  // Tap-shortcut: 7 taps within 2.5s on the timer forces a Save, bypassing
+  // the credit-minute threshold. Meant as an escape hatch for edge cases
+  // where the user legitimately met in person or the timer started late.
+  const tapsRef = useRef<number[]>([])
+  const FORCE_SAVE_TAP_COUNT = 7
+  const FORCE_SAVE_WINDOW_MS = 2500
+  const handleTimerTap = () => {
+    const now = Date.now()
+    const recent = tapsRef.current.filter((t) => now - t < FORCE_SAVE_WINDOW_MS)
+    recent.push(now)
+    tapsRef.current = recent
+    if (recent.length >= FORCE_SAVE_TAP_COUNT) {
+      tapsRef.current = []
+      log.info("Timer force-save triggered by tap shortcut", {
+        mid: meeting?.id,
+        elapsedMs: elapsed,
+      })
+      void handleSave(true)
+    }
+  }
+
   return (
     <Modal
       visible={visible}
@@ -280,7 +306,9 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
             </Text>
           )}
 
-          <Text style={themed($timer)}>{formatted}</Text>
+          <Pressable onPress={handleTimerTap} accessibilityLabel={formatted}>
+            <Text style={themed($timer)}>{formatted}</Text>
+          </Pressable>
 
           <Text
             style={themed($hint)}
@@ -299,7 +327,9 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
             </Pressable>
 
             <Pressable
-              onPress={handleSave}
+              onPress={() => {
+                void handleSave()
+              }}
               disabled={!canSave}
               style={[themed($saveButton), !canSave && themed($saveButtonDisabled)]}
               accessibilityRole="button"
