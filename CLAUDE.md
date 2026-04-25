@@ -123,7 +123,7 @@ const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ### Navigation
 React Navigation v7 in `app/navigators/`:
 
-**App-level gating** (`AppNavigator.tsx`): Login → ZoomSetup → Onboarding → Main. Each gate is a persistent flag in ProfileStore (`isAuthenticated`, `zoomConnected`, `onboardingCompleted`).
+**App-level gating** (`AppNavigator.tsx`): outage check → Login → ZoomSetup → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when the cold-start `/config` fetch failed and there's nothing cached to render — see "Maintenance Mode" below. The remaining gates are persistent flags (`isAuthenticated`, `zoomConnected`, `onboardingCompleted`).
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `attendanceEnabled`), Agent (conditional on `isPremium`), Settings.
 
@@ -152,6 +152,66 @@ Apisauce wrapper in `app/services/api/`:
 - Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, Umami
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
 - Firebase import endpoints: `getFirebaseUser()`, `getFirebaseAttendance()`, `getFirebaseReports()`, `checkFirebaseUser()` — types exported as `FirebaseUserData`, `FirebaseAttendanceRecord`, `FirebaseReportRecord`
+
+### Maintenance Mode
+
+Two distinct states, **never conflate them** — the distinction matters because
+one is a non-blocking banner and the other is a full-screen takeover, and
+the wrong gate has historically killed in-meeting Zoom timers.
+
+- **`configStore.maintenanceMode`** (runtime maintenance): server flagged
+  `MAINTENANCE_MODE` via `/config`, **or** `/config` polling has failed
+  past the retry budget after a previous successful load. Shows the
+  `<MaintenanceBanner />` (yellow sticky strip) and signals API-dependent
+  features to self-disable. **Does NOT gate the navigator.** Mid-meeting
+  Zoom timer (`ExternalZoomTimerModal` inside `SchedulePopup`) must
+  survive maintenance flipping on; gating navigation here would unmount
+  it.
+- **`configStore.outageMode`** (cold-start gate): the app launched into
+  an unusable state — either the first `/config` fetch failed (nothing
+  cached to render) **or** the fetch succeeded but reported
+  `MAINTENANCE_MODE=true`. AppNavigator routes to `MaintenanceScreen`
+  **only** when this is true. Set by `setOutageMode()` in `app.tsx`'s
+  init path. Cleared automatically on the next `/config` fetch that
+  returns with maintenance off — runtime maintenance does NOT clear it,
+  so a user who launched into maintenance stays on the full screen
+  until the service is healthy again.
+
+**The banner** (`app/components/MaintenanceBanner.tsx`) is mounted as a
+sibling to `<AppNavigator />` in `app.tsx`'s provider tree, with absolute
+positioning + high `zIndex`, so it draws above every screen and modal.
+It observes `maintenanceMode` only — outage doesn't double-render
+because the full-screen takes over.
+
+**API-dependent features that self-disable when `maintenanceMode` is
+true:**
+- `MeetingProvider.refreshLiveMeetings()` (`app/context/MeetingContext.tsx`)
+  — early-returns; the existing maintenance-exit reaction fires a
+  refresh automatically when the flag clears.
+- `ListingsScreen.fetchDailySchedules()` (`app/screens/ListingsScreen.tsx`)
+  — separate path from MeetingContext (the Listings tab's own
+  pull-to-refresh hits this directly), so it needs its own gate. Also
+  early-returns.
+- `useReportSender.send()` (`app/hooks/useReportSender.ts`) — defensive
+  early-return; the AttendanceScreen Send button visually disables via
+  `canSendReport` AND'd with `!maintenanceMode`.
+- `SchedulePopup.handleCellPress()` (`app/components/SchedulePopup.tsx`)
+  — reminders rely on server-side push scheduling; block reminder
+  creation/edit so users don't think they set a reminder that we
+  couldn't actually deliver.
+- Settings → Import row (`app/screens/SettingsScreen.tsx`) — disabled
+  with the standard greyed-out pattern.
+
+**`MAINTENANCE_UPDATE` was removed.** The OTA-reload-at-end-of-maintenance
+path complicated the model and the rare edge case it served (server
+forces an update after maintenance) is better handled by the regular
+foreground OTA check. Don't add it back without a strong reason.
+
+**Why MobX, not an event bus.** `maintenanceMode` is observable; any
+`observer()` component reacts automatically. Adding a parallel
+`maintenanceEvents` channel would create two sources of truth. If
+non-React code ever needs to read it, just grab
+`rootStore.configStore.maintenanceMode` directly.
 
 ### Subscription System (RevenueCat)
 In `app/services/purchases/`:
