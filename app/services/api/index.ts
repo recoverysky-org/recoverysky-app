@@ -406,6 +406,38 @@ export class Api {
   }
 
   /**
+   * Public health probe used at cold start, BEFORE attestation runs.
+   *
+   * Skips waitForAttestation() — that's the whole point: we need to know
+   * whether the API is reachable before we attempt /attest. If the API is
+   * down, attestation would fail with a misleading "Device Verification
+   * Failed" alert; this precheck lets us route directly to the outage
+   * MaintenanceScreen instead.
+   *
+   * Binary pass/fail — body field is ignored. /status itself doesn't
+   * require auth, and at cold start no X-Device-Token / X-API-Key has
+   * been set yet, so the request goes out unauthenticated.
+   */
+  async getPublicStatus(): Promise<{ kind: "ok" } | GeneralApiProblem> {
+    log.debug("Checking API public status (pre-attestation)")
+
+    const response = await this.recoverySkyApi.get<{ status: string }>("/status")
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("API public status check failed", {
+        problem: problem?.kind,
+        status: response.status ?? 0,
+      })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.info("API public status OK")
+    return { kind: "ok" }
+  }
+
+  /**
    * Get live meeting IDs from the RecoverySky API
    *
    * Returns array of meeting IDs that are currently live.

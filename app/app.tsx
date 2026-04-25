@@ -402,6 +402,45 @@ export function App() {
         _rootStore.authenticationStore.setDeviceId(deviceId)
         logger.setContext({ deviceId })
 
+        // /status precheck — runs BEFORE attestation. If the API is
+        // unreachable, /attest will fail with a misleading "Device
+        // Verification Failed" alert. /status is unauthenticated and
+        // doesn't require any of the JWTs we're about to set up, so it's
+        // the right way to detect "API is down at startup" cleanly.
+        //
+        // Fail fast (3 attempts, ~7 s budget) so users on a real outage
+        // see the MaintenanceScreen quickly instead of staring at the
+        // splash for half a minute.
+        const STATUS_RETRY_DELAYS = [1000, 2000, 4000]
+        let statusOk = false
+        for (let attempt = 1; attempt <= STATUS_RETRY_DELAYS.length + 1; attempt++) {
+          const result = await api.getPublicStatus()
+          if (result.kind === "ok") {
+            statusOk = true
+            if (attempt > 1) log.info("/status precheck recovered", { attempt })
+            break
+          }
+          log.warn("/status precheck failed", { attempt, kind: result.kind })
+          if (attempt <= STATUS_RETRY_DELAYS.length) {
+            await new Promise((r) => setTimeout(r, STATUS_RETRY_DELAYS[attempt - 1]))
+          }
+        }
+
+        if (!statusOk) {
+          log.warn("/status precheck exhausted retries — entering outage mode")
+          _rootStore.configStore.setOutageMode()
+          // Mount the root store so the app shell renders (AppNavigator
+          // routes to MaintenanceScreen on outageMode). Skip attestation
+          // and fetchConfig — both would fail anyway, and downstream
+          // setup (Umami, push notifications, RevenueCat) all depend on
+          // configStore being loaded. The outage-recovery effect below
+          // will detect when /status comes back and reload the app.
+          setRootStore(_rootStore)
+          trackEvent("app_initialized", { sessionId, outage: true })
+          log.info("App initialization complete (outage mode)")
+          return
+        }
+
         // Initialize device authorization (attestation or API key fallback)
         // This blocks until we have valid device credentials
         await initializeDeviceAuthorization(deviceId)
@@ -624,6 +663,50 @@ export function App() {
 
     return () => {
       clearInterval(interval)
+      dispose()
+    }
+  }, [rootStore])
+
+  // Outage recovery loop — polls /status while we're stuck in cold-start
+  // outage mode. When the API comes back, reload the app so the full init
+  // sequence (attestation, fetchConfig, Umami, push, etc.) re-runs from
+  // scratch. Reload is the safe option here: the bootstrap registers MobX
+  // reactions that would duplicate if we re-ran init in place. The user
+  // sees a brief splash flash but no manual intervention is needed.
+  useEffect(() => {
+    if (!rootStore) return
+
+    let interval: ReturnType<typeof setInterval> | undefined
+
+    const dispose = reaction(
+      () => rootStore.configStore.outageMode,
+      (inOutage) => {
+        if (interval) {
+          clearInterval(interval)
+          interval = undefined
+        }
+        if (!inOutage) return
+
+        log.info("Outage detected — starting /status recovery polling")
+        interval = setInterval(async () => {
+          const result = await api.getPublicStatus()
+          if (result.kind === "ok") {
+            log.info("/status recovered — reloading app to resume init")
+            if (interval) {
+              clearInterval(interval)
+              interval = undefined
+            }
+            Updates.reloadAsync().catch((e) => {
+              log.warn("reloadAsync failed during outage recovery", { error: String(e) })
+            })
+          }
+        }, 15_000)
+      },
+      { fireImmediately: true },
+    )
+
+    return () => {
+      if (interval) clearInterval(interval)
       dispose()
     }
   }, [rootStore])
