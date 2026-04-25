@@ -123,7 +123,7 @@ const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ### Navigation
 React Navigation v7 in `app/navigators/`:
 
-**App-level gating** (`AppNavigator.tsx`): outage check → Login → ZoomSetup → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when the cold-start `/config` fetch failed and there's nothing cached to render — see "Maintenance Mode" below. The remaining gates are persistent flags (`isAuthenticated`, `zoomConnected`, `onboardingCompleted`).
+**App-level gating** (`AppNavigator.tsx`): outage check → Login → ZoomSetup → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are persistent flags (`isAuthenticated`, `zoomConnected`, `onboardingCompleted`).
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `attendanceEnabled`), Agent (conditional on `isPremium`), Settings.
 
@@ -149,6 +149,7 @@ Apisauce wrapper in `app/services/api/`:
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
 - Attestation queueing: `setAttestationInProgress(promise)` — API calls wait via `waitForAttestation()` before proceeding
 - Device auth: `setDeviceJwt(jwt)` sets `X-Device-Token`; `setApiKeyAuth()` fallback for simulators without attestation
+- Public status probe: `getPublicStatus()` skips `waitForAttestation()` and is the only API call that can run before any device JWT is set. Used at cold start to detect API outage *before* attempting attestation — see "Maintenance Mode" below. The authenticated `getStatus()` (which awaits attestation) is still used at runtime by `MeetingContext` for the connectivity indicator.
 - Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, Umami
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
 - Firebase import endpoints: `getFirebaseUser()`, `getFirebaseAttendance()`, `getFirebaseReports()`, `checkFirebaseUser()` — types exported as `FirebaseUserData`, `FirebaseAttendanceRecord`, `FirebaseReportRecord`
@@ -168,14 +169,27 @@ the wrong gate has historically killed in-meeting Zoom timers.
   survive maintenance flipping on; gating navigation here would unmount
   it.
 - **`configStore.outageMode`** (cold-start gate): the app launched into
-  an unusable state — either the first `/config` fetch failed (nothing
-  cached to render) **or** the fetch succeeded but reported
-  `MAINTENANCE_MODE=true`. AppNavigator routes to `MaintenanceScreen`
-  **only** when this is true. Set by `setOutageMode()` in `app.tsx`'s
-  init path. Cleared automatically on the next `/config` fetch that
-  returns with maintenance off — runtime maintenance does NOT clear it,
-  so a user who launched into maintenance stays on the full screen
-  until the service is healthy again.
+  an unusable state. Three triggers, all set by `setOutageMode()` in
+  `app.tsx`'s init path:
+  1. `/status` precheck failed (API unreachable). This runs BEFORE
+     attestation specifically so an outage doesn't get misreported as
+     "Device Verification Failed" (`/attest` would fail too). Calls
+     `api.getPublicStatus()` which skips `waitForAttestation()` since
+     no JWT exists yet.
+  2. `/config` fetch failed after the `/status` precheck passed
+     (transient half-up state).
+  3. `/config` fetch succeeded but reported `MAINTENANCE_MODE=true`
+     at startup.
+
+  AppNavigator routes to `MaintenanceScreen` only when this is true. A
+  recovery `useEffect` polls `/status` every 15 s while we're in outage
+  and calls `Updates.reloadAsync()` once the API responds — the reload
+  is the safe path because the bootstrap registers MobX reactions that
+  would duplicate on in-place re-init. Cleared automatically on the
+  next `/config` fetch that returns with maintenance off — runtime
+  maintenance does NOT clear it, so a user who launched into
+  maintenance stays on the full screen until the service is healthy
+  again.
 
 **The banner** (`app/components/MaintenanceBanner.tsx`) is mounted as a
 sibling to `<AppNavigator />` in `app.tsx`'s provider tree, with absolute
