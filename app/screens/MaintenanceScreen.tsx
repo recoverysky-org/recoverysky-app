@@ -1,9 +1,13 @@
 /**
  * MaintenanceScreen
  *
- * Shown when the server signals MAINTENANCE_MODE: true via /config,
- * or when the config endpoint is unreachable at startup.
- * Auto-dismisses when configStore.maintenanceMode becomes false (polling).
+ * Shown only on cold-start outage — the very first /config fetch failed
+ * with no cached data to render. AppNavigator routes here when
+ * configStore.outageMode is true. Auto-dismisses (via the navigator)
+ * when the next successful /config fetch clears outageMode.
+ *
+ * Runtime maintenance no longer shows this screen — the non-blocking
+ * MaintenanceBanner handles that case.
  */
 import { FC } from "react"
 import { View, ViewStyle, TextStyle, ActivityIndicator, Pressable, Linking } from "react-native"
@@ -13,7 +17,6 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
-import { useConfigStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -21,74 +24,28 @@ const SUPPORT_URL = "https://www.recoverysky.app/support"
 
 export const MaintenanceScreen: FC = observer(function MaintenanceScreen() {
   const { themed, theme } = useAppTheme()
-  const configStore = useConfigStore()
-
-  // Maintenance is off but OTA update is in progress — show updating state
-  const isUpdating = !configStore.maintenanceMode && configStore.maintenanceUpdate
-
-  const hasCustomMessage = !!configStore.maintenanceMessage
-  const hasEta = !!configStore.maintenanceUntil
-
-  // Format ETA if provided
-  let etaDisplay = ""
-  if (hasEta) {
-    try {
-      const date = new Date(configStore.maintenanceUntil)
-      etaDisplay = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    } catch {
-      etaDisplay = configStore.maintenanceUntil
-    }
-  }
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} contentContainerStyle={themed($container)}>
       <View style={$content}>
-        <Ionicons
-          name={isUpdating ? "cloud-download-outline" : "construct-outline"}
-          size={80}
-          color={theme.colors.tint}
-        />
-
-        {isUpdating ? (
-          <>
-            <Text style={themed($title)} tx="maintenance:updatingTitle" />
-            <Text style={themed($subtitle)} tx="maintenance:updatingSubtitle" />
-          </>
-        ) : (
-          <>
-            <Text
-              style={themed($title)}
-              text={hasCustomMessage ? configStore.maintenanceMessage : undefined}
-              tx={hasCustomMessage ? undefined : "maintenance:title"}
-            />
-
-            {hasEta ? (
-              <Text style={themed($subtitle)} tx="maintenance:eta" txOptions={{ time: etaDisplay }} />
-            ) : (
-              <Text style={themed($subtitle)} tx="maintenance:subtitle" />
-            )}
-          </>
-        )}
+        <Ionicons name="construct-outline" size={80} color={theme.colors.tint} />
+        <Text style={themed($title)} tx="maintenance:title" />
+        <Text style={themed($subtitle)} tx="maintenance:subtitle" />
       </View>
 
       <View style={$footer}>
         <ActivityIndicator size="small" color={theme.colors.textDim} />
-        <Text
-          style={themed($checkingText)}
-          tx={isUpdating ? "maintenance:updating" : "maintenance:checking"}
-        />
+        <Text style={themed($checkingText)} tx="maintenance:checking" />
 
-        {!isUpdating && (
-          <Pressable
-            onPress={() => Linking.openURL(SUPPORT_URL)}
-            accessibilityRole="link"
-            accessibilityLabel={translate("maintenance:support")}
-            style={$supportLink}
-          >
-            <Ionicons name="help-circle-outline" size={16} color={theme.colors.tint} />
-            <Text style={[themed($supportText), { color: theme.colors.tint }]} tx="maintenance:support" />
-          </Pressable>
-        )}
+        <Pressable
+          onPress={() => Linking.openURL(SUPPORT_URL)}
+          accessibilityRole="link"
+          accessibilityLabel={translate("maintenance:support")}
+          style={$supportLink}
+        >
+          <Ionicons name="help-circle-outline" size={16} color={theme.colors.tint} />
+          <Text style={[themed($supportText), { color: theme.colors.tint }]} tx="maintenance:support" />
+        </Pressable>
       </View>
     </Screen>
   )

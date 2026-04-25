@@ -75,8 +75,14 @@ export const ConfigStoreModel = types
     maintenanceMessage: types.optional(types.string, ""),
     /** ISO timestamp for estimated maintenance end */
     maintenanceUntil: types.optional(types.string, ""),
-    /** Whether an OTA update should be applied when maintenance ends */
-    maintenanceUpdate: types.optional(types.boolean, false),
+    /**
+     * Cold-start outage: the very first /config fetch failed and we have no
+     * cached data to render. The AppNavigator routes to MaintenanceScreen
+     * only when this is true. Runtime maintenance (server flag flips, or
+     * polling failure after retries) flips `maintenanceMode` instead, which
+     * shows the non-blocking banner.
+     */
+    outageMode: types.optional(types.boolean, false),
     /** Latest native app version available in the App Store / Play Store */
     latestVersion: types.optional(types.string, ""),
     /** Whether config has been fetched from server */
@@ -134,17 +140,17 @@ export const ConfigStoreModel = types
               if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
               if (config.REVIEW_ENABLED !== undefined)
                 store.reviewEnabled = config.REVIEW_ENABLED
-              const wasInMaintenance = store.maintenanceMode
               store.maintenanceMode = config.MAINTENANCE_MODE ?? false
               store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
               store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
-              // Only accept the update flag if we are or were in maintenance.
-              // Prevents a stale MAINTENANCE_UPDATE: true on cold start from
-              // triggering the maintenance gate when MAINTENANCE_MODE is false.
-              store.maintenanceUpdate =
-                (wasInMaintenance || store.maintenanceMode) &&
-                (config.MAINTENANCE_UPDATE ?? false)
               if (config.LATEST_VERSION) store.latestVersion = config.LATEST_VERSION
+              // Clear any cold-start outage gate ONLY when the service
+              // reports itself as healthy. While maintenance is active we
+              // keep the gate up so the user-facing state (full-screen vs
+              // banner) is decided at app startup and doesn't flip mid-poll.
+              if (!store.maintenanceMode) {
+                store.outageMode = false
+              }
               store.isLoaded = true
 
               const zoomKeyPreview = store.zoomSdkKey
@@ -195,20 +201,13 @@ export const ConfigStoreModel = types
     }),
 
     /**
-     * Enter maintenance mode due to config endpoint outage.
-     * Called when all fetchConfig retries are exhausted at startup.
+     * Enter cold-start outage mode. Called when all fetchConfig retries are
+     * exhausted at startup with nothing cached. AppNavigator uses this — and
+     * only this — to route to the full-screen MaintenanceScreen. Runtime
+     * maintenance flips `maintenanceMode` instead and shows a banner.
      */
     setOutageMode() {
-      store.maintenanceMode = true
-      store.maintenanceMessage = ""
-      store.maintenanceUntil = ""
-    },
-
-    /**
-     * Clear the maintenance update flag after OTA update completes or fails.
-     */
-    clearMaintenanceUpdate() {
-      store.maintenanceUpdate = false
+      store.outageMode = true
     },
 
     /**
@@ -233,7 +232,7 @@ export const ConfigStoreModel = types
       store.maintenanceMode = false
       store.maintenanceMessage = ""
       store.maintenanceUntil = ""
-      store.maintenanceUpdate = false
+      store.outageMode = false
       store.isLoaded = false
     },
   }))

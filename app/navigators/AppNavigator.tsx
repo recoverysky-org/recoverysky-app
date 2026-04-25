@@ -20,7 +20,6 @@ import { TermsScreen } from "@/screens/TermsScreen"
 import { ZoomLoginScreen } from "@/screens/ZoomLoginScreen"
 import { ZoomSetupScreen } from "@/screens/ZoomSetupScreen"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
-import { useZoomContext } from "@/services/zoom/ZoomMeetingProvider"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
@@ -47,15 +46,17 @@ const AppStack = observer(function AppStack() {
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
   const profileStore = useProfileStore()
-  const { meetingState } = useZoomContext()
   const isAuthenticated = authStore.isAuthenticated
   const needsZoomSetup = !profileStore.zoomConnected
   const needsOnboarding = !profileStore.onboardingCompleted
-  // Defer maintenance gate while user is in a Zoom meeting.
-  // Also keep the gate up while an OTA update is being applied after maintenance ends.
-  const showMaintenance =
-    (configStore.maintenanceMode || configStore.maintenanceUpdate) && meetingState !== "inMeeting"
-  log.debug("Auth state retrieved", { isAuthenticated, needsZoomSetup, needsOnboarding, showMaintenance })
+  // Full-screen MaintenanceScreen is reserved for the cold-start outage:
+  // the very first /config fetch failed with no cached data to render.
+  // Runtime maintenance (server flag flips, polling failure after retries)
+  // shows the non-blocking MaintenanceBanner instead and leaves navigation
+  // alone — critical so the in-meeting Zoom timer modal is never unmounted
+  // by a navigator swap mid-meeting.
+  const showOutage = configStore.outageMode
+  log.debug("Auth state retrieved", { isAuthenticated, needsZoomSetup, needsOnboarding, showOutage })
 
   const {
     theme: { colors },
@@ -79,8 +80,8 @@ const AppStack = observer(function AppStack() {
     return null
   }
 
-  // Determine initial route based on maintenance, auth, zoom, and onboarding status
-  const initialRoute = showMaintenance
+  // Determine initial route based on outage, auth, zoom, and onboarding status
+  const initialRoute = showOutage
     ? "Maintenance"
     : !isAuthenticated
       ? "Login"
@@ -91,7 +92,7 @@ const AppStack = observer(function AppStack() {
           : "Main"
   log.debug("Determining initial route", {
     initialRoute,
-    showMaintenance,
+    showOutage,
     isAuthenticated,
     needsZoomSetup,
     needsOnboarding,
@@ -108,7 +109,7 @@ const AppStack = observer(function AppStack() {
       }}
       initialRouteName={initialRoute}
     >
-      {showMaintenance ? (
+      {showOutage ? (
         <Stack.Screen name="Maintenance" component={MaintenanceScreen} />
       ) : isAuthenticated ? (
         needsZoomSetup ? (

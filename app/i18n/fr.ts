@@ -21,6 +21,7 @@ const fr: Translations = {
     retry: "Réessayer",
     reviewReminderTitle: "Tu aimes RecoverySky ?",
     reviewReminderMessage: "Tu peux évaluer l'app à tout moment dans les Réglages.",
+    maintenanceBanner: "Maintenance en cours. Certaines fonctionnalités sont désactivées.",
     select: "Sélectionner",
     archive: "Archiver",
     delete: "Supprimer",
@@ -732,11 +733,7 @@ const fr: Translations = {
   maintenance: {
     title: "Le système est hors ligne",
     subtitle: "Nous revenons bientôt. L'app reprendra automatiquement.",
-    eta: "Retour estimé : {{time}}",
     checking: "Vérification de l'état du système...",
-    updatingTitle: "Mise à jour de RecoverySky",
-    updatingSubtitle: "Une nouvelle version est en cours d'installation. Cela ne prendra qu'un instant.",
-    updating: "Installation de la mise à jour...",
     support: "Obtenir de l'aide",
   },
   subscription: {

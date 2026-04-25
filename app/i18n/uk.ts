@@ -21,6 +21,7 @@ const uk: Translations = {
     retry: "Повторити",
     reviewReminderTitle: "Подобається RecoverySky?",
     reviewReminderMessage: "Ти можеш оцінити додаток у будь-який час у Налаштуваннях.",
+    maintenanceBanner: "Тривають технічні роботи. Деякі функції вимкнено.",
     select: "Вибрати",
     archive: "Архівувати",
     delete: "Видалити",
@@ -725,11 +726,7 @@ const uk: Translations = {
   maintenance: {
     title: "Система офлайн",
     subtitle: "Ми скоро повернемося. Додаток відновить роботу автоматично.",
-    eta: "Орієнтовне повернення: {{time}}",
     checking: "Перевіряємо стан системи...",
-    updatingTitle: "Оновлення RecoverySky",
-    updatingSubtitle: "Встановлюється нова версія. Це займе лише мить.",
-    updating: "Встановлення оновлення...",
     support: "Отримати підтримку",
   },
   subscription: {

@@ -20,6 +20,7 @@ const en = {
     retry: "Retry",
     reviewReminderTitle: "Enjoying RecoverySky?",
     reviewReminderMessage: "You can rate the app anytime in Settings.",
+    maintenanceBanner: "Maintenance in progress. Some features disabled.",
     select: "Select",
     archive: "Archive",
     delete: "Delete",
@@ -742,11 +743,7 @@ const en = {
   maintenance: {
     title: "The system is offline",
     subtitle: "We'll be back shortly. The app will resume automatically.",
-    eta: "Estimated return: {{time}}",
     checking: "Checking system status...",
-    updatingTitle: "Updating RecoverySky",
-    updatingSubtitle: "A new version is being installed. This will only take a moment.",
-    updating: "Installing update...",
     support: "Get Support",
   },
   subscription: {

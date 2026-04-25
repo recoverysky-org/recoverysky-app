@@ -38,6 +38,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore errors - splash screen might already be hidden
 })
 
+import { MaintenanceBanner } from "./components/MaintenanceBanner"
 import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
@@ -405,11 +406,21 @@ export function App() {
         // This blocks until we have valid device credentials
         await initializeDeviceAuthorization(deviceId)
 
-        // Fetch server config (keys, secrets, URLs from /config endpoint)
-        // If all retries fail, enter maintenance mode — config is required to operate
+        // Fetch server config (keys, secrets, URLs from /config endpoint).
+        // Cold-start outage gate fires for two cases — both route to the
+        // full-screen MaintenanceScreen instead of the runtime banner:
+        //   1. Fetch failed after all retries: nothing cached to render.
+        //   2. Fetch succeeded but server reported MAINTENANCE_MODE=true:
+        //      we don't want a fresh-launched user staring at an empty
+        //      meeting list with a banner; the full screen is the more
+        //      honest UX. The gate clears on the next poll where
+        //      maintenance is off (see ConfigStore.fetchConfig).
         await _rootStore.configStore.fetchConfig()
         if (!_rootStore.configStore.isLoaded) {
-          log.warn("Config fetch exhausted all retries — entering maintenance mode")
+          log.warn("Config fetch exhausted all retries — entering outage mode")
+          _rootStore.configStore.setOutageMode()
+        } else if (_rootStore.configStore.maintenanceMode) {
+          log.info("Cold start with maintenance active — entering outage mode")
           _rootStore.configStore.setOutageMode()
         }
 
@@ -683,57 +694,6 @@ export function App() {
     }
   }, [rootStore])
 
-  // OTA update on maintenance exit — when server signals MAINTENANCE_UPDATE: true
-  // and maintenance mode turns off, fetch + apply the update before resuming.
-  // The MaintenanceScreen stays visible (via maintenanceUpdate flag) showing "Updating..."
-  // until reloadAsync completes.
-  useEffect(() => {
-    if (!rootStore) return
-
-    const dispose = reaction(
-      () => ({
-        inMaintenance: rootStore.configStore.maintenanceMode,
-        needsUpdate: rootStore.configStore.maintenanceUpdate,
-      }),
-      async ({ inMaintenance, needsUpdate }, prev) => {
-        // Only act on the real transition: maintenance was ON, now OFF, with update flag.
-        if (prev.inMaintenance && !inMaintenance && needsUpdate) {
-          // OTA updates require a production build — skip in dev
-          if (__DEV__) {
-            log.info("Maintenance update flag set but skipping OTA in dev mode")
-            rootStore.configStore.clearMaintenanceUpdate()
-            return
-          }
-
-          log.info("Maintenance ended with update flag, checking for OTA update")
-          try {
-            const update = await Updates.checkForUpdateAsync()
-            if (update.isAvailable) {
-              log.info("OTA update available, fetching before resume")
-              await Updates.fetchUpdateAsync()
-              log.info("OTA update fetched, reloading app")
-              await Updates.reloadAsync()
-            } else {
-              log.info("No OTA update available, clearing flag")
-              rootStore.configStore.clearMaintenanceUpdate()
-            }
-          } catch (e) {
-            log.warn("Maintenance OTA update failed, resuming normally", { error: String(e) })
-            rootStore.configStore.clearMaintenanceUpdate()
-          }
-        } else if (!inMaintenance && needsUpdate) {
-          // Stale flag — server returned MAINTENANCE_UPDATE: true but we were
-          // never in maintenance (e.g. cold start). Clear it so the navigator
-          // gate doesn't show the maintenance screen.
-          log.debug("Clearing stale maintenanceUpdate flag (never in maintenance)")
-          rootStore.configStore.clearMaintenanceUpdate()
-        }
-      },
-    )
-
-    return () => dispose()
-  }, [rootStore])
-
   // Foreground re-attestation: re-attest when app comes to foreground with expired JWT
   useEffect(() => {
     // Skip if using API key fallback (simulator) or on web
@@ -844,6 +804,12 @@ export function App() {
                           initialState={initialNavigationState}
                           onStateChange={onNavigationStateChange}
                         />
+                        {/* Sticky maintenance banner — drawn above all
+                            screens including modals via absolute positioning
+                            + high zIndex. Sibling to AppNavigator so a
+                            navigator state swap (or a navigator-level
+                            modal) doesn't unmount it. */}
+                        <MaintenanceBanner />
                       </ZoomMeetingProvider>
                     </ToastProvider>
                   </ThemeProvider>

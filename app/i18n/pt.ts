@@ -21,6 +21,7 @@ const pt: Translations = {
     retry: "Tentar Novamente",
     reviewReminderTitle: "Curtindo o RecoverySky?",
     reviewReminderMessage: "Você pode avaliar o app a qualquer momento nos Ajustes.",
+    maintenanceBanner: "Manutenção em andamento. Alguns recursos estão desativados.",
     select: "Selecionar",
     archive: "Arquivar",
     delete: "Excluir",
@@ -727,11 +728,7 @@ const pt: Translations = {
   maintenance: {
     title: "O sistema está offline",
     subtitle: "Voltaremos em breve. O app será retomado automaticamente.",
-    eta: "Retorno estimado: {{time}}",
     checking: "Verificando status do sistema...",
-    updatingTitle: "Atualizando RecoverySky",
-    updatingSubtitle: "Uma nova versão está sendo instalada. Isso levará apenas um momento.",
-    updating: "Instalando atualização...",
     support: "Obter Suporte",
   },
   subscription: {

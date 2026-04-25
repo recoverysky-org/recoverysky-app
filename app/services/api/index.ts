@@ -676,7 +676,6 @@ export class Api {
           MAINTENANCE_MODE?: boolean
           MAINTENANCE_MESSAGE?: string
           MAINTENANCE_UNTIL?: string
-          MAINTENANCE_UPDATE?: boolean
           LATEST_VERSION?: string
         }
       }
@@ -701,7 +700,6 @@ export class Api {
       MAINTENANCE_MODE?: boolean
       MAINTENANCE_MESSAGE?: string
       MAINTENANCE_UNTIL?: string
-      MAINTENANCE_UPDATE?: boolean
       LATEST_VERSION?: string
     }>("/config")
 

@@ -21,6 +21,7 @@ const ru: Translations = {
     retry: "Повторить",
     reviewReminderTitle: "Нравится RecoverySky?",
     reviewReminderMessage: "Ты можешь оценить приложение в любое время в Настройках.",
+    maintenanceBanner: "Идут технические работы. Некоторые функции отключены.",
     select: "Выбрать",
     archive: "Архивировать",
     delete: "Удалить",
@@ -727,11 +728,7 @@ const ru: Translations = {
   maintenance: {
     title: "Система офлайн",
     subtitle: "Мы скоро вернёмся. Приложение возобновит работу автоматически.",
-    eta: "Ориентировочное возвращение: {{time}}",
     checking: "Проверяем состояние системы...",
-    updatingTitle: "Обновление RecoverySky",
-    updatingSubtitle: "Устанавливается новая версия. Это займёт всего мгновение.",
-    updating: "Установка обновления...",
     support: "Получить поддержку",
   },
   subscription: {

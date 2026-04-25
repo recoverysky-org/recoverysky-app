@@ -21,6 +21,7 @@ const th: Translations = {
     retry: "ลองใหม่",
     reviewReminderTitle: "ชอบ RecoverySky ไหม?",
     reviewReminderMessage: "คุณสามารถให้คะแนนแอปได้ตลอดเวลาในการตั้งค่า",
+    maintenanceBanner: "กำลังบำรุงรักษา บางคุณสมบัติถูกปิดใช้งาน",
     select: "เลือก",
     archive: "เก็บถาวร",
     delete: "ลบ",
@@ -717,11 +718,7 @@ const th: Translations = {
   maintenance: {
     title: "ระบบออฟไลน์",
     subtitle: "เราจะกลับมาเร็ว ๆ นี้ แอปจะกลับมาทำงานโดยอัตโนมัติ",
-    eta: "คาดว่าจะกลับมา: {{time}}",
     checking: "กำลังตรวจสอบสถานะระบบ...",
-    updatingTitle: "กำลังอัปเดต RecoverySky",
-    updatingSubtitle: "กำลังติดตั้งเวอร์ชันใหม่ ใช้เวลาเพียงครู่เดียว",
-    updating: "กำลังติดตั้งอัปเดต...",
     support: "รับการสนับสนุน",
   },
   subscription: {

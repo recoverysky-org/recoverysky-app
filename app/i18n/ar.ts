@@ -21,6 +21,7 @@ const ar: Translations = {
     retry: "إعادة المحاولة",
     reviewReminderTitle: "هل تستمتع بـ RecoverySky؟",
     reviewReminderMessage: "يمكنك تقييم التطبيق في أي وقت من الإعدادات.",
+    maintenanceBanner: "جارٍ إجراء الصيانة. بعض الميزات معطّلة.",
     select: "تحديد",
     archive: "أرشفة",
     delete: "حذف",
@@ -711,11 +712,7 @@ const ar: Translations = {
   maintenance: {
     title: "النظام غير متصل",
     subtitle: "سنعود قريباً. سيتم استئناف التطبيق تلقائياً.",
-    eta: "العودة المتوقعة: {{time}}",
     checking: "جارٍ التحقق من حالة النظام...",
-    updatingTitle: "جارٍ تحديث RecoverySky",
-    updatingSubtitle: "يتم تثبيت إصدار جديد. سيستغرق ذلك لحظة فقط.",
-    updating: "جارٍ تثبيت التحديث...",
     support: "الحصول على الدعم",
   },
   subscription: {
