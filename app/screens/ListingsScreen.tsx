@@ -30,7 +30,7 @@ import { Text } from "@/components/Text"
 import { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
-import { useProfileStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { navigate } from "@/navigators/navigationUtilities"
 import { api, LiveSchedule } from "@/services/api"
@@ -101,6 +101,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const configStore = useConfigStore()
   const reminderLookup = useReminderLookup()
 
   // Refs
@@ -192,6 +193,16 @@ export const ListingsContent: FC = observer(function ListingsContent() {
 
   // Fetch daily schedules
   const fetchDailySchedules = useCallback(async () => {
+    // Skip the API call entirely while server-side maintenance is on.
+    // Pull-to-refresh from the Listings tab still hits this code path
+    // directly (bypassing MeetingContext), so the gate has to live here
+    // too. We just stop the spinner and leave the list as-is.
+    if (configStore.maintenanceMode) {
+      log.debug("Skipping daily schedules fetch — maintenance mode")
+      setIsLoading(false)
+      return
+    }
+
     const fellowship = profileStore.fellowship
     if (!fellowship) {
       setMeetings([])
@@ -243,7 +254,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedDay, profileStore.fellowship, profileStore.useExternalZoom])
+  }, [selectedDay, profileStore.fellowship, profileStore.useExternalZoom, configStore])
 
   // Fetch when day or fellowship changes
   useEffect(() => {

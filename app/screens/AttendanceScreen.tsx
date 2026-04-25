@@ -49,7 +49,7 @@ import {
 } from "@/db"
 import { useReportSender } from "@/hooks/useReportSender"
 import { translate } from "@/i18n"
-import { useAuthenticationStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import {
   MainTabScreenProps,
   type MainTabParamList,
@@ -95,10 +95,14 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
 }) {
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const configStore = useConfigStore()
   const [emailValid, setEmailValid] = useState<boolean | null>(null)
 
   const canSendReport =
-    selectedCount > 0 && isValidEmail(profileStore.reportEmail) && !isSending
+    selectedCount > 0 &&
+    isValidEmail(profileStore.reportEmail) &&
+    !isSending &&
+    !configStore.maintenanceMode
 
   // Debounced email validation indicator
   useEffect(() => {

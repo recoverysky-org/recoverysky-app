@@ -241,6 +241,16 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   // ============================================================================
   useEffect(() => {
     async function refreshLiveMeetings() {
+      // Skip the API call entirely while server-side maintenance is on.
+      // We keep showing whatever cached schedules we already have. The
+      // existing maintenance-exit reaction above will trigger a refresh
+      // automatically when the flag clears.
+      if (configStore.maintenanceMode) {
+        log.debug("Skipping live meetings refresh — maintenance mode")
+        setIsLoading(false)
+        return
+      }
+
       log.debug("Refreshing live meetings from API...")
       setIsLoading(true)
       setError(null)

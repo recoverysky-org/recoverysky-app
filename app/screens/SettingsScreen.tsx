@@ -1168,10 +1168,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </View>
 
         <TouchableOpacity
-          style={[themed($settingsRow), themed($lastRow)]}
+          style={[
+            themed($settingsRow),
+            themed($lastRow),
+            configStore.maintenanceMode && { opacity: 0.4 },
+          ]}
           onPress={() => navigation.navigate("Import")}
+          disabled={configStore.maintenanceMode}
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:restartImport")}
+          accessibilityState={{ disabled: configStore.maintenanceMode }}
         >
           <Text style={themed($rowLabel)} tx="settingsScreen:restartImport" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />

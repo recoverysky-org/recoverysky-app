@@ -50,7 +50,7 @@ import {
   type ReminderRecord,
 } from "@/db"
 import { useReminders } from "@/hooks/useReminders"
-import { useProfileStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
@@ -80,6 +80,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
+  const configStore = useConfigStore()
   const isFocused = useIsFocused()
 
   // Auto-close when parent screen loses focus (e.g. navigating to Settings from review prompt)
@@ -168,6 +169,16 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // Handle schedule grid cell tap → open reminder editor (premium only)
   const handleCellPress = useCallback(
     (_millis: number, id: string, dayIndex: number, rowIndex: number) => {
+      // Reminders rely on server-side push scheduling — block creation /
+      // edit while we're in maintenance so users don't think they set a
+      // reminder that we couldn't actually deliver. The locally-stored
+      // record path also fires a fire-and-forget API sync, so disabling
+      // entry is the right gate.
+      if (configStore.maintenanceMode) {
+        Alert.alert(t("maintenance:title"), t("common:maintenanceBanner"))
+        return
+      }
+
       if (!isPremium) {
         Alert.alert(t("reminderEditor:premiumTitle"), t("reminderEditor:premiumMessage"), [
           { text: t("reminderEditor:cancel"), style: "cancel" },
@@ -193,7 +204,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       setSelectedCell({ row: rowIndex, col: dayIndex })
       setReminderEditorVisible(true)
     },
-    [isPremium, findExistingReminder, t, onClose],
+    [isPremium, configStore, findExistingReminder, t, onClose],
   )
 
   // Local feedback state - initialized from cache, updated on interactions

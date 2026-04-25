@@ -16,7 +16,7 @@ import {
   type AttendanceReportRecord,
   type AttendanceReportUpdateInput,
 } from "@/db"
-import { useAuthenticationStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
 import { pollForConfirmation } from "@/services/polling"
 import { trackEvent } from "@/services/tracking"
@@ -328,11 +328,21 @@ async function handleForward(
 export function useReportSender() {
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
+  const configStore = useConfigStore()
   const toast = useToast()
   const [isSending, setIsSending] = useState(false)
 
   const send = useCallback(
     async (op: SendOperation): Promise<SendResult | null> => {
+      // Defensive guard — the AttendanceScreen send button is disabled
+      // visually while maint is on, but this catches any code path that
+      // bypasses that gate.
+      if (configStore.maintenanceMode) {
+        logger.warn("Report send blocked — maintenance mode", { type: op.type })
+        toast.showToast({ tx: "common:maintenanceBanner", type: "info" })
+        return null
+      }
+
       setIsSending(true)
       try {
         const uid = authStore.userId ?? ""
@@ -358,7 +368,7 @@ export function useReportSender() {
         setIsSending(false)
       }
     },
-    [authStore.userId, toast],
+    [authStore.userId, configStore, toast],
   )
 
   return { send, isSending }
