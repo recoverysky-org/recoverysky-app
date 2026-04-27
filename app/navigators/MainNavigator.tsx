@@ -44,8 +44,10 @@ export const MainNavigator = observer(function MainNavigator() {
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
   const { isPremium } = useSubscription()
-  void isPremium
-  const premiumTabsVisible = false
+  // Agent tab stays hidden until ready for release.
+  const agentTabVisible = false
+  // Social tab: always visible in dev for testing, premium-only in prod.
+  const socialTabVisible = __DEV__ || isPremium
 
   // Post-login redirect: if a section was saved before logout, open Settings tab first
   const postLoginSectionRef = useRef(loadString("POST_LOGIN_SECTION") as SettingsSection | null)
@@ -134,7 +136,7 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
-      {premiumTabsVisible && (
+      {agentTabVisible && (
         <Tab.Screen
           name="Agent"
           component={AgentScreen}
@@ -146,7 +148,7 @@ export const MainNavigator = observer(function MainNavigator() {
           }}
         />
       )}
-      {premiumTabsVisible && (
+      {socialTabVisible && (
         <Tab.Screen
           name="Social"
           component={SocialScreen}
