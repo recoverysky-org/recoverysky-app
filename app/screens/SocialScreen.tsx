@@ -157,6 +157,16 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
             <ActivityIndicator color={colors.tint} />
           </View>
         )}
+        // Belt-and-suspenders for SPA layout drift. The canonical fix is
+        // CSS in the Replyke SPA (`overflow-x: hidden`, `overscroll-behavior:
+        // contain`, fixed-position bottom nav). These props defend against
+        // residual rubber-band overscroll (iOS) and horizontal scroll-spill
+        // (Android) so the page can't visibly slide past the viewport even
+        // if the SPA regresses or another host renders it without those CSS
+        // rules. iOS-only: bounces. Android-only: overScrollMode.
+        bounces={false}
+        overScrollMode="never"
+        directionalLockEnabled
         style={{ backgroundColor: colors.background }}
       />
     </Screen>
