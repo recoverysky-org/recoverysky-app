@@ -55,6 +55,12 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   const profileStore = useProfileStore()
   const webViewRef = useRef<WebView>(null)
   const isReadyRef = useRef(false)
+  // Coalesces concurrent mint requests. The web side may issue multiple
+  // `replyke_token_request` messages (e.g. several queued API calls discover
+  // expiry simultaneously). We only want one POST /api/replyke/sign-token in
+  // flight at a time; the resulting token is broadcast via postMessage and
+  // every awaiting web-side caller receives it through the same listener.
+  const tokenRequestInFlight = useRef(false)
 
   const socialUrl = configStore.socialUrl
   const userIdentifier = authStore.userIdentifier
@@ -83,6 +89,8 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   }, [postToWebView, themeContext, themeColor, shortName])
 
   const injectReplykeToken = useCallback(async () => {
+    if (tokenRequestInFlight.current) return
+    tokenRequestInFlight.current = true
     try {
       const result = await api.getReplykeToken()
       if (result.kind !== "ok") {
@@ -94,6 +102,8 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
       log.error("Replyke token fetch threw", {
         message: error instanceof Error ? error.message : String(error),
       })
+    } finally {
+      tokenRequestInFlight.current = false
     }
   }, [postToWebView])
 
@@ -137,6 +147,15 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
             namespace: parsed.namespace ?? "",
             message: parsed.message ?? "",
           })
+          return
+        }
+        case "replyke_token_request": {
+          // On-demand mint: the web side has detected its current Replyke
+          // JWT is within ~10s of expiry (or already expired) and asked us
+          // to issue a fresh one. Reuses injectReplykeToken's coalescing.
+          // No payload — response goes back via the existing
+          // { type: "replyke_token", token } message.
+          injectReplykeToken()
           return
         }
         default: {
