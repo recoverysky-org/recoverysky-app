@@ -212,6 +212,15 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
         bounces={false}
         overScrollMode="never"
         directionalLockEnabled
+        // Incognito disables the WebView's persistent data store: HTTP cache,
+        // cookies, localStorage, service workers. The SPA is session-less by
+        // design (Auth0 lives on the RN side; the Replyke JWT is injected
+        // fresh per mount), so there's no state to lose. The win: every cold
+        // mount fetches a fresh bundle from origin — no risk of a stale HTML
+        // shell or a previously-registered service worker pinning the user
+        // to an old web build. Cost is bandwidth on each cold mount; the tab
+        // is persistent within the session so this only fires on app launch.
+        incognito
         style={{ backgroundColor: colors.background }}
       />
     </Screen>
