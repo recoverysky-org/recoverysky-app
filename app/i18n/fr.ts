@@ -123,7 +123,7 @@ const fr: Translations = {
     meetingsTab: "Réunions",
     scheduleTab: "Horaire",
     agentTab: "Agent",
-    socialTab: "Social",
+    socialTab: "Communauté",
     settingsTab: "Réglages",
   },
   homeScreen: {

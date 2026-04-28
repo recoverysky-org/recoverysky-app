@@ -127,7 +127,7 @@ const en = {
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
     agentTab: "Agent",
-    socialTab: "Social",
+    socialTab: "Community",
     settingsTab: "Settings",
   },
   // Main Screens
