@@ -7,12 +7,16 @@
  *
  * Messages posted into the WebView:
  *   - { type: "replyke_token", token } — signed Replyke JWT for ReplykeProvider
- *   - { type: "theme", theme: "dark" | "light" } — theme sync
+ *   - { type: "app_context", mode, themeColor, shortName } — visual + identity
+ *     context so the SPA can match the host app's appearance and personalize
+ *     posts. `mode` is "dark" | "light"; `themeColor` is a hex string (the
+ *     user-picked tint, or the app default if unset); `shortName` is the
+ *     user's display name from ProfileStore (may be empty before hydration).
  *
  * Handshake: the web app must post `{ type: "replyke_ready" }` back via
  * window.ReactNativeWebView.postMessage once its message listener is
- * attached. RN injects the token + theme in response, avoiding a race
- * where messages posted at onLoadEnd are dropped before React has
+ * attached. RN injects the token + app_context in response, avoiding a
+ * race where messages posted at onLoadEnd are dropped before React has
  * committed and effects have flushed.
  */
 
@@ -22,7 +26,7 @@ import { observer } from "mobx-react-lite"
 import WebView, { type WebViewMessageEvent } from "react-native-webview"
 
 import { Screen } from "@/components/Screen"
-import { useAuthenticationStore, useConfigStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
@@ -33,7 +37,12 @@ const log = logger.child({ module: "SocialScreen" })
 
 type InjectedMessage =
   | { type: "replyke_token"; token: string }
-  | { type: "theme"; theme: "dark" | "light" }
+  | {
+      type: "app_context"
+      mode: "dark" | "light"
+      themeColor: string
+      shortName: string
+    }
 
 export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function SocialScreen() {
   const {
@@ -43,11 +52,17 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   } = useAppTheme()
   const configStore = useConfigStore()
   const authStore = useAuthenticationStore()
+  const profileStore = useProfileStore()
   const webViewRef = useRef<WebView>(null)
   const isReadyRef = useRef(false)
 
   const socialUrl = configStore.socialUrl
   const userIdentifier = authStore.userIdentifier
+  // ProfileStore stores empty string when the user hasn't picked a custom
+  // tint — fall back to the app's default so the SPA always has a usable
+  // hex value (no need to handle empty/null on its side).
+  const themeColor = profileStore.themeColor || colors.tint
+  const shortName = profileStore.shortName
 
   const postToWebView = useCallback((message: InjectedMessage) => {
     if (Platform.OS === "web") return
@@ -57,6 +72,15 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
       true;
     `)
   }, [])
+
+  const postAppContext = useCallback(() => {
+    postToWebView({
+      type: "app_context",
+      mode: themeContext,
+      themeColor,
+      shortName,
+    })
+  }, [postToWebView, themeContext, themeColor, shortName])
 
   const injectReplykeToken = useCallback(async () => {
     try {
@@ -73,11 +97,13 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
     }
   }, [postToWebView])
 
-  // Sync theme whenever it changes — only after the web-side listener is ready
+  // Push app_context whenever any of the bundled fields change — only
+  // after the web-side listener is ready (the ready handshake performs
+  // the initial push, so this effect is for live updates only).
   useEffect(() => {
     if (!isReadyRef.current) return
-    postToWebView({ type: "theme", theme: themeContext })
-  }, [themeContext, postToWebView])
+    postAppContext()
+  }, [postAppContext])
 
   // Re-inject token when auth identity changes (login/logout)
   useEffect(() => {
@@ -102,7 +128,7 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
         case "replyke_ready": {
           if (isReadyRef.current) return // ignore duplicate ready
           isReadyRef.current = true
-          postToWebView({ type: "theme", theme: themeContext })
+          postAppContext()
           injectReplykeToken()
           return
         }
@@ -118,7 +144,7 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
         }
       }
     },
-    [injectReplykeToken, postToWebView, themeContext],
+    [injectReplykeToken, postAppContext],
   )
 
   // Reset ready state on navigation (e.g., full reload)
