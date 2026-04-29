@@ -143,9 +143,20 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       })
       // Fire and forget — failures surface in logs; the timer still runs so
       // the user can retry opening Zoom manually if the first launch fails.
-      Linking.openURL(meetingUrl).catch((err: unknown) => {
-        log.error("Failed to launch external Zoom", { error: String(err) })
-      })
+      // Defensive string guard: Linking.openURL throws synchronously (not as
+      // a promise rejection) if the arg isn't a string, which would bypass
+      // the .catch below. The buildExternalZoomUrl chain always returns a
+      // string today, but if a future code path passes a malformed prop
+      // we'd rather log and keep the timer running than crash the app.
+      if (typeof meetingUrl === "string" && meetingUrl.length > 0) {
+        Linking.openURL(meetingUrl).catch((err: unknown) => {
+          log.error("Failed to launch external Zoom", { error: String(err) })
+        })
+      } else {
+        log.warn("Timer started but meetingUrl is not a usable string", {
+          mid: meetingId,
+        })
+      }
     }
 
     const tick = () => setElapsed(Date.now() - start)

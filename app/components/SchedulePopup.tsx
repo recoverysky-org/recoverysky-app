@@ -19,7 +19,9 @@ import {
   Animated,
   Dimensions,
   Easing,
+  InteractionManager,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   View,
   ViewStyle,
@@ -398,9 +400,25 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     const password = meeting.password || ""
 
     if (!meetingNumber) {
-      // Fallback for non-Zoom URLs
-      const { Linking } = await import("react-native")
-      await Linking.openURL(meeting.url)
+      // Fallback for non-Zoom URLs. Guarded: Linking.openURL throws
+      // synchronously on non-string args (rare but possible if the meeting
+      // record is malformed) and rejects on no-handler — both are caught
+      // here so an unhandled rejection can't terminate the app.
+      const fallbackUrl = meeting.url
+      if (typeof fallbackUrl !== "string" || fallbackUrl.length === 0) {
+        log.warn("Skipping non-Zoom launch: meeting.url is not a usable string", {
+          mid: meeting.id,
+        })
+        return
+      }
+      try {
+        await Linking.openURL(fallbackUrl)
+      } catch (err) {
+        log.error("Failed to open non-Zoom URL", {
+          mid: meeting.id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
       return
     }
 
@@ -422,7 +440,22 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             password: meeting.password,
             passwordEnc: meeting.passwordEnc,
           })
-          import("react-native").then(({ Linking }) => Linking.openURL(zoomUrl))
+          // Guarded: buildExternalZoomUrl always returns a string today, but
+          // a defensive check costs nothing and stops a malformed-record
+          // class of crash. .catch is mandatory — without it, a no-handler
+          // rejection (Zoom not installed, bad URL) bubbles up as an
+          // unhandled rejection that release builds with strict-mode
+          // promise tracking will treat as fatal.
+          if (typeof zoomUrl !== "string" || zoomUrl.length === 0) {
+            log.warn("Skipping external Zoom launch: empty URL", { mid: meeting.id })
+            return
+          }
+          Linking.openURL(zoomUrl).catch((err: unknown) => {
+            log.error("Failed to open external Zoom", {
+              mid: meeting.id,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          })
         }
       }
 
@@ -461,7 +494,14 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     setEducationVisible(false)
     const next = educationActionRef.current
     educationActionRef.current = null
-    if (next) next()
+    if (!next) return
+    // Defer the next action until the Education modal's dismiss animation
+    // settles. iOS UIKit will throw "Application tried to present X while
+    // presentation is in progress" if a second modal mounts (TimerModal) or
+    // a system sheet appears (Linking → Zoom universal-link confirmation)
+    // while the dismiss is still animating. runAfterInteractions waits for
+    // the current animation/gesture batch to complete before running.
+    InteractionManager.runAfterInteractions(next)
   }, [])
 
   const handleTopicSave = useCallback(
