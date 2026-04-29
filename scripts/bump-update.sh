@@ -49,5 +49,23 @@ git push && git push --tags
 echo "Publishing OTA via release:ota..."
 npm run release:ota
 
+# Upload source maps to Sentry so JS stack traces in the new OTA bundle
+# decode to readable file:line frames. Native EAS builds handle this
+# automatically via the Sentry config plugin; OTA bundles don't, so we
+# trigger the upload explicitly here.
+#
+# Auth comes from SENTRY_AUTH_TOKEN (env or eas.json -> base.env). Org and
+# project are read from the @sentry/react-native/expo plugin config in
+# app.json. Failure is non-fatal — a missing source map upload doesn't
+# warrant rolling back an OTA that already shipped.
+if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+  echo "Uploading source maps to Sentry..."
+  npx sentry-expo-upload-sourcemaps || \
+    echo "⚠️  Sentry source map upload failed (non-fatal). Stack traces will lack line numbers until the next successful upload."
+else
+  echo "⚠️  SENTRY_AUTH_TOKEN not set — skipping Sentry source map upload."
+  echo "    Set it in .env or your shell to enable: stack traces will lack line numbers without it."
+fi
+
 echo ""
 echo "✅ OTA $TAG bumped, pushed, and published!"

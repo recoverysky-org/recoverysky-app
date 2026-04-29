@@ -76,6 +76,7 @@ import {
   getLastNotificationResponse,
   setNotificationLanguage,
 } from "./services/notifications"
+import { setSentryUser } from "./services/crashReporting/sentry"
 import { initReviewService } from "./services/review"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ZoomMeetingProvider } from "./services/zoom"
@@ -573,6 +574,16 @@ export function App() {
             (id) => setTrackingUserId(id || undefined),
           )
         }
+
+        // Sentry user identity. Always wired (not gated on umami config)
+        // since crash reporting must work even when analytics doesn't.
+        // Opaque userIdentifier only — never email/name. PII is also
+        // double-checked in sentry.beforeSend just in case.
+        if (authStore.userIdentifier) setSentryUser(authStore.userIdentifier)
+        reaction(
+          () => authStore.userIdentifier,
+          (id) => setSentryUser(id || null),
+        )
 
         initReviewService(_rootStore.configStore)
 

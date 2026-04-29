@@ -6,7 +6,7 @@
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
-  "runtimeVersion": "4.2.0",
+  "runtimeVersion": "4.4.0",
   "updates": {
     "enabled": true,
     "checkAutomatically": "ON_LOAD",
@@ -157,6 +157,14 @@
       {
         "domain": "auth.recoverysky.app",
         "customScheme": "recoverysky-app"
+      }
+    ],
+    [
+      "@sentry/react-native/expo",
+      {
+        "organization": "recoverysky-inc-0f",
+        "project": "recoverysky-app",
+        "url": "https://sentry.io/"
       }
     ]
   ],
