@@ -22,7 +22,69 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
-_(none)_
+### Added
+- **Sentry crash + error reporting.** Native crashes (NSExceptions, JNI,
+  OOM kills, EXC_BAD_ACCESS), uncaught JS errors, and unhandled promise
+  rejections now flow into Sentry with breadcrumbs and source-map-decoded
+  stack traces. The OTLP logger is bridged so `logger.info/.warn/.debug`
+  emit Sentry breadcrumbs and `logger.error/.fatal` emit Sentry events —
+  no per-call-site changes required. PII scrubber strips `?pwd=` (Zoom
+  passcodes), `?token=`, `?code=`, etc. from URLs and `Authorization` /
+  `X-Device-Token` / `X-API-Key` from request headers before send. User
+  context is the opaque `userIdentifier` only (no email/name). OTLP
+  remains the canonical operational log sink; Sentry is the crash/error
+  event store.
+- **Social tab (Community).** New tab that hosts the Replyke-powered
+  RecoverySky community SPA in an in-app WebView. Native shell owns Auth0;
+  the WebView receives a pre-signed Replyke JWT, never an Auth0 token.
+- **On-demand Replyke JWT refresh** for the Social WebView. The web side
+  can now request a fresh signed token mid-session via a
+  `replyke_token_request` postMessage; the shell mints via
+  `/api/replyke/sign-token` and broadcasts the new token through the
+  existing `replyke_token` channel. Coalesces concurrent mints. Avoids
+  401s on long-lived sessions when the original 5-minute JWT expires.
+- **App-context injection** for the Social WebView: shortName, theme
+  color, and light/dark mode are pushed alongside the JWT so the SPA
+  matches the host app's appearance and personalizes posts.
+
+### Changed
+- **`runtimeVersion` bumped 4.2.0 → 4.4.0** to align with `version` and
+  to invalidate the OTA channel for users on the prior native build. The
+  Sentry SDK is a new native dependency; OTAs targeting 4.4.0 will only
+  reach users running the next native release. Native release first,
+  then OTAs.
+- **Social tab bar label**: "Social" → "Community" across all 9 locales
+  (en/es/de/fr/pt/th updated; ru/uk/ar already meant "Community"). Route
+  name, screen file, and config field are unchanged.
+- **Social WebView mounts in `incognito` mode** so every cold app start
+  fetches a fresh web bundle from origin. Preempts service-worker
+  stickiness and stale-HTML caching. The SPA is session-less by design,
+  so the data-store wipe has no functional cost.
+- **Social WebView layout-drift defenses**: `bounces={false}`,
+  `overScrollMode="never"`, `directionalLockEnabled` belt-and-suspenders
+  on top of the SPA's CSS overflow rules. Prevents residual rubber-band
+  overscroll (iOS) and horizontal scroll-spill (Android).
+
+### Fixed
+- **External Zoom launch hardened against fire-and-forget crashes.**
+  `SchedulePopup` and `ExternalZoomTimerModal` previously called
+  `Linking.openURL` without `.catch` on multiple paths; an unhandled
+  rejection from a malformed URL or a no-handler-found case could
+  terminate release builds with strict-mode promise tracking. All
+  external-Zoom launch sites now have explicit `.catch` handlers and
+  defensive string guards.
+- **iOS modal-stack collision** when transitioning from the first-time
+  external-Zoom education modal to the timer modal or to the system
+  "Open in Zoom?" sheet. The Education-modal "Continue" handler now
+  defers the next action via `InteractionManager.runAfterInteractions`
+  so the dismiss animation completes before another modal mounts.
+
+### Build
+- `scripts/bump-update.sh` invokes `sentry-expo-upload-sourcemaps` after
+  each successful OTA publish so the new bundle's stack traces decode
+  to file:line frames in Sentry. Native EAS builds already handle this
+  automatically via the `@sentry/react-native/expo` config plugin.
+  Non-fatal: missing `SENTRY_AUTH_TOKEN` is warned, not failed.
 
 ---
 
