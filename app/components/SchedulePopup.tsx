@@ -364,6 +364,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         meetingUrl: meeting.url,
         password: meeting.password,
         passwordEnc: meeting.passwordEnc,
+        userName: profileStore.displayName,
       }),
     }
   }, [
@@ -372,6 +373,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     meeting?.name,
     meeting?.password,
     meeting?.passwordEnc,
+    profileStore.displayName,
   ])
 
   const fellowshipColor = meeting
@@ -439,6 +441,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             meetingUrl: meeting.url,
             password: meeting.password,
             passwordEnc: meeting.passwordEnc,
+            userName: profileStore.displayName,
           })
           // Guarded: buildExternalZoomUrl always returns a string today, but
           // a defensive check costs nothing and stops a malformed-record

@@ -44,22 +44,56 @@ export function extractZoomPassword(url: string): string | null {
 }
 
 /**
+ * Encode a UTF-8 string as base64. Hermes ships `btoa` but it only handles
+ * Latin-1; the encodeURIComponent/unescape dance is the canonical
+ * cross-runtime workaround for Unicode names (e.g. "José", "Žaneta") so
+ * non-ASCII display names don't throw `InvalidCharacterError` here.
+ */
+function toBase64Utf8(s: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  return btoa(unescape(encodeURIComponent(s)))
+}
+
+/**
  * Build the URL used to launch a meeting in the external Zoom app. Prefers
  * `passwordEnc` (the encrypted share-link pwd) when present; otherwise falls
  * back to the plaintext `password`. Either is appended as `?pwd=<value>` on a
  * freshly-constructed join URL so it matches what Zoom's own share links
  * look like. If neither is available, falls back to the stored meetingUrl,
  * then to a bare join URL.
+ *
+ * Display name (`?un=<base64>`): best-effort prefill of the participant
+ * name. Officially Zoom only documents `un=` for the web client
+ * (zoom.us/wc/...) but some native clients honor it as well, and including
+ * it costs nothing if they don't. Users on Android whose Zoom app has
+ * never been configured with "Remember my name for future meetings" are
+ * the audience here — iOS users typically have a cached identity already
+ * so the prompt doesn't show. We base64-encode UTF-8 to match the format
+ * the web client accepts; URL-safe characters in base64 (`+`, `/`, `=`)
+ * are then percent-encoded by URL.searchParams below.
  */
 export function buildExternalZoomUrl(opts: {
   meetingNumber: string
   meetingUrl?: string | null
   password?: string | null
   passwordEnc?: string | null
+  userName?: string | null
 }): string {
   const pwd = opts.passwordEnc || opts.password
+  const trimmedName = opts.userName?.trim() || ""
+  const unParam = trimmedName ? `&un=${encodeURIComponent(toBase64Utf8(trimmedName))}` : ""
+
   if (pwd && opts.meetingNumber) {
-    return `https://zoom.us/j/${opts.meetingNumber}?pwd=${encodeURIComponent(pwd)}`
+    return `https://zoom.us/j/${opts.meetingNumber}?pwd=${encodeURIComponent(pwd)}${unParam}`
+  }
+  // No pwd path: we still want the un= prefill if we have a name. Tack
+  // it onto the bare join URL or the supplied meetingUrl as appropriate.
+  if (opts.meetingNumber) {
+    return `https://zoom.us/j/${opts.meetingNumber}${unParam ? `?${unParam.slice(1)}` : ""}`
+  }
+  if (opts.meetingUrl && trimmedName) {
+    const sep = opts.meetingUrl.includes("?") ? "&" : "?"
+    return `${opts.meetingUrl}${sep}un=${encodeURIComponent(toBase64Utf8(trimmedName))}`
   }
   return opts.meetingUrl || `https://zoom.us/j/${opts.meetingNumber}`
 }
@@ -167,6 +201,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
             meetingUrl: config.meetingUrl,
             password: config.password,
             passwordEnc: config.passwordEnc,
+            userName: config.userName,
           })
           await openInZoomApp(zoomUrl)
           setState("idle")
