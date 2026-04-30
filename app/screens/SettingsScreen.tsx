@@ -74,12 +74,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 }) {
   const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
   const { logout } = useAuth0Wrapper()
-  const {
-    isConnected: zoomConnected,
-    zoomAuth,
-    disconnect: disconnectZoom,
-    reload: reloadZoomAuth,
-  } = useZoomAuth()
+  // zoomConnected + zoomAuth are no longer rendered (Zoom Account section
+  // was removed when meeting joins moved to the external Zoom app), but
+  // disconnectZoom still fires from the account-deletion / sign-out flows
+  // and reloadZoomAuth is needed by the focus effect below.
+  const { disconnect: disconnectZoom, reload: reloadZoomAuth } = useZoomAuth()
 
   // Reload zoom auth when screen comes into focus (after returning from ZoomLoginScreen)
   useFocusEffect(
@@ -1033,73 +1032,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         )}
       </View>
 
-      {/* Zoom Account Section */}
-      <View style={themed($section)} onLayout={trackSection("zoom")}>
-        <View style={themed($sectionHeader)}>
-          <Ionicons name="videocam" size={20} color="#2D8CFF" />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:zoomAccountSection" />
-        </View>
-
-        {zoomConnected ? (
-          <>
-            {/* Connected status */}
-            <SettingsRow
-              label={translate("settingsScreen:zoomConnected")}
-              value={zoomAuth?.zoomEmail || zoomAuth?.zoomDisplayName || ""}
-            />
-            {/* Edit Zoom Profile */}
-            <TouchableOpacity
-              style={themed($settingsRow)}
-              onPress={() => Linking.openURL("https://zoom.us/profile")}
-              accessibilityRole="button"
-              accessibilityLabel={translate("settingsScreen:editZoomProfile")}
-            >
-              <Text style={themed($rowLabel)} tx="settingsScreen:editZoomProfile" />
-              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-            </TouchableOpacity>
-            {/* Disconnect button */}
-            <TouchableOpacity
-              style={[themed($settingsRow), themed($lastRow)]}
-              onPress={() => {
-                Alert.alert(
-                  translate("settingsScreen:zoomDisconnect"),
-                  translate("settingsScreen:zoomDisconnectConfirm"),
-                  [
-                    { text: translate("common:cancel"), style: "cancel" },
-                    {
-                      text: translate("settingsScreen:zoomDisconnect"),
-                      style: "destructive",
-                      onPress: async () => {
-                        trackEvent("zoom_disconnected")
-                        await disconnectZoom()
-                        profileStore.setZoomConnected(false)
-                      },
-                    },
-                  ],
-                )
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={translate("settingsScreen:zoomDisconnect")}
-            >
-              <Text style={themed($rowLabel)} tx="settingsScreen:zoomDisconnect" />
-              <Icon icon="caretRight" size={16} color={themed($dangerColor).color} />
-            </TouchableOpacity>
-          </>
-        ) : (
-          <TouchableOpacity
-            style={themed($zoomConnectButton)}
-            onPress={() => {
-            trackEvent("zoom_reconnect_tapped")
-            navigation.navigate("ZoomLogin")
-          }}
-            accessibilityRole="button"
-            accessibilityLabel={translate("settingsScreen:connectZoom")}
-          >
-            <Ionicons name="videocam" size={18} color="#2D8CFF" />
-            <Text style={themed($zoomConnectButtonText)} tx="settingsScreen:connectZoom" />
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* Zoom Account Section removed — meeting joins now use the external
+          Zoom app and don't require an in-app OAuth/ZAK connection. The
+          underlying state (zoomAuth, zoomConnected, disconnectZoom) plus
+          the ZoomLogin modal are kept around so the section can be
+          restored without recovering deleted code. */}
 
       {/* Account Section */}
       <View style={themed($section)} onLayout={trackSection("account")}>

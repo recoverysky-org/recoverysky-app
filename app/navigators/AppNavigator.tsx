@@ -47,7 +47,16 @@ const AppStack = observer(function AppStack() {
   const configStore = useConfigStore()
   const profileStore = useProfileStore()
   const isAuthenticated = authStore.isAuthenticated
-  const needsZoomSetup = !profileStore.zoomConnected
+  // Zoom account connection is no longer required at first launch — meeting
+  // joins now route through the external Zoom app, which doesn't need our
+  // OAuth/ZAK link to function. The ZoomSetup screen + the per-screen
+  // reconnect flow (ZoomLogin) are kept registered downstream so the
+  // gate can be re-enabled later by restoring `!profileStore.zoomConnected`.
+  // The reference to profileStore.zoomConnected is kept so a stale
+  // `zoomConnected=false` in MMKV doesn't suddenly route returning users
+  // through a flow we just hid.
+  void profileStore.zoomConnected
+  const needsZoomSetup = false
   const needsOnboarding = !profileStore.onboardingCompleted
   // Full-screen MaintenanceScreen is reserved for the cold-start outage:
   // the very first /config fetch failed with no cached data to render.
