@@ -37,6 +37,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - **Social tab (Community).** New tab that hosts the Replyke-powered
   RecoverySky community SPA in an in-app WebView. Native shell owns Auth0;
   the WebView receives a pre-signed Replyke JWT, never an Auth0 token.
+  *Currently hidden for this release (`socialTabVisible = false` in
+  MainNavigator) pending SPA-side fixes; re-enable by restoring
+  `__DEV__ || isPremium`.*
+- **OnboardingZoom screen** between Recovery and Theme in the onboarding
+  wizard (now 8 screens, was 7). Tells the user RecoverySky uses Zoom
+  Workplace for live meetings and provides a platform-aware install
+  button (App Store on iOS, Play Store on Android). Informational only —
+  no install detection / gating; the existing meeting-join paths handle
+  missing-Zoom errors downstream. New i18n keys (`zoomTitle`,
+  `zoomSubtitle`, `zoomBenefitFree`, `zoomBenefitRequired`,
+  `zoomBenefitAlready`, `installZoom`) added to all 9 locales — Spanish
+  / German / French / Portuguese / Russian / Ukrainian / Thai / Arabic
+  translations are first-pass and should be reviewed by native
+  speakers.
 - **On-demand Replyke JWT refresh** for the Social WebView. The web side
   can now request a fresh signed token mid-session via a
   `replyke_token_request` postMessage; the shell mints via
@@ -64,6 +78,25 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `overScrollMode="never"`, `directionalLockEnabled` belt-and-suspenders
   on top of the SPA's CSS overflow rules. Prevents residual rubber-band
   overscroll (iOS) and horizontal scroll-spill (Android).
+- **Cold-start ZoomSetup gate disabled.** Returning and new users no
+  longer hit the in-app Zoom OAuth/ZAK connection screen at first
+  launch. Meeting joins now flow through the external Zoom app, which
+  doesn't require our linked account to function. Hardcoded
+  `needsZoomSetup = false` in `AppNavigator`; the `ZoomSetupScreen` and
+  `ZoomLogin` modal remain registered so the gate can be re-enabled
+  cleanly later if the in-app SDK path returns.
+- **Zoom Account section removed from Settings.** Now-vestigial UI for
+  connect / disconnect / edit-profile / connected-status was deleted.
+  `useZoomAuth().disconnect` is still wired into the account-deletion
+  and sign-out flows for cleanliness, just no longer user-facing.
+
+### Removed
+- **"Skip for now" buttons removed** from 6 onboarding screens
+  (Privacy, Theme, OSS, Attendance, Profile, Recovery). Users now
+  proceed through the wizard step-by-step without an early-exit
+  shortcut. The `OnboardingImport` "Skip" button (different translation
+  key, different semantics — skips the data import step rather than the
+  whole flow) is preserved.
 
 ### Fixed
 - **External Zoom launch hardened against fire-and-forget crashes.**
