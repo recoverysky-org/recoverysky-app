@@ -406,6 +406,25 @@ export const ProfileStoreModel = types
         self.ninetyStartEpoch = value ? Date.now() : 0
       },
 
+      /**
+       * Atomically set the 90-in-90 start using a real historical epoch
+       * (NOT Date.now()). Used when importing legacy Firebase data so the
+       * imported start is preserved exactly — `setNinetyStartDate` would
+       * stamp `ninetyStartEpoch` with "now", which would skew downstream
+       * attendance-window filters and the days-elapsed display. Input is
+       * Unix milliseconds; the Firebase preferences.ninetyStart field is
+       * documented as epoch-ms. Returns the resolved ISO date so callers
+       * can log it.
+       */
+      importNinetyStart(epochMs: number): string | null {
+        if (epochMs <= 0) return null
+        const iso = new Date(epochMs).toISOString().split("T")[0] ?? ""
+        if (!iso) return null
+        self.ninetyStartDate = iso
+        self.ninetyStartEpoch = epochMs
+        return iso
+      },
+
       setNinetyStrictMode(value: boolean) {
         self.ninetyStrictMode = value
       },

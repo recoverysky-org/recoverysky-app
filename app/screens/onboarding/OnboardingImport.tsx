@@ -101,9 +101,19 @@ async function importUserProfile(
   if (preferences.showCleanDays) profileStore.setShowCleanDays(true)
   if (preferences.showPronouns) profileStore.setShowPronouns(true)
 
+  // 90-in-90 start: only import if the legacy data has a value AND the user
+  // hasn't already started a challenge locally. We don't want a re-import
+  // (e.g. user reinstalls and re-runs onboarding) to overwrite progress
+  // they've made on a fresh local challenge.
+  let importedNinetyStart: string | null = null
+  if (preferences.ninetyStart > 0 && profileStore.ninetyStartDate === "") {
+    importedNinetyStart = profileStore.importNinetyStart(preferences.ninetyStart)
+  }
+
   log.info("User profile imported", {
     shortName: profile.shortName,
     fieldsImported: Object.keys(secureData).join(","),
+    ninetyStart: importedNinetyStart ?? "",
   })
   return profile.shortName
 }
