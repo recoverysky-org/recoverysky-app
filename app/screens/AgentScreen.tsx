@@ -275,7 +275,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   useEffect(() => {
     if (profileStore.aiConsentAccepted) return
     api
-      .getContent("aiConsent")
+      .getContent("AI_Consent")
       .then((result) => {
         if (result.kind === "ok") setConsentContent(htmlToText(result.content))
       })
