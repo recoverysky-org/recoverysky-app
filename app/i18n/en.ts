@@ -135,9 +135,9 @@ const en = {
     title: "Home",
     placeholder: "Dashboard content coming soon",
     // Help Cards
-    onboardingTitle: "Welcome to RecoverySky",
+    onboardingTitle: "RecoverySky is the next generation of AA/NA Live!",
     onboardingDescription:
-      "Review the onboarding anytime to personalize the app and to learn about privacy.",
+      "The name has changed, but you'll find the app is essentially the same — completely rewritten from the ground up with modern, maintainable software.",
     restartOnboarding: "Restart Onboarding",
     navigationTitle: "App Navigation",
     navigationDescription:

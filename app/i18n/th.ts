@@ -127,9 +127,9 @@ const th: Translations = {
     title: "หน้าหลัก",
     placeholder: "เนื้อหาแดชบอร์ดกำลังมาเร็วๆ นี้",
     // Help Cards
-    onboardingTitle: "ยินดีต้อนรับสู่ RecoverySky",
+    onboardingTitle: "RecoverySky คือ AA/NA Live เจเนอเรชั่นใหม่!",
     onboardingDescription:
-      "เริ่มการตั้งค่าเริ่มต้นใหม่ได้ตลอดเวลาเพื่อปรับแต่งแอปและเรียนรู้เกี่ยวกับความเป็นส่วนตัว",
+      "ชื่ออาจเปลี่ยนไป แต่แอปยังคงเหมือนเดิม — เขียนขึ้นใหม่ทั้งหมดด้วยซอฟต์แวร์ที่ทันสมัยและบำรุงรักษาง่าย",
     restartOnboarding: "เริ่มการตั้งค่าเริ่มต้นใหม่",
     navigationTitle: "การนำทางแอป",
     navigationDescription:

@@ -45,13 +45,6 @@ const HELP_CARDS: HelpCardDef[] = [
     icon: "school-outline",
     titleTx: "homeScreen:onboardingTitle",
     descriptionTx: "homeScreen:onboardingDescription",
-    actionTx: "homeScreen:restartOnboarding",
-  },
-  {
-    id: "navigation",
-    icon: "apps-outline",
-    titleTx: "homeScreen:navigationTitle",
-    descriptionTx: "homeScreen:navigationDescription",
   },
   {
     id: "live",
@@ -85,15 +78,6 @@ const HELP_CARDS: HelpCardDef[] = [
     descriptionTx: "homeScreen:supportDescription",
     actionTx: "homeScreen:goToSupport",
     actionUrl: "https://www.recoverysky.org/support",
-  },
-  {
-    id: "listings",
-    icon: "list-outline",
-    titleTx: "homeScreen:listingsTitle",
-    descriptionTx: "homeScreen:listingsDescription",
-    actionTx: "homeScreen:goToListings",
-    actionTab: "Meetings",
-    actionParams: { segment: "listings" },
   },
   {
     id: "attendance",
@@ -198,16 +182,13 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   const handleCardAction = useCallback(
     (card: HelpCardDef) => {
       log.debug("Help card action pressed", { cardId: card.id, actionTab: card.actionTab })
-      if (card.id === "onboarding") {
-        // Reset onboarding and navigate to it
-        profileStore.resetOnboarding()
-      } else if (card.actionUrl) {
+      if (card.actionUrl) {
         Linking.openURL(card.actionUrl)
       } else if (card.actionTab) {
         navigation.navigate(card.actionTab, card.actionParams as never)
       }
     },
-    [navigation, profileStore],
+    [navigation],
   )
 
   const handleLogout = async () => {

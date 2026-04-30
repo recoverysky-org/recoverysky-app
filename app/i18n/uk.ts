@@ -130,9 +130,9 @@ const uk: Translations = {
     title: "Головна",
     placeholder: "Вміст панелі незабаром з'явиться",
     // Help Cards
-    onboardingTitle: "Ласкаво просимо до RecoverySky",
+    onboardingTitle: "RecoverySky — нове покоління AA/NA Live!",
     onboardingDescription:
-      "Пройди початкове налаштування будь-коли, щоб персоналізувати додаток та дізнатися про конфіденційність.",
+      "Назва змінилася, але застосунок по суті той самий — повністю переписаний із нуля із сучасним та підтримуваним кодом.",
     restartOnboarding: "Перезапустити початкове налаштування",
     navigationTitle: "Навігація додатку",
     navigationDescription:

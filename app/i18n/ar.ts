@@ -127,8 +127,9 @@ const ar: Translations = {
     title: "الرئيسية",
     placeholder: "محتوى لوحة المعلومات قريباً",
     // Help Cards
-    onboardingTitle: "مرحباً بك في RecoverySky",
-    onboardingDescription: "راجع الإعداد الأولي في أي وقت لتخصيص التطبيق والتعرف على الخصوصية.",
+    onboardingTitle: "RecoverySky هو الجيل الجديد من AA/NA Live!",
+    onboardingDescription:
+      "تغيّر الاسم، لكنك ستجد أن التطبيق هو نفسه في الجوهر — أُعيدت كتابته بالكامل ببرنامج حديث وقابل للصيانة.",
     restartOnboarding: "إعادة الإعداد الأولي",
     navigationTitle: "تنقل التطبيق",
     navigationDescription:

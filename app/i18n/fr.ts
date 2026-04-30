@@ -130,9 +130,9 @@ const fr: Translations = {
     title: "Accueil",
     placeholder: "Contenu du tableau de bord à venir",
     // Help Cards
-    onboardingTitle: "Bienvenue sur RecoverySky",
+    onboardingTitle: "RecoverySky, c'est la nouvelle génération d'AA/NA Live !",
     onboardingDescription:
-      "Recommence l'intégration à tout moment pour personnaliser l'app et en savoir plus sur la confidentialité.",
+      "Le nom a changé, mais tu verras que l'app est essentiellement la même — entièrement réécrite avec un logiciel moderne et maintenable.",
     restartOnboarding: "Recommencer l'intégration",
     navigationTitle: "Navigation de l'App",
     navigationDescription:
