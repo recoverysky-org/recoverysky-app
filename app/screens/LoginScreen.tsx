@@ -196,28 +196,26 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           </View>
         )}
 
-        {Platform.OS === "ios" && (
-          <View style={themed($noticeBanner)}>
-            <Ionicons
-              name="information-circle"
-              size={22}
-              color={theme.colors.tint}
-              style={$noticeIcon}
-            />
-            <Text style={themed($noticeText)}>
-              This is the updated AA/NA Live app. If you are an existing user, log in with the same
-              credentials you used with AA/NA Live. If you need help, please contact{" "}
-              <Text
-                style={themed($noticeLink)}
-                onPress={() => Linking.openURL("https://www.recoverysky.org/support")}
-                accessibilityRole="link"
-              >
-                support
-              </Text>
-              .
+        <View style={themed($noticeBanner)}>
+          <Ionicons
+            name="information-circle"
+            size={22}
+            color={theme.colors.tint}
+            style={$noticeIcon}
+          />
+          <Text style={themed($noticeText)}>
+            This is the updated AA/NA Live app. If you are an existing user, log in with the same
+            credentials you used with AA/NA Live. If you need help, please contact{" "}
+            <Text
+              style={themed($noticeLink)}
+              onPress={() => Linking.openURL("https://www.recoverysky.org/support")}
+              accessibilityRole="link"
+            >
+              support
             </Text>
-          </View>
-        )}
+            .
+          </Text>
+        </View>
 
         {/* Auth0 OAuth Login */}
         <Pressable
