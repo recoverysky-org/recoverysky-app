@@ -55,11 +55,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
 
     const handleNext = () => {
       trackEvent("onboarding_step", { step: "recovery" })
-      navigation.navigate("OnboardingTheme")
-    }
-
-    const handleSkip = () => {
-      profileStore.completeOnboarding()
+      navigation.navigate("OnboardingZoom")
     }
 
     const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -205,15 +201,6 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
               style={[themed($buttonText), { color: theme.colors.tint }]}
               tx="onboarding:next"
             />
-          </Pressable>
-
-          <Pressable
-            onPress={handleSkip}
-            style={$skipButton}
-            accessibilityRole="button"
-            accessibilityLabel={translate("onboarding:skipForNow")}
-          >
-            <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>
       </Screen>
@@ -364,12 +351,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontWeight: "600",
 })
 
-const $skipButton: ViewStyle = {
-  alignItems: "center",
-  paddingVertical: 12,
-}
-
-const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})

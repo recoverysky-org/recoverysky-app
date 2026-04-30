@@ -29,10 +29,6 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
       navigation.navigate("OnboardingPrivacy")
     }
 
-    const handleSkip = () => {
-      profileStore.completeOnboarding()
-    }
-
     const toggleAttendance = () => {
       profileStore.setAttendanceEnabled(!profileStore.attendanceEnabled)
     }
@@ -44,7 +40,7 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={4} />
+        <ProgressDots currentIndex={5} />
 
         {/* Content */}
         <View style={$content}>
@@ -95,15 +91,6 @@ export const OnboardingAttendance: FC<OnboardingScreenProps<"OnboardingAttendanc
               style={[themed($buttonText), { color: theme.colors.tint }]}
               tx="onboarding:next"
             />
-          </Pressable>
-
-          <Pressable
-            onPress={handleSkip}
-            style={$skipButton}
-            accessibilityRole="button"
-            accessibilityLabel={translate("onboarding:skipForNow")}
-          >
-            <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>
       </Screen>
@@ -200,12 +187,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontWeight: "600",
 })
 
-const $skipButton: ViewStyle = {
-  alignItems: "center",
-  paddingVertical: 12,
-}
-
-const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})

@@ -30,10 +30,6 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
       navigation.navigate("OnboardingAttendance")
     }
 
-    const handleSkip = () => {
-      profileStore.completeOnboarding()
-    }
-
     const toggleDarkMode = () => {
       setThemeContextOverride(theme.isDark ? "light" : "dark")
     }
@@ -45,7 +41,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={3} />
+        <ProgressDots currentIndex={4} />
 
         {/* Content */}
         <View style={$content}>
@@ -99,15 +95,6 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
               style={[themed($buttonText), { color: theme.colors.tint }]}
               tx="onboarding:next"
             />
-          </Pressable>
-
-          <Pressable
-            onPress={handleSkip}
-            style={$skipButton}
-            accessibilityRole="button"
-            accessibilityLabel={translate("onboarding:skipForNow")}
-          >
-            <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>
       </Screen>
@@ -193,12 +180,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontWeight: "600",
 })
 
-const $skipButton: ViewStyle = {
-  alignItems: "center",
-  paddingVertical: 12,
-}
-
-const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})

@@ -39,10 +39,6 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
       profileStore.completeOnboarding()
     }
 
-    const handleSkip = () => {
-      profileStore.completeOnboarding()
-    }
-
     const openSourceCode = () => {
       Linking.openURL("https://github.com/recoverysky-org/recoverysky-app")
     }
@@ -58,7 +54,7 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={6} />
+        <ProgressDots currentIndex={7} />
 
         {/* Content */}
         <View style={$content}>
@@ -123,15 +119,6 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
               style={[themed($buttonText), { color: theme.colors.tint }]}
               tx="onboarding:finish"
             />
-          </Pressable>
-
-          <Pressable
-            onPress={handleSkip}
-            style={$skipButton}
-            accessibilityRole="button"
-            accessibilityLabel={translate("onboarding:skipForNow")}
-          >
-            <Text style={themed($skipText)} tx="onboarding:skipForNow" />
           </Pressable>
         </View>
       </Screen>
@@ -247,12 +234,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontWeight: "600",
 })
 
-const $skipButton: ViewStyle = {
-  alignItems: "center",
-  paddingVertical: 12,
-}
-
-const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})

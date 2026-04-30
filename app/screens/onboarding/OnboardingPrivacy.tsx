@@ -37,9 +37,6 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
       navigation.navigate("OnboardingOSS")
     }
 
-    const handleSkip = () => {
-      profileStore.completeOnboarding()
-    }
 
     const openPrivacyPolicy = () => {
       Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/privacy")
@@ -56,7 +53,7 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={5} />
+        <ProgressDots currentIndex={6} />
 
         {/* Content */}
         <View style={$content}>
@@ -124,14 +121,6 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
             />
           </Pressable>
 
-          <Pressable
-            onPress={handleSkip}
-            style={$skipButton}
-            accessibilityRole="button"
-            accessibilityLabel={translate("onboarding:skipForNow")}
-          >
-            <Text style={themed($skipText)} tx="onboarding:skipForNow" />
-          </Pressable>
         </View>
       </Screen>
     )
@@ -231,12 +220,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontWeight: "600",
 })
 
-const $skipButton: ViewStyle = {
-  alignItems: "center",
-  paddingVertical: 12,
-}
-
-const $skipText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})
