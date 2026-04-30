@@ -40,6 +40,10 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
       ...existingPlugins,
       // Debug-only: override Zoom SDK's network security config to allow cleartext for local dev
       "./plugins/withDebugNetworkSecurity",
+      // Eliminate the white flash between Android system splash and JS first
+      // paint by setting AppTheme's windowBackground to a layered drawable
+      // that mirrors the splash (logo centered on splash background color).
+      "./plugins/withSplashScreenWindowBackground",
     ],
   }
 }
