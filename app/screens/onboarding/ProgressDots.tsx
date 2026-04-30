@@ -17,6 +17,7 @@ const SCREENS: (keyof OnboardingParamList)[] = [
   "OnboardingWelcome",
   "OnboardingProfile",
   "OnboardingRecovery",
+  "OnboardingZoom",
   "OnboardingTheme",
   "OnboardingAttendance",
   "OnboardingPrivacy",
@@ -24,7 +25,7 @@ const SCREENS: (keyof OnboardingParamList)[] = [
 ]
 
 interface ProgressDotsProps {
-  /** Current screen index (0-6) */
+  /** Current screen index (0-7) */
   currentIndex: number
 }
 

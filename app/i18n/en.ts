@@ -467,12 +467,19 @@ const en = {
     selectFellowship: "Select your fellowship",
     recoveryDate: "Recovery Date",
     otherFellowship: "Other / None",
-    // Screen 3: Theme
+    // Screen 3: Zoom (install requirement)
+    zoomTitle: "Install Zoom",
+    zoomSubtitle: "RecoverySky uses Zoom Workplace to host and attend meetings.",
+    zoomBenefitFree: "The Zoom app is free from the App Store or Play Store",
+    zoomBenefitRequired: "Required to join live meetings",
+    zoomBenefitAlready: "Already installed? Tap Next to continue.",
+    installZoom: "Install Zoom",
+    // Screen 4: Theme
     themeTitle: "Customize Your App",
     themeSubtitle: "Make it yours",
     darkMode: "Dark Mode",
     themeColor: "Theme Color",
-    // Screen 4: Attendance
+    // Screen 5: Attendance
     attendanceTitle: "Personal Attendance",
     attendanceSubtitle: "Set goals, track progress, and visually celebrate your recovery journey.",
     attendanceFreeFeature:
@@ -483,7 +490,7 @@ const en = {
       "Subscription: Digitally signed reports for sponsors, courts, or family services",
     enableAttendance: "Enable Attendance Tracking",
     enableAttendanceHint: "You can change this anytime in Settings",
-    // Screen 5: Privacy
+    // Screen 6: Privacy
     privacyTitle: "Your Privacy Matters",
     privacySubtitle: "We take your privacy seriously",
     dataOnDevice: "Your data never leaves your device",
@@ -495,7 +502,7 @@ const en = {
     openSource: "Open source - available for review and security testing",
     privacyPolicy: "Privacy Policy",
     termsOfService: "Terms of Service",
-    // Screen 6: Open Source
+    // Screen 7: Open Source
     ossTitle: "Open Source",
     ossSubtitle: "Built with transparency and trust",
     ossTransparency: "Complete transparency - see exactly how the app works",

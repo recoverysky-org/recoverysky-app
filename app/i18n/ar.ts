@@ -450,7 +450,14 @@ const ar: Translations = {
     selectFellowship: "اختر زمالتك",
     recoveryDate: "تاريخ التعافي",
     otherFellowship: "أخرى / بدون",
-    // Screen 3: Theme
+    // Screen 3: Zoom (install requirement)
+    zoomTitle: "تثبيت Zoom",
+    zoomSubtitle: "يستخدم RecoverySky تطبيق Zoom Workplace لحضور الاجتماعات المباشرة.",
+    zoomBenefitFree: "تطبيق Zoom مجاني من App Store و Play Store",
+    zoomBenefitRequired: "مطلوب لحضور الاجتماعات المباشرة",
+    zoomBenefitAlready: "هل قمت بتثبيته بالفعل؟ اضغط على التالي للمتابعة.",
+    installZoom: "تثبيت Zoom",
+    // Screen 4: Theme
     themeTitle: "خصّص تطبيقك",
     themeSubtitle: "اجعله يعكس شخصيتك",
     darkMode: "الوضع الداكن",

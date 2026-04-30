@@ -460,7 +460,14 @@ const ru: Translations = {
     selectFellowship: "Выбери своё сообщество",
     recoveryDate: "Дата выздоровления",
     otherFellowship: "Другое / Нет",
-    // Screen 3: Theme
+    // Screen 3: Zoom (install requirement)
+    zoomTitle: "Установить Zoom",
+    zoomSubtitle: "RecoverySky использует Zoom Workplace для участия в онлайн-встречах.",
+    zoomBenefitFree: "Приложение Zoom бесплатно в App Store и Play Store",
+    zoomBenefitRequired: "Необходимо для участия в онлайн-встречах",
+    zoomBenefitAlready: "Уже установлено? Нажми «Далее», чтобы продолжить.",
+    installZoom: "Установить Zoom",
+    // Screen 4: Theme
     themeTitle: "Настрой приложение",
     themeSubtitle: "Сделай его своим",
     darkMode: "Тёмная тема",

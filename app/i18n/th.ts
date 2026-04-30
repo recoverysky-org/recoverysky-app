@@ -453,7 +453,14 @@ const th: Translations = {
     selectFellowship: "เลือกกลุ่มของคุณ",
     recoveryDate: "วันที่เริ่มฟื้นตัว",
     otherFellowship: "อื่นๆ / ไม่ระบุ",
-    // Screen 3: Theme
+    // Screen 3: Zoom (install requirement)
+    zoomTitle: "ติดตั้ง Zoom",
+    zoomSubtitle: "RecoverySky ใช้ Zoom Workplace สำหรับการเข้าร่วมประชุมสด",
+    zoomBenefitFree: "แอป Zoom ใช้ฟรีจาก App Store หรือ Play Store",
+    zoomBenefitRequired: "จำเป็นสำหรับการเข้าร่วมประชุมสด",
+    zoomBenefitAlready: "ติดตั้งแล้ว? แตะ ถัดไป เพื่อดำเนินการต่อ",
+    installZoom: "ติดตั้ง Zoom",
+    // Screen 4: Theme
     themeTitle: "ปรับแต่งแอปของคุณ",
     themeSubtitle: "ทำให้เป็นของคุณ",
     darkMode: "โหมดมืด",

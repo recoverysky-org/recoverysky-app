@@ -460,7 +460,14 @@ const es: Translations = {
     selectFellowship: "Selecciona tu grupo",
     recoveryDate: "Fecha de Recuperación",
     otherFellowship: "Otro / Ninguno",
-    // Screen 3: Theme
+    // Screen 3: Zoom (install requirement)
+    zoomTitle: "Instalar Zoom",
+    zoomSubtitle: "RecoverySky usa Zoom Workplace para asistir a reuniones en vivo.",
+    zoomBenefitFree: "La app Zoom es gratuita en la App Store o Play Store",
+    zoomBenefitRequired: "Requerida para asistir a reuniones en vivo",
+    zoomBenefitAlready: "¿Ya está instalada? Toca Siguiente para continuar.",
+    installZoom: "Instalar Zoom",
+    // Screen 4: Theme
     themeTitle: "Personaliza Tu App",
     themeSubtitle: "Hazla tuya",
     darkMode: "Modo Oscuro",
