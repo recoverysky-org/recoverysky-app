@@ -20,9 +20,7 @@ import {
   Dimensions,
   Easing,
   InteractionManager,
-  KeyboardAvoidingView,
   Linking,
-  Platform,
   View,
   ViewStyle,
   TextStyle,
@@ -35,6 +33,14 @@ import { useIsFocused } from "@react-navigation/native"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
+// react-native-keyboard-controller's KeyboardAvoidingView is a drop-in
+// replacement for RN's that reads the actual keyboard frame from the
+// native side and handles Android + edge-to-edge correctly. Using RN's
+// KeyboardAvoidingView with behavior="height" on Android caused a flash
+// + scroll feedback loop because it competed with the OS adjustResize
+// AND the parent Animated.View's non-native-driver layout animation —
+// three layout systems racing on every keyboard frame.
+import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 
 import { ExternalZoomEducationModal } from "@/components/ExternalZoomEducationModal"
 import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
@@ -820,7 +826,11 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           >
             <KeyboardAvoidingView
               style={themed($topicKeyboardAvoider)}
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              // `padding` works on both platforms with the keyboard-controller
+              // KAV (it normalizes via the native KeyboardEvent stream). Was
+              // conditional on Platform.OS with "height" on Android, which
+              // double-resized against the OS and the parent's layout animation.
+              behavior="padding"
             >
               <TopicPromptContent
                 active={topicActive}
