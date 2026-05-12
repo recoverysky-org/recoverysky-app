@@ -39,6 +39,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 })
 
 import { MaintenanceBanner } from "./components/MaintenanceBanner"
+import { TimerRecoveryGate } from "./components/TimerRecoveryGate"
 import { ToastProvider } from "./components/Toast"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
@@ -904,6 +905,14 @@ export function App() {
                             navigator state swap (or a navigator-level
                             modal) doesn't unmount it. */}
                         <MaintenanceBanner />
+                        {/* External Zoom timer recovery — remounts the
+                            running timer modal on cold start when the OS
+                            killed our process mid-meeting. Sibling to
+                            AppNavigator so it survives navigator state
+                            swaps and renders above every screen. Driven
+                            by TimerSessionResumer via the recovery
+                            channel in services/zoom/timerRecovery. */}
+                        <TimerRecoveryGate />
                       </ZoomMeetingProvider>
                     </ToastProvider>
                   </ThemeProvider>

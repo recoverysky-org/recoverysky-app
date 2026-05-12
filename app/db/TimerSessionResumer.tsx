@@ -3,32 +3,49 @@
  *
  * Headless. On app startup (once the database is ready), check MMKV for an
  * External Zoom attendance timer that was running when the process was last
- * killed. If one is found:
- *  - Below the credit threshold: drop silently (nothing useful to save).
- *  - At or above the credit threshold: prompt the user to save or discard.
- *    "Save" finalizes the attendance with endedAt = now via
- *    saveTimerAttendance, mirroring what the modal would have done.
+ * killed. If one is found and is recent enough, surface it to the recovery
+ * channel so TimerRecoveryGate can remount the running modal pre-seeded with
+ * the persisted session.
+ *
+ * CHANGED 2026-05-11: previously this fired a destructive Alert.alert with
+ * only Save / Discard options. That UX was actively harmful — customers
+ * switching back to the app mid-meeting (just to check that recording was
+ * happening) would see "X minutes recorded, save?", tap Save, and unknowingly
+ * end their attendance session at a partial duration. Any time spent back in
+ * Zoom after that got zero credit because the persisted session was cleared.
+ * Multiple confirmed reports of customers losing attendance this way.
+ *
+ * The new flow uses the existing modal resume path (see
+ * ExternalZoomTimerModal lines 115–131): adopt the persisted startedAt, show
+ * the running timer with correct wall-clock elapsed, let the user keep using
+ * Zoom and Save when the meeting *actually* ends with full duration captured.
+ *
+ * A 6-hour staleness cap silently discards sessions old enough that the
+ * meeting must have ended (and the device sat with no app re-entry). Tunable
+ * if our 4-hour conferences ever bump against it.
  *
  * Place inside DatabaseProvider alongside the other *Resumer / *Hydrator
  * components, below ProfileHydrator so we have a user context.
  */
 
 import { useEffect, useRef } from "react"
-import { Alert } from "react-native"
 
-import { translate } from "@/i18n"
 import {
   clearTimerSession,
   EXTERNAL_MIN_CREDIT_MS,
   loadTimerSession,
-  saveTimerAttendance,
+  setRecoverySession,
 } from "@/services/zoom"
-import { extractZoomMeetingNumber } from "@/services/zoom/useZoomMeeting"
 import { logger } from "@/utils/logger"
 
 import { useDatabase } from "./DatabaseProvider"
 
 const log = logger.child({ module: "TimerSessionResumer" })
+
+// Meetings rarely run longer than 4 hours; 6h gives generous headroom while
+// still discarding clearly-stale persisted sessions (e.g. device left
+// untouched overnight with the app killed mid-meeting).
+const MAX_RECOVERY_AGE_MS = 6 * 60 * 60 * 1000
 
 export function TimerSessionResumer(): null {
   const { status } = useDatabase()
@@ -42,8 +59,9 @@ export function TimerSessionResumer(): null {
     if (!session) return
 
     const elapsedMs = Date.now() - session.startedAt
-    if (elapsedMs < EXTERNAL_MIN_CREDIT_MS) {
-      log.info("Dropping persisted timer session below credit threshold", {
+
+    if (elapsedMs > MAX_RECOVERY_AGE_MS) {
+      log.warn("Discarding stale persisted timer session", {
         mid: session.meetingId,
         elapsedMs,
       })
@@ -51,75 +69,15 @@ export function TimerSessionResumer(): null {
       return
     }
 
-    log.info("Persisted timer session found, prompting user", {
+    // Restore in all in-range cases — even below the credit threshold — so
+    // a user who got killed seconds after launch can keep counting. Save
+    // gating still happens inside the modal via canSave.
+    log.info("Restoring persisted timer session via recovery surface", {
       mid: session.meetingId,
       elapsedMs,
+      belowCredit: elapsedMs < EXTERNAL_MIN_CREDIT_MS,
     })
-
-    const endedAt = Date.now()
-    const minutes = Math.floor(elapsedMs / 60000)
-
-    Alert.alert(
-      translate("externalZoomTimer:recoverTitle"),
-      translate("externalZoomTimer:recoverMessage", {
-        minutes,
-        name: session.meetingName || "your meeting",
-      }),
-      [
-        {
-          text: translate("externalZoomTimer:recoverDiscard"),
-          style: "destructive",
-          onPress: () => {
-            log.info("User discarded recovered timer session", {
-              mid: session.meetingId,
-            })
-            clearTimerSession()
-          },
-        },
-        {
-          text: translate("externalZoomTimer:recoverSave"),
-          onPress: async () => {
-            try {
-              const result = await saveTimerAttendance({
-                uid: session.uid,
-                mid: session.meetingId,
-                zid: extractZoomMeetingNumber(session.meetingUrl) ?? "",
-                meetingName: session.meetingName,
-                startedAt: session.startedAt,
-                endedAt,
-              })
-              if (result.ok) {
-                log.info("Recovered timer attendance saved", {
-                  attendanceId: result.attendanceId,
-                  mid: session.meetingId,
-                })
-                clearTimerSession()
-              } else {
-                log.error("Failed to save recovered timer attendance", {
-                  mid: session.meetingId,
-                })
-                // Leave the session persisted so the user gets another chance
-                // on the next cold start.
-                Alert.alert(
-                  translate("externalZoomTimer:recoverTitle"),
-                  translate("externalZoomTimer:recoveryError"),
-                )
-              }
-            } catch (error) {
-              log.error("Error saving recovered timer attendance", {
-                error: String(error),
-                mid: session.meetingId,
-              })
-              Alert.alert(
-                translate("externalZoomTimer:recoverTitle"),
-                translate("externalZoomTimer:recoveryError"),
-              )
-            }
-          },
-        },
-      ],
-      { cancelable: false },
-    )
+    setRecoverySession(session)
   }, [status])
 
   return null
