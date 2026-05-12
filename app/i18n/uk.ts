@@ -544,6 +544,11 @@ const uk: Translations = {
     recoverDiscard: "Скасувати",
     recovered: "Відвідування збережено",
     recoveryError: "Не вдалося зберегти відновлене відвідування.",
+    longAttendanceTitle: "Тривале відвідування збережено",
+    longAttendanceMessage:
+      "Ви можете зменшити час відвідування у вкладці «Відвідування» застосунку.",
+    longAttendanceDontShow: "Більше не показувати",
+    longAttendanceGoTo: "Перейти до відвідувань",
   },
   externalZoomEducation: {
     title: "Зверніть увагу",

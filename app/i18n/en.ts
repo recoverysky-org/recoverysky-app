@@ -554,6 +554,11 @@ const en = {
     recoverDiscard: "Discard",
     recovered: "Attendance saved",
     recoveryError: "Could not save recovered attendance.",
+    longAttendanceTitle: "Long attendance saved",
+    longAttendanceMessage:
+      "You can adjust down your attendance time in the Attendance tab of the app.",
+    longAttendanceDontShow: "Don't Show Again",
+    longAttendanceGoTo: "Go to Attendance",
   },
   externalZoomEducation: {
     title: "Heads up",

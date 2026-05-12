@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next"
 import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
 import { useAuthenticationStore } from "@/models"
+import { navigate } from "@/navigators/navigationUtilities"
 import {
   clearTimerSession,
   EXTERNAL_MIN_CREDIT_MS,
@@ -37,8 +38,21 @@ import { extractZoomMeetingNumber } from "@/services/zoom/useZoomMeeting"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
+import { load, save } from "@/utils/storage"
 
 const log = logger.child({ module: "ExternalZoomTimerModal" })
+
+// A saved session longer than this triggers a heads-up that the duration can
+// be trimmed from the Attendance tab. Catches the "fell asleep with the timer
+// running" / "forgot to come back" case before the user notices a 6-hour
+// meeting in their archive. Real meetings rarely exceed 2 hours; if yours
+// does, the notice is still informational not blocking.
+const LONG_ATTENDANCE_NOTICE_MS = 2 * 60 * 60 * 1000
+
+// MMKV flag set when the user taps "Don't Show Again" on the long-attendance
+// notice. Persisted so the heads-up never repeats; trade-off accepted because
+// once a user has seen it, they know about the trim-down path.
+const LONG_ATTENDANCE_NOTICE_DISMISSED_KEY = "long-attendance-notice-dismissed-v1"
 
 interface MeetingTarget {
   id: string
@@ -211,6 +225,54 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
         return
       }
       clearTimerSession()
+      // Heads-up for very long sessions — likely the user forgot to come
+      // back and end the timer (cold-start recovery + ignoring the modal
+      // for hours, or simply walking away from the meeting still running).
+      // Non-blocking: the attendance is already saved; this just tells them
+      // where to trim it down. Fired before onSaved so the alert sits on
+      // top while parent surfaces (topic panel etc.) animate in below.
+      //
+      // Suppressed permanently once the user taps "Don't Show Again" — by
+      // then they've learned where the trim-down path is. 3-button native
+      // alert: Cancel / Don't Show Again / Go to Attendance.
+      const creditMs = endedAt - startedAt
+      const dismissed = load<boolean>(LONG_ATTENDANCE_NOTICE_DISMISSED_KEY) === true
+      if (creditMs > LONG_ATTENDANCE_NOTICE_MS && !dismissed) {
+        log.info("Showing long-attendance notice", {
+          mid: meeting.id,
+          creditMs,
+        })
+        Alert.alert(
+          translate("externalZoomTimer:longAttendanceTitle"),
+          translate("externalZoomTimer:longAttendanceMessage"),
+          [
+            {
+              text: translate("common:cancel"),
+              style: "cancel",
+            },
+            {
+              text: translate("externalZoomTimer:longAttendanceDontShow"),
+              style: "destructive",
+              onPress: () => {
+                save(LONG_ATTENDANCE_NOTICE_DISMISSED_KEY, true)
+                log.info("User dismissed long-attendance notice permanently")
+              },
+            },
+            {
+              text: translate("externalZoomTimer:longAttendanceGoTo"),
+              // navigate() targets the AppStack root which already accepts
+              // the "Attendance" route name (resolved through the Main tab
+              // navigator). `section: "new"` lands them on the editable
+              // active-session list — the same view AttendanceScreen
+              // already opens with on its default route.
+              onPress: () => {
+                log.info("User chose to navigate to Attendance from notice")
+                navigate("Attendance", { section: "new" })
+              },
+            },
+          ],
+        )
+      }
       // Only notify the parent of a successful Save — lets the parent
       // distinguish this from a Cancel and trigger the topic/host prompt.
       if (result.attendanceId && onSaved) {

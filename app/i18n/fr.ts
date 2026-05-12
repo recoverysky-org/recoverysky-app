@@ -551,6 +551,11 @@ const fr: Translations = {
     recoverDiscard: "Abandonner",
     recovered: "Présence enregistrée",
     recoveryError: "Impossible d'enregistrer la présence récupérée.",
+    longAttendanceTitle: "Présence longue enregistrée",
+    longAttendanceMessage:
+      "Vous pouvez réduire votre temps de présence dans l'onglet Présence de l'application.",
+    longAttendanceDontShow: "Ne plus afficher",
+    longAttendanceGoTo: "Aller à Présence",
   },
   externalZoomEducation: {
     title: "À noter",

@@ -546,6 +546,11 @@ const ru: Translations = {
     recoverDiscard: "Отменить",
     recovered: "Посещение сохранено",
     recoveryError: "Не удалось сохранить восстановленное посещение.",
+    longAttendanceTitle: "Длительное посещение сохранено",
+    longAttendanceMessage:
+      "Вы можете уменьшить время посещения во вкладке «Посещение» приложения.",
+    longAttendanceDontShow: "Больше не показывать",
+    longAttendanceGoTo: "Перейти к посещениям",
   },
   externalZoomEducation: {
     title: "Обратите внимание",

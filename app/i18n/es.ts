@@ -546,6 +546,11 @@ const es: Translations = {
     recoverDiscard: "Descartar",
     recovered: "Asistencia guardada",
     recoveryError: "No se pudo guardar la asistencia recuperada.",
+    longAttendanceTitle: "Asistencia prolongada guardada",
+    longAttendanceMessage:
+      "Puedes reducir tu tiempo de asistencia en la pestaña Asistencia de la app.",
+    longAttendanceDontShow: "No mostrar de nuevo",
+    longAttendanceGoTo: "Ir a Asistencia",
   },
   externalZoomEducation: {
     title: "Atención",

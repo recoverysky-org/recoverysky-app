@@ -548,6 +548,11 @@ const de: Translations = {
     recoverDiscard: "Verwerfen",
     recovered: "Teilnahme gespeichert",
     recoveryError: "Wiederhergestellte Teilnahme konnte nicht gespeichert werden.",
+    longAttendanceTitle: "Lange Teilnahme gespeichert",
+    longAttendanceMessage:
+      "Du kannst deine Teilnahmedauer im Reiter „Teilnahme“ der App reduzieren.",
+    longAttendanceDontShow: "Nicht mehr anzeigen",
+    longAttendanceGoTo: "Zu Teilnahme",
   },
   externalZoomEducation: {
     title: "Hinweis",

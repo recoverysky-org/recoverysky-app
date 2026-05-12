@@ -532,6 +532,10 @@ const ar: Translations = {
     recoverDiscard: "تجاهل",
     recovered: "تم حفظ الحضور",
     recoveryError: "تعذّر حفظ الحضور المُستعاد.",
+    longAttendanceTitle: "تم حفظ حضور طويل",
+    longAttendanceMessage: "يمكنك تقليل مدة الحضور من تبويب «الحضور» في التطبيق.",
+    longAttendanceDontShow: "عدم الإظهار مرة أخرى",
+    longAttendanceGoTo: "الذهاب إلى الحضور",
   },
   externalZoomEducation: {
     title: "انتبه",

@@ -536,6 +536,10 @@ const th: Translations = {
     recoverDiscard: "ยกเลิก",
     recovered: "บันทึกการเข้าร่วมแล้ว",
     recoveryError: "ไม่สามารถบันทึกการเข้าร่วมที่กู้คืนได้",
+    longAttendanceTitle: "บันทึกการเข้าร่วมที่ยาวนาน",
+    longAttendanceMessage: "คุณสามารถลดเวลาการเข้าร่วมได้ในแท็บ การเข้าร่วม ของแอป",
+    longAttendanceDontShow: "ไม่ต้องแสดงอีก",
+    longAttendanceGoTo: "ไปที่การเข้าร่วม",
   },
   externalZoomEducation: {
     title: "โปรดทราบ",

@@ -546,6 +546,11 @@ const pt: Translations = {
     recoverDiscard: "Descartar",
     recovered: "Presença salva",
     recoveryError: "Não foi possível salvar a presença recuperada.",
+    longAttendanceTitle: "Presença longa salva",
+    longAttendanceMessage:
+      "Você pode reduzir seu tempo de presença na aba Presença do aplicativo.",
+    longAttendanceDontShow: "Não mostrar novamente",
+    longAttendanceGoTo: "Ir para Presença",
   },
   externalZoomEducation: {
     title: "Atenção",
