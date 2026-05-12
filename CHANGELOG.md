@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.4.0] — 2026-05-11
+
 ### Added
 - **Sentry crash + error reporting.** Native crashes (NSExceptions, JNI,
   OOM kills, EXC_BAD_ACCESS), uncaught JS errors, and unhandled promise
@@ -99,6 +101,31 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   whole flow) is preserved.
 
 ### Fixed
+- **External Zoom attendance no longer lost when the OS kills the app
+  mid-meeting.** Previously, when Android/iOS terminated the
+  backgrounded RN process while the user was in Zoom (memory pressure
+  is the usual trigger), the next cold start fired a destructive
+  `Alert.alert` with only "Save" or "Discard" options. Customers who
+  switched back to the app just to verify recording would tap Save —
+  committing partial credit and clearing the persisted session — and
+  then any time spent back in Zoom afterward got zero credit because
+  the timer was gone. Multiple confirmed reports of customers losing
+  full meetings' worth of attendance this way. The recovery surface is
+  now non-destructive: `TimerSessionResumer` populates a recovery
+  channel (`services/zoom/timerRecovery`) and a new app-root
+  `TimerRecoveryGate` remounts `ExternalZoomTimerModal` pre-seeded with
+  the persisted session. The modal's existing resume path adopts the
+  persisted `startedAt`, shows the correct wall-clock elapsed, and does
+  NOT re-launch Zoom (the user just came from it). The user can keep
+  attending, return after the meeting actually ends, and Save with the
+  full duration. 6-hour staleness cap silently discards sessions
+  obviously older than any real meeting. Saved sessions longer than
+  2 hours now show a heads-up pointing the user to the Attendance tab
+  to trim the duration down — catches the "fell-asleep-with-the-
+  timer-on" case before they're stuck with a 6-hour meeting in their
+  archive. The alert offers three options: Cancel, "Don't Show Again"
+  (persisted suppression), and "Go to Attendance" (deep-links to the
+  active-session list via the root navigation ref).
 - **External Zoom launch hardened against fire-and-forget crashes.**
   `SchedulePopup` and `ExternalZoomTimerModal` previously called
   `Linking.openURL` without `.catch` on multiple paths; an unhandled
