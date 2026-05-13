@@ -2,10 +2,25 @@ diff --git a/node_modules/@zoom/meetingsdk-react-native/android/build.gradle b/n
 index 8138ecd..a54555d 100644
 --- a/node_modules/@zoom/meetingsdk-react-native/android/build.gradle
 +++ b/node_modules/@zoom/meetingsdk-react-native/android/build.gradle
-@@ -186,5 +186,5 @@ dependencies {
+@@ -61,6 +61,14 @@ repositories {
+   google()
+   mavenCentral()
+   jcenter()
++  // Local AAR override: our root project ships a stripped mobilertc.aar at
++  // android/libs/ (see scripts/patch-zoom-android.sh). The root build.gradle
++  // declares this via allprojects.repositories.flatDir, but that doesn't
++  // propagate into this subproject reliably (expo-root-project / RN's root
++  // plugin appears to replace or shadow inherited repos), so we declare it
++  // here as well to guarantee `implementation(name: 'mobilertc', ext: 'aar')`
++  // resolves.
++  flatDir { dirs "${rootProject.projectDir}/libs" }
+
+   def found = false
+   def defaultDir = null
+@@ -186,5 +194,5 @@ dependencies {
    implementation libraries.profileinstaller
    implementation libraries.coilGif
- 
+
 -  implementation 'us.zoom.meetingsdk:zoomsdk:6.7.2'
 +  implementation(name: 'mobilertc', ext: 'aar')
  }

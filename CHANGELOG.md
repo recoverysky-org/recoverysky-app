@@ -31,6 +31,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   passing a regular React `useCallback`. Switched to `onCompleteJS`, which
   the lib auto-wraps with `runOnJS`.
 
+### Build
+- **Android Zoom AAR resolution.** Fresh `npx expo prebuild` + Android build
+  failed with `Could not find :mobilertc:.` even though
+  `android/libs/mobilertc.aar` and the root `allprojects.repositories.flatDir`
+  were in place — under Gradle 8.x + Expo/RN root plugins, the inherited
+  flatDir doesn't reach the `:zoom_meetingsdk-react-native` subproject. The
+  patch now declares `flatDir` directly inside that subproject's own
+  `repositories {}` block so the local AAR resolves regardless of inheritance
+  quirks.
+
 ## [4.4.0] — 2026-05-11
 
 ### Added
