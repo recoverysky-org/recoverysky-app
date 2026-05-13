@@ -22,6 +22,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+- **Theme color picker crash.** Picking a color or moving the hue slider in
+  Settings → App Settings → Theme Color → custom picker crashed the app with
+  a C++ `Object is not a function` exception thrown from the worklet thread.
+  `reanimated-color-picker`'s `onComplete`/`onChange` props are worklet-only
+  (the lib calls them inside the gesture worklet without `runOnJS`); we were
+  passing a regular React `useCallback`. Switched to `onCompleteJS`, which
+  the lib auto-wraps with `runOnJS`.
+
 ## [4.4.0] — 2026-05-11
 
 ### Added

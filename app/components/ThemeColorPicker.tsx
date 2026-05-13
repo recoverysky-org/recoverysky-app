@@ -121,7 +121,11 @@ export const ThemeColorPicker: FC<ThemeColorPickerProps> = ({ visible, onClose }
             <>
               <ColorPicker
                 value={customColor}
-                onComplete={handleCustomColorChange}
+                // Use the *JS variant — reanimated-color-picker's `onComplete`/`onChange` are
+                // worklet-only props (called inside the gesture worklet without runOnJS). Passing
+                // a regular React useCallback to `onComplete` causes a "Object is not a function"
+                // C++ exception on the worklet thread. The `*JS` variants auto-wrap with runOnJS.
+                onCompleteJS={handleCustomColorChange}
                 style={themed($colorPicker)}
               >
                 <Preview style={themed($preview)} />
