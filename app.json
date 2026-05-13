@@ -119,11 +119,11 @@
         "image": "./assets/images/splash.png",
         "resizeMode": "cover",
         "enableFullScreenImage_legacy": true,
-        "backgroundColor": "#0a1628",
+        "backgroundColor": "#000000",
         "android": {
           "image": "./assets/images/app-icon-all.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0a1628",
+          "backgroundColor": "#000000",
           "imageWidth": 288
         }
       }
