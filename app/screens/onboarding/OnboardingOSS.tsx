@@ -54,7 +54,7 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={7} />
+        <ProgressDots currentIndex={6} />
 
         {/* Content */}
         <View style={$content}>

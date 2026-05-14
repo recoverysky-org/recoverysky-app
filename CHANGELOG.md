@@ -22,6 +22,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Removed
+- **Personal Attendance onboarding screen.** The attendance explanation +
+  enable toggle is no longer part of the onboarding wizard (now 7 screens,
+  down from 8). `profileStore.attendanceEnabled` still gates the Attendance
+  tab in `MainNavigator`; users opt in from Settings instead. Removed the
+  screen, its route, and the navigator entry outright — there's no longer a
+  "skip" path because the step doesn't exist.
+
 ### Fixed
 - **Theme color picker crash.** Picking a color or moving the hue slider in
   Settings → App Settings → Theme Color → custom picker crashed the app with

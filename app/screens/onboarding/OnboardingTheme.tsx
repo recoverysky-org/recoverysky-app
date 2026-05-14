@@ -27,7 +27,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
 
     const handleNext = () => {
       trackEvent("onboarding_step", { step: "theme" })
-      navigation.navigate("OnboardingAttendance")
+      navigation.navigate("OnboardingPrivacy")
     }
 
     const toggleDarkMode = () => {

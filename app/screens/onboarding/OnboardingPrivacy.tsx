@@ -53,7 +53,7 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={6} />
+        <ProgressDots currentIndex={5} />
 
         {/* Content */}
         <View style={$content}>

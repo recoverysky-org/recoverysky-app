@@ -47,7 +47,6 @@ export type OnboardingParamList = {
   OnboardingRecovery: undefined
   OnboardingZoom: undefined
   OnboardingTheme: undefined
-  OnboardingAttendance: undefined
   OnboardingPrivacy: undefined
   OnboardingOSS: undefined
 }
