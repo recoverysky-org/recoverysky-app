@@ -247,7 +247,13 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           )}
         </Pressable>
 
-        {Platform.OS !== "ios" && (
+        {/* Anonymous login intentionally disabled in the UI. We're keeping the
+            handler + state plumbing (handleAnonymousPress, loginAnonymously,
+            "anonymous" branches in proceedWithLogin) so re-enabling is a
+            one-block uncomment. Hidden because the anonymous-user experience
+            doesn't meet the bar we want for new installs — bring it back only
+            when paired with a clear upgrade path. */}
+        {/* {Platform.OS !== "ios" && (
           <Pressable
             testID="anonymous-button"
             accessibilityRole="button"
@@ -258,7 +264,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           >
             <Text style={themed($buttonTextSecondary)} tx="loginScreen:continueAnonymously" />
           </Pressable>
-        )}
+        )} */}
 
         {isLoading && <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />}
       </View>

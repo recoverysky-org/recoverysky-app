@@ -22,6 +22,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **Anonymous login hidden on the login screen.** The "Continue Anonymously"
+  button is commented out — the anonymous-user experience doesn't meet the
+  bar we want for new installs. All handler/state plumbing
+  (`handleAnonymousPress`, `loginAnonymously`, the `"anonymous"` branches in
+  `proceedWithLogin`) is intentionally retained so re-enabling is a one-block
+  uncomment when paired with a clear upgrade path.
+
 ### Removed
 - **Personal Attendance onboarding screen.** The attendance explanation +
   enable toggle is no longer part of the onboarding wizard (now 7 screens,
