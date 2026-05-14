@@ -48,6 +48,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   the lib auto-wraps with `runOnJS`.
 
 ### Build
+- **Android versionCode now managed locally.** Switched
+  `eas.json` `appVersionSource` from `remote` to `local` and dropped
+  `autoIncrement` from the production profile. EAS's remote counter had
+  drifted far below the legacy native app's published versionCode
+  (30784999), so EAS-built AABs came out as versionCode 54 — rejected by
+  Play. Worse, `autoIncrement` + the project's flat (non-`expo`-wrapped)
+  `app.json` made EAS inject a bogus nested `expo.android.versionCode` key,
+  producing a malformed `AndroidManifest.xml` and a manifest-merger crash.
+  `app.json` `android.versionCode` is now the single source of truth, set to
+  `40000000` and bumped by hand per native release (alongside `version` /
+  `runtimeVersion`).
 - **Android Zoom AAR resolution.** Fresh `npx expo prebuild` + Android build
   failed with `Could not find :mobilertc:.` even though
   `android/libs/mobilertc.aar` and the root `allprojects.repositories.flatDir`

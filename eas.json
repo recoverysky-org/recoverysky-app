@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 3.15.1",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "base": {
@@ -89,8 +89,7 @@
         "buildType": "app-bundle",
         "resourceClass": "medium",
         "credentialsSource": "local"
-      },
-      "autoIncrement": true
+      }
     }
   },
   "submit": {
