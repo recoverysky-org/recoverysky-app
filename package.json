@@ -1,7 +1,7 @@
 {
   "name": "recoverysky-app",
   "version": "4.4.0",
-  "update": "1",
+  "update": "2",
   "private": true,
   "main": "index.tsx",
   "scripts": {
@@ -55,7 +55,7 @@
     "submit:android": "eas submit --platform android --path $(ls -t build-*.apk build-*.aab 2>/dev/null | head -1)",
     "release:ios": "EXPO_NO_CAPABILITY_SYNC=1 eas build --platform ios --profile production && eas submit --platform ios --latest",
     "release:android": "eas build --platform android --profile production && eas submit --platform android --latest",
-    "release:ota": "eas update --branch production --auto",
+    "release:ota": "npm run update && eas update --branch production --auto",
     "install:ios:sim": "tar -xzf $(ls -t build*.tar.gz | head -1) -C /tmp && xcrun simctl install booted /tmp/recoveryskyapp.app",
     "launch:ios:sim": "xcrun simctl launch booted live.meetingmaker.app.prod",
     "deploy:ios:sim": "npm run install:ios:sim && npm run launch:ios:sim",
