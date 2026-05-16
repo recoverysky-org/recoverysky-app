@@ -30,7 +30,7 @@
       "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
-    "versionCode": 40000001,
+    "versionCode": 40000002,
     "allowBackup": false,
     "edgeToEdgeEnabled": true,
     "permissions": [
