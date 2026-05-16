@@ -73,7 +73,7 @@ const es: Translations = {
     enterDetails:
       "Inicia sesión para acceder a las suscripciones y funciones premium. Apple requiere una cuenta para apps con servicios interactivos como videoconferencias.",
     enterDetailsAndroid:
-      "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa, o continúa de forma anónima con funciones básicas gratuitas.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Configuración.",
+      "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Configuración.",
     loginButton: "Iniciar sesión",
     signupButton: "Registrarse",
     continueAnonymously: "",

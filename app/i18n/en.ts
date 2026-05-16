@@ -77,7 +77,7 @@ const en = {
     enterDetails:
       "Log in to access app subscriptions and premium features. An account is required by Apple for apps with interactive services like video conferencing.",
     enterDetailsAndroid:
-      "Log in to access app subscriptions and premium features. Subscriptions require a logged in account, or continue anonymously with basic free features.\n\nYou may login and logout at any time in Settings.",
+      "Log in to access app subscriptions and premium features. Subscriptions require a logged in account.\n\nYou may login and logout at any time in Settings.",
     loginButton: "Login",
     signupButton: "Sign Up",
     continueAnonymously: "",
