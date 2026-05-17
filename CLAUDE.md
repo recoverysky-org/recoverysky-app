@@ -480,36 +480,39 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 - Conversation persisted to ConversationStore
 - Agent tab gated behind `isPremium` entitlement
 
-## Zoom Integration
+## Zoom Integration (external-only)
 
-Zoom SDK in `app/services/zoom/`:
-- **ZoomMeetingProvider**: Context wrapper for meeting state and the join flow through the native SDK
-- **useZoomMeeting**: Hook that routes a join request — native SDK, external Zoom app (per `useExternalZoom`), or non-Zoom URL fallback
-- **useZoomAuth**: OAuth flow for authenticated meeting joins (ZAK token), credentials stored in encrypted SQLite via `zoomAuthRepo`
-- Requires EAS build (native SDK, not Expo Go compatible)
-- Uses `expo-audio` for audio permissions (migrated from deprecated `expo-av`)
-- **ZoomSetupScreen**: Required gate before onboarding — user must connect Zoom account
-- **ZoomLoginScreen**: Dismissible modal from Settings for reconnection
+The bundled Zoom Meeting SDK was removed in 4.5.0 after a fatal Android
+startup crash (`UnsatisfiedLinkError: libzReflection.so`) caused by
+autolinking the SDK's native module. The app now joins exclusively
+through the installed Zoom app via `Linking.openURL`.
 
-### Password precedence
-Both the external-launch URL builder and the native SDK join prefer `passwordEnc` (the encrypted share-link pwd) over plaintext `password`. The helper `buildExternalZoomUrl({ meetingNumber, meetingUrl, password, passwordEnc })` constructs `https://zoom.us/j/<zid>?pwd=<encrypted|plaintext>` when either is available, otherwise falls back to `meetingUrl`. The SDK path resolves `overridePw || config.passwordEnc || config.password || ""` and logs `pwdSource` on every join so the chosen source is visible in traces.
+What's left in `app/services/zoom/`:
+- **`useZoomMeeting`** — hook returning `{ joinMeeting, openInZoomApp,
+  isJoining, state, error, reset }`. `joinMeeting()` opens
+  `https://zoom.us/j/<zid>?pwd=<encrypted|plaintext>&un=<base64name>` via
+  `Linking.openURL`. The pure `buildExternalZoomUrl()` helper prefers
+  `passwordEnc` (encrypted share-link pwd) over plaintext `password`, and
+  best-effort prefills the display name as `?un=<base64>`.
+- **`externalAttendance.saveTimerAttendance()`** — writes an attendance
+  record from a user-confirmed timer modal. Events are JSON-tagged
+  `source: "external-zoom-timer"` so timer-sourced records are
+  filterable. When a valid record is written (credit ≥
+  `EXTERNAL_MIN_CREDIT_MS`) it also fires
+  `meetingEvents.completed("external-zoom-timer")` so the review-prompt
+  tally still increments outside the SDK path.
+- **`SchedulePopup.handleJoin`** — when `attendanceEnabled` is on, shows
+  `ExternalZoomTimerModal`; otherwise calls `Linking.openURL` directly.
+- The Listings API always requests `includeExternal: true` — external is
+  the only mode now.
 
-### External Zoom mode (`useExternalZoom`)
-When on in Settings → Advanced:
-- **Listings**: `includeExternal: true` is sent to `/schedules/live` and `/schedules/daily` so external-only meetings appear (rendered with a "Z" badge in `LiveMeetingRow.tsx`)
-- **Join**: all meetings open in the installed Zoom app; the native SDK is bypassed entirely
-- **Attendance path**: a separate, user-confirmed timer flow replaces SDK state tracking (see below)
-
-Refresh-on-toggle is owned by `MeetingProvider` itself via a MobX `reaction` on `profileStore.useExternalZoom` — the listings refetch regardless of which screen is mounted when the user flips the setting. Earlier versions routed this through `LiveScreen`'s subscriber, which silently broke when that tab wasn't mounted.
-
-### External Zoom Timer attendance
-`app/services/zoom/externalAttendance.ts` exposes `saveTimerAttendance()` and `EXTERNAL_MIN_CREDIT_MS`. When `useExternalZoom` + `attendanceEnabled` are both on, `SchedulePopup.handleJoin` shows `ExternalZoomTimerModal` instead of calling `joinMeeting`. The modal launches Zoom via `Linking.openURL`, runs a foreground timer (AppState-resynced so it doesn't drift while backgrounded), gates Save on `elapsed >= EXTERNAL_MIN_CREDIT_MS`, and on Save writes an attendance record with stubbed events (`"Timer started"`, `"External Zoom launched"`, `"Timer saved"`) all JSON-tagged `source: "external-zoom-timer"` so these records are filterable downstream. Emits the same `attendanceEvents.processed` + `created` that the SDK path does, which is why the existing attendance banner in `SchedulePopup` works unchanged. If `useExternalZoom` is on but `attendanceEnabled` is off, Zoom opens directly with no modal.
-
-### Tracing
-Zoom SDK paths are instrumented at trace level end-to-end:
-- `zoomEvents.ts` wraps `subscribeToZoomEvent` so every native→JS event is trace-logged with its raw payload at the chokepoint (ground truth independent of handler branching)
-- `ZoomMeetingProvider` traces every handler entry and every branch in the terminal-state logic, including the non-terminal states (`disconnecting` / `reconnecting` / `failed` / etc.) that were prime suspects in a "stuck Zoom HUD" bug
-- Production `EXPO_PUBLIC_LOG_LEVEL` is `trace` — revert to `debug` after a target session is captured if volume becomes a concern
+What was removed (do not restore without strong reason): the
+`ZoomMeetingProvider` SDK context, `ZoomLoginScreen` / `ZoomSetupScreen`,
+the `useZoomAuth` OAuth/ZAK flow, the encrypted-SQLite `zoomAuthRepo`,
+the `mobilertc.aar` patch pipeline, all ZoomMeetingSDK Pod/Gradle pins,
+and the ConfigStore `zoomSdkKey` / `zoomSdkSecret` / `zakApiKey` fields.
+The `zoom_auth` SQLite table is intentionally orphaned (still created
+by common-lib's Drizzle migrations; trivial to leave empty).
 
 ## Development Tools
 
@@ -517,60 +520,3 @@ Zoom SDK paths are instrumented at trace level end-to-end:
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
 - **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
 
-### Running on iOS Simulator (Intel Mac)
-
-ZoomMeetingSDK `6.7.5` dropped x86_64 simulator support (ships arm64-simulator only). The dev machine is an Intel i9 Mac which requires x86_64 simulator builds.
-
-The Podfile automatically pins to ZoomMeetingSDK `6.7.2` for local dev (which ships a fat binary with both x86_64 and arm64). No manual Podfile changes needed.
-
-For production Xcode builds, opt into `6.7.5` (~88MB smaller) before `pod install`:
-```bash
-cd ios && ZOOM_PRODUCTION=1 pod install && cd ..
-```
-
-To switch back to dev (simulator support):
-```bash
-cd ios && pod install && cd ..
-```
-
-## Pending Upgrades
-
-### Zoom SDK — upgrade to `@zoom/meetingsdk-react-native@6.7.5` when released on npm
-
-Currently using npm package `6.7.2` but with both native SDKs pinned to `6.7.5`:
-- **iOS**: CocoaPod `ZoomMeetingSDK` pinned to `6.7.5` (~88 MB smaller than 6.7.2)
-- **Android**: Local `mobilertc.aar` from `zoom-sdk-android-6.7.5.37500.zip`, with `armeabi-v7a` stripped (~40% size reduction)
-
-The npm package is not yet available as `6.7.5` on the registry.
-
-The patch at `patches/@zoom+meetingsdk-react-native+6.7.2.patch` covers:
-- iOS ObjC: meeting state events, `leaveMeeting`, `safeEmit` observer guard
-- Android Java: `MeetingServiceListener`, in-meeting controls, synthesized `onMeetingEndedReason`
-- Android build.gradle: replaced Maven `us.zoom.meetingsdk:zoomsdk:6.7.2` with local `mobilertc.aar`
-- podspec: loosened `ZoomMeetingSDK` dependency from `'6.7.2'` to `'>= 6.7.2', '< 7.0'`
-
-The podspec dependency `'>= 6.7.2', '< 7.0'` resolves to `6.7.5` when `ZOOM_PRODUCTION=1` is set. By default, the Podfile pins to `6.7.2` for x86_64 simulator support (see "Running on iOS Simulator" above).
-
-#### Android AAR setup
-
-The `scripts/patch-zoom-android.sh` script (runs automatically in `postinstall`):
-1. Extracts `mobilertc.aar` from `zoom-sdk-android-6.7.5.37500.zip` (must be at project root)
-2. Strips `armeabi-v7a` (32-bit ARM) — all modern devices are arm64
-3. `.so` lib stripping is disabled — `libzPreMeetingUI.so` (loaded at SDK init) has deep transitive dependencies across chat, messaging, phone, and UI libs, making individual stripping unsafe
-4. Repackages the slim AAR into `android/libs/mobilertc.aar` (~245MB arm64-v8a only, down from ~474MB with both ABIs)
-5. Adds `flatDir { dirs "libs" }` to `android/build.gradle` allprojects repositories
-
-The script is idempotent — skips extraction if the AAR already exists. Delete the AAR to force re-extraction. The zip file is gitignored.
-
-Run manually: `npm run patch:zoom:android`
-
-If a stripped library causes a runtime crash, remove it from the `STRIP_LIBS` array in the script, delete the AAR, and re-run.
-
-**When `@zoom/meetingsdk-react-native@6.7.5` drops on npm:**
-
-1. `npm install` — auto-upgrades since `package.json` has `"^6.7.2"`
-2. Diff the new package's iOS/Android source against the old patched files to see what Zoom may have incorporated upstream
-3. `npx patch-package @zoom/meetingsdk-react-native` — regenerates patch as `+6.7.5.patch` (old `+6.7.2.patch` can be deleted)
-4. If the new podspec already pins `ZoomMeetingSDK '6.7.5'`, remove the explicit `pod 'ZoomMeetingSDK', '6.7.5'` line from `ios/Podfile` and the podspec loosening from the patch
-5. If the new Android build.gradle uses Maven `6.7.5`, remove the `mobilertc.aar` override: revert the build.gradle patch line, remove `android/libs/`, remove `flatDir` from root build.gradle, and remove `scripts/patch-zoom-android.sh` from postinstall
-6. `cd ios && pod install`
