@@ -16,7 +16,6 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
-import { useFocusEffect } from "@react-navigation/native"
 import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 
@@ -32,7 +31,6 @@ import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } f
 import { useProfileStore, useAuthenticationStore, useConversationStore, useConfigStore } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
-import { useZoomAuth } from "@/services/auth"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { clearSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
@@ -74,18 +72,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 }) {
   const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
   const { logout } = useAuth0Wrapper()
-  // zoomConnected + zoomAuth are no longer rendered (Zoom Account section
-  // was removed when meeting joins moved to the external Zoom app), but
-  // disconnectZoom still fires from the account-deletion / sign-out flows
-  // and reloadZoomAuth is needed by the focus effect below.
-  const { disconnect: disconnectZoom, reload: reloadZoomAuth } = useZoomAuth()
-
-  // Reload zoom auth when screen comes into focus (after returning from ZoomLoginScreen)
-  useFocusEffect(
-    useCallback(() => {
-      reloadZoomAuth()
-    }, [reloadZoomAuth]),
-  )
 
   // Track where to return after subscription (e.g. "Attendance:new")
   const subscriptionReturnRef = useRef<string | null>(
@@ -322,30 +308,26 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             try {
               trackEvent("data_deleted")
 
-              // 1. Disconnect Zoom (removes Zoom auth from SQLite)
-              await disconnectZoom()
-              profileStore.setZoomConnected(false)
-
-              // 2. Logout from RevenueCat
+              // 1. Logout from RevenueCat
               await logoutSubscription()
 
-              // 3. Logout from push notifications
+              // 2. Logout from push notifications
               optOutNotifications()
               logoutNotificationUser()
 
-              // 4. Clear AI conversation history (SQLite)
+              // 3. Clear AI conversation history (SQLite)
               conversationStore.clearHistory()
 
-              // 5. Reset ProfileStore (volatile + props, persists to SQLite)
+              // 4. Reset ProfileStore (volatile + props, persists to SQLite)
               profileStore.reset()
 
-              // 6. Clear MMKV storage (all persisted snapshots)
+              // 5. Clear MMKV storage (all persisted snapshots)
               clearStorage()
 
-              // 7. Clear all secure store data (auth credentials, terms, SQLite key)
+              // 6. Clear all secure store data (auth credentials, terms, SQLite key)
               await Promise.all([clearAllSecureData(), clearSqliteEncryptionKey()])
 
-              // 8. Logout from Auth0 (clear session + MST auth state)
+              // 7. Logout from Auth0 (clear session + MST auth state)
               await logout()
             } catch {
               // Even if some steps fail, ensure auth is cleared
@@ -364,8 +346,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         text: translate("common:ok"),
         onPress: async () => {
           trackEvent("logout")
-          await disconnectZoom()
-          profileStore.setZoomConnected(false)
           await logout()
         },
       },
@@ -1032,12 +1012,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         )}
       </View>
 
-      {/* Zoom Account Section removed — meeting joins now use the external
-          Zoom app and don't require an in-app OAuth/ZAK connection. The
-          underlying state (zoomAuth, zoomConnected, disconnectZoom) plus
-          the ZoomLogin modal are kept around so the section can be
-          restored without recovering deleted code. */}
-
       {/* Account Section */}
       <View style={themed($section)} onLayout={trackSection("account")}>
         <View style={themed($sectionHeader)}>
@@ -1119,28 +1093,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           <Text style={themed($rowLabel)} tx="settingsScreen:restartImport" />
           <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
         </TouchableOpacity>
-      </View>
-
-      {/* Advanced Section */}
-      <View style={themed($section)} onLayout={trackSection("advanced")}>
-        <View style={themed($sectionHeader)}>
-          <Ionicons name="settings-outline" size={20} color={themed($advancedIconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:advancedSection" />
-        </View>
-
-        <View style={themed($settingsRow)}>
-          <View style={$styles.flex1}>
-            <Text style={themed($rowLabel)} tx="settingsScreen:useExternalZoom" />
-            <Text style={themed($rowHint)} tx="settingsScreen:useExternalZoomHint" />
-          </View>
-          <Switch
-            value={true}
-            disabled
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:useExternalZoom")}
-          />
-        </View>
       </View>
 
       {/* Legal Section */}
@@ -1694,11 +1646,6 @@ const $datePickerSpinner: ViewStyle = {
 // Import Section Icon Color
 const $importIconColor: ThemedStyle<{ color: string }> = () => ({
   color: "#00BCD4",
-})
-
-// Advanced Section Icon Color
-const $advancedIconColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
-  color: colors.textDim,
 })
 
 // Legal Section Icon Color

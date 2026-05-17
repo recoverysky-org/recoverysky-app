@@ -19,7 +19,10 @@ const DEBUG_MANIFEST = `<manifest xmlns:android="http://schemas.android.com/apk/
 
 /**
  * Adds tools:replace="android:usesCleartextTraffic" to the main manifest
- * to override the Zoom SDK's mobilertc AAR which sets it to false.
+ * so our cleartext attribute wins against any library-contributed
+ * AndroidManifest that tries to set it to false during manifest merging.
+ * Originally this fought the Zoom SDK's mobilertc AAR (removed in 4.5.0)
+ * but the guard is kept as defense against future merges.
  */
 const withMainManifestToolsReplace: ConfigPlugin = (config) => {
   return withAndroidManifest(config, (config) => {
@@ -35,8 +38,16 @@ const withMainManifestToolsReplace: ConfigPlugin = (config) => {
 }
 
 /**
- * Writes debug-only network security config and manifest overrides.
- * Also patches the main manifest to win the merge against mobilertc AAR.
+ * Writes debug-only network security config and manifest overrides so
+ * the Metro bundler reaches a physical device over plaintext HTTP. The
+ * release-build network security config (written by
+ * scripts/patch-android.sh) is restrictive — only specific domains and
+ * loopback addresses permit cleartext — so this debug-only escape hatch
+ * is what makes wired-device dev builds work.
+ *
+ * Also patches the main (release) manifest with a defensive
+ * tools:replace so our cleartext attribute wins any future merge
+ * conflicts. See withMainManifestToolsReplace above for the history.
  */
 const withDebugNetworkSecurity: ConfigPlugin = (config) => {
   // Patch main manifest for release builds

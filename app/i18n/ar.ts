@@ -81,37 +81,6 @@ const ar: Translations = {
     euaAgree: "قبول",
     euaCancel: "إلغاء",
   },
-  zoomLoginScreen: {
-    title: "ربط Zoom",
-    subtitle: "سجّل الدخول بحساب Zoom الخاص بك للانضمام إلى الاجتماعات بهويتك.",
-    connectWithZoom: "الربط مع Zoom",
-    continueAnonymously: "المتابعة بدون ربط",
-    openingBrowser: "جارٍ فتح تسجيل دخول Zoom...",
-    or: "أو",
-    infoText:
-      "ربط حساب Zoom يتيح لك الانضمام إلى الاجتماعات باسمك وصورة ملفك الشخصي. بيانات الاعتماد مخزنة بأمان على جهازك.",
-  },
-  zoomSetupScreen: {
-    title: "ربط حساب Zoom",
-    subtitle:
-      "سيتطلب Zoom قريباً حساباً للانضمام إلى الاجتماعات. ربط حساب Zoom يتيح لك استخدام صورة ملف شخصي مخصصة في الاجتماعات.",
-    connectWithZoom: "الربط مع Zoom",
-    createAccount: "إنشاء حساب Zoom",
-    continueAnonymously: "المتابعة بدون ربط",
-    openingBrowser: "جارٍ فتح تسجيل دخول Zoom...",
-    or: "أو",
-    anonymousWarningTitle: "وصول مجهول محدود",
-    anonymousWarningMessage:
-      "الانضمام إلى الاجتماعات بدون حساب Zoom قد يسبب أخطاء، حيث أن عدد مرات الدخول المجهول محدود. إذا واجهت مشاكل، يمكنك ربط حساب Zoom في أي وقت من الإعدادات.",
-    signupModalTitle: "إنشاء حساب Zoom",
-    signupModalBody: "بعد إنشاء حسابك، سيعرض Zoom صفحة اشتراك. لا تحتاج لبدء فترة تجريبية مجانية.",
-    signupModalNote:
-      "عندما ترى ذلك، أغلق نافذة المتصفح وارجع إلى RecoverySky لتسجيل الدخول بحساب Zoom الجديد.",
-    signupModalNote2:
-      'يمكنك أيضاً الضغط على "Take me to my basic account" لإكمال ملفك الشخصي في Zoom، ثم أغلق المتصفح وارجع إلى RecoverySky.',
-    signupModalContinue: "فتح تسجيل Zoom",
-    loading: "جارٍ التحقق من اتصال Zoom...",
-  },
   mainNavigator: {
     homeTab: "الرئيسية",
     liveTab: "مباشر",
@@ -329,13 +298,6 @@ const ar: Translations = {
     restoreNoSubscription: "لم يتم العثور على اشتراك",
     restoreNoSubscriptionMessage: "لم نتمكن من العثور على مشتريات سابقة لاستعادتها.",
     // Zoom Account Section
-    zoomAccountSection: "حساب Zoom",
-    connectZoom: "ربط حساب Zoom",
-    zoomConnected: "متصل كـ",
-    editZoomProfile: "تعديل ملف Zoom الشخصي",
-    zoomDisconnect: "فصل Zoom",
-    zoomDisconnectConfirm: "هل أنت متأكد أنك تريد فصل حساب Zoom؟",
-    zoomDisconnectSuccess: "تم فصل حساب Zoom",
     // Account Section
     accountSection: "الحساب",
     userId: "معرّف المستخدم",
@@ -402,9 +364,6 @@ const ar: Translations = {
     noUpdatesMessage: "أنت تستخدم أحدث إصدار من RecoverySky.",
     // Advanced Section
     advancedSection: "متقدم",
-    useExternalZoom: "استخدام Zoom الخارجي",
-    useExternalZoomHint:
-      "تُفتح جميع الاجتماعات في تطبيق Zoom المثبّت بدلاً من داخل التطبيق. يعرض اجتماعات إضافية متاحة فقط في تطبيق Zoom.",
     // Legal Section
     legalSection: "قانوني",
     eula: "اتفاقية ترخيص المستخدم",

@@ -694,12 +694,9 @@ export class Api {
         config: {
           AGENT_URL: string
           SOCIAL_URL?: string
-          ZOOM_SDK_KEY: string
-          ZOOM_SDK_SECRET: string
           REVENUE_CAT_API_TEST_KEY: string
           REVENUE_CAT_API_APPLE_KEY: string
           REVENUE_CAT_API_GOOGLE_KEY: string
-          ZAK_API_KEY: string
           OTLP_API_KEY: string
           UMAMI_URL: string
           UMAMI_WEBSITE_ID: string
@@ -718,12 +715,9 @@ export class Api {
 
     const response = await this.recoverySkyApi.get<{
       AGENT_URL: string
-      ZOOM_SDK_KEY: string
-      ZOOM_SDK_SECRET: string
       REVENUE_CAT_API_TEST_KEY: string
       REVENUE_CAT_API_APPLE_KEY: string
       REVENUE_CAT_API_GOOGLE_KEY: string
-      ZAK_API_KEY: string
       OTLP_API_KEY: string
       UMAMI_URL: string
       UMAMI_WEBSITE_ID: string

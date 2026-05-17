@@ -80,7 +80,6 @@ import {
 import { setSentryUser } from "./services/crashReporting/sentry"
 import { initReviewService } from "./services/review"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
-import { ZoomMeetingProvider } from "./services/zoom"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
@@ -892,28 +891,26 @@ export function App() {
                 <MeetingProvider>
                   <ThemeProvider>
                     <ToastProvider>
-                      <ZoomMeetingProvider>
-                        <DatabaseLoadingOverlay />
-                        <AppNavigator
-                          linking={linking}
-                          initialState={initialNavigationState}
-                          onStateChange={onNavigationStateChange}
-                        />
-                        {/* Sticky maintenance banner — drawn above all
-                            screens including modals via absolute positioning
-                            + high zIndex. Sibling to AppNavigator so a
-                            navigator state swap (or a navigator-level
-                            modal) doesn't unmount it. */}
-                        <MaintenanceBanner />
-                        {/* External Zoom timer recovery — remounts the
-                            running timer modal on cold start when the OS
-                            killed our process mid-meeting. Sibling to
-                            AppNavigator so it survives navigator state
-                            swaps and renders above every screen. Driven
-                            by TimerSessionResumer via the recovery
-                            channel in services/zoom/timerRecovery. */}
-                        <TimerRecoveryGate />
-                      </ZoomMeetingProvider>
+                      <DatabaseLoadingOverlay />
+                      <AppNavigator
+                        linking={linking}
+                        initialState={initialNavigationState}
+                        onStateChange={onNavigationStateChange}
+                      />
+                      {/* Sticky maintenance banner — drawn above all
+                          screens including modals via absolute positioning
+                          + high zIndex. Sibling to AppNavigator so a
+                          navigator state swap (or a navigator-level
+                          modal) doesn't unmount it. */}
+                      <MaintenanceBanner />
+                      {/* External Zoom timer recovery — remounts the
+                          running timer modal on cold start when the OS
+                          killed our process mid-meeting. Sibling to
+                          AppNavigator so it survives navigator state
+                          swaps and renders above every screen. Driven
+                          by TimerSessionResumer via the recovery
+                          channel in services/zoom/timerRecovery. */}
+                      <TimerRecoveryGate />
                     </ToastProvider>
                   </ThemeProvider>
                 </MeetingProvider>

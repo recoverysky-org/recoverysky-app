@@ -11,6 +11,7 @@
 import * as Crypto from "expo-crypto"
 
 import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
+import { meetingEvents } from "@/db/meetingEvents"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ExternalAttendance" })
@@ -151,6 +152,16 @@ export async function saveTimerAttendance(
     valid,
     source: "external-timer",
   })
+
+  // Contribute to review-prompt tally only when credit was actually earned —
+  // a timer save below MIN_CREDIT_MS still creates a record (marked invalid)
+  // and we don't want those counted as "a meeting" from the review system's
+  // perspective. Native-SDK path in ZoomMeetingProvider already gates similarly
+  // via wasInMeeting. Reason string mirrors the SOURCE tag so review-service
+  // logs distinguish external-Zoom completions from SDK completions.
+  if (valid) {
+    meetingEvents.completed("external-zoom-timer")
+  }
 
   return { ok: true, attendanceId, valid, creditMs: credit }
 }

@@ -50,11 +50,6 @@ export async function setupRootStore(rootStore: RootStore) {
     rootStore.authenticationStore.setProp("isAnonymous", false)
   }
 
-  // External Zoom is hard-coded on for all users — override any persisted false.
-  if (!rootStore.profileStore.useExternalZoom) {
-    rootStore.profileStore.setUseExternalZoom(true)
-  }
-
   // Load auth credentials from SecureStore.
   // If we have a valid (non-expired) access token, hydrate auth immediately —
   // no need to wait for Auth0 SDK. This eliminates the Login screen flash.

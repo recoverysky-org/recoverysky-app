@@ -38,12 +38,21 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
     },
     plugins: [
       ...existingPlugins,
-      // Debug-only: override Zoom SDK's network security config to allow cleartext for local dev
+      // Debug-only: allow cleartext traffic so Metro can reach a physical
+      // device over plaintext HTTP during dev. Also adds a defensive
+      // tools:replace on the main manifest so our cleartext attribute wins
+      // any future library-manifest merge conflict.
       "./plugins/withDebugNetworkSecurity",
       // Eliminate the white flash between Android system splash and JS first
       // paint by setting AppTheme's windowBackground to a layered drawable
       // that mirrors the splash (logo centered on splash background color).
       "./plugins/withSplashScreenWindowBackground",
+      // Declare hardware features as required="false" so Play doesn't
+      // filter cellular-less tablets / Chromebooks / Android Auto / Android
+      // XR. See plugin source for the full story — short version: the Zoom
+      // SDK's AAR used to contribute these declarations and we lost them
+      // when we ripped the SDK out in 4.5.0.
+      "./plugins/withUsesFeatures",
     ],
   }
 }

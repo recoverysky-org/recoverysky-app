@@ -84,7 +84,11 @@ else
   echo "tools namespace already present"
 fi
 
-# Add tools:replace to override Zoom SDK manifest attributes
+# Add tools:replace so our cleartext-traffic + network-security-config
+# attributes win against any library-provided AndroidManifest contributions
+# during manifest merging. The original motivation was the Zoom SDK
+# (removed in 4.5.0) but the pattern is still useful as a guard against
+# future library merges that try to set conflicting defaults.
 if ! grep -q "tools:replace" "$MANIFEST"; then
   sed -i '' 's|android:dataExtractionRules="@xml/secure_store_data_extraction_rules"|android:dataExtractionRules="@xml/secure_store_data_extraction_rules" tools:replace="android:networkSecurityConfig,android:usesCleartextTraffic"|' "$MANIFEST"
   echo "Added tools:replace to AndroidManifest.xml"
@@ -95,76 +99,22 @@ else
   echo "tools:replace already present"
 fi
 
-# Patch debug manifests to override Zoom SDK's networkSecurityConfig
-DEBUG_MANIFEST="$PROJECT_DIR/android/app/src/debug/AndroidManifest.xml"
-DEBUG_OPT_MANIFEST="$PROJECT_DIR/android/app/src/debugOptimized/AndroidManifest.xml"
-
-patch_debug_manifest() {
-  local manifest="$1"
-  if [ -f "$manifest" ]; then
-    # Add networkSecurityConfig and update tools:replace to include it
-    if ! grep -q "networkSecurityConfig" "$manifest"; then
-      sed -i '' 's/android:usesCleartextTraffic="true"/android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml\/network_security_config"/' "$manifest"
-      sed -i '' 's/tools:replace="android:usesCleartextTraffic"/tools:replace="android:usesCleartextTraffic,android:networkSecurityConfig"/' "$manifest"
-      echo "Patched $(basename $(dirname $manifest)) manifest with networkSecurityConfig override"
-    else
-      echo "$(basename $(dirname $manifest)) manifest already patched"
-    fi
-  fi
-}
-
-patch_debug_manifest "$DEBUG_MANIFEST"
-patch_debug_manifest "$DEBUG_OPT_MANIFEST"
-
-# Increase Gradle JVM memory for large builds (Zoom SDK needs >8GB for dex merging)
+# Tune Gradle JVM memory for our build. Originally bumped to 16 GB to
+# survive Zoom SDK dex merging; without Zoom we can back this off, but
+# 8 GB is still a safe floor for the regular RN/Expo build with sourcemaps
+# and Sentry processing.
 GRADLE_PROPS="$PROJECT_DIR/android/gradle.properties"
 if [ -f "$GRADLE_PROPS" ]; then
   if grep -q "org.gradle.jvmargs=-Xmx2048m" "$GRADLE_PROPS"; then
-    sed -i '' 's/org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m/org.gradle.jvmargs=-Xmx16384m -XX:MaxMetaspaceSize=2048m -XX:+HeapDumpOnOutOfMemoryError/' "$GRADLE_PROPS"
-    echo "Increased Gradle JVM memory to 16GB"
+    sed -i '' 's/org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m/org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m/' "$GRADLE_PROPS"
+    echo "Set Gradle JVM memory to 8GB"
   elif grep -q "org.gradle.jvmargs=-Xmx8192m" "$GRADLE_PROPS"; then
-    sed -i '' 's/org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m/org.gradle.jvmargs=-Xmx16384m -XX:MaxMetaspaceSize=2048m/' "$GRADLE_PROPS"
-    echo "Increased Gradle JVM memory from 8GB to 16GB"
-  elif grep -q "org.gradle.jvmargs=-Xmx12288m" "$GRADLE_PROPS"; then
-    echo "Gradle JVM memory already set to 16GB"
+    echo "Gradle JVM memory already set to 8GB"
+  elif grep -q "org.gradle.jvmargs=-Xmx16384m\|org.gradle.jvmargs=-Xmx12288m" "$GRADLE_PROPS"; then
+    echo "Gradle JVM memory left at high value (was set for large SDK build, harmless)"
   else
     echo "Warning: Could not find expected jvmargs in gradle.properties"
   fi
-fi
-
-# Disable lint checkDependencies to prevent PrivateApiLookup OOM
-# Lint's ApiDatabase.writeDatabase allocates a massive ByteBuffer when
-# analyzing large SDKs (Zoom) which causes OOM regardless of heap size
-APP_BUILD_GRADLE="$PROJECT_DIR/android/app/build.gradle"
-if [ -f "$APP_BUILD_GRADLE" ]; then
-  if ! grep -q "checkDependencies" "$APP_BUILD_GRADLE"; then
-    sed -i '' '/android {/a\
-    lint {\
-        checkDependencies false\
-        checkReleaseBuilds false\
-    }
-' "$APP_BUILD_GRADLE"
-    echo "Disabled lint checkDependencies (prevents PrivateApiLookup OOM)"
-  else
-    echo "lint checkDependencies already configured"
-  fi
-fi
-
-# Override Zoom SDK Spanish string with invalid format specifiers
-# The AAR has non-positional format in zm_prism_acc_avatar_row_over_max which fails AAPT2
-ZOOM_ES_OVERRIDE="$RES_DIR/values-es/zoom_overrides.xml"
-if [ ! -f "$ZOOM_ES_OVERRIDE" ]; then
-  mkdir -p "$RES_DIR/values-es"
-  cat > "$ZOOM_ES_OVERRIDE" << 'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Override Zoom SDK string with invalid format specifiers -->
-    <string name="zm_prism_acc_avatar_row_over_max" formatted="false">Participantes: %s, más de %d participantes</string>
-</resources>
-EOF
-  echo "Created Zoom SDK Spanish string override"
-else
-  echo "Zoom SDK Spanish string override already present"
 fi
 
 # Exclude Amazon Appstore SDK (transitive dep from RevenueCat, unused)

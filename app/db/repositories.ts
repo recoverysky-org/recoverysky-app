@@ -21,7 +21,6 @@ import {
   AttendanceReportSqliteRepository,
   FeedbackSqliteRepository,
   ChatMessageSqliteRepository,
-  ZoomAuthSqliteRepository,
   ReminderSqliteRepository,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
@@ -33,9 +32,6 @@ import {
   type FeedbackInput,
   type ChatMessageRecord,
   type ChatMessageInput,
-  type ZoomAuthRecord,
-  type ZoomAuthCreateInput,
-  type ZoomAuthUpdateInput,
   type ReminderRecord,
   type ReminderCreateInput,
   type ReminderUpdateInput,
@@ -69,7 +65,6 @@ let _syncQueueRepo: SyncQueueRepository | null = null
 let _attendanceRepo: AttendanceSqliteRepository | null = null
 let _feedbackRepo: FeedbackSqliteRepository | null = null
 let _chatMessageRepo: ChatMessageSqliteRepository | null = null
-let _zoomAuthRepo: ZoomAuthSqliteRepository | null = null
 
 /**
  * Meeting repository instance (lazy)
@@ -602,55 +597,3 @@ export const profileRepository = {
   },
 }
 
-// ============================================================================
-// Zoom Auth Repository (Secure - encrypted SQLite)
-// ============================================================================
-
-function getZoomAuthRepo(): ZoomAuthSqliteRepository {
-  const { db } = getDb()
-  if (!db) throw new Error("Database not opened")
-  if (!_zoomAuthRepo) _zoomAuthRepo = new ZoomAuthSqliteRepository(db as any)
-  return _zoomAuthRepo
-}
-
-/**
- * Zoom auth repository for secure storage of OAuth tokens.
- *
- * Stores: accessToken, refreshToken, zoomUserId, zoomEmail, zoomDisplayName
- * Tokens are encrypted at the database level via SQLCipher.
- */
-export const zoomAuthRepo = {
-  /** Find zoom auth by device ID */
-  findById: async (id: string) => {
-    return getZoomAuthRepo().findById(id)
-  },
-
-  /** Create new zoom auth record */
-  create: async (input: ZoomAuthCreateInput) => {
-    return getZoomAuthRepo().create(input)
-  },
-
-  /** Update existing zoom auth record */
-  update: async (id: string, input: ZoomAuthUpdateInput) => {
-    return getZoomAuthRepo().update(id, input)
-  },
-
-  /** Create or update zoom auth record (upsert) */
-  upsert: async (input: ZoomAuthCreateInput) => {
-    return getZoomAuthRepo().upsert(input)
-  },
-
-  /** Delete zoom auth record (disconnect) */
-  delete: async (id: string) => {
-    return getZoomAuthRepo().delete(id)
-  },
-
-  /** Check if access token is expired */
-  isExpired: (record: ZoomAuthRecord): boolean => {
-    const bufferMs = 5 * 60 * 1000 // 5 minutes
-    return Date.now() >= record.expiresAt - bufferMs
-  },
-}
-
-// Re-export zoom auth types
-export type { ZoomAuthRecord, ZoomAuthCreateInput, ZoomAuthUpdateInput }

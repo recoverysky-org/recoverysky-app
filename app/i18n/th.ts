@@ -81,37 +81,6 @@ const th: Translations = {
     euaAgree: "ยอมรับ",
     euaCancel: "ยกเลิก",
   },
-  zoomLoginScreen: {
-    title: "เชื่อมต่อ Zoom",
-    subtitle: "เข้าสู่ระบบด้วยบัญชี Zoom เพื่อเข้าร่วมประชุมในชื่อของคุณ",
-    connectWithZoom: "เชื่อมต่อกับ Zoom",
-    continueAnonymously: "ใช้งานต่อโดยไม่เชื่อมต่อ",
-    openingBrowser: "กำลังเปิดหน้าเข้าสู่ระบบ Zoom...",
-    or: "หรือ",
-    infoText:
-      "การเชื่อมต่อบัญชี Zoom ช่วยให้คุณเข้าร่วมประชุมด้วยชื่อและรูปโปรไฟล์ของคุณ ข้อมูลรับรองถูกเก็บอย่างปลอดภัยบนอุปกรณ์ของคุณ",
-  },
-  zoomSetupScreen: {
-    title: "เชื่อมต่อบัญชี Zoom",
-    subtitle:
-      "Zoom จะต้องใช้บัญชีในการเข้าร่วมประชุมในเร็วๆ นี้ การเชื่อมต่อบัญชี Zoom ช่วยให้ใช้รูปโปรไฟล์ของตัวเองในการประชุมได้",
-    connectWithZoom: "เชื่อมต่อกับ Zoom",
-    createAccount: "สร้างบัญชี Zoom",
-    continueAnonymously: "ใช้งานต่อโดยไม่เชื่อมต่อ",
-    openingBrowser: "กำลังเปิดหน้าเข้าสู่ระบบ Zoom...",
-    or: "หรือ",
-    anonymousWarningTitle: "การเข้าถึงแบบไม่ระบุตัวตนมีจำกัด",
-    anonymousWarningMessage:
-      "การเข้าร่วมประชุมโดยไม่มีบัญชี Zoom อาจเกิดข้อผิดพลาดได้ เพราะจำนวนครั้งที่เข้าแบบไม่ระบุตัวตนมีจำกัด หากมีปัญหา คุณสามารถเชื่อมต่อบัญชี Zoom ได้ตลอดเวลาในการตั้งค่านะ",
-    signupModalTitle: "สร้างบัญชี Zoom",
-    signupModalBody: "หลังจากสร้างบัญชีแล้ว Zoom จะแสดงหน้าสมัครสมาชิก ไม่ต้องเริ่มทดลองใช้ฟรีนะ",
-    signupModalNote:
-      "เมื่อเห็นหน้านั้นแล้ว ให้ปิดหน้าต่างเบราว์เซอร์แล้วกลับมาที่ RecoverySky เพื่อเข้าสู่ระบบด้วยบัญชี Zoom ใหม่ของคุณ",
-    signupModalNote2:
-      'คุณยังสามารถกด "Take me to my basic account" เพื่อตั้งค่าโปรไฟล์ Zoom แล้วปิดเบราว์เซอร์กลับมาที่ RecoverySky ได้เลย',
-    signupModalContinue: "เปิดหน้าสมัคร Zoom",
-    loading: "กำลังตรวจสอบการเชื่อมต่อ Zoom...",
-  },
   mainNavigator: {
     homeTab: "หน้าหลัก",
     liveTab: "สด",
@@ -331,13 +300,6 @@ const th: Translations = {
     restoreNoSubscription: "ไม่พบสมาชิก",
     restoreNoSubscriptionMessage: "ไม่พบการซื้อก่อนหน้าที่จะกู้คืนได้",
     // Zoom Account Section
-    zoomAccountSection: "บัญชี Zoom",
-    connectZoom: "เชื่อมต่อบัญชี Zoom",
-    zoomConnected: "เชื่อมต่อเป็น",
-    editZoomProfile: "แก้ไขโปรไฟล์ Zoom",
-    zoomDisconnect: "ยกเลิกการเชื่อมต่อ Zoom",
-    zoomDisconnectConfirm: "แน่ใจไหมว่าต้องการยกเลิกการเชื่อมต่อบัญชี Zoom?",
-    zoomDisconnectSuccess: "ยกเลิกการเชื่อมต่อบัญชี Zoom แล้ว",
     // Account Section
     accountSection: "บัญชี",
     userId: "รหัสผู้ใช้",
@@ -404,9 +366,6 @@ const th: Translations = {
     noUpdatesMessage: "คุณกำลังใช้ RecoverySky เวอร์ชันล่าสุด",
     // Advanced Section
     advancedSection: "ขั้นสูง",
-    useExternalZoom: "ใช้ Zoom ภายนอก",
-    useExternalZoomHint:
-      "การประชุมทั้งหมดจะเปิดในแอป Zoom ที่ติดตั้งไว้แทนการใช้ในแอป แสดงการประชุมเพิ่มเติมที่มีเฉพาะในแอป Zoom เท่านั้น",
     // Legal Section
     legalSection: "กฎหมาย",
     eula: "ข้อตกลงสิทธิ์การใช้งาน",

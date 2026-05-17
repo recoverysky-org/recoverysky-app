@@ -2,11 +2,11 @@
   "name": "RecoverySky",
   "slug": "recoverysky-app",
   "scheme": "recoverysky-app",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
-  "runtimeVersion": "4.4.0",
+  "runtimeVersion": "4.5.0",
   "updates": {
     "enabled": true,
     "checkAutomatically": "ON_LOAD",
@@ -30,35 +30,14 @@
       "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
-    "versionCode": 40000002,
+    "versionCode": 40000003,
     "allowBackup": false,
     "edgeToEdgeEnabled": true,
     "permissions": [
       "android.permission.INTERNET",
-      "android.permission.CAMERA",
-      "android.permission.RECORD_AUDIO",
-      "android.permission.BLUETOOTH",
-      "android.permission.BLUETOOTH_ADMIN",
-      "android.permission.BLUETOOTH_CONNECT",
-      "android.permission.BLUETOOTH_SCAN",
-      "android.permission.MODIFY_AUDIO_SETTINGS",
-      "android.permission.FOREGROUND_SERVICE",
-      "android.permission.FOREGROUND_SERVICE_MICROPHONE",
-      "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-      "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
-      "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
       "android.permission.ACCESS_NETWORK_STATE",
-      "android.permission.ACCESS_WIFI_STATE",
-      "android.permission.ACCESS_FINE_LOCATION",
-      "android.permission.ACCESS_COARSE_LOCATION",
-      "android.permission.READ_PHONE_STATE",
-      "android.permission.WAKE_LOCK",
-      "android.permission.CALL_PHONE",
-      "android.permission.SYSTEM_ALERT_WINDOW",
-      "android.permission.POST_NOTIFICATIONS",
-      "android.permission.BROADCAST_STICKY",
-      "android.permission.READ_EXTERNAL_STORAGE",
-      "android.permission.WRITE_EXTERNAL_STORAGE"
+      "android.permission.RECORD_AUDIO",
+      "android.permission.POST_NOTIFICATIONS"
     ]
   },
   "ios": {
@@ -148,7 +127,7 @@
           "enableMinifyInReleaseBuilds": true,
           "enableShrinkResourcesInReleaseBuilds": true,
           "extraMavenRepos": [],
-          "extraProguardRules": "-keep class com.facebook.hermes.unicode.** { *; }\n-keep class com.facebook.jni.** { *; }\n-keep class us.zoom.** { *; }\n-keep class com.zipow.** { *; }\n-keep class org.webrtc.** { *; }\n-keep class com.reactnativezoom.** { *; }\n-keep class expo.modules.** { *; }\n-keep class com.tencent.mmkv.** { *; }\n-keep class com.revenuecat.** { *; }\n-keep class com.auth0.** { *; }\n-dontwarn com.google.android.play.core.**\n-dontwarn com.google.zxing.**\n-dontwarn com.microsoft.intune.**\n-dontwarn com.scwang.smart.**\n-dontwarn com.symbol.emdk.**\n-dontwarn com.zipow.cnthirdparty.**\n-dontwarn com.zipow.videobox.chat.**\n-dontwarn com.zipow.videobox.conference.**\n-dontwarn com.zipow.videobox.notification.**\n-keep class com.fasterxml.jackson.** { *; }\n-keep class com.zaguiini.** { *; }\n-dontwarn com.fasterxml.jackson.**\n-dontwarn java.awt.**\n-dontwarn java.beans.**\n-dontwarn javax.lang.model.**\n-dontwarn javax.swing.**\n-dontwarn javax.xml.bind.**\n-dontwarn retrofit2.**\n-dontwarn us.zoom.android.network.**\n-dontwarn us.zoom.android.spi.**\n-dontwarn us.zoom.apm.**\n-dontwarn us.zoom.component.**\n-dontwarn us.zoom.core.**\n-dontwarn us.zoom.intunelib.**\n-dontwarn us.zoom.meeting.advisory.**\n-dontwarn us.zoom.thirdparty.**\n-dontwarn us.zoom.uicommon.**\n-dontwarn us.zoom.zmsg.**\n-dontwarn kotlinx.coroutines.swing.**\n-keep class io.jsonwebtoken.** { *; }\n-keepnames class io.jsonwebtoken.* { *; }\n-keepnames interface io.jsonwebtoken.* { *; }\n-keep class org.bouncycastle.** { *; }\n-keepnames class org.bouncycastle.** { *; }\n-dontwarn org.bouncycastle.**\n-dontwarn io.jsonwebtoken.**"
+          "extraProguardRules": "-keep class com.facebook.hermes.unicode.** { *; }\n-keep class com.facebook.jni.** { *; }\n-keep class expo.modules.** { *; }\n-keep class com.tencent.mmkv.** { *; }\n-keep class com.revenuecat.** { *; }\n-keep class com.auth0.** { *; }\n-dontwarn com.google.android.play.core.**\n-dontwarn com.google.zxing.**\n-dontwarn com.microsoft.intune.**\n-dontwarn com.scwang.smart.**\n-dontwarn com.symbol.emdk.**\n-keep class com.fasterxml.jackson.** { *; }\n-keep class com.zaguiini.** { *; }\n-dontwarn com.fasterxml.jackson.**\n-dontwarn java.awt.**\n-dontwarn java.beans.**\n-dontwarn javax.lang.model.**\n-dontwarn javax.swing.**\n-dontwarn javax.xml.bind.**\n-dontwarn retrofit2.**\n-dontwarn kotlinx.coroutines.swing.**\n-keep class io.jsonwebtoken.** { *; }\n-keepnames class io.jsonwebtoken.* { *; }\n-keepnames interface io.jsonwebtoken.* { *; }\n-keep class org.bouncycastle.** { *; }\n-keepnames class org.bouncycastle.** { *; }\n-dontwarn org.bouncycastle.**\n-dontwarn io.jsonwebtoken.**"
         },
         "extraGradleArgs": []
       }

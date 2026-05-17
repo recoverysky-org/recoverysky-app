@@ -82,39 +82,6 @@ const uk: Translations = {
     euaAgree: "Прийняти",
     euaCancel: "Скасувати",
   },
-  zoomLoginScreen: {
-    title: "Підключити Zoom",
-    subtitle:
-      "Увійди через свій обліковий запис Zoom, щоб приєднуватися до зустрічей під своїм іменем.",
-    connectWithZoom: "Підключити через Zoom",
-    continueAnonymously: "Продовжити без підключення",
-    openingBrowser: "Відкриваємо вхід у Zoom...",
-    or: "або",
-    infoText:
-      "Підключення облікового запису Zoom дозволяє приєднуватися до зустрічей з твоїм іменем та фото профілю. Твої дані надійно зберігаються на пристрої.",
-  },
-  zoomSetupScreen: {
-    title: "Підключити обліковий запис Zoom",
-    subtitle:
-      "Незабаром Zoom вимагатиме обліковий запис для участі в зустрічах. Підключення облікового запису Zoom дозволяє використовувати своє фото профілю на зустрічах.",
-    connectWithZoom: "Підключити через Zoom",
-    createAccount: "Створити обліковий запис Zoom",
-    continueAnonymously: "Продовжити без підключення",
-    openingBrowser: "Відкриваємо вхід у Zoom...",
-    or: "або",
-    anonymousWarningTitle: "Обмежений анонімний доступ",
-    anonymousWarningMessage:
-      "Участь у зустрічах без облікового запису Zoom може спричинити помилки — кількість анонімних підключень обмежена. Якщо виникнуть проблеми, ти можеш підключити свій обліковий запис Zoom будь-коли в Налаштуваннях.",
-    signupModalTitle: "Створення облікового запису Zoom",
-    signupModalBody:
-      "Після створення облікового запису Zoom покаже сторінку підписки. Тобі НЕ потрібно починати безкоштовний пробний період.",
-    signupModalNote:
-      "Коли побачиш цю сторінку, закрий вікно браузера та повернися до RecoverySky, щоб увійти через новий обліковий запис Zoom.",
-    signupModalNote2:
-      "Ти також можеш натиснути «Take me to my basic account», щоб заповнити профіль Zoom, потім закрити браузер і повернутися до RecoverySky.",
-    signupModalContinue: "Відкрити реєстрацію Zoom",
-    loading: "Перевіряємо підключення Zoom...",
-  },
   mainNavigator: {
     homeTab: "Головна",
     liveTab: "Зараз",
@@ -335,13 +302,6 @@ const uk: Translations = {
     restoreNoSubscription: "Підписку не знайдено",
     restoreNoSubscriptionMessage: "Не вдалося знайти попередні покупки для відновлення.",
     // Zoom Account Section
-    zoomAccountSection: "Обліковий запис Zoom",
-    connectZoom: "Підключити обліковий запис Zoom",
-    zoomConnected: "Підключено як",
-    editZoomProfile: "Редагувати профіль Zoom",
-    zoomDisconnect: "Відключити Zoom",
-    zoomDisconnectConfirm: "Ти впевнений, що хочеш відключити свій обліковий запис Zoom?",
-    zoomDisconnectSuccess: "Обліковий запис Zoom відключено",
     // Account Section
     accountSection: "Обліковий запис",
     userId: "ID користувача",
@@ -409,9 +369,6 @@ const uk: Translations = {
     noUpdatesMessage: "Ти використовуєш останню версію RecoverySky.",
     // Advanced Section
     advancedSection: "Додатково",
-    useExternalZoom: "Використовувати зовнішній Zoom",
-    useExternalZoomHint:
-      "Усі зустрічі відкриваються у встановленому додатку Zoom замість вбудованого. Показує додаткові зустрічі, доступні лише в додатку Zoom.",
     // Legal Section
     legalSection: "Правова інформація",
     eula: "Ліцензійна угода",

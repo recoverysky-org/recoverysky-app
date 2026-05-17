@@ -1,23 +1,13 @@
 /**
- * Zoom Meeting Service
+ * Zoom Meeting Service (external-only)
  *
- * Provides Zoom meeting integration with:
- * - Native SDK support (when configured)
- * - External Zoom app fallback
- * - JWT token generation
- *
- * Configuration via environment variables:
- * - EXPO_PUBLIC_ZOOM_SDK_KEY
- * - EXPO_PUBLIC_ZOOM_SDK_SECRET
+ * Native SDK was removed in 4.5.0 — meeting joins now open the installed
+ * Zoom app via `Linking.openURL`, and attendance is recorded via the
+ * timer modal flow (`externalAttendance.ts`).
  */
 
 export * from "./zoomTypes"
-export * from "./zoomConfig"
-export * from "./generateJwt"
-export * from "./ZoomMeetingProvider"
 export * from "./useZoomMeeting"
-export * from "./zoomEvents"
-export * from "./zoomControls"
 export * from "./externalAttendance"
 export * from "./timerSession"
 export * from "./timerRecovery"

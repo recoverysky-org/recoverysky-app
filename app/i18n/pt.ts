@@ -82,38 +82,6 @@ const pt: Translations = {
     euaAgree: "Aceitar",
     euaCancel: "Cancelar",
   },
-  zoomLoginScreen: {
-    title: "Conectar Zoom",
-    subtitle: "Entre com sua conta do Zoom pra participar de reuniões com sua identidade.",
-    connectWithZoom: "Conectar com Zoom",
-    continueAnonymously: "Continuar sem Conectar",
-    openingBrowser: "Abrindo login do Zoom...",
-    or: "ou",
-    infoText:
-      "Conectar sua conta do Zoom permite que você participe de reuniões com seu nome e foto de perfil. Suas credenciais ficam armazenadas com segurança no seu dispositivo.",
-  },
-  zoomSetupScreen: {
-    title: "Conectar Conta do Zoom",
-    subtitle:
-      "Em breve o Zoom vai exigir uma conta pra participar de reuniões. Conectar sua conta do Zoom permite uma foto de perfil personalizada nas reuniões.",
-    connectWithZoom: "Conectar com Zoom",
-    createAccount: "Criar uma Conta do Zoom",
-    continueAnonymously: "Continuar sem Conectar",
-    openingBrowser: "Abrindo login do Zoom...",
-    or: "ou",
-    anonymousWarningTitle: "Acesso Anônimo Limitado",
-    anonymousWarningMessage:
-      "Participar de reuniões sem uma conta do Zoom pode gerar erros, pois há um número limitado de acessos anônimos permitidos. Se tiver problemas, você pode conectar sua conta do Zoom a qualquer momento em Configurações.",
-    signupModalTitle: "Criar uma Conta do Zoom",
-    signupModalBody:
-      "Depois de criar sua conta, o Zoom vai mostrar uma página de assinatura. Você NÃO precisa iniciar um teste gratuito.",
-    signupModalNote:
-      "Quando vir a tela acima, feche a janela do navegador e volte pro RecoverySky pra entrar com sua nova conta do Zoom.",
-    signupModalNote2:
-      'Você também pode clicar em "Take me to my basic account" pra completar seu perfil do Zoom, depois feche o navegador e volte pro RecoverySky.',
-    signupModalContinue: "Abrir Cadastro do Zoom",
-    loading: "Verificando conexão com o Zoom...",
-  },
   mainNavigator: {
     homeTab: "Início",
     liveTab: "Ao Vivo",
@@ -336,13 +304,6 @@ const pt: Translations = {
     restoreNoSubscription: "Nenhuma Assinatura Encontrada",
     restoreNoSubscriptionMessage: "Não encontramos compras anteriores pra restaurar.",
     // Zoom Account Section
-    zoomAccountSection: "Conta do Zoom",
-    connectZoom: "Conectar Conta do Zoom",
-    zoomConnected: "Conectado como",
-    editZoomProfile: "Editar Perfil do Zoom",
-    zoomDisconnect: "Desconectar Zoom",
-    zoomDisconnectConfirm: "Tem certeza que quer desconectar sua conta do Zoom?",
-    zoomDisconnectSuccess: "Conta do Zoom desconectada",
     // Account Section
     accountSection: "Conta",
     userId: "ID do Usuário",
@@ -409,9 +370,6 @@ const pt: Translations = {
     noUpdatesMessage: "Você está usando a versão mais recente do RecoverySky.",
     // Advanced Section
     advancedSection: "Avançado",
-    useExternalZoom: "Usar Zoom externo",
-    useExternalZoomHint:
-      "Todas as reuniões abrem no aplicativo Zoom instalado em vez de dentro do app. Mostra reuniões adicionais exclusivas do app Zoom.",
     // Legal Section
     legalSection: "Legal",
     eula: "Acordo de Licença do Usuário",

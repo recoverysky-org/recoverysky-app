@@ -60,9 +60,6 @@ export const ProfileStoreModel = types
     enableMeetingTopic: types.optional(types.boolean, true),
     reportEmail: types.optional(types.string, ""),
 
-    // Zoom
-    zoomConnected: types.optional(types.boolean, false),
-
     // Notifications
     notificationsEnabled: types.optional(types.boolean, true),
 
@@ -71,9 +68,6 @@ export const ProfileStoreModel = types
 
     // AI consent (Apple Guideline 5.1.2(i))
     aiConsentAccepted: types.optional(types.boolean, false),
-
-    // Advanced
-    useExternalZoom: types.optional(types.boolean, true),
 
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
@@ -318,10 +312,6 @@ export const ProfileStoreModel = types
         self.enableMeetingTopic = value
       },
 
-      setZoomConnected(value: boolean) {
-        self.zoomConnected = value
-      },
-
       setNotificationsEnabled(value: boolean) {
         self.notificationsEnabled = value
       },
@@ -336,14 +326,6 @@ export const ProfileStoreModel = types
 
       setAiConsentAccepted(value: boolean) {
         self.aiConsentAccepted = value
-      },
-
-      setUseExternalZoom(_value: boolean) {
-        // External Zoom is hard-coded on for all users; setter is a no-op.
-        if (!self.useExternalZoom) {
-          self.useExternalZoom = true
-          liveEvents.preferencesChanged("useExternalZoom")
-        }
       },
 
       /**
@@ -466,7 +448,6 @@ export const ProfileStoreModel = types
         self.themeColor = ""
         self.onboardingCompleted = false
         self.dontShowShortMeetingWarning = false
-        self.zoomConnected = false
         self.notificationsEnabled = true
         self.attendanceEnabled = true
         self.enableMeetingTopic = true

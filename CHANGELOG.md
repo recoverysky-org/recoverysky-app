@@ -22,6 +22,49 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Removed
+- **Bundled Zoom Meeting SDK.** Production users were hitting a fatal
+  Android startup crash —
+  `UnsatisfiedLinkError: dlopen failed: library "libzReflection.so" not
+  found` at `com.zipow.cmmlib.AppContext.<clinit>` — *before* any JS ran.
+  The SDK's native module is instantiated by Android's auto-generated
+  `PackageList` during React Native bridge setup, which class-loads
+  `us.zoom.sdk.*` and triggers the missing `.so` regardless of the
+  `useExternalZoom` JS gate. Since meeting joins have routed through
+  the installed Zoom app for some time, the SDK was dead weight that
+  was now actively crashing the app. Removed:
+  - `@zoom/meetingsdk-react-native` and the unused `@zoom/meetingsdk`
+    npm packages
+  - The `ZoomMeetingProvider` SDK context, `ZoomLoginScreen`,
+    `ZoomSetupScreen`, `useZoomAuth` OAuth/ZAK flow, encrypted-SQLite
+    `zoomAuthRepo`, and `services/zak.ts` ZAK refresher
+  - `profileStore.useExternalZoom` and `profileStore.zoomConnected`
+    (external is the only mode now), plus the disabled Advanced-section
+    toggle in Settings
+  - `ConfigStore` `zoomSdkKey` / `zoomSdkSecret` / `zakApiKey` fields
+    and the corresponding `/config` payload keys
+  - All `i18n` `zoomLoginScreen` / `zoomSetupScreen` blocks plus
+    orphaned Zoom-account settings strings (9 locales)
+  - Native artifacts: `android/libs/mobilertc.aar`,
+    `zoom-sdk-android-6.7.5.37500.zip`,
+    `patches/@zoom+meetingsdk-react-native+6.7.2.patch`,
+    `scripts/patch-zoom-android.sh`
+  - `ios/Podfile` `ZoomMeetingSDK` pin and `ZOOM_PRODUCTION` env logic
+  - Zoom / Zipow / WebRTC / reactnativezoom ProGuard rules from
+    `app.json`
+  - `EXPO_PUBLIC_ZOOM_*` and `EXPO_PUBLIC_ZAK_*` env vars from
+    `eas.json` and `.env`
+
+  Meeting joins, the external-Zoom timer-modal attendance flow, and the
+  review-prompt tally (the timer save fires
+  `meetingEvents.completed("external-zoom-timer")` so the review system
+  still counts these as meetings) are unchanged. The `zoom_auth` SQLite
+  table created by `@recoverysky-org/common`'s migrations is now
+  intentionally orphaned — leaving it as an unused empty table is
+  zero-risk and avoids forking the common schema. `android/` shrank
+  from ~2.7 GB (with the AAR + minified Zoom transitive deps) to
+  ~436 KB at the regenerated prebuild stage.
+
 ### Changed
 - **Anonymous login hidden on the login screen.** The "Continue Anonymously"
   button is commented out — the anonymous-user experience doesn't meet the

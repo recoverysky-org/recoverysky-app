@@ -21,7 +21,6 @@ export type SettingsSection =
   | "notifications"
   | "attendance"
   | "subscription"
-  | "zoom"
   | "account"
   | "import"
   | "legal"
@@ -56,8 +55,6 @@ export type AppStackParamList = {
   Welcome: undefined
   Maintenance: undefined
   Login: undefined
-  ZoomSetup: undefined
-  ZoomLogin: undefined
   Import: undefined
   Licenses: undefined
   Terms: undefined

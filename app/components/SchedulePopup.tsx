@@ -95,7 +95,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   useEffect(() => {
     if (!isFocused && visible) onClose()
   }, [isFocused, visible, onClose])
-  const { joinMeeting, isJoining, isSDKReady } = useZoomMeeting()
+  const { isJoining } = useZoomMeeting()
   const { isPremium } = useSubscription()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
@@ -115,7 +115,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // the shared `attendanceEvents` "processed" subscription below.
   const [topicActive, setTopicActive] = useState(false)
   const topicContextRef = useRef<{ attendanceId: string; mid: string } | null>(null)
-  const attendanceSourceRef = useRef<"sdk" | "external" | null>(null)
+  // Only "external" remains after the 4.5.0 SDK removal — kept as a ref
+  // (instead of a literal constant) so the existing "processed" subscriber
+  // pattern, which clears the ref on success, still expresses intent.
+  const attendanceSourceRef = useRef<"external" | null>(null)
 
   // Slide animation for the topic panel. `progress` is 0 when hidden
   // (translated below the card) and 1 when fully shown. We measure the
@@ -430,72 +433,53 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       return
     }
 
-    // External Zoom mode: show timer modal instead of the SDK join flow.
-    // The modal itself launches the Zoom app and tracks a user-confirmed
-    // attendance window. Skip the timer if the user hasn't opted into
-    // attendance tracking — just open Zoom.
-    if (profileStore.useExternalZoom) {
-      const proceedExternalJoin = () => {
-        if (profileStore.attendanceEnabled) {
-          // Tag the source so the "processed" subscription shows the host
-          // field when the topic panel slides in.
-          attendanceSourceRef.current = "external"
-          setTimerVisible(true)
-        } else {
-          const zoomUrl = buildExternalZoomUrl({
-            meetingNumber,
-            meetingUrl: meeting.url,
-            password: meeting.password,
-            passwordEnc: meeting.passwordEnc,
-            userName: profileStore.displayName,
-          })
-          // Guarded: buildExternalZoomUrl always returns a string today, but
-          // a defensive check costs nothing and stops a malformed-record
-          // class of crash. .catch is mandatory — without it, a no-handler
-          // rejection (Zoom not installed, bad URL) bubbles up as an
-          // unhandled rejection that release builds with strict-mode
-          // promise tracking will treat as fatal.
-          if (typeof zoomUrl !== "string" || zoomUrl.length === 0) {
-            log.warn("Skipping external Zoom launch: empty URL", { mid: meeting.id })
-            return
-          }
-          Linking.openURL(zoomUrl).catch((err: unknown) => {
-            log.error("Failed to open external Zoom", {
-              mid: meeting.id,
-              error: err instanceof Error ? err.message : String(err),
-            })
-          })
+    // All joins go through the external Zoom app (the in-app SDK was
+    // removed in 4.5.0). Show the timer modal first when attendance is
+    // enabled — the modal launches Zoom and captures the user-confirmed
+    // attendance window. When attendance is off, open Zoom directly.
+    const proceedExternalJoin = () => {
+      if (profileStore.attendanceEnabled) {
+        // Tag the source so the "processed" subscription shows the host
+        // field when the topic panel slides in.
+        attendanceSourceRef.current = "external"
+        setTimerVisible(true)
+      } else {
+        const zoomUrl = buildExternalZoomUrl({
+          meetingNumber,
+          meetingUrl: meeting.url,
+          password: meeting.password,
+          passwordEnc: meeting.passwordEnc,
+          userName: profileStore.displayName,
+        })
+        // Guarded: buildExternalZoomUrl always returns a string today, but
+        // a defensive check costs nothing and stops a malformed-record
+        // class of crash. .catch is mandatory — without it, a no-handler
+        // rejection (Zoom not installed, bad URL) bubbles up as an
+        // unhandled rejection that release builds with strict-mode
+        // promise tracking will treat as fatal.
+        if (typeof zoomUrl !== "string" || zoomUrl.length === 0) {
+          log.warn("Skipping external Zoom launch: empty URL", { mid: meeting.id })
+          return
         }
+        Linking.openURL(zoomUrl).catch((err: unknown) => {
+          log.error("Failed to open external Zoom", {
+            mid: meeting.id,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
       }
+    }
 
-      // First-time education: defer the actual join until the user taps
-      // Continue in the education modal.
-      const educationSeen = load<boolean>(EXTERNAL_ZOOM_EDUCATION_SEEN_KEY) === true
-      if (!educationSeen) {
-        educationActionRef.current = proceedExternalJoin
-        setEducationVisible(true)
-        return
-      }
-
-      proceedExternalJoin()
+    // First-time education: defer the actual join until the user taps
+    // Continue in the education modal.
+    const educationSeen = load<boolean>(EXTERNAL_ZOOM_EDUCATION_SEEN_KEY) === true
+    if (!educationSeen) {
+      educationActionRef.current = proceedExternalJoin
+      setEducationVisible(true)
       return
     }
 
-    attendanceSourceRef.current = "sdk"
-    try {
-      await joinMeeting({
-        meetingId: meeting.id,
-        meetingNumber,
-        userName: profileStore.displayName,
-        meetingName: meeting.name,
-        password,
-        passwordEnc: meeting.passwordEnc,
-        meetingUrl: meeting.url,
-        external: meeting.external,
-      })
-    } catch {
-      // Error handling done in provider
-    }
+    proceedExternalJoin()
   }
 
   const handleEducationContinue = useCallback(() => {
@@ -711,11 +695,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 <Text style={themed($joinButtonText)}>
                   {isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
                 </Text>
-                <Ionicons
-                  name={isSDKReady ? "videocam" : "open-outline"}
-                  size={16}
-                  color={theme.colors.tint}
-                />
+                <Ionicons name="open-outline" size={16} color={theme.colors.tint} />
               </Pressable>
             )}
 

@@ -18,7 +18,7 @@ import { reaction } from "mobx"
 import { type meeting } from "@recoverysky-org/common/browser"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
-import { useConfigStore, useProfileStore } from "@/models"
+import { useConfigStore } from "@/models"
 import { api, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
 
@@ -169,7 +169,6 @@ interface MeetingProviderProps {
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   log.debug("MeetingProvider initializing")
   const configStore = useConfigStore()
-  const profileStore = useProfileStore()
 
   // Live meetings data
   const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
@@ -194,23 +193,6 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     )
     return () => dispose()
   }, [configStore])
-
-  // Auto-refresh when preferences that affect the query change. Owning this
-  // here (rather than relying on LiveScreen to emit liveEvents and call
-  // refresh()) means the list re-fetches regardless of which screen is
-  // currently mounted when the user toggles the setting.
-  useEffect(() => {
-    const dispose = reaction(
-      () => profileStore.useExternalZoom,
-      (next, prev) => {
-        if (next !== prev) {
-          log.info("useExternalZoom changed, refreshing live meetings", { next })
-          setRefreshTrigger((p) => p + 1)
-        }
-      },
-    )
-    return () => dispose()
-  }, [profileStore])
 
   // ============================================================================
   // Check API status (with retry)
@@ -256,10 +238,10 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       setError(null)
 
       const outcome = await retryWithBackoff(
-        () =>
-          api.getLiveSchedules({
-            includeExternal: profileStore.useExternalZoom,
-          }),
+        // Always request external meetings — the in-app SDK was removed in
+        // 4.5.0 and external-app launches are the only join path, so the
+        // server-side filter is effectively a no-op constant from here on.
+        () => api.getLiveSchedules({ includeExternal: true }),
         (result) => result.kind === "ok",
         "getLiveSchedules",
       )

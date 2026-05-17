@@ -86,38 +86,6 @@ const en = {
     euaAgree: "Accept",
     euaCancel: "Cancel",
   },
-  zoomLoginScreen: {
-    title: "Connect Zoom",
-    subtitle: "Sign in with your Zoom account to join meetings with your identity.",
-    connectWithZoom: "Connect with Zoom",
-    continueAnonymously: "Continue without Connecting",
-    openingBrowser: "Opening Zoom login...",
-    or: "or",
-    infoText:
-      "Connecting your Zoom account lets you join meetings with your display name and profile picture. Your credentials are stored securely on your device.",
-  },
-  zoomSetupScreen: {
-    title: "Connect Zoom Account",
-    subtitle:
-      "A Zoom account will soon be required by Zoom to join meetings. Connecting your Zoom account allows a custom in-meeting profile picture.",
-    connectWithZoom: "Connect with Zoom",
-    createAccount: "Create a Zoom Account",
-    continueAnonymously: "Continue without Connecting",
-    openingBrowser: "Opening Zoom login...",
-    or: "or",
-    anonymousWarningTitle: "Limited Anonymous Access",
-    anonymousWarningMessage:
-      "Joining meetings without a Zoom account may produce errors, as there is a limited number of anonymous joins allowed. If you experience issues, you can connect your Zoom account anytime in Settings.",
-    signupModalTitle: "Creating a Zoom Account",
-    signupModalBody:
-      "After creating your account, Zoom will show a subscription page. You do NOT need to start a free trial.",
-    signupModalNote:
-      "Once you see the above, close the browser window and return to RecoverySky to log in with your new Zoom account.",
-    signupModalNote2:
-      'You may also click "Take me to my basic account" to complete your Zoom profile, then close the browser window and return to RecoverySky.',
-    signupModalContinue: "Open Zoom Signup",
-    loading: "Checking Zoom connection...",
-  },
   // Main Navigation
   mainNavigator: {
     homeTab: "Home",
@@ -342,13 +310,6 @@ const en = {
     restoreNoSubscription: "No Subscription Found",
     restoreNoSubscriptionMessage: "We couldn't find any previous purchases to restore.",
     // Zoom Account Section
-    zoomAccountSection: "Zoom Account",
-    connectZoom: "Connect Zoom Account",
-    zoomConnected: "Connected as",
-    editZoomProfile: "Edit Zoom Profile",
-    zoomDisconnect: "Disconnect Zoom",
-    zoomDisconnectConfirm: "Are you sure you want to disconnect your Zoom account?",
-    zoomDisconnectSuccess: "Zoom account disconnected",
     // Account Section
     accountSection: "Account",
     userId: "User ID",
@@ -417,9 +378,6 @@ const en = {
     noUpdatesMessage: "You're running the latest version of RecoverySky.",
     // Advanced Section
     advancedSection: "Advanced",
-    useExternalZoom: "Use External Zoom",
-    useExternalZoomHint:
-      "All meetings open in the installed Zoom app instead of in-app. Shows additional Zoom App only meetings.",
     // Legal Section
     legalSection: "Legal",
     eula: "End User License Agreement",

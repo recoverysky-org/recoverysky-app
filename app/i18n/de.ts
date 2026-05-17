@@ -83,38 +83,6 @@ const de: Translations = {
     euaAgree: "Akzeptieren",
     euaCancel: "Abbrechen",
   },
-  zoomLoginScreen: {
-    title: "Zoom verbinden",
-    subtitle: "Melde dich mit deinem Zoom-Konto an, um Meetings mit deiner Identität beizutreten.",
-    connectWithZoom: "Mit Zoom verbinden",
-    continueAnonymously: "Ohne Verbindung fortfahren",
-    openingBrowser: "Zoom-Anmeldung wird geöffnet...",
-    or: "oder",
-    infoText:
-      "Wenn du dein Zoom-Konto verbindest, kannst du Meetings mit deinem Namen und Profilbild beitreten. Deine Zugangsdaten werden sicher auf deinem Gerät gespeichert.",
-  },
-  zoomSetupScreen: {
-    title: "Zoom-Konto verbinden",
-    subtitle:
-      "Zoom wird bald ein Konto verlangen, um Meetings beizutreten. Durch das Verbinden deines Zoom-Kontos kannst du ein eigenes Profilbild in Meetings verwenden.",
-    connectWithZoom: "Mit Zoom verbinden",
-    createAccount: "Zoom-Konto erstellen",
-    continueAnonymously: "Ohne Verbindung fortfahren",
-    openingBrowser: "Zoom-Anmeldung wird geöffnet...",
-    or: "oder",
-    anonymousWarningTitle: "Eingeschränkter anonymer Zugang",
-    anonymousWarningMessage:
-      "Die Teilnahme an Meetings ohne Zoom-Konto kann zu Fehlern führen, da die Anzahl anonymer Teilnahmen begrenzt ist. Bei Problemen kannst du dein Zoom-Konto jederzeit in den Einstellungen verbinden.",
-    signupModalTitle: "Zoom-Konto erstellen",
-    signupModalBody:
-      "Nach der Kontoerstellung zeigt Zoom eine Abo-Seite an. Du brauchst KEINE kostenlose Testversion zu starten.",
-    signupModalNote:
-      "Wenn du das siehst, schließe das Browserfenster und kehre zu RecoverySky zurück, um dich mit deinem neuen Zoom-Konto anzumelden.",
-    signupModalNote2:
-      'Du kannst auch auf „Take me to my basic account" klicken, um dein Zoom-Profil zu vervollständigen, dann das Browserfenster schließen und zu RecoverySky zurückkehren.',
-    signupModalContinue: "Zoom-Registrierung öffnen",
-    loading: "Zoom-Verbindung wird geprüft...",
-  },
   mainNavigator: {
     homeTab: "Start",
     liveTab: "Live",
@@ -337,13 +305,6 @@ const de: Translations = {
     restoreNoSubscription: "Kein Abonnement gefunden",
     restoreNoSubscriptionMessage: "Wir konnten keine früheren Käufe zum Wiederherstellen finden.",
     // Zoom Account Section
-    zoomAccountSection: "Zoom-Konto",
-    connectZoom: "Zoom-Konto verbinden",
-    zoomConnected: "Verbunden als",
-    editZoomProfile: "Zoom-Profil bearbeiten",
-    zoomDisconnect: "Zoom trennen",
-    zoomDisconnectConfirm: "Bist du sicher, dass du dein Zoom-Konto trennen möchtest?",
-    zoomDisconnectSuccess: "Zoom-Konto getrennt",
     // Account Section
     accountSection: "Konto",
     userId: "Benutzer-ID",
@@ -411,9 +372,6 @@ const de: Translations = {
     noUpdatesMessage: "Du verwendest die neueste Version von RecoverySky.",
     // Advanced Section
     advancedSection: "Erweitert",
-    useExternalZoom: "Externes Zoom verwenden",
-    useExternalZoomHint:
-      "Alle Meetings werden in der installierten Zoom-App geöffnet statt in der App. Zeigt zusätzliche Meetings, die nur in der Zoom-App verfügbar sind.",
     // Legal Section
     legalSection: "Rechtliches",
     eula: "Endbenutzer-Lizenzvereinbarung",

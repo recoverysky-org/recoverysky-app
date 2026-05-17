@@ -83,38 +83,6 @@ const ru: Translations = {
     euaAgree: "Принять",
     euaCancel: "Отмена",
   },
-  zoomLoginScreen: {
-    title: "Подключить Zoom",
-    subtitle: "Войди через свой аккаунт Zoom, чтобы подключаться к собраниям под своим именем.",
-    connectWithZoom: "Подключить через Zoom",
-    continueAnonymously: "Продолжить без подключения",
-    openingBrowser: "Открываем вход в Zoom...",
-    or: "или",
-    infoText:
-      "Подключение аккаунта Zoom позволяет подключаться к собраниям с твоим именем и фото профиля. Твои данные надёжно хранятся на устройстве.",
-  },
-  zoomSetupScreen: {
-    title: "Подключить аккаунт Zoom",
-    subtitle:
-      "Скоро Zoom будет требовать аккаунт для участия в собраниях. Подключение аккаунта Zoom позволяет использовать своё фото профиля на собраниях.",
-    connectWithZoom: "Подключить через Zoom",
-    createAccount: "Создать аккаунт Zoom",
-    continueAnonymously: "Продолжить без подключения",
-    openingBrowser: "Открываем вход в Zoom...",
-    or: "или",
-    anonymousWarningTitle: "Ограниченный анонимный доступ",
-    anonymousWarningMessage:
-      "Участие в собраниях без аккаунта Zoom может вызвать ошибки — количество анонимных подключений ограничено. Если возникнут проблемы, ты можешь подключить свой аккаунт Zoom в любое время в Настройках.",
-    signupModalTitle: "Создание аккаунта Zoom",
-    signupModalBody:
-      "После создания аккаунта Zoom покажет страницу подписки. Тебе НЕ нужно начинать бесплатный пробный период.",
-    signupModalNote:
-      "Когда увидишь эту страницу, закрой окно браузера и вернись в RecoverySky, чтобы войти через новый аккаунт Zoom.",
-    signupModalNote2:
-      "Ты также можешь нажать «Take me to my basic account», чтобы заполнить профиль Zoom, затем закрыть браузер и вернуться в RecoverySky.",
-    signupModalContinue: "Открыть регистрацию Zoom",
-    loading: "Проверяем подключение Zoom...",
-  },
   mainNavigator: {
     homeTab: "Главная",
     liveTab: "Сейчас",
@@ -336,13 +304,6 @@ const ru: Translations = {
     restoreNoSubscription: "Подписка не найдена",
     restoreNoSubscriptionMessage: "Не удалось найти предыдущие покупки для восстановления.",
     // Zoom Account Section
-    zoomAccountSection: "Аккаунт Zoom",
-    connectZoom: "Подключить аккаунт Zoom",
-    zoomConnected: "Подключён как",
-    editZoomProfile: "Редактировать профиль Zoom",
-    zoomDisconnect: "Отключить Zoom",
-    zoomDisconnectConfirm: "Ты уверен, что хочешь отключить свой аккаунт Zoom?",
-    zoomDisconnectSuccess: "Аккаунт Zoom отключён",
     // Account Section
     accountSection: "Аккаунт",
     userId: "ID пользователя",
@@ -410,9 +371,6 @@ const ru: Translations = {
     noUpdatesMessage: "Ты используешь последнюю версию RecoverySky.",
     // Advanced Section
     advancedSection: "Дополнительно",
-    useExternalZoom: "Использовать внешний Zoom",
-    useExternalZoomHint:
-      "Все встречи открываются в установленном приложении Zoom вместо встроенного. Показывает дополнительные встречи, доступные только в приложении Zoom.",
     // Legal Section
     legalSection: "Правовая информация",
     eula: "Лицензионное соглашение",

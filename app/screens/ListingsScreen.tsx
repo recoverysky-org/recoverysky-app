@@ -214,8 +214,10 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     setError(null)
 
     try {
+      // Always request external meetings — see MeetingContext for context;
+      // the in-app SDK was removed in 4.5.0 so this flag is now a constant.
       const result = await api.getDailySchedules(selectedDay, fellowship, {
-        includeExternal: profileStore.useExternalZoom,
+        includeExternal: true,
       })
 
       if (result.kind !== "ok") {
@@ -254,7 +256,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedDay, profileStore.fellowship, profileStore.useExternalZoom, configStore])
+  }, [selectedDay, profileStore.fellowship, configStore])
 
   // Fetch when day or fellowship changes
   useEffect(() => {
