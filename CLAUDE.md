@@ -63,6 +63,35 @@ The server's `/config` endpoint returns `LATEST_VERSION` which the app compares 
 
 **Why not the `fingerprint` policy?** We tried it (commit `7a38e44`) and reverted (commit `aecb4f4`) because the hash came out different on local builds vs EAS — our postinstall pipeline (Zoom AAR extraction in `scripts/patch-zoom-android.sh`, the `patches/` directory, the various `patch-*.sh` scripts) is not deterministic across environments, so the local-computed fingerprint and the EAS-computed fingerprint disagreed. Plus a stale EAS GraphQL token broke fingerprint computation entirely on local builds. Significant time was spent trying to fix this; manual is the pragmatic floor. Don't revisit fingerprint without first making the postinstall pipeline reproducible across environments.
 
+## EAS Build pre-install hook
+
+`scripts/eas-pre-install.js` is wired into `package.json` as
+`eas-build-pre-install`. EAS Build automatically invokes it in the
+build environment BEFORE `npm install` runs. It checks
+`process.env.EAS_BUILD_PROFILE`:
+- **`production`**: mutates `package.json` to add
+  `expo-dev-client` / `expo-dev-launcher` / `expo-dev-menu` to
+  `expo.autolinking.exclude`, so those native modules don't get
+  autolinked into the production AAB/IPA. This eliminates Play
+  Console warnings rooted in `DevLauncherExpoActivityConfigurator`
+  (deprecated edge-to-edge APIs) and
+  `GmsBarcodeScanningDelegateActivity` (Android 16 large-screen
+  resizability). The mutation lives in the build container's
+  ephemeral checkout; the repo's committed `package.json` is
+  untouched.
+- **anything else** (development / preview / unset): no-op. Dev
+  builds keep the dev menu, QR-scan-to-server flow, fast refresh
+  control, and network inspector intact.
+
+The hook fires for both EAS cloud and `eas build --local`. It does
+NOT fire for `npx expo prebuild` directly (no
+`EAS_BUILD_PROFILE`), which is the right behavior for local dev
+iteration. Do not delete the script without removing the
+`eas-build-pre-install` entry from `package.json` — and don't add
+the exclude list to the committed `package.json` instead, that
+would break dev/preview builds where we genuinely need
+`expo-dev-client`.
+
 ## Architecture
 
 ### Path Aliases

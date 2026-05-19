@@ -91,6 +91,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   the lib auto-wraps with `runOnJS`.
 
 ### Build
+- **expo-dev-client family excluded from production AABs.** Google Play
+  Console flagged two warnings against the 4.5.0 AAB that both traced
+  to dev-client leaking into production: a deprecated edge-to-edge API
+  warning rooted in `DevLauncherExpoActivityConfigurator.setColor`
+  (calls `Window.setStatusBarColor()`), and an Android-16 large-screen
+  resizability warning rooted in `GmsBarcodeScanningDelegateActivity`
+  (a hardcoded-PORTRAIT activity that ships via
+  `expo-dev-launcher`'s transitive `play-services-code-scanner` /
+  `mlkit:barcode-scanning` dependencies). Both classes are unreachable
+  at runtime in production (the dev-launcher activity never runs in a
+  production binary) but Play's static bytecode analysis flags them
+  regardless. R8 doesn't strip them because dev-launcher carries
+  reflection-friendly `@DoNotStrip` annotations. Fixed by adding an
+  `eas-build-pre-install` lifecycle hook (`scripts/eas-pre-install.js`)
+  that mutates `package.json` inside the EAS build environment only to
+  add `expo-dev-client` / `expo-dev-launcher` / `expo-dev-menu` to
+  `expo.autolinking.exclude` when `EAS_BUILD_PROFILE === "production"`.
+  Dev / preview / local builds are no-ops — the dev menu, QR-scan flow,
+  network inspector all keep working. The third edge-to-edge warning
+  source (React Native core's `StatusBarModule` and
+  `react-native-edge-to-edge@1.6.2`'s intentional deprecated-API
+  bridging) remains as expected; it resolves naturally on a future
+  Expo SDK upgrade.
 - **Android versionCode now managed locally.** Switched
   `eas.json` `appVersionSource` from `remote` to `local` and dropped
   `autoIncrement` from the production profile. EAS's remote counter had
