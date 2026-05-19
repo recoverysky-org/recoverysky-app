@@ -90,6 +90,25 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   passing a regular React `useCallback`. Switched to `onCompleteJS`, which
   the lib auto-wraps with `runOnJS`.
 
+### Changed
+- **OTLP logger emits `deviceId`/`sessionId` as canonical OTel Resource
+  attributes.** Previously the per-LogRecord `attributes` carried
+  `deviceId` / `sessionId` / `appVersion`, but the OTel→Loki bridge in
+  Alloy (and downstream `otelcol.exporter.loki`) preferentially promotes
+  **Resource attributes** with canonical semantic-convention names
+  (`device.id`, `session.id`, `service.version`). With the old naming
+  the bridge had nothing to promote, and dashboards/queries that
+  expected those Loki labels / structured metadata to exist saw only an
+  opaque log body. `LoggerImpl.flush()` now passes the current
+  `LoggerContext` to `sendToOtlp()`, which emits the three fields under
+  their canonical names on `resourceLogs[0].resource.attributes` while
+  keeping the camelCase copies on each LogRecord's `attributes` for
+  backward compatibility during the migration window. Side note: the
+  bug report described this as "deviceId baked into a stringified body"
+  — that wasn't literally the case (the body always carried the raw
+  message), but the symptom was the same from a Loki query
+  perspective: no promoted labels to filter on.
+
 ### Build
 - **expo-dev-client family excluded from production AABs.** Google Play
   Console flagged two warnings against the 4.5.0 AAB that both traced

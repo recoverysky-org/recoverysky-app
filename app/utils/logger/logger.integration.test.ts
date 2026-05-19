@@ -165,6 +165,61 @@ describeIfEndpoint("OTLP Integration Tests", () => {
         value: { intValue: "42" },
       })
     })
+
+    it("should emit deviceId/sessionId as OTel canonical Resource attributes", () => {
+      const records: LogRecord[] = [
+        {
+          timestamp: 1704067200000,
+          level: "info",
+          message: "Test message",
+          attributes: {},
+        },
+      ]
+
+      const payload = toOtlpPayload(records, testConfig, {
+        deviceId: "device-abc",
+        sessionId: "session-xyz",
+        appVersion: "4.5.0",
+      })
+
+      const resourceAttrs = payload.resourceLogs[0].resource.attributes
+      // Canonical OTel semantic conventions
+      expect(resourceAttrs).toContainEqual({
+        key: "device.id",
+        value: { stringValue: "device-abc" },
+      })
+      expect(resourceAttrs).toContainEqual({
+        key: "session.id",
+        value: { stringValue: "session-xyz" },
+      })
+      // appVersion in context overrides the config's serviceVersion
+      expect(resourceAttrs).toContainEqual({
+        key: "service.version",
+        value: { stringValue: "4.5.0" },
+      })
+      // Body must remain the raw message — never stringified attributes
+      expect(payload.resourceLogs[0].scopeLogs[0].logRecords[0].body.stringValue).toBe(
+        "Test message",
+      )
+    })
+
+    it("should omit absent context keys from Resource attributes", () => {
+      const records: LogRecord[] = [
+        {
+          timestamp: 1704067200000,
+          level: "info",
+          message: "x",
+          attributes: {},
+        },
+      ]
+
+      const payload = toOtlpPayload(records, testConfig, { deviceId: "device-only" })
+      const resourceAttrs = payload.resourceLogs[0].resource.attributes
+      const keys = resourceAttrs.map((a) => a.key)
+
+      expect(keys).toContain("device.id")
+      expect(keys).not.toContain("session.id")
+    })
   })
 
   describe("Logger end-to-end", () => {

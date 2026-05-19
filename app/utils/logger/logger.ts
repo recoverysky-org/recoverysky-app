@@ -149,7 +149,12 @@ class LoggerImpl implements Logger {
     const records = [...this.buffer]
     this.buffer = []
 
-    const result = await sendToOtlp(records, this.config)
+    // Pass current LoggerContext to OTLP so deviceId/sessionId/appVersion are
+    // emitted as canonical OTel resource attributes (device.id, session.id,
+    // service.version). This lets server-side bridges (Alloy → Loki) promote
+    // them to labels / structured metadata without custom transforms. The
+    // same fields stay on each LogRecord's attributes too — see otlp.ts.
+    const result = await sendToOtlp(records, this.config, this.context)
 
     if (!result.ok) {
       // Re-queue failed records for retry on next flush

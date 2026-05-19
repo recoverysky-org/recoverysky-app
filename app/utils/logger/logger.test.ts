@@ -343,6 +343,35 @@ describe("Logger", () => {
       logger.destroy()
     })
 
+    it("should pass full context to sendToOtlp as the third arg", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.setContext({
+        sessionId: "session-xyz",
+        appVersion: "1.0.0",
+        deviceId: "device-abc",
+      })
+      logger.info("With full context")
+
+      await logger.flush()
+
+      // Third argument to sendToOtlp is the LoggerContext used to populate
+      // OTLP Resource attributes (device.id, session.id, service.version).
+      const call = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(call[2]).toEqual({
+        sessionId: "session-xyz",
+        appVersion: "1.0.0",
+        deviceId: "device-abc",
+      })
+
+      logger.destroy()
+    })
+
     it("should merge partial context updates", async () => {
       const logger = createLogger({
         minLevel: "info",

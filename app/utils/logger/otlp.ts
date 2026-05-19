@@ -3,7 +3,7 @@
  * @see https://opentelemetry.io/docs/specs/otel/logs/data-model/
  */
 
-import type { LogRecord, LogLevel, LoggerConfig } from "./types"
+import type { LogRecord, LogLevel, LoggerConfig, LoggerContext } from "./types"
 
 /** OTLP severity numbers */
 const SEVERITY_NUMBER: Record<LogLevel, number> = {
@@ -53,9 +53,56 @@ interface OtlpLogsPayload {
 }
 
 /**
- * Convert internal log records to OTLP format
+ * Build the OTLP Resource attributes array. Context fields are emitted using
+ * canonical OpenTelemetry semantic convention names so server-side bridges
+ * (e.g. Grafana Alloy's `otelcol.exporter.loki`) can promote them to Loki
+ * labels / structured metadata automatically without a custom transform.
+ *
+ * Mapping:
+ *   deviceId   → `device.id`        (OTel "device" namespace)
+ *   sessionId  → `session.id`       (OTel "session" namespace)
+ *   appVersion → `service.version`  (already present below; context value
+ *                                    overrides the static config value)
+ *
+ * We do NOT emit context fields ALSO under the camelCase keys at the resource
+ * level — the OTel canonical name is the contract with downstream
+ * collectors. They are kept on per-log-record `attributes` (see below) so
+ * existing Loki queries that filter on `deviceId` / `sessionId` keep working
+ * during the migration window.
  */
-export function toOtlpPayload(records: LogRecord[], config: LoggerConfig): OtlpLogsPayload {
+function buildResourceAttributes(
+  config: LoggerConfig,
+  context: LoggerContext | undefined,
+): Array<{ key: string; value: { stringValue: string } }> {
+  const attrs: Array<{ key: string; value: { stringValue: string } }> = [
+    { key: "service.name", value: { stringValue: config.serviceName } },
+    {
+      key: "service.version",
+      value: { stringValue: context?.appVersion ?? config.serviceVersion },
+    },
+  ]
+  if (context?.deviceId) {
+    attrs.push({ key: "device.id", value: { stringValue: context.deviceId } })
+  }
+  if (context?.sessionId) {
+    attrs.push({ key: "session.id", value: { stringValue: context.sessionId } })
+  }
+  return attrs
+}
+
+/**
+ * Convert internal log records to OTLP format.
+ *
+ * `context` is optional and supplies device/session identity that becomes
+ * Resource attributes (see `buildResourceAttributes`). The same fields stay
+ * on `record.attributes` for backward compatibility with existing log
+ * queries during the migration.
+ */
+export function toOtlpPayload(
+  records: LogRecord[],
+  config: LoggerConfig,
+  context?: LoggerContext,
+): OtlpLogsPayload {
   const otlpRecords: OtlpLogRecord[] = records.map((record) => ({
     timeUnixNano: (record.timestamp * 1_000_000).toString(),
     severityNumber: SEVERITY_NUMBER[record.level],
@@ -80,13 +127,7 @@ export function toOtlpPayload(records: LogRecord[], config: LoggerConfig): OtlpL
     resourceLogs: [
       {
         resource: {
-          attributes: [
-            { key: "service.name", value: { stringValue: config.serviceName } },
-            {
-              key: "service.version",
-              value: { stringValue: config.serviceVersion },
-            },
-          ],
+          attributes: buildResourceAttributes(config, context),
         },
         scopeLogs: [
           {
@@ -105,12 +146,13 @@ export function toOtlpPayload(records: LogRecord[], config: LoggerConfig): OtlpL
 export async function sendToOtlp(
   records: LogRecord[],
   config: LoggerConfig,
+  context?: LoggerContext,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!config.endpoint || !config.apiKey) {
     return { ok: true } // No endpoint or API key = silent drop
   }
 
-  const payload = toOtlpPayload(records, config)
+  const payload = toOtlpPayload(records, config, context)
 
   try {
     const response = await fetch(`${config.endpoint}/v1/logs`, {
