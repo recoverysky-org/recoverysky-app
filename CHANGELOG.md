@@ -118,6 +118,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   — that wasn't literally the case (the body always carried the raw
   message), but the symptom was the same from a Loki query
   perspective: no promoted labels to filter on.
+- **Sentry `dist` is now the OTA counter, not the update UUID.** Builds were
+  tagged with `dist: Updates.updateId` — an opaque hash that's also `null`
+  for embedded (non-OTA) launches, so a freshly-installed build had no
+  distinguishable `dist` at all. Now `dist` is the `update` field from
+  `package.json` (the OTA counter, reset to `"0"` on each native bump), so
+  Sentry reads builds as a human-readable `release`+`dist` pair like
+  `4.5.0-0` / `4.5.0-1`, always populated, matching the `v{version}-{update}`
+  string shown in Settings. `release` is unchanged (the native
+  `runtimeVersion`).
 
 ### Build
 - **expo-dev-client family excluded from production AABs.** Google Play

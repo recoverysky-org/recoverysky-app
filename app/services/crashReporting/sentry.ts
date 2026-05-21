@@ -32,6 +32,17 @@ const log = logger.child({ module: "sentry" })
 
 const DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
 
+/**
+ * OTA counter baked into this JS bundle (the `update` field in package.json,
+ * reset to "0" on each native version bump). Combined with `runtimeVersion`
+ * as the Sentry release, the pair `4.5.0` + `0` uniquely and *readably*
+ * identifies a build — far easier to reason about than the opaque
+ * `Updates.updateId` UUID we used to pass as `dist`. Always populated
+ * (even for embedded, non-OTA launches), unlike `updateId` which is null
+ * until an OTA is applied.
+ */
+const OTA_COUNTER: string = require("../../../package.json").update ?? "0"
+
 // Sensitive query params we strip from any URL Sentry sees (breadcrumbs +
 // event request data). Kept narrow on purpose — over-eager scrubbing makes
 // stack traces useless. Add new keys here as the threat surface grows.
@@ -98,11 +109,13 @@ export function initSentry(): void {
   Sentry.init({
     dsn: DSN,
 
-    // Tracks crashes against the OTA bundle the user is running. updateId
-    // is null for embedded launches, in which case the runtime version
-    // alone identifies the build. Both go on every event as tags.
+    // Tracks crashes against the OTA bundle the user is running. `release`
+    // is the native runtimeVersion (e.g. "4.5.0"); `dist` is the OTA counter
+    // ("0", "1", …) baked into the JS bundle. Together they read as
+    // "4.5.0-0" in Sentry — human-readable and stable, instead of the opaque
+    // updateId hash we used before.
     release: Updates.runtimeVersion ?? undefined,
-    dist: Updates.updateId ?? undefined,
+    dist: OTA_COUNTER,
 
     // Tracing off by default to keep cost predictable. Flip to 0.1 when
     // you want span data in the Performance dashboard.
@@ -167,7 +180,7 @@ export function initSentry(): void {
 
   log.info("Sentry initialized", {
     release: Updates.runtimeVersion ?? "",
-    dist: Updates.updateId ?? "",
+    dist: OTA_COUNTER,
   })
 }
 
