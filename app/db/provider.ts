@@ -70,7 +70,13 @@ export async function openDb(encryptionKey?: string): Promise<{
     const { openDatabaseSync } = await import("expo-sqlite")
     const { drizzle } = await import("drizzle-orm/expo-sqlite")
 
-    expoDb = openDatabaseSync(DATABASE_NAME, { enableChangeListener: true })
+    // No `enableChangeListener` — nothing in the app or common-lib consumes
+    // onDatabaseChange / addDatabaseChangeListener, and the flag registers a
+    // JSI callback SharedObject (a WeakObject bound to the runtime) for no
+    // benefit. That object is exactly the kind whose ~WeakObject crashed in
+    // SharedObjectRegistry.clear during OTA reload teardown on 4.5.0
+    // (EXC_BAD_ACCESS in .cxx_destruct). Re-add only alongside a real consumer.
+    expoDb = openDatabaseSync(DATABASE_NAME)
 
     // Set encryption key immediately after opening (required for SQLCipher)
     if (encryptionKey) {

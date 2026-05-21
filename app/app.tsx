@@ -27,7 +27,6 @@ import { Alert, AppState, AppStateStatus, BackHandler, Platform } from "react-na
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as SplashScreen from "expo-splash-screen"
-import * as Updates from "expo-updates"
 import { reaction } from "mobx"
 import { Auth0Provider } from "react-native-auth0"
 import { KeyboardProvider } from "react-native-keyboard-controller"
@@ -54,6 +53,7 @@ import {
 } from "./db"
 import { initI18n, translate } from "./i18n"
 import { checkForUpdates } from "./utils/checkForUpdates"
+import { reloadApp } from "./utils/reloadApp"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -256,8 +256,11 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
           {
             text: translate("common:retry"),
             onPress: () => {
-              // Full app reload to retry from scratch
-              Updates.reloadAsync().catch(() => BackHandler.exitApp())
+              // Full app reload to retry from scratch.
+              // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
+              // SharedObject before teardown — avoids the SharedObjectRegistry
+              // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
+              reloadApp(() => BackHandler.exitApp())
             },
           },
           {
@@ -707,7 +710,10 @@ export function App() {
               clearInterval(interval)
               interval = undefined
             }
-            Updates.reloadAsync().catch((e) => {
+            // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
+            // SharedObject before teardown — avoids the SharedObjectRegistry
+            // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
+            reloadApp((e) => {
               log.warn("reloadAsync failed during outage recovery", { error: String(e) })
             })
           }

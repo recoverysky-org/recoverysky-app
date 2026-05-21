@@ -9,6 +9,7 @@ import * as Updates from "expo-updates"
 
 import { translate } from "@/i18n"
 import { logger } from "@/utils/logger"
+import { reloadApp } from "@/utils/reloadApp"
 
 const log = logger.child({ module: "checkForUpdates" })
 
@@ -130,7 +131,11 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
               // largely theoretical, but flip it before kicking off the
               // reload in case the call is delayed or fails.
               promptInFlight = false
-              Updates.reloadAsync()
+              // CHANGED 2026-05-21: route through reloadApp() so the
+              // expo-sqlite SharedObject is closed before teardown — fixes
+              // the EXC_BAD_ACCESS / SharedObjectRegistry.clear crash that
+              // fired during this exact OTA-accept reload on 4.5.0.
+              reloadApp()
               resolve(true)
             },
           },

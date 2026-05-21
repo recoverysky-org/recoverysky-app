@@ -82,6 +82,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   "skip" path because the step doesn't exist.
 
 ### Fixed
+- **Crash during OTA-update reload** (`EXC_BAD_ACCESS` in `.cxx_destruct` →
+  `SharedObjectRegistry.clear` → `jsi::WeakObject::~WeakObject`). When the
+  user accepted an OTA update, `Updates.reloadAsync()` tore down the Hermes
+  runtime while the expo-sqlite database handle (a JSI `SharedObject`) was
+  still open; expo-modules-core then ran that object's C++ destructor against
+  the already-invalidated runtime and dereferenced a null pointer. Now all
+  reload sites route through a `reloadApp()` helper that closes the database
+  before reloading, and the database is opened without the unused
+  `enableChangeListener` flag (which registered a second JSI callback object
+  with no consumer). JS-only — ships in the next OTA.
 - **Theme color picker crash.** Picking a color or moving the hue slider in
   Settings → App Settings → Theme Color → custom picker crashed the app with
   a C++ `Object is not a function` exception thrown from the worklet thread.
