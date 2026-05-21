@@ -127,6 +127,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `4.5.0-0` / `4.5.0-1`, always populated, matching the `v{version}-{update}`
   string shown in Settings. `release` is unchanged (the native
   `runtimeVersion`).
+- **Umami analytics delivery failures downgraded ERROR → WARN.** A failed
+  analytics POST to Umami (network blip, endpoint down) was logged at ERROR,
+  which inflated the error rate and surfaced as a Sentry `captureMessage`
+  event for a non-critical background telemetry miss. The fetch-rejection
+  branch now logs at WARN — matching the non-OK-HTTP-response branch directly
+  above it that was already WARN — so both Umami failure modes land as Sentry
+  breadcrumbs (not error events) and read as WARN in Loki.
 
 ### Build
 - **expo-dev-client family excluded from production AABs.** Google Play

@@ -162,7 +162,11 @@ function send(payload: UmamiPayload): void {
       }
     })
     .catch((err) => {
-      log.error("Umami fetch error", {
+      // WARN, not ERROR: analytics delivery failing is a non-critical
+      // background miss, not an app fault. Matches the non-OK-response
+      // branch above (log.warn) so both Umami failure modes are the same
+      // severity — and keeps it out of the error rate / Sentry error events.
+      log.warn("Umami fetch error", {
         event: eventName,
         endpoint,
         error: err instanceof Error ? err.message : String(err),
