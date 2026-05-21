@@ -1228,7 +1228,14 @@ export class Api {
       typeof response.data.title !== "string" ||
       typeof response.data.body !== "string"
     ) {
-      log.warn("Invalid news response format")
+      // DEBUG, not WARN: a 200 without title/body is the normal "no active
+      // announcement" idle state — the server returns an empty payload
+      // outside the news start/end window, and HomeScreen just clears the
+      // banner (treats bad-data as "no news"). It fired on every home load
+      // with nothing scheduled, so it was recurring dashboard noise, not a
+      // fault. Genuinely malformed news is indistinguishable from empty here
+      // without server cooperation (e.g. a 204), so we don't keep a warn arm.
+      log.debug("No active news / empty news response")
       return { kind: "bad-data" }
     }
 

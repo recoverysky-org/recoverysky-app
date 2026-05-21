@@ -91,7 +91,13 @@ const log = logger.child({ module: "App" })
 
 // Generate session ID once at module load (persists for app lifecycle)
 const sessionId = generateSessionId()
-const appVersion = require("../package.json").version
+// Log the full release identity including the OTA counter, e.g. "4.5.0-1"
+// (native runtimeVersion + the `update` field, reset to "0" on each native
+// bump). Matches the v{version}-{update} string in Settings and Sentry's
+// release+dist pair, so a log line points at the exact JS bundle — not just
+// the native shell. Two users on 4.5.0 native can be on different OTAs.
+const pkg = require("../package.json")
+const appVersion = `${pkg.version}-${pkg.update ?? "0"}`
 
 // Set initial logger context with session and version (deviceId added after async load)
 logger.setContext({ sessionId, appVersion })
