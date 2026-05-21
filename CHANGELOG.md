@@ -22,6 +22,60 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.5.0-1] — 2026-05-21 (OTA)
+
+First OTA on top of the 4.5.0 native build — all entries below are JS-only
+and reach every user already running `runtimeVersion` 4.5.0.
+
+### Fixed
+- **Crash during OTA-update reload** (`EXC_BAD_ACCESS` in `.cxx_destruct` →
+  `SharedObjectRegistry.clear` → `jsi::WeakObject::~WeakObject`). When the
+  user accepted an OTA update, `Updates.reloadAsync()` tore down the Hermes
+  runtime while the expo-sqlite database handle (a JSI `SharedObject`) was
+  still open; expo-modules-core then ran that object's C++ destructor against
+  the already-invalidated runtime and dereferenced a null pointer. Now all
+  reload sites route through a `reloadApp()` helper that closes the database
+  before reloading, and the database is opened without the unused
+  `enableChangeListener` flag (which registered a second JSI callback object
+  with no consumer).
+
+### Changed
+- **OTLP logger emits `deviceId`/`sessionId` as canonical OTel Resource
+  attributes.** Previously the per-LogRecord `attributes` carried
+  `deviceId` / `sessionId` / `appVersion`, but the OTel→Loki bridge in
+  Alloy (and downstream `otelcol.exporter.loki`) preferentially promotes
+  **Resource attributes** with canonical semantic-convention names
+  (`device.id`, `session.id`, `service.version`). With the old naming
+  the bridge had nothing to promote, and dashboards/queries that
+  expected those Loki labels / structured metadata to exist saw only an
+  opaque log body. `LoggerImpl.flush()` now passes the current
+  `LoggerContext` to `sendToOtlp()`, which emits the three fields under
+  their canonical names on `resourceLogs[0].resource.attributes` while
+  keeping the camelCase copies on each LogRecord's `attributes` for
+  backward compatibility during the migration window. Side note: the
+  bug report described this as "deviceId baked into a stringified body"
+  — that wasn't literally the case (the body always carried the raw
+  message), but the symptom was the same from a Loki query
+  perspective: no promoted labels to filter on.
+- **Sentry `dist` is now the OTA counter, not the update UUID.** Builds were
+  tagged with `dist: Updates.updateId` — an opaque hash that's also `null`
+  for embedded (non-OTA) launches, so a freshly-installed build had no
+  distinguishable `dist` at all. Now `dist` is the `update` field from
+  `package.json` (the OTA counter, reset to `"0"` on each native bump), so
+  Sentry reads builds as a human-readable `release`+`dist` pair like
+  `4.5.0-0` / `4.5.0-1`, always populated, matching the `v{version}-{update}`
+  string shown in Settings. `release` is unchanged (the native
+  `runtimeVersion`).
+- **Umami analytics delivery failures downgraded ERROR → WARN.** A failed
+  analytics POST to Umami (network blip, endpoint down) was logged at ERROR,
+  which inflated the error rate and surfaced as a Sentry `captureMessage`
+  event for a non-critical background telemetry miss. The fetch-rejection
+  branch now logs at WARN — matching the non-OK-HTTP-response branch directly
+  above it that was already WARN — so both Umami failure modes land as Sentry
+  breadcrumbs (not error events) and read as WARN in Loki.
+
+## [4.5.0] — 2026-05-17
+
 ### Removed
 - **Bundled Zoom Meeting SDK.** Production users were hitting a fatal
   Android startup crash —
@@ -64,6 +118,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   zero-risk and avoids forking the common schema. `android/` shrank
   from ~2.7 GB (with the AAR + minified Zoom transitive deps) to
   ~436 KB at the regenerated prebuild stage.
+- **Personal Attendance onboarding screen.** The attendance explanation +
+  enable toggle is no longer part of the onboarding wizard (now 7 screens,
+  down from 8). `profileStore.attendanceEnabled` still gates the Attendance
+  tab in `MainNavigator`; users opt in from Settings instead. Removed the
+  screen, its route, and the navigator entry outright — there's no longer a
+  "skip" path because the step doesn't exist.
 
 ### Changed
 - **Anonymous login hidden on the login screen.** The "Continue Anonymously"
@@ -73,25 +133,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `proceedWithLogin`) is intentionally retained so re-enabling is a one-block
   uncomment when paired with a clear upgrade path.
 
-### Removed
-- **Personal Attendance onboarding screen.** The attendance explanation +
-  enable toggle is no longer part of the onboarding wizard (now 7 screens,
-  down from 8). `profileStore.attendanceEnabled` still gates the Attendance
-  tab in `MainNavigator`; users opt in from Settings instead. Removed the
-  screen, its route, and the navigator entry outright — there's no longer a
-  "skip" path because the step doesn't exist.
-
 ### Fixed
-- **Crash during OTA-update reload** (`EXC_BAD_ACCESS` in `.cxx_destruct` →
-  `SharedObjectRegistry.clear` → `jsi::WeakObject::~WeakObject`). When the
-  user accepted an OTA update, `Updates.reloadAsync()` tore down the Hermes
-  runtime while the expo-sqlite database handle (a JSI `SharedObject`) was
-  still open; expo-modules-core then ran that object's C++ destructor against
-  the already-invalidated runtime and dereferenced a null pointer. Now all
-  reload sites route through a `reloadApp()` helper that closes the database
-  before reloading, and the database is opened without the unused
-  `enableChangeListener` flag (which registered a second JSI callback object
-  with no consumer). JS-only — ships in the next OTA.
 - **Theme color picker crash.** Picking a color or moving the hue slider in
   Settings → App Settings → Theme Color → custom picker crashed the app with
   a C++ `Object is not a function` exception thrown from the worklet thread.
@@ -99,41 +141,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   (the lib calls them inside the gesture worklet without `runOnJS`); we were
   passing a regular React `useCallback`. Switched to `onCompleteJS`, which
   the lib auto-wraps with `runOnJS`.
-
-### Changed
-- **OTLP logger emits `deviceId`/`sessionId` as canonical OTel Resource
-  attributes.** Previously the per-LogRecord `attributes` carried
-  `deviceId` / `sessionId` / `appVersion`, but the OTel→Loki bridge in
-  Alloy (and downstream `otelcol.exporter.loki`) preferentially promotes
-  **Resource attributes** with canonical semantic-convention names
-  (`device.id`, `session.id`, `service.version`). With the old naming
-  the bridge had nothing to promote, and dashboards/queries that
-  expected those Loki labels / structured metadata to exist saw only an
-  opaque log body. `LoggerImpl.flush()` now passes the current
-  `LoggerContext` to `sendToOtlp()`, which emits the three fields under
-  their canonical names on `resourceLogs[0].resource.attributes` while
-  keeping the camelCase copies on each LogRecord's `attributes` for
-  backward compatibility during the migration window. Side note: the
-  bug report described this as "deviceId baked into a stringified body"
-  — that wasn't literally the case (the body always carried the raw
-  message), but the symptom was the same from a Loki query
-  perspective: no promoted labels to filter on.
-- **Sentry `dist` is now the OTA counter, not the update UUID.** Builds were
-  tagged with `dist: Updates.updateId` — an opaque hash that's also `null`
-  for embedded (non-OTA) launches, so a freshly-installed build had no
-  distinguishable `dist` at all. Now `dist` is the `update` field from
-  `package.json` (the OTA counter, reset to `"0"` on each native bump), so
-  Sentry reads builds as a human-readable `release`+`dist` pair like
-  `4.5.0-0` / `4.5.0-1`, always populated, matching the `v{version}-{update}`
-  string shown in Settings. `release` is unchanged (the native
-  `runtimeVersion`).
-- **Umami analytics delivery failures downgraded ERROR → WARN.** A failed
-  analytics POST to Umami (network blip, endpoint down) was logged at ERROR,
-  which inflated the error rate and surfaced as a Sentry `captureMessage`
-  event for a non-critical background telemetry miss. The fetch-rejection
-  branch now logs at WARN — matching the non-OK-HTTP-response branch directly
-  above it that was already WARN — so both Umami failure modes land as Sentry
-  breadcrumbs (not error events) and read as WARN in Loki.
 
 ### Build
 - **expo-dev-client family excluded from production AABs.** Google Play
