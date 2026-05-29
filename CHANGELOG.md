@@ -20,7 +20,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
-## [Unreleased]
+## [4.5.0-4] — 2026-05-28 (OTA)
 
 ### Fixed
 - **Native crash (`EXC_BAD_ACCESS`) when saving/skipping a meeting topic.** On
