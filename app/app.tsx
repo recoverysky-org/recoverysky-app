@@ -899,7 +899,17 @@ export function App() {
   return (
     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <KeyboardProvider>
+        {/* preload={false}: KeyboardProvider's default preload=true calls
+            KeyboardController.preload() on mount, which on iOS spins up a
+            hidden UITextField and calls becomeFirstResponder() at cold start
+            (see react-native-keyboard-controller UIResponder.swift
+            preloadKeyboardIfNeeded). On iOS 18 with Apple Intelligence that
+            synchronously loads the GenerativeModels / WritingToolsUI framework
+            on the main thread while servicing the keyboard's RTI trait update
+            (_supportsWritingTools), blocking ≥2s and tripping Sentry's
+            "App Hanging" watchdog during launch. We trade the marginal
+            first-focus keyboard warm-up for a hang-free startup. */}
+        <KeyboardProvider preload={false}>
           <RootStoreProvider value={rootStore}>
             <SubscriptionProvider appUserId={revenueCatUserId}>
               <DatabaseProvider>

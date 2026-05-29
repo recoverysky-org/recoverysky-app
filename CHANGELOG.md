@@ -34,6 +34,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   the precheck fails fast and routes to `MaintenanceScreen` quickly. The
   global 10s timeout is unchanged — heavier endpoints (reports, `/config`,
   CMS content, Firebase import) still get the headroom they need.
+- **App-launch hang ("App Hanging for at least 2000 ms") on iOS 18.** The
+  keyboard library's `KeyboardProvider` preloads the keyboard on mount by
+  driving a hidden text field to first-responder at cold start. On iOS 18
+  with Apple Intelligence, that synchronously loaded the Writing Tools /
+  GenerativeModels framework on the main thread while the keyboard updated
+  its input traits, blocking the UI past the watchdog threshold. Disabled
+  the preload (`preload={false}`); the only cost is a marginal warm-up on
+  the very first text-field focus.
 
 ## [4.5.0-2] — 2026-05-21 (OTA)
 
