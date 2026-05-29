@@ -20,7 +20,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
-## [Unreleased]
+## [4.5.0-3] — 2026-05-28 (OTA)
 
 ### Fixed
 - **Slow cold start / Background ANR on flaky networks.** The startup
