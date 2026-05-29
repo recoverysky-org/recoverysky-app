@@ -20,6 +20,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Native crash (`EXC_BAD_ACCESS`) when saving/skipping a meeting topic.** On
+  the post-attendance topic prompt, tapping Save or Skip while the keyboard was
+  still up could crash inside react-native-reanimated's shadow-tree commit
+  (`cloneShadowTreeWithNewPropsRecursive` → `folly::dynamic::hash` on freed
+  memory). The keyboard-controller `KeyboardAvoidingView` (reanimated-driven)
+  was committing layout updates on the same frame the panel's slide-out tween
+  and React reconcile were mutating the same subtree. The topic panel now
+  dismisses the keyboard and waits for it to settle before sliding out, so the
+  animations no longer commit concurrently. (OTA mitigation; the durable fix is
+  a reanimated/keyboard-controller upgrade in the next native build.)
+
 ## [4.5.0-3] — 2026-05-28 (OTA)
 
 ### Fixed

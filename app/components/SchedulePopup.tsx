@@ -40,7 +40,7 @@ import { useTranslation } from "react-i18next"
 // + scroll feedback loop because it competed with the OS adjustResize
 // AND the parent Animated.View's non-native-driver layout animation —
 // three layout systems racing on every keyboard frame.
-import { KeyboardAvoidingView } from "react-native-keyboard-controller"
+import { KeyboardAvoidingView, KeyboardController } from "react-native-keyboard-controller"
 
 import { ExternalZoomEducationModal } from "@/components/ExternalZoomEducationModal"
 import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
@@ -73,6 +73,17 @@ const log = logger.child({ module: "SchedulePopup" })
 // MMKV flag: shown once per install the first time the user joins a meeting
 // with External Zoom enabled. Version suffix lets us reset if copy changes.
 const EXTERNAL_ZOOM_EDUCATION_SEEN_KEY = "external-zoom-education-seen-v1"
+
+// Dismiss the keyboard and wait for it to fully settle (keyboardDidHide),
+// capped at 400ms (> iOS's ~250ms hide animation) so we never hang if the
+// event doesn't fire. Used before tearing down the topic panel — see
+// handleTopicSave for the crash this prevents.
+async function dismissKeyboardAndSettle(): Promise<void> {
+  await Promise.race([
+    KeyboardController.dismiss(),
+    new Promise<void>((resolve) => setTimeout(resolve, 400)),
+  ])
+}
 
 interface SchedulePopupProps {
   visible: boolean
@@ -497,46 +508,62 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     InteractionManager.runAfterInteractions(next)
   }, [])
 
-  const handleTopicSave = useCallback(
-    async ({ topic, host }: { topic: string; host?: string }) => {
-      const pending = topicContextRef.current
-      if (!pending) return
-      topicContextRef.current = null
-      setTopicActive(false)
-      try {
-        const result = await attendanceRepo.update(pending.attendanceId, {
-          meetingTopic: topic,
-          ...(host ? { meetingHost: host } : {}),
-        })
-        if (!result.ok) {
-          log.error("Failed to persist meeting topic/host", {
-            attendanceId: pending.attendanceId,
-          })
-        } else {
-          log.info("Meeting topic saved", {
-            attendanceId: pending.attendanceId,
-            hasHost: !!host,
-          })
-        }
-      } catch (err) {
+  const handleTopicSave = useCallback(async ({ topic, host }: { topic: string; host?: string }) => {
+    const pending = topicContextRef.current
+    if (!pending) return
+    topicContextRef.current = null
+
+    // Dismiss the keyboard and WAIT for it to settle BEFORE sliding the
+    // panel out. setTopicActive(false) starts the parent Animated.parallel
+    // slide-out — which includes a useNativeDriver:false (layout) tween on
+    // cardExpansion. If that runs while the keyboard is still hiding, three
+    // layout systems mutate this subtree on the same frame: keyboard-
+    // controller's reanimated KeyboardAvoidingView (animating off the
+    // keyboard-height shared value), the legacy translateY/cardExpansion
+    // slide, and the topicActive reconcile. Reanimated's per-frame shadow-
+    // tree clone then reads a prop map the others just freed → EXC_BAD_ACCESS
+    // in folly::dynamic::hash (cloneShadowTreeWithNewPropsRecursive). Letting
+    // the keyboard fully hide first serializes hide → slide so they never
+    // commit concurrently.
+    await dismissKeyboardAndSettle()
+
+    setTopicActive(false)
+    try {
+      const result = await attendanceRepo.update(pending.attendanceId, {
+        meetingTopic: topic,
+        ...(host ? { meetingHost: host } : {}),
+      })
+      if (!result.ok) {
         log.error("Failed to persist meeting topic/host", {
           attendanceId: pending.attendanceId,
-          error: String(err),
+        })
+      } else {
+        log.info("Meeting topic saved", {
+          attendanceId: pending.attendanceId,
+          hasHost: !!host,
         })
       }
-      attendanceEvents.emit({
-        type: "acknowledged",
-        id: pending.attendanceId,
-        mid: pending.mid,
-        valid: true,
+    } catch (err) {
+      log.error("Failed to persist meeting topic/host", {
+        attendanceId: pending.attendanceId,
+        error: String(err),
       })
-    },
-    [],
-  )
+    }
+    attendanceEvents.emit({
+      type: "acknowledged",
+      id: pending.attendanceId,
+      mid: pending.mid,
+      valid: true,
+    })
+  }, [])
 
-  const handleTopicSkip = useCallback(() => {
+  const handleTopicSkip = useCallback(async () => {
     const pending = topicContextRef.current
     topicContextRef.current = null
+    // Same teardown ordering as handleTopicSave — dismiss the keyboard and let
+    // it settle before the slide-out to avoid the concurrent reanimated commit
+    // / layout-tween shadow-tree crash.
+    await dismissKeyboardAndSettle()
     setTopicActive(false)
     if (pending) {
       attendanceEvents.emit({
