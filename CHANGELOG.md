@@ -22,6 +22,43 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+- **Slow cold start / Background ANR on flaky networks.** The startup
+  `/status` precheck (which gates init before attestation) inherited the API
+  client's 10s default timeout, so on an unreachable-then-recovering network
+  each retry blocked for the full 10s — stretching cold start to 25–47s.
+  Users backgrounded the app mid-init, and the deferred heavy native work
+  (Play Integrity attestation, config fetch, store hydration) then collided
+  with the backgrounding transition under memory pressure, tripping a
+  Background ANR. `getPublicStatus()` now uses a 2.5s per-request timeout so
+  the precheck fails fast and routes to `MaintenanceScreen` quickly. The
+  global 10s timeout is unchanged — heavier endpoints (reports, `/config`,
+  CMS content, Firebase import) still get the headroom they need.
+
+## [4.5.0-2] — 2026-05-21 (OTA)
+
+### Changed
+- **Log `appVersion` now includes the OTA counter** (e.g. `4.5.0-1` instead
+  of `4.5.0`). The logger context's `appVersion` — emitted on every record
+  and as the OTel `service.version` resource attribute — now appends
+  `package.json`'s `update` field to the native `version`, matching the
+  `v{version}-{update}` string in Settings and Sentry's `release`+`dist`
+  pair. Two users on the same 4.5.0 native shell can be on different OTA
+  bundles; logs now say which one.
+- **Umami analytics delivery failures further downgraded WARN → DEBUG.**
+  Building on the ERROR → WARN change in 4.5.0-1, the fetch-rejection branch
+  now logs at DEBUG so a dropped analytics request (network blip, endpoint
+  down) stays out of the error/warning dashboards entirely. (The
+  non-OK-HTTP-response branch stays WARN — a 4xx/5xx from the analytics
+  server is reachable-but-rejecting, which is more signal than a dropped
+  connection.)
+- **"Invalid news response format" WARN downgraded to DEBUG.** `GET /news`
+  returns an empty 200 when no announcement is active (outside its
+  `start`/`end` window). The client already handles this correctly —
+  `HomeScreen` just clears the banner — but the API layer logged a WARN on
+  every home load with nothing scheduled, producing recurring dashboard
+  noise. The empty/idle case now logs at DEBUG.
+
 ## [4.5.0-1] — 2026-05-21 (OTA)
 
 First OTA on top of the 4.5.0 native build — all entries below are JS-only
@@ -57,13 +94,6 @@ and reach every user already running `runtimeVersion` 4.5.0.
   — that wasn't literally the case (the body always carried the raw
   message), but the symptom was the same from a Loki query
   perspective: no promoted labels to filter on.
-- **Log `appVersion` now includes the OTA counter** (e.g. `4.5.0-1` instead
-  of `4.5.0`). The logger context's `appVersion` — emitted on every record
-  and as the OTel `service.version` resource attribute — now appends
-  `package.json`'s `update` field to the native `version`, matching the
-  `v{version}-{update}` string in Settings and Sentry's `release`+`dist`
-  pair. Two users on the same 4.5.0 native shell can be on different OTA
-  bundles; logs now say which one.
 - **Sentry `dist` is now the OTA counter, not the update UUID.** Builds were
   tagged with `dist: Updates.updateId` — an opaque hash that's also `null`
   for embedded (non-OTA) launches, so a freshly-installed build had no
@@ -73,20 +103,13 @@ and reach every user already running `runtimeVersion` 4.5.0.
   `4.5.0-0` / `4.5.0-1`, always populated, matching the `v{version}-{update}`
   string shown in Settings. `release` is unchanged (the native
   `runtimeVersion`).
-- **Umami analytics delivery failures downgraded to DEBUG.** A failed
+- **Umami analytics delivery failures downgraded ERROR → WARN.** A failed
   analytics POST to Umami (network blip, endpoint down) was logged at ERROR,
   which inflated the error rate and surfaced as a Sentry `captureMessage`
   event for a non-critical background telemetry miss. The fetch-rejection
-  branch now logs at DEBUG so a dropped analytics request stays out of the
-  error/warning dashboards entirely. (The non-OK-HTTP-response branch stays
-  WARN — a 4xx/5xx from the analytics server is reachable-but-rejecting,
-  which is more signal than a dropped connection.)
-- **"Invalid news response format" WARN downgraded to DEBUG.** `GET /news`
-  returns an empty 200 when no announcement is active (outside its
-  `start`/`end` window). The client already handles this correctly —
-  `HomeScreen` just clears the banner — but the API layer logged a WARN on
-  every home load with nothing scheduled, producing recurring dashboard
-  noise. The empty/idle case now logs at DEBUG.
+  branch now logs at WARN — matching the non-OK-HTTP-response branch — so
+  both Umami failure modes are the same severity. (Further downgraded to
+  DEBUG in 4.5.0-2.)
 
 ## [4.5.0] — 2026-05-17
 

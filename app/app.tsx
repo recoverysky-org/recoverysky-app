@@ -418,9 +418,16 @@ export function App() {
         // doesn't require any of the JWTs we're about to set up, so it's
         // the right way to detect "API is down at startup" cleanly.
         //
-        // Fail fast (3 attempts, ~7 s budget) so users on a real outage
-        // see the MaintenanceScreen quickly instead of staring at the
-        // splash for half a minute.
+        // Fail fast so users on a real outage see the MaintenanceScreen
+        // quickly instead of staring at the splash. Worst-case budget is
+        // ~4×2.5s request timeout + (1+2+4)s delays ≈ 17s — but only when
+        // every attempt times out; a fast cannot-connect (status 0) returns
+        // well under 2.5s. getPublicStatus() passes a 2.5s per-request timeout
+        // explicitly because the client default is 10s, which previously
+        // stretched this gate to 25-47s on flaky networks and contributed to
+        // Background ANRs (heavy native init colliding with the user
+        // backgrounding the app mid-precheck). See getPublicStatus in
+        // services/api.
         const STATUS_RETRY_DELAYS = [1000, 2000, 4000]
         let statusOk = false
         for (let attempt = 1; attempt <= STATUS_RETRY_DELAYS.length + 1; attempt++) {

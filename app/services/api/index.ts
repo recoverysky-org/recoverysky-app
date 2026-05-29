@@ -418,10 +418,18 @@ export class Api {
    * require auth, and at cold start no X-Device-Token / X-API-Key has
    * been set yet, so the request goes out unauthenticated.
    */
-  async getPublicStatus(): Promise<{ kind: "ok" } | GeneralApiProblem> {
+  async getPublicStatus(timeoutMs = 2500): Promise<{ kind: "ok" } | GeneralApiProblem> {
     log.debug("Checking API public status (pre-attestation)")
 
-    const response = await this.recoverySkyApi.get<{ status: string }>("/status")
+    // Override the client's default 10s timeout with a short per-request one.
+    // This call gates cold start (the outage precheck awaits it before any
+    // other init), so on a flaky/unreachable network the full 10s timeout
+    // per attempt × retries stretched startup to 25-47s — long enough that
+    // users backgrounded the app mid-init and tripped Background ANRs. A 2.5s
+    // ceiling fails fast so we route to MaintenanceScreen quickly instead.
+    const response = await this.recoverySkyApi.get<{ status: string }>("/status", undefined, {
+      timeout: timeoutMs,
+    })
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
