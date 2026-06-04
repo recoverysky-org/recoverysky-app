@@ -25,10 +25,14 @@ import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 
 import { ProgressDots } from "./ProgressDots"
 
-const FELLOWSHIPS = ["AA", "NA", "RD"] as const
+// Driven by EXPO_PUBLIC_FELLOWSHIPS via ACTIVE_FELLOWSHIPS (single source of
+// truth across all four pickers). Enum values are strings, so the existing
+// string-keyed map/label code below works unchanged.
+const FELLOWSHIPS = ACTIVE_FELLOWSHIPS
 type _Fellowship = (typeof FELLOWSHIPS)[number]
 
 const getFellowshipLabel = (f: string): string => {
@@ -37,6 +41,10 @@ const getFellowshipLabel = (f: string): string => {
       return "Alcoholics Anonymous (AA)"
     case "NA":
       return "Narcotics Anonymous (NA)"
+    case "CMA":
+      return "Crystal Meth Anonymous (CMA)"
+    case "MA":
+      return "Marijuana Anonymous (MA)"
     case "RD":
       return "Recovery Dharma (RD)"
     case "Other":
@@ -350,4 +358,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
 })
-

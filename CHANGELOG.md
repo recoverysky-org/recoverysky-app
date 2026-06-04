@@ -20,6 +20,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [4.5.0-5] — 2026-06-03 (OTA)
+
+### Added
+- **Crystal Meth Anonymous (CMA) as a selectable recovery fellowship.** CMA now
+  appears in the fellowship pickers (Onboarding, Settings) and meeting filters
+  (Live, Listings) alongside AA and NA, and counts "clean time" like NA on the
+  recovery dashboard. CMA was already supported in the data layer (enum, colors,
+  Firebase import) — this surfaces it in the UI.
+
+### Changed
+- **Fellowship selection is now driven by the `EXPO_PUBLIC_FELLOWSHIPS` env var**
+  (single source of truth in `app/utils/fellowships.ts`) instead of four
+  separate hardcoded `[AA, NA, RD]` lists across Onboarding, Settings, Live, and
+  Listings. The active set is currently `AA, NA, CMA`. Recovery Dharma (RD) is no
+  longer offered in the pickers; existing users who already selected RD keep
+  their stored fellowship and clean-time display, they just can't re-pick it.
+
 ## [4.5.0-4] — 2026-05-28 (OTA)
 
 ### Fixed

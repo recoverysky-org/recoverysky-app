@@ -532,7 +532,8 @@ export class Api {
    * Get daily schedules for a specific day of week and fellowship
    *
    * @param iso_dow - ISO day of week (1=Monday, 7=Sunday)
-   * @param fellowship - Fellowship code (e.g., "AA", "NA", "RD")
+   * @param fellowship - Fellowship code (e.g., "AA", "NA", "CMA"); any
+   *   `Fellowship` enum value is accepted server-side as a free string
    * @returns Schedules for the specified day/fellowship
    */
   async getDailySchedules(

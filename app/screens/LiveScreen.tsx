@@ -10,7 +10,6 @@ import {
   Pressable,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -34,16 +33,17 @@ import { api } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "LiveScreen" })
 
-/** Fellowships available for filtering */
-const SELECTABLE_FELLOWSHIPS = [
-  { value: Fellowship.AA, label: "AA" },
-  { value: Fellowship.NA, label: "NA" },
-  { value: Fellowship.RD, label: "RD" },
-] as const
+/**
+ * Fellowships available for filtering — driven by EXPO_PUBLIC_FELLOWSHIPS
+ * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
+ * Label is the short code itself (e.g. "AA").
+ */
+const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS.map((value) => ({ value, label: value }))
 
 /**
  * LiveContent - Core content for live meetings display
@@ -56,7 +56,12 @@ interface LiveContentProps {
   meetingId?: string
 }
 
-export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({ meetingId }) {
+// `meetingId` is still passed by MeetingsScreen but is no longer read here —
+// deep-link target now flows through a module-level var (see app.tsx). Kept on
+// the props for call-site compatibility; prefixed `_` to mark it unused.
+export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
+  meetingId: _meetingId,
+}) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
@@ -70,6 +75,9 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       fellowship: profileStore.fellowship || "all",
     })
     return () => log.debug("LiveContent unmounted")
+    // Mount-only logger — deps intentionally empty so it fires once on mount,
+    // not on every fellowship/liveMeetings change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Fellowship filter — local state, defaults from saved preference but doesn't write back

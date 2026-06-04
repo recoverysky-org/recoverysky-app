@@ -19,7 +19,7 @@ import {
   ActivityIndicator,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { DateTime, Fellowship } from "@recoverysky-org/common/browser"
+import { DateTime } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -37,6 +37,7 @@ import { api, LiveSchedule } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ListingsScreen" })
@@ -52,12 +53,12 @@ const ISO_DAYS = [
   { iso: 7, tx: "listingsScreen:sunday" as const },
 ]
 
-/** Fellowships available for filtering */
-const SELECTABLE_FELLOWSHIPS = [
-  { value: Fellowship.AA, label: "AA" },
-  { value: Fellowship.NA, label: "NA" },
-  { value: Fellowship.RD, label: "RD" },
-] as const
+/**
+ * Fellowships available for filtering — driven by EXPO_PUBLIC_FELLOWSHIPS
+ * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
+ * Label is the short code itself (e.g. "AA").
+ */
+const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS.map((value) => ({ value, label: value }))
 
 /** Map of ISO 639-1 language codes (uppercase) to native display names */
 const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
@@ -152,13 +153,15 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     return Array.from(langs).sort()
   }, [meetings])
 
-  // Format hour for display (e.g., "6am", "12pm", "12am")
-  const formatHour = (hour: number): string => {
+  // Format hour for display (e.g., "6am", "12pm", "12am").
+  // Pure (only depends on its arg) — memoized with [] so it stays referentially
+  // stable and doesn't invalidate the ListHeader useCallback every render.
+  const formatHour = useCallback((hour: number): string => {
     if (hour === 0 || hour === 24) return "12am"
     if (hour === 12) return "12pm"
     if (hour < 12) return `${hour}am`
     return `${hour - 12}pm`
-  }
+  }, [])
 
   // Get current hour (top of hour)
   const getCurrentHour = (): number => new Date().getHours()
@@ -431,6 +434,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       themed,
       t,
       theme.colors.tint,
+      theme.colors.textDim,
       profileStore.fellowship,
       selectedDayLabel,
       selectedLanguage,

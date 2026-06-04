@@ -123,11 +123,14 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
       .toLocaleString(DateTime.DATE_FULL)
   }, [profileStore.recoveryDate, i18n.language])
 
-  // Fellowship-aware "since" key: AA = sober, NA/RD = clean, others = recovering
+  // Fellowship-aware "since" key: AA = sober, NA/CMA/RD = clean, others = recovering.
+  // CMA (Crystal Meth Anonymous) counts "clean time" like NA — grouped here
+  // when CMA was added as a fellowship (see app/utils/fellowships.ts).
   const sinceKey = useMemo(() => {
     const f = profileStore.fellowship
     if (f === Fellowship.AA) return "cleanTime:soberSince"
-    if (f === Fellowship.NA || f === Fellowship.RD) return "cleanTime:cleanSince"
+    if (f === Fellowship.NA || f === Fellowship.CMA || f === Fellowship.RD)
+      return "cleanTime:cleanSince"
     return "cleanTime:recoveringSince"
   }, [profileStore.fellowship])
 

@@ -28,7 +28,12 @@ import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
-import { useProfileStore, useAuthenticationStore, useConversationStore, useConfigStore } from "@/models"
+import {
+  useProfileStore,
+  useAuthenticationStore,
+  useConversationStore,
+  useConfigStore,
+} from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
@@ -41,19 +46,23 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
-import { logger } from "@/utils/logger"
-import { checkForUpdates } from "@/utils/checkForUpdates"
 import { requestReviewFromSettings } from "@/services/review"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { checkForUpdates } from "@/utils/checkForUpdates"
+import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
+import { logger } from "@/utils/logger"
 import { clear as clearStorage, loadString, remove, saveString } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
-/** Fellowships available for user selection */
-const SELECTABLE_FELLOWSHIPS = [Fellowship.AA, Fellowship.NA, Fellowship.RD] as const
+/**
+ * Fellowships available for user selection — driven by EXPO_PUBLIC_FELLOWSHIPS
+ * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
+ */
+const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS
 
 /**
  * SettingsScreen - User profile, account, and app settings
@@ -157,7 +166,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     subscriptionInfo,
     showPaywall,
     restore,
-    refresh: subscriptionRefresh,
     logout: logoutSubscription,
   } = useSubscription()
   const { showToast } = useToast()
@@ -169,19 +177,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const endOfYear = useRef(new Date(new Date().getFullYear(), 11, 31)).current
   const [languageModalVisible, setLanguageModalVisible] = useState(false)
   const [colorPickerVisible, setColorPickerVisible] = useState(false)
-  const [emailValid, setEmailValid] = useState<boolean | null>(null)
-
-  // Debounced email validation indicator
-  useEffect(() => {
-    if (!profileStore.reportEmail) {
-      setEmailValid(null)
-      return
-    }
-    const timer = setTimeout(() => {
-      setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileStore.reportEmail))
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [profileStore.reportEmail])
 
   // Language state from MST (persisted)
   const currentLang = profileStore.language || getCurrentLanguage()
@@ -433,50 +428,30 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   const handleCheckForUpdates = async () => {
     if (__DEV__) {
-      Alert.alert(translate("settingsScreen:noUpdatesAvailable"), translate("settingsScreen:noUpdatesMessage"))
+      Alert.alert(
+        translate("settingsScreen:noUpdatesAvailable"),
+        translate("settingsScreen:noUpdatesMessage"),
+      )
       return
     }
     setIsCheckingUpdate(true)
     try {
       const found = await checkForUpdates(configStore.latestVersion)
       if (!found) {
-        Alert.alert(translate("settingsScreen:noUpdatesAvailable"), translate("settingsScreen:noUpdatesMessage"))
+        Alert.alert(
+          translate("settingsScreen:noUpdatesAvailable"),
+          translate("settingsScreen:noUpdatesMessage"),
+        )
       }
     } catch (e) {
       logger.warn("Manual update check failed", { error: String(e) })
-      Alert.alert(translate("settingsScreen:noUpdatesAvailable"), translate("settingsScreen:noUpdatesMessage"))
+      Alert.alert(
+        translate("settingsScreen:noUpdatesAvailable"),
+        translate("settingsScreen:noUpdatesMessage"),
+      )
     } finally {
       setIsCheckingUpdate(false)
     }
-  }
-
-  const handleSendErrorReport = () => {
-    Alert.prompt(
-      translate("settingsScreen:errorReportTitle"),
-      translate("settingsScreen:errorReportPrompt"),
-      async (description) => {
-        if (!description?.trim()) return
-        const { sessionId } = logger.getContext()
-        const result = await api.sendBugReport({
-          deviceId: authStore.deviceId ?? "unknown",
-          sessionId: sessionId ?? "unknown",
-          description: description.trim(),
-          email: "support@recoverysky.org",
-        })
-        if (result.kind === "ok") {
-          Alert.alert(
-            translate("settingsScreen:errorReportSuccess"),
-            translate("settingsScreen:errorReportSuccessMessage"),
-          )
-        } else {
-          Alert.alert(
-            translate("settingsScreen:errorReportFailed"),
-            translate("settingsScreen:errorReportFailedMessage"),
-          )
-        }
-      },
-      "plain-text",
-    )
   }
 
   return (
@@ -1082,7 +1057,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={[
             themed($settingsRow),
             themed($lastRow),
-            configStore.maintenanceMode && { opacity: 0.4 },
+            configStore.maintenanceMode && $dimmedRow,
           ]}
           onPress={() => navigation.navigate("Import")}
           disabled={configStore.maintenanceMode}
@@ -1136,7 +1111,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             <Ionicons name="cloud-download-outline" size={18} color={theme.colors.tint} />
           )}
           <Text style={themed($upgradeButtonText)}>
-            {translate(isCheckingUpdate ? "settingsScreen:checkingForUpdates" : "settingsScreen:checkForUpdates")}
+            {translate(
+              isCheckingUpdate
+                ? "settingsScreen:checkingForUpdates"
+                : "settingsScreen:checkForUpdates",
+            )}
           </Text>
         </TouchableOpacity>
 
@@ -1217,7 +1196,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       </View>
 
       {/* Version */}
-      <Text style={themed($versionText)}>v{require("../../package.json").version}-{require("../../package.json").update ?? "0"}</Text>
+      <Text style={themed($versionText)}>
+        v{require("../../package.json").version}-{require("../../package.json").update ?? "0"}
+      </Text>
 
       {/* Buy Me A Coffee — supports the developer */}
       <TouchableOpacity
@@ -1478,32 +1459,10 @@ const $tintColor: ThemedStyle<{ color: string }> = ({ colors }) => ({
   color: colors.tint,
 })
 
-// Zoom section styles
-const $zoomConnectButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#000",
-  borderWidth: 1.5,
-  borderColor: "#2D8CFF",
-  paddingVertical: spacing.md,
-  paddingHorizontal: spacing.lg,
-  borderRadius: 10,
-  marginTop: spacing.sm,
-  marginBottom: spacing.sm,
-  gap: spacing.xs,
-  shadowColor: "#2D8CFF",
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.6,
-  shadowRadius: 8,
-  elevation: 8,
-})
-
-const $zoomConnectButtonText: ThemedStyle<TextStyle> = () => ({
-  fontSize: 16,
-  color: "#2D8CFF",
-  fontWeight: "700",
-})
+// Dims a settings row while maintenance mode disables it.
+const $dimmedRow: ViewStyle = {
+  opacity: 0.4,
+}
 
 // Short Name Input
 const $shortNameInput: ThemedStyle<ViewStyle> = () => ({
@@ -1529,17 +1488,8 @@ const $emailInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   borderRadius: 8,
 })
 
-const $emailRow: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-}
-
 const $emailInputFlex: ViewStyle = {
   flex: 1,
-}
-
-const $emailValidIcon: ViewStyle = {
-  marginLeft: 8,
 }
 
 // Pronouns Button
