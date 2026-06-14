@@ -10,7 +10,14 @@ const systemui = require("expo-system-ui")
  */
 export const setSystemUIBackgroundColor = (color: string) => {
   if (systemui) {
-    systemui.setBackgroundColorAsync(color)
+    // Best-effort, fire-and-forget. ExpoSystemUI.setBackgroundColorAsync
+    // rejects with "The current activity is no longer available" during a
+    // background→active resume race (the Activity isn't reattached yet when
+    // ThemeContext re-applies imperative theming on foreground). The color
+    // re-applies on the next theme pass, so swallow the transient rejection
+    // rather than let it float — an un-.catch()'d rejection here surfaced in
+    // Sentry as a fatal Error on 4.5.0.
+    systemui.setBackgroundColorAsync(color).catch(() => {})
   }
 }
 

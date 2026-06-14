@@ -20,6 +20,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [4.5.0-6] — 2026-06-14 (OTA)
+
+### Fixed
+- **System-UI theming no longer reports a fatal error during foreground resume.**
+  `setBackgroundColorAsync` (expo-system-ui) was a floating, un-caught promise
+  that rejected with "The current activity is no longer available" when the theme
+  re-applied on a `background → active` transition before the Android Activity had
+  reattached. The rejection surfaced in Sentry as a fatal Error; it's now swallowed
+  (the background color re-applies on the next theme pass anyway). User-invisible —
+  crash-feed hygiene only.
+
 ## [4.5.0-5] — 2026-06-03 (OTA)
 
 ### Added
