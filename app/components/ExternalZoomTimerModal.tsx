@@ -234,7 +234,13 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       //
       // Suppressed permanently once the user taps "Don't Show Again" — by
       // then they've learned where the trim-down path is. 3-button native
-      // alert: Cancel / Don't Show Again / Go to Attendance.
+      // alert: OK / Don't Show Again / Go to Attendance.
+      //
+      // The dismiss button is labeled "OK", not "Cancel": the attendance is
+      // already saved by this point, so there is nothing to cancel — the
+      // button just acknowledges the heads-up and closes. It keeps
+      // style:"cancel" so it remains the back-button / outside-tap dismiss
+      // action (and on iOS sits separated at the bottom of the stack).
       const creditMs = endedAt - startedAt
       const dismissed = load<boolean>(LONG_ATTENDANCE_NOTICE_DISMISSED_KEY) === true
       if (creditMs > LONG_ATTENDANCE_NOTICE_MS && !dismissed) {
@@ -247,7 +253,7 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
           translate("externalZoomTimer:longAttendanceMessage"),
           [
             {
-              text: translate("common:cancel"),
+              text: translate("common:ok"),
               style: "cancel",
             },
             {

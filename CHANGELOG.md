@@ -22,6 +22,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [4.5.0-6] — 2026-06-14 (OTA)
 
+### Changed
+- **Long-attendance heads-up dialog: dismiss button relabeled "Cancel" → "OK".**
+  The notice shown after a saved external-Zoom session exceeds ~2h fires *after*
+  the attendance is already saved, so "Cancel" was misleading (nothing to cancel)
+  — and on iOS the cancel-styled button is positioned at the bottom, so it read as
+  the confusing third option. It now reads "OK" to acknowledge and close; behavior
+  (back-button / outside-tap dismiss) is unchanged.
+
 ### Fixed
 - **System-UI theming no longer reports a fatal error during foreground resume.**
   `setBackgroundColorAsync` (expo-system-ui) was a floating, un-caught promise
