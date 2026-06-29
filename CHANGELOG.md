@@ -22,6 +22,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [4.5.0-8] — 2026-06-29 (OTA)
 
+### Changed
+- **Rating prompt now reaches engaged new users on day one.** Dropped the 3-day
+  "days since install" requirement from the rating warm-up, making it purely
+  interaction-based: a user who attends 5 meetings is eligible no matter how
+  recently they installed (`MIN_EVENTS=5`, `MIN_DAYS=0`). Still gated behind the
+  `REVIEW_ENABLED` switch.
+
 ### Fixed
 - **Rating prompt no longer freezes the attendance timer on Save.** After saving
   an external-Zoom attendance timer, the new "Enjoying RecoverySky?" dialog was
