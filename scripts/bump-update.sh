@@ -58,9 +58,15 @@ npm run release:ota
 # project are read from the @sentry/react-native/expo plugin config in
 # app.json. Failure is non-fatal — a missing source map upload doesn't
 # warrant rolling back an OTA that already shipped.
+#
+# The `dist` arg is REQUIRED: the uploader needs the directory `eas update`
+# exported the bundles + .hbc.map sourcemaps into. Without it the tool just
+# prints usage and exits non-zero (this silently failed every OTA until
+# 4.5.0-7, where the maps had to be uploaded by hand). `release:ota` above
+# leaves `dist/` in place, so it's available here.
 if [ -n "$SENTRY_AUTH_TOKEN" ]; then
   echo "Uploading source maps to Sentry..."
-  npx sentry-expo-upload-sourcemaps || \
+  npx sentry-expo-upload-sourcemaps dist || \
     echo "⚠️  Sentry source map upload failed (non-fatal). Stack traces will lack line numbers until the next successful upload."
 else
   echo "⚠️  SENTRY_AUTH_TOKEN not set — skipping Sentry source map upload."
