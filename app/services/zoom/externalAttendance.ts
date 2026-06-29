@@ -153,12 +153,12 @@ export async function saveTimerAttendance(
     source: "external-timer",
   })
 
-  // Contribute to review-prompt tally only when credit was actually earned —
-  // a timer save below MIN_CREDIT_MS still creates a record (marked invalid)
-  // and we don't want those counted as "a meeting" from the review system's
-  // perspective. Native-SDK path in ZoomMeetingProvider already gates similarly
-  // via wasInMeeting. Reason string mirrors the SOURCE tag so review-service
-  // logs distinguish external-Zoom completions from SDK completions.
+  // Contribute to the rating-engine event tally only when credit was actually
+  // earned — a timer save below MIN_CREDIT_MS still creates a record (marked
+  // invalid) and we don't want those counted as "a meeting" from the rating
+  // system's perspective. The external-Zoom timer is the only meeting-completion
+  // feed now (the native Zoom SDK was removed in 4.5.0). Reason string mirrors
+  // the SOURCE tag so rating-engine logs stay traceable to this path.
   if (valid) {
     meetingEvents.completed("external-zoom-timer")
   }

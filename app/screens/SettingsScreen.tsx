@@ -46,7 +46,7 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
-import { requestReviewFromSettings } from "@/services/review"
+import { requestRatingFromSettings } from "@/services/rating"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -1076,7 +1076,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           style={themed($upgradeButton)}
           onPress={() => {
             trackEvent("rate_app_tapped")
-            requestReviewFromSettings()
+            requestRatingFromSettings()
           }}
           accessibilityRole="button"
           accessibilityLabel={translate("settingsScreen:rateApp")}

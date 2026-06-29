@@ -52,8 +52,6 @@ import {
   TimerSessionResumer,
 } from "./db"
 import { initI18n, translate } from "./i18n"
-import { checkForUpdates } from "./utils/checkForUpdates"
-import { reloadApp } from "./utils/reloadApp"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -66,6 +64,7 @@ import {
   preparePlayIntegrity,
 } from "./services/attestation"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
+import { setSentryUser } from "./services/crashReporting/sentry"
 import {
   initializeNotifications,
   loginNotificationUser,
@@ -77,14 +76,15 @@ import {
   getLastNotificationResponse,
   setNotificationLanguage,
 } from "./services/notifications"
-import { setSentryUser } from "./services/crashReporting/sentry"
-import { initReviewService } from "./services/review"
+import { initRatingEngine } from "./services/rating"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
+import { checkForUpdates } from "./utils/checkForUpdates"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
 import { logger } from "./utils/logger"
+import { reloadApp } from "./utils/reloadApp"
 import * as storage from "./utils/storage"
 
 const log = logger.child({ module: "App" })
@@ -97,6 +97,7 @@ const sessionId = generateSessionId()
 // release+dist pair, so a log line points at the exact JS bundle — not just
 // the native shell. Two users on 4.5.0 native can be on different OTAs.
 const pkg = require("../package.json")
+
 const appVersion = `${pkg.version}-${pkg.update ?? "0"}`
 
 // Set initial logger context with session and version (deviceId added after async load)
@@ -296,10 +297,18 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
  *     won't help, user likely needs a reinstall
  * - Fallback → generic
  */
-function pickAttestationAlertStrings(
-  error: AttestationError,
-): { titleKey: "errors:attestationFailedTitle" | "errors:attestationUnsupportedTitle" | "errors:attestationAppleFailedTitle" | "errors:attestationServerFailedTitle"
-    messageKey: "errors:attestationFailedMessage" | "errors:attestationUnsupportedMessage" | "errors:attestationAppleFailedMessage" | "errors:attestationServerFailedMessage" } {
+function pickAttestationAlertStrings(error: AttestationError): {
+  titleKey:
+    | "errors:attestationFailedTitle"
+    | "errors:attestationUnsupportedTitle"
+    | "errors:attestationAppleFailedTitle"
+    | "errors:attestationServerFailedTitle"
+  messageKey:
+    | "errors:attestationFailedMessage"
+    | "errors:attestationUnsupportedMessage"
+    | "errors:attestationAppleFailedMessage"
+    | "errors:attestationServerFailedMessage"
+} {
   switch (error.code) {
     case "UNSUPPORTED":
       return {
@@ -601,7 +610,7 @@ export function App() {
           (id) => setSentryUser(id || null),
         )
 
-        initReviewService(_rootStore.configStore)
+        initRatingEngine(_rootStore.configStore)
 
         // Sync shortName → Auth0 profile, debounced.
         // Mounted once here so it covers every edit site (onboarding, settings,

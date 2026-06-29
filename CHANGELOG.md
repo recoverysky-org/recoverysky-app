@@ -20,6 +20,24 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [4.5.0-7] — 2026-06-29 (OTA)
+
+### Changed
+- **App-rating prompts rebuilt as a dedicated rating engine.** Replaced the old
+  review service with an isolated, unit-tested module (`app/services/rating/`)
+  using a two-stage soft-ask: an "Enjoying RecoverySky?" Yes/No dialog gates the
+  OS rating prompt, and users who tap "Not really" are diverted to support instead
+  of a 1-star review. Re-asks are now version-gated for happy users and put on an
+  exponential backoff for unhappy ones.
+
+### Fixed
+- **Rating prompts could silently reach nobody.** Two long-standing bugs are gone:
+  the prompt fired only at an exact meeting count (a single skipped count stranded
+  the user forever), and the usage counter only incremented while review prompts
+  were enabled — so turning the feature on started everyone from zero. The counter
+  now increments unconditionally, and toggling the feature off→on is a supported
+  way to trigger a fresh prompt wave for eligible users.
+
 ## [4.5.0-6] — 2026-06-14 (OTA)
 
 ### Changed

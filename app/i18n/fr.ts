@@ -16,11 +16,18 @@ const fr: Translations = {
     updateTitle: "Mise à jour disponible",
     updateMessage: "RecoverySky va se mettre à jour rapidement.",
     storeUpdateTitle: "Nouvelle version disponible",
-    storeUpdateMessage: "Une nouvelle version de RecoverySky est disponible. Veuillez mettre à jour pour bénéficier des dernières fonctionnalités et corrections.",
+    storeUpdateMessage:
+      "Une nouvelle version de RecoverySky est disponible. Veuillez mettre à jour pour bénéficier des dernières fonctionnalités et corrections.",
     storeUpdateButton: "Mettre à jour",
     retry: "Réessayer",
-    reviewReminderTitle: "Tu aimes RecoverySky ?",
-    reviewReminderMessage: "Tu peux évaluer l'app à tout moment dans les Réglages.",
+    ratingSoftAskTitle: "Tu aimes RecoverySky ?",
+    ratingSoftAskMessage:
+      "Si l'app t'a été utile, une petite évaluation fait toute la différence !",
+    ratingYes: "Oui !",
+    ratingNotReally: "Pas vraiment",
+    ratingFeedbackTitle: "Désolés de l'entendre",
+    ratingFeedbackMessage: "Tu peux nous dire ce qui n'a pas marché ? On aimerait corriger ça.",
+    ratingContactUs: "Contacte-nous",
     maintenanceBanner: "Maintenance en cours. Certaines fonctionnalités sont désactivées.",
     select: "Sélectionner",
     archive: "Archiver",
@@ -132,7 +139,8 @@ const fr: Translations = {
     rateApp: "Évaluer l'app",
     // Support
     resourcesTitle: "Littérature de rétablissement",
-    resourcesDescription: "Littérature de rétablissement gratuite en ligne pour les groupes AA et NA.",
+    resourcesDescription:
+      "Littérature de rétablissement gratuite en ligne pour les groupes AA et NA.",
     goToResources: "Parcourir les ressources",
     supportTitle: "Besoin d'aide ?",
     supportDescription: "Tu as une question ou besoin d'aide ?",
@@ -368,7 +376,8 @@ const fr: Translations = {
     errorReportSuccess: "Rapport envoyé avec succès",
     errorReportSuccessMessage: "Merci ! Votre rapport a été soumis.",
     errorReportFailed: "Échec de l'envoi",
-    errorReportFailedMessage: "Impossible d'envoyer le rapport d'erreur. Veuillez réessayer plus tard.",
+    errorReportFailedMessage:
+      "Impossible d'envoyer le rapport d'erreur. Veuillez réessayer plus tard.",
     checkForUpdates: "Rechercher des mises à jour",
     checkingForUpdates: "Recherche...",
     noUpdatesAvailable: "Tu es à jour",
