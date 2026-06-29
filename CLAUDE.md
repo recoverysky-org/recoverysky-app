@@ -36,6 +36,11 @@ npm run test:maestro   # Maestro e2e tests
 npm run build:ios:sim      # iOS simulator
 npm run build:ios:device   # iOS physical device
 npm run build:android:sim  # Android emulator
+
+# Releasing (see "Releasing (OTA & Native)" below for the full procedure)
+npm run update             # OTA release: bump counter, commit, tag, push, eas update, Sentry maps
+npm run patch              # Native version bump (also: minor / major); resets OTA counter to 0
+npm run release:ios        # Native build + submit to App Store (also: release:android)
 ```
 
 ## ⚠️ Runtime Version & OTA Updates (READ FIRST)
@@ -62,6 +67,60 @@ npm run build:android:sim  # Android emulator
 The server's `/config` endpoint returns `LATEST_VERSION` which the app compares against `Application.nativeApplicationVersion`. If the user's native build is behind, they are prompted to update from the store before checking for OTA patches. See `app/utils/checkForUpdates.ts`.
 
 **Why not the `fingerprint` policy?** We tried it (commit `7a38e44`) and reverted (commit `aecb4f4`) because the hash came out different on local builds vs EAS — our postinstall pipeline (Zoom AAR extraction in `scripts/patch-zoom-android.sh`, the `patches/` directory, the various `patch-*.sh` scripts) is not deterministic across environments, so the local-computed fingerprint and the EAS-computed fingerprint disagreed. Plus a stale EAS GraphQL token broke fingerprint computation entirely on local builds. Significant time was spent trying to fix this; manual is the pragmatic floor. Don't revisit fingerprint without first making the postinstall pipeline reproducible across environments.
+
+## Releasing (OTA & Native)
+
+Two release paths. **Pick based on whether `runtimeVersion` changed** (see the
+section above): JS-only → OTA; native shape changed → full store build.
+
+### OTA release (JS-only changes)
+
+One command does the whole pipeline:
+
+```bash
+npm run update
+```
+
+`scripts/bump-update.sh` runs end-to-end — it is NOT just a counter bump:
+1. Increments the `update` counter in `package.json` (e.g. `v4.5.0-6` →
+   `v4.5.0-7`); the native `version` stays put.
+2. Commits **only** `package.json` (`🔖 ota: v4.5.0-7`) and creates an annotated
+   git tag `v4.5.0-7`.
+3. `git push && git push --tags`.
+4. **Publishes the OTA**: `npm run release:ota` → `eas update --branch production
+   --auto`. Reaches only users whose installed native build advertises a
+   **matching `runtimeVersion`**.
+5. Uploads JS source maps to Sentry (needs `SENTRY_AUTH_TOKEN` in env / `.env`;
+   non-fatal if missing — new-bundle stack traces just lack `file:line` until the
+   next successful upload).
+
+**Before you run it:**
+- **Commit your feature work AND the `CHANGELOG.md` update first.** `eas update`
+  bundles the current working tree (so anything uncommitted still ships), but
+  `bump-update.sh` only commits `package.json` — committing first keeps the tagged
+  release commit honest about what actually went out.
+- Move `CHANGELOG.md` `[Unreleased]` content under a new `[X.Y.Z-N]` heading
+  matching the about-to-be-created counter. The bump scripts do **not** touch the
+  changelog (see "Changelog Discipline").
+- Re-confirm you genuinely did **not** need a `runtimeVersion` bump. If you did,
+  this OTA targets a runtime no installed user has → reaches nobody. Do a native
+  release instead.
+
+### Native release (anything that changed `runtimeVersion`)
+
+```bash
+npm run patch            # or: npm run minor / npm run major
+# then MANUALLY bump `runtimeVersion` in app.json to match the new version
+npm run release:ios      # eas build --profile production + eas submit --latest
+npm run release:android  # eas build --profile production + eas submit --latest
+```
+
+`scripts/bump-version.sh` bumps `version` in `package.json` / `app.json` /
+`package-lock.json`, **resets the `update` counter to `0`** (each native build
+starts a fresh OTA series), commits + tags `vX.Y.Z`, pushes, then runs
+`npm run prebuild:clean`. It does **NOT** touch `runtimeVersion` — that stays a
+manual edit (the whole point of the warning above). Once the store build is live,
+later JS-only fixes ride on top of it as OTAs via `npm run update`.
 
 ## EAS Build pre-install hook
 
