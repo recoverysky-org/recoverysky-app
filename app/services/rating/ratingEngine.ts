@@ -8,7 +8,7 @@
  * feedback divert on "Not really". See the design doc for the full model.
  */
 
-import { Alert, Linking, Platform } from "react-native"
+import { Alert, InteractionManager, Linking, Platform } from "react-native"
 import * as Application from "expo-application"
 import * as StoreReview from "expo-store-review"
 
@@ -69,7 +69,17 @@ async function maybePrompt(): Promise<void> {
   if (!shouldPrompt(state, new Date(), version, CFG)) return
 
   log.debug("rating: showing soft-ask", { events: state.events, version: version ?? "unknown" })
-  showSoftAsk(version)
+
+  // Defer presentation until the current interaction/animation batch settles.
+  // recordEvent() is emitted SYNCHRONOUSLY from inside saveTimerAttendance (the
+  // external-Zoom timer Save flow), so calling Alert.alert here directly pops the
+  // soft-ask WHILE the timer <Modal> is still being torn down by handleSave's
+  // onSaved → setTimerVisible(false). iOS UIKit then freezes ("tried to present
+  // while a presentation is in progress") until the user taps to flush the queue.
+  // runAfterInteractions waits for the modal-dismiss (and topic-panel slide-in)
+  // animation batch to finish first — the same fix the Education→Timer hand-off
+  // uses in SchedulePopup.handleEducationContinue.
+  InteractionManager.runAfterInteractions(() => showSoftAsk(version))
 }
 
 function showSoftAsk(version: string | null): void {

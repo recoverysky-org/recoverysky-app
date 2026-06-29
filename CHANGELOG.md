@@ -20,6 +20,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [4.5.0-8] — 2026-06-29 (OTA)
+
+### Fixed
+- **Rating prompt no longer freezes the attendance timer on Save.** After saving
+  an external-Zoom attendance timer, the new "Enjoying RecoverySky?" dialog was
+  presented while the timer modal was still dismissing — a state iOS blocks,
+  freezing the screen until the user tapped to flush it. The prompt now waits for
+  the modal-dismiss animation to finish before appearing (`runAfterInteractions`).
+
+### Build
+- **OTA Sentry source-map upload fixed in `bump-update.sh`.** The upload step was
+  missing the `dist` directory argument and silently failed on every OTA; JS
+  stack traces in Sentry now decode to `file:line` automatically.
+
 ## [4.5.0-7] — 2026-06-29 (OTA)
 
 ### Changed
