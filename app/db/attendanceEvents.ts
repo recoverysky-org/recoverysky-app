@@ -5,7 +5,11 @@
  * Components subscribe to receive real-time updates when attendance is created or processed.
  */
 
+import { logger } from "@/utils/logger"
+
 import type { AttendanceRecord } from "./repositories"
+
+const log = logger.child({ module: "attendanceEvents" })
 
 export type AttendanceChangeType =
   | "created"
@@ -42,7 +46,18 @@ const listeners = new Set<AttendanceChangeListener>()
  * Emit an attendance change to all subscribers
  */
 function emit(event: AttendanceChange): void {
-  listeners.forEach((listener) => listener(event))
+  // Isolate each subscriber: a throwing listener must never break the emitter or
+  // the code that fired the event. `processed` is emitted synchronously from
+  // inside saveTimerAttendance's critical path (right before meetingEvents
+  // .completed), so an unhandled listener throw would abort the save and strand
+  // the timer modal open. See meetingEvents.emit for the same guard + rationale.
+  listeners.forEach((listener) => {
+    try {
+      listener(event)
+    } catch (err) {
+      log.error("attendanceEvents listener threw (isolated)", { error: String(err) })
+    }
+  })
 }
 
 /**

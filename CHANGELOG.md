@@ -20,6 +20,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [4.5.0-9] — 2026-06-29 (OTA)
+
+### Fixed
+- **External-Zoom attendance timer could hang open on Save.** The rating engine
+  subscribes to meeting-completion events with a *synchronous* handler; if it
+  threw, the error propagated into `saveTimerAttendance`'s critical path and
+  aborted the Save flow before the timer modal closed — leaving it stuck until
+  the user tapped Cancel (the attendance was already saved underneath). Meeting
+  and attendance event listeners are now isolated so a subscriber error can never
+  break the save, the rating counter never throws, and the timer's Save handler
+  always closes the modal as a final safeguard. (Supersedes the partial v4.5.0-8
+  attempt.)
+- **Rating prompt fully decoupled from the timer.** The soft-ask now presents
+  only after the meeting popup has completely closed — never from inside the
+  timer Save flow — so it can't appear over a dismissing modal or interfere with
+  saving attendance.
+
 ## [4.5.0-8] — 2026-06-29 (OTA)
 
 ### Changed

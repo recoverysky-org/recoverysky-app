@@ -286,6 +286,19 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       } else {
         onClose()
       }
+    } catch (err) {
+      // The timer modal must NEVER get stuck open. saveTimerAttendance writes the
+      // record before it emits its events, so by the time anything downstream
+      // could throw the attendance is already persisted — but even if the write
+      // itself failed, trapping the user in a frozen modal is the worse outcome.
+      // Close defensively; an un-cleared session is recoverable via
+      // TimerSessionResumer on next launch. (Event emission is now isolated at
+      // the emit() layer, so this catch is the last line of defense.)
+      log.error("Timer save flow threw — closing modal defensively", {
+        mid: meeting?.id,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      onClose()
     } finally {
       savingRef.current = false
       setSaving(false)
