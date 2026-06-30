@@ -6,4 +6,9 @@
  * for the model.
  */
 
-export { initRatingEngine, recordEvent, requestRatingFromSettings } from "./ratingEngine"
+export {
+  initRatingEngine,
+  recordEvent,
+  maybePresentRatingPrompt,
+  requestRatingFromSettings,
+} from "./ratingEngine"

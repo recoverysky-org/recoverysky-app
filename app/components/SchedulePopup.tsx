@@ -60,6 +60,7 @@ import {
 import { useReminders } from "@/hooks/useReminders"
 import { useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
+import { maybePresentRatingPrompt } from "@/services/rating"
 import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
@@ -73,6 +74,15 @@ const log = logger.child({ module: "SchedulePopup" })
 // MMKV flag: shown once per install the first time the user joins a meeting
 // with External Zoom enabled. Version suffix lets us reset if copy changes.
 const EXTERNAL_ZOOM_EDUCATION_SEEN_KEY = "external-zoom-education-seen-v1"
+
+// How long to wait after this popup's `visible` flips false before presenting
+// the rating soft-ask. The outer Modal animates out with animationType="slide"
+// (~300ms); we wait past that so the Alert lands on the clean screen underneath
+// and never over a dismissing modal (presenting mid-dismiss freezes iOS UIKit —
+// the v4.5.0-7/-8 bug). This is the cross-platform fallback; iOS additionally
+// fires the Modal's onDismiss (precise, earlier) and a ref guards against both
+// presenting for the same close.
+const RATING_PROMPT_AFTER_CLOSE_MS = 550
 
 // Dismiss the keyboard and wait for it to fully settle (keyboardDidHide),
 // capped at 400ms (> iOS's ~250ms hide animation) so we never hang if the
@@ -106,6 +116,36 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   useEffect(() => {
     if (!isFocused && visible) onClose()
   }, [isFocused, visible, onClose])
+
+  // Present the rating soft-ask AFTER this popup fully closes — never while it
+  // (or the nested timer modal) is mid-dismiss, which freezes iOS UIKit. The
+  // rating engine counts the meeting from inside the timer Save flow but defers
+  // presentation to here (see recordEvent / maybePresentRatingPrompt). Eligibility
+  // is re-checked inside maybePresentRatingPrompt, so a close with nothing to show
+  // is a no-op.
+  const ratingShownForCloseRef = useRef(false)
+  const prevVisibleRef = useRef(visible)
+  const presentRatingAfterClose = useCallback(() => {
+    // Guard: at most one present per close. onDismiss (iOS) and the settle-timeout
+    // fallback both target the same close — whichever fires first wins.
+    if (ratingShownForCloseRef.current) return
+    ratingShownForCloseRef.current = true
+    maybePresentRatingPrompt()
+  }, [])
+  useEffect(() => {
+    const wasVisible = prevVisibleRef.current
+    prevVisibleRef.current = visible
+    if (visible) {
+      ratingShownForCloseRef.current = false // re-arm for the next close
+      return undefined
+    }
+    if (!wasVisible) return undefined // already closed; not a fresh close
+    // Popup just closed. Fallback path (covers Android, which never calls
+    // onDismiss, and any transparent-modal onDismiss no-show on iOS): present
+    // once the slide-out has finished. See RATING_PROMPT_AFTER_CLOSE_MS.
+    const id = setTimeout(presentRatingAfterClose, RATING_PROMPT_AFTER_CLOSE_MS)
+    return () => clearTimeout(id)
+  }, [visible, presentRatingAfterClose])
   const { isJoining } = useZoomMeeting()
   const { isPremium } = useSubscription()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
@@ -583,6 +623,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      // iOS: fires once the slide-out finishes — the precise, earliest-safe
+      // moment to present the rating soft-ask (the useEffect timeout above is the
+      // Android / no-show fallback; a ref dedupes the two).
+      onDismiss={presentRatingAfterClose}
       statusBarTranslucent
     >
       <View style={themed($overlay)}>
@@ -716,7 +760,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 style={[themed($joinButton), isJoining && themed($joinButtonDisabled)]}
                 disabled={isJoining}
                 accessibilityRole="button"
-                accessibilityLabel={isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
+                accessibilityLabel={
+                  isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")
+                }
                 accessibilityState={{ disabled: isJoining }}
               >
                 <Text style={themed($joinButtonText)}>
@@ -852,10 +898,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       </View>
 
       {/* External Zoom first-time Education Modal */}
-      <ExternalZoomEducationModal
-        visible={educationVisible}
-        onContinue={handleEducationContinue}
-      />
+      <ExternalZoomEducationModal visible={educationVisible} onContinue={handleEducationContinue} />
 
       {/* External Zoom Timer Modal */}
       {meeting && (

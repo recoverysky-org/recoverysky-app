@@ -8,7 +8,7 @@
  * feedback divert on "Not really". See the design doc for the full model.
  */
 
-import { Alert, InteractionManager, Linking, Platform } from "react-native"
+import { Alert, Linking, Platform } from "react-native"
 import * as Application from "expo-application"
 import * as StoreReview from "expo-store-review"
 
@@ -46,40 +46,55 @@ export function initRatingEngine(cs: ConfigStore): void {
 }
 
 /**
- * Generic event intake. ALWAYS increments the counter — the only gate is on the
- * PROMPT (in maybePrompt), never on counting. This is what makes the
- * REVIEW_ENABLED off→on operator lever work: events keep accruing while the flag
- * is off, then the next event after re-enable fires the prompt.
+ * Generic event intake. ALWAYS increments the counter and does NOTHING else —
+ * counting is decoupled from presenting (that's what makes the REVIEW_ENABLED
+ * off→on operator lever work: events accrue while the flag is off, then the next
+ * present-check after re-enable fires the prompt).
+ *
+ * It deliberately does NOT present the soft-ask here. recordEvent is emitted
+ * SYNCHRONOUSLY from inside saveTimerAttendance (the external-Zoom timer Save
+ * flow), i.e. while the timer <Modal> is still being torn down — presenting an
+ * Alert at that moment freezes iOS UIKit ("tried to present while a presentation
+ * is in progress"). Presentation is owned by maybePresentRatingPrompt(), which
+ * SchedulePopup calls only AFTER its modal has fully dismissed. See that call
+ * site and the rating design doc.
  */
 export function recordEvent(source: string): void {
-  if (!state) state = initState(new Date(), CFG) // defensive: count even if init was skipped
-  state = reduceRecordEvent(state)
-  saveState(state)
-  log.debug("rating: event recorded", { source, events: state.events })
-  void maybePrompt()
+  // Never throw out of here: recordEvent runs SYNCHRONOUSLY inside
+  // meetingEvents.completed, which is on saveTimerAttendance's critical path.
+  // A throw would propagate into the timer save and strand the modal open.
+  // (meetingEvents.emit now also isolates listeners — this is belt-and-suspenders.)
+  try {
+    if (!state) state = initState(new Date(), CFG) // defensive: count even if init was skipped
+    state = reduceRecordEvent(state)
+    saveState(state)
+    log.debug("rating: event recorded", { source, events: state.events })
+  } catch (err) {
+    log.error("rating: recordEvent failed (event not counted)", { source, error: String(err) })
+  }
 }
 
-async function maybePrompt(): Promise<void> {
+/**
+ * Present the soft-ask now IF the user is eligible. Safe to call from any
+ * post-dismissal UI moment (no modal in flight) — currently SchedulePopup's
+ * close. Idempotent in practice: once shown, applyApprove/applyDeny set
+ * lastPromptAt so shouldPrompt returns false until the next eligible window, so
+ * repeated calls don't re-present.
+ *
+ * MUST only be called when no modal is mid-presentation/dismissal, otherwise the
+ * iOS freeze described on recordEvent returns.
+ */
+export function maybePresentRatingPrompt(): void {
   if (!state) return
   if (Platform.OS === "web") return
-  // Prompt gate. Counting already happened above; this only blocks the dialog.
+  // Prompt gate. Counting already happened in recordEvent; this only blocks the dialog.
   if (!configStore?.reviewEnabled) return
 
   const version = Application.nativeApplicationVersion
   if (!shouldPrompt(state, new Date(), version, CFG)) return
 
   log.debug("rating: showing soft-ask", { events: state.events, version: version ?? "unknown" })
-
-  // Defer presentation until the current interaction/animation batch settles.
-  // recordEvent() is emitted SYNCHRONOUSLY from inside saveTimerAttendance (the
-  // external-Zoom timer Save flow), so calling Alert.alert here directly pops the
-  // soft-ask WHILE the timer <Modal> is still being torn down by handleSave's
-  // onSaved → setTimerVisible(false). iOS UIKit then freezes ("tried to present
-  // while a presentation is in progress") until the user taps to flush the queue.
-  // runAfterInteractions waits for the modal-dismiss (and topic-panel slide-in)
-  // animation batch to finish first — the same fix the Education→Timer hand-off
-  // uses in SchedulePopup.handleEducationContinue.
-  InteractionManager.runAfterInteractions(() => showSoftAsk(version))
+  showSoftAsk(version)
 }
 
 function showSoftAsk(version: string | null): void {
