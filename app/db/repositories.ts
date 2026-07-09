@@ -22,6 +22,8 @@ import {
   FeedbackSqliteRepository,
   ChatMessageSqliteRepository,
   ReminderSqliteRepository,
+  err,
+  ok,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
@@ -35,6 +37,7 @@ import {
   type ReminderRecord,
   type ReminderCreateInput,
   type ReminderUpdateInput,
+  type RecoverySkyResult,
 } from "@recoverysky-org/common/sqlite"
 
 import type { SecureProfileData } from "@/models/ProfileStore"
@@ -150,9 +153,9 @@ export const syncQueueRepo = {
    * failure if any individual delete fails so callers can abort the logout flow
    * and alert the user, not silently leak queued data.
    */
-  clearPending: async () => {
+  clearPending: async (): Promise<RecoverySkyResult<number>> => {
     const pending = await getSyncQueueRepo().getPending()
-    if (!pending.ok) return pending
+    if (!pending.ok) return err(pending.error)
 
     const failedIds: string[] = []
     for (const item of pending.value) {
@@ -163,18 +166,19 @@ export const syncQueueRepo = {
     }
 
     if (failedIds.length > 0) {
-      const error = new Error(
-        `clearPending: ${failedIds.length} of ${pending.value.length} deletes failed: ${failedIds.join(", ")}`,
-      )
       log.error("clearPending partial failure", {
         failedIdCount: failedIds.length,
         totalPending: pending.value.length,
         failedIdList: failedIds.join(", "),
       })
-      return { ok: false as const, error }
+      return err({
+        kind: "Unexpected",
+        message: `clearPending: ${failedIds.length} of ${pending.value.length} deletes failed`,
+        context: { failedIds },
+      })
     }
 
-    return { ok: true as const, value: pending.value.length }
+    return ok(pending.value.length)
   },
 }
 
