@@ -42,6 +42,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   to the ProfileStore default, the profile reset, and the Firebase-import
   "still at default?" check.
 
+### Build
+- **`@recoverysky-org/common` bumped ^1.19.1 → ^1.20.2** — the schema/repository
+  groundwork for attendance cloud backup & multi-device sync (see the sync
+  design docs committed alongside). Brings `updated`/`deleted` columns on
+  `attendances`/`attendance_reports` (applied on next launch via the existing
+  Drizzle `useMigrations` path — JS-only, no `runtimeVersion` bump needed),
+  `upsertMany` last-write-wins upserts, cursor-based `findChangedSince`, plus
+  two upstream fixes: deterministic pagination on tied `updated` timestamps
+  (silent-data-loss risk at page boundaries) and an `updated` sentinel change
+  `0` → `1` so pre-existing rows are visible to strict `updated > since` sync
+  pulls. No app-side sync client ships yet — this is dependency groundwork.
+
 ---
 
 ## [4.5.0-9] — 2026-06-29 (OTA)
