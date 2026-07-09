@@ -171,8 +171,11 @@ export function toLocalUpdate(server: ServerAttendanceRecord): AttendanceUpdateI
   }
 }
 
-/** Pulled report → local create. Bodies (html/text) start empty; the report
- * detail view lazy-fetches them via GET /reports/:id on first open. */
+/** Pulled report → local create. Bodies (html/text) start empty because the
+ * /sync/reports pull is metadata-only; backfillReportBodies() fills them in
+ * during the same sync pass via GET /reports/:id, so a synced device holds a
+ * complete local copy and the detail view never hits the network.
+ * CHANGED 2026-07-09: was lazy-fetch-on-open. */
 export function reportToLocalCreate(server: ServerReportRecord): AttendanceReportCreateInput {
   return {
     id: server.id,

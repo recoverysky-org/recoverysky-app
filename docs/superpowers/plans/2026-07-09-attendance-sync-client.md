@@ -383,8 +383,9 @@ export function toLocalUpdate(server: ServerAttendanceRecord): AttendanceUpdateI
   }
 }
 
-/** Pulled report → local create. Bodies (html/text) start empty; the report
- * detail view lazy-fetches them via GET /reports/:id on first open. */
+/** Pulled report → local create. Bodies (html/text) start empty because the
+ * /sync/reports pull is metadata-only; backfillReportBodies() fills them in
+ * during the same sync pass via GET /reports/:id. */
 export function reportToLocalCreate(server: ServerReportRecord): AttendanceReportCreateInput {
   return {
     id: server.id,
@@ -588,8 +589,8 @@ export interface ReportDetail {
 
   /**
    * Fetch one full report (including rendered html/text bodies).
-   * GET /reports/:id — used to lazy-load bodies for reports that arrived via
-   * the metadata-only sync pull, when the user opens the detail view.
+   * GET /reports/:id — the /sync/reports pull is metadata-only, so
+   * backfillReportBodies() calls this during sync to complete the local copy.
    */
   async getReport(params: {
     id: string
@@ -1975,13 +1976,19 @@ git commit -m "✨ feat(sync): wire sync service — mutation hook, resume/gate 
 
 ---
 
-### Task 7: AttendanceScreen — reload on `"synced"`, pull on focus, lazy report bodies
+### Task 7: AttendanceScreen — reload on `"synced"`, pull on focus
+
+**CHANGED 2026-07-09:** this task originally added a lazy-fetch of report bodies
+on first open. That is gone. Sync now downloads every report body during the
+sync pass (`backfillReportBodies()`, Task 5), so a synced device already holds
+the full dataset and the detail view never touches the network. `handleViewReport`
+and the row's `disabled={!item.html}` coupling stay exactly as they are today.
 
 **Files:**
 - Modify: `app/screens/AttendanceScreen.tsx`
 
 **Interfaces:**
-- Consumes: `attendanceSync` from `@/services/sync`; `api.getReport` (Task 2); `attendanceReportRepo` (existing).
+- Consumes: `attendanceSync` from `@/services/sync`.
 
 - [ ] **Step 1: Reload lists on `"synced"`.** Three existing subscriptions filter event types — add `"synced"` to each:
 
@@ -2006,60 +2013,25 @@ Reports section (~line 568): `if (event.type === "produced" || event.type === "d
 
 with import: `import { attendanceSync } from "@/services/sync"`
 
-- [ ] **Step 3: Lazy-fetch report bodies.** Replace `handleViewReport` (~line 585):
-
-```ts
-  const [isFetchingReportBody, setIsFetchingReportBody] = useState(false)
-
-  const handleViewReport = useCallback(async (report: AttendanceReportRecord) => {
-    if (report.html) {
-      setSelectedReport(report)
-      return
-    }
-    // Reports that arrived via cloud sync are metadata-only (the pull never
-    // includes html/text) — fetch the body once on first open and persist it
-    // so subsequent views work offline.
-    setIsFetchingReportBody(true)
-    try {
-      const result = await api.getReport({ id: report.id })
-      if (result.kind === "ok" && result.data.html) {
-        await attendanceReportRepo.update(report.id, {
-          html: result.data.html,
-          text: result.data.text,
-        })
-        setSelectedReport({ ...report, html: result.data.html, text: result.data.text })
-        return
-      }
-      Alert.alert(
-        translate("attendanceScreen:notAvailableTitle"),
-        translate("attendanceScreen:notAvailableMessage"),
-      )
-    } finally {
-      setIsFetchingReportBody(false)
-    }
-  }, [])
-```
-
-Note: the row's view button currently renders `disabled={!item.html}` (~line 674). Remove that `disabled`/color coupling so body-less synced reports are tappable — the handler now covers the empty case:
-
-```tsx
-            onPress={() => void handleViewReport(item)}
-```
-
-(keep the icon color unconditional; delete the `accessibilityState={{ disabled: !item.html }}` and `disabled={!item.html}` props). If a fetch is in flight, `isFetchingReportBody` can disable the list's buttons: `disabled={isFetchingReportBody}`.
+- [ ] **Step 3: Do NOT touch `handleViewReport`.** Leave the existing body-presence
+check and the row's `disabled={!item.html}` coupling alone. A report whose body has
+not been backfilled yet is briefly un-openable, which is honest: the row lights up on
+the next `"synced"` event once `backfillReportBodies()` has stored its body. Adding a
+per-open network fetch here would re-introduce exactly the lazy path this design
+rejected.
 
 - [ ] **Step 4: Verify**
 
 Run: `npm run compile && npm run lint:check`
 Expected: no errors.
 
-Manual: in the simulator, open Attendance → Reports; existing reports (with html) still open instantly.
+Manual: in the simulator, open Attendance → Reports; existing reports open instantly.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add app/screens/AttendanceScreen.tsx
-git commit -m "✨ feat(attendance): reload on sync, pull on focus, lazy-fetch synced report bodies"
+git commit -m "✨ feat(attendance): reload lists on sync, pull on screen focus"
 ```
 
 ---
@@ -2243,7 +2215,7 @@ npm test             # vitest (syncLogic, attendanceSyncService) + jest
 1. Device A: sign in, enable Cloud Backup → status reaches "All backed up ✓".
 2. Device A: record attendance (external timer) → server receives `/sync/attendance` push within ~5 s.
 3. Device B: sign in, enable Cloud Backup → device A's history appears (records + reports).
-4. Device B: open a synced report's detail → body lazy-fetches and renders; works offline on second open.
+4. Device B: after sync settles, open a synced report's detail → it renders immediately with NO network request (bodies were downloaded by `backfillReportBodies()` during sync). Put B in airplane mode first to prove it.
 5. Device A: edit a record's duration → appears on B after backgrounding/foregrounding B.
 6. Device A: delete a 90-in-90 record (hard delete) → disappears from B on next sync (tombstone).
 7. Device A: airplane mode → record attendance → re-enable network → foreground → record pushes (queue drained).

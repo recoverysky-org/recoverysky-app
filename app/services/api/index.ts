@@ -241,8 +241,9 @@ export interface SyncPullEnvelope<T> {
   hasMore: boolean
 }
 
-/** Full report from GET /reports/:id — used to lazy-fetch bodies for reports
- * that arrived via sync (metadata-only). Only the fields we consume. */
+/** Full report from GET /reports/:id — used by backfillReportBodies() during
+ * sync to complete reports that arrived via the metadata-only /sync/reports
+ * pull. Only the fields we consume. */
 export interface ReportDetail {
   id: string
   html: string
@@ -1172,8 +1173,8 @@ export class Api {
 
   /**
    * Fetch one full report (including rendered html/text bodies).
-   * GET /reports/:id — used to lazy-load bodies for reports that arrived via
-   * the metadata-only sync pull, when the user opens the detail view.
+   * GET /reports/:id — the /sync/reports pull is metadata-only, so
+   * backfillReportBodies() calls this during sync to complete the local copy.
    */
   async getReport(params: {
     id: string
