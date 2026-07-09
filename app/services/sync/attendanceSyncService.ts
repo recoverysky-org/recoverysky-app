@@ -513,6 +513,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
    *      just "run again."
    */
   async function backfillReportBodies(): Promise<void> {
+    // Deliberately shares `backoffActive()` with push/pull: if the API is in an
+    // outage bad enough to have armed the backoff, there is no point walking a
+    // list of report ids to fetch one by one. Skipping is conservative and
+    // self-healing — the ids stay in reportsMissingBody() and the next pass
+    // after the backoff expires picks them up.
     if (backfilling || backoffActive()) return
     // Same I1 rule as pushTick/pullTick: the guard must be set synchronously,
     // before the first await. fullSync() and a resume-triggered fullSync()
@@ -572,7 +577,6 @@ export function createAttendanceSyncService(deps: SyncDeps) {
           // retries it — the same self-healing property the fetch-failure
           // branch already has.
           deps.log.warn("sync: report body backfill failed", { id, error: String(err) })
-          continue
         }
       }
       if (savedAny) deps.emitSynced()
