@@ -22,6 +22,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **Attendance cloud backup & multi-device sync.** Attendance records now back up
+  to the server and stay in step across a user's devices. Opt in from
+  Settings → Cloud Backup (default OFF, gated on the `recoverysky-attendance`
+  entitlement). Turning it on runs a full backup of the existing local history —
+  minutes for a long history — with a live status line reporting progress, the
+  last sync time, and offline/error states. Turning it off is **pause-only**:
+  nothing is deleted locally or on the server, and re-enabling picks up where it
+  left off.
+
+  Local edits are captured in a durable SQLite outbox before being pushed, so an
+  app kill or a flaky network mid-sync loses nothing. Edits made offline queue up
+  and drain on the next foreground. A second device pulls down a **complete**
+  copy, report bodies included, so opening an old report never needs the network.
+
+  Reports remain server-generated and pull-only — the app never pushes one.
+
+  The full design, and the account-switch safety rules that govern the outbox,
+  are documented in `docs/BACKUP.md`. Read that before touching
+  `app/services/sync/`: the server stamps each pushed record with the
+  authenticated uid, so pushing a queued record while the wrong user is signed in
+  would silently move one person's attendance into another's account.
+
 ### Changed
 - **Rating-prompt pipeline instrumented with `rating[diag]` diagnostic logging.**
   Every stage of the rating flow now logs at INFO (was DEBUG or silent): the
