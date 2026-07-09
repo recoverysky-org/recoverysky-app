@@ -408,6 +408,57 @@ describe("backfillReportBodies", () => {
     await Promise.all([svc.backfillReportBodies(), svc.backfillReportBodies()]) // concurrent
     expect(deps.calls.getReport).toHaveLength(1)
   })
+
+  it("re-checks the gate mid-loop: signing out between reports stops the remaining fetches", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    let gateCalls = 0
+    // First call (inside backfillReportBodies' own gate check) succeeds;
+    // the second call (the inter-fetch re-check before r2) reports signed
+    // out, mirroring pushTick's inter-batch re-check.
+    deps.gate = async () => {
+      gateCalls++
+      return gateCalls === 1 ? { ok: true, uid: "auth0|u1" } : { ok: false, uid: "" }
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport?.map((c) => c[0]) ?? []).toEqual(["r1"])
+    expect(deps.calls.reportSaveBody).toHaveLength(1)
+  })
+
+  it("a failed local write does not abort the rest of the backfill", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    // NOTE: manual call-tracker, not a raw override — see the pushTick
+    // backoff test's note above on why makeDeps()'s track() wrapper gets
+    // bypassed by direct reassignment.
+    deps.local.reportSaveBody = async (id: string, html: string, text: string) => {
+      ;(deps.calls.reportSaveBody ??= []).push([id, html, text])
+      if (id === "r1") throw new Error("disk full")
+    }
+    const svc = createAttendanceSyncService(deps)
+    await expect(svc.backfillReportBodies()).resolves.toBeUndefined()
+    expect(deps.calls.getReport.map((c) => c[0])).toEqual(["r1", "r2"])
+    // both ids were attempted even though r1's write threw
+    expect(deps.calls.reportSaveBody.map((c) => c[0])).toEqual(["r1", "r2"])
+    expect(deps.calls.logWarn?.length ?? 0).toBeGreaterThan(0)
+  })
+
+  it("a failed local write during fullSync() does not skip the subsequent pushTick", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1"]
+    deps.local.reportSaveBody = async (id: string, html: string, text: string) => {
+      ;(deps.calls.reportSaveBody ??= []).push([id, html, text])
+      throw new Error("disk full")
+    }
+    deps.queue.pending = async () => [
+      { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
+    ]
+    const svc = createAttendanceSyncService(deps)
+    await svc.fullSync()
+    // Proves the sync pass wasn't killed: pushTick ran and hit the API.
+    expect(deps.calls.pushAttendance).toHaveLength(1)
+  })
 })
 
 describe("initialBackup", () => {
@@ -429,7 +480,54 @@ describe("initialBackup", () => {
     deps.api.pullAttendance = async () => ({ kind: "timeout" as const })
     const svc = createAttendanceSyncService(deps)
     await svc.initialBackup()
-    expect(svc.syncState.phase).not.toBe("backing-up")
+    // A single failure doesn't meet recordFailure()'s >=2 threshold for
+    // "error", so the only possible settled state here is "idle" — assert
+    // the exact value, not just "not stuck", so a future regression that
+    // settles on some other phase doesn't slip through.
+    expect(svc.syncState.phase).toBe("idle")
+  })
+
+  it("recordFailure() defers to backingUp: two consecutive failures during initialBackup() never surface 'error' mid-backup, but settle to 'error' once the backup finishes", async () => {
+    const deps = makeDeps()
+    // deps.now() is a mutable closure that advances on every call so the
+    // shared backoff (armed by the first failure) never blocks the second
+    // pullTick inside this same initialBackup() pass — see the "phase
+    // settling (I2)" describe block below for the same technique. No real or
+    // fake timers.
+    let currentTime = 1_000_000
+    deps.now = () => {
+      currentTime += 40_000
+      return currentTime
+    }
+    // Both pulls fail for real (whole-request failure), so initialBackup()
+    // sees two consecutive recordFailure() calls: one from
+    // pullTick("attendance"), one from pullTick("reports").
+    deps.api.pullAttendance = async () => ({ kind: "timeout" as const })
+    deps.api.pullReports = async () => ({ kind: "timeout" as const })
+    deps.local.allIds = async () => ["att-1"]
+    // Constructed first so the deps overrides below (which read
+    // svc.syncState) can close over an already-assigned binding.
+    const svc = createAttendanceSyncService(deps)
+    // Observe phase at every point initialBackup() reaches past the second
+    // failure: reportsMissingBody() (backfillReportBodies, right after the
+    // two pullTicks) and enqueue() (the loop after the backfill). If
+    // recordFailure() bypasses the backingUp guard, the second failure's
+    // direct `phase = "error"` write is visible in one of these snapshots.
+    const phaseObservations: string[] = []
+    deps.local.reportsMissingBody = async () => {
+      phaseObservations.push(svc.syncState.phase)
+      return []
+    }
+    deps.queue.enqueue = async () => {
+      phaseObservations.push(svc.syncState.phase)
+    }
+    await svc.initialBackup()
+    expect(phaseObservations.length).toBeGreaterThan(0)
+    expect(phaseObservations).not.toContain("error")
+    expect(phaseObservations.every((p) => p === "backing-up")).toBe(true)
+    // consecutiveFailures reached 2 during the backup, so once backingUp
+    // clears, initialBackup()'s own settlePhase() call surfaces "error".
+    expect(svc.syncState.phase).toBe("error")
   })
 })
 

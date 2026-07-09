@@ -416,11 +416,19 @@ export const attendanceSyncWriter = {
    * pull is metadata-only, so a freshly-synced report has empty html/text
    * until backfillReportBodies() fetches it. Driven by local state (not the
    * sync cursor) so a failed fetch simply gets retried on the next pass.
+   *
+   * CHANGED 2026-07-09: filters on `!r.html || !r.text`, not `!r.html` alone.
+   * reportSaveBody() below always writes both fields together in the same
+   * call, so filtering on html-only is safe TODAY — but that's an implicit
+   * coupling this function shouldn't rely on. If a future write path ever
+   * stores one field without the other (a partial write, a schema migration
+   * default), an html-only filter would call the report "complete" while
+   * text stays empty forever with no retry path.
    */
   reportsMissingBody: async (): Promise<string[]> => {
     const result = await getAttendanceReportRepo().findAll()
     if (!result.ok) return []
-    return result.value.filter((r) => !r.html).map((r) => r.id)
+    return result.value.filter((r) => !r.html || !r.text).map((r) => r.id)
   },
 
   /** Store a report body fetched from GET /reports/:id. */

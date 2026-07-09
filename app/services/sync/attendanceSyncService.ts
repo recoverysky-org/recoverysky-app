@@ -161,6 +161,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   // is a no-op — the backup owns "backing-up" across its two pullTicks and
   // final pushTick, and we don't want an inner tick's finally stomping that
   // back to "idle"/"error" mid-backup.
+  // CHANGED 2026-07-09: recordFailure() also defers to this flag now (it
+  // used to write phase="error" directly on the 2nd+ consecutive failure,
+  // bypassing settlePhase() entirely) — a failure during initialBackup()
+  // must not flip the status line to "error" while the backup is still
+  // legitimately running. See recordFailure() below.
   let backingUp = false
 
   function backoffActive(): boolean {
@@ -193,6 +198,18 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     consecutiveFailures++
     const idx = Math.min(consecutiveFailures - 1, BACKOFF_MS.length - 1)
     nextAllowedAt = deps.now() + BACKOFF_MS[idx]
+    // FIX 2026-07-09: defer to backingUp, same as settlePhase(). Before this,
+    // a 2nd+ consecutive failure during initialBackup() (e.g. the attendance
+    // pull times out, then the reports pull also times out) flipped phase to
+    // "error" directly here, stomping "backing-up" mid-flight even though the
+    // backup was still legitimately running — self-correcting once
+    // initialBackup()'s finally ran, but visibly wrong on the status line
+    // until then. The counter/backoff still need to advance regardless (a
+    // real failure happened and future ticks must respect it) — only the
+    // phase write is gated. initialBackup()'s own finally calls
+    // settlePhase(), which will surface "error" once backingUp clears, if
+    // consecutiveFailures is still >= 2 at that point.
+    if (backingUp) return
     // phase flips to "error" only on REPEATED failures so one flaky request
     // doesn't flicker the Settings status line.
     if (consecutiveFailures >= 2) {
@@ -424,13 +441,19 @@ export function createAttendanceSyncService(deps: SyncDeps) {
               // check above and this write completing — and we can't close
               // it without a transactional read+write across a repository
               // boundary this file doesn't own. What we CAN do is make a
-              // surviving clobber loud instead of silent: if the record is
-              // pending now but wasn't a moment ago, this write most likely
-              // raced a local edit. We don't attempt recovery here (the
-              // queued edit will still win on the next pushTick's LWW push);
-              // we just make sure it's never a silent data loss again.
+              // surviving clobber loud instead of silent.
+              // CHANGED 2026-07-09: simplified from `pendingAfter &&
+              // !hasPendingPush` — `hasPendingPush` is ALWAYS false by the
+              // time execution reaches this line, because mergePullDecision
+              // returns "skip-dirty" (which `continue`s past this whole
+              // block) whenever it's true. So `!hasPendingPush` was a dead
+              // conjunct, not a real condition. If the record is pending NOW,
+              // an edit landed in the residual window above and this write
+              // raced it. We don't attempt recovery here (the queued edit
+              // will still win on the next pushTick's LWW push); we just make
+              // sure it's never a silent data loss again.
               const pendingAfter = await deps.queue.isPending(a.id)
-              if (pendingAfter && !hasPendingPush) {
+              if (pendingAfter) {
                 deps.log.error("sync: pull write raced a concurrent local edit", { id: a.id })
               }
             } else {
@@ -514,21 +537,42 @@ export function createAttendanceSyncService(deps: SyncDeps) {
           if (!gateNow.ok) return
         }
         const id = ids[i]
-        const result = await deps.api.getReport(id)
-        if (result.kind === "ok") {
-          const ok = result as { kind: "ok"; html: string; text: string }
-          await deps.local.reportSaveBody(id, ok.html, ok.text)
-          savedAny = true
-        } else {
-          // Deliberately NOT recordFailure(): that counter/backoff exists to
-          // protect the push/pull ticks from a flaky *whole sync endpoint*.
-          // A single report body being unavailable (deleted server-side,
-          // transient 500, whatever) is a per-item condition, not a signal
-          // that the sync engine itself is unhealthy — feeding it into the
-          // shared backoff would let one bad report id gate attendance
-          // push/pull for everyone. The id just stays in
-          // reportsMissingBody()'s result and gets retried next pass.
-          deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
+        // FIX 2026-07-09: the fetch AND the local write are now isolated in
+        // one per-item try/catch, mirroring pullTick's per-record catch.
+        // Before this, `reportSaveBody` was awaited unguarded — a thrown
+        // local write (SQLite lock, disk full; see pullTick's "disk full"
+        // test for why this is a realistic failure in this codebase) aborted
+        // the rest of the ids in this loop AND propagated out of
+        // backfillReportBodies() into fullSync() (skipping the subsequent
+        // pushTick()) or initialBackup() (skipping the enqueue loop and
+        // final pushTick()) — one bad local write silently killed the whole
+        // sync pass.
+        try {
+          const result = await deps.api.getReport(id)
+          if (result.kind === "ok") {
+            const ok = result as { kind: "ok"; html: string; text: string }
+            await deps.local.reportSaveBody(id, ok.html, ok.text)
+            savedAny = true
+          } else {
+            // Deliberately NOT recordFailure(): that counter/backoff exists to
+            // protect the push/pull ticks from a flaky *whole sync endpoint*.
+            // A single report body being unavailable (deleted server-side,
+            // transient 500, whatever) is a per-item condition, not a signal
+            // that the sync engine itself is unhealthy — feeding it into the
+            // shared backoff would let one bad report id gate attendance
+            // push/pull for everyone. The id just stays in
+            // reportsMissingBody()'s result and gets retried next pass.
+            deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
+          }
+        } catch (err) {
+          // Same per-item-vs-whole-endpoint reasoning as above: NOT
+          // recordFailure(). A failed local write leaves `id` in
+          // reportsMissingBody()'s result (reportSaveBody never ran, or
+          // partially ran and the repo rolled back), so the next sync pass
+          // retries it — the same self-healing property the fetch-failure
+          // branch already has.
+          deps.log.warn("sync: report body backfill failed", { id, error: String(err) })
+          continue
         }
       }
       if (savedAny) deps.emitSynced()
