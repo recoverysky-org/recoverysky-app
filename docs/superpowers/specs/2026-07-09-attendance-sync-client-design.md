@@ -225,10 +225,22 @@ therefore cannot strand the Settings status line mid-"Backing up…".
 - **Hard delete offline** → payload-snapshot tombstone (above).
 - **Soft delete** (`valid: false`), edits, archive → ordinary field pushes.
 - **Two devices edit offline** → API last-arrived-wins; accepted tradeoff.
-- **Account switch on one device** → cursors are per-uid; **on logout, clear
-  the pending sync queue** — never push user A's records under user B's token
-  (the server would stamp them with B's uid). Mixed-account rows in local
-  SQLite are pre-existing app behavior, out of scope.
+- **Account switch on one device** → cursors are per-uid, and the outbox is
+  cleared when a *different* account signs in. **CHANGED 2026-07-09:** the
+  original design cleared the queue on any `userId` change, which meant an
+  ordinary sign-out silently discarded every not-yet-pushed edit — the very
+  loss this feature exists to prevent. But simply requiring "both uids truthy
+  and different" reopens the leak, because `logout()` sets `userId = undefined`,
+  so a switch reads as `undefined → B` and never trips the guard.
+
+  The fix is to remember who owns the queue. `sync.queueOwnerUid` (MMKV) is
+  stamped whenever we enqueue. On sign-*in*, if a recorded owner exists and
+  differs from the incoming uid, the queue is cleared first. Sign-out itself
+  clears nothing — the gate already blocks every push while unauthenticated,
+  so the rows are safe to keep, and signing back into the same account resumes
+  the drain with the edits intact.
+
+  Mixed-account rows in local SQLite are pre-existing app behavior, out of scope.
 - **Toggle OFF → ON** → re-run `initialBackup()`; idempotent.
 - **maintenanceMode / offline** → ticks early-return (house pattern for
   API-dependent features); gate reaction fires catch-up when it clears.
