@@ -8,6 +8,7 @@ import {
   reportToLocalUpdate,
   toLocalCreate,
   toLocalUpdate,
+  ownershipAction,
   toServerRecord,
   type ServerAttendanceRecord,
   type ServerReportRecord,
@@ -73,28 +74,28 @@ describe("toServerRecord", () => {
 
 describe("mergePullDecision", () => {
   it("skips records with a pending outbound push (local edit wins LWW later)", () => {
-    expect(
-      mergePullDecision({ deleted: false, hasPendingPush: true, existsLocally: true }),
-    ).toBe("skip-dirty")
+    expect(mergePullDecision({ deleted: false, hasPendingPush: true, existsLocally: true })).toBe(
+      "skip-dirty",
+    )
     // dirty-skip beats even a tombstone — our later push resurrects deliberately (LWW)
-    expect(
-      mergePullDecision({ deleted: true, hasPendingPush: true, existsLocally: true }),
-    ).toBe("skip-dirty")
+    expect(mergePullDecision({ deleted: true, hasPendingPush: true, existsLocally: true })).toBe(
+      "skip-dirty",
+    )
   })
 
   it("deletes on tombstone", () => {
-    expect(
-      mergePullDecision({ deleted: true, hasPendingPush: false, existsLocally: true }),
-    ).toBe("delete")
+    expect(mergePullDecision({ deleted: true, hasPendingPush: false, existsLocally: true })).toBe(
+      "delete",
+    )
   })
 
   it("updates existing, creates new", () => {
-    expect(
-      mergePullDecision({ deleted: false, hasPendingPush: false, existsLocally: true }),
-    ).toBe("update")
-    expect(
-      mergePullDecision({ deleted: false, hasPendingPush: false, existsLocally: false }),
-    ).toBe("create")
+    expect(mergePullDecision({ deleted: false, hasPendingPush: false, existsLocally: true })).toBe(
+      "update",
+    )
+    expect(mergePullDecision({ deleted: false, hasPendingPush: false, existsLocally: false })).toBe(
+      "create",
+    )
   })
 })
 
@@ -146,6 +147,33 @@ describe("chunk", () => {
 
   it("handles empty and exact-size inputs", () => {
     expect(chunk([], 200)).toEqual([])
-    expect(chunk(Array.from({ length: 200 }, (_, i) => i), 200)).toHaveLength(1)
+    expect(
+      chunk(
+        Array.from({ length: 200 }, (_, i) => i),
+        200,
+      ),
+    ).toHaveLength(1)
+  })
+})
+
+describe("ownershipAction", () => {
+  it("clears when a DIFFERENT account signs in — the cross-account leak guard", () => {
+    expect(ownershipAction("auth0|alice", "auth0|bob")).toBe("clear-then-stamp")
+  })
+
+  it("keeps the queue when the SAME user signs back in (offline edits survive a sign-out)", () => {
+    expect(ownershipAction("auth0|alice", "auth0|alice")).toBe("noop")
+  })
+
+  it("stamps, never clears, when nothing has ever owned the queue (fresh install)", () => {
+    expect(ownershipAction(null, "auth0|alice")).toBe("stamp")
+    expect(ownershipAction(undefined, "auth0|alice")).toBe("stamp")
+    expect(ownershipAction("", "auth0|alice")).toBe("stamp")
+  })
+
+  it("does nothing while signed out — the gate blocks pushes, so the rows are safe", () => {
+    // Regression: clearing here discarded every unpushed edit on an ordinary
+    // sign-out, since AuthenticationStore.logout() sets userId = undefined.
+    expect(ownershipAction("auth0|alice", "")).toBe("noop")
   })
 })

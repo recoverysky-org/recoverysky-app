@@ -36,6 +36,7 @@ import {
   type SyncResource,
 } from "./attendanceSyncService"
 import {
+  ownershipAction,
   reportToLocalCreate,
   reportToLocalUpdate,
   toLocalCreate,
@@ -160,9 +161,14 @@ async function enqueueAttendance(entry: {
  */
 function takeQueueOwnership(uid: string): void {
   const owner = loadString(QUEUE_OWNER_KEY)
-  if (owner && owner !== uid) {
+  const action = ownershipAction(owner, uid)
+  if (action === "noop") return
+  if (action === "clear-then-stamp") {
     ownerClearPending = true
-    log.info("Account switch — clearing the previous owner's outbox", { owner, uid })
+    // `owner` is non-null on this branch by ownershipAction's contract; the
+    // ?? "" only satisfies the logger's attribute type.
+    const previousOwner = owner ?? ""
+    log.info("Account switch — clearing the previous owner's outbox", { previousOwner, uid })
     void attendanceSync
       .onLogout()
       .then(() => {
@@ -173,14 +179,15 @@ function takeQueueOwnership(uid: string): void {
         // Fail closed. No `finally` here — resetting the flag unconditionally
         // would reopen the gate over a queue that still holds foreign rows.
         log.error("Failed to clear foreign outbox — sync stays disabled until relaunch", {
-          owner,
+          previousOwner,
           uid,
           error: String(err),
         })
       })
     return
   }
-  if (owner !== uid) saveString(QUEUE_OWNER_KEY, uid)
+  // action === "stamp": nobody owned the queue yet.
+  saveString(QUEUE_OWNER_KEY, uid)
 }
 
 /**

@@ -216,3 +216,31 @@ export function chunk<T>(items: T[], size: number): T[][] {
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size))
   return out
 }
+
+/** What to do with the outbox when `uid` takes ownership of it. */
+export type OwnershipAction = "clear-then-stamp" | "stamp" | "noop"
+
+/**
+ * Decide what happens to the outbox when `uid` signs in, given the uid recorded
+ * as its current owner (`null` when nothing has ever been stamped).
+ *
+ * Extracted as a pure function because the wiring that used to inline this
+ * decision shipped a cross-account leak twice: once by clearing on every uid
+ * change (so an ordinary sign-out discarded unpushed edits), and once by
+ * treating "no recorded owner" as "nothing to clear" while the common enqueue
+ * path forgot to record one. It is small enough to hold in your head and now
+ * small enough to test.
+ *
+ * - `"clear-then-stamp"` — a DIFFERENT account owns the queued rows. They must
+ *   be deleted before any push, because the server stamps every pushed record
+ *   with the authenticated uid: pushing them now would move the previous user's
+ *   attendance into this account.
+ * - `"stamp"` — nobody owns the queue yet (fresh install / first enqueue).
+ * - `"noop"` — the same user already owns it. Their offline edits survive a
+ *   sign-out / sign-in round trip, which is the whole point.
+ */
+export function ownershipAction(owner: string | null | undefined, uid: string): OwnershipAction {
+  if (!uid) return "noop" // signed out: the gate blocks pushes, leave the rows be
+  if (!owner) return "stamp"
+  return owner === uid ? "noop" : "clear-then-stamp"
+}
