@@ -61,6 +61,7 @@ describe("Logger", () => {
         minLevel: "warn",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.trace("trace message")
@@ -87,6 +88,7 @@ describe("Logger", () => {
         minLevel: "trace",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.trace("trace")
@@ -111,6 +113,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.info("Test message", { userId: "123", action: "login" })
@@ -134,6 +137,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.info("Simple message")
@@ -154,6 +158,7 @@ describe("Logger", () => {
         batchSize: 3,
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.info("message 1")
@@ -181,6 +186,7 @@ describe("Logger", () => {
         flushIntervalMs: 5000,
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.info("message 1")
@@ -201,6 +207,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       await logger.flush()
@@ -217,6 +224,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setTraceContext("trace-123", "span-456")
@@ -236,6 +244,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setTraceContext("trace-123", "span-456")
@@ -259,6 +268,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       const childLogger = logger.child({ module: "auth", component: "login" })
@@ -281,6 +291,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       const authLogger = logger.child({ module: "auth" })
@@ -303,6 +314,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       const childLogger = logger.child({ value: "parent" })
@@ -324,6 +336,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setContext({
@@ -377,6 +390,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setContext({ appVersion: "1.0.0" })
@@ -399,6 +413,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setContext({ sessionId: "session-xyz", appVersion: "1.0.0" })
@@ -420,6 +435,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setContext({ sessionId: "session-xyz" })
@@ -442,6 +458,7 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.setContext({ sessionId: "context-session" })
@@ -527,6 +544,7 @@ describe("Logger", () => {
         flushIntervalMs: 5000,
         consoleInDev: false,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.info("Before destroy")
@@ -554,12 +572,13 @@ describe("Logger", () => {
         minLevel: "info",
         consoleInDev: true,
         endpoint: "https://test.example.com",
+        apiKey: "test-key",
       })
 
       logger.info("Test message")
       await logger.flush()
 
-      expect(warnSpy).toHaveBeenCalledWith("[Logger] Failed to send logs: Network error")
+      expect(warnSpy).toHaveBeenCalledWith("[Logger] Failed to send 1 logs, re-queued: Network error")
 
       warnSpy.mockRestore()
       logger.destroy()

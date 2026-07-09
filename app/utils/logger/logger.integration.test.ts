@@ -318,6 +318,11 @@ describeIfEndpoint("OTLP Integration Tests", () => {
       const badConfig: LoggerConfig = {
         ...testConfig,
         endpoint: "https://invalid.endpoint.that.does.not.exist.example.com",
+        // sendToOtlp() no-ops to `{ok: true}` when apiKey is falsy (see otlp.ts) — force
+        // one here so this test actually reaches the fetch and hits a real connection
+        // failure, instead of silently passing for the wrong reason whenever
+        // EXPO_PUBLIC_OTLP_API_KEY isn't set in the local .env.
+        apiKey: testConfig.apiKey ?? "test-key",
       }
 
       const result = await sendToOtlp(records, badConfig)

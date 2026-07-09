@@ -88,8 +88,13 @@ class LoggerImpl implements Logger {
       ...(this.spanId && { spanId: this.spanId }),
     }
 
-    // Console output — all logs that pass the level filter go to console
-    if (__DEV__ || LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[this.config.minLevel]) {
+    // Console output — gated on consoleInDev, which was previously dead: this
+    // condition's second half was always true (shouldLog() already filtered
+    // out anything below minLevel above), so every log hit console regardless
+    // of consoleInDev. CHANGED 2026-07-09: actually read consoleInDev so
+    // callers can silence console output in dev (e.g. noisy test suites)
+    // while still shipping to OTLP.
+    if (__DEV__ && this.config.consoleInDev) {
       const method = CONSOLE_METHODS[level]
       const fn = console[method] as (...args: unknown[]) => void
       if (Object.keys(record.attributes).length > 0) {
