@@ -1,4 +1,35 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+// react-native-mmkv is a native module whose real source doesn't parse under
+// Vitest's esbuild transform ("Unexpected token 'typeof'"), and @/utils/logger
+// can't resolve under Vitest (no @/ alias config — see [[vitest-no-path-alias]]).
+// Mocking both lets Vitest skip loading their real sources entirely, without
+// touching the production storage module.
+vi.mock("react-native-mmkv", () => {
+  class MMKV {
+    private store = new Map<string, string>()
+    getString(key: string) {
+      return this.store.get(key)
+    }
+    set(key: string, value: string) {
+      this.store.set(key, value)
+    }
+    delete(key: string) {
+      this.store.delete(key)
+    }
+    clearAll() {
+      this.store.clear()
+    }
+    getAllKeys() {
+      return Array.from(this.store.keys())
+    }
+  }
+  return { MMKV }
+})
+
+vi.mock("@/utils/logger", () => ({
+  logger: { child: vi.fn().mockReturnValue({ debug: vi.fn() }) },
+}))
 
 import { load, loadString, save, saveString, clear, remove, storage } from "."
 
