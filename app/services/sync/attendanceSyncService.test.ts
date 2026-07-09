@@ -263,6 +263,31 @@ describe("pullTick", () => {
     expect(deps.calls.cursorSet).toBeUndefined()
   })
 
+  it("a failed dirty-check never clobbers the local record, and holds the cursor", async () => {
+    // repositories.isPending() throws when the sync-queue read fails. It used to
+    // fail open (return false), which made a record carrying an unpushed local
+    // edit look clean: the server's older copy overwrote it, the next pushTick
+    // pushed the clobbered row, and the user's edit vanished silently. The throw
+    // must land in the per-record catch — no write, cursor held, retried later.
+    const deps = makeDeps()
+    deps.local.exists = async () => true
+    deps.queue.isPending = async () => {
+      throw new Error("sync queue read failed")
+    }
+    deps.api.pullAttendance = async () => ({
+      kind: "ok" as const,
+      records: [serverRec("existing-1")],
+      cursor: 500,
+      hasMore: false,
+    })
+    const svc = createAttendanceSyncService(deps)
+    await svc.pullTick("attendance")
+    expect(deps.calls.updateFromServer).toBeUndefined()
+    expect(deps.calls.createFromServer).toBeUndefined()
+    expect(deps.calls.remove).toBeUndefined()
+    expect(deps.calls.cursorSet).toBeUndefined()
+  })
+
   it("pullTick is reentrant-safe: overlapping calls drain once", async () => {
     // Deliberately does NOT override deps.api.pullAttendance — an override
     // would replace the makeDeps() track() wrapper and leave calls.pullAttendance

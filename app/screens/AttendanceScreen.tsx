@@ -948,7 +948,13 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
     // sync — don't get entangled.
     useEffect(() => {
       return navigation.addListener("focus", () => {
-        void attendanceSync.fullSync()
+        // fullSync() absorbs network failures internally but still rejects on a
+        // local SQLite read failure (pushTick/pullTick are try/finally, no catch).
+        // Every other fullSync() call site catches; without this the tab-focus
+        // path turns that into an unhandled promise rejection.
+        void attendanceSync.fullSync().catch((error) => {
+          logger.error("Focus sync failed", { error: String(error) })
+        })
       })
     }, [navigation])
 

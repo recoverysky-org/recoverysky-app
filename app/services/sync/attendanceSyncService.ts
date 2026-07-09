@@ -602,7 +602,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
       debounceTimer = null
-      void pushTick()
+      // Fires from a bare timer with no caller to reject into, so a local
+      // SQLite failure inside pushTick() would be an unhandled rejection.
+      void pushTick().catch((error) => {
+        deps.log.error("sync: debounced push failed", { error: String(error) })
+      })
     }, PUSH_DEBOUNCE_MS)
   }
 

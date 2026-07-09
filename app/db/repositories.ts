@@ -153,12 +153,23 @@ export const syncQueueRepo = {
    * converge with the server — the pull would keep skipping it as "dirty"
    * even though nothing is ever going to push it again.
    *
-   * On a read error, return `false` (fail open): a queue read failure must
-   * not block the pull merge from applying the server's copy.
+   * THROWS on a read error rather than answering.
+   * CHANGED 2026-07-09: this used to fail open (`return false`), which quietly
+   * inverted the guarantee it exists to provide. A transient queue-read failure
+   * made a record with an unpushed local edit look clean, so mergePullDecision
+   * returned "update" instead of "skip-dirty", the server's older copy clobbered
+   * the local row, and the next pushTick dutifully pushed the clobbered version
+   * and marked the queue entry synced — the user's edit gone, no error logged
+   * (the post-write re-check fails open too, so it stayed silent). Throwing
+   * instead lands in pullTick's per-record catch, which skips the write, holds
+   * the pull cursor, and logs — so the record is simply re-merged on the next
+   * pass. Skipping one merge is self-healing; a clobber is not.
    */
   isPending: async (recordId: string, maxRetries = 3): Promise<boolean> => {
     const result = await getSyncQueueRepo().findByRecordId("attendances", recordId)
-    if (!result.ok) return false
+    if (!result.ok) {
+      throw new Error(`isPending: sync queue read failed for ${recordId}`)
+    }
     return result.value.some(
       (i) => (i.status === "pending" || i.status === "failed") && i.retryCount < maxRetries,
     )
