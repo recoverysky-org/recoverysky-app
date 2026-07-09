@@ -308,6 +308,15 @@ const es: Translations = {
     restoreSuccessMessage: "Tu suscripción ha sido restaurada exitosamente.",
     restoreNoSubscription: "No se Encontró Suscripción",
     restoreNoSubscriptionMessage: "No pudimos encontrar compras anteriores para restaurar.",
+    // Cloud Backup Section
+    backupSection: "Copia de seguridad",
+    cloudBackup: "Respaldar asistencia",
+    cloudBackupHint: "Mantén tu historial de asistencia seguro y sincronizado entre dispositivos",
+    backupBackingUp: "Respaldando…",
+    backupSyncing: "Sincronizando…",
+    backupAllBackedUp: "Todo respaldado ✓ · {{time}}",
+    backupPausedOffline: "Pausado — sin conexión",
+    backupError: "Problema al respaldar — reintentará",
     // Zoom Account Section
     // Account Section
     accountSection: "Cuenta",
