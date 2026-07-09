@@ -142,13 +142,38 @@ export const syncQueueRepo = {
    * Delete every pending/retryable item. Called on logout — user A's queued
    * records must never be pushed under user B's token (the server would
    * stamp them with B's uid).
+   *
+   * CRITICAL: Must surface any delete failures. A failed delete leaves user A's
+   * records in the outbox; the logout flow would report "queue empty" to the
+   * auth store, but those rows persist and get pushed to the server under user
+   * B's token with B's uid — a cross-account data leak. This function returns
+   * failure if any individual delete fails so callers can abort the logout flow
+   * and alert the user, not silently leak queued data.
    */
   clearPending: async () => {
     const pending = await getSyncQueueRepo().getPending()
     if (!pending.ok) return pending
+
+    const failedIds: string[] = []
     for (const item of pending.value) {
-      await getSyncQueueRepo().delete(item.id)
+      const deleteResult = await getSyncQueueRepo().delete(item.id)
+      if (!deleteResult.ok) {
+        failedIds.push(item.id)
+      }
     }
+
+    if (failedIds.length > 0) {
+      const error = new Error(
+        `clearPending: ${failedIds.length} of ${pending.value.length} deletes failed: ${failedIds.join(", ")}`,
+      )
+      log.error("clearPending partial failure", {
+        failedIdCount: failedIds.length,
+        totalPending: pending.value.length,
+        failedIdList: failedIds.join(", "),
+      })
+      return { ok: false as const, error }
+    }
+
     return { ok: true as const, value: pending.value.length }
   },
 }
@@ -313,6 +338,9 @@ export const attendanceRepo = {
    * after the row is gone. */
   delete: async (id: string) => {
     const existing = await getAttendanceRepo().findById(id)
+    // Note: snapshot === undefined collapses two distinct cases: (1) row
+    // genuinely not found, or (2) the read itself failed. Either way, the
+    // tombstone has no payload to serialize. This is by design.
     const snapshot = existing.ok && existing.value ? existing.value : undefined
     const result = await getAttendanceRepo().delete(id)
     if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "delete", snapshot })
