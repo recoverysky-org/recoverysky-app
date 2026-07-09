@@ -410,6 +410,23 @@ export const attendanceSyncWriter = {
   reportRemove: async (id: string) => {
     return getAttendanceReportRepo().delete(id)
   },
+
+  /**
+   * Ids of local reports whose body was never downloaded. The /sync/reports
+   * pull is metadata-only, so a freshly-synced report has empty html/text
+   * until backfillReportBodies() fetches it. Driven by local state (not the
+   * sync cursor) so a failed fetch simply gets retried on the next pass.
+   */
+  reportsMissingBody: async (): Promise<string[]> => {
+    const result = await getAttendanceReportRepo().findAll()
+    if (!result.ok) return []
+    return result.value.filter((r) => !r.html).map((r) => r.id)
+  },
+
+  /** Store a report body fetched from GET /reports/:id. */
+  reportSaveBody: async (id: string, html: string, text: string) => {
+    return getAttendanceReportRepo().update(id, { html, text })
+  },
 }
 
 // Re-export types for convenience

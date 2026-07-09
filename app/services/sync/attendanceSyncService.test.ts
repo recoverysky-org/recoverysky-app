@@ -65,6 +65,11 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
         cursor: 0,
         hasMore: false,
       })),
+      getReport: track("getReport", async () => ({
+        kind: "ok" as const,
+        html: "<p>x</p>",
+        text: "x",
+      })),
     },
     local: {
       findByIds: track("findByIds", async (ids: string[]) =>
@@ -79,6 +84,8 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
       reportCreateFromServer: track("reportCreateFromServer", async () => {}),
       reportUpdateFromServer: track("reportUpdateFromServer", async () => {}),
       reportRemove: track("reportRemove", async () => {}),
+      reportsMissingBody: track("reportsMissingBody", async () => [] as string[]),
+      reportSaveBody: track("reportSaveBody", async () => {}),
     },
     queue: {
       enqueue: track("enqueue", async () => {}),
@@ -96,7 +103,12 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
     },
     gate: track("gate", async () => ({ ok: true, uid: "auth0|u1" })),
     emitSynced: track("emitSynced", () => {}),
-    log: { debug: () => {}, info: () => {}, warn: () => {}, error: track("logError", () => {}) },
+    log: {
+      debug: () => {},
+      info: () => {},
+      warn: track("logWarn", () => {}),
+      error: track("logError", () => {}),
+    },
     now: () => 1_000_000,
     sleep: track("sleep", async () => {}),
     ...overrides,
@@ -312,6 +324,89 @@ describe("pullTick", () => {
     const svc = createAttendanceSyncService(deps)
     await svc.pullTick("attendance")
     expect(sinceSeen).toEqual([0, 100])
+  })
+})
+
+describe("backfillReportBodies", () => {
+  it("fetches and stores every missing body", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport.map((c) => c[0])).toEqual(["r1", "r2"])
+    expect(deps.calls.reportSaveBody).toHaveLength(2)
+    expect(deps.calls.reportSaveBody[0]).toEqual(["r1", "<p>x</p>", "x"])
+    expect(deps.calls.reportSaveBody[1]).toEqual(["r2", "<p>x</p>", "x"])
+    expect(deps.calls.emitSynced).toHaveLength(1)
+  })
+
+  it("a failed fetch does not abort the rest", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      if (id === "r1") return { kind: "timeout" as const }
+      return { kind: "ok" as const, html: "<p>x</p>", text: "x" }
+    }
+    const svc = createAttendanceSyncService(deps)
+    await expect(svc.backfillReportBodies()).resolves.toBeUndefined()
+    expect(deps.calls.reportSaveBody).toHaveLength(1)
+    expect(deps.calls.reportSaveBody[0][0]).toBe("r2")
+    expect(deps.calls.logWarn?.length ?? 0).toBeGreaterThan(0)
+  })
+
+  it("no missing bodies → no requests", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => []
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport).toBeUndefined()
+    expect(deps.calls.emitSynced).toBeUndefined()
+  })
+
+  it("paces between fetches", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    expect(deps.calls.sleep).toHaveLength(1)
+  })
+
+  it("fullSync runs the backfill after the reports pull", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1"]
+    const sequence: string[] = []
+    const originalPullReports = deps.api.pullReports
+    deps.api.pullReports = async (...args: Parameters<typeof originalPullReports>) => {
+      sequence.push("pullReports")
+      return originalPullReports(...args)
+    }
+    const originalGetReport = deps.api.getReport
+    deps.api.getReport = async (...args: Parameters<typeof originalGetReport>) => {
+      sequence.push("getReport")
+      return originalGetReport(...args)
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.fullSync()
+    expect(deps.calls.getReport).toHaveLength(1)
+    expect(sequence).toEqual(["pullReports", "getReport"])
+  })
+
+  it("gate closed → backfill is a no-op", async () => {
+    const deps = makeDeps({ gate: async () => ({ ok: false, uid: "" }) })
+    deps.local.reportsMissingBody = async () => ["r1"]
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    expect(deps.calls.reportsMissingBody).toBeUndefined()
+    expect(deps.calls.getReport).toBeUndefined()
+  })
+
+  it("backfillReportBodies is reentrant-safe: overlapping calls fetch once", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1"]
+    const svc = createAttendanceSyncService(deps)
+    await Promise.all([svc.backfillReportBodies(), svc.backfillReportBodies()]) // concurrent
+    expect(deps.calls.getReport).toHaveLength(1)
   })
 })
 

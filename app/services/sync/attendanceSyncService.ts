@@ -54,6 +54,13 @@ export interface SyncDeps {
       | { kind: "ok"; records: ServerReportRecord[]; cursor: number; hasMore: boolean }
       | { kind: string }
     >
+    /**
+     * GET /reports/:id — the only source of a report's rendered body.
+     * /sync/reports never returns html/text (metadata-only, server-side
+     * constraint we can't change), so this is the sole path that completes
+     * a pulled report's local copy.
+     */
+    getReport(id: string): Promise<{ kind: "ok"; html: string; text: string } | { kind: string }>
   }
   local: {
     findByIds(ids: string[]): Promise<AttendanceRecord[]>
@@ -66,6 +73,15 @@ export interface SyncDeps {
     reportCreateFromServer(r: ServerReportRecord): Promise<void>
     reportUpdateFromServer(r: ServerReportRecord): Promise<void>
     reportRemove(id: string): Promise<void>
+    /**
+     * Ids of local reports whose body is still empty. Backed by local state
+     * (not the sync cursor) so backfillReportBodies() can be re-run any
+     * number of times — a failed fetch just leaves the id in this set for
+     * the next pass to retry.
+     */
+    reportsMissingBody(): Promise<string[]>
+    /** Store a report body fetched from GET /reports/:id. */
+    reportSaveBody(id: string, html: string, text: string): Promise<void>
   }
   queue: {
     enqueue(entry: {
@@ -120,6 +136,10 @@ const BATCH_PACE_MS = 7_000
 const PUSH_DEBOUNCE_MS = 3_000
 /** Consecutive whole-request failures gate ticks: 30 s → 1 min → 5 min. */
 const BACKOFF_MS = [30_000, 60_000, 300_000]
+/** Small gap between per-report body fetches so a large first sync doesn't
+ * hammer the API. GET /reports/:id is a plain read, so this is politeness,
+ * not a documented rate limit. */
+const REPORT_BODY_PACE_MS = 300
 
 export type AttendanceSyncService = ReturnType<typeof createAttendanceSyncService>
 
@@ -136,6 +156,7 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   // Reentrancy guards — a tick fired while the same tick is mid-flight is a no-op.
   let pushing = false
   let pulling = false
+  let backfilling = false
   // I2: true for the duration of initialBackup(). While set, settlePhase()
   // is a no-op — the backup owns "backing-up" across its two pullTicks and
   // final pushTick, and we don't want an inner tick's finally stomping that
@@ -447,10 +468,84 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     }
   }
 
-  /** Pull both resources then drain the outbox — the standard resume/focus sync. */
+  /**
+   * Report body backfill — runs after every reports pull (see the
+   * "Report body backfill" section of the 2026-07-09 sync spec). Design
+   * correction from the original lazy-fetch-on-open plan: a synced device
+   * must end up with a COMPLETE local copy, not one that goes to the network
+   * the first time the user opens a report. `/sync/reports` is metadata-only
+   * server-side and we can't change that, so the client completes the copy
+   * itself via GET /reports/:id.
+   *
+   * Deliberately driven by LOCAL STATE (`deps.local.reportsMissingBody()` —
+   * "which local rows have no body yet?") rather than by the pull cursor.
+   * Two reasons:
+   *   1. A failed body fetch must never be able to strand the cursor. The
+   *      cursor's only job is paging `/sync/reports`; tying it to body
+   *      fetches would let a single unlucky GET /reports/:id block the next
+   *      metadata pull from ever advancing.
+   *   2. An interrupted backfill (app killed mid-pass, network drop) needs
+   *      no separate resume bookkeeping — the missing-body set is
+   *      RECOMPUTED from local rows every time this runs, so "resume" is
+   *      just "run again."
+   */
+  async function backfillReportBodies(): Promise<void> {
+    if (backfilling || backoffActive()) return
+    // Same I1 rule as pushTick/pullTick: the guard must be set synchronously,
+    // before the first await. fullSync() and a resume-triggered fullSync()
+    // can overlap, and if the flag were set after `await deps.gate()` both
+    // callers would see `backfilling === false`, both would pass the check,
+    // and both would fetch the same missing bodies concurrently.
+    backfilling = true
+    let savedAny = false
+    try {
+      const gate = await deps.gate()
+      if (!gate.ok) return
+      const ids = await deps.local.reportsMissingBody()
+      if (ids.length === 0) return
+      for (let i = 0; i < ids.length; i++) {
+        if (i > 0) {
+          await deps.sleep(REPORT_BODY_PACE_MS)
+          // Re-check the gate between fetches, exactly like pushTick's
+          // inter-batch re-check: the user can sign out (or lose the
+          // entitlement/network) mid-backfill, and fetching under the wrong
+          // identity is worse than leaving the remaining ids for next time.
+          const gateNow = await deps.gate()
+          if (!gateNow.ok) return
+        }
+        const id = ids[i]
+        const result = await deps.api.getReport(id)
+        if (result.kind === "ok") {
+          const ok = result as { kind: "ok"; html: string; text: string }
+          await deps.local.reportSaveBody(id, ok.html, ok.text)
+          savedAny = true
+        } else {
+          // Deliberately NOT recordFailure(): that counter/backoff exists to
+          // protect the push/pull ticks from a flaky *whole sync endpoint*.
+          // A single report body being unavailable (deleted server-side,
+          // transient 500, whatever) is a per-item condition, not a signal
+          // that the sync engine itself is unhealthy — feeding it into the
+          // shared backoff would let one bad report id gate attendance
+          // push/pull for everyone. The id just stays in
+          // reportsMissingBody()'s result and gets retried next pass.
+          deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
+        }
+      }
+      if (savedAny) deps.emitSynced()
+    } finally {
+      backfilling = false
+      settlePhase() // I2: authoritative restore — same rule as pushTick/pullTick.
+    }
+  }
+
+  /** Pull both resources, backfill any missing report bodies, then drain the
+   * outbox — the standard resume/focus sync. Backfill runs after the reports
+   * pull so a page of newly-pulled report shells gets its bodies filled in
+   * the same pass. */
   async function fullSync(): Promise<void> {
     await pullTick("attendance")
     await pullTick("reports")
+    await backfillReportBodies()
     await pushTick()
   }
 
@@ -486,6 +581,12 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     try {
       await pullTick("attendance")
       await pullTick("reports")
+      // Complete the local copy before draining the outbox: initialBackup is
+      // exactly the "device B gets a full local copy" scenario this backfill
+      // exists for. backfillReportBodies() is a no-op internally while
+      // backingUp is true w.r.t. phase (settlePhase() defers to us), so this
+      // doesn't disturb the "backing-up" status line.
+      await backfillReportBodies()
       const ids = await deps.local.allIds()
       for (const id of ids) {
         await deps.queue.enqueue({ recordId: id, operation: "update" })
@@ -511,5 +612,14 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     })
   }
 
-  return { syncState, pushTick, pullTick, fullSync, nudgePush, initialBackup, onLogout }
+  return {
+    syncState,
+    pushTick,
+    pullTick,
+    backfillReportBodies,
+    fullSync,
+    nudgePush,
+    initialBackup,
+    onLogout,
+  }
 }
