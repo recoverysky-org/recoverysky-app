@@ -1689,6 +1689,34 @@ git commit -m "✨ feat(sync): DI sync service — outbox drain, cursor pull, in
 **Files:**
 - Create: `app/services/sync/index.ts`
 - Modify: `app/app.tsx` (inside the rootStore-init effect, after the auth `reaction` block ~line 520)
+- Modify: `app/db/repositories.ts` — add ONE method, `syncQueueRepo.isPending(recordId)`:
+
+```ts
+  /**
+   * Does this record have a queue entry that pushTick() will still push?
+   *
+   * The predicate MUST match SyncQueueRepository.getPending() exactly —
+   * `status IN ('pending','failed') AND retryCount < maxRetries` (default 3) —
+   * because the pull merge treats "pending" as "our local edit wins, don't let
+   * the server's older copy overwrite it." If this said yes for a
+   * permanently-failed entry, that record would be dirty forever and the device
+   * would never converge with the server.
+   */
+  isPending: async (recordId: string, maxRetries = 3): Promise<boolean> => {
+    const result = await getSyncQueueRepo().findByRecordId("attendances", recordId)
+    if (!result.ok) return false // fail open: a read error must not block the merge
+    return result.value.some(
+      (i) => (i.status === "pending" || i.status === "failed") && i.retryCount < maxRetries,
+    )
+  },
+```
+
+**NOTE — the plan's Task 4 code below has since evolved.** `clearPending()` now
+returns a typed `RecoverySkyResult<number>` and surfaces per-row delete failures
+(a silently-failed delete could leak user A's queued records into user B's
+account). `attendanceSyncWriter` also gained `reportsMissingBody()` and
+`reportSaveBody()` for the report-body backfill. Read the real
+`app/db/repositories.ts`, not the Task 4 snippet, when wiring deps.
 
 **Interfaces:**
 - Consumes: Tasks 1–5 outputs; `hasEntitlement` + `ENTITLEMENTS` from `@/services/purchases`; `loadString`/`saveString` from `@/utils/storage`; `attendanceEvents`; repos from `@/db`.
@@ -1787,6 +1815,13 @@ const deps: SyncDeps = {
       if (result.kind !== "ok") return result
       return { kind: "ok" as const, ...result.data }
     },
+    // Adapter: the service's SyncDeps wants a flat {kind, html, text}; the API
+    // client returns {kind: "ok", data: {...}}. Same translation the pulls do.
+    getReport: async (id: string) => {
+      const result = await api.getReport({ id })
+      if (result.kind !== "ok") return result
+      return { kind: "ok" as const, html: result.data.html, text: result.data.text }
+    },
   },
   local: {
     findByIds: async (ids) => unwrap(await attendanceRepo.findByIds(ids), "findByIds"),
@@ -1811,6 +1846,10 @@ const deps: SyncDeps = {
     reportRemove: async (id) => {
       unwrap(await attendanceSyncWriter.reportRemove(id), "reportRemove")
     },
+    reportsMissingBody: () => attendanceSyncWriter.reportsMissingBody(),
+    reportSaveBody: async (id, html, text) => {
+      unwrap(await attendanceSyncWriter.reportSaveBody(id, html, text), "reportSaveBody")
+    },
   },
   queue: {
     enqueue: async (entry) => {
@@ -1819,6 +1858,14 @@ const deps: SyncDeps = {
         "enqueue",
       )
     },
+
+    // Per-record dirty check for the pull merge. MUST use the same predicate as
+    // SyncQueueRepository.getPending() — status in (pending, failed) AND
+    // retryCount < maxRetries — because "dirty" means precisely "pushTick will
+    // push this record's local version later, so don't let the server's older
+    // copy overwrite it." A looser predicate (e.g. counting a permanently-failed
+    // entry) would make the record dirty forever and it would never converge.
+    isPending: (recordId) => syncQueueRepo.isPending(recordId),
     pending: async () => {
       const items = unwrap(await syncQueueRepo.getPending(), "getPending")
       return items.map((i) => ({
