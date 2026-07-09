@@ -314,9 +314,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         // not seconds — the user must be free to navigate away from Settings
         // while it runs. Progress is visible via SyncStatusLine (phase +
         // pendingCount), which reads attendanceSync.syncState directly, so we
-        // don't need to await or store anything here. It's also idempotent:
-        // re-toggling ON after a pause safely re-runs it from the persisted
-        // cursors instead of re-pulling/re-pushing everything.
+        // don't need to await or store anything here. Re-toggling ON after a
+        // pause safely re-runs the whole thing: the pull resumes from the
+        // persisted per-account cursors, and the push deliberately re-enqueues
+        // every local record — the server's last-write-wins upsert turns a
+        // re-push of unchanged rows into a harmless no-op, so there is nothing
+        // to diff and nothing to guard against.
         void attendanceSync.initialBackup()
       }
       // Toggle OFF is pause-only, deliberately: it flips syncEnabled false so

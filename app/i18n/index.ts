@@ -25,7 +25,15 @@ const fallbackLocale = "en-US"
 const systemLocales = Localization.getLocales()
 
 const baseResources: Record<string, Record<string, any>> = {
-  en, es, fr, pt, ru, ar, de, th, uk,
+  en,
+  es,
+  fr,
+  pt,
+  ru,
+  ar,
+  de,
+  th,
+  uk,
 }
 
 // Deep-merge platform-specific string overrides (e.g. Android-only anonymous login text).

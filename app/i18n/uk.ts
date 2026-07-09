@@ -263,6 +263,15 @@ const uk: Translations = {
     deliverySuccess: "Звіт успішно доставлено",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "Резервна копія в хмарі",
+    cloudBackup: "Зберігати відвідування",
+    cloudBackupHint: "Тримайте історію відвідувань у безпеці та синхронізованою між пристроями",
+    backupBackingUp: "Створюємо резервну копію…",
+    backupSyncing: "Синхронізація…",
+    backupAllBackedUp: "Усе збережено ✓ · {{time}}",
+    backupPausedOffline: "Призупинено — немає зв’язку",
+    backupError: "Проблема з копіюванням — повторимо",
     title: "Налаштування",
     subtitle: "Керуй своїм обліковим записом та налаштуваннями",
     // Profile Section

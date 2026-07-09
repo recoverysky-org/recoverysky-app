@@ -260,6 +260,15 @@ const ar: Translations = {
     deliverySuccess: "تم تسليم التقرير بنجاح",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "النسخ الاحتياطي السحابي",
+    cloudBackup: "نسخ الحضور احتياطيًا",
+    cloudBackupHint: "احتفظ بسجل حضورك آمنًا ومتزامنًا عبر أجهزتك",
+    backupBackingUp: "جارٍ النسخ الاحتياطي…",
+    backupSyncing: "جارٍ المزامنة…",
+    backupAllBackedUp: "تم النسخ الاحتياطي ✓ · {{time}}",
+    backupPausedOffline: "متوقف مؤقتًا — غير متصل",
+    backupError: "مشكلة في النسخ الاحتياطي — ستتم إعادة المحاولة",
     title: "الإعدادات",
     subtitle: "أدِر حسابك وتفضيلاتك",
     // Profile Section

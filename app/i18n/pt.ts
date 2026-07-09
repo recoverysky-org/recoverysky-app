@@ -264,6 +264,15 @@ const pt: Translations = {
     deliverySuccess: "Relatório entregue com sucesso",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "Backup na nuvem",
+    cloudBackup: "Fazer backup da presença",
+    cloudBackupHint: "Mantenha seu histórico de presença seguro e sincronizado entre dispositivos",
+    backupBackingUp: "Fazendo backup…",
+    backupSyncing: "Sincronizando…",
+    backupAllBackedUp: "Tudo salvo ✓ · {{time}}",
+    backupPausedOffline: "Pausado — sem conexão",
+    backupError: "Problema no backup — tentaremos de novo",
     title: "Ajustes",
     subtitle: "Gerencie sua conta e preferências",
     // Profile Section
