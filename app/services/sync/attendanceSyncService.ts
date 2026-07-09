@@ -646,7 +646,17 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     }
   }
 
-  /** Logout: never push user A's records under user B's token. */
+  /**
+   * Drop the outbox and reset sync state.
+   *
+   * Despite the name, the only production caller invokes this when a DIFFERENT
+   * account signs in, not on logout — an ordinary sign-out deliberately keeps
+   * the queue so the same user's offline edits survive signing back in (the
+   * gate blocks pushes while unauthenticated anyway). Clearing here exists
+   * because the server stamps every pushed record with the authenticated uid,
+   * so the previous user's rows must never reach a push under the new user's
+   * token. See takeQueueOwnership() in services/sync/index.ts.
+   */
   async function onLogout(): Promise<void> {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
