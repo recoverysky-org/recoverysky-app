@@ -146,22 +146,34 @@ export const syncQueueRepo = {
    * records must never be pushed under user B's token (the server would
    * stamp them with B's uid).
    *
-   * CRITICAL: Must surface any delete failures. A failed delete leaves user A's
-   * records in the outbox; the logout flow would report "queue empty" to the
-   * auth store, but those rows persist and get pushed to the server under user
-   * B's token with B's uid — a cross-account data leak. This function returns
-   * failure if any individual delete fails so callers can abort the logout flow
-   * and alert the user, not silently leak queued data.
+   * CRITICAL: Must surface any delete failures. `SyncQueueRepository.delete()`
+   * does not throw — it returns `{ ok: false, error }`. Ignoring that return
+   * value would leave user A's records in the outbox while reporting a clean
+   * sweep; those rows would later push under user B's token and be stamped with
+   * B's uid — a cross-account data leak. So we inspect every delete and return a
+   * failed Result if any row survives.
+   *
+   * Scope note: we deliberately do NOT retry failed deletes, and no caller
+   * currently acts on the failed Result beyond logging — surfacing + alerting
+   * was chosen over blocking logout. If a caller ever needs to hard-block on a
+   * dirty queue, it now has the signal to do so.
    */
   clearPending: async (): Promise<RecoverySkyResult<number>> => {
     const pending = await getSyncQueueRepo().getPending()
     if (!pending.ok) return err(pending.error)
 
     const failedIds: string[] = []
+    // Keep each delete's underlying error, not just its id: this is the
+    // cross-account-leak path, so an operator needs to know WHY a row survived
+    // (db locked, constraint, ...) to act on it, not merely that one did.
+    const failureReasons: string[] = []
     for (const item of pending.value) {
       const deleteResult = await getSyncQueueRepo().delete(item.id)
       if (!deleteResult.ok) {
         failedIds.push(item.id)
+        failureReasons.push(
+          `${item.id}: ${String(deleteResult.error?.message ?? deleteResult.error)}`,
+        )
       }
     }
 
@@ -170,6 +182,7 @@ export const syncQueueRepo = {
         failedIdCount: failedIds.length,
         totalPending: pending.value.length,
         failedIdList: failedIds.join(", "),
+        failureReasons: failureReasons.join("; "),
       })
       return err({
         kind: "Unexpected",
@@ -212,10 +225,13 @@ export function setAttendanceMutationHook(fn: ((m: AttendanceMutation) => void) 
 
 function notifyAttendanceMutation(m: AttendanceMutation): void {
   // Isolated: a throwing hook must never break the mutation that already succeeded.
+  // The catch binding is named `caughtError`, not `err`: this file imports `err()`
+  // as the domain error constructor (used by clearPending), and a `catch (err)`
+  // would shadow it for anyone reading this block.
   try {
     attendanceMutationHook?.(m)
-  } catch (err) {
-    log.error("attendanceMutationHook threw (isolated)", { error: String(err) })
+  } catch (caughtError) {
+    log.error("attendanceMutationHook threw (isolated)", { error: String(caughtError) })
   }
 }
 
