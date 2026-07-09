@@ -91,6 +91,9 @@ buck-out/
 # VS Code
 .vscode
 
+# Claude
+.claude
+
 # Expo
 .expo/*
 bin/Exponent.app
