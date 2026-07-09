@@ -6,14 +6,35 @@
  * documentation for more details.
  */
 import { type meeting } from "@recoverysky-org/common/browser"
-import { ApisauceInstance, create } from "apisauce"
+import { ApiResponse, ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
 import type { AttendanceRecord } from "@/db"
+import { trackEvent } from "@/services/tracking"
 import { logger } from "@/utils/logger"
 
-import { getGeneralApiProblem, type GeneralApiProblem } from "./apiProblem"
+import { getGeneralApiProblem as classifyApiProblem, type GeneralApiProblem } from "./apiProblem"
 import type { ApiConfig } from "./types"
+
+/**
+ * Classifies an api response's problem and tracks an `api_error` analytics
+ * event when one is found. Wraps the pure classifier in ./apiProblem, which
+ * is kept free of @/ imports so it's unit-testable under Vitest — see
+ * [[vitest-no-path-alias]]. Same name/signature as before so none of this
+ * file's 27+ call sites need to change.
+ */
+function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProblem | null {
+  const problem = classifyApiProblem(response)
+
+  if (problem) {
+    trackEvent("api_error", {
+      kind: problem.kind,
+      endpoint: response.config?.url || "",
+    })
+  }
+
+  return problem
+}
 
 // =============================================================================
 // Attestation Types
@@ -194,7 +215,8 @@ export interface FirebaseReportRecord {
 }
 
 // Re-export for convenience
-export { GeneralApiProblem, getGeneralApiProblem } from "./apiProblem"
+export type { GeneralApiProblem } from "./apiProblem"
+export { getGeneralApiProblem }
 export type { ApiConfig } from "./types"
 
 const log = logger.child({ module: "Api" })

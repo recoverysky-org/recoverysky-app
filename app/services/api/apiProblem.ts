@@ -1,7 +1,9 @@
 import { ApiResponse } from "apisauce"
 
-import { trackEvent } from "@/services/tracking"
-
+// Kept free of @/ imports (and any side effects) so it's unit-testable under
+// Vitest, which has no @/ alias resolution — see [[vitest-no-path-alias]].
+// Analytics tracking for classified problems lives in the caller
+// (services/api/index.ts's getGeneralApiProblem wrapper), not here.
 export type GeneralApiProblem =
   /**
    * Times up.
@@ -82,13 +84,6 @@ export function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProb
       break
     case "CANCEL_ERROR":
       return null
-  }
-
-  if (problem) {
-    trackEvent("api_error", {
-      kind: problem.kind,
-      endpoint: response.config?.url || "",
-    })
   }
 
   return problem
