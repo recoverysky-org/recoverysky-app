@@ -58,6 +58,14 @@ function cursorKey(resource: SyncResource, uid: string): string {
   return `sync.cursor.${resource}.${uid}`
 }
 
+// MMKV key recording which uid's rows currently sit in the outbox. Stamped on
+// every enqueue (see deps.queue.enqueue below) so trigger 4 can tell "same
+// user signed back in" (owner === userId, queue survives) apart from "a
+// different account is signing in on this device" (owner !== userId, queue
+// must be cleared before any tick can push the previous owner's rows under
+// the new user's token).
+const QUEUE_OWNER_KEY = "sync.queueOwnerUid"
+
 /**
  * Combined availability gate. Cheap MobX-observable checks run first;
  * the RevenueCat entitlement check is an SDK call (cached, but still async
@@ -161,6 +169,17 @@ const deps: SyncDeps = {
   queue: {
     enqueue: async (entry) => {
       unwrap(await syncQueueRepo.enqueue({ tableName: "attendances", ...entry }), "enqueue")
+      // Stamp the queue's owner here — NOT in setAttendanceMutationHook —
+      // so both the per-mutation hook and initialBackup()'s bulk enqueue
+      // (which calls this same adapter, not the hook) keep the ownership
+      // record accurate. Skip when there's no uid (shouldn't happen once
+      // gate() has passed, but this adapter can theoretically be called
+      // before rootStoreRef is set) and skip a redundant write when the
+      // stored owner already matches, to avoid hammering MMKV on every row.
+      const uid = rootStoreRef?.authenticationStore.userId
+      if (uid && loadString(QUEUE_OWNER_KEY) !== uid) {
+        saveString(QUEUE_OWNER_KEY, uid)
+      }
     },
     // Per-record dirty check for the pull merge — see the predicate note on
     // syncQueueRepo.isPending() in db/repositories.ts. It MUST match
@@ -235,6 +254,11 @@ let initialized = false
  * this registers MobX reactions and an AppState listener that would
  * duplicate on a second call (same reason the outage-recovery path uses
  * Updates.reloadAsync() instead of re-running bootstrap in place).
+ *
+ * None of the reaction()/AppState.addEventListener() disposers below are
+ * retained — deliberate, not a leak: this is a single-call, app-lifetime
+ * singleton (the `initialized` guard above enforces "exactly once"), so
+ * there's nothing to tear down before process exit.
  */
 export function initAttendanceSync(rootStore: RootStore): void {
   if (initialized) {
@@ -293,18 +317,33 @@ export function initAttendanceSync(rootStore: RootStore): void {
     },
   )
 
-  // 4. Account change → drop the queue. Cursors are keyed per-uid already,
-  //    so no cursor cleanup is needed here; onLogout() only needs to clear
-  //    the queue so user A's queued records can never push under user B's
-  //    token after a device-shared sign-out/sign-in. Guarded on
-  //    `prevUserId` truthiness so the very first hydration (undefined →
-  //    some id) doesn't fire a spurious clear.
+  // 4. Account switch → drop the queue. Cursors are keyed per-uid already,
+  //    so no cursor cleanup is needed here. This reaction is keyed off
+  //    sign-IN, not off any userId change: an ordinary sign-out sets
+  //    userId -> undefined via AuthenticationStore.logout(), and that
+  //    transition must NOT clear the queue — the gate already blocks every
+  //    push while unauthenticated, so queued rows sit safely until the same
+  //    user signs back in and resumes the drain with their offline edits
+  //    intact. Only a *different* account signing in on this device (the
+  //    stored QUEUE_OWNER_KEY disagreeing with the incoming userId) clears
+  //    the queue, and it does so before any tick can push the previous
+  //    owner's rows under the new user's token — the server stamps every
+  //    pushed record with the authenticated uid.
   reaction(
     () => rootStore.authenticationStore.userId,
-    (userId, prevUserId) => {
-      if (prevUserId && userId !== prevUserId) {
+    (userId) => {
+      if (!userId) return
+      const owner = loadString(QUEUE_OWNER_KEY)
+      if (owner && owner !== userId) {
+        // Fire-and-forget async clear racing a synchronous ownership stamp
+        // below is safe: queued rows can only be pushed by a tick, and every
+        // tick re-runs gate() + reads the current owner, so nothing can push
+        // stale rows in the gap. Do NOT "fix" this into an awaited sequence —
+        // this reaction callback is synchronous and can't be made async
+        // without changing mobx's `reaction` contract.
         void attendanceSync.onLogout()
       }
+      saveString(QUEUE_OWNER_KEY, userId)
     },
   )
 
