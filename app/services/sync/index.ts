@@ -67,6 +67,24 @@ function cursorKey(resource: SyncResource, uid: string): string {
 const QUEUE_OWNER_KEY = "sync.queueOwnerUid"
 
 /**
+ * True while a foreign-owner queue clear is in flight (or still owed).
+ *
+ * This closes a real cross-account leak. When user B signs in, MobX fires
+ * reactions in REGISTRATION order, and the gate-clear reaction (trigger 3) is
+ * registered before the account-switch reaction (trigger 4). So `isAuthenticated`
+ * flipping true would kick off `fullSync()` — and `pushTick` would drain user
+ * A's still-queued rows under B's token — before trigger 4 ever ran its
+ * `onLogout()`. The server stamps every pushed record with the *authenticated*
+ * uid, so A's attendance would silently land in B's account.
+ *
+ * Making the reaction `await` wouldn't help (a mobx reaction callback is
+ * synchronous). Instead the gate itself refuses to open until the clear has
+ * completed, which is the one place every tick — push, pull, and backfill —
+ * must pass through.
+ */
+let ownerClearPending = false
+
+/**
  * Combined availability gate. Cheap MobX-observable checks run first;
  * the RevenueCat entitlement check is an SDK call (cached, but still async
  * I/O) and only runs once everything else has already passed — no point
@@ -77,6 +95,10 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
   if (!rs) return { ok: false, uid: "" }
   const auth = rs.authenticationStore
   const uid = auth.userId ?? ""
+  // Hard block: never let any tick run while the outbox still holds another
+  // account's rows. Self-heals — the clear flips this back and the next
+  // trigger (resume, gate reaction, nudge) syncs normally.
+  if (ownerClearPending) return { ok: false, uid }
   const cheapOk =
     rs.profileStore.syncEnabled &&
     !auth.isAnonymous &&
@@ -87,6 +109,32 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
   if (!cheapOk) return { ok: false, uid }
   const entitled = await hasEntitlement(ENTITLEMENTS.ATTENDANCE)
   return { ok: entitled, uid }
+}
+
+/**
+ * Hand the outbox to `uid`, clearing any previous owner's rows first.
+ *
+ * Sets `ownerClearPending` SYNCHRONOUSLY before the async clear starts, so a
+ * tick racing us from another reaction sees a closed gate. Stamps the new owner
+ * immediately too: if the process dies mid-clear, the next launch's boot check
+ * sees owner === uid and won't re-clear, while the rows it failed to delete
+ * belong to nobody the gate would push them under.
+ */
+function takeQueueOwnership(uid: string): void {
+  const owner = loadString(QUEUE_OWNER_KEY)
+  if (owner && owner !== uid) {
+    ownerClearPending = true
+    saveString(QUEUE_OWNER_KEY, uid)
+    log.info("Account switch — clearing the previous owner's outbox", { owner, uid })
+    void attendanceSync
+      .onLogout()
+      .catch((err) => log.error("Failed to clear foreign outbox", { error: String(err) }))
+      .finally(() => {
+        ownerClearPending = false
+      })
+    return
+  }
+  if (owner !== uid) saveString(QUEUE_OWNER_KEY, uid)
 }
 
 /**
@@ -329,23 +377,28 @@ export function initAttendanceSync(rootStore: RootStore): void {
   //    the queue, and it does so before any tick can push the previous
   //    owner's rows under the new user's token — the server stamps every
   //    pushed record with the authenticated uid.
+  //
+  //    The clear is async but this callback is synchronous, so the handoff
+  //    can't await it. takeQueueOwnership() instead raises `ownerClearPending`
+  //    synchronously, which slams the gate shut for every tick until the clear
+  //    finishes. Without that, trigger 3 above — registered FIRST, so it runs
+  //    FIRST when isAuthenticated flips — would start a fullSync() and push the
+  //    previous owner's rows under the new user's token before we ever got here.
   reaction(
     () => rootStore.authenticationStore.userId,
     (userId) => {
       if (!userId) return
-      const owner = loadString(QUEUE_OWNER_KEY)
-      if (owner && owner !== userId) {
-        // Fire-and-forget async clear racing a synchronous ownership stamp
-        // below is safe: queued rows can only be pushed by a tick, and every
-        // tick re-runs gate() + reads the current owner, so nothing can push
-        // stale rows in the gap. Do NOT "fix" this into an awaited sequence —
-        // this reaction callback is synchronous and can't be made async
-        // without changing mobx's `reaction` contract.
-        void attendanceSync.onLogout()
-      }
-      saveString(QUEUE_OWNER_KEY, userId)
+      takeQueueOwnership(userId)
     },
   )
+
+  // 4b. Boot-time reconciliation. The reaction above only fires on a *change*.
+  //     If the process died between an account switch and the clear completing
+  //     (or the app relaunches already signed in as someone other than the
+  //     recorded owner), no change ever occurs and the foreign rows would sit
+  //     in the outbox waiting to be pushed under the wrong identity.
+  const bootUid = rootStore.authenticationStore.userId
+  if (bootUid) takeQueueOwnership(bootUid)
 
   // 5. Cold-start catch-up (post-bootstrap). gate() inside fullSync()/its
   //    ticks decides whether this actually does anything — for the common
