@@ -487,6 +487,22 @@ describe("initialBackup", () => {
     expect(svc.syncState.phase).toBe("idle")
   })
 
+  it("a local-SQLite throw neither rejects nor reports success", async () => {
+    // The only caller is a fire-and-forget `void initialBackup()` in Settings,
+    // so a rejection here would be an unhandled promise rejection, and the
+    // status line would read "All backed up ✓" for a backup that never ran.
+    const deps = makeDeps()
+    deps.local.allIds = async () => {
+      throw new Error("database is locked")
+    }
+    const svc = createAttendanceSyncService(deps)
+    await expect(svc.initialBackup()).resolves.toBeUndefined()
+    expect(svc.syncState.phase).toBe("error")
+    expect(deps.calls.logError.some(([msg]) => String(msg).includes("initial backup failed"))).toBe(
+      true,
+    )
+  })
+
   it("recordFailure() defers to backingUp: two consecutive failures during initialBackup() never surface 'error' mid-backup, but settle to 'error' once the backup finishes", async () => {
     const deps = makeDeps()
     // deps.now() is a mutable closure that advances on every call so the

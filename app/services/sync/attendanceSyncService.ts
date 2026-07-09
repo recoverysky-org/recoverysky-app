@@ -612,6 +612,14 @@ export function createAttendanceSyncService(deps: SyncDeps) {
    * the server already has is a safe LWW no-op (per the API doc). Interrupted
    * runs need no special resume: the queue is durable SQL and the next
    * launch's ticks keep draining.
+   *
+   * Never rejects. Network failures are already absorbed by pullTick/pushTick
+   * (they call recordFailure() and return), but a local-SQLite throw from
+   * allIds()/enqueue()/backfillReportBodies() used to escape — and because the
+   * only caller is a fire-and-forget `void initialBackup()` in Settings, that
+   * became an unhandled rejection AND settlePhase() parked the status line on
+   * "idle" (consecutiveFailures was still 0), so a backup that died mid-flight
+   * rendered as "All backed up ✓". Swallow-and-surface instead.
    */
   async function initialBackup(): Promise<void> {
     const gate = await deps.gate()
@@ -623,6 +631,7 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     // `phase` stuck on "backing-up", so the Settings status line read
     // "Backing up…" forever even though nothing was happening anymore.
     backingUp = true
+    let failed = false
     runInAction(() => {
       syncState.phase = "backing-up"
     })
@@ -640,9 +649,20 @@ export function createAttendanceSyncService(deps: SyncDeps) {
         await deps.queue.enqueue({ recordId: id, operation: "update" })
       }
       await pushTick()
+    } catch (error) {
+      deps.log.error("sync: initial backup failed", { error: String(error) })
+      failed = true
     } finally {
       backingUp = false
-      settlePhase()
+      // A thrown backup is an error state regardless of consecutiveFailures —
+      // settlePhase() would read 0 failures and report "idle".
+      if (failed) {
+        runInAction(() => {
+          syncState.phase = "error"
+        })
+      } else {
+        settlePhase()
+      }
     }
   }
 

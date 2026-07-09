@@ -319,7 +319,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         // persisted per-account cursors, and the push deliberately re-enqueues
         // every local record — the server's last-write-wins upsert turns a
         // re-push of unchanged rows into a harmless no-op, so there is nothing
-        // to diff and nothing to guard against.
+        // to diff and nothing to guard against. The bare `void` is safe because
+        // initialBackup() never rejects — it logs and flips phase to "error"
+        // internally (see its doc comment).
         void attendanceSync.initialBackup()
       }
       // Toggle OFF is pause-only, deliberately: it flips syncEnabled false so
