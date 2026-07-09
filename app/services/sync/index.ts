@@ -118,6 +118,16 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
 }
 
 /**
+ * Resolves when the in-flight foreign-owner clear finishes; rejects (and STAYS
+ * rejected) if that clear failed. `null` when no clear is owed.
+ *
+ * Anything that writes to the outbox must await this first. Awaiting a
+ * already-rejected promise re-throws every time, which is exactly what we want:
+ * the outbox stays untouched until a launch manages to clear it.
+ */
+let ownerClear: Promise<void> | null = null
+
+/**
  * THE ONLY place that writes to the outbox.
  *
  * Enqueue and ownership-stamp are welded together on purpose. Every queued row
@@ -128,12 +138,24 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
  * clear", and the previous user's rows would push under the new user's token.
  * (That bug shipped once: the mutation hook called syncQueueRepo.enqueue()
  * directly while only this adapter stamped.) Route every enqueue through here.
+ *
+ * It also WAITS for any owed clear before touching anything. Stamping while a
+ * foreign-owner clear was pending or had failed would advance the owner to the
+ * new user over a queue that still held the previous user's rows — the next
+ * launch's boot check would then see `owner === uid`, skip the retry, and push
+ * those rows under the new user's token. Racing the clear is the same bug as
+ * skipping it.
  */
 async function enqueueAttendance(entry: {
   recordId: string
   operation: "create" | "update" | "delete"
   payload?: string
 }): Promise<void> {
+  // Throws if the clear failed — the caller logs and drops this enqueue. The
+  // record itself is safe in SQLite; the next launch clears the queue and a
+  // later initialBackup()/mutation re-enqueues it.
+  if (ownerClear) await ownerClear
+
   unwrap(await syncQueueRepo.enqueue({ tableName: "attendances", ...entry }), "enqueue")
   // Skip when there is no uid (this can be reached before rootStoreRef is set),
   // and skip a redundant MMKV write when the stored owner already matches.
@@ -155,9 +177,11 @@ async function enqueueAttendance(entry: {
  *    launch would see owner === uid, skip the retry, and push the leftover
  *    foreign rows. Leaving the old owner in place means the boot check retries.
  *
- * On failure we deliberately leave `ownerClearPending` true: sync stays off for
- * this session rather than draining someone else's attendance into this account.
- * The next launch's boot reconciliation retries the clear.
+ * On failure we deliberately leave `ownerClearPending` true and `ownerClear`
+ * rejected: sync stays off, and every enqueue keeps throwing, rather than
+ * draining someone else's attendance into this account. The next launch's boot
+ * reconciliation retries the clear — which only works because the stamp still
+ * names the OLD owner, so `ownershipAction` still says "clear-then-stamp".
  */
 function takeQueueOwnership(uid: string): void {
   const owner = loadString(QUEUE_OWNER_KEY)
@@ -169,21 +193,28 @@ function takeQueueOwnership(uid: string): void {
     // ?? "" only satisfies the logger's attribute type.
     const previousOwner = owner ?? ""
     log.info("Account switch — clearing the previous owner's outbox", { previousOwner, uid })
-    void attendanceSync
-      .onLogout()
-      .then(() => {
-        saveString(QUEUE_OWNER_KEY, uid)
-        ownerClearPending = false
+
+    // Published so enqueueAttendance() can await it. On success the stamp
+    // advances and the gate reopens; on failure the promise stays rejected, so
+    // every later enqueue throws instead of stamping over an uncleared queue.
+    const clear = attendanceSync.onLogout().then(() => {
+      saveString(QUEUE_OWNER_KEY, uid)
+      ownerClearPending = false
+      ownerClear = null
+    })
+    ownerClear = clear
+
+    // Observe the rejection so Node/Hermes doesn't report it as unhandled. This
+    // does NOT reset the flag or the promise — awaiting `ownerClear` elsewhere
+    // must still throw. No `finally`: resetting unconditionally would reopen the
+    // gate over a queue that still holds foreign rows.
+    clear.catch((err) => {
+      log.error("Failed to clear foreign outbox — sync stays disabled until relaunch", {
+        previousOwner,
+        uid,
+        error: String(err),
       })
-      .catch((err) => {
-        // Fail closed. No `finally` here — resetting the flag unconditionally
-        // would reopen the gate over a queue that still holds foreign rows.
-        log.error("Failed to clear foreign outbox — sync stays disabled until relaunch", {
-          previousOwner,
-          uid,
-          error: String(err),
-        })
-      })
+    })
     return
   }
   // action === "stamp": nobody owned the queue yet.
@@ -384,7 +415,9 @@ export function initAttendanceSync(rootStore: RootStore): void {
   let appState = AppState.currentState
   AppState.addEventListener("change", (nextState: AppStateStatus) => {
     if (appState.match(/inactive|background/) && nextState === "active") {
-      void attendanceSync.fullSync()
+      void attendanceSync
+        .fullSync()
+        .catch((err) => log.error("fullSync failed", { error: String(err) }))
     }
     appState = nextState
   })
@@ -403,7 +436,10 @@ export function initAttendanceSync(rootStore: RootStore): void {
       !rootStore.configStore.maintenanceMode &&
       !rootStore.networkStore.isOffline,
     (available) => {
-      if (available) void attendanceSync.fullSync()
+      if (available)
+        void attendanceSync
+          .fullSync()
+          .catch((err) => log.error("fullSync failed", { error: String(err) }))
     },
   )
 
@@ -446,7 +482,9 @@ export function initAttendanceSync(rootStore: RootStore): void {
   //    ticks decides whether this actually does anything — for the common
   //    case (syncEnabled still false) every tick below short-circuits on
   //    the gate and this is a no-op.
-  void attendanceSync.fullSync()
+  void attendanceSync
+    .fullSync()
+    .catch((err) => log.error("fullSync failed", { error: String(err) }))
 
   log.info("Attendance sync initialized")
 }
