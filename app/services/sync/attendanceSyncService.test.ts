@@ -83,6 +83,7 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
     queue: {
       enqueue: track("enqueue", async () => {}),
       pending: track("pending", async () => []),
+      isPending: track("isPending", async () => false),
       markSynced: track("markSynced", async () => {}),
       markFailed: track("markFailed", async () => {}),
       clearPending: track("clearPending", async () => {}),
@@ -171,6 +172,16 @@ describe("pushTick", () => {
     expect(deps.calls.markFailed.map((c) => c[0])).toEqual(["q2"])
   })
 
+  it("pushTick is reentrant-safe: overlapping calls drain the outbox once", async () => {
+    const deps = makeDeps()
+    deps.queue.pending = async () => [
+      { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
+    ]
+    const svc = createAttendanceSyncService(deps)
+    await Promise.all([svc.pushTick(), svc.pushTick()]) // concurrent, not sequential
+    expect(deps.calls.pushAttendance).toHaveLength(1)
+  })
+
   it("leaves entries pending on a whole-request failure and enters backoff", async () => {
     const deps = makeDeps()
     deps.queue.pending = async () => [
@@ -198,9 +209,10 @@ describe("pushTick", () => {
 describe("pullTick", () => {
   it("applies create/update/delete and skips dirty records", async () => {
     const deps = makeDeps()
-    deps.queue.pending = async () => [
-      { queueId: "q1", recordId: "dirty-1", operation: "update", payload: null },
-    ]
+    // I3: dirty-skip is now driven by the per-record queue.isPending() check,
+    // not a queue.pending() snapshot — see the pullTick regression tests
+    // below for the race this replaced.
+    deps.queue.isPending = async (id: string) => id === "dirty-1"
     deps.local.exists = async (id: string) => id === "existing-1"
     deps.api.pullAttendance = async () => ({
       kind: "ok" as const,
@@ -239,6 +251,53 @@ describe("pullTick", () => {
     expect(deps.calls.cursorSet).toBeUndefined()
   })
 
+  it("pullTick is reentrant-safe: overlapping calls drain once", async () => {
+    // Deliberately does NOT override deps.api.pullAttendance — an override
+    // would replace the makeDeps() track() wrapper and leave calls.pullAttendance
+    // undefined regardless of correctness (see the note on the pushAttendance
+    // backoff test above). The default tracked mock (ok, empty page) is enough:
+    // a reentrant second call still reaches the API if the guard is broken.
+    const deps = makeDeps()
+    const svc = createAttendanceSyncService(deps)
+    await Promise.all([svc.pullTick("attendance"), svc.pullTick("attendance")]) // concurrent
+    expect(deps.calls.pullAttendance).toHaveLength(1)
+  })
+
+  it("skips a record that is dirty at write time, not merely at page-snapshot time", async () => {
+    const deps = makeDeps()
+    deps.api.pullAttendance = async () => ({
+      kind: "ok" as const,
+      records: [serverRec("a"), serverRec("b")],
+      cursor: 5,
+      hasMore: false,
+    })
+    // "b" becomes dirty only after the page began merging — a per-page
+    // snapshot taken before the loop would have missed this.
+    deps.queue.isPending = async (id: string) => id === "b"
+    const svc = createAttendanceSyncService(deps)
+    await svc.pullTick("attendance")
+    const written = (deps.calls.createFromServer ?? []).map((c) => (c[0] as { id: string }).id)
+    expect(written).toEqual(["a"]) // "b" was skipped as dirty
+  })
+
+  it("logs an error when a write raced a concurrent local edit", async () => {
+    const deps = makeDeps()
+    deps.api.pullAttendance = async () => ({
+      kind: "ok" as const,
+      records: [serverRec("a")],
+      cursor: 5,
+      hasMore: false,
+    })
+    let seen = 0
+    deps.queue.isPending = async () => {
+      seen++
+      return seen > 1 // clean before the write, dirty after it
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.pullTick("attendance")
+    expect(deps.calls.logError?.length ?? 0).toBeGreaterThan(0)
+  })
+
   it("pages until hasMore=false, advancing since from each page cursor", async () => {
     const deps = makeDeps()
     const sinceSeen: number[] = []
@@ -268,6 +327,46 @@ describe("initialBackup", () => {
       "att-1",
       "att-2",
     ])
+  })
+
+  it("initialBackup never leaves phase stuck on 'backing-up' when a pull fails", async () => {
+    const deps = makeDeps()
+    deps.api.pullAttendance = async () => ({ kind: "timeout" as const })
+    const svc = createAttendanceSyncService(deps)
+    await svc.initialBackup()
+    expect(svc.syncState.phase).not.toBe("backing-up")
+  })
+})
+
+describe("phase settling (I2)", () => {
+  it("a single failure does not park phase in 'syncing'", async () => {
+    const deps = makeDeps()
+    deps.queue.pending = async () => [
+      { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
+    ]
+    deps.api.pushAttendance = async () => ({ kind: "timeout" as const })
+    const svc = createAttendanceSyncService(deps)
+    await svc.pushTick()
+    expect(svc.syncState.phase).not.toBe("syncing") // one failure => idle, not error
+    expect(svc.syncState.phase).toBe("idle")
+  })
+
+  it("a second consecutive failure flips phase to 'error'", async () => {
+    const deps = makeDeps()
+    deps.queue.pending = async () => [
+      { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
+    ]
+    deps.api.pushAttendance = async () => ({ kind: "timeout" as const })
+    // `now` is a mutable closure so we can advance the clock past
+    // nextAllowedAt between ticks — real timers/fake timers are unnecessary
+    // and the brief explicitly asks us to avoid vi.useFakeTimers() here.
+    let currentTime = 1_000_000
+    deps.now = () => currentTime
+    const svc = createAttendanceSyncService(deps)
+    await svc.pushTick() // 1st failure: nextAllowedAt = currentTime + 30_000
+    currentTime += 31_000 // clear the backoff window
+    await svc.pushTick() // 2nd consecutive failure
+    expect(svc.syncState.phase).toBe("error")
   })
 })
 

@@ -74,6 +74,15 @@ export interface SyncDeps {
       payload?: string
     }): Promise<void>
     pending(): Promise<SyncQueueEntry[]>
+    /**
+     * I3: per-record dirty check, taken immediately before a pull merge
+     * decision (NOT snapshotted once per page — see the comment at its call
+     * site in pullTick). Task 6 backs this with an indexed
+     * `findByRecordId("attendances", id)` lookup; deliberately a targeted
+     * point lookup, not a batch/cache, to keep the check as close as
+     * possible to the moment of the write.
+     */
+    isPending(recordId: string): Promise<boolean>
     markSynced(queueId: string): Promise<void>
     markFailed(queueId: string, message: string): Promise<void>
     clearPending(): Promise<void>
@@ -127,9 +136,36 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   // Reentrancy guards — a tick fired while the same tick is mid-flight is a no-op.
   let pushing = false
   let pulling = false
+  // I2: true for the duration of initialBackup(). While set, settlePhase()
+  // is a no-op — the backup owns "backing-up" across its two pullTicks and
+  // final pushTick, and we don't want an inner tick's finally stomping that
+  // back to "idle"/"error" mid-backup.
+  let backingUp = false
 
   function backoffActive(): boolean {
     return deps.now() < nextAllowedAt
+  }
+
+  /**
+   * I2 FIX: the single authority that restores steady-state `phase`.
+   * Before this existed, any early return inside pushTick/pullTick (closed
+   * gate, active backoff, the I1 reentrancy guard) skipped `finishCycle()`
+   * entirely, so `phase` could stay on "backing-up" or "syncing" forever —
+   * the Settings status line would read "Syncing…" with nothing in flight.
+   * Every pushTick/pullTick now calls this from its `finally`, so it always
+   * runs last regardless of which path was taken. `backingUp` is the one
+   * exception: initialBackup() owns the phase while it's mid-flight, so we
+   * defer to it and only settle once initialBackup()'s own finally clears
+   * the flag and calls this again.
+   */
+  function settlePhase(): void {
+    if (backingUp) return
+    runInAction(() => {
+      // >=2 consecutive failures matches recordFailure()'s own threshold for
+      // flipping to "error" — one flaky request should not park the status
+      // line on an alarming state, but a second one in a row should.
+      syncState.phase = consecutiveFailures >= 2 ? "error" : "idle"
+    })
   }
 
   function recordFailure(): void {
@@ -162,10 +198,19 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   /** Drain the outbox: read current rows, batch, push, resolve queue entries. */
   async function pushTick(): Promise<void> {
     if (pushing || backoffActive()) return
-    const gate = await deps.gate()
-    if (!gate.ok) return
+    // I1 FIX: the flag must be set synchronously, with NO await between this
+    // check and the assignment. `nudgePush`'s debounced timer and a
+    // resume/focus-triggered `fullSync` can both call pushTick() around the
+    // same tick; if the flag were set only after `await deps.gate()` (as it
+    // used to be), both callers would observe `pushing === false`, both would
+    // await the gate, and both would then drain the outbox concurrently —
+    // double-pushing the same records. Setting it here, before any await,
+    // closes that window; the `finally` below clears it (and calls
+    // settlePhase(), see I2) no matter which path we return through.
     pushing = true
     try {
+      const gate = await deps.gate()
+      if (!gate.ok) return
       const entries = await deps.queue.pending()
       runInAction(() => {
         syncState.pendingCount = entries.length
@@ -176,7 +221,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
         }
         return
       }
-      if (syncState.phase === "idle" || syncState.phase === "error") {
+      // I2: only announce "syncing" when we're not mid-initialBackup — the
+      // backup already shows "backing-up" and flipping to "syncing" here
+      // would be a confusing flicker for a tick that's really part of the
+      // same backup pass.
+      if (!backingUp && (syncState.phase === "idle" || syncState.phase === "error")) {
         runInAction(() => {
           syncState.phase = "syncing"
         })
@@ -271,17 +320,24 @@ export function createAttendanceSyncService(deps: SyncDeps) {
       if (remaining.length === 0) finishCycle(gate.uid)
     } finally {
       pushing = false
+      settlePhase() // I2: authoritative restore — runs no matter which path we took above.
     }
   }
 
   /** Pull one resource to completion (pages until hasMore=false). */
   async function pullTick(resource: SyncResource): Promise<void> {
     if (pulling || backoffActive()) return
-    const gate = await deps.gate()
-    if (!gate.ok) return
+    // I1 FIX: same reentrancy race as pushTick — set the flag before the
+    // first await so two overlapping callers (e.g. fullSync() firing off
+    // both pullTick("attendance") and a stray resume trigger) can't both slip
+    // past the `if (pulling)` check while the flag is still false and then
+    // both page through the API concurrently, double-applying merges and
+    // racing the cursor.
     pulling = true
     let changed = false
     try {
+      const gate = await deps.gate()
+      if (!gate.ok) return
       let since = deps.cursors.get(resource, gate.uid)
       for (;;) {
         const result =
@@ -306,11 +362,6 @@ export function createAttendanceSyncService(deps: SyncDeps) {
           return
         }
 
-        // Snapshot pending ids once per page — a record with an unpushed local
-        // edit must not be clobbered by an older server copy (dirty-skip).
-        const pending = await deps.queue.pending()
-        const pendingIds = new Set(pending.map((e) => e.recordId))
-
         let pageClean = true
         for (const rec of page.records) {
           try {
@@ -318,10 +369,26 @@ export function createAttendanceSyncService(deps: SyncDeps) {
               resource === "attendance"
                 ? await deps.local.exists(rec.id)
                 : await deps.local.reportExists(rec.id)
+            // I3 FIX: dirty check happens per-record, immediately before the
+            // merge decision — NOT a `pendingIds` set snapshotted once per
+            // page (the old shape). With a per-page snapshot, a record
+            // edited (and enqueued) after the snapshot was taken but before
+            // its turn later in this same page's loop was invisible to the
+            // dirty check: the older server copy silently clobbered the
+            // fresh local edit, the queue entry survived, and the NEXT
+            // pushTick read the now-server-reverted row via findByIds and
+            // pushed+synced it — the user's edit vanished with no error
+            // anywhere. Re-reading here shrinks the race window from "the
+            // whole page" down to "the gap between this check and the write
+            // below" (see the post-write re-check a few lines down for that
+            // residual window). Reports have no push path, so they can never
+            // be dirty — skip the lookup entirely rather than pay an await
+            // for a call that would always return false.
+            const hasPendingPush =
+              resource === "attendance" ? await deps.queue.isPending(rec.id) : false
             const action = mergePullDecision({
               deleted: rec.deleted,
-              // Reports have no push path, so nothing is ever dirty.
-              hasPendingPush: resource === "attendance" && pendingIds.has(rec.id),
+              hasPendingPush,
               existsLocally,
             })
             if (action === "skip-dirty") continue
@@ -331,6 +398,20 @@ export function createAttendanceSyncService(deps: SyncDeps) {
               if (action === "delete") await deps.local.remove(a.id)
               else if (action === "update") await deps.local.updateFromServer(a)
               else await deps.local.createFromServer(a)
+              // I3: post-write re-check. One residual await-sized window
+              // remains — an enqueue can still land between the isPending()
+              // check above and this write completing — and we can't close
+              // it without a transactional read+write across a repository
+              // boundary this file doesn't own. What we CAN do is make a
+              // surviving clobber loud instead of silent: if the record is
+              // pending now but wasn't a moment ago, this write most likely
+              // raced a local edit. We don't attempt recovery here (the
+              // queued edit will still win on the next pushTick's LWW push);
+              // we just make sure it's never a silent data loss again.
+              const pendingAfter = await deps.queue.isPending(a.id)
+              if (pendingAfter && !hasPendingPush) {
+                deps.log.error("sync: pull write raced a concurrent local edit", { id: a.id })
+              }
             } else {
               const r = rec as ServerReportRecord
               if (action === "delete") await deps.local.reportRemove(r.id)
@@ -362,6 +443,7 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     } finally {
       pulling = false
       if (changed) deps.emitSynced()
+      settlePhase() // I2: authoritative restore — runs no matter which path we took above.
     }
   }
 
@@ -391,16 +473,28 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   async function initialBackup(): Promise<void> {
     const gate = await deps.gate()
     if (!gate.ok) return
+    // I2 FIX: backingUp + try/finally guarantee the phase is restored no
+    // matter how this exits — a failed pull, a closed gate on the later
+    // pushTick, or a thrown error. Before this fix, any of those early
+    // returns skipped straight past the end of the function and left
+    // `phase` stuck on "backing-up", so the Settings status line read
+    // "Backing up…" forever even though nothing was happening anymore.
+    backingUp = true
     runInAction(() => {
       syncState.phase = "backing-up"
     })
-    await pullTick("attendance")
-    await pullTick("reports")
-    const ids = await deps.local.allIds()
-    for (const id of ids) {
-      await deps.queue.enqueue({ recordId: id, operation: "update" })
+    try {
+      await pullTick("attendance")
+      await pullTick("reports")
+      const ids = await deps.local.allIds()
+      for (const id of ids) {
+        await deps.queue.enqueue({ recordId: id, operation: "update" })
+      }
+      await pushTick()
+    } finally {
+      backingUp = false
+      settlePhase()
     }
-    await pushTick()
   }
 
   /** Logout: never push user A's records under user B's token. */
