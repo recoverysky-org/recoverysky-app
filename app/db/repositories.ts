@@ -98,15 +98,96 @@ export const scheduleRepo = {
 }
 
 /**
- * Sync queue repository instance (lazy)
+ * Sync queue repository instance (lazy) — the durable outbox for cloud sync.
+ *
+ * Queue rows for create/update carry only recordId (current row data is read
+ * at push time so N edits collapse to one push); delete rows carry a JSON
+ * snapshot payload for tombstone construction.
  */
+function getSyncQueueRepo(): SyncQueueRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_syncQueueRepo) _syncQueueRepo = new SyncQueueRepository(db as any)
+  return _syncQueueRepo
+}
+
 export const syncQueueRepo = {
-  enqueue: async (data: any) => {
-    const { db } = getDb()
-    if (!db) throw new Error("Database not opened")
-    if (!_syncQueueRepo) _syncQueueRepo = new SyncQueueRepository(db as any)
-    return _syncQueueRepo.enqueue(data)
+  enqueue: async (input: {
+    tableName: string
+    recordId: string
+    operation: "create" | "update" | "delete"
+    payload?: string
+  }) => {
+    return getSyncQueueRepo().enqueue(input)
   },
+
+  /** Pending + retryable-failed items, FIFO */
+  getPending: async (maxRetries?: number) => {
+    return getSyncQueueRepo().getPending(maxRetries)
+  },
+
+  markSynced: async (id: string) => {
+    return getSyncQueueRepo().markSynced(id)
+  },
+
+  markFailed: async (id: string, errorMessage: string) => {
+    return getSyncQueueRepo().markFailed(id, errorMessage)
+  },
+
+  deleteItem: async (id: string) => {
+    return getSyncQueueRepo().delete(id)
+  },
+
+  /**
+   * Delete every pending/retryable item. Called on logout — user A's queued
+   * records must never be pushed under user B's token (the server would
+   * stamp them with B's uid).
+   */
+  clearPending: async () => {
+    const pending = await getSyncQueueRepo().getPending()
+    if (!pending.ok) return pending
+    for (const item of pending.value) {
+      await getSyncQueueRepo().delete(item.id)
+    }
+    return { ok: true as const, value: pending.value.length }
+  },
+}
+
+// ============================================================================
+// Attendance mutation hook (cloud sync outbox)
+// ============================================================================
+
+export type AttendanceMutationOp = "create" | "update" | "delete"
+
+export interface AttendanceMutation {
+  recordId: string
+  operation: AttendanceMutationOp
+  /** Pre-delete row snapshot — only present on "delete". The sync push builds
+   * a deleted:true tombstone from this because the row is gone by push time. */
+  snapshot?: AttendanceRecord
+}
+
+// Single choke point for the sync outbox: every app-side attendance mutation
+// flows through the attendanceRepo wrappers below, so one hook here covers
+// externalAttendance, useReportSender, AttendanceScreen edits, and
+// NinetyInNinetyCard — and any future mutation site — with zero call-site
+// changes. The sync service registers itself at init
+// (app/services/sync/index.ts). Pull-merge writes go through
+// attendanceSyncWriter instead, which deliberately does NOT notify — pulled
+// records must never re-enqueue themselves.
+let attendanceMutationHook: ((m: AttendanceMutation) => void) | null = null
+
+export function setAttendanceMutationHook(fn: ((m: AttendanceMutation) => void) | null): void {
+  attendanceMutationHook = fn
+}
+
+function notifyAttendanceMutation(m: AttendanceMutation): void {
+  // Isolated: a throwing hook must never break the mutation that already succeeded.
+  try {
+    attendanceMutationHook?.(m)
+  } catch (err) {
+    log.error("attendanceMutationHook threw (isolated)", { error: String(err) })
+  }
 }
 
 // ============================================================================
@@ -128,12 +209,20 @@ function getAttendanceRepo(): AttendanceSqliteRepository {
 export const attendanceRepo = {
   /** Create a new attendance record */
   create: async (input: AttendanceCreateInput) => {
-    return getAttendanceRepo().create(input)
+    const result = await getAttendanceRepo().create(input)
+    // create() resolves to the new row id; prefer it over input.id (which is optional)
+    if (result.ok) notifyAttendanceMutation({ recordId: result.value, operation: "create" })
+    return result
   },
 
   /** Find attendance by ID */
   findById: async (id: string) => {
     return getAttendanceRepo().findById(id)
+  },
+
+  /** Find multiple attendance records by id (sync push reads current rows) */
+  findByIds: async (ids: string[]) => {
+    return getAttendanceRepo().findByIds(ids)
   },
 
   /** Find all attendance records for a user */
@@ -168,12 +257,16 @@ export const attendanceRepo = {
 
   /** Mark an attendance record as archived */
   markArchived: async (id: string) => {
-    return getAttendanceRepo().markArchived(id)
+    const result = await getAttendanceRepo().markArchived(id)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Mark attendance as produced (link to a report, also archives) */
   markProduced: async (id: string, arid: string) => {
-    return getAttendanceRepo().markProduced(id, arid)
+    const result = await getAttendanceRepo().markProduced(id, arid)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Find attendance records linked to a specific report */
@@ -188,12 +281,16 @@ export const attendanceRepo = {
 
   /** Add an event to an attendance record */
   addEvent: async (id: string, event: AttendanceEvent) => {
-    return getAttendanceRepo().addEvent(id, event)
+    const result = await getAttendanceRepo().addEvent(id, event)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Update an attendance record */
   update: async (id: string, input: AttendanceUpdateInput) => {
-    return getAttendanceRepo().update(id, input)
+    const result = await getAttendanceRepo().update(id, input)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Mark attendance as processed with calculated values */
@@ -201,7 +298,9 @@ export const attendanceRepo = {
     id: string,
     data: { start: number; end: number; credit: number; valid: boolean },
   ) => {
-    return getAttendanceRepo().markProcessed(id, data)
+    const result = await getAttendanceRepo().markProcessed(id, data)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Get total credit for a user */
@@ -209,9 +308,59 @@ export const attendanceRepo = {
     return getAttendanceRepo().getTotalCreditForUser(uid)
   },
 
-  /** Delete an attendance record */
+  /** Delete an attendance record (hard delete — NinetyInNinetyCard cleanup).
+   * Snapshot the row FIRST: the sync tombstone push needs the full record
+   * after the row is gone. */
   delete: async (id: string) => {
+    const existing = await getAttendanceRepo().findById(id)
+    const snapshot = existing.ok && existing.value ? existing.value : undefined
+    const result = await getAttendanceRepo().delete(id)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "delete", snapshot })
+    return result
+  },
+}
+
+/**
+ * Hook-bypassing writes for the sync pull-merge path.
+ *
+ * INVARIANT: nothing in here calls notifyAttendanceMutation. Records applied
+ * from a server pull must not re-enter the sync outbox — that would echo
+ * every pulled record straight back to the server forever.
+ */
+export const attendanceSyncWriter = {
+  exists: async (id: string): Promise<boolean> => {
+    const result = await getAttendanceRepo().findById(id)
+    return result.ok && result.value !== null
+  },
+
+  createFromServer: async (input: AttendanceCreateInput) => {
+    return getAttendanceRepo().create(input)
+  },
+
+  updateFromServer: async (id: string, input: AttendanceUpdateInput) => {
+    return getAttendanceRepo().update(id, input)
+  },
+
+  /** Apply a pulled tombstone: hard-delete the local row. */
+  remove: async (id: string) => {
     return getAttendanceRepo().delete(id)
+  },
+
+  reportExists: async (id: string): Promise<boolean> => {
+    const result = await getAttendanceReportRepo().findById(id)
+    return result.ok && result.value !== null
+  },
+
+  reportCreateFromServer: async (input: AttendanceReportCreateInput) => {
+    return getAttendanceReportRepo().create(input)
+  },
+
+  reportUpdateFromServer: async (id: string, input: AttendanceReportUpdateInput) => {
+    return getAttendanceReportRepo().update(id, input)
+  },
+
+  reportRemove: async (id: string) => {
+    return getAttendanceReportRepo().delete(id)
   },
 }
 
@@ -596,4 +745,3 @@ export const profileRepository = {
     }
   },
 }
-
