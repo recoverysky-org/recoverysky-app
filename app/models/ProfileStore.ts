@@ -58,6 +58,10 @@ export const ProfileStoreModel = types
 
     // Attendance settings
     attendanceEnabled: types.optional(types.boolean, true),
+    // Cloud backup opt-in — default OFF. Attendance data reveals meeting
+    // attendance; backing it up to the server is explicit user consent
+    // (Settings toggle), never automatic. See the 2026-07-09 sync spec.
+    syncEnabled: types.optional(types.boolean, false),
     enableMeetingTopic: types.optional(types.boolean, true),
     reportEmail: types.optional(types.string, ""),
 
@@ -311,6 +315,10 @@ export const ProfileStoreModel = types
         self.attendanceEnabled = value
       },
 
+      setSyncEnabled(value: boolean) {
+        self.syncEnabled = value
+      },
+
       setEnableMeetingTopic(value: boolean) {
         self.enableMeetingTopic = value
       },
@@ -455,6 +463,7 @@ export const ProfileStoreModel = types
         self.dontShowShortMeetingWarning = false
         self.notificationsEnabled = true
         self.attendanceEnabled = true
+        self.syncEnabled = false // opt-in resets with the profile — consent doesn't survive a reset
         self.enableMeetingTopic = true
         self.reportEmail = ""
         self.imported = false
