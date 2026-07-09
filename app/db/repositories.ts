@@ -142,6 +142,29 @@ export const syncQueueRepo = {
   },
 
   /**
+   * Does this record have a queue entry that pushTick() will still push?
+   *
+   * The predicate MUST match SyncQueueRepository.getPending() exactly —
+   * `status IN ('pending','failed') AND retryCount < maxRetries` (default 3)
+   * — because the pull merge treats "pending" as "our local edit wins, don't
+   * let the server's older copy overwrite it." If this said yes for a
+   * permanently-failed entry (retryCount >= maxRetries, which getPending()
+   * excludes), that record would be dirty forever and the device would never
+   * converge with the server — the pull would keep skipping it as "dirty"
+   * even though nothing is ever going to push it again.
+   *
+   * On a read error, return `false` (fail open): a queue read failure must
+   * not block the pull merge from applying the server's copy.
+   */
+  isPending: async (recordId: string, maxRetries = 3): Promise<boolean> => {
+    const result = await getSyncQueueRepo().findByRecordId("attendances", recordId)
+    if (!result.ok) return false
+    return result.value.some(
+      (i) => (i.status === "pending" || i.status === "failed") && i.retryCount < maxRetries,
+    )
+  },
+
+  /**
    * Delete every pending/retryable item. Called on logout — user A's queued
    * records must never be pushed under user B's token (the server would
    * stamp them with B's uid).
