@@ -31,6 +31,7 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:component": "jest --forceExit",
     "test:component:watch": "jest --watch",
     "test:all": "vitest run && jest --forceExit",

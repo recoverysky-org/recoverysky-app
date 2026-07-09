@@ -11,5 +11,11 @@ module.exports = {
   setupFiles: ["<rootDir>/test/setup.ts"],
   // Only include .tsx component tests - .ts unit tests use Vitest
   testMatch: ["**/*.test.tsx"],
-  testPathIgnorePatterns: ["/node_modules/", "/MeetingSDK-ReactNative-Quickstart/"],
+  // .claude/worktrees holds full nested checkouts of this repo — without ignoring
+  // it, Jest discovers and runs every .tsx test twice (once per checkout).
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/MeetingSDK-ReactNative-Quickstart/",
+    "/\\.claude/",
+  ],
 }
