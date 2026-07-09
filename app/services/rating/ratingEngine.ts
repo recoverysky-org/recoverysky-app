@@ -19,7 +19,7 @@ import { trackEvent } from "@/services/tracking"
 import { logger } from "@/utils/logger"
 
 import { CFG, SUPPORT_URL } from "./config"
-import { shouldPrompt } from "./decide"
+import { daysBetween, shouldPrompt } from "./decide"
 import { applyApprove, applyDeny, reduceRecordEvent } from "./reducers"
 import { initState, saveState } from "./state"
 import type { RatingState } from "./types"
@@ -40,9 +40,24 @@ export function initRatingEngine(cs: ConfigStore): void {
   configStore = cs
   state = initState(new Date(), CFG)
   meetingEvents.subscribe((event) => {
-    if (event.type === "completed") recordEvent("meeting")
+    if (event.type === "completed") {
+      // DIAG: confirms the meeting-completion signal reached the rating engine.
+      log.info("rating[diag]: meetingEvents.completed received", { reason: event.reason })
+      recordEvent("meeting")
+    }
   })
-  log.debug("rating: initialized", { events: state.events, disabled: state.disabled })
+  // DIAG: full startup snapshot — events carried over, the prompt gate flag, and
+  // the active thresholds. If reviewEnabled is false here, the server /config
+  // (or env) hasn't enabled it and NO prompt will ever show.
+  log.info("rating[diag]: initialized", {
+    events: state.events,
+    installedAt: state.installedAt,
+    lastPromptAt: state.lastPromptAt ?? "null",
+    disabled: state.disabled,
+    reviewEnabled: cs.reviewEnabled,
+    MIN_EVENTS: CFG.MIN_EVENTS,
+    MIN_DAYS: CFG.MIN_DAYS,
+  })
 }
 
 /**
@@ -68,7 +83,10 @@ export function recordEvent(source: string): void {
     if (!state) state = initState(new Date(), CFG) // defensive: count even if init was skipped
     state = reduceRecordEvent(state)
     saveState(state)
-    log.debug("rating: event recorded", { source, events: state.events })
+    // DIAG: every counted event. If this doesn't appear after a meeting, the
+    // meetingEvents.completed signal never fired (invalid/short session, or
+    // attendance disabled so the timer never ran).
+    log.info("rating[diag]: event recorded", { source, events: state.events })
   } catch (err) {
     log.error("rating: recordEvent failed (event not counted)", { source, error: String(err) })
   }
@@ -85,15 +103,49 @@ export function recordEvent(source: string): void {
  * iOS freeze described on recordEvent returns.
  */
 export function maybePresentRatingPrompt(): void {
-  if (!state) return
-  if (Platform.OS === "web") return
-  // Prompt gate. Counting already happened in recordEvent; this only blocks the dialog.
-  if (!configStore?.reviewEnabled) return
+  if (!state) {
+    log.info("rating[diag]: present check → SKIP (no state — engine not initialized?)")
+    return
+  }
 
+  const now = new Date()
   const version = Application.nativeApplicationVersion
-  if (!shouldPrompt(state, new Date(), version, CFG)) return
+  const eligible = shouldPrompt(state, now, version, CFG)
 
-  log.debug("rating: showing soft-ask", { events: state.events, version: version ?? "unknown" })
+  // DIAG: the complete decision snapshot. This is the line to read when the
+  // prompt "doesn't show" — every gate input is here.
+  log.info("rating[diag]: present check", {
+    platform: Platform.OS,
+    reviewEnabled: configStore?.reviewEnabled,
+    events: state.events,
+    MIN_EVENTS: CFG.MIN_EVENTS,
+    daysSinceInstall: daysBetween(state.installedAt, now),
+    MIN_DAYS: CFG.MIN_DAYS,
+    lastPromptAt: state.lastPromptAt ?? "null",
+    denyCount: state.denyCount,
+    approvedAtVersion: state.approvedAtVersion ?? "null",
+    disabled: state.disabled,
+    version: version ?? "unknown",
+    shouldPrompt: eligible,
+  })
+
+  if (Platform.OS === "web") {
+    log.info("rating[diag]: present check → SKIP (web)")
+    return
+  }
+  // Prompt gate. Counting already happened in recordEvent; this only blocks the dialog.
+  if (!configStore?.reviewEnabled) {
+    log.info(
+      "rating[diag]: present check → SKIP (reviewEnabled is false — enable via server /config)",
+    )
+    return
+  }
+  if (!eligible) {
+    log.info("rating[diag]: present check → SKIP (not eligible — see shouldPrompt inputs above)")
+    return
+  }
+
+  log.info("rating[diag]: present check → SHOWING soft-ask", { events: state.events })
   showSoftAsk(version)
 }
 

@@ -22,6 +22,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **Rating-prompt pipeline instrumented with `rating[diag]` diagnostic logging.**
+  Every stage of the rating flow now logs at INFO (was DEBUG or silent): the
+  engine's startup snapshot (carried-over event count, `reviewEnabled`,
+  thresholds), each counted meeting event, the timer-save decision to fire or
+  skip `meetingEvents.completed` (with credit ms), the popup-close →
+  present-after-close scheduling in `SchedulePopup`, and — most importantly — a
+  complete decision snapshot in `maybePresentRatingPrompt` with every gate input
+  and an explicit SKIP/SHOWING verdict. Added to diagnose "the prompt never
+  shows" reports from the field: one log line now answers which gate blocked it.
+
 ### Fixed
 - **Recovery date defaulted to *tomorrow* for users behind UTC.** The onboarding
   and Settings recovery-date pickers seeded their default from

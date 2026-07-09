@@ -125,11 +125,15 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // is a no-op.
   const ratingShownForCloseRef = useRef(false)
   const prevVisibleRef = useRef(visible)
-  const presentRatingAfterClose = useCallback(() => {
+  const presentRatingAfterClose = useCallback((trigger: string) => {
     // Guard: at most one present per close. onDismiss (iOS) and the settle-timeout
     // fallback both target the same close — whichever fires first wins.
-    if (ratingShownForCloseRef.current) return
+    if (ratingShownForCloseRef.current) {
+      log.info("rating[diag]: present-after-close already fired this cycle", { trigger })
+      return
+    }
     ratingShownForCloseRef.current = true
+    log.info("rating[diag]: present-after-close firing", { trigger })
     maybePresentRatingPrompt()
   }, [])
   useEffect(() => {
@@ -143,7 +147,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     // Popup just closed. Fallback path (covers Android, which never calls
     // onDismiss, and any transparent-modal onDismiss no-show on iOS): present
     // once the slide-out has finished. See RATING_PROMPT_AFTER_CLOSE_MS.
-    const id = setTimeout(presentRatingAfterClose, RATING_PROMPT_AFTER_CLOSE_MS)
+    log.info("rating[diag]: popup closed → scheduling present-after-close", {
+      delayMs: RATING_PROMPT_AFTER_CLOSE_MS,
+    })
+    const id = setTimeout(() => presentRatingAfterClose("timeout"), RATING_PROMPT_AFTER_CLOSE_MS)
     return () => clearTimeout(id)
   }, [visible, presentRatingAfterClose])
   const { isJoining } = useZoomMeeting()
@@ -626,7 +633,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       // iOS: fires once the slide-out finishes — the precise, earliest-safe
       // moment to present the rating soft-ask (the useEffect timeout above is the
       // Android / no-show fallback; a ref dedupes the two).
-      onDismiss={presentRatingAfterClose}
+      onDismiss={() => presentRatingAfterClose("onDismiss")}
       statusBarTranslucent
     >
       <View style={themed($overlay)}>

@@ -160,7 +160,18 @@ export async function saveTimerAttendance(
   // feed now (the native Zoom SDK was removed in 4.5.0). Reason string mirrors
   // the SOURCE tag so rating-engine logs stay traceable to this path.
   if (valid) {
+    // DIAG: the rating tally's ONLY upstream trigger. If this doesn't log after
+    // a meeting, nothing will be counted (so no prompt can ever show).
+    log.info("rating[diag]: firing meetingEvents.completed (valid attendance)", {
+      mid: input.mid,
+      creditMs: credit,
+    })
     meetingEvents.completed("external-zoom-timer")
+  } else {
+    log.info("rating[diag]: NOT counting — attendance below credit threshold (invalid)", {
+      mid: input.mid,
+      creditMs: credit,
+    })
   }
 
   return { ok: true, attendanceId, valid, creditMs: credit }
