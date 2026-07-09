@@ -58,8 +58,8 @@ function cursorKey(resource: SyncResource, uid: string): string {
   return `sync.cursor.${resource}.${uid}`
 }
 
-// MMKV key recording which uid's rows currently sit in the outbox. Stamped on
-// every enqueue (see deps.queue.enqueue below) so trigger 4 can tell "same
+// MMKV key recording which uid's rows currently sit in the outbox. Stamped by
+// enqueueAttendance() — the single enqueue path — so trigger 4 can tell "same
 // user signed back in" (owner === userId, queue survives) apart from "a
 // different account is signing in on this device" (owner !== userId, queue
 // must be cleared before any tick can push the previous owner's rows under
@@ -78,9 +78,11 @@ const QUEUE_OWNER_KEY = "sync.queueOwnerUid"
  * uid, so A's attendance would silently land in B's account.
  *
  * Making the reaction `await` wouldn't help (a mobx reaction callback is
- * synchronous). Instead the gate itself refuses to open until the clear has
- * completed, which is the one place every tick — push, pull, and backfill —
- * must pass through.
+ * synchronous). Instead the gate refuses to open until the clear has completed.
+ * The gate checks this flag both before and after its `await` on the
+ * entitlement SDK: a tick whose gate() started earlier in the same synchronous
+ * mobx flush would otherwise read the flag before the account reaction set it,
+ * suspend on that await, and resume with a stale `ok`.
  */
 let ownerClearPending = false
 
@@ -108,29 +110,73 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
     uid.length > 0
   if (!cheapOk) return { ok: false, uid }
   const entitled = await hasEntitlement(ENTITLEMENTS.ATTENDANCE)
+  // Re-check after the await: the account-switch reaction may have raised the
+  // flag while this call was suspended on the entitlement SDK.
+  if (ownerClearPending) return { ok: false, uid }
   return { ok: entitled, uid }
+}
+
+/**
+ * THE ONLY place that writes to the outbox.
+ *
+ * Enqueue and ownership-stamp are welded together on purpose. Every queued row
+ * must be attributable to the uid that created it, because on an account switch
+ * we decide whether to wipe the queue by comparing the stored owner to the
+ * incoming user. A call site that enqueued without stamping would leave the
+ * owner unset, `takeQueueOwnership()` would read "no previous owner, nothing to
+ * clear", and the previous user's rows would push under the new user's token.
+ * (That bug shipped once: the mutation hook called syncQueueRepo.enqueue()
+ * directly while only this adapter stamped.) Route every enqueue through here.
+ */
+async function enqueueAttendance(entry: {
+  recordId: string
+  operation: "create" | "update" | "delete"
+  payload?: string
+}): Promise<void> {
+  unwrap(await syncQueueRepo.enqueue({ tableName: "attendances", ...entry }), "enqueue")
+  // Skip when there is no uid (this can be reached before rootStoreRef is set),
+  // and skip a redundant MMKV write when the stored owner already matches.
+  const uid = rootStoreRef?.authenticationStore.userId
+  if (uid && loadString(QUEUE_OWNER_KEY) !== uid) {
+    saveString(QUEUE_OWNER_KEY, uid)
+  }
 }
 
 /**
  * Hand the outbox to `uid`, clearing any previous owner's rows first.
  *
- * Sets `ownerClearPending` SYNCHRONOUSLY before the async clear starts, so a
- * tick racing us from another reaction sees a closed gate. Stamps the new owner
- * immediately too: if the process dies mid-clear, the next launch's boot check
- * sees owner === uid and won't re-clear, while the rows it failed to delete
- * belong to nobody the gate would push them under.
+ * Two ordering rules, both load-bearing:
+ *
+ * 1. `ownerClearPending` is raised SYNCHRONOUSLY, before the async clear starts,
+ *    so a tick racing us from an earlier-registered reaction sees a closed gate.
+ * 2. The new owner is stamped only AFTER the clear is confirmed. If we stamped
+ *    first and the clear then failed (or the process died mid-clear), the next
+ *    launch would see owner === uid, skip the retry, and push the leftover
+ *    foreign rows. Leaving the old owner in place means the boot check retries.
+ *
+ * On failure we deliberately leave `ownerClearPending` true: sync stays off for
+ * this session rather than draining someone else's attendance into this account.
+ * The next launch's boot reconciliation retries the clear.
  */
 function takeQueueOwnership(uid: string): void {
   const owner = loadString(QUEUE_OWNER_KEY)
   if (owner && owner !== uid) {
     ownerClearPending = true
-    saveString(QUEUE_OWNER_KEY, uid)
     log.info("Account switch — clearing the previous owner's outbox", { owner, uid })
     void attendanceSync
       .onLogout()
-      .catch((err) => log.error("Failed to clear foreign outbox", { error: String(err) }))
-      .finally(() => {
+      .then(() => {
+        saveString(QUEUE_OWNER_KEY, uid)
         ownerClearPending = false
+      })
+      .catch((err) => {
+        // Fail closed. No `finally` here — resetting the flag unconditionally
+        // would reopen the gate over a queue that still holds foreign rows.
+        log.error("Failed to clear foreign outbox — sync stays disabled until relaunch", {
+          owner,
+          uid,
+          error: String(err),
+        })
       })
     return
   }
@@ -215,20 +261,7 @@ const deps: SyncDeps = {
     },
   },
   queue: {
-    enqueue: async (entry) => {
-      unwrap(await syncQueueRepo.enqueue({ tableName: "attendances", ...entry }), "enqueue")
-      // Stamp the queue's owner here — NOT in setAttendanceMutationHook —
-      // so both the per-mutation hook and initialBackup()'s bulk enqueue
-      // (which calls this same adapter, not the hook) keep the ownership
-      // record accurate. Skip when there's no uid (shouldn't happen once
-      // gate() has passed, but this adapter can theoretically be called
-      // before rootStoreRef is set) and skip a redundant write when the
-      // stored owner already matches, to avoid hammering MMKV on every row.
-      const uid = rootStoreRef?.authenticationStore.userId
-      if (uid && loadString(QUEUE_OWNER_KEY) !== uid) {
-        saveString(QUEUE_OWNER_KEY, uid)
-      }
-    },
+    enqueue: (entry) => enqueueAttendance(entry),
     // Per-record dirty check for the pull merge — see the predicate note on
     // syncQueueRepo.isPending() in db/repositories.ts. It MUST match
     // getPending()'s status/retryCount predicate exactly.
@@ -249,13 +282,14 @@ const deps: SyncDeps = {
       unwrap(await syncQueueRepo.markFailed(id, message), "markFailed")
     },
     clearPending: async () => {
-      // clearPending() returns a RecoverySkyResult<number> that surfaces
-      // per-row delete failures (see the long comment on it in
-      // db/repositories.ts — a silently-dropped failure here could leak
-      // user A's queued records into user B's account). It already logs on
-      // partial failure; SyncDeps only needs the call to happen, so the
-      // Result itself is intentionally discarded at this boundary.
-      await syncQueueRepo.clearPending()
+      // THROW on a partial clear. clearPending() returns a
+      // RecoverySkyResult<number> that reports per-row delete failures, and a
+      // surviving row is one of the previous owner's records — pushing it
+      // under the next user's token moves their attendance into someone else's
+      // account. takeQueueOwnership() relies on this throw to fail CLOSED:
+      // the gate stays shut and the owner stamp is not advanced, so the next
+      // launch retries the clear instead of quietly pushing foreign rows.
+      unwrap(await syncQueueRepo.clearPending(), "clearPending")
     },
   },
   cursors: {
@@ -325,13 +359,14 @@ export function initAttendanceSync(rootStore: RootStore): void {
   //    can build the `deleted: true` tombstone from it.
   setAttendanceMutationHook((m) => {
     if (!rootStore.profileStore.syncEnabled) return
-    void syncQueueRepo
-      .enqueue({
-        tableName: "attendances",
-        recordId: m.recordId,
-        operation: m.operation,
-        payload: m.snapshot ? JSON.stringify(m.snapshot) : undefined,
-      })
+    // Routed through enqueueAttendance(), NOT syncQueueRepo.enqueue(), so the
+    // row is stamped with its owner. See enqueueAttendance's comment: an
+    // unstamped row defeats the account-switch clear.
+    void enqueueAttendance({
+      recordId: m.recordId,
+      operation: m.operation,
+      payload: m.snapshot ? JSON.stringify(m.snapshot) : undefined,
+    })
       .then(() => attendanceSync.nudgePush())
       .catch((err) => log.error("sync enqueue failed", { error: String(err) }))
   })
