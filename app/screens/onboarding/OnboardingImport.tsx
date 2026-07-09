@@ -28,6 +28,7 @@ import {
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { todayLocalISODate } from "@/utils/localDate"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "OnboardingImport" })
@@ -76,7 +77,10 @@ async function importUserProfile(
   // Only import fields still at their default values — don't overwrite
   // values the user has already customized (e.g. via Settings).
   const secureData: Record<string, string | null> = {}
-  const today = new Date().toISOString().split("T")[0]
+  // Must match ProfileStore's recovery-date default (device-LOCAL today, not
+  // UTC) so the "still at default?" check below correctly detects an untouched
+  // value and allows the Firebase import to populate it.
+  const today = todayLocalISODate()
 
   if (profile.shortName && profileStore.shortName === "Anon M.") {
     secureData.shortName = profile.shortName

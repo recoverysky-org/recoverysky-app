@@ -20,6 +20,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Recovery date defaulted to *tomorrow* for users behind UTC.** The onboarding
+  and Settings recovery-date pickers seeded their default from
+  `new Date().toISOString()`, which serializes in UTC — so in the evening a
+  device behind UTC (e.g. US Eastern) showed the next calendar day. The default
+  now uses the device-local date via a new `todayLocalISODate()` helper, applied
+  to the ProfileStore default, the profile reset, and the Firebase-import
+  "still at default?" check.
+
+---
+
 ## [4.5.0-9] — 2026-06-29 (OTA)
 
 ### Fixed

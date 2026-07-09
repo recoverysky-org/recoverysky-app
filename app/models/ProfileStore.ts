@@ -3,6 +3,7 @@ import { Instance, SnapshotOut, types } from "mobx-state-tree"
 import { liveEvents } from "@/db"
 import { profileRepository } from "@/db/repositories"
 import { changeLanguage, translate } from "@/i18n"
+import { todayLocalISODate } from "@/utils/localDate"
 import { logger } from "@/utils/logger"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -94,7 +95,9 @@ export const ProfileStoreModel = types
     // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
     shortName: "Anon M.",
     pronouns: null as Pronouns,
-    recoveryDate: new Date().toISOString().split("T")[0],
+    // Device-LOCAL today, NOT `toISOString()` (UTC) — a user behind UTC in the
+    // evening would otherwise default to *tomorrow*. See todayLocalISODate.
+    recoveryDate: todayLocalISODate(),
     fellowship: "AA",
     language: "", // empty = use device locale
     userIdNum: "" as string,
@@ -434,7 +437,9 @@ export const ProfileStoreModel = types
         // Reset volatile (sensitive) data
         self.shortName = "Anon M."
         self.pronouns = null
-        self.recoveryDate = new Date().toISOString().split("T")[0]
+        // Device-LOCAL today (not UTC) — keep in sync with the volatile default
+        // above so a freshly reset profile matches a fresh install.
+        self.recoveryDate = todayLocalISODate()
         self.fellowship = "AA"
         self.language = ""
         self.userIdNum = ""
