@@ -341,6 +341,13 @@ task. No behavior change. Noted only so nobody goes looking for meaning in it.
 This feature is JS-only. It ships over the air via `npm run update`. **Do not
 bump `runtimeVersion`** — no native module changed. See `CLAUDE.md`.
 
-The manual account-switch check in "Testing" above is a genuine release gate, not
-a formality: the file it exercises has no automated coverage, and four separate
-review rounds found real cross-account defects in it before merge.
+`npm run update` runs a preflight — `npm run compile` and `npx vitest run`, before
+it touches the counter — and aborts if either fails.
+
+**That preflight cannot catch the account-switch bug.** `app/services/sync/index.ts`
+has no automated coverage, so a green preflight means "nothing obviously broken",
+not "safe to ship". The manual check in "Testing" above is **not enforced by
+anything**: no CI, no hook, no prompt. It is a step you have to remember. It earns
+that trouble because four separate review rounds found real cross-account defects
+in that exact file, and a regression there moves one person's recovery attendance
+into another person's account — silently, with no error anywhere.

@@ -6,6 +6,26 @@
 
 set -e
 
+# Preflight. `eas update` publishes straight to production users, and nothing
+# else in this pipeline type-checks or tests first — so a broken bundle would
+# reach every device on a matching runtimeVersion within minutes. Run before the
+# counter bump, not after: a failure here must leave package.json, the tag, and
+# the remote completely untouched, so re-running after the fix is clean.
+#
+# This CANNOT catch everything. app/services/sync/index.ts (the sync gate and
+# queue-ownership machinery) has no automated coverage — vitest can't resolve
+# its `@/` imports — so the attendance account-switch path is still only
+# verified by the manual checklist in docs/BACKUP.md. Green here means "nothing
+# obviously broken", not "safe to ship".
+echo "Preflight: type-check..."
+npm run compile
+
+echo "Preflight: unit tests..."
+npx vitest run
+
+echo "Preflight passed."
+echo ""
+
 # Get current version + update counter from package.json
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 CURRENT_UPDATE=$(node -p "require('./package.json').update || '0'")
