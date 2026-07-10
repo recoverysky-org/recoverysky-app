@@ -238,7 +238,7 @@ so there is nothing to diff and nothing to guard against.
 ## Testing
 
 `npx vitest run` covers `syncLogic.ts` and `attendanceSyncService.ts` (via
-injected fakes) — 122 tests at time of writing.
+injected fakes) — 123 tests at time of writing.
 
 **`app/services/sync/index.ts` has zero automated coverage.** It imports `@/`
 modules, so vitest cannot load it. That file holds the gate and the entire queue
@@ -255,7 +255,80 @@ Then repeat steps 1–4 signing back in as **A**, and assert the offline edit
 survives and reaches the server. Both halves matter — a fix for one has twice
 broken the other during development.
 
+## Known issues
+
+Open items as of the initial merge (2026-07-09). None is a data-leak path — the
+cross-account invariant at the top of this document holds — but each is real, and
+each was found by review rather than by a test. They are listed in the order a
+maintainer should care about them.
+
+### 1. Two overlapping ownership clears are not serialized
+
+`app/services/sync/index.ts`, `takeQueueOwnership()`.
+
+If a second account switch begins while a first `clear-then-stamp` is still in
+flight (boot reconciliation starts clear₁ for B, then the `userId` reaction fires
+for C), a second `onLogout()` is launched and `ownerClear` is reassigned. Clear₁'s
+`.then` then stamps the *wrong* owner and resets `ownerClearPending` decoupled
+from clear₂'s outcome. If clear₂ partially fails after clear₁ succeeded, the gate
+can reopen with survivor rows still in the queue.
+
+Requires two *different* accounts signing in inside the clear window **and** a
+partial delete failure. An ordinary sign-out → sign-in produces a single call.
+
+**Fix:** if a clear is already pending, chain onto the existing `ownerClear`
+rather than starting a parallel one.
+
+### 2. The mutation hook enqueues on `syncEnabled` alone, not on the entitlement
+
+`app/services/sync/index.ts`, the `notifyAttendanceMutation` handler.
+
+The hook gates enqueue on `profileStore.syncEnabled`, but the Settings section
+that owns that toggle is gated on `hasAttendance`. A user who enables backup and
+then lets the `recoverysky-attendance` entitlement lapse keeps enqueueing on every
+mutation. `gate()` blocks the *push*, so the rows accumulate as permanently
+pending — `retryCount` never increments, so they never expire — and the Settings
+section is now hidden, so the user cannot toggle it off.
+
+Unbounded outbox growth. No leak, no data loss.
+
+**Fix:** gate the hook on the entitlement too, or keep the Settings section
+visible (disabled) whenever `syncEnabled` is true.
+
+### 3. `gate()` captures `uid` before the entitlement `await`
+
+`app/services/sync/index.ts`, `gate()`.
+
+`uid` is read at entry and returned after the awaited entitlement check. If an
+account switch fully completes *inside* that await — flag raised and cleared —
+`gate()` returns a stale `uid`, which is then used to build cursor keys.
+
+The dangerous direction is safe: the queue is empty once a clear completes, so
+nothing of the old user's can push. The worst case is a pull writing the new
+user's server rows under the old uid's cursor key. Cursor confusion, not a leak.
+The reentrancy guards make it near-unreachable.
+
+**Fix:** re-read `uid` after the await, or thread the pre-await `uid` through and
+abort if it changed.
+
+### 4. Offline after a successful backup hides the last-synced time
+
+`SyncStatusLine` checks `isOffline` before `lastSyncedAt`, so a user who backed up
+successfully and then went offline sees "Paused — offline" rather than
+"All backed up ✓ · <time>". This is the branch order the spec mandates, so it is
+intended behavior — but it reads as a regression to anyone who didn't write it,
+and it is worth confirming with the product owner rather than silently "fixing".
+
+### 5. `app/i18n/index.ts` carries a cosmetic reformat
+
+`baseResources` was expanded from one line to nine by Prettier during the i18n
+task. No behavior change. Noted only so nobody goes looking for meaning in it.
+
 ## Deploying
 
 This feature is JS-only. It ships over the air via `npm run update`. **Do not
 bump `runtimeVersion`** — no native module changed. See `CLAUDE.md`.
+
+The manual account-switch check in "Testing" above is a genuine release gate, not
+a formality: the file it exercises has no automated coverage, and four separate
+review rounds found real cross-account defects in it before merge.
