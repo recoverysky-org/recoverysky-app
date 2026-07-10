@@ -319,19 +319,7 @@ successfully and then went offline sees "Paused — offline" rather than
 intended behavior — but it reads as a regression to anyone who didn't write it,
 and it is worth confirming with the product owner rather than silently "fixing".
 
-### 5. `app/services/sync/SyncService.ts` is dead scaffold
-
-324 lines, predating this feature (`af79d15`). Nothing imports it, and its own
-docstring advertises `import { SyncService } from "@/services/sync"` — a barrel
-export that `index.ts` replaced, so the example no longer resolves. It describes
-a *different* sync design ("client-wins") from the one actually shipped
-(last-write-wins on the server), which makes it actively misleading to anyone who
-opens the directory expecting orientation.
-
-**Fix:** delete it. Left in place only because removing it was out of scope for
-the branch that landed the real implementation.
-
-### 6. `app/i18n/index.ts` carries a cosmetic reformat
+### 5. `app/i18n/index.ts` carries a cosmetic reformat
 
 `baseResources` was expanded from one line to nine by Prettier during the i18n
 task. No behavior change. Noted only so nobody goes looking for meaning in it.
