@@ -314,6 +314,15 @@ const en = {
     restoreSuccessMessage: "Your subscription has been restored successfully.",
     restoreNoSubscription: "No Subscription Found",
     restoreNoSubscriptionMessage: "We couldn't find any previous purchases to restore.",
+    // Cloud Backup Section
+    backupSection: "Cloud Backup",
+    cloudBackup: "Back up attendance",
+    cloudBackupHint: "Keep your attendance history safe and synced across devices",
+    backupBackingUp: "Backing up…",
+    backupSyncing: "Syncing…",
+    backupAllBackedUp: "All backed up ✓ · {{time}}",
+    backupPausedOffline: "Paused — offline",
+    backupError: "Backup issue — will retry",
     // Zoom Account Section
     // Account Section
     accountSection: "Account",

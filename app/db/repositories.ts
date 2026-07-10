@@ -22,6 +22,8 @@ import {
   FeedbackSqliteRepository,
   ChatMessageSqliteRepository,
   ReminderSqliteRepository,
+  err,
+  ok,
   type AttendanceCreateInput,
   type AttendanceUpdateInput,
   type AttendanceRecord,
@@ -35,6 +37,7 @@ import {
   type ReminderRecord,
   type ReminderCreateInput,
   type ReminderUpdateInput,
+  type RecoverySkyResult,
 } from "@recoverysky-org/common/sqlite"
 
 import type { SecureProfileData } from "@/models/ProfileStore"
@@ -98,15 +101,172 @@ export const scheduleRepo = {
 }
 
 /**
- * Sync queue repository instance (lazy)
+ * Sync queue repository instance (lazy) — the durable outbox for cloud sync.
+ *
+ * Queue rows for create/update carry only recordId (current row data is read
+ * at push time so N edits collapse to one push); delete rows carry a JSON
+ * snapshot payload for tombstone construction.
  */
+function getSyncQueueRepo(): SyncQueueRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_syncQueueRepo) _syncQueueRepo = new SyncQueueRepository(db as any)
+  return _syncQueueRepo
+}
+
 export const syncQueueRepo = {
-  enqueue: async (data: any) => {
-    const { db } = getDb()
-    if (!db) throw new Error("Database not opened")
-    if (!_syncQueueRepo) _syncQueueRepo = new SyncQueueRepository(db as any)
-    return _syncQueueRepo.enqueue(data)
+  enqueue: async (input: {
+    tableName: string
+    recordId: string
+    operation: "create" | "update" | "delete"
+    payload?: string
+  }) => {
+    return getSyncQueueRepo().enqueue(input)
   },
+
+  /** Pending + retryable-failed items, FIFO */
+  getPending: async (maxRetries?: number) => {
+    return getSyncQueueRepo().getPending(maxRetries)
+  },
+
+  markSynced: async (id: string) => {
+    return getSyncQueueRepo().markSynced(id)
+  },
+
+  markFailed: async (id: string, errorMessage: string) => {
+    return getSyncQueueRepo().markFailed(id, errorMessage)
+  },
+
+  deleteItem: async (id: string) => {
+    return getSyncQueueRepo().delete(id)
+  },
+
+  /**
+   * Does this record have a queue entry that pushTick() will still push?
+   *
+   * The predicate MUST match SyncQueueRepository.getPending() exactly —
+   * `status IN ('pending','failed') AND retryCount < maxRetries` (default 3)
+   * — because the pull merge treats "pending" as "our local edit wins, don't
+   * let the server's older copy overwrite it." If this said yes for a
+   * permanently-failed entry (retryCount >= maxRetries, which getPending()
+   * excludes), that record would be dirty forever and the device would never
+   * converge with the server — the pull would keep skipping it as "dirty"
+   * even though nothing is ever going to push it again.
+   *
+   * THROWS on a read error rather than answering.
+   * CHANGED 2026-07-09: this used to fail open (`return false`), which quietly
+   * inverted the guarantee it exists to provide. A transient queue-read failure
+   * made a record with an unpushed local edit look clean, so mergePullDecision
+   * returned "update" instead of "skip-dirty", the server's older copy clobbered
+   * the local row, and the next pushTick dutifully pushed the clobbered version
+   * and marked the queue entry synced — the user's edit gone, no error logged
+   * (the post-write re-check fails open too, so it stayed silent). Throwing
+   * instead lands in pullTick's per-record catch, which skips the write, holds
+   * the pull cursor, and logs — so the record is simply re-merged on the next
+   * pass. Skipping one merge is self-healing; a clobber is not.
+   */
+  isPending: async (recordId: string, maxRetries = 3): Promise<boolean> => {
+    const result = await getSyncQueueRepo().findByRecordId("attendances", recordId)
+    if (!result.ok) {
+      throw new Error(`isPending: sync queue read failed for ${recordId}`)
+    }
+    return result.value.some(
+      (i) => (i.status === "pending" || i.status === "failed") && i.retryCount < maxRetries,
+    )
+  },
+
+  /**
+   * Delete every pending/retryable item. Called on logout — user A's queued
+   * records must never be pushed under user B's token (the server would
+   * stamp them with B's uid).
+   *
+   * CRITICAL: Must surface any delete failures. `SyncQueueRepository.delete()`
+   * does not throw — it returns `{ ok: false, error }`. Ignoring that return
+   * value would leave user A's records in the outbox while reporting a clean
+   * sweep; those rows would later push under user B's token and be stamped with
+   * B's uid — a cross-account data leak. So we inspect every delete and return a
+   * failed Result if any row survives.
+   *
+   * Scope note: we deliberately do NOT retry failed deletes, and no caller
+   * currently acts on the failed Result beyond logging — surfacing + alerting
+   * was chosen over blocking logout. If a caller ever needs to hard-block on a
+   * dirty queue, it now has the signal to do so.
+   */
+  clearPending: async (): Promise<RecoverySkyResult<number>> => {
+    const pending = await getSyncQueueRepo().getPending()
+    if (!pending.ok) return err(pending.error)
+
+    const failedIds: string[] = []
+    // Keep each delete's underlying error, not just its id: this is the
+    // cross-account-leak path, so an operator needs to know WHY a row survived
+    // (db locked, constraint, ...) to act on it, not merely that one did.
+    const failureReasons: string[] = []
+    for (const item of pending.value) {
+      const deleteResult = await getSyncQueueRepo().delete(item.id)
+      if (!deleteResult.ok) {
+        failedIds.push(item.id)
+        failureReasons.push(
+          `${item.id}: ${String(deleteResult.error?.message ?? deleteResult.error)}`,
+        )
+      }
+    }
+
+    if (failedIds.length > 0) {
+      log.error("clearPending partial failure", {
+        failedIdCount: failedIds.length,
+        totalPending: pending.value.length,
+        failedIdList: failedIds.join(", "),
+        failureReasons: failureReasons.join("; "),
+      })
+      return err({
+        kind: "Unexpected",
+        message: `clearPending: ${failedIds.length} of ${pending.value.length} deletes failed`,
+        context: { failedIds },
+      })
+    }
+
+    return ok(pending.value.length)
+  },
+}
+
+// ============================================================================
+// Attendance mutation hook (cloud sync outbox)
+// ============================================================================
+
+export type AttendanceMutationOp = "create" | "update" | "delete"
+
+export interface AttendanceMutation {
+  recordId: string
+  operation: AttendanceMutationOp
+  /** Pre-delete row snapshot — only present on "delete". The sync push builds
+   * a deleted:true tombstone from this because the row is gone by push time. */
+  snapshot?: AttendanceRecord
+}
+
+// Single choke point for the sync outbox: every app-side attendance mutation
+// flows through the attendanceRepo wrappers below, so one hook here covers
+// externalAttendance, useReportSender, AttendanceScreen edits, and
+// NinetyInNinetyCard — and any future mutation site — with zero call-site
+// changes. The sync service registers itself at init
+// (app/services/sync/index.ts). Pull-merge writes go through
+// attendanceSyncWriter instead, which deliberately does NOT notify — pulled
+// records must never re-enqueue themselves.
+let attendanceMutationHook: ((m: AttendanceMutation) => void) | null = null
+
+export function setAttendanceMutationHook(fn: ((m: AttendanceMutation) => void) | null): void {
+  attendanceMutationHook = fn
+}
+
+function notifyAttendanceMutation(m: AttendanceMutation): void {
+  // Isolated: a throwing hook must never break the mutation that already succeeded.
+  // The catch binding is named `caughtError`, not `err`: this file imports `err()`
+  // as the domain error constructor (used by clearPending), and a `catch (err)`
+  // would shadow it for anyone reading this block.
+  try {
+    attendanceMutationHook?.(m)
+  } catch (caughtError) {
+    log.error("attendanceMutationHook threw (isolated)", { error: String(caughtError) })
+  }
 }
 
 // ============================================================================
@@ -128,12 +288,20 @@ function getAttendanceRepo(): AttendanceSqliteRepository {
 export const attendanceRepo = {
   /** Create a new attendance record */
   create: async (input: AttendanceCreateInput) => {
-    return getAttendanceRepo().create(input)
+    const result = await getAttendanceRepo().create(input)
+    // create() resolves to the new row id; prefer it over input.id (which is optional)
+    if (result.ok) notifyAttendanceMutation({ recordId: result.value, operation: "create" })
+    return result
   },
 
   /** Find attendance by ID */
   findById: async (id: string) => {
     return getAttendanceRepo().findById(id)
+  },
+
+  /** Find multiple attendance records by id (sync push reads current rows) */
+  findByIds: async (ids: string[]) => {
+    return getAttendanceRepo().findByIds(ids)
   },
 
   /** Find all attendance records for a user */
@@ -168,12 +336,16 @@ export const attendanceRepo = {
 
   /** Mark an attendance record as archived */
   markArchived: async (id: string) => {
-    return getAttendanceRepo().markArchived(id)
+    const result = await getAttendanceRepo().markArchived(id)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Mark attendance as produced (link to a report, also archives) */
   markProduced: async (id: string, arid: string) => {
-    return getAttendanceRepo().markProduced(id, arid)
+    const result = await getAttendanceRepo().markProduced(id, arid)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Find attendance records linked to a specific report */
@@ -188,12 +360,16 @@ export const attendanceRepo = {
 
   /** Add an event to an attendance record */
   addEvent: async (id: string, event: AttendanceEvent) => {
-    return getAttendanceRepo().addEvent(id, event)
+    const result = await getAttendanceRepo().addEvent(id, event)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Update an attendance record */
   update: async (id: string, input: AttendanceUpdateInput) => {
-    return getAttendanceRepo().update(id, input)
+    const result = await getAttendanceRepo().update(id, input)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Mark attendance as processed with calculated values */
@@ -201,7 +377,9 @@ export const attendanceRepo = {
     id: string,
     data: { start: number; end: number; credit: number; valid: boolean },
   ) => {
-    return getAttendanceRepo().markProcessed(id, data)
+    const result = await getAttendanceRepo().markProcessed(id, data)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "update" })
+    return result
   },
 
   /** Get total credit for a user */
@@ -209,9 +387,87 @@ export const attendanceRepo = {
     return getAttendanceRepo().getTotalCreditForUser(uid)
   },
 
-  /** Delete an attendance record */
+  /** Delete an attendance record (hard delete — NinetyInNinetyCard cleanup).
+   * Snapshot the row FIRST: the sync tombstone push needs the full record
+   * after the row is gone. */
   delete: async (id: string) => {
+    const existing = await getAttendanceRepo().findById(id)
+    // Note: snapshot === undefined collapses two distinct cases: (1) row
+    // genuinely not found, or (2) the read itself failed. Either way, the
+    // tombstone has no payload to serialize. This is by design.
+    const snapshot = existing.ok && existing.value ? existing.value : undefined
+    const result = await getAttendanceRepo().delete(id)
+    if (result.ok) notifyAttendanceMutation({ recordId: id, operation: "delete", snapshot })
+    return result
+  },
+}
+
+/**
+ * Hook-bypassing writes for the sync pull-merge path.
+ *
+ * INVARIANT: nothing in here calls notifyAttendanceMutation. Records applied
+ * from a server pull must not re-enter the sync outbox — that would echo
+ * every pulled record straight back to the server forever.
+ */
+export const attendanceSyncWriter = {
+  exists: async (id: string): Promise<boolean> => {
+    const result = await getAttendanceRepo().findById(id)
+    return result.ok && result.value !== null
+  },
+
+  createFromServer: async (input: AttendanceCreateInput) => {
+    return getAttendanceRepo().create(input)
+  },
+
+  updateFromServer: async (id: string, input: AttendanceUpdateInput) => {
+    return getAttendanceRepo().update(id, input)
+  },
+
+  /** Apply a pulled tombstone: hard-delete the local row. */
+  remove: async (id: string) => {
     return getAttendanceRepo().delete(id)
+  },
+
+  reportExists: async (id: string): Promise<boolean> => {
+    const result = await getAttendanceReportRepo().findById(id)
+    return result.ok && result.value !== null
+  },
+
+  reportCreateFromServer: async (input: AttendanceReportCreateInput) => {
+    return getAttendanceReportRepo().create(input)
+  },
+
+  reportUpdateFromServer: async (id: string, input: AttendanceReportUpdateInput) => {
+    return getAttendanceReportRepo().update(id, input)
+  },
+
+  reportRemove: async (id: string) => {
+    return getAttendanceReportRepo().delete(id)
+  },
+
+  /**
+   * Ids of local reports whose body was never downloaded. The /sync/reports
+   * pull is metadata-only, so a freshly-synced report has empty html/text
+   * until backfillReportBodies() fetches it. Driven by local state (not the
+   * sync cursor) so a failed fetch simply gets retried on the next pass.
+   *
+   * CHANGED 2026-07-09: filters on `!r.html || !r.text`, not `!r.html` alone.
+   * reportSaveBody() below always writes both fields together in the same
+   * call, so filtering on html-only is safe TODAY — but that's an implicit
+   * coupling this function shouldn't rely on. If a future write path ever
+   * stores one field without the other (a partial write, a schema migration
+   * default), an html-only filter would call the report "complete" while
+   * text stays empty forever with no retry path.
+   */
+  reportsMissingBody: async (): Promise<string[]> => {
+    const result = await getAttendanceReportRepo().findAll()
+    if (!result.ok) return []
+    return result.value.filter((r) => !r.html || !r.text).map((r) => r.id)
+  },
+
+  /** Store a report body fetched from GET /reports/:id. */
+  reportSaveBody: async (id: string, html: string, text: string) => {
+    return getAttendanceReportRepo().update(id, { html, text })
   },
 }
 
@@ -596,4 +852,3 @@ export const profileRepository = {
     }
   },
 }
-

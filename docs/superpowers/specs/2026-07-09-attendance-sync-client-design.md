@@ -14,7 +14,8 @@ the server inside emailed reports. This feature adds **opt-in continuous cloud
 backup** of attendance records and **cursor-based incremental pull** so a
 second device (or a reinstall) can reconstruct full history and stay current.
 Reports flow **down only** — they are created server-side by `POST /reports`;
-a second device pulls their metadata and lazy-fetches bodies.
+a second device pulls their metadata and then fetches every body during sync,
+so it ends up with a complete local copy.
 
 ## Product decisions (settled during brainstorming)
 
@@ -24,7 +25,7 @@ a second device pulls their metadata and lazy-fetches bodies.
 | Anonymous users | Cannot sync (API returns `403` — requires Auth0 identity). Not a real state: the attendance purchase flow forces sign-in, so `hasAttendance` implies signed-in. A defensive `!isAnonymous` check stays in the gate but should never fire. |
 | Opt-in model | **Settings toggle, default OFF** (`profileStore.syncEnabled`). Attendance data is sensitive — it reveals meeting attendance — so backup is explicit consent, not automatic. |
 | Toggle OFF semantics | **Pause only.** Stop ticks; keep the outbox queue, cursors, and all server-side data. Re-enabling re-runs initial backup (idempotent, self-healing). No server wipe in v1. |
-| Reports | Pull-only (`GET /sync/reports`), metadata only. Never pushed by the app. Detail views lazy-fetch full `html` via existing `GET /reports/:id`. |
+| Reports | Pull-only. Never pushed by the app. `GET /sync/reports` returns metadata only, so sync then fetches each missing body via `GET /reports/:id` **during the sync pass** — a synced device ends up with a complete local copy, and report detail views never hit the network. **CHANGED 2026-07-09:** originally specified as lazy-fetch-on-open; corrected because a second device must hold the full dataset (offline-complete), not a metadata shell. |
 | Triggers | Event-driven push (debounced) + pull on cold start / foreground resume / Attendance screen focus. **No polling interval, no OS background tasks** (none exist in this app). |
 | Initial backup UX | Fire-and-forget with a status line in Settings ("Backing up…" → "All backed up ✓ · <time>"). No blocking UI. |
 | Conflicts | Accept the API's last-arrived-wins (server-stamped `updated`). No client-side conflict surfacing in v1. |
@@ -84,7 +85,8 @@ imports** (type-only imports OK) so it unit-tests without path-alias setup:
 
 **`app/services/sync/attendanceSyncService.ts`** — orchestrator singleton:
 
-- `pushTick()`, `pullTick("attendance" | "reports")`, `initialBackup()`.
+- `pushTick()`, `pullTick("attendance" | "reports")`, `backfillReportBodies()`,
+  `initialBackup()`.
 - Gate: `profileStore.syncEnabled && hasAttendance && !isAnonymous &&
   isAuthenticated && !configStore.maintenanceMode && !networkStore.isOffline`.
   Checked at every tick **and between push batches** (sign-out mid-drain).
@@ -177,30 +179,83 @@ from `syncState`: "Backing up…" / "All backed up ✓ · 2:14 PM" /
    the right page; re-merging a page is idempotent and safe.
 4. Changed rows → emit `attendanceEvents` `"synced"`.
 
+### Report body backfill (runs after every reports pull)
+
+`GET /sync/reports` is metadata-only, so a pulled report initially has an
+empty `html`/`text`. `backfillReportBodies()` closes that gap so a synced
+device holds the complete dataset and the report detail view never needs the
+network:
+
+1. Ask local storage for every report id with an empty body
+   (`reportsMissingBody()`).
+2. For each, `GET /reports/:id` → persist `html`/`text`
+   (`reportSaveBody(id, html, text)`), paced ~300 ms apart.
+3. A failed fetch is logged and left alone — the report simply stays in the
+   missing-body set and the next sync retries it.
+
+**Deliberately decoupled from the cursor.** The backfill is driven by local
+state ("which rows lack a body?"), not by the pull cursor, so a body fetch
+that fails can never strand the cursor, and a device interrupted mid-backfill
+resumes naturally on its next sync. It is idempotent and safe to run on every
+sync pass.
+
+This is also why `reportToLocalUpdate` still omits `html`/`text` (see the pure
+module above): the metadata pull must never overwrite a body we already hold.
+
 ### Initial backup (toggle ON)
 
 1. `syncState.phase = "backing-up"`.
-2. Full pull (existing cursor or `0`) — same code path as any pull.
+2. Full pull of both resources (existing cursor or `0`) — same code path as
+   any pull — then `backfillReportBodies()`.
 3. Enqueue **every** local attendance row (`findAll`), then drain via paced
    `pushTick()`. No diffing against the pull — pushing everything is safe
    under LWW (per the API doc's explicit guidance).
 4. Queue empty → `phase = "idle"`, stamp `lastSyncedAt`.
-5. Interrupted mid-way: the queue is durable SQL; the next launch's ticks
-   resume draining. No special resume logic.
+5. Interrupted mid-way: the queue is durable SQL and the backfill is driven by
+   local state; the next launch's ticks resume both. No special resume logic.
+
+**`phase` never sticks.** Every tick restores the steady-state phase in a
+`finally` (→ `"error"` when at/after the second consecutive failure, else
+`"idle"`), and `initialBackup()` holds `"backing-up"` via a flag that its own
+`finally` clears. An early return — closed gate, active backoff, reentrancy —
+therefore cannot strand the Settings status line mid-"Backing up…".
 
 ## Edge cases
 
 - **Hard delete offline** → payload-snapshot tombstone (above).
 - **Soft delete** (`valid: false`), edits, archive → ordinary field pushes.
 - **Two devices edit offline** → API last-arrived-wins; accepted tradeoff.
-- **Account switch on one device** → cursors are per-uid; **on logout, clear
-  the pending sync queue** — never push user A's records under user B's token
-  (the server would stamp them with B's uid). Mixed-account rows in local
-  SQLite are pre-existing app behavior, out of scope.
+- **Account switch on one device** → cursors are per-uid, and the outbox is
+  cleared when a *different* account signs in. **CHANGED 2026-07-09:** the
+  original design cleared the queue on any `userId` change, which meant an
+  ordinary sign-out silently discarded every not-yet-pushed edit — the very
+  loss this feature exists to prevent. But simply requiring "both uids truthy
+  and different" reopens the leak, because `logout()` sets `userId = undefined`,
+  so a switch reads as `undefined → B` and never trips the guard.
+
+  The fix is to remember who owns the queue. `sync.queueOwnerUid` (MMKV) is
+  stamped whenever we enqueue. On sign-*in*, if a recorded owner exists and
+  differs from the incoming uid, the queue is cleared first. Sign-out itself
+  clears nothing — the gate already blocks every push while unauthenticated,
+  so the rows are safe to keep, and signing back into the same account resumes
+  the drain with the edits intact.
+
+  Mixed-account rows in local SQLite are pre-existing app behavior, out of scope.
 - **Toggle OFF → ON** → re-run `initialBackup()`; idempotent.
 - **maintenanceMode / offline** → ticks early-return (house pattern for
   API-dependent features); gate reaction fires catch-up when it clears.
 - **Sign-out mid-push** → gate re-checked between batches.
+- **Overlapping ticks** → `pushTick`/`pullTick` set their in-flight flag
+  **synchronously, before the first `await`**, and clear it in `finally`. The
+  guard is worthless if set after awaiting the gate: two callers (a debounced
+  `nudgePush` and a resume-triggered `fullSync`) would both observe
+  `pushing === false` and drain the outbox concurrently.
+- **Local edit during a pull merge** → the dirty check is re-read immediately
+  before each record's write, not snapshotted once per page. Otherwise a record
+  edited mid-page is not seen as dirty, the older server copy overwrites the
+  user's edit, and the queue then pushes the clobbered row and marks it
+  synced — silent data loss. (A one-await residual window remains; a write that
+  is clobbered anyway is logged as an error rather than passing silently.)
 
 ## Error handling
 

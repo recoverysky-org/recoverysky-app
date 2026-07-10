@@ -18,6 +18,10 @@ export type AttendanceChangeType =
   | "produced"
   | "archived"
   | "delivery_resolved"
+  // Emitted by the cloud-sync service after a pull merge changed local rows —
+  // screens reload lists the same way they do for local mutations. The `id`
+  // on these events is the constant "sync" (no single record changed).
+  | "synced"
 
 export type AttendanceSource = "sdk" | "external-timer"
 

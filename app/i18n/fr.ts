@@ -268,6 +268,16 @@ const fr: Translations = {
     deliverySuccess: "Rapport livré avec succès",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "Sauvegarde cloud",
+    cloudBackup: "Sauvegarder la présence",
+    cloudBackupHint:
+      "Gardez votre historique de présence en sécurité et synchronisé entre vos appareils",
+    backupBackingUp: "Sauvegarde en cours…",
+    backupSyncing: "Synchronisation…",
+    backupAllBackedUp: "Tout est sauvegardé ✓ · {{time}}",
+    backupPausedOffline: "En pause — hors ligne",
+    backupError: "Problème de sauvegarde — nouvelle tentative",
     title: "Réglages",
     subtitle: "Gère ton compte et tes préférences",
     // Profile Section

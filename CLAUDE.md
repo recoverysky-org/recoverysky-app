@@ -568,6 +568,37 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 - Conversation persisted to ConversationStore
 - Agent tab gated behind `isPremium` entitlement
 
+## Attendance Cloud Backup & Sync
+
+Opt-in (Settings → Cloud Backup, default OFF, gated on the
+`recoverysky-attendance` entitlement) backup of attendance records with
+multi-device sync. Lives in `app/services/sync/`.
+
+**Read `docs/BACKUP.md` before changing anything under `app/services/sync/`.**
+
+The load-bearing facts:
+- **The server stamps every pushed attendance record with the authenticated
+  uid.** Pushing user A's queued rows while B is signed in silently moves A's
+  attendance into B's account. The MMKV `sync.queueOwnerUid` ownership check
+  exists solely to prevent this, and it is deliberately **fail-closed** — if
+  the account-switch queue clear fails, sync stays dead until the next launch
+  rather than risking a leak.
+- Local mutations enqueue to a durable `sync_queue` outbox via the single
+  choke point in `app/db/repositories.ts`. Inbound pulls write through
+  `attendanceSyncWriter`, which **never** fires the mutation hook — otherwise a
+  pull would enqueue a push would pull, forever.
+- `mergePullDecision()` checks "has a pending local push" **before** it checks
+  tombstones. Reordering that clobbers unpushed user edits.
+- Reports are pull-only and `/sync/reports` is metadata-only;
+  `backfillReportBodies()` fetches each body via `GET /reports/:id` so a synced
+  device holds a complete offline copy.
+- `app/services/sync/index.ts` has **zero automated coverage** (it imports
+  `@/`, which vitest can't resolve). The account-switch path must be verified
+  by hand — checklist in `docs/BACKUP.md`.
+
+Anything worth testing gets extracted into `syncLogic.ts`, which keeps zero
+`@/` runtime imports for exactly that reason.
+
 ## Zoom Integration (external-only)
 
 The bundled Zoom Meeting SDK was removed in 4.5.0 after a fatal Android

@@ -10,6 +10,7 @@ import { ApiResponse, ApisauceInstance, create } from "apisauce"
 
 import Config from "@/config"
 import type { AttendanceRecord } from "@/db"
+import type { ServerAttendanceRecord, ServerReportRecord } from "@/services/sync/syncLogic"
 import { trackEvent } from "@/services/tracking"
 import { logger } from "@/utils/logger"
 
@@ -212,6 +213,41 @@ export interface FirebaseReportRecord {
   html: string
   text: string
   credit: number
+}
+
+// =============================================================================
+// Sync Types
+// =============================================================================
+
+/** One rejected record from POST /sync/attendance. "stale" = server already
+ * has a newer version (success for our purposes); "invalid" = failed schema
+ * validation (a client bug worth logging). */
+export interface SyncRejectedRecord {
+  id: string
+  reason: "stale" | "invalid"
+}
+
+/** Response of POST /sync/attendance. */
+export interface SyncPushResult {
+  accepted: number
+  rejected: SyncRejectedRecord[]
+}
+
+/** Envelope of GET /sync/attendance and GET /sync/reports. `cursor` is opaque —
+ * persist it and echo it back as `since`; never compute it client-side. */
+export interface SyncPullEnvelope<T> {
+  records: T[]
+  cursor: number
+  hasMore: boolean
+}
+
+/** Full report from GET /reports/:id — used by backfillReportBodies() during
+ * sync to complete reports that arrived via the metadata-only /sync/reports
+ * pull. Only the fields we consume. */
+export interface ReportDetail {
+  id: string
+  html: string
+  text: string
 }
 
 // Re-export for convenience
@@ -1040,6 +1076,122 @@ export class Api {
     if (!response.ok || !response.data) {
       const problem = getGeneralApiProblem(response)
       if (problem) return problem
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Push new/changed attendance records to cloud backup.
+   * POST /sync/attendance — max 200 records per call (SYNC_PUSH_BATCH_MAX);
+   * uid/updated are server-stamped. Idempotent: retry freely.
+   */
+  async pushSyncAttendance(
+    records: ServerAttendanceRecord[],
+  ): Promise<{ kind: "ok"; data: SyncPushResult } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Pushing sync attendance", { count: records.length })
+
+    const response = await this.recoverySkyApi.post<SyncPushResult>("/sync/attendance", {
+      records,
+    })
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Sync push failed", { problem: problem?.kind, count: records.length })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || typeof response.data.accepted !== "number") {
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Pull attendance changes since a cursor.
+   * GET /sync/attendance?since=<ms>&limit=<n> — includes deleted:true tombstones.
+   */
+  async pullSyncAttendance(
+    since: number,
+    limit = 500,
+  ): Promise<{ kind: "ok"; data: SyncPullEnvelope<ServerAttendanceRecord> } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Pulling sync attendance", { since, limit })
+
+    const response = await this.recoverySkyApi.get<SyncPullEnvelope<ServerAttendanceRecord>>(
+      "/sync/attendance",
+      { since, limit },
+    )
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Sync attendance pull failed", { problem: problem?.kind, since })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || !Array.isArray(response.data.records)) {
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Pull report metadata since a cursor (read-only; reports have no push path).
+   * GET /sync/reports?since=<ms>&limit=<n> — html/text never included.
+   */
+  async pullSyncReports(
+    since: number,
+    limit = 500,
+  ): Promise<{ kind: "ok"; data: SyncPullEnvelope<ServerReportRecord> } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Pulling sync reports", { since, limit })
+
+    const response = await this.recoverySkyApi.get<SyncPullEnvelope<ServerReportRecord>>(
+      "/sync/reports",
+      { since, limit },
+    )
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Sync reports pull failed", { problem: problem?.kind, since })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || !Array.isArray(response.data.records)) {
+      return { kind: "bad-data" }
+    }
+
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * Fetch one full report (including rendered html/text bodies).
+   * GET /reports/:id — the /sync/reports pull is metadata-only, so
+   * backfillReportBodies() calls this during sync to complete the local copy.
+   */
+  async getReport(params: {
+    id: string
+  }): Promise<{ kind: "ok"; data: ReportDetail } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching report detail", { reportId: params.id })
+
+    const response = await this.recoverySkyApi.get<ReportDetail>(`/reports/${params.id}`)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Report detail fetch failed", { problem: problem?.kind, reportId: params.id })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || typeof response.data.html !== "string") {
       return { kind: "bad-data" }
     }
 

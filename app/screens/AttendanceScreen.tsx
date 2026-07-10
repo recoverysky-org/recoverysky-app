@@ -55,6 +55,7 @@ import {
   type MainTabParamList,
   type AttendanceSection,
 } from "@/navigators/navigationTypes"
+import { attendanceSync } from "@/services/sync"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
@@ -239,7 +240,10 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
 
   useEffect(() => {
     return attendanceEvents.subscribe((event) => {
-      if (event.type === "processed" || event.type === "created") {
+      // "synced" fires when a cloud pull merges rows from another device —
+      // without it, a pulled-in unproduced record wouldn't show up here
+      // until the user navigated away and back.
+      if (event.type === "processed" || event.type === "created" || event.type === "synced") {
         void loadRecords()
       }
     })
@@ -439,7 +443,9 @@ const ArchiveContent: FC = observer(function ArchiveContent() {
 
   useEffect(() => {
     return attendanceEvents.subscribe((event) => {
-      if (event.type === "archived") {
+      // "synced" fires when a cloud pull merges rows from another device —
+      // an archived record pulled in from elsewhere needs the same reload.
+      if (event.type === "archived" || event.type === "synced") {
         void loadRecords()
       }
     })
@@ -566,7 +572,14 @@ const ReportsContent: FC = observer(function ReportsContent() {
 
   useEffect(() => {
     return attendanceEvents.subscribe((event) => {
-      if (event.type === "produced" || event.type === "delivery_resolved") {
+      // "synced" fires when a cloud pull merges rows from another device —
+      // a report (or a backfilled report body) pulled in elsewhere needs
+      // this list to reload so it appears / becomes openable.
+      if (
+        event.type === "produced" ||
+        event.type === "delivery_resolved" ||
+        event.type === "synced"
+      ) {
         void loadReports()
       }
     })
@@ -923,6 +936,27 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       })
       return unsubscribe
     }, [navigation, route.params?.section])
+
+    // Cloud sync: catch up whenever the user lands on the Attendance tab.
+    // fullSync() gates internally on opt-in + entitlement + connectivity
+    // (see attendanceSyncService.ts), so this is a cheap no-op for users who
+    // haven't enabled backup — no separate "is sync on" check needed here.
+    // It also runs the report-body backfill internally; do not call
+    // backfillReportBodies() separately or bodies would double-fetch.
+    // Kept as its own effect (rather than folded into the section-routing
+    // listener above) so the two concerns — local nav state vs. remote
+    // sync — don't get entangled.
+    useEffect(() => {
+      return navigation.addListener("focus", () => {
+        // fullSync() absorbs network failures internally but still rejects on a
+        // local SQLite read failure (pushTick/pullTick are try/finally, no catch).
+        // Every other fullSync() call site catches; without this the tab-focus
+        // path turns that into an unhandled promise rejection.
+        void attendanceSync.fullSync().catch((error) => {
+          logger.error("Focus sync failed", { error: String(error) })
+        })
+      })
+    }, [navigation])
 
     // Subscribe to delivery resolution events from polling
     useEffect(() => {

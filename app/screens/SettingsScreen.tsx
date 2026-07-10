@@ -33,6 +33,7 @@ import {
   useAuthenticationStore,
   useConversationStore,
   useConfigStore,
+  useNetworkStore,
 } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
@@ -47,6 +48,7 @@ import {
   requestNotificationPermission,
 } from "@/services/notifications"
 import { requestRatingFromSettings } from "@/services/rating"
+import { attendanceSync } from "@/services/sync"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -63,6 +65,45 @@ type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
  * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
  */
 const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS
+
+/**
+ * One-line backup status shown under the Cloud Backup toggle.
+ *
+ * Standalone observer (NOT inlined in SettingsScreen): attendanceSync.syncState
+ * is a MobX observable that ticks repeatedly during a multi-minute
+ * initialBackup() pass (pendingCount counting down, phase transitions). If this
+ * read lived directly in the SettingsScreen render body, every tick would
+ * re-render the entire Settings screen — all sections, all modals — instead of
+ * just this one line. Same class of bug this codebase already got bitten by
+ * with inline FlatList ListHeaderComponents; see the Component Patterns note
+ * in CLAUDE.md.
+ */
+const SyncStatusLine = observer(function SyncStatusLine() {
+  const { themed } = useAppTheme()
+  const networkStore = useNetworkStore()
+  const { phase, lastSyncedAt, pendingCount } = attendanceSync.syncState
+
+  let text: string
+  if (networkStore.isOffline) {
+    text = translate("settingsScreen:backupPausedOffline")
+  } else if (phase === "backing-up") {
+    text = `${translate("settingsScreen:backupBackingUp")}${pendingCount > 0 ? ` (${pendingCount})` : ""}`
+  } else if (phase === "syncing") {
+    text = translate("settingsScreen:backupSyncing")
+  } else if (phase === "error") {
+    text = translate("settingsScreen:backupError")
+  } else if (lastSyncedAt) {
+    text = translate("settingsScreen:backupAllBackedUp", {
+      time: new Date(lastSyncedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+    })
+  } else {
+    // Enabled but no cycle has completed yet and nothing is in flight —
+    // nothing useful to say until the next tick moves the phase.
+    return null
+  }
+
+  return <Text style={themed($rowHint)}>{text}</Text>
+})
 
 /**
  * SettingsScreen - User profile, account, and app settings
@@ -260,6 +301,40 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       }
     },
     [profileStore, authStore],
+  )
+
+  const handleSyncToggle = useCallback(
+    (value: boolean) => {
+      profileStore.setSyncEnabled(value)
+      trackEvent("cloud_backup_toggle", { enabled: value })
+      if (value) {
+        // Fire-and-forget on purpose: initialBackup() is a full pull of both
+        // resources, then a report-body backfill, then a paced push of the
+        // entire local attendance history. For a big history that's minutes,
+        // not seconds — the user must be free to navigate away from Settings
+        // while it runs. Progress is visible via SyncStatusLine (phase +
+        // pendingCount), which reads attendanceSync.syncState directly, so we
+        // don't need to await or store anything here. Re-toggling ON after a
+        // pause safely re-runs the whole thing: the pull resumes from the
+        // persisted per-account cursors, and the push deliberately re-enqueues
+        // every local record — the server's last-write-wins upsert turns a
+        // re-push of unchanged rows into a harmless no-op, so there is nothing
+        // to diff and nothing to guard against. The bare `void` is safe because
+        // initialBackup() never rejects — it logs and flips phase to "error"
+        // internally (see its doc comment).
+        void attendanceSync.initialBackup()
+      }
+      // Toggle OFF is pause-only, deliberately: it flips syncEnabled false so
+      // the mutation hook stops enqueueing and every gate() check in
+      // attendanceSyncService short-circuits, but the outbox queue, the pull
+      // cursors, and all data already written to the server are left exactly
+      // as-is. There is no server-side wipe in v1 — see the spec. Do NOT call
+      // onLogout() here; that path is reserved for a genuine account switch
+      // (see initAttendanceSync's trigger 4 in services/sync/index.ts), and
+      // calling it on a simple pause would clear the outbox and force a full
+      // re-backup on every re-enable instead of a cheap incremental resume.
+    },
+    [profileStore],
   )
 
   const handleDeleteReminders = () => {
@@ -986,6 +1061,37 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           </>
         )}
       </View>
+
+      {/* Cloud Backup Section — gated on hasAttendance because the /sync API
+          requires the attendance entitlement, and the RevenueCat purchase
+          flow forces sign-in first, so hasAttendance implies a real (non-
+          anonymous) identity for the server to key backups against. */}
+      {hasAttendance && (
+        <View style={themed($section)} onLayout={trackSection("cloudBackup")}>
+          <View style={themed($sectionHeader)}>
+            <Ionicons name="cloud-upload-outline" size={20} color={theme.colors.tint} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:backupSection" />
+          </View>
+
+          <View style={[themed($settingsRow), themed($lastRow)]}>
+            <View style={$styles.flex1}>
+              <Text style={themed($rowLabel)} tx="settingsScreen:cloudBackup" />
+              {profileStore.syncEnabled ? (
+                <SyncStatusLine />
+              ) : (
+                <Text style={themed($rowHint)} tx="settingsScreen:cloudBackupHint" />
+              )}
+            </View>
+            <Switch
+              value={profileStore.syncEnabled}
+              onValueChange={handleSyncToggle}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel={translate("settingsScreen:cloudBackup")}
+            />
+          </View>
+        </View>
+      )}
 
       {/* Account Section */}
       <View style={themed($section)} onLayout={trackSection("account")}>

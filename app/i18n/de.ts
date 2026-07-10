@@ -265,6 +265,15 @@ const de: Translations = {
     deliverySuccess: "Bericht erfolgreich zugestellt",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "Cloud-Backup",
+    cloudBackup: "Anwesenheit sichern",
+    cloudBackupHint: "Halte deinen Anwesenheitsverlauf sicher und auf allen Geräten synchron",
+    backupBackingUp: "Sicherung läuft…",
+    backupSyncing: "Wird synchronisiert…",
+    backupAllBackedUp: "Alles gesichert ✓ · {{time}}",
+    backupPausedOffline: "Pausiert — offline",
+    backupError: "Sicherungsproblem — wird wiederholt",
     title: "Einstellungen",
     subtitle: "Verwalte dein Konto und deine Einstellungen",
     // Profile Section

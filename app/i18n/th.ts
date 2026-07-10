@@ -260,6 +260,15 @@ const th: Translations = {
     deliverySuccess: "ส่งรายงานสำเร็จแล้ว",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "สำรองข้อมูลบนคลาวด์",
+    cloudBackup: "สำรองข้อมูลการเข้าร่วม",
+    cloudBackupHint: "เก็บประวัติการเข้าร่วมของคุณอย่างปลอดภัยและซิงค์ข้ามอุปกรณ์",
+    backupBackingUp: "กำลังสำรองข้อมูล…",
+    backupSyncing: "กำลังซิงค์…",
+    backupAllBackedUp: "สำรองข้อมูลครบแล้ว ✓ · {{time}}",
+    backupPausedOffline: "หยุดชั่วคราว — ออฟไลน์",
+    backupError: "มีปัญหาในการสำรองข้อมูล — จะลองใหม่",
     title: "ตั้งค่า",
     subtitle: "จัดการบัญชีและการตั้งค่าของคุณ",
     // Profile Section

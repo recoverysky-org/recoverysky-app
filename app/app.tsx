@@ -77,6 +77,7 @@ import {
   setNotificationLanguage,
 } from "./services/notifications"
 import { initRatingEngine } from "./services/rating"
+import { initAttendanceSync } from "./services/sync"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
@@ -513,6 +514,12 @@ export function App() {
             api.updateAuth(isAnonymous, accessToken)
           },
         )
+
+        // Cloud backup / multi-device sync — wires the outbox mutation hook,
+        // resume + gate-clear reactions, and fires a cold-start catch-up.
+        // Gated internally on profileStore.syncEnabled + the attendance
+        // entitlement, so this is a no-op for users who haven't opted in.
+        initAttendanceSync(_rootStore)
 
         // Initialize push notifications (non-fatal)
         if (Platform.OS !== "web") {

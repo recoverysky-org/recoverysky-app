@@ -264,6 +264,15 @@ const ru: Translations = {
     deliverySuccess: "Отчёт успешно доставлен",
   },
   settingsScreen: {
+    // Cloud Backup Section
+    backupSection: "Облачная резервная копия",
+    cloudBackup: "Сохранять посещаемость",
+    cloudBackupHint: "Храните историю посещений в безопасности и синхронно на всех устройствах",
+    backupBackingUp: "Создаём резервную копию…",
+    backupSyncing: "Синхронизация…",
+    backupAllBackedUp: "Всё сохранено ✓ · {{time}}",
+    backupPausedOffline: "Приостановлено — нет сети",
+    backupError: "Проблема с резервным копированием — повторим",
     title: "Настройки",
     subtitle: "Управляй своим аккаунтом и предпочтениями",
     // Profile Section
