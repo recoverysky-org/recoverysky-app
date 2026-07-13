@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useState } from "react"
-import { View, ViewStyle, TextStyle, Pressable, Linking } from "react-native"
+import { View, ViewStyle, TextStyle, Linking } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
@@ -12,11 +12,10 @@ import { NinetyInNinetyCard } from "@/components/NinetyInNinetyCard"
 import { RecoveryChartCard } from "@/components/RecoveryChartCard"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { translate, type TxKeyPath } from "@/i18n"
+import { type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
-import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -39,11 +38,13 @@ interface HelpCardDef {
   actionUrl?: string
 }
 
-// CHANGED 2026-07-13: the onboarding ("next generation of AA/NA Live"), settings,
-// support, attendance, favorites, ratings, and rate-app cards were removed — the
-// Getting Started stack had grown long enough to bury the dashboard below it.
-// Their dismissed-ids may still sit in profileStore.dismissedHomeCards; that's
-// harmless (the filter just never matches them).
+// The card stack is long, but it renders at the BOTTOM of the screen (below the
+// user's recovery data) precisely so its length doesn't cost anything. If it ever
+// starts burying the dashboard again, move the section — don't cut cards.
+//
+// REMOVED 2026-07-13: the "onboarding" card ("RecoverySky is the next generation
+// of AA/NA Live"). It announced the AA/NA Live → RecoverySky rename, which is
+// stale now and means nothing to anyone who never used the old app.
 const HELP_CARDS: HelpCardDef[] = [
   {
     id: "live",
@@ -55,6 +56,14 @@ const HELP_CARDS: HelpCardDef[] = [
     actionParams: { segment: "live" },
   },
   {
+    id: "settings",
+    icon: "settings-outline",
+    titleTx: "homeScreen:settingsTitle",
+    descriptionTx: "homeScreen:settingsDescription",
+    actionTx: "homeScreen:goToSettings",
+    actionTab: "Settings",
+  },
+  {
     id: "resources",
     icon: "book-outline",
     titleTx: "homeScreen:resourcesTitle",
@@ -62,20 +71,59 @@ const HELP_CARDS: HelpCardDef[] = [
     actionTx: "homeScreen:goToResources",
     actionUrl: "https://www.recoverysky.app/resources",
   },
+  {
+    id: "support",
+    icon: "help-circle-outline",
+    titleTx: "homeScreen:supportTitle",
+    descriptionTx: "homeScreen:supportDescription",
+    actionTx: "homeScreen:goToSupport",
+    actionUrl: "https://www.recoverysky.org/support",
+  },
+  {
+    id: "attendance",
+    icon: "clipboard-outline",
+    titleTx: "homeScreen:attendanceTitle",
+    descriptionTx: "homeScreen:attendanceDescription",
+    actionTx: "homeScreen:goToAttendance",
+    actionTab: "Attendance",
+  },
+  {
+    id: "favorites",
+    icon: "heart-outline",
+    titleTx: "homeScreen:favoritesTitle",
+    descriptionTx: "homeScreen:favoritesDescription",
+  },
+  {
+    id: "ratings",
+    icon: "star-outline",
+    titleTx: "homeScreen:ratingsTitle",
+    descriptionTx: "homeScreen:ratingsDescription",
+  },
+  {
+    id: "rate-app",
+    icon: "star",
+    titleTx: "homeScreen:rateAppTitle",
+    descriptionTx: "homeScreen:rateAppDescription",
+    actionTx: "homeScreen:rateApp",
+    actionTab: "Settings",
+    actionParams: { section: "legal" },
+  },
 ]
 
 /**
  * HomeScreen - Dashboard with clean time counter and getting started cards
  *
- * Shows all help cards at once as a "Getting Started" section.
- * Clean time counter sits below, floating up as cards are dismissed.
+ * Leads with the user's own recovery data (clean time, chart, money saved,
+ * 90-in-90); the "Getting Started" help cards trail at the bottom, all shown at
+ * once and each individually dismissible.
  */
 export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function HomeScreen(_props) {
   const { themed } = useAppTheme()
   const navigation = useNavigation<MainTabScreenProps<"Home">["navigation"]>()
+  // authStore is read only by the mount log now — the Logout link that used it
+  // to gate itself is gone.
   const authStore = useAuthenticationStore()
   const profileStore = useProfileStore()
-  const { logout, clearError } = useAuth0Wrapper()
 
   // Log mount/unmount
   useEffect(() => {
@@ -145,12 +193,6 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
     [navigation],
   )
 
-  const handleLogout = async () => {
-    log.info("Logout button pressed")
-    clearError()
-    await logout()
-  }
-
   return (
     <Screen
       preset="scroll"
@@ -158,18 +200,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
       safeAreaEdges={["top"]}
       contentContainerStyle={[$styles.container, themed($container)]}
     >
-      {/* Header */}
+      {/* Header.
+          CHANGED 2026-07-13: dropped the Logout link that used to sit at the
+          right of the title. It was a dev-era shortcut; Settings owns logout. */}
       <View style={$header}>
         <Text preset="heading" tx="homeScreen:title" />
-        {authStore.isAuthenticated && !authStore.isAnonymous && (
-          <Pressable
-            onPress={handleLogout}
-            accessibilityRole="button"
-            accessibilityLabel={translate("settingsScreen:logout")}
-          >
-            <Text style={themed($logoutLink)} tx="settingsScreen:logout" />
-          </Pressable>
-        )}
       </View>
 
       {/* News announcement — always top box when visible, non-dismissible */}
@@ -179,7 +214,24 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         </View>
       )}
 
-      {/* Getting Started section */}
+      {/* Clean Time Card */}
+      <CleanTimeCard />
+
+      {/* Recovery Chart — gated on attendance enabled */}
+      {profileStore.attendanceEnabled && <RecoveryChartCard />}
+
+      {/* Money Saved */}
+      <MoneySavedCard />
+
+      {/* 90 in 90 Challenge Card — gated on attendance enabled */}
+      {profileStore.attendanceEnabled && <NinetyInNinetyCard />}
+
+      {/* Getting Started section.
+          CHANGED 2026-07-13: moved from directly under the header to the very
+          bottom of the screen. The help cards are onboarding chrome — a user's
+          own recovery data (clean time, chart, money saved, 90-in-90) is what
+          the dashboard is for, and the cards were pushing all of it below the
+          fold. They're still dismissible, so they disappear entirely once read. */}
       {visibleCards.length > 0 && (
         <View style={themed($cardsContainer)}>
           <Text style={themed($sectionHeader)} tx="homeScreen:gettingStarted" />
@@ -196,18 +248,6 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
           ))}
         </View>
       )}
-
-      {/* Clean Time Card — below cards, floats up as cards are dismissed */}
-      <CleanTimeCard />
-
-      {/* Recovery Chart — gated on attendance enabled */}
-      {profileStore.attendanceEnabled && <RecoveryChartCard />}
-
-      {/* Money Saved */}
-      <MoneySavedCard />
-
-      {/* 90 in 90 Challenge Card — gated on attendance enabled */}
-      {profileStore.attendanceEnabled && <NinetyInNinetyCard />}
     </Screen>
   )
 })
@@ -225,12 +265,6 @@ const $header: ViewStyle = {
   justifyContent: "space-between",
   alignItems: "center",
 }
-
-const $logoutLink: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontSize: 14,
-  fontWeight: "500",
-})
 
 const $sectionHeader: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 15,

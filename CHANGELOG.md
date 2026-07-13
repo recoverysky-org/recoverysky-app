@@ -53,15 +53,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   past announcements.
 
 ### Removed
-- **Trimmed the Home "Getting Started" cards down to two.** The stack had grown
-  to nine cards, pushing the clean-time counter, recovery chart, money-saved and
-  90-in-90 cards well below the fold on first launch. Removed the "RecoverySky is
-  the next generation of AA/NA Live", "Customize Your App", "Need Help?", "Track
-  Attendance", "Favorite Meetings", "Rate Meetings" and "Enjoying RecoverySky?"
-  cards; Live Meetings and Recovery Literature remain. Every removed card pointed
-  at something reachable elsewhere in the app, so nothing became unreachable.
+- **Home: the "RecoverySky is the next generation of AA/NA Live!" card.** It
+  announced the AA/NA Live → RecoverySky rename, which is stale news by now and
+  means nothing to anyone who never used the old app.
+- **Home: the Logout link in the title bar.** A dev-era shortcut that sat beside
+  the "Home" heading. Logout still lives in Settings, where it belongs.
 
 ### Changed
+- **Home "Getting Started" cards moved to the bottom of the tab.** They used to
+  sit directly under the header, above everything else — nine cards deep, which
+  pushed the clean-time counter, recovery chart, money saved and 90-in-90 well
+  below the fold on a fresh install. The dashboard now leads with the user's own
+  recovery data and the help cards trail it as the onboarding chrome they are.
+  The cards are kept, and remain dismissible, so they vanish entirely once read.
 - **Rating-prompt pipeline instrumented with `rating[diag]` diagnostic logging.**
   Every stage of the rating flow now logs at INFO (was DEBUG or silent): the
   engine's startup snapshot (carried-over event count, `reviewEnabled`,

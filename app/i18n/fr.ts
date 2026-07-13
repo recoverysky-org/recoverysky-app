@@ -117,10 +117,31 @@ const fr: Translations = {
     listingsDescription:
       "Parcours l'horaire complet par jour et par heure. Parfait pour planifier.",
     goToListings: "Voir le répertoire",
+    attendanceTitle: "Suivre la présence",
+    attendanceDescription:
+      "Lorsque activé, ta présence aux réunions est suivie automatiquement. Consulte l'historique et exporte des rapports.",
+    goToAttendance: "Voir la présence",
+    settingsTitle: "Personnalise ton app",
+    settingsDescription: "Configure ta date de rétablissement, ton thème et tes préférences.",
+    goToSettings: "Ouvrir les Réglages",
+    // Informational cards
+    favoritesTitle: "Réunions favorites",
+    favoritesDescription:
+      "Appuie sur le coeur pour marquer les réunions que tu aimes. Les favoris apparaissent en premier dans tes listes. Tes favoris sont privés et restent sur ton appareil.",
+    ratingsTitle: "Évaluer les réunions",
+    ratingsDescription:
+      "Utilise les étoiles pour évaluer les réunions selon ton expérience. Les réunions les mieux cotées apparaissent en premier. Tes évaluations sont personnelles et jamais partagées.",
+    rateAppTitle: "Tu aimes RecoverySky ?",
+    rateAppDescription: "Si l'app t'a aidé, une évaluation rapide nous aide énormément !",
+    rateApp: "Évaluer l'app",
+    // Support
     resourcesTitle: "Littérature de rétablissement",
     resourcesDescription:
       "Littérature de rétablissement gratuite en ligne pour les groupes AA et NA.",
     goToResources: "Parcourir les ressources",
+    supportTitle: "Besoin d'aide ?",
+    supportDescription: "Tu as une question ou besoin d'aide ?",
+    goToSupport: "Obtenir de l'aide",
     // Dashboard
     gettingStarted: "Pour commencer",
     cleanDays: "Jours d'abstinence",

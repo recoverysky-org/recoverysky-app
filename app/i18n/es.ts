@@ -114,10 +114,29 @@ const es: Translations = {
     listingsTitle: "Listado de Reuniones",
     listingsDescription: "Explora el horario completo por día y hora. Ideal para planificar.",
     goToListings: "Ver Listado",
-    // Recovery literature
+    attendanceTitle: "Registrar Asistencia",
+    attendanceDescription:
+      "Cuando estés inscrito, tu asistencia a reuniones se registra automáticamente. Ve el historial y exporta informes.",
+    goToAttendance: "Ver Asistencia",
+    settingsTitle: "Personaliza Tu App",
+    settingsDescription: "Configura tu fecha de recuperación, tema y preferencias personales.",
+    goToSettings: "Abrir Configuración",
+    // Informational cards
+    favoritesTitle: "Reuniones Favoritas",
+    favoritesDescription:
+      "Toca el corazón para marcar reuniones que te gustan. Los favoritos aparecen primero en tus listas. Tus favoritos son privados y permanecen en tu dispositivo.",
+    ratingsTitle: "Califica Reuniones",
+    ratingsDescription:
+      "Usa las estrellas para calificar reuniones según tu experiencia. Las reuniones mejor calificadas aparecen primero. Tus calificaciones son personales y nunca se comparten.",
+    rateAppTitle: "¿Te gusta RecoverySky?",
+    rateAppDescription: "Si la app te ha sido útil, ¡una calificación rápida nos ayuda mucho!",
+    rateApp: "Calificar App",
     resourcesTitle: "Literatura de Recuperación",
     resourcesDescription: "Literatura de recuperación gratuita en línea para los grupos AA y NA.",
     goToResources: "Ver Recursos",
+    supportTitle: "¿Necesitas ayuda?",
+    supportDescription: "¿Tienes una pregunta o necesitas ayuda?",
+    goToSupport: "Obtener soporte",
     // Dashboard
     gettingStarted: "Primeros Pasos",
     cleanDays: "Días Limpio",
