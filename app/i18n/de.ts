@@ -105,9 +105,6 @@ const de: Translations = {
     title: "Start",
     placeholder: "Dashboard-Inhalt kommt bald",
     // Help Cards
-    onboardingTitle: "RecoverySky ist die nächste Generation von AA/NA Live!",
-    onboardingDescription:
-      "Der Name hat sich geändert, aber die App ist im Wesentlichen dieselbe — komplett von Grund auf neu geschrieben mit moderner, wartbarer Software.",
     restartOnboarding: "Einführung neu starten",
     navigationTitle: "App-Navigation",
     navigationDescription:
@@ -120,29 +117,9 @@ const de: Translations = {
     listingsDescription:
       "Durchsuche den kompletten Zeitplan nach Tag und Uhrzeit. Ideal zum Vorausplanen.",
     goToListings: "Verzeichnis ansehen",
-    attendanceTitle: "Teilnahme verfolgen",
-    attendanceDescription:
-      "Wenn aktiviert, wird deine Meeting-Teilnahme automatisch erfasst. Sieh dir den Verlauf an und exportiere Berichte.",
-    goToAttendance: "Teilnahme ansehen",
-    settingsTitle: "App anpassen",
-    settingsDescription: "Lege dein Genesungsdatum, Farbschema und persönliche Einstellungen fest.",
-    goToSettings: "Einstellungen öffnen",
-    // Informational cards
-    favoritesTitle: "Lieblings-Meetings",
-    favoritesDescription:
-      "Tippe auf das Herz, um Meetings zu markieren, die dir gefallen. Favoriten erscheinen oben in deinen Listen. Deine Favoriten sind privat und bleiben auf deinem Gerät.",
-    ratingsTitle: "Meetings bewerten",
-    ratingsDescription:
-      "Nutze Sterne, um Meetings nach deiner Erfahrung zu bewerten. Höher bewertete Meetings erscheinen zuerst. Deine Bewertungen sind persönlich und werden nie geteilt.",
-    rateAppTitle: "Gefällt dir RecoverySky?",
-    rateAppDescription: "Wenn die App dir geholfen hat, hilft uns eine kurze Bewertung sehr!",
-    rateApp: "App bewerten",
     resourcesTitle: "Genesungsliteratur",
     resourcesDescription: "Kostenlose Online-Genesungsliteratur für AA- und NA-Gemeinschaften.",
     goToResources: "Ressourcen ansehen",
-    supportTitle: "Brauchst du Hilfe?",
-    supportDescription: "Hast du eine Frage oder brauchst Hilfe?",
-    goToSupport: "Support erhalten",
     // Dashboard
     gettingStarted: "Erste Schritte",
     cleanDays: "Tage clean",

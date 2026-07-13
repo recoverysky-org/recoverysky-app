@@ -103,9 +103,6 @@ const ar: Translations = {
     title: "الرئيسية",
     placeholder: "محتوى لوحة المعلومات قريباً",
     // Help Cards
-    onboardingTitle: "RecoverySky هو الجيل الجديد من AA/NA Live!",
-    onboardingDescription:
-      "تغيّر الاسم، لكنك ستجد أن التطبيق هو نفسه في الجوهر — أُعيدت كتابته بالكامل ببرنامج حديث وقابل للصيانة.",
     restartOnboarding: "إعادة الإعداد الأولي",
     navigationTitle: "تنقل التطبيق",
     navigationDescription:
@@ -116,29 +113,9 @@ const ar: Translations = {
     listingsTitle: "دليل الاجتماعات",
     listingsDescription: "تصفح الجدول الكامل حسب اليوم والوقت. مفيد للتخطيط المسبق.",
     goToListings: "عرض الدليل",
-    attendanceTitle: "تتبع الحضور",
-    attendanceDescription:
-      "عند الاشتراك، يتم تتبع حضورك للاجتماعات تلقائياً. استعرض السجل وصدّر التقارير.",
-    goToAttendance: "عرض الحضور",
-    settingsTitle: "خصّص تطبيقك",
-    settingsDescription: "حدد تاريخ تعافيك والمظهر وتفضيلاتك الشخصية.",
-    goToSettings: "فتح الإعدادات",
-    // Informational cards
-    favoritesTitle: "الاجتماعات المفضلة",
-    favoritesDescription:
-      "اضغط على القلب لتمييز الاجتماعات التي تحبها. المفضلة تظهر في أعلى قوائمك. مفضلاتك خاصة وتبقى على جهازك.",
-    ratingsTitle: "قيّم الاجتماعات",
-    ratingsDescription:
-      "استخدم النجوم لتقييم الاجتماعات حسب تجربتك. الاجتماعات الأعلى تقييماً تظهر أولاً. تقييماتك شخصية ولا تُشارَك أبداً.",
-    rateAppTitle: "هل تستمتع بـ RecoverySky؟",
-    rateAppDescription: "إذا كان التطبيق مفيداً لك، تقييم سريع يساعدنا كثيراً!",
-    rateApp: "قيّم التطبيق",
     resourcesTitle: "أدبيات التعافي",
     resourcesDescription: "أدبيات تعافي مجانية عبر الإنترنت لمجموعات AA و NA.",
     goToResources: "تصفح الموارد",
-    supportTitle: "هل تحتاج مساعدة؟",
-    supportDescription: "هل لديك سؤال أو تحتاج مساعدة؟",
-    goToSupport: "الحصول على الدعم",
     // Dashboard
     gettingStarted: "البداية",
     cleanDays: "أيام النظافة",

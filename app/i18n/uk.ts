@@ -104,9 +104,6 @@ const uk: Translations = {
     title: "Головна",
     placeholder: "Вміст панелі незабаром з'явиться",
     // Help Cards
-    onboardingTitle: "RecoverySky — нове покоління AA/NA Live!",
-    onboardingDescription:
-      "Назва змінилася, але застосунок по суті той самий — повністю переписаний із нуля із сучасним та підтримуваним кодом.",
     restartOnboarding: "Перезапустити початкове налаштування",
     navigationTitle: "Навігація додатку",
     navigationDescription:
@@ -118,29 +115,9 @@ const uk: Translations = {
     listingsTitle: "Каталог зустрічей",
     listingsDescription: "Переглядай повний розклад за днями та часом. Зручно для планування.",
     goToListings: "Переглянути каталог",
-    attendanceTitle: "Облік відвідувань",
-    attendanceDescription:
-      "Коли увімкнено, відвідування зустрічей відстежується автоматично. Переглядай історію та експортуй звіти.",
-    goToAttendance: "Переглянути відвідування",
-    settingsTitle: "Налаштуй додаток",
-    settingsDescription: "Встанови дату одужання, тему оформлення та особисті налаштування.",
-    goToSettings: "Відкрити Налаштування",
-    // Informational cards
-    favoritesTitle: "Улюблені зустрічі",
-    favoritesDescription:
-      "Натисни на серце, щоб позначити зустрічі, які тобі подобаються. Улюблені відображаються вгорі списків. Твої улюблені — приватні та залишаються на пристрої.",
-    ratingsTitle: "Оціни зустрічі",
-    ratingsDescription:
-      "Використовуй зірки, щоб оцінити зустрічі за своїм досвідом. Зустрічі з вищим рейтингом відображаються першими. Твої оцінки особисті та ніколи не передаються.",
-    rateAppTitle: "Подобається RecoverySky?",
-    rateAppDescription: "Якщо додаток був корисним, швидка оцінка дуже нам допоможе!",
-    rateApp: "Оцінити",
     resourcesTitle: "Література з одужання",
     resourcesDescription: "Безкоштовна онлайн-література з одужання для спільнот AA та NA.",
     goToResources: "Переглянути ресурси",
-    supportTitle: "Потрібна допомога?",
-    supportDescription: "Маєте запитання або потрібна допомога?",
-    goToSupport: "Отримати підтримку",
     // Dashboard
     gettingStarted: "Початок роботи",
     cleanDays: "Днів тверезості",

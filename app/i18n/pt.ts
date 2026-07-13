@@ -104,9 +104,6 @@ const pt: Translations = {
     title: "Início",
     placeholder: "Conteúdo do painel em breve",
     // Help Cards
-    onboardingTitle: "RecoverySky é a nova geração do AA/NA Live!",
-    onboardingDescription:
-      "O nome mudou, mas você verá que o app é essencialmente o mesmo — totalmente reescrito do zero com software moderno e fácil de manter.",
     restartOnboarding: "Reiniciar Integração",
     navigationTitle: "Navegação do App",
     navigationDescription:
@@ -118,29 +115,9 @@ const pt: Translations = {
     listingsTitle: "Lista de Reuniões",
     listingsDescription: "Navegue pela agenda completa por dia e horário. Ótimo pra se planejar.",
     goToListings: "Ver Lista",
-    attendanceTitle: "Acompanhar Presença",
-    attendanceDescription:
-      "Quando ativado, sua presença nas reuniões é registrada automaticamente. Veja o histórico e exporte relatórios.",
-    goToAttendance: "Ver Presença",
-    settingsTitle: "Personalize seu App",
-    settingsDescription: "Configure sua data de recuperação, tema e preferências pessoais.",
-    goToSettings: "Abrir Ajustes",
-    // Informational cards
-    favoritesTitle: "Reuniões Favoritas",
-    favoritesDescription:
-      "Toque no coração pra marcar reuniões que você gosta. Os favoritos aparecem primeiro nas suas listas. Seus favoritos são privados e ficam no seu dispositivo.",
-    ratingsTitle: "Avaliar Reuniões",
-    ratingsDescription:
-      "Use as estrelas pra avaliar reuniões com base na sua experiência. Reuniões com nota mais alta aparecem primeiro. Suas avaliações são pessoais e nunca são compartilhadas.",
-    rateAppTitle: "Curtindo o RecoverySky?",
-    rateAppDescription: "Se o app tem sido útil, uma avaliação rápida ajuda muito!",
-    rateApp: "Avaliar App",
     resourcesTitle: "Literatura de Recuperação",
     resourcesDescription: "Literatura de recuperação gratuita online para os grupos AA e NA.",
     goToResources: "Ver Recursos",
-    supportTitle: "Precisa de ajuda?",
-    supportDescription: "Tem uma pergunta ou precisa de ajuda?",
-    goToSupport: "Obter suporte",
     // Dashboard
     gettingStarted: "Primeiros Passos",
     cleanDays: "Dias Limpo",

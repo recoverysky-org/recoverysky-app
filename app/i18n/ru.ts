@@ -104,9 +104,6 @@ const ru: Translations = {
     title: "Главная",
     placeholder: "Содержимое панели скоро появится",
     // Help Cards
-    onboardingTitle: "RecoverySky — новое поколение AA/NA Live!",
-    onboardingDescription:
-      "Название изменилось, но приложение по сути то же самое — полностью переписано с нуля на современном и поддерживаемом коде.",
     restartOnboarding: "Перезапустить начальную настройку",
     navigationTitle: "Навигация приложения",
     navigationDescription:
@@ -119,29 +116,9 @@ const ru: Translations = {
     listingsDescription:
       "Просматривай полное расписание по дням и времени. Удобно для планирования.",
     goToListings: "Смотреть каталог",
-    attendanceTitle: "Учёт посещений",
-    attendanceDescription:
-      "При включении посещение собраний отслеживается автоматически. Просматривай историю и экспортируй отчёты.",
-    goToAttendance: "Посмотреть посещения",
-    settingsTitle: "Настрой приложение",
-    settingsDescription: "Укажи дату выздоровления, тему оформления и личные предпочтения.",
-    goToSettings: "Открыть Настройки",
-    // Informational cards
-    favoritesTitle: "Избранные собрания",
-    favoritesDescription:
-      "Нажми на сердечко, чтобы отметить понравившиеся собрания. Избранное отображается вверху списков. Твои избранные — приватные и остаются на устройстве.",
-    ratingsTitle: "Оцени собрания",
-    ratingsDescription:
-      "Используй звёзды, чтобы оценить собрания по своему опыту. Собрания с высоким рейтингом отображаются первыми. Твои оценки личные и никогда не передаются.",
-    rateAppTitle: "Нравится RecoverySky?",
-    rateAppDescription: "Если приложение было полезно, быстрая оценка очень нам поможет!",
-    rateApp: "Оценить",
     resourcesTitle: "Литература по выздоровлению",
     resourcesDescription: "Бесплатная онлайн-литература по выздоровлению для сообществ AA и NA.",
     goToResources: "Просмотреть ресурсы",
-    supportTitle: "Нужна помощь?",
-    supportDescription: "Есть вопрос или нужна помощь?",
-    goToSupport: "Получить поддержку",
     // Dashboard
     gettingStarted: "Начало работы",
     cleanDays: "Дней трезвости",

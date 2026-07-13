@@ -102,9 +102,6 @@ const th: Translations = {
     title: "หน้าหลัก",
     placeholder: "เนื้อหาแดชบอร์ดกำลังมาเร็วๆ นี้",
     // Help Cards
-    onboardingTitle: "RecoverySky คือ AA/NA Live เจเนอเรชั่นใหม่!",
-    onboardingDescription:
-      "ชื่ออาจเปลี่ยนไป แต่แอปยังคงเหมือนเดิม — เขียนขึ้นใหม่ทั้งหมดด้วยซอฟต์แวร์ที่ทันสมัยและบำรุงรักษาง่าย",
     restartOnboarding: "เริ่มการตั้งค่าเริ่มต้นใหม่",
     navigationTitle: "การนำทางแอป",
     navigationDescription:
@@ -115,29 +112,9 @@ const th: Translations = {
     listingsTitle: "รายการประชุม",
     listingsDescription: "เรียกดูตารางทั้งหมดตามวันและเวลา เหมาะสำหรับวางแผนล่วงหน้า",
     goToListings: "ดูรายการ",
-    attendanceTitle: "ติดตามการเข้าร่วม",
-    attendanceDescription:
-      "เมื่อเปิดใช้งาน การเข้าร่วมประชุมจะถูกบันทึกอัตโนมัติ ดูประวัติและส่งออกรายงานได้เลย",
-    goToAttendance: "ดูการเข้าร่วม",
-    settingsTitle: "ปรับแต่งแอปของคุณ",
-    settingsDescription: "ตั้งวันที่เริ่มฟื้นตัว ธีม และการตั้งค่าส่วนตัวได้เลย",
-    goToSettings: "เปิดการตั้งค่า",
-    // Informational cards
-    favoritesTitle: "ประชุมโปรด",
-    favoritesDescription:
-      "แตะหัวใจเพื่อมาร์คประชุมที่ชอบ รายการโปรดจะอยู่ด้านบนสุดของลิสต์ ข้อมูลโปรดเป็นส่วนตัวและอยู่บนอุปกรณ์ของคุณเท่านั้น",
-    ratingsTitle: "ให้คะแนนประชุม",
-    ratingsDescription:
-      "ใช้ดาวเพื่อให้คะแนนประชุมตามประสบการณ์ของคุณ ประชุมที่คะแนนสูงจะแสดงก่อน คะแนนของคุณเป็นส่วนตัวและไม่ถูกแชร์ให้ใครนะ",
-    rateAppTitle: "ชอบ RecoverySky ไหม?",
-    rateAppDescription: "ถ้าแอปช่วยคุณได้ การให้คะแนนสั้นๆ จะช่วยเราได้มากเลยนะ!",
-    rateApp: "ให้คะแนนแอป",
     resourcesTitle: "วรรณกรรมการฟื้นตัว",
     resourcesDescription: "วรรณกรรมการฟื้นตัวออนไลน์ฟรีสำหรับกลุ่ม AA และ NA",
     goToResources: "ดูแหล่งข้อมูล",
-    supportTitle: "ต้องการความช่วยเหลือ?",
-    supportDescription: "มีคำถามหรือต้องการความช่วยเหลือ?",
-    goToSupport: "รับการสนับสนุน",
     // Dashboard
     gettingStarted: "เริ่มต้นใช้งาน",
     cleanDays: "วันที่สะอาด",

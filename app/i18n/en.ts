@@ -108,9 +108,6 @@ const en = {
     title: "Home",
     placeholder: "Dashboard content coming soon",
     // Help Cards
-    onboardingTitle: "RecoverySky is the next generation of AA/NA Live!",
-    onboardingDescription:
-      "The name has changed, but you'll find the app is essentially the same — completely rewritten from the ground up with modern, maintainable software.",
     restartOnboarding: "Restart Onboarding",
     navigationTitle: "App Navigation",
     navigationDescription:
@@ -121,31 +118,10 @@ const en = {
     listingsTitle: "Meeting Listings",
     listingsDescription: "Browse the full schedule by day and time. Great for planning ahead.",
     goToListings: "View Listings",
-    attendanceTitle: "Track Attendance",
-    attendanceDescription:
-      "When opted in, your meeting attendance is tracked automatically. View history and export reports.",
-    goToAttendance: "View Attendance",
-    settingsTitle: "Customize Your App",
-    settingsDescription: "Set your recovery date, theme, and personal preferences.",
-    goToSettings: "Open Settings",
-    // Informational cards
-    favoritesTitle: "Favorite Meetings",
-    favoritesDescription:
-      "Tap the heart to mark meetings you love. Favorites float to the top of your lists. Your favorites are private and stay on your device.",
-    ratingsTitle: "Rate Meetings",
-    ratingsDescription:
-      "Use stars to rate meetings based on your experience. Higher-rated meetings appear first. Your ratings are personal and never shared.",
-    // Rate App
-    rateAppTitle: "Enjoying RecoverySky?",
-    rateAppDescription: "If the app has been helpful, a quick rating goes a long way!",
-    rateApp: "Rate App",
-    // Support
+    // Recovery literature
     resourcesTitle: "Recovery Literature",
     resourcesDescription: "Free online recovery literature for AA and NA fellowships.",
     goToResources: "Browse Resources",
-    supportTitle: "Need Help?",
-    supportDescription: "Have a question, or need help?",
-    goToSupport: "Get Support",
     // Dashboard
     gettingStarted: "Getting Started",
     cleanDays: "Days Clean",
