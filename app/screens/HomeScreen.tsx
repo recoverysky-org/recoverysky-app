@@ -39,13 +39,12 @@ interface HelpCardDef {
   actionUrl?: string
 }
 
+// CHANGED 2026-07-13: the onboarding ("next generation of AA/NA Live"), settings,
+// support, attendance, favorites, ratings, and rate-app cards were removed — the
+// Getting Started stack had grown long enough to bury the dashboard below it.
+// Their dismissed-ids may still sit in profileStore.dismissedHomeCards; that's
+// harmless (the filter just never matches them).
 const HELP_CARDS: HelpCardDef[] = [
-  {
-    id: "onboarding",
-    icon: "school-outline",
-    titleTx: "homeScreen:onboardingTitle",
-    descriptionTx: "homeScreen:onboardingDescription",
-  },
   {
     id: "live",
     icon: "radio-outline",
@@ -56,57 +55,12 @@ const HELP_CARDS: HelpCardDef[] = [
     actionParams: { segment: "live" },
   },
   {
-    id: "settings",
-    icon: "settings-outline",
-    titleTx: "homeScreen:settingsTitle",
-    descriptionTx: "homeScreen:settingsDescription",
-    actionTx: "homeScreen:goToSettings",
-    actionTab: "Settings",
-  },
-  {
     id: "resources",
     icon: "book-outline",
     titleTx: "homeScreen:resourcesTitle",
     descriptionTx: "homeScreen:resourcesDescription",
     actionTx: "homeScreen:goToResources",
     actionUrl: "https://www.recoverysky.app/resources",
-  },
-  {
-    id: "support",
-    icon: "help-circle-outline",
-    titleTx: "homeScreen:supportTitle",
-    descriptionTx: "homeScreen:supportDescription",
-    actionTx: "homeScreen:goToSupport",
-    actionUrl: "https://www.recoverysky.org/support",
-  },
-  {
-    id: "attendance",
-    icon: "clipboard-outline",
-    titleTx: "homeScreen:attendanceTitle",
-    descriptionTx: "homeScreen:attendanceDescription",
-    actionTx: "homeScreen:goToAttendance",
-    actionTab: "Attendance",
-  },
-  {
-    id: "favorites",
-    icon: "heart-outline",
-    titleTx: "homeScreen:favoritesTitle",
-    descriptionTx: "homeScreen:favoritesDescription",
-  },
-  {
-    id: "ratings",
-    icon: "star-outline",
-    titleTx: "homeScreen:ratingsTitle",
-    descriptionTx: "homeScreen:ratingsDescription",
-  },
-  {
-    id: "rate-app",
-    icon: "star",
-    titleTx: "homeScreen:rateAppTitle",
-    descriptionTx: "homeScreen:rateAppDescription",
-    actionTx: "homeScreen:rateApp",
-    actionTab: "Settings",
-    actionParams: { section: "legal" },
   },
 ]
 

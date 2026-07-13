@@ -45,6 +45,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   authenticated uid, so pushing a queued record while the wrong user is signed in
   would silently move one person's attendance into another's account.
 
+### Removed
+- **Trimmed the Home "Getting Started" cards down to two.** The stack had grown
+  to nine cards, pushing the clean-time counter, recovery chart, money-saved and
+  90-in-90 cards well below the fold on first launch. Removed the "RecoverySky is
+  the next generation of AA/NA Live", "Customize Your App", "Need Help?", "Track
+  Attendance", "Favorite Meetings", "Rate Meetings" and "Enjoying RecoverySky?"
+  cards; Live Meetings and Recovery Literature remain. Every removed card pointed
+  at something reachable elsewhere in the app, so nothing became unreachable.
+
 ### Changed
 - **Rating-prompt pipeline instrumented with `rating[diag]` diagnostic logging.**
   Every stage of the rating flow now logs at INFO (was DEBUG or silent): the
