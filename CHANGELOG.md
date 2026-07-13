@@ -22,6 +22,45 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Build
+
+- OTA releases now resolve `EXPO_PUBLIC_*` config from EAS server-side
+  Environment Variables (the `production` environment) instead of whatever was
+  in the developer's local `.env`. Previously `eas update` inlined config from
+  `.env` at bundle time and ignored `eas.json` entirely (that only applies to
+  `eas build`), so a stray dev value in `.env` could — and did — ship a
+  production OTA pointing at a developer's local API. `release:ota` now passes
+  `--environment production` (server values win over `.env`) and `--clear-cache`
+  (prevents Metro from re-inlining a stale cached value after `.env` changes).
+  The Sentry source-map upload in `bump-update.sh` pulls `SENTRY_AUTH_TOKEN`
+  from the same server environment via `eas env:exec`. Net effect: one source
+  of truth for production config across both builds and OTAs; `.env` is now
+  local-dev-only.
+- Added `npm run check:env` (`scripts/check-env-sync.js`): reports whether a
+  local `.env` matches `eas.json`'s production config (missing / mismatched /
+  extra `EXPO_PUBLIC_*` keys), exit 1 on drift. A sanity/CI aid, not a release
+  gate — surfaced that `EXPO_PUBLIC_AUTH0_CLIENT_ID` exists only in `.env` and
+  is absent from both `eas.json` and the EAS production environment.
+- Declared `EXPO_PUBLIC_AUTH0_CLIENT_ID` in `eas.json` (`base.env`) and the EAS
+  `production` environment. It was previously supplied only by the build
+  machine's local `.env`; prod Auth0 login worked solely because Expo's bundler
+  backfills `EXPO_PUBLIC_*` keys missing from `eas.json` out of `.env` during
+  `eas build --local`. A fresh clone / different machine would have built a prod
+  app with an empty clientId and broken login. Now sourced canonically.
+
+---
+
+## [4.5.0-11] – [4.5.0-13] — 2026-07-13 (OTA)
+
+No user-visible changes. Three republishes of the same JS that shipped in
+[4.5.0-10] — `git diff v4.5.0-10 v4.5.0-13` is empty outside the `update`
+counter in `package.json`. Recorded so the counter sequence visible in Settings
+has no unexplained gaps.
+
+---
+
+## [4.5.0-10] — 2026-07-13 (OTA)
+
 ### Added
 - **Attendance cloud backup & multi-device sync.** Attendance records now back up
   to the server and stay in step across a user's devices. Opt in from
@@ -112,7 +151,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   two upstream fixes: deterministic pagination on tied `updated` timestamps
   (silent-data-loss risk at page boundaries) and an `updated` sentinel change
   `0` → `1` so pre-existing rows are visible to strict `updated > since` sync
-  pulls. No app-side sync client ships yet — this is dependency groundwork.
+  pulls. This landed as dependency groundwork ahead of the sync client; both
+  ship together in this release.
+- **`npm run update` now runs a preflight before it publishes.** `bump-update.sh`
+  runs `npm run compile` and the Vitest suite first and aborts the whole release
+  if either fails — an OTA reaches users the moment it publishes, with no store
+  review in between, so a type error or a red test must not be able to ride out
+  over the air.
 
 ---
 
