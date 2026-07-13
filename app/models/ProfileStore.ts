@@ -1,5 +1,6 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 
+import { ANNOUNCEMENTS } from "@/config/announcements"
 import { liveEvents } from "@/db"
 import { profileRepository } from "@/db/repositories"
 import { changeLanguage, translate } from "@/i18n"
@@ -76,6 +77,11 @@ export const ProfileStoreModel = types
 
     // Home screen help cards
     dismissedHomeCards: types.optional(types.array(types.string), []),
+
+    // Ids of announcements the user has already seen (one-time popup).
+    // Device-scoped: intentionally NOT cleared on logout/reset — clearing it
+    // would re-pop the modal after every re-login.
+    seenAnnouncementIds: types.optional(types.array(types.string), []),
 
     // Money saved
     moneySavedWeekly: types.optional(types.number, 0), // simple weekly total
@@ -344,6 +350,18 @@ export const ProfileStoreModel = types
        */
       completeOnboarding() {
         self.onboardingCompleted = true
+        // Fresh install caught-up baseline: a user finishing onboarding never
+        // wants "NEW feature!" popups for features that shipped WITH their
+        // install. Mark every currently-bundled announcement as already seen.
+        // Existing users (already onboarded in a prior build) never hit this
+        // path, so their empty seen-set lets the current announcement show.
+        // Inlined (not a sibling action call) because MST doesn't type sibling
+        // actions on `self` within the same .actions() block.
+        for (const id of ANNOUNCEMENTS.map((a) => a.id)) {
+          if (!self.seenAnnouncementIds.includes(id)) {
+            self.seenAnnouncementIds.push(id)
+          }
+        }
       },
 
       /**
@@ -375,6 +393,15 @@ export const ProfileStoreModel = types
        */
       resetHomeCards() {
         self.dismissedHomeCards.clear()
+      },
+
+      /**
+       * Mark an announcement as seen so its one-time popup never shows again.
+       */
+      markAnnouncementSeen(id: string) {
+        if (!self.seenAnnouncementIds.includes(id)) {
+          self.seenAnnouncementIds.push(id)
+        }
       },
 
       // === MONEY SAVED ===
