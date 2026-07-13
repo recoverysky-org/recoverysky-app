@@ -743,6 +743,13 @@ const en = {
     actionArchive: "Archive",
     actionDelete: "Delete",
   },
+  announcements: {
+    cloudBackupTitle: "Cloud Backup & Multi-Device Sync",
+    cloudBackupBody:
+      "Your attendance records can now back up securely to the cloud and sync across all your devices. Turn it on anytime in Settings under Cloud Backup.",
+    cloudBackupCta: "Open Cloud Backup",
+    dismiss: "Got it",
+  },
 }
 
 export default en

@@ -717,6 +717,13 @@ const ar: Translations = {
     actionArchive: "أرشفة",
     actionDelete: "حذف",
   },
+  announcements: {
+    cloudBackupTitle: "النسخ الاحتياطي السحابي والمزامنة بين الأجهزة",
+    cloudBackupBody:
+      "يمكن الآن نسخ سجلات حضورك احتياطيًا بأمان إلى السحابة ومزامنتها عبر جميع أجهزتك. فعّل ذلك في أي وقت من الإعدادات ضمن النسخ الاحتياطي السحابي.",
+    cloudBackupCta: "فتح النسخ الاحتياطي السحابي",
+    dismiss: "حسنًا",
+  },
 }
 
 export default ar

@@ -739,6 +739,13 @@ const de: Translations = {
     actionArchive: "Archivieren",
     actionDelete: "Löschen",
   },
+  announcements: {
+    cloudBackupTitle: "Cloud-Backup & geräteübergreifende Synchronisierung",
+    cloudBackupBody:
+      "Deine Anwesenheitsnachweise können jetzt sicher in der Cloud gesichert und auf all deinen Geräten synchronisiert werden. Aktiviere die Funktion jederzeit in den Einstellungen unter Cloud-Backup.",
+    cloudBackupCta: "Cloud-Backup öffnen",
+    dismiss: "Verstanden",
+  },
 }
 
 export default de

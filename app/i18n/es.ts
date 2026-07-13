@@ -731,6 +731,13 @@ const es: Translations = {
     actionArchive: "Archivar",
     actionDelete: "Eliminar",
   },
+  announcements: {
+    cloudBackupTitle: "Copia de seguridad en la nube y sincronización entre dispositivos",
+    cloudBackupBody:
+      "Tus registros de asistencia ahora pueden respaldarse de forma segura en la nube y sincronizarse en todos tus dispositivos. Actívalo cuando quieras en Ajustes, en Copia de seguridad en la nube.",
+    cloudBackupCta: "Abrir Copia de seguridad en la nube",
+    dismiss: "Entendido",
+  },
 }
 
 export default es

@@ -738,6 +738,13 @@ const fr: Translations = {
     actionArchive: "Archiver",
     actionDelete: "Supprimer",
   },
+  announcements: {
+    cloudBackupTitle: "Sauvegarde cloud et synchronisation multi-appareils",
+    cloudBackupBody:
+      "Vos enregistrements de présence peuvent désormais être sauvegardés en toute sécurité dans le cloud et synchronisés sur tous vos appareils. Activez cette option à tout moment dans Réglages, sous Sauvegarde cloud.",
+    cloudBackupCta: "Ouvrir la sauvegarde cloud",
+    dismiss: "Compris",
+  },
 }
 
 export default fr

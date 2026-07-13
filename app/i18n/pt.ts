@@ -731,6 +731,13 @@ const pt: Translations = {
     actionArchive: "Arquivar",
     actionDelete: "Excluir",
   },
+  announcements: {
+    cloudBackupTitle: "Backup na nuvem e sincronização entre dispositivos",
+    cloudBackupBody:
+      "Seus registros de presença agora podem ser salvos com segurança na nuvem e sincronizados em todos os seus dispositivos. Ative quando quiser em Configurações, em Backup na nuvem.",
+    cloudBackupCta: "Abrir Backup na nuvem",
+    dismiss: "Entendi",
+  },
 }
 
 export default pt
