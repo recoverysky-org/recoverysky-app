@@ -45,6 +45,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   authenticated uid, so pushing a queued record while the wrong user is signed in
   would silently move one person's attendance into another's account.
 
+- **One-time announcement popup.** New features can now be announced to users
+  with a single blocking dialog that appears once and never again. First use:
+  the Cloud Backup & multi-device sync launch — subscribers get an "Open Cloud
+  Backup" shortcut into Settings; everyone else sees the announcement text.
+  Fresh installs are seeded "caught up" at onboarding so they get no backlog of
+  past announcements.
+
 ### Removed
 - **Trimmed the Home "Getting Started" cards down to two.** The stack had grown
   to nine cards, pushing the clean-time counter, recovery chart, money-saved and

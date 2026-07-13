@@ -37,6 +37,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Ignore errors - splash screen might already be hidden
 })
 
+import { AnnouncementGate } from "./components/AnnouncementGate"
 import { MaintenanceBanner } from "./components/MaintenanceBanner"
 import { TimerRecoveryGate } from "./components/TimerRecoveryGate"
 import { ToastProvider } from "./components/Toast"
@@ -958,6 +959,7 @@ export function App() {
                           by TimerSessionResumer via the recovery
                           channel in services/zoom/timerRecovery. */}
                       <TimerRecoveryGate />
+                      <AnnouncementGate />
                     </ToastProvider>
                   </ThemeProvider>
                 </MeetingProvider>

@@ -21,6 +21,7 @@ export type SettingsSection =
   | "notifications"
   | "attendance"
   | "subscription"
+  | "cloudBackup"
   | "account"
   | "import"
   | "legal"
