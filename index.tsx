@@ -1,3 +1,8 @@
+// MUST be first: installs globalThis.crypto.getRandomValues/randomUUID from
+// expo-crypto. `uuid` (used by common-lib's SyncQueueRepository) throws without
+// it on Hermes. Import hoisting means this evaluates before every module below.
+import "@/utils/cryptoPolyfill"
+
 import "@expo/metro-runtime" // this is for fast refresh on web w/o expo-router
 import { registerRootComponent } from "expo"
 

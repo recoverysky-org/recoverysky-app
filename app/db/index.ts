@@ -29,6 +29,7 @@ export { ProfileHydrator } from "./ProfileHydrator"
 export { ChatHydrator } from "./ChatHydrator"
 export { ReportPollingResumer } from "./ReportPollingResumer"
 export { TimerSessionResumer } from "./TimerSessionResumer"
+export { SyncResumer } from "./SyncResumer"
 export {
   meetingRepo,
   scheduleRepo,

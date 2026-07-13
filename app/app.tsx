@@ -50,6 +50,7 @@ import {
   ChatHydrator,
   ReportPollingResumer,
   TimerSessionResumer,
+  SyncResumer,
 } from "./db"
 import { initI18n, translate } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
@@ -933,6 +934,7 @@ export function App() {
                 <ChatHydrator />
                 <ReportPollingResumer />
                 <TimerSessionResumer />
+                <SyncResumer />
                 <MeetingProvider>
                   <ThemeProvider>
                     <ToastProvider>

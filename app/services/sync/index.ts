@@ -17,6 +17,7 @@ import { AppState, type AppStateStatus } from "react-native"
 import { reaction } from "mobx"
 
 import { attendanceEvents } from "@/db/attendanceEvents"
+import { getDb } from "@/db/provider"
 import {
   attendanceRepo,
   attendanceSyncWriter,
@@ -102,6 +103,15 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
   // account's rows. Self-heals — the clear flips this back and the next
   // trigger (resume, gate reaction, nudge) syncs normally.
   if (ownerClearPending) return { ok: false, uid }
+  // Hard block: the DB is opened by <DatabaseProvider> (React), but this
+  // service is wired from app.tsx's RootStore setup path, which runs BEFORE
+  // that provider mounts. Any tick reaching a repository before openDb() has
+  // resolved throws "Database not opened". Every tick funnels through gate()
+  // before its first SQLite call, so blocking here covers all paths (cold
+  // start, focus, resume, nudge, reactions). Self-heals: SyncResumer fires a
+  // fullSync() once the DB is ready. Keep this BEFORE the syncEnabled/auth
+  // checks — it's the most fundamental precondition of the lot.
+  if (!getDb().db) return { ok: false, uid }
   const cheapOk =
     rs.profileStore.syncEnabled &&
     !auth.isAnonymous &&
@@ -478,13 +488,12 @@ export function initAttendanceSync(rootStore: RootStore): void {
   const bootUid = rootStore.authenticationStore.userId
   if (bootUid) takeQueueOwnership(bootUid)
 
-  // 5. Cold-start catch-up (post-bootstrap). gate() inside fullSync()/its
-  //    ticks decides whether this actually does anything — for the common
-  //    case (syncEnabled still false) every tick below short-circuits on
-  //    the gate and this is a no-op.
-  void attendanceSync
-    .fullSync()
-    .catch((err) => log.error("fullSync failed", { error: String(err) }))
-
+  // 5. Cold-start catch-up is NOT fired here. initAttendanceSync runs from
+  //    app.tsx's RootStore setup, which precedes <DatabaseProvider> mounting
+  //    and opening the SQLite database — so a fullSync() here reliably raced
+  //    the DB and threw "Database not opened" on every launch (the gate()
+  //    DB-open guard would now no-op it anyway). <SyncResumer> owns this
+  //    trigger instead: it fires fullSync() exactly once, when the database
+  //    reports ready. gate() still decides whether that does any real work.
   log.info("Attendance sync initialized")
 }

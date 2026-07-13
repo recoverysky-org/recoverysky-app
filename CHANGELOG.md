@@ -57,6 +57,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   shows" reports from the field: one log line now answers which gate blocked it.
 
 ### Fixed
+- **Cloud sync threw "Database not opened" on every launch.** The sync service is
+  wired from the app's store-setup path, which runs before the SQLite database
+  provider mounts and opens the database — so the cold-start catch-up pull raced
+  the DB and failed for any user with backup enabled. The availability gate now
+  refuses every sync tick until the database is open, and the cold-start pull was
+  moved to a `SyncResumer` that fires once the database reports ready. Covers all
+  triggers (launch, screen focus, app resume), so none can touch the database
+  before it exists.
+- **Cloud backup crashed on every write with "crypto.getRandomValues() does not
+  exist."** Hermes ships no global `crypto`, and the sync outbox generates a UUID
+  for each queued mutation, so no attendance change could ever be enqueued for
+  backup. Every other local write escaped this because it supplies its own id and
+  never reaches the UUID generator. `globalThis.crypto` is now polyfilled from
+  `expo-crypto` at app entry. Deliberately not `react-native-get-random-values`:
+  that is a native module, which would force a `runtimeVersion` bump and a store
+  release, whereas `expo-crypto` is already linked and keeps this shippable over
+  the air.
 - **Recovery date defaulted to *tomorrow* for users behind UTC.** The onboarding
   and Settings recovery-date pickers seeded their default from
   `new Date().toISOString()`, which serializes in UTC — so in the evening a
