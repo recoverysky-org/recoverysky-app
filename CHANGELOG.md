@@ -29,6 +29,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   in-app Zoom SDK was removed in 4.5.0), so the server returns external meetings
   by default; the flag and its `options` plumbing were removed as dead code.
 
+### Fixed
+
+- `npm run compile` failed with `Cannot find module 'expo-file-system'` in three
+  files (`db/provider.ts`, `journalExportService.ts`, `ninetyCertificateService.ts`).
+  The `expo` 54.0.34→54.0.35 bump nested `expo-file-system` under
+  `node_modules/expo/` and it was never a declared dependency, so TypeScript
+  couldn't resolve it from the project root. (Metro still resolved the nested copy
+  at runtime, so shipped builds were unaffected — this was typecheck/CI only.)
+  Declared `expo-file-system` as a direct dependency to force top-level hoisting.
+
 ---
 
 ## [4.7.0] — 2026-07-13
