@@ -42,11 +42,13 @@ canonically from the EAS `production` environment; resets the OTA counter to 0.
   the project root, so the Metro bundle then failed with `Cannot find module
   'babel-preset-expo'` during the EAS build. Declaring it directly forces
   top-level hoisting. Future maintainers: keep this in sync when bumping `expo`.
-- Pinned `eas-cli` as a devDependency and switched every `eas`-invoking npm
-  script (`build:*`, `submit:*`, `release:*`) to `npx eas`, so builds use the
-  repo-locked CLI version instead of whatever `eas-cli` happens to be installed
-  globally on the build machine. Removes global-install reliance and makes local
-  production builds reproducible.
+- Switched every `eas`-invoking npm script (`build:*`, `submit:*`, `release:*`)
+  from bare `eas` to `npx eas`, so they no longer hard-require a globally
+  installed `eas-cli` (npx uses the global one if present, otherwise fetches it).
+  `eas-cli` is intentionally **not** a project dependency: `expo doctor` fails
+  the build on its "legacy global CLI installed locally" check if it is, and that
+  check can't be disabled. The `eas-cli` version is governed by `eas.json`'s
+  `cli.version` field, per Expo's intended model.
 - OTA releases now resolve `EXPO_PUBLIC_*` config from EAS server-side
   Environment Variables (the `production` environment) instead of whatever was
   in the developer's local `.env`. Previously `eas update` inlined config from
