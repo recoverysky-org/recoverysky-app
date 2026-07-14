@@ -31,6 +31,10 @@ canonically from the EAS `production` environment; resets the OTA counter to 0.
 
 ### Build
 
+- Aligned `expo`, `expo-font`, `expo-localization`, and `expo-updates` to the
+  patch versions SDK 54 expects (via `expo install --fix`). These were a patch
+  behind, which failed the `expo doctor` "packages match versions required by
+  installed Expo SDK" check and aborted the EAS production build during setup.
 - OTA releases now resolve `EXPO_PUBLIC_*` config from EAS server-side
   Environment Variables (the `production` environment) instead of whatever was
   in the developer's local `.env`. Previously `eas update` inlined config from
