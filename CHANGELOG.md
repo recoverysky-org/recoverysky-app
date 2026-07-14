@@ -35,6 +35,13 @@ canonically from the EAS `production` environment; resets the OTA counter to 0.
   patch versions SDK 54 expects (via `expo install --fix`). These were a patch
   behind, which failed the `expo doctor` "packages match versions required by
   installed Expo SDK" check and aborted the EAS production build during setup.
+- Added `babel-preset-expo` as an explicit devDependency. The `expo` patch bump
+  above changed its required range (`~54.0.10` → `~54.0.11`), and npm's
+  incremental install un-hoisted it into `node_modules/expo/node_modules/`,
+  leaving no top-level copy. The root `babel.config.js` resolves the preset from
+  the project root, so the Metro bundle then failed with `Cannot find module
+  'babel-preset-expo'` during the EAS build. Declaring it directly forces
+  top-level hoisting. Future maintainers: keep this in sync when bumping `expo`.
 - OTA releases now resolve `EXPO_PUBLIC_*` config from EAS server-side
   Environment Variables (the `production` environment) instead of whatever was
   in the developer's local `.env`. Previously `eas update` inlined config from
