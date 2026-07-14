@@ -622,8 +622,9 @@ What's left in `app/services/zoom/`:
   tally still increments outside the SDK path.
 - **`SchedulePopup.handleJoin`** — when `attendanceEnabled` is on, shows
   `ExternalZoomTimerModal`; otherwise calls `Linking.openURL` directly.
-- The Listings API always requests `includeExternal: true` — external is
-  the only mode now.
+- The Listings API (`getLiveSchedules` / `getDailySchedules`) no longer sends
+  an `includeExternal` param — external is the only mode, so the server returns
+  it by default and the client-side flag was removed.
 
 What was removed (do not restore without strong reason): the
 `ZoomMeetingProvider` SDK context, `ZoomLoginScreen` / `ZoomSetupScreen`,

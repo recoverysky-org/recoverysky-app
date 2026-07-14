@@ -238,10 +238,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       setError(null)
 
       const outcome = await retryWithBackoff(
-        // Always request external meetings — the in-app SDK was removed in
-        // 4.5.0 and external-app launches are the only join path, so the
-        // server-side filter is effectively a no-op constant from here on.
-        () => api.getLiveSchedules({ includeExternal: true }),
+        () => api.getLiveSchedules(),
         (result) => result.kind === "ok",
         "getLiveSchedules",
       )

@@ -22,6 +22,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+
+- The Listings API client no longer sends the `includeExternal` query param on
+  `/schedules/live` or `/schedules/daily`. External is the only mode now (the
+  in-app Zoom SDK was removed in 4.5.0), so the server returns external meetings
+  by default; the flag and its `options` plumbing were removed as dead code.
+
 ---
 
 ## [4.7.0] — 2026-07-13

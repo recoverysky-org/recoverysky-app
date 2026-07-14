@@ -217,11 +217,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     setError(null)
 
     try {
-      // Always request external meetings — see MeetingContext for context;
-      // the in-app SDK was removed in 4.5.0 so this flag is now a constant.
-      const result = await api.getDailySchedules(selectedDay, fellowship, {
-        includeExternal: true,
-      })
+      const result = await api.getDailySchedules(selectedDay, fellowship)
 
       if (result.kind !== "ok") {
         log.error("API getDailySchedules failed", { kind: result.kind })
