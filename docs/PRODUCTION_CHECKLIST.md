@@ -35,7 +35,7 @@ Step-by-step checklist for preparing and publishing a **native store release**.
     Play Store permanently rejects re-uploads at or below a used value.
   - `appVersionSource` is `local` with no `autoIncrement`, so EAS uses the exact
     value in `app.json`. `bump-version.sh` does **not** touch it.
-  - Convention: encode the version as `M|mm|pp|bbb` (e.g. 4.6.0 → `40600000`).
+  - Convention: encode the version as `M|mm|pp|bbb` (e.g. 4.7.0 → `40700000`).
 
 - [ ] **6. Bump semver** — `npm run patch`, `npm run minor`, or `npm run major`
   - Updates `version` in `package.json` / `app.json` / `package-lock.json`.

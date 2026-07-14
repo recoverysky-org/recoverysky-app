@@ -24,7 +24,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ---
 
-## [4.6.0] — 2026-07-13
+## [4.7.0] — 2026-07-13
 
 Native store release. Cuts a fresh native build so production config is sourced
 canonically from the EAS `production` environment; resets the OTA counter to 0.
