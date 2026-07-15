@@ -58,11 +58,10 @@ RecoverySky was made in recovery, for people in recovery — by someone who foun
 A nonprofit you can trust
 RecoverySky is a 501(c)(3) nonprofit organization. We don't track you, and we don't sell your data — the only thing we'll ever sell is the subscription that keeps the app running. That will never change. Our platform is built and operated on HIPAA-compliant AWS infrastructure, because we take your security and privacy seriously.
 
-You don't have to have it all figured out. You just have to want it, a little. Open the app, find a meeting — we'll be here. 🌤️
+You don't have to have it all figured out. You just have to want it, a little. Open the app, find a meeting — we'll be here.
 
 Learn more at recoverysky.app
 
-⸻
 RecoverySky Premium is $6.99/month. Payment is charged to your Google Play account at confirmation. Your subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Google Play account settings.
 
 
@@ -96,7 +95,9 @@ Optimized (89 / 100) — drops words already in the name/subtitle:
 online,virtual,attendance,verified,pinkcloud,zoom,find,sober,anonymous,group,court
 
 Simple fallback (93 / 100) — one list across both stores:
-aa,na,cma,meetings,online,virtual,recovery,attendance,verification,pinkcloud,zoom,find,finder
+aa,na,cma,meetings,online,recovery,attendance,verification,pinkcloud,zoom,find,finder,court
+
+
 
 
 --- DESCRIPTION ---
@@ -104,12 +105,41 @@ aa,na,cma,meetings,online,virtual,recovery,attendance,verification,pinkcloud,zoo
 Same as the Google Play FULL DESCRIPTION above, through "Learn more at
 recoverysky.app", then replace the final subscription block with:
 
-⸻
 RecoverySky Premium is $6.99/month. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings.
 Terms of Use: https://www.recoverysky.app/terms
 Privacy Policy: https://www.recoverysky.app/privacy
 
 (^ VERIFY these two URLs are live before submitting — Apple rejects dead links.)
+
+
+========================================================
+WHAT'S NEW / RELEASE NOTES
+========================================================
+
+Covers everything since the last store build (cloud backup + sync, CMA,
+dashboard reorder, stability). Google Play limit: 500 chars. Keep it benefit-led,
+no jargon, no unreleased features.
+
+--- FULL (bulleted, ~410 / 500) ---
+
+We've been making RecoverySky steadier — and more yours:
+
+• Your attendance now backs up securely and syncs across your devices, so a new or lost phone never means lost progress (Premium).
+• Crystal Meth Anonymous (CMA) meetings now sit right beside AA and NA.
+• Your home screen leads with your recovery — clean time, money saved, 90-in-90.
+• Faster start-up, plus lots of little fixes.
+
+Keep coming back. 🌤️
+
+--- SHORT (~250 / 500) ---
+
+New in RecoverySky:
+• Secure cloud backup + multi-device sync for your attendance (Premium)
+• CMA meetings now alongside AA and NA
+• A home screen that leads with your recovery
+• Faster, smoother, steadier
+
+Keep coming back. 🌤️
 
 
 ========================================================
@@ -127,3 +157,7 @@ DECISIONS & RATIONALE
   contradict that form and risk rejection.
 - Sky AI + Social feed are NOT advertised — built but hidden pending content.
 - "court" kept in keyword lists (high-intent for the supervision audience).
+- NO emoji or exotic Unicode in the Apple Description field — App Store Connect
+  rejects them ("This field contains one or more invalid characters"). The 🌤️
+  and the old "⸻" divider both tripped it. Emoji is fine in Google Play's
+  description and in the "What's New" notes on both stores.
