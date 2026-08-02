@@ -26,16 +26,24 @@ npm run lint           # ESLint with auto-fix
 npm run lint:check     # ESLint check only
 npm run lint:deps      # Dependency validation (depcruise)
 
-# Testing
-npm test               # Run Jest tests
-npm run test:watch     # Jest watch mode
-npm test -- path/to/file.test.ts  # Run single test file
-npm run test:maestro   # Maestro e2e tests
+# Testing (TWO runners — see "Test Runner Split" below)
+npm test                          # Everything: vitest run && jest --forceExit
+npm run test:unit                 # Vitest only (pure .ts)
+npm run test:unit -- path/to/file.test.ts       # Single Vitest file
+npm run test:component            # jest-expo only (.tsx component tests)
+npm run test:component -- path/to/file.test.tsx # Single Jest file
+npm run test:e2e                  # ⚠️ Hits live infra (Loki) — needs network
+npm run test:maestro              # Maestro device e2e
 
-# Building (EAS local builds - requires native module changes)
-npm run build:ios:sim      # iOS simulator
-npm run build:ios:device   # iOS physical device
-npm run build:android:sim  # Android emulator
+# Building
+npm run build:ios:sim      # EAS local build, iOS simulator
+npm run build:ios:device   # EAS local build, iOS physical device
+npm run build:ios:prod     # EAS local build, production profile
+npm run build:android:sim:debug    # Gradle (x86_64) — NOT EAS
+npm run build:android:device:debug # Gradle (arm64-v8a)
+npm run build:android:prod         # EAS local build, production AAB
+npm run adb                # adb reverse ports for Android dev (Metro, logger)
+npm run check:env          # Verify .env ↔ eas.json env sync
 
 # Releasing (see "Releasing (OTA & Native)" below for the full procedure)
 npm run update             # OTA release: bump counter, commit, tag, push, eas update, Sentry maps
@@ -45,7 +53,7 @@ npm run release:ios        # Native build + submit to App Store (also: release:a
 
 ## ⚠️ Runtime Version & OTA Updates (READ FIRST)
 
-**The single most-forgotten thing in this repo.** OTAs only reach users whose installed native binary advertises a matching `runtimeVersion`. We manage the string manually in `app.json` (currently `"4.2.0"`), so it's on you to bump it whenever the native shape of the app changes.
+**The single most-forgotten thing in this repo.** OTAs only reach users whose installed native binary advertises a matching `runtimeVersion`. We manage the string manually in `app.json` — it tracks `version` (read both from `app.json`; do not trust any number quoted in this doc), so it's on you to bump it whenever the native shape of the app changes.
 
 **⚠️ MANDATORY: Bump `runtimeVersion` in `app.json` when ANY of the following change:**
 - New, removed, or upgraded native dependency (anything that adds/changes native code)
@@ -62,11 +70,11 @@ npm run release:ios        # Native build + submit to App Store (also: release:a
 
 **Mental shortcut:** if your change requires a fresh `npm run build:ios:prod` / `release:ios` / `release:android` to take effect, bump `runtimeVersion`. If `npm run update` (OTA) is enough, leave it alone. If you forget, your next OTA targets a runtime no installed user has → reaches nobody.
 
-**Convention:** Keep `runtimeVersion` in sync with `version` in `app.json`. When making a native change, bump both together (e.g., `"4.2.0"` → `"4.3.0"`). `bump-version.sh` (run via `npm run patch/minor/major`) automatically resets the `package.json` `update` field to `"0"` on each native version bump so the OTA counter restarts cleanly.
+**Convention:** Keep `runtimeVersion` in sync with `version` in `app.json`. When making a native change, bump both together (e.g., `"4.7.0"` → `"4.8.0"`). `bump-version.sh` (run via `npm run patch/minor/major`) automatically resets the `package.json` `update` field to `"0"` on each native version bump so the OTA counter restarts cleanly.
 
 The server's `/config` endpoint returns `LATEST_VERSION` which the app compares against `Application.nativeApplicationVersion`. If the user's native build is behind, they are prompted to update from the store before checking for OTA patches. See `app/utils/checkForUpdates.ts`.
 
-**Why not the `fingerprint` policy?** We tried it (commit `7a38e44`) and reverted (commit `aecb4f4`) because the hash came out different on local builds vs EAS — our postinstall pipeline (Zoom AAR extraction in `scripts/patch-zoom-android.sh`, the `patches/` directory, the various `patch-*.sh` scripts) is not deterministic across environments, so the local-computed fingerprint and the EAS-computed fingerprint disagreed. Plus a stale EAS GraphQL token broke fingerprint computation entirely on local builds. Significant time was spent trying to fix this; manual is the pragmatic floor. Don't revisit fingerprint without first making the postinstall pipeline reproducible across environments.
+**Why not the `fingerprint` policy?** We tried it (commit `7a38e44`) and reverted (commit `aecb4f4`) because the hash came out different on local builds vs EAS — our postinstall / prebuild pipeline (`patch-package` on postinstall plus `scripts/patch-android.sh`, which `npm run prebuild:clean` and `prebuild:android:clean` run to copy `google-services.json` and apply native settings Expo doesn't handle) is not deterministic across environments, so the local-computed fingerprint and the EAS-computed fingerprint disagreed. Plus a stale EAS GraphQL token broke fingerprint computation entirely on local builds. Significant time was spent trying to fix this; manual is the pragmatic floor. Don't revisit fingerprint without first making the postinstall pipeline reproducible across environments.
 
 ## Releasing (OTA & Native)
 
@@ -175,11 +183,11 @@ MST with MMKV persistence in `app/models/`:
   - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never persisted to MMKV
   - Computed: `isAuthenticated`
 - **ProfileStore**: User profile and preferences with two storage tiers:
-  - **Props** (MMKV snapshots): display toggles, subscription, onboardingCompleted, attendanceEnabled, zoomConnected, notificationsEnabled, reportEmail, `imported`, `useExternalZoom`
+  - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription`, `themeColor`, `onboardingCompleted`, `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
-- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Includes API URLs, Zoom SDK keys, RevenueCat keys (3 separate: test, Apple, Google), Umami analytics keys, with computed `revenueCatApiKey` view that selects by `__DEV__` and `Platform.OS`. NOT persisted to MMKV (security).
+- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `isLoaded` / `isLoading`. NOT persisted to MMKV (security). There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
 - **ConversationStore**: AI agent conversation state
 
 ```typescript
@@ -211,11 +219,11 @@ const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ### Navigation
 React Navigation v7 in `app/navigators/`:
 
-**App-level gating** (`AppNavigator.tsx`): outage check → Login → ZoomSetup → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are persistent flags (`isAuthenticated`, `zoomConnected`, `onboardingCompleted`).
+**App-level gating** (`AppNavigator.tsx`): outage check → Login → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
 
-**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `attendanceEnabled`), Agent (conditional on `isPremium`), Settings.
+**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. Two tabs are built but **hard-disabled behind local `const … = false` flags**, not entitlements: `agentTabVisible` (Agent — hidden until release-ready) and `socialTabVisible` (Community/Social — hidden pending SPA-side fixes; re-enable with `__DEV__ || isPremium`). `useSubscription()`'s `isPremium` is still read and `void`-ed here so the hook stays wired for future gates — don't "clean up" that line.
 
-**Modals** (app-stack level): ZoomLogin (reconnection), Import (Firebase data import from Settings), Licenses (OSS licenses from Settings).
+**Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms.
 
 **Section routing**: Attendance tab accepts `{ section?: "new" | "archive" | "reports" }` route params. Navigation to a specific section uses `navigate("Attendance", { section: "reports" })`. The screen syncs via `navigation.addListener("focus", ...)` to handle repeated navigations to the same section.
 
@@ -225,9 +233,10 @@ Route types defined in `app/navigators/navigationTypes.ts`.
 SQLite with Drizzle ORM in `app/db/`:
 - **DatabaseProvider**: Runs Drizzle migrations on startup, seeds data on first launch
 - **provider.ts**: Creates expo-sqlite database and Drizzle instance
-- **repositories.ts**: Lazy proxy objects over common-lib repository classes (meetingRepo, scheduleRepo, attendanceRepo, attendanceReportRepo, feedbackRepo, chatMessageRepo, zoomAuthRepo, profileRepository)
+- **repositories.ts**: Lazy proxy objects over common-lib repository classes — `meetingRepo`, `scheduleRepo`, `attendanceRepo`, `attendanceReportRepo`, `feedbackRepo`, `chatMessageRepo`, `reminderRepo`, `syncQueueRepo`, `attendanceSyncWriter`, `profileRepository`. This file is also the **single mutation choke point** that enqueues to the sync outbox (see "Attendance Cloud Backup & Sync"); `attendanceSyncWriter` is the deliberate bypass used by inbound pulls.
 - **attendanceEvents.ts**: Simple pub/sub for cross-component attendance updates. Event types: `"created" | "processed" | "produced" | "archived" | "delivery_resolved"`. Subscribe in `useEffect`, emit after mutations. `delivery_resolved` includes `deliveryError?: boolean` for report delivery status.
-- **liveEvents.ts**: Similar pub/sub for live meeting preference changes
+- **liveEvents.ts** / **reminderEvents.ts**: Similar pub/sub for live meeting preference and reminder changes
+- **Resumer/hydrator components** mounted in the provider tree: `ProfileHydrator`, `ChatHydrator`, `ReportPollingResumer` (restarts delivery polling after a cold start), `TimerSessionResumer` (recovers an external-Zoom timer session killed mid-meeting), `SyncResumer`
 
 Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
 
@@ -238,9 +247,32 @@ Apisauce wrapper in `app/services/api/`:
 - Attestation queueing: `setAttestationInProgress(promise)` — API calls wait via `waitForAttestation()` before proceeding
 - Device auth: `setDeviceJwt(jwt)` sets `X-Device-Token`; `setApiKeyAuth()` fallback for simulators without attestation
 - Public status probe: `getPublicStatus()` skips `waitForAttestation()` and is the only API call that can run before any device JWT is set. Used at cold start to detect API outage *before* attempting attestation — see "Maintenance Mode" below. The authenticated `getStatus()` (which awaits attestation) is still used at runtime by `MeetingContext` for the connectivity indicator.
-- Server config endpoint (`/config`) provides runtime keys for RC, Zoom, OTLP, Umami
+- Server config endpoint (`/config`) provides runtime keys for RC, OTLP, Umami
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
 - Firebase import endpoints: `getFirebaseUser()`, `getFirebaseAttendance()`, `getFirebaseReports()`, `checkFirebaseUser()` — types exported as `FirebaseUserData`, `FirebaseAttendanceRecord`, `FirebaseReportRecord`
+
+### Auth, Attestation & Encryption Keys
+
+Three separate trust layers, easy to confuse:
+
+1. **User identity — Auth0** (`app/services/auth/`). Universal Login via
+   `react-native-auth0`, config in `auth0.ts` (`EXPO_PUBLIC_AUTH0_*`,
+   custom scheme `recoverysky-app`, scopes include `offline_access`).
+   `useAuth0Wrapper.ts` is the hook the app consumes. Tokens land in
+   `AuthenticationStore` — only `refreshToken` is persisted (MMKV);
+   `accessToken` / `idToken` / `expiresAt` are volatile by design.
+   `secureStorage.ts` wraps expo-secure-store; `vault.ts` is a **web-only**
+   tweetnacl-obscured storage shim (native uses Keychain/Keystore instead).
+2. **Device trust — attestation** (`app/services/attestation/`). Apple App
+   Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
+   exchanged with the backend for a device JWT that becomes
+   `X-Device-Token`. Simulators fall back to `setApiKeyAuth()`. Every API
+   call except `getPublicStatus()` waits on `waitForAttestation()`.
+3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
+   Anonymous users get a locally generated 256-bit key in SecureStore
+   (`sqlite_encryption_key_v1`); authenticated users get the key from JWT
+   custom claims. This is what makes ProfileStore's "volatile (encrypted
+   SQLite)" tier actually encrypted.
 
 ### Maintenance Mode
 
@@ -375,6 +407,35 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
 - Sets `profileStore.imported = true` after success; button greys out when already imported
 - Available from Settings via `navigate("Import")` modal
 
+### Smaller Subsystems (know they exist before rebuilding one)
+
+- **Rating engine** (`app/services/rating/`) — two-stage soft-ask app-review
+  prompts. Only four entry points are public: `initRatingEngine`,
+  `recordEvent`, `maybePresentRatingPrompt`, `requestRatingFromSettings`.
+  `decide.ts` / `reducers.ts` / `state.ts` are internals — don't import them
+  directly. Gated server-side by `configStore.reviewEnabled`. Has real unit
+  coverage (`rating.test.ts`).
+- **Report delivery polling** (`app/services/polling/reportPollingService.ts`)
+  — adaptive, deduped, fire-and-forget: 15 s initial delay, then 10 s for
+  0–5 min, 60 s to 60 min, 15 min after that; never stops until resolved.
+  Restarted on cold start by `ReportPollingResumer`. The report-status
+  polling described in "Attendance Reports System" ultimately lands here.
+- **90-in-90 certificate** (`app/services/ninety/`, `useNinetyInNinety`) —
+  expo-print HTML→PDF certificate for the 90-meetings-in-90-days challenge,
+  written to the filesystem and shared. Errors typed via
+  `NinetyCertificateError` (`"generation" | "storage"`).
+- **Umami analytics** (`app/services/tracking/`) — `initializeUmami`,
+  `setTrackingUserId`, `trackScreenView`, `trackEvent`. Keys come from
+  ConfigStore, so tracking only works after `/config` resolves.
+- **Announcements** (`app/config/announcements.ts`, `AnnouncementGate`,
+  `app/utils/announcementLogic.ts`) — one-time popup registry. Append new
+  entries at the END (the gate shows the first unseen one), add i18n strings,
+  ship an OTA; this is JS-only, do NOT bump `runtimeVersion`. The registry
+  module must stay free of runtime `@/` and native value imports because
+  vitest imports it — see "Test Runner Split".
+- **Crash reporting** (`app/services/crashReporting/sentry.ts`) — Sentry;
+  source maps are uploaded by `bump-update.sh` during `npm run update`.
+
 ### Theming
 Design token system in `app/theme/`:
 - Use `themed()` function for responsive styling
@@ -387,6 +448,50 @@ i18next in `app/i18n/` with English and Spanish:
 - Use `tx` prop on Text components, never hardcode strings
 - Use `useTranslation()` hook for reactive translations in navigators
 - Language switching via `changeLanguage()` from i18n exports
+
+## Test Runner Split (Vitest + Jest, by file extension)
+
+`npm test` runs **both** runners: `vitest run && jest --forceExit`. The split is
+enforced by config, not convention, and it is load-bearing:
+
+- **`*.test.ts` → Vitest** (`vitest.config.ts`). Pure TypeScript only. Vitest
+  has no React Native / Babel transform, so a `.tsx` file pulled into its graph
+  dies on RN's Flow-typed source (`Unexpected token 'typeof'`).
+- **`*.test.tsx` → jest-expo** (`jest.config.js`, `testMatch: **/*.test.tsx`).
+  Component tests; setup in `test/setup.ts`.
+- **`*.e2e.test.ts` → excluded from both**, run only via `npm run test:e2e`
+  (`vitest.e2e.config.ts`). These hit live infra (e.g. `logger.e2e.test.ts`
+  needs a reachable Loki) and fail on any machine without it.
+- **Vitest cannot resolve the `@/` alias.** A module you want unit-tested must
+  keep its pure logic free of runtime `@/` imports (type-only imports are fine,
+  they're erased). The established pattern is logic in a pure module + I/O in a
+  separate orchestrator the tests don't import — see `syncLogic.ts` vs
+  `services/sync/index.ts`, and `announcementLogic.ts` vs `announcements.ts`.
+- **Both configs ignore `.claude/worktrees/`** — it holds full nested checkouts
+  of this repo, and without the exclusion every test is discovered twice, making
+  one real failure look like two. Don't remove those ignore patterns.
+
+Coverage is thin (≈13 test files) and deliberately concentrated on pure logic:
+sync decisions, rating decisions, announcements, logger, storage, api problems,
+local dates, i18n. `app/services/sync/index.ts` has **zero** automated coverage
+by design — verify it by hand against the checklist in `docs/BACKUP.md`.
+
+## Repo Docs Map
+
+Longer-form docs live outside this file; read the relevant one before touching
+its subsystem:
+
+- `docs/BACKUP.md` — attendance cloud backup/sync design + manual test checklist
+  (**required reading** before editing `app/services/sync/`)
+- `docs/MEETING_ATTENDANCE_FLOW.md` — end-to-end attendance capture flow
+- `docs/DIAGNOSTICS.md` — logging/telemetry troubleshooting (`docs/grafana/`
+  holds the dashboard JSON)
+- `docs/PRODUCTION_CHECKLIST.md` — pre-release verification
+- `docs/superpowers/specs/` and `docs/superpowers/plans/` — design specs and
+  implementation plans for in-flight work
+- `EVENTS.md` — the app's event/pub-sub catalog
+- `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
+  history, backlog, running work log
 
 ## Code Conventions
 
@@ -639,4 +744,7 @@ by common-lib's Drizzle migrations; trivial to leave empty).
 - **Reactotron**: Dev-only debugging (auto-configured)
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
 - **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
+- **`app/screens/DevScreen.tsx`**: currently unreferenced — nothing navigates to
+  it and it's absent from `navigationTypes.ts`. It's a parking spot for dev
+  tooling, not a live screen; wire up a route before assuming it renders.
 
