@@ -9,9 +9,13 @@
  * Venue semantics (common v2.0.0): meetings carry venueType `""` (legacy
  * online rows scraped before VenueType existed), `"online"`, or
  * `"in_person"`. The legacy `""` IS online and must stay visible wherever
- * online meetings show. `"hybrid"` is not a venue type anymore (v2.0.0 moved
- * it to a boolean `hybrid` field) — it is matched here only so a stale row
- * can never be misclassified as in-person.
+ * online meetings show. Only the literal `"in_person"` is ever treated as
+ * in-person — every other value, known (`""`, `"online"`) or stale/unknown
+ * (e.g. a future venue type, or `"hybrid"`, which v2.0.0 moved to a boolean
+ * `hybrid` field and is no longer a venue type at all), falls through to
+ * online. A row can never be silently misclassified as in-person.
+ * CHANGED 2026-08-02: reworded — the previous version described the
+ * "hybrid" test case, not the actual module invariant.
  */
 
 /** Result of one venue pool's fetch after retries. */
@@ -58,4 +62,24 @@ export function isInPersonVenue(venueType: string): boolean {
  */
 export function projectOnline<T extends { venueType: string }>(items: T[]): T[] {
   return items.filter((item) => !isInPersonVenue(item.venueType))
+}
+
+/**
+ * Build the in-person PoolOutcome, self-verified rather than trusted.
+ *
+ * A server that doesn't understand (or silently strips) the `venueType`
+ * param answers the `venueType=in_person` call with the same rows as the
+ * `venueType=online` call — that's exactly what the currently-deployed
+ * production API does. Without this filter, those rows would merge in as
+ * duplicates of the online pool (see CHANGELOG / final-review-report
+ * 2026-08-02, Critical #1). Filtering by the actual venueType field makes an
+ * unaware server yield an empty in-person pool, so `mergePools` output
+ * equals the online pool exactly — genuinely zero visible change, which is
+ * what the hold-back invariant promises regardless of what the server does.
+ */
+export function inPersonPoolOf<T extends { venueType: string }>(
+  ok: boolean,
+  items: T[],
+): PoolOutcome<T> {
+  return { ok, items: ok ? items.filter((i) => isInPersonVenue(i.venueType)) : [] }
 }

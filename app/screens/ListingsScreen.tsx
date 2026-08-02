@@ -28,7 +28,7 @@ import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { MeetingWithTrex } from "@/context/MeetingContext"
-import { mergePools, projectOnline, type PoolOutcome } from "@/context/meetingPools"
+import { inPersonPoolOf, mergePools, projectOnline, type PoolOutcome } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useConfigStore, useProfileStore } from "@/models"
@@ -245,14 +245,32 @@ export const ListingsContent: FC = observer(function ListingsContent() {
           ? { ok: true, items: toMeetings(result.schedules) }
           : { ok: false, items: [] }
 
-      const merged = mergePools(toPool(onlineResult), toPool(inPersonResult))
+      const onlinePool = toPool(onlineResult)
+      // In-person pool is self-verified, not trusted — a server that ignores
+      // venueType (production, as of this fix wave) answers with the same
+      // rows as the online call. inPersonPoolOf filters toPool()'s items down
+      // to genuine in_person rows so an unaware server yields an empty pool
+      // instead of duplicating every online meeting. See meetingPools.ts.
+      const inPersonRaw = toPool(inPersonResult)
+      const inPersonPool = inPersonPoolOf(inPersonRaw.ok, inPersonRaw.items)
+
+      const merged = mergePools(onlinePool, inPersonPool)
 
       // Only a total failure is an error; one pool failing degrades to the
       // other (spec decision 4).
       if (merged.bothFailed) {
-        const kind = onlineResult.kind !== "ok" ? onlineResult.kind : inPersonResult.kind
-        log.error("API getDailySchedules failed for both venue pools", { kind })
-        setError(`Error: ${kind}`)
+        // bothFailed implies onlineResult.kind !== "ok", so onlineResult's
+        // kind alone would be reachable — but logging both kinds is what
+        // makes this the primary production signal for whether the
+        // in-person pool works at all (booleans can't distinguish "server
+        // rejects/strips the param" from "flaky network").
+        const onlineKind = onlineResult.kind
+        const inPersonKind = inPersonResult.kind
+        log.error("API getDailySchedules failed for both venue pools", {
+          onlineKind,
+          inPersonKind,
+        })
+        setError(`Error: ${onlineKind}`)
         setAllMeetings([])
         return
       }
@@ -260,6 +278,8 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         log.warn("One venue pool failed for daily schedules; serving partial data", {
           onlineFailed: merged.onlineFailed,
           inPersonFailed: merged.inPersonFailed,
+          onlineKind: merged.onlineFailed ? onlineResult.kind : undefined,
+          inPersonKind: merged.inPersonFailed ? inPersonResult.kind : undefined,
         })
       }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { isInPersonVenue, mergePools, projectOnline } from "./meetingPools"
+import { inPersonPoolOf, isInPersonVenue, mergePools, projectOnline } from "./meetingPools"
 
 const m = (id: string, venueType: string) => ({ id, venueType })
 
@@ -57,5 +57,33 @@ describe("projectOnline", () => {
   it("returns a new array (callers must not receive shared mutable state)", () => {
     const items = [m("a", "online")]
     expect(projectOnline(items)).not.toBe(items)
+  })
+
+  it("keeps rows whose venueType is missing (old server wire shape)", () => {
+    expect(projectOnline([{ id: "a" } as any]).map((x) => x.id)).toEqual(["a"])
+  })
+})
+
+describe("inPersonPoolOf", () => {
+  it("yields an empty pool when the server ignored venueType (all rows online)", () => {
+    const outcome = inPersonPoolOf(true, [m("a", "online"), m("b", "")])
+    expect(outcome.ok).toBe(true)
+    expect(outcome.items).toEqual([])
+  })
+
+  it("passes rows through when the server actually honored venueType", () => {
+    const outcome = inPersonPoolOf(true, [m("a", "in_person"), m("b", "in_person")])
+    expect(outcome.items.map((x) => x.id)).toEqual(["a", "b"])
+  })
+
+  it("keeps only in_person rows from a mixed response", () => {
+    const outcome = inPersonPoolOf(true, [m("a", "online"), m("b", "in_person"), m("c", "")])
+    expect(outcome.items.map((x) => x.id)).toEqual(["b"])
+  })
+
+  it("returns empty items when ok is false, regardless of what was passed", () => {
+    const outcome = inPersonPoolOf(false, [m("a", "in_person")])
+    expect(outcome.ok).toBe(false)
+    expect(outcome.items).toEqual([])
   })
 })

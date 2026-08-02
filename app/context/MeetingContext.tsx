@@ -22,7 +22,13 @@ import { useConfigStore } from "@/models"
 import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
 
-import { mergePools, projectOnline, isInPersonVenue, type PoolOutcome } from "./meetingPools"
+import {
+  mergePools,
+  projectOnline,
+  isInPersonVenue,
+  inPersonPoolOf,
+  type PoolOutcome,
+} from "./meetingPools"
 
 const log = logger.child({ module: "MeetingContext" })
 
@@ -37,6 +43,14 @@ const RETRY_CONFIG = {
 }
 
 /**
+ * Retry budget for the in-person pool only. It's fetched but unrendered by
+ * every surface today (hold-back), so it must never make the visible online
+ * pool wait on it — see the `retryWithBackoff` JSDoc. 1 attempt, no backoff
+ * sleeps: a flaky in-person endpoint costs one extra round-trip, not ~7s.
+ */
+const IN_PERSON_MAX_ATTEMPTS = 1
+
+/**
  * Sleep for specified milliseconds
  */
 function sleep(ms: number): Promise<void> {
@@ -46,16 +60,25 @@ function sleep(ms: number): Promise<void> {
 /**
  * Execute an async function with exponential backoff retry
  * Only logs error after all retries exhausted
+ *
+ * @param maxAttemptsOverride - Caller-supplied retry budget, defaulting to
+ *   `RETRY_CONFIG.maxAttempts`. Added for the in-person pool (2026-08-02
+ *   in-person data-layer fix wave): its data is unrendered by any surface
+ *   today (hold-back), so burning the full 4-attempt/~7s budget when that
+ *   endpoint is unavailable only delays the visible online pool for no
+ *   user-facing benefit. Don't remove this parameter to "simplify" the
+ *   signature — the asymmetry between pools is intentional.
  */
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   isSuccess: (result: T) => boolean,
   label: string,
+  maxAttemptsOverride: number = RETRY_CONFIG.maxAttempts,
 ): Promise<{ result: T; attempts: number } | { error: string; attempts: number }> {
   let lastResult: T | undefined
   let lastError: string | undefined
 
-  for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
+  for (let attempt = 1; attempt <= maxAttemptsOverride; attempt++) {
     try {
       const result = await fn()
 
@@ -70,7 +93,7 @@ async function retryWithBackoff<T>(
       lastResult = result
       const errorKind = (result as { kind?: string })?.kind ?? "unknown"
 
-      if (attempt < RETRY_CONFIG.maxAttempts) {
+      if (attempt < maxAttemptsOverride) {
         const delay = Math.min(
           RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
           RETRY_CONFIG.maxDelayMs,
@@ -83,7 +106,7 @@ async function retryWithBackoff<T>(
     } catch (err) {
       lastError = String(err)
 
-      if (attempt < RETRY_CONFIG.maxAttempts) {
+      if (attempt < maxAttemptsOverride) {
         const delay = Math.min(
           RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
           RETRY_CONFIG.maxDelayMs,
@@ -95,15 +118,15 @@ async function retryWithBackoff<T>(
   }
 
   // All retries exhausted
-  log.error(`${label} failed after ${RETRY_CONFIG.maxAttempts} attempts`, {
+  log.error(`${label} failed after ${maxAttemptsOverride} attempts`, {
     error: lastError,
   })
 
   if (lastResult !== undefined) {
-    return { result: lastResult, attempts: RETRY_CONFIG.maxAttempts }
+    return { result: lastResult, attempts: maxAttemptsOverride }
   }
 
-  return { error: lastError ?? "Unknown error", attempts: RETRY_CONFIG.maxAttempts }
+  return { error: lastError ?? "Unknown error", attempts: maxAttemptsOverride }
 }
 
 // ============================================================================
@@ -254,6 +277,10 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       // Dual-fetch: one call per venue pool, in parallel, each with its own
       // retry budget. retryWithBackoff never rejects, so Promise.all is safe.
       // (2026-08-02 in-person data-layer spec: dual-fetch & merge.)
+      // CHANGED 2026-08-02 (fix wave): the in-person pool gets a reduced
+      // budget (IN_PERSON_MAX_ATTEMPTS) — see that constant's comment. The
+      // online pool keeps the full budget since it's what every surface
+      // renders.
       const [onlineOutcome, inPersonOutcome] = await Promise.all([
         retryWithBackoff(
           () => api.getLiveSchedules("online"),
@@ -264,6 +291,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
           () => api.getLiveSchedules("in_person"),
           (result) => result.kind === "ok",
           "getLiveSchedules(in_person)",
+          IN_PERSON_MAX_ATTEMPTS,
         ),
       ])
 
@@ -281,31 +309,56 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
           scheduleData: s.data,
         }))
 
-      const toPool = (
-        outcome:
-          | { result: Awaited<ReturnType<typeof api.getLiveSchedules>>; attempts: number }
-          | { error: string; attempts: number },
-      ): PoolOutcome<MeetingWithTrex> => {
+      type Outcome =
+        | { result: Awaited<ReturnType<typeof api.getLiveSchedules>>; attempts: number }
+        | { error: string; attempts: number }
+
+      const toPool = (outcome: Outcome): PoolOutcome<MeetingWithTrex> => {
         if ("result" in outcome && outcome.result.kind === "ok") {
           return { ok: true, items: toMeetings(outcome.result.schedules) }
         }
         return { ok: false, items: [] }
       }
 
-      const merged = mergePools(toPool(onlineOutcome), toPool(inPersonOutcome))
+      // The failure kind behind an outcome, for logging — "kind" from an API
+      // problem (e.g. "not-found", "timeout") or the transport-level error
+      // string retryWithBackoff carries when every attempt threw.
+      const outcomeKind = (outcome: Outcome): string =>
+        "result" in outcome ? outcome.result.kind : outcome.error
+
+      const onlinePool = toPool(onlineOutcome)
+      // In-person pool is self-verified, not trusted — a server that ignores
+      // venueType (production, as of this fix wave) answers with the same
+      // rows as the online call. inPersonPoolOf filters toPool()'s items down
+      // to genuine in_person rows so an unaware server yields an empty pool
+      // instead of duplicating every online meeting. See meetingPools.ts.
+      const inPersonRaw = toPool(inPersonOutcome)
+      const inPersonPool = inPersonPoolOf(inPersonRaw.ok, inPersonRaw.items)
+
+      const merged = mergePools(onlinePool, inPersonPool)
 
       // Only a total failure surfaces as an error — one pool failing
       // degrades gracefully to the other (spec decision 4).
       if (merged.bothFailed) {
-        setError("Network error: live schedules unavailable")
+        // Interpolate both kinds — no consumer reads `error` today, but the
+        // field should carry the actual failure, not a generic string.
+        setError(
+          `Network error: live schedules unavailable (online: ${outcomeKind(onlineOutcome)}, in_person: ${outcomeKind(inPersonOutcome)})`,
+        )
         setAllLiveMeetings([])
         setIsLoading(false)
         return
       }
       if (merged.onlineFailed || merged.inPersonFailed) {
+        // Include the failed pool's kind — this log is the primary
+        // production signal for whether the in-person pool actually works
+        // (booleans alone can't distinguish "server rejects/strips the
+        // param" from "flaky network").
         log.warn("One venue pool failed; serving partial live data", {
           onlineFailed: merged.onlineFailed,
           inPersonFailed: merged.inPersonFailed,
+          onlineKind: merged.onlineFailed ? outcomeKind(onlineOutcome) : undefined,
+          inPersonKind: merged.inPersonFailed ? outcomeKind(inPersonOutcome) : undefined,
         })
       }
 
