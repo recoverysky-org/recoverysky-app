@@ -27,10 +27,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - In-person meeting data now loads into memory alongside online meetings: the
   live and daily schedule fetches pull both venue pools (`venueType=online` +
   `venueType=in_person`) and merge them, and deep-link meeting lookups fall
-  back across pools. No visible change yet — existing screens keep showing
-  online meetings only until the in-person UI ships (hold-back projection);
-  this is the data foundation. One pool failing degrades gracefully to the
-  other instead of blanking the list.
+  back across pools. No visible change — existing screens keep showing online
+  meetings only until the in-person UI ships (hold-back projection); this is
+  the data foundation. One pool failing degrades gracefully to the other
+  instead of blanking the list. The in-person pool is filtered client-side
+  against a server that ignores `venueType` (the currently-deployed
+  production API does; it silently strips the unknown param and returns the
+  online set for both calls), so the hold-back holds even before the API's
+  in-person support ships — but that API branch should still land in
+  production before this OTA goes out, since until then the in-person fetch
+  is pure overhead with no data behind it.
 
 ### Changed
 
@@ -38,6 +44,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `/schedules/live` or `/schedules/daily`. External is the only mode now (the
   in-app Zoom SDK was removed in 4.5.0), so the server returns external meetings
   by default; the flag and its `options` plumbing were removed as dead code.
+
+### Build
+
+- Bumped `@recoverysky-org/common` `^2.2.0` → `^2.2.1` (version-only bump in
+  the linked common lib; no schema or code change).
 
 ### Fixed
 
