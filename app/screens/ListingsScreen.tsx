@@ -28,6 +28,7 @@ import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { MeetingWithTrex } from "@/context/MeetingContext"
+import { mergePools, projectOnline, type PoolOutcome } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useConfigStore, useProfileStore } from "@/models"
@@ -117,7 +118,11 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   const [startHour, setStartHour] = useState(0) // 0-23
   const [endHour, setEndHour] = useState(24) // 1-24 (24 = midnight end)
   const [timePickerVisible, setTimePickerVisible] = useState<"start" | "end" | null>(null)
-  const [meetings, setMeetings] = useState<MeetingWithTrex[]>([])
+  // Merged venue pools (online + in_person) for the selected day. The list
+  // the screen renders is the online-only projection below (hold-back) until
+  // the in-person UI/UX design lands. (2026-08-02 in-person data-layer spec.)
+  const [allMeetings, setAllMeetings] = useState<MeetingWithTrex[]>([])
+  const meetings = useMemo(() => projectOnline(allMeetings), [allMeetings])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -208,7 +213,7 @@ export const ListingsContent: FC = observer(function ListingsContent() {
 
     const fellowship = profileStore.fellowship
     if (!fellowship) {
-      setMeetings([])
+      setAllMeetings([])
       setError(null)
       return
     }
@@ -217,41 +222,66 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     setError(null)
 
     try {
-      const result = await api.getDailySchedules(selectedDay, fellowship)
+      // Dual-fetch: one call per venue pool (2026-08-02 in-person spec).
+      const [onlineResult, inPersonResult] = await Promise.all([
+        api.getDailySchedules(selectedDay, fellowship, "online"),
+        api.getDailySchedules(selectedDay, fellowship, "in_person"),
+      ])
 
-      if (result.kind !== "ok") {
-        log.error("API getDailySchedules failed", { kind: result.kind })
-        setError(`Error: ${result.kind}`)
-        setMeetings([])
+      const toMeetings = (schedules: LiveSchedule[]): MeetingWithTrex[] =>
+        schedules.map((s: LiveSchedule) => ({
+          ...s.meeting,
+          feedback: null,
+          sid: s.sid,
+          millis: s.millis,
+          duration_ms: s.duration_ms ?? 0,
+          scheduleData: s.data,
+        }))
+
+      const toPool = (
+        result: Awaited<ReturnType<typeof api.getDailySchedules>>,
+      ): PoolOutcome<MeetingWithTrex> =>
+        result.kind === "ok"
+          ? { ok: true, items: toMeetings(result.schedules) }
+          : { ok: false, items: [] }
+
+      const merged = mergePools(toPool(onlineResult), toPool(inPersonResult))
+
+      // Only a total failure is an error; one pool failing degrades to the
+      // other (spec decision 4).
+      if (merged.bothFailed) {
+        const kind = onlineResult.kind !== "ok" ? onlineResult.kind : inPersonResult.kind
+        log.error("API getDailySchedules failed for both venue pools", { kind })
+        setError(`Error: ${kind}`)
+        setAllMeetings([])
         return
       }
+      if (merged.onlineFailed || merged.inPersonFailed) {
+        log.warn("One venue pool failed for daily schedules; serving partial data", {
+          onlineFailed: merged.onlineFailed,
+          inPersonFailed: merged.inPersonFailed,
+        })
+      }
 
-      // Convert LiveSchedule to MeetingWithTrex
-      const newMeetings: MeetingWithTrex[] = result.schedules.map((s: LiveSchedule) => ({
-        ...s.meeting,
-        feedback: null,
-        sid: s.sid,
-        millis: s.millis,
-        duration_ms: s.duration_ms ?? 0,
-        scheduleData: s.data,
-      }))
-
-      // Sort by local time (hour:minute), not UTC millis
-      newMeetings.sort((a, b) => {
+      // Sort the merged pool once by local time (hour:minute), not UTC millis,
+      // so the future in-person UI inherits correct ordering.
+      const sorted = [...merged.items].sort((a, b) => {
         const aLocal = DateTime.fromMillis(a.millis).toLocal()
         const bLocal = DateTime.fromMillis(b.millis).toLocal()
-        // Compare by hour then minute
         const aMinutes = aLocal.hour * 60 + aLocal.minute
         const bMinutes = bLocal.hour * 60 + bLocal.minute
         return aMinutes - bMinutes
       })
 
-      setMeetings(newMeetings)
-      log.debug("Loaded daily schedules", { count: newMeetings.length, day: selectedDay })
+      setAllMeetings(sorted)
+      log.debug("Loaded daily schedules", {
+        total: sorted.length,
+        day: selectedDay,
+      })
     } catch (err) {
       log.error("Exception fetching daily schedules", { error: String(err) })
       setError("Failed to load schedules")
-      setMeetings([])
+      setAllMeetings([])
     } finally {
       setIsLoading(false)
     }
