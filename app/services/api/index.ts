@@ -124,6 +124,15 @@ export type ScheduleCell = { millis: number; id: string } | null
 export type ScheduleDataRow = ScheduleCell[]
 
 /**
+ * App-side venue filter for the schedules endpoints (server param
+ * `venueType`). Omitted = the server serves online (its default — protects
+ * deployed builds). The server also accepts a vestigial `hybrid` value
+ * (pre-common-v2.0.0 leftover); the app intentionally does not model it —
+ * hybrid is a boolean field on the meeting now, not a venue pool.
+ */
+export type VenueFilter = "online" | "in_person"
+
+/**
  * Live schedule from /schedules/live API
  * Contains full meeting object and pre-computed grid data
  */
@@ -547,15 +556,16 @@ export class Api {
    * Returns schedules that are currently live with their meeting IDs.
    * Each schedule includes pre-computed grid data for display.
    */
-  async getLiveSchedules(): Promise<
-    { kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem
-  > {
+  async getLiveSchedules(
+    venueType?: VenueFilter,
+  ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
     await this.waitForAttestation()
     // Get device timezone in IANA format (e.g., "America/New_York")
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    log.debug("Fetching live schedules from API", { tz })
+    log.debug("Fetching live schedules from API", { tz, venueType })
 
-    const params = { tz }
+    const params: Record<string, string> = { tz }
+    if (venueType) params.venueType = venueType
 
     const response = await this.recoverySkyApi.get<{
       timestamp: string
@@ -594,12 +604,14 @@ export class Api {
   async getDailySchedules(
     iso_dow: number,
     fellowship: string,
+    venueType?: VenueFilter,
   ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
     await this.waitForAttestation()
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    log.debug("Fetching daily schedules from API", { iso_dow, fellowship, tz })
+    log.debug("Fetching daily schedules from API", { iso_dow, fellowship, tz, venueType })
 
     const params: Record<string, string | number> = { iso_dow, fellowship, tz }
+    if (venueType) params.venueType = venueType
 
     const response = await this.recoverySkyApi.get<{
       timestamp: string
@@ -638,13 +650,14 @@ export class Api {
    */
   async getScheduleByMeetingId(
     mid: string,
+    venueType?: VenueFilter,
   ): Promise<{ kind: "ok"; schedule: LiveSchedule } | GeneralApiProblem> {
     await this.waitForAttestation()
-    log.debug("Fetching schedule by meeting ID", { mid })
+    log.debug("Fetching schedule by meeting ID", { mid, venueType })
 
     const response = await this.recoverySkyApi.get<{
       schedules: LiveSchedule[]
-    }>(`/schedules/meeting/${mid}`)
+    }>(`/schedules/meeting/${mid}`, venueType ? { venueType } : undefined)
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
@@ -658,6 +671,29 @@ export class Api {
     }
 
     return { kind: "ok", schedule }
+  }
+
+  /**
+   * Look up a schedule by meeting ID across both venue pools.
+   *
+   * The server's venueType param defaults to online and cross-pool lookups
+   * 404 — but deep-link callers (push notification → meeting popup) only
+   * have a mid and don't know which pool it lives in. Try online first
+   * (overwhelmingly the common case for anything reachable today), then
+   * retry in_person on a miss. Only "not-found" / "bad-data" trigger the
+   * retry: transport-level failures (timeout, cannot-connect, server) would
+   * fail identically on the second call, so retrying would just double the
+   * user's wait.
+   */
+  async getScheduleByMeetingIdAnyVenue(
+    mid: string,
+  ): Promise<{ kind: "ok"; schedule: LiveSchedule } | GeneralApiProblem> {
+    const online = await this.getScheduleByMeetingId(mid, "online")
+    if (online.kind === "ok") return online
+    if (online.kind !== "not-found" && online.kind !== "bad-data") return online
+
+    log.debug("Meeting not in online pool, retrying in_person", { mid })
+    return this.getScheduleByMeetingId(mid, "in_person")
   }
 
   /**
