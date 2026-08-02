@@ -186,9 +186,13 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       return
     }
 
-    // Slow path: fetch schedule data from API (meeting may not be live)
+    // Slow path: fetch schedule data from API (meeting may not be live).
+    // CHANGED 2026-08-02: any-venue lookup — the server's venueType param
+    // defaults to online and cross-pool lookups 404, but a notification mid
+    // may reference an in-person meeting; the wrapper retries in_person on a
+    // not-found/bad-data miss.
     api
-      .getScheduleByMeetingId(targetId)
+      .getScheduleByMeetingIdAnyVenue(targetId)
       .then((result) => {
         if (result.kind === "ok") {
           const s = result.schedule
