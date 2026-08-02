@@ -36,10 +36,7 @@ export interface MergedPools<T> {
  * retry outcome may hold a stale/partial result and must not leak rows.
  */
 export function mergePools<T>(online: PoolOutcome<T>, inPerson: PoolOutcome<T>): MergedPools<T> {
-  const items: T[] = [
-    ...(online.ok ? online.items : []),
-    ...(inPerson.ok ? inPerson.items : []),
-  ]
+  const items: T[] = [...(online.ok ? online.items : []), ...(inPerson.ok ? inPerson.items : [])]
   return {
     items,
     bothFailed: !online.ok && !inPerson.ok,

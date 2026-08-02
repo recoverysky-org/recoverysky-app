@@ -17,10 +17,7 @@ describe("mergePools", () => {
   })
 
   it("returns the surviving pool when one fails, without flagging bothFailed", () => {
-    const merged = mergePools(
-      { ok: false, items: [] },
-      { ok: true, items: [m("c", "in_person")] },
-    )
+    const merged = mergePools({ ok: false, items: [] }, { ok: true, items: [m("c", "in_person")] })
     expect(merged.items.map((x) => x.id)).toEqual(["c"])
     expect(merged.bothFailed).toBe(false)
     expect(merged.onlineFailed).toBe(true)

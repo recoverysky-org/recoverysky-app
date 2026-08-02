@@ -14,8 +14,8 @@ import {
   useMemo,
   type ReactNode,
 } from "react"
-import { reaction } from "mobx"
 import { type meeting } from "@recoverysky-org/common/browser"
+import { reaction } from "mobx"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
