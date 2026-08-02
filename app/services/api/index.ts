@@ -599,6 +599,8 @@ export class Api {
    * @param iso_dow - ISO day of week (1=Monday, 7=Sunday)
    * @param fellowship - Fellowship code (e.g., "AA", "NA", "CMA"); any
    *   `Fellowship` enum value is accepted server-side as a free string
+   * @param venueType - Restrict to one venue pool ("online" | "in_person");
+   *   omitted defaults to the server's own default (online)
    * @returns Schedules for the specified day/fellowship
    */
   async getDailySchedules(
@@ -646,6 +648,8 @@ export class Api {
    * that may not be currently live in the MeetingContext.
    *
    * @param mid - The meeting ID (UUID)
+   * @param venueType - Restrict to one venue pool ("online" | "in_person");
+   *   omitted defaults to the server's own default (online)
    * @returns The schedule containing the meeting
    */
   async getScheduleByMeetingId(

@@ -18,6 +18,7 @@ import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
@@ -196,6 +197,23 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       .then((result) => {
         if (result.kind === "ok") {
           const s = result.schedule
+          // CHANGED 2026-08-02 (fix wave, review finding IMPORTANT 3): the
+          // any-venue lookup above can resolve to an in_person record, but
+          // SchedulePopup has no join URL, no address, and no contacts for
+          // one — a dead-end popup. Spec §4 mandates the cross-pool lookup
+          // succeed; it does not mandate displaying what it finds. The
+          // hold-back (no in-person record visible in any existing UI
+          // surface) wins this conflict deliberately — drop the record here
+          // rather than show a broken popup, and leave display to the
+          // in-person UI piece. Do not "fix" this by removing the guard.
+          if (isInPersonVenue(s.meeting.venueType)) {
+            log.info("Deep-link meeting resolved to in-person venue; dropping (hold-back)", {
+              meetingId: targetId,
+            })
+            consumedMeetingIdRef.current = targetId
+            consumePendingMeetingId()
+            return
+          }
           const meetingWithTrex: MeetingWithTrex = {
             ...s.meeting,
             password: s.password || s.meeting.password || "",
