@@ -19,8 +19,10 @@ import { type meeting } from "@recoverysky-org/common/browser"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
-import { api, type ScheduleDataRow } from "@/services/api"
+import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
+
+import { mergePools, projectOnline, isInPersonVenue, type PoolOutcome } from "./meetingPools"
 
 const log = logger.child({ module: "MeetingContext" })
 
@@ -127,6 +129,12 @@ export interface MeetingWithTrex extends meeting {
 export type ApiStatus = "connected" | "disconnected" | "unknown"
 
 export interface MeetingContextType {
+  /**
+   * Both venue pools merged (online + in_person). In-person UI reads this.
+   * Populated since the in-person data-layer piece (2026-08-02 spec);
+   * existing surfaces keep reading `liveMeetings` (online-only hold-back).
+   */
+  allLiveMeetings: MeetingWithTrex[]
   /** Meetings currently live */
   liveMeetings: MeetingWithTrex[]
   /** Loading state */
@@ -170,8 +178,14 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   log.debug("MeetingProvider initializing")
   const configStore = useConfigStore()
 
-  // Live meetings data
-  const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
+  // Live meetings data — the merged pool (both venues). What existing UI
+  // consumes is the derived online-only projection below (hold-back).
+  const [allLiveMeetings, setAllLiveMeetings] = useState<MeetingWithTrex[]>([])
+
+  // Hold-back projection: pre-in-person surfaces (LiveScreen, MainNavigator
+  // badge) render online-only until the in-person UI/UX design lands. Do NOT
+  // switch consumers to allLiveMeetings without that design.
+  const liveMeetings = useMemo(() => projectOnline(allLiveMeetings), [allLiveMeetings])
 
   // Status
   const [isLoading, setIsLoading] = useState(false)
@@ -237,58 +251,72 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       setIsLoading(true)
       setError(null)
 
-      const outcome = await retryWithBackoff(
-        () => api.getLiveSchedules(),
-        (result) => result.kind === "ok",
-        "getLiveSchedules",
-      )
+      // Dual-fetch: one call per venue pool, in parallel, each with its own
+      // retry budget. retryWithBackoff never rejects, so Promise.all is safe.
+      // (2026-08-02 in-person data-layer spec: dual-fetch & merge.)
+      const [onlineOutcome, inPersonOutcome] = await Promise.all([
+        retryWithBackoff(
+          () => api.getLiveSchedules("online"),
+          (result) => result.kind === "ok",
+          "getLiveSchedules(online)",
+        ),
+        retryWithBackoff(
+          () => api.getLiveSchedules("in_person"),
+          (result) => result.kind === "ok",
+          "getLiveSchedules(in_person)",
+        ),
+      ])
 
-      // Handle retry failure
-      if ("error" in outcome) {
-        setError(`Network error: ${outcome.error}`)
-        setLiveMeetings([])
+      // Convert API schedules to MeetingWithTrex (same mapping both pools).
+      const toMeetings = (schedules: LiveSchedule[]): MeetingWithTrex[] =>
+        schedules.map((s) => ({
+          ...s.meeting,
+          // Prefer schedule-level password over meeting-level (API provides it per-schedule)
+          password: s.password || s.meeting.password || "",
+          passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
+          feedback: feedbackCache.get(s.meeting.id),
+          sid: s.sid,
+          millis: s.millis,
+          duration_ms: s.duration_ms ?? 0,
+          scheduleData: s.data,
+        }))
+
+      const toPool = (
+        outcome:
+          | { result: Awaited<ReturnType<typeof api.getLiveSchedules>>; attempts: number }
+          | { error: string; attempts: number },
+      ): PoolOutcome<MeetingWithTrex> => {
+        if ("result" in outcome && outcome.result.kind === "ok") {
+          return { ok: true, items: toMeetings(outcome.result.schedules) }
+        }
+        return { ok: false, items: [] }
+      }
+
+      const merged = mergePools(toPool(onlineOutcome), toPool(inPersonOutcome))
+
+      // Only a total failure surfaces as an error — one pool failing
+      // degrades gracefully to the other (spec decision 4).
+      if (merged.bothFailed) {
+        setError("Network error: live schedules unavailable")
+        setAllLiveMeetings([])
         setIsLoading(false)
         return
       }
-
-      // Handle API error response after retries exhausted
-      if (outcome.result.kind !== "ok") {
-        setError(`API error: ${outcome.result.kind}`)
-        setLiveMeetings([])
-        setIsLoading(false)
-        return
+      if (merged.onlineFailed || merged.inPersonFailed) {
+        log.warn("One venue pool failed; serving partial live data", {
+          onlineFailed: merged.onlineFailed,
+          inPersonFailed: merged.inPersonFailed,
+        })
       }
 
-      // Success!
-      const { schedules } = outcome.result
-      log.info("API returned schedules", { count: schedules.length })
-
-      if (schedules.length === 0) {
-        log.info("No live meetings")
-        setLiveMeetings([])
-        setLastRefresh(new Date())
-        setIsLoading(false)
-        return
-      }
-
-      // Convert API schedules to MeetingWithTrex
-      const newLiveMeetings: MeetingWithTrex[] = schedules.map((s) => ({
-        ...s.meeting,
-        // Prefer schedule-level password over meeting-level (API provides it per-schedule)
-        password: s.password || s.meeting.password || "",
-        passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
-        feedback: feedbackCache.get(s.meeting.id),
-        sid: s.sid,
-        millis: s.millis,
-        duration_ms: s.duration_ms ?? 0,
-        scheduleData: s.data,
-      }))
-
-      setLiveMeetings(newLiveMeetings)
+      setAllLiveMeetings(merged.items)
       setLastRefresh(new Date())
       setIsLoading(false)
 
-      log.info("✓ Live meetings ready", { count: newLiveMeetings.length })
+      log.info("✓ Live meetings ready", {
+        total: merged.items.length,
+        inPerson: merged.items.filter((m) => isInPersonVenue(m.venueType)).length,
+      })
     }
 
     refreshLiveMeetings()
@@ -306,6 +334,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo<MeetingContextType>(
     () => ({
+      allLiveMeetings,
       liveMeetings,
       isLoading,
       lastRefresh,
@@ -313,10 +342,14 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       apiStatus,
       error,
     }),
-    [liveMeetings, isLoading, lastRefresh, refresh, apiStatus, error],
+    [allLiveMeetings, liveMeetings, isLoading, lastRefresh, refresh, apiStatus, error],
   )
 
-  log.debug("MeetingProvider rendering", { liveCount: liveMeetings.length, isLoading })
+  log.debug("MeetingProvider rendering", {
+    liveCount: liveMeetings.length,
+    allCount: allLiveMeetings.length,
+    isLoading,
+  })
 
   return <MeetingContext.Provider value={value}>{children}</MeetingContext.Provider>
 }
