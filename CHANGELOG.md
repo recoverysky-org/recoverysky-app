@@ -22,6 +22,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+
+- In-person meeting data now loads into memory alongside online meetings: the
+  live and daily schedule fetches pull both venue pools (`venueType=online` +
+  `venueType=in_person`) and merge them, and deep-link meeting lookups fall
+  back across pools. No visible change yet — existing screens keep showing
+  online meetings only until the in-person UI ships (hold-back projection);
+  this is the data foundation. One pool failing degrades gracefully to the
+  other instead of blanking the list.
+
 ### Changed
 
 - The Listings API client no longer sends the `includeExternal` query param on
