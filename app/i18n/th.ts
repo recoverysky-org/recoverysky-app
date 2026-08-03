@@ -144,7 +144,8 @@ const th: Translations = {
     placeholder: "รายการประชุมกำลังมาเร็วๆ นี้",
     liveSegment: "สด",
     inPersonSegment: "แบบพบหน้า",
-    listingsSegment: "รายการ",
+    // Relabeled from "รายการ" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "ค้นหา",
   },
   scheduleScreen: {
     title: "ตาราง",
@@ -176,7 +177,8 @@ const th: Translations = {
     defaultFellowship: "AA",
   },
   listingsScreen: {
-    title: "รายการประชุม",
+    // Relabeled from "รายการประชุม" 2026-08-03 — namespace/key unchanged.
+    title: "ค้นหา",
     emptyState: "ไม่พบประชุม",
     emptyStateFiltered: "ไม่มีประชุมสำหรับ {{fellowship}}",
     selectFellowship: "เลือกกลุ่มในการตั้งค่า",

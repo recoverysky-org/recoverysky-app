@@ -148,7 +148,8 @@ const ru: Translations = {
     placeholder: "Список собраний скоро появится",
     liveSegment: "Сейчас",
     inPersonSegment: "Очно",
-    listingsSegment: "Каталог",
+    // Relabeled from "Каталог" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "Поиск",
   },
   scheduleScreen: {
     title: "Расписание",
@@ -180,7 +181,8 @@ const ru: Translations = {
     defaultFellowship: "АА",
   },
   listingsScreen: {
-    title: "Каталог собраний",
+    // Relabeled from "Каталог собраний" 2026-08-03 — namespace/key unchanged.
+    title: "Поиск",
     emptyState: "Собрания не найдены",
     emptyStateFiltered: "Нет собраний для {{fellowship}}",
     selectFellowship: "Выбери сообщество в Настройках",

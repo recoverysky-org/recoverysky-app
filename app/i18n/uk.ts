@@ -147,7 +147,8 @@ const uk: Translations = {
     placeholder: "Список зустрічей незабаром з'явиться",
     liveSegment: "Зараз",
     inPersonSegment: "Особисто",
-    listingsSegment: "Каталог",
+    // Relabeled from "Каталог" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "Пошук",
   },
   scheduleScreen: {
     title: "Розклад",
@@ -179,7 +180,8 @@ const uk: Translations = {
     defaultFellowship: "АА",
   },
   listingsScreen: {
-    title: "Каталог зустрічей",
+    // Relabeled from "Каталог зустрічей" 2026-08-03 — namespace/key unchanged.
+    title: "Пошук",
     emptyState: "Зустрічей не знайдено",
     emptyStateFiltered: "Немає зустрічей для {{fellowship}}",
     selectFellowship: "Обери спільноту в Налаштуваннях",

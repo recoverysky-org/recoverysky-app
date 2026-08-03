@@ -147,7 +147,8 @@ const pt: Translations = {
     placeholder: "Lista de reuniões em breve",
     liveSegment: "Ao Vivo",
     inPersonSegment: "Presencial",
-    listingsSegment: "Lista",
+    // Relabeled from "Lista" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "Pesquisar",
   },
   scheduleScreen: {
     title: "Agenda",
@@ -179,7 +180,8 @@ const pt: Translations = {
     defaultFellowship: "AA",
   },
   listingsScreen: {
-    title: "Lista de Reuniões",
+    // Relabeled from "Lista de Reuniões" 2026-08-03 — namespace/key unchanged.
+    title: "Pesquisar",
     emptyState: "Nenhuma reunião encontrada",
     emptyStateFiltered: "Nenhuma reunião para {{fellowship}}",
     selectFellowship: "Selecione uma irmandade em Ajustes",

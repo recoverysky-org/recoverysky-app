@@ -149,7 +149,8 @@ const de: Translations = {
     placeholder: "Meeting-Liste kommt bald",
     liveSegment: "Live",
     inPersonSegment: "Vor Ort",
-    listingsSegment: "Verzeichnis",
+    // Relabeled from "Verzeichnis" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "Suche",
   },
   scheduleScreen: {
     title: "Zeitplan",
@@ -181,7 +182,8 @@ const de: Translations = {
     defaultFellowship: "AA",
   },
   listingsScreen: {
-    title: "Meeting-Verzeichnis",
+    // Relabeled from "Meeting-Verzeichnis" 2026-08-03 — namespace/key unchanged.
+    title: "Suche",
     emptyState: "Keine Meetings gefunden",
     emptyStateFiltered: "Keine Meetings für {{fellowship}}",
     selectFellowship: "Wähle eine Gemeinschaft in den Einstellungen",

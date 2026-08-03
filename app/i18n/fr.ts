@@ -151,7 +151,8 @@ const fr: Translations = {
     placeholder: "Liste des réunions à venir",
     liveSegment: "En direct",
     inPersonSegment: "En personne",
-    listingsSegment: "Répertoire",
+    // Relabeled from "Répertoire" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "Recherche",
   },
   scheduleScreen: {
     title: "Horaire",
@@ -183,7 +184,8 @@ const fr: Translations = {
     defaultFellowship: "AA",
   },
   listingsScreen: {
-    title: "Répertoire de réunions",
+    // Relabeled from "Répertoire de réunions" 2026-08-03 — namespace/key unchanged.
+    title: "Recherche",
     emptyState: "Aucune réunion trouvée",
     emptyStateFiltered: "Aucune réunion pour {{fellowship}}",
     selectFellowship: "Choisis une fraternité dans les Réglages",

@@ -145,7 +145,8 @@ const ar: Translations = {
     placeholder: "قائمة الاجتماعات قريباً",
     liveSegment: "مباشر",
     inPersonSegment: "حضوريًا",
-    listingsSegment: "الدليل",
+    // Relabeled from "الدليل" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "بحث",
   },
   scheduleScreen: {
     title: "الجدول",
@@ -177,7 +178,8 @@ const ar: Translations = {
     defaultFellowship: "AA",
   },
   listingsScreen: {
-    title: "دليل الاجتماعات",
+    // Relabeled from "دليل الاجتماعات" 2026-08-03 — namespace/key unchanged.
+    title: "بحث",
     emptyState: "لم يتم العثور على اجتماعات",
     emptyStateFiltered: "لا توجد اجتماعات لـ {{fellowship}}",
     selectFellowship: "اختر زمالة في الإعدادات",
