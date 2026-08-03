@@ -151,6 +151,12 @@ export interface LiveSchedule {
   password?: string
   /** Encrypted meeting password */
   passwordEnc?: string
+  /**
+   * Meters from the query point — present only on /schedules/nearby
+   * responses. Emitted as number-or-omitted, never null (API tightened
+   * 2026-08-03); treat missing as "no distance", sort last.
+   */
+  distance_m?: number
 }
 
 // =============================================================================
@@ -639,6 +645,73 @@ export class Api {
       fellowship,
     })
     return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
+  }
+
+  /**
+   * Get in-person schedules near a point, for the In-Person segment.
+   *
+   * Server contract (confirmed with API team 2026-08-03):
+   * - Sends EXACTLY lat/lon/radius/iso_dow(+fellowship). No `limit`
+   *   (removed — it capped geo candidates before the day filter and
+   *   silently truncated results), no `venueType` (in_person is the
+   *   default and only accepted value), no `tz` (not accepted here,
+   *   unlike /schedules/daily). Unknown params are silently stripped.
+   * - Response is /schedules/daily-shaped with distance_m added,
+   *   millis-ascending; callers re-sort by distance client-side.
+   *
+   * PRIVACY: never log lat/lon — logs ship to Loki. Radius/iso_dow only.
+   */
+  async getNearbySchedules(params: {
+    lat: number
+    lon: number
+    radius: number
+    iso_dow: number
+    fellowship?: string
+  }): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
+    await this.waitForAttestation()
+    log.debug("Fetching nearby schedules from API", {
+      radius: params.radius,
+      iso_dow: params.iso_dow,
+      fellowship: params.fellowship,
+    })
+
+    const query: Record<string, string | number> = {
+      lat: params.lat,
+      lon: params.lon,
+      radius: params.radius,
+      iso_dow: params.iso_dow,
+    }
+    if (params.fellowship) query.fellowship = params.fellowship
+
+    const response = await this.recoverySkyApi.get<{
+      timestamp: string
+      iso_dow: number
+      count: number
+      schedules: LiveSchedule[]
+    }>("/schedules/nearby", query)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("API request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || !Array.isArray(response.data.schedules)) {
+      log.warn("Invalid response data format")
+      return { kind: "bad-data" }
+    }
+
+    log.debug("Received nearby schedules", {
+      count: response.data.count,
+      iso_dow: params.iso_dow,
+    })
+
+    return {
+      kind: "ok",
+      schedules: response.data.schedules,
+      count: response.data.count,
+    }
   }
 
   /**
