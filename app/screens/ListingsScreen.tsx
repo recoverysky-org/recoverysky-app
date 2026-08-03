@@ -23,6 +23,7 @@ import { DateTime } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { DaySelectorModal, ISO_DAYS } from "@/components/DaySelectorModal"
 import { LiveMeetingRow } from "@/components/LiveMeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
@@ -42,17 +43,6 @@ import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ListingsScreen" })
-
-// ISO day of week: 1=Monday, 7=Sunday (with translation keys)
-const ISO_DAYS = [
-  { iso: 1, tx: "listingsScreen:monday" as const },
-  { iso: 2, tx: "listingsScreen:tuesday" as const },
-  { iso: 3, tx: "listingsScreen:wednesday" as const },
-  { iso: 4, tx: "listingsScreen:thursday" as const },
-  { iso: 5, tx: "listingsScreen:friday" as const },
-  { iso: 6, tx: "listingsScreen:saturday" as const },
-  { iso: 7, tx: "listingsScreen:sunday" as const },
-]
 
 /**
  * Fellowships available for filtering — driven by EXPO_PUBLIC_FELLOWSHIPS
@@ -516,46 +506,15 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       />
 
       {/* Day Selector Modal */}
-      <Modal
+      <DaySelectorModal
         visible={dayModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDayModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setDayModalVisible(false)}>
-          <View style={themed($modalContent)} accessibilityViewIsModal>
-            <Text style={themed($modalTitle)}>{t("listingsScreen:selectDay")}</Text>
-            {ISO_DAYS.map((day) => (
-              <TouchableOpacity
-                key={day.iso}
-                style={[
-                  themed($modalOption),
-                  selectedDay === day.iso && themed($modalOptionSelected),
-                ]}
-                onPress={() => {
-                  setSelectedDay(day.iso)
-                  trackEvent("listings_day_changed", { day: day.iso })
-                  setDayModalVisible(false)
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: selectedDay === day.iso }}
-              >
-                <Text
-                  style={[
-                    themed($modalOptionText),
-                    selectedDay === day.iso && themed($modalOptionTextSelected),
-                  ]}
-                >
-                  {t(day.tx)}
-                </Text>
-                {selectedDay === day.iso && (
-                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
+        selectedDay={selectedDay}
+        onSelect={(day) => {
+          setSelectedDay(day)
+          trackEvent("listings_day_changed", { day })
+        }}
+        onClose={() => setDayModalVisible(false)}
+      />
 
       {/* Language Selector Modal */}
       <Modal
