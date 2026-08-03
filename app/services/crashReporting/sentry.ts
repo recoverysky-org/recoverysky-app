@@ -22,17 +22,14 @@
  *   - `?lat=` / `?lon=` on /schedules/nearby. Same mechanism — this is the
  *     only place in the app that puts the user's position in a URL, and the
  *     XHR breadcrumb integration would otherwise ship it.
- *     CHANGED 2026-08-03: this bullet asserted a guarantee the code did not
- *     deliver. Final review found two independent holes, both now closed:
- *       (a) the JS `beforeBreadcrumb` hook is NOT sufficient on iOS —
- *           sentry-cocoa's native network breadcrumb never passes through it
- *           (see `scrubEventBreadcrumbs`), so scrubbing now runs in BOTH
- *           hooks, and `beforeSend` is the one that actually guarantees it;
- *       (b) `scrubUrl` was a no-op under React Native's `URL` polyfill,
- *           leaving the raw coordinates in the string it claimed to have
- *           filtered (see the rewrite note in `app/utils/scrubQuery.ts`).
- *     Treat this list as intent that has to be re-verified against the
- *     runtime, not as a description of proven behavior.
+ *     CHANGED 2026-08-03: this bullet overstated its coverage. The JS
+ *     `beforeBreadcrumb` hook is NOT sufficient on iOS — sentry-cocoa builds
+ *     its network breadcrumb natively and it never passes through that hook
+ *     (see `scrubEventBreadcrumbs`), so after the In-Person segment shipped,
+ *     coordinates could ride out on the raw `http.query` field. Scrubbing now
+ *     runs in BOTH hooks, and `beforeSend` is the one that actually reaches
+ *     the native breadcrumb. Treat this list as intent to be re-verified
+ *     against the runtime, not as a description of proven behavior.
  *   - `Authorization` headers. Stripped from request breadcrumbs.
  */
 
@@ -42,8 +39,10 @@ import * as Sentry from "@sentry/react-native"
 import { logger } from "@/utils/logger"
 import type { LogAttributes } from "@/utils/logger"
 // Pure + vitest-covered on purpose: this module can't be unit-tested (it
-// imports @/utils/logger), and the URL/query scrubbing is too load-bearing to
-// go uncovered — it shipped broken once. See app/utils/scrubQuery.ts.
+// imports @/utils/logger), and the URL/query scrubbing guards the user's
+// coordinates, so it is too load-bearing to go uncovered. It is also written
+// to be independent of which `URL` polyfill the runtime installs — see the
+// note in app/utils/scrubQuery.ts for why that matters.
 import { scrubQueryString, scrubUrl } from "@/utils/scrubQuery"
 
 const log = logger.child({ module: "sentry" })
@@ -64,12 +63,11 @@ const OTA_COUNTER: string = require("../../../package.json").update ?? "0"
 // The sensitive-query-key list and the two scrubbing functions used to live
 // here. CHANGED 2026-08-03: moved to `app/utils/scrubQuery.ts` so vitest can
 // cover them — this module imports `@/utils/logger`, which vitest can't
-// resolve, so nothing in this file is unit-testable. Two bugs found in final
-// review made that coverage non-negotiable: the key list was only ever
-// consulted by `beforeBreadcrumb` (which never sees iOS's native http
-// breadcrumb — see `scrubEventBreadcrumbs`), and `scrubUrl` itself was a
-// no-op under React Native's URL polyfill. Add new sensitive keys in
-// scrubQuery.ts, not here.
+// resolve, so nothing in this file is unit-testable. Final review made that
+// coverage non-negotiable: the key list was only ever consulted by
+// `beforeBreadcrumb`, which never sees iOS's native http breadcrumb (see
+// `scrubEventBreadcrumbs`), so a real leak sat behind an untested function.
+// Add new sensitive keys in scrubQuery.ts, not here.
 
 const SENSITIVE_HEADER_KEYS = new Set([
   "authorization",

@@ -6,15 +6,20 @@
  * WHY THIS IS A SEPARATE, PURE MODULE: it has zero `@/` runtime imports, so
  * vitest can actually load it (CLAUDE.md, "Test Runner Split"). `sentry.ts`
  * imports `@/utils/logger` and is therefore untestable by either runner. This
- * logic guards the app's most sensitive data — the user's coordinates — and
- * it has already shipped broken once (see the `scrubUrl` note below), so it
+ * logic guards the app's most sensitive data — the user's coordinates — so it
  * needs real coverage. Keep this file free of `@/` imports.
  *
- * EVERYTHING HERE MUST BE RUNTIME-AGNOSTIC. These functions run under Hermes
- * with React Native's `URL` / `URLSearchParams` polyfills, which are NOT
- * spec-compliant, but the tests run under Node, which is. Any function whose
- * correctness depends on which implementation it got is a function that passes
- * its tests and fails on device.
+ * EVERYTHING HERE IS DELIBERATELY RUNTIME-AGNOSTIC — defence in depth, not a
+ * bug fix. Which `URL` implementation is installed on the global depends on
+ * layered polyfills: React Native's `setUpXHR` installs the partial one from
+ * `Libraries/Blob/URL.js`, and then Expo SDK 54's winter runtime *replaces* it
+ * with spec-compliant `whatwg-url-without-unicode`
+ * (`expo/src/winter/runtime.native.ts` → `url.ts`, reached via
+ * `expo/src/Expo.fx.tsx` → `./winter`). Expo's wins today, so parser-based
+ * scrubbing does work here. But that is a property of the current dependency
+ * stack, not of our code, and it is invisible at this call site. Writing these
+ * functions so they don't care keeps a future Expo/RN change from quietly
+ * turning a privacy guarantee into a no-op.
  */
 
 /**
@@ -48,12 +53,13 @@ export const SENSITIVE_QUERY_KEYS = new Set([
  *
  * Returns the ORIGINAL string when no sensitive key matched, rather than the
  * round-tripped `params.toString()`. That is not a micro-optimization, it is
- * required for correctness: React Native's `URLSearchParams` polyfill parses a
- * valueless token like `section-two` into a key whose value is `undefined` and
- * serializes it back as the literal `"section-two=undefined"`. (Node turns the
- * same input into `"section-two="`.) Round-tripping every value would silently
- * corrupt any non-key=value input — which is the common case for fragments.
- * Touch nothing you did not need to touch.
+ * required for correctness: a valueless token like `section-two` does not
+ * survive a round trip. The spec-compliant `whatwg-url-without-unicode` that
+ * Expo installs turns it into `"section-two="`; React Native's own polyfill
+ * turns it into `"section-two=undefined"`. Both differ from the input, so
+ * round-tripping unconditionally would corrupt any non-`key=value` string —
+ * the common case for `http.fragment`. Touch nothing you did not need to
+ * touch, and the answer stops depending on which polyfill won.
  */
 export function scrubQueryString(query: string | undefined): string | undefined {
   if (!query || typeof query !== "string") return query
@@ -78,26 +84,33 @@ export function scrubQueryString(query: string | undefined): string | undefined 
  * fragment.
  *
  * DO NOT REIMPLEMENT THIS WITH `new URL()`. It used to be written that way —
- * parse, mutate `parsed.searchParams`, return `parsed.toString()` — and that
- * version was a no-op on device that actively made things worse. React
- * Native's `URL` polyfill implements `toString()` as:
+ * parse, mutate `parsed.searchParams`, return `parsed.toString()`. That
+ * version DID work, but only because of a runtime detail no reader should
+ * have to know, which is the whole reason this note exists.
+ *
+ * React Native's own `URL` polyfill (`react-native/Libraries/Blob/URL.js:184`)
+ * implements `toString()` as:
  *
  *     return this._url + separator + this._searchParamsInstance.toString()
  *
- * i.e. it appends the mutated params to the ORIGINAL, unmodified URL string
- * instead of replacing them. So scrubbing
- * `…/schedules/nearby?lat=37.7749&lon=-122.4194` produced
- * `…/schedules/nearby?lat=37.7749&lon=-122.4194&lat=[Filtered]&lon=[Filtered]`
- * — the real coordinates still present, now with a decoy alongside them.
- * Verified empirically against `react-native/Libraries/Blob/URL` on 2026-08-03.
- * The bug only ever fired on URLs that actually contained a sensitive key,
- * because the non-matching path returned the input untouched: the scrubber
- * worked on exactly the URLs that did not need it and failed on exactly the
- * ones that did.
+ * i.e. it APPENDS the mutated params to the original, unmodified URL string
+ * rather than replacing them. Under that implementation, scrubbing
+ * `…/nearby?lat=37.7749&lon=-122.4194` would yield
+ * `…/nearby?lat=37.7749&lon=-122.4194&lat=[Filtered]&lon=[Filtered]` — real
+ * coordinates intact, with a redacted decoy appended.
  *
- * Plain string splitting has no such runtime dependency, and it also handles
- * custom schemes (`recoverysky-app://callback?code=…`) that the polyfill's
- * http/https-shaped regexes mangle.
+ * That is NOT what shipped, because Expo SDK 54's winter runtime replaces the
+ * global before any app code runs: `expo/src/winter/runtime.native.ts:14`
+ * installs `whatwg-url-without-unicode`'s spec-compliant `URL`, and
+ * `installGlobal.ts` overwrites an existing global rather than deferring to
+ * it. Verified 2026-08-03 by running the installed implementation directly:
+ * the roundtrip replaces the query and leaks nothing.
+ *
+ * So the parser version was correct — but only as long as that override keeps
+ * happening. Plain string splitting removes the dependency entirely: it cannot
+ * be silently broken by an Expo or React Native change to which `URL` wins.
+ * It also handles custom schemes (`recoverysky-app://callback?code=…`) that
+ * RN's http/https-shaped regexes mangle. Defence in depth, not a bug fix.
  */
 export function scrubUrl(url: string | undefined): string | undefined {
   if (!url || typeof url !== "string") return url

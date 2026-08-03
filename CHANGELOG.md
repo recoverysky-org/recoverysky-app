@@ -108,18 +108,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Security
 
-- **The crash-report URL scrubber did not actually remove anything.** It
-  parsed each URL, replaced the sensitive values, and then rebuilt the string
-  using React Native's `URL` implementation — which appends the replaced
-  values to the *original* URL instead of substituting them. The result kept
-  the real value and added a redacted decoy beside it, so a nearby search
-  uploaded as `?lat=37.7749&lon=-122.4194&lat=[Filtered]&lon=[Filtered]`. This
-  affected both platforms and every sensitive parameter the scrubber covers
-  (coordinates, Zoom passcodes, auth tokens, OAuth codes) — and it failed only
-  on URLs that contained one, since anything with nothing to redact was passed
-  through untouched. Rewritten without the URL parser, moved to
+- **Hardened the crash-report URL scrubber so it no longer depends on which
+  `URL` polyfill the runtime installs.** It previously parsed each URL, mutated
+  the parsed params, and re-serialized. That was correct in the shipped app —
+  Expo SDK 54's runtime installs a spec-compliant `URL` — but it would have
+  silently become a no-op under React Native's own polyfill, whose
+  `toString()` appends mutated params to the original string instead of
+  replacing them. A privacy guarantee should not rest on which of two layered
+  polyfills happens to win. Rewritten with plain string splitting, moved to
   `app/utils/scrubQuery.ts`, and covered by unit tests that assert the secret
-  is *absent* rather than that a `[Filtered]` marker is present.
+  is *absent* rather than that a `[Filtered]` marker is present. No user data
+  was exposed by this path; it is defence in depth.
 - **iOS crash reports could carry the user's precise coordinates.** On iOS the
   Sentry SDK watches network requests natively and records each one as a
   breadcrumb, keeping the request's query string in a separate field from the
