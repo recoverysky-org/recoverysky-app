@@ -769,6 +769,18 @@ const fr: Translations = {
     cloudBackupCta: "Ouvrir la sauvegarde cloud",
     dismiss: "Compris",
   },
+  inPersonPopup: {
+    getDirections: "Itinéraire",
+    contacts: "Contacts",
+    imHere: "Je suis ici",
+    imHereSaving: "Enregistrement…",
+    logged: "Présence enregistrée",
+    alsoOnline: "Se réunit aussi en ligne",
+    approximate: "L'emplacement affiché est approximatif",
+    attendanceSaved: "Présence enregistrée",
+    attendanceError: "Impossible d'enregistrer la présence — veuillez réessayer",
+    tapTimesHint: "Touchez une heure pour définir un rappel",
+  },
 }
 
 export default fr

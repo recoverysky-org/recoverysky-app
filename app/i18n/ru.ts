@@ -759,6 +759,18 @@ const ru: Translations = {
     cloudBackupCta: "Открыть облачное копирование",
     dismiss: "Понятно",
   },
+  inPersonPopup: {
+    getDirections: "Проложить маршрут",
+    contacts: "Контакты",
+    imHere: "Я здесь",
+    imHereSaving: "Сохранение…",
+    logged: "Посещение зафиксировано",
+    alsoOnline: "Также встречается онлайн",
+    approximate: "Указанное местоположение приблизительное",
+    attendanceSaved: "Посещение сохранено",
+    attendanceError: "Не удалось сохранить посещение — попробуйте ещё раз",
+    tapTimesHint: "Нажмите на время, чтобы установить напоминание",
+  },
 }
 
 export default ru

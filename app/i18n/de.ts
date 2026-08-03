@@ -769,6 +769,18 @@ const de: Translations = {
     cloudBackupCta: "Cloud-Backup öffnen",
     dismiss: "Verstanden",
   },
+  inPersonPopup: {
+    getDirections: "Route anzeigen",
+    contacts: "Kontakte",
+    imHere: "Ich bin hier",
+    imHereSaving: "Wird gespeichert…",
+    logged: "Anwesenheit erfasst",
+    alsoOnline: "Trifft sich auch online",
+    approximate: "Der angezeigte Standort ist ungefähr",
+    attendanceSaved: "Anwesenheit gespeichert",
+    attendanceError: "Anwesenheit konnte nicht gespeichert werden — bitte erneut versuchen",
+    tapTimesHint: "Tippe auf eine Uhrzeit, um eine Erinnerung festzulegen",
+  },
 }
 
 export default de

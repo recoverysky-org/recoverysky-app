@@ -747,6 +747,18 @@ const ar: Translations = {
     cloudBackupCta: "فتح النسخ الاحتياطي السحابي",
     dismiss: "حسنًا",
   },
+  inPersonPopup: {
+    getDirections: "الحصول على الاتجاهات",
+    contacts: "جهات الاتصال",
+    imHere: "أنا هنا",
+    imHereSaving: "جارٍ الحفظ…",
+    logged: "تم تسجيل الحضور",
+    alsoOnline: "يجتمع أيضًا عبر الإنترنت",
+    approximate: "الموقع الظاهر تقريبي",
+    attendanceSaved: "تم حفظ الحضور",
+    attendanceError: "تعذر حفظ الحضور — يرجى المحاولة مرة أخرى",
+    tapTimesHint: "اضغط على وقت لتعيين تذكير",
+  },
 }
 
 export default ar

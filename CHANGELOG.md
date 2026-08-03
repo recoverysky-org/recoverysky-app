@@ -37,6 +37,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   in-person support ships — but that API branch should still land in
   production before this OTA goes out, since until then the in-person fetch
   is pure overhead with no data behind it.
+- In-Person meeting detail popup: tapping an in-person row now opens a sheet
+  with venue name/address, an approximate-location caveat when the source
+  flags its geocode as such, a "Get Directions" button (platform maps deep
+  link, falls back to the Google Maps web URL if no app handles it),
+  published contacts (tap to call or email), the same weekly schedule grid +
+  reminder editor as the online popup, and an "I'm Here" button that logs
+  attendance for users with Cloud Backup / attendance tracking on. Translated
+  into all nine app locales (best-effort for seven of them — see
+  `.superpowers/sdd/2026-08-03-in-person-ui/task-9-report.md` for the
+  native-speaker review queue).
 
 ### Changed
 

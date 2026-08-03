@@ -774,6 +774,18 @@ const en = {
     cloudBackupCta: "Open Cloud Backup",
     dismiss: "Got it",
   },
+  inPersonPopup: {
+    getDirections: "Get Directions",
+    contacts: "Contacts",
+    imHere: "I'm Here",
+    imHereSaving: "Saving…",
+    logged: "Attendance Logged",
+    alsoOnline: "Also meets online",
+    approximate: "Location shown is approximate",
+    attendanceSaved: "Attendance saved",
+    attendanceError: "Couldn't save attendance — please try again",
+    tapTimesHint: "Tap a time to set a reminder",
+  },
 }
 
 export default en
