@@ -89,6 +89,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- In-person meeting popups showed no street address, ever. The address line
+  read `formattedAddress`, a field the live data confirms is populated on
+  none of the 55,617 active in-person meetings across every source — not a
+  server bug, upstream just never fills it in. The popup now composes an
+  address from the street/city/state/postal fields (which are populated on
+  92–99% of meetings) and falls back to `formattedAddress` verbatim if it's
+  ever non-empty. Also fixes the "Get Directions" fallback link for venues
+  without coordinates, which had the same dead-field problem.
 - `npm run compile` failed with `Cannot find module 'expo-file-system'` in three
   files (`db/provider.ts`, `journalExportService.ts`, `ninetyCertificateService.ts`).
   The `expo` 54.0.34→54.0.35 bump nested `expo-file-system` under

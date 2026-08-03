@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   buildDirectionsUrl,
   buildNearbyParams,
+  composeAddress,
   formatDistance,
   isSameLocalDay,
   resolveMode,
@@ -145,6 +146,47 @@ describe("buildDirectionsUrl", () => {
   })
   it("returns empty string with neither coords nor address", () => {
     expect(buildDirectionsUrl({ platform: "android" })).toBe("")
+  })
+})
+
+describe("composeAddress", () => {
+  const full = {
+    street: "261 Fell Street",
+    city: "San Francisco",
+    state: "CA",
+    postalCode: "94102",
+  }
+  it("composes the full address from parts", () => {
+    expect(composeAddress(full)).toBe("261 Fell Street, San Francisco, CA 94102")
+  })
+  it("prefers a populated formattedAddress over the parts", () => {
+    expect(composeAddress({ ...full, formattedAddress: "PO Box 1, SF" })).toBe("PO Box 1, SF")
+  })
+  it("ignores an empty formattedAddress and falls back to parts", () => {
+    expect(composeAddress({ ...full, formattedAddress: "" })).toBe(
+      "261 Fell Street, San Francisco, CA 94102",
+    )
+  })
+  it("drops the street when missing", () => {
+    expect(composeAddress({ city: "San Francisco", state: "CA", postalCode: "94102" })).toBe(
+      "San Francisco, CA 94102",
+    )
+  })
+  it("drops the state when missing", () => {
+    expect(
+      composeAddress({ street: "261 Fell Street", city: "San Francisco", postalCode: "94102" }),
+    ).toBe("261 Fell Street, San Francisco 94102")
+  })
+  it("drops the postal code when missing", () => {
+    expect(composeAddress({ street: "261 Fell Street", city: "San Francisco", state: "CA" })).toBe(
+      "261 Fell Street, San Francisco, CA",
+    )
+  })
+  it("renders city alone when nothing else is present", () => {
+    expect(composeAddress({ city: "San Francisco" })).toBe("San Francisco")
+  })
+  it("returns empty string when nothing is available", () => {
+    expect(composeAddress({})).toBe("")
   })
 })
 

@@ -54,7 +54,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
-import { buildDirectionsUrl } from "@/utils/nearbyLogic"
+import { buildDirectionsUrl, composeAddress } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "InPersonPopup" })
 
@@ -163,6 +163,30 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const currentDow = DateTime.now().weekday
 
   // ==========================================================================
+  // Address
+  // ==========================================================================
+
+  // `meeting.formattedAddress` is dead data upstream (0 of 55,617 active
+  // in-person meetings have it populated) — compose a display address from
+  // the decomposed street/city/state/postalCode parts instead. See
+  // composeAddress's own doc comment in nearbyLogic.ts for the full story.
+  // Computed once here and reused by the venue block below and both
+  // buildDirectionsUrl calls so all three stay in sync.
+  const composedAddress = useMemo(
+    () =>
+      meeting
+        ? composeAddress({
+            formattedAddress: meeting.formattedAddress,
+            street: meeting.street,
+            city: meeting.city,
+            state: meeting.state,
+            postalCode: meeting.postalCode,
+          })
+        : "",
+    [meeting],
+  )
+
+  // ==========================================================================
   // Directions
   // ==========================================================================
 
@@ -174,10 +198,10 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
             latitude: meeting.latitude,
             longitude: meeting.longitude,
             venueName: meeting.venueName,
-            formattedAddress: meeting.formattedAddress,
+            formattedAddress: composedAddress,
           })
         : "",
-    [meeting],
+    [meeting, composedAddress],
   )
 
   const handleDirections = useCallback(() => {
@@ -195,11 +219,11 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
         latitude: meeting?.latitude,
         longitude: meeting?.longitude,
         venueName: meeting?.venueName,
-        formattedAddress: meeting?.formattedAddress,
+        formattedAddress: composedAddress,
       })
       if (web) Linking.openURL(web).catch(() => {})
     })
-  }, [directionsUrl, meeting])
+  }, [directionsUrl, meeting, composedAddress])
 
   // ==========================================================================
   // "I'm Here" attendance
@@ -386,9 +410,11 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
             {/* Venue block */}
             <View style={themed($venueBlock)}>
               {!!meeting.venueName && <Text style={themed($venueName)}>{meeting.venueName}</Text>}
-              {!!meeting.formattedAddress && (
-                <Text style={themed($venueLine)}>{meeting.formattedAddress}</Text>
-              )}
+              {/* meeting.formattedAddress is populated on 0% of live in-person
+                meetings — composedAddress (memoized above) builds it from
+                street/city/state/postalCode instead, falling back to
+                formattedAddress verbatim if it's ever non-empty. */}
+              {!!composedAddress && <Text style={themed($venueLine)}>{composedAddress}</Text>}
               {!!meeting.locationInfo && (
                 <Text style={themed($venueLineDim)}>{meeting.locationInfo}</Text>
               )}

@@ -152,6 +152,53 @@ export function buildDirectionsUrl(input: DirectionsInput): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${addr}`
 }
 
+/**
+ * Compose a display address from decomposed street/city/state/postalCode
+ * parts, falling back to `formattedAddress` when the API actually supplies
+ * one.
+ *
+ * WHY THIS EXISTS: `formattedAddress` looks like the field the popup
+ * should just read — it isn't. The API team queried the live DB and found
+ * it populated on **0 of 55,617** active in-person meetings, across every
+ * source host (BMLT and TSML alike). It's not a server bug or a
+ * projection gap; upstream simply never fills it in. The decomposed parts
+ * are populated instead: street 98.8%, city 99.1%, state 92%, postalCode
+ * 96% (country 99%, unused here — country isn't part of a US-style street
+ * address display and pulling it in would need a second format branch for
+ * no benefit today). Do not "simplify" this back to
+ * `meeting.formattedAddress` without re-checking those numbers — that's
+ * the exact regression this function exists to prevent.
+ *
+ * `formattedAddress` is still checked first and returned verbatim so the
+ * app gets it for free the moment any upstream source starts populating
+ * it — no client change needed then.
+ *
+ * Output shape mirrors US postal formatting: "<street>, <city>, <state>
+ * <postalCode>". Every empty/missing segment is dropped before joining, so
+ * a partial address never produces a stray leading/trailing comma or a
+ * double space. Returns "" when nothing is available at all — the caller
+ * (InPersonPopup) guards rendering with `!!composedAddress`, so an empty
+ * result correctly hides the address line rather than rendering blank.
+ */
+export function composeAddress(m: {
+  formattedAddress?: string
+  street?: string
+  city?: string
+  state?: string
+  postalCode?: string
+}): string {
+  if (m.formattedAddress) return m.formattedAddress
+
+  // "City, State" first — comma only appears when both are present.
+  const cityState = [m.city, m.state].filter(Boolean).join(", ")
+  // Postal code rides after that group with a space (postal convention),
+  // and is simply dropped if there's no city/state to attach it to.
+  const cityStateZip = [cityState, m.postalCode].filter(Boolean).join(" ")
+  // Street leads, then the city/state/zip group, joined by a comma —
+  // either side drops out cleanly if empty.
+  return [m.street, cityStateZip].filter(Boolean).join(", ")
+}
+
 /** Same local calendar day (device timezone) — the "I'm Here" double-log guard. */
 export function isSameLocalDay(aMillis: number, bMillis: number): boolean {
   const a = new Date(aMillis)
