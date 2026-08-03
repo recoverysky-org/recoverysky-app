@@ -19,11 +19,14 @@
  *     opaque deviceId / userId (stable but non-personal).
  *   - `?pwd=` query params on Zoom URLs. Stripped from breadcrumbs and
  *     event request URLs in beforeBreadcrumb / beforeSend.
+ *   - `?lat=` / `?lon=` on /schedules/nearby. Same mechanism — this is the
+ *     only place in the app that puts the user's position in a URL, and the
+ *     XHR breadcrumb integration would otherwise ship it.
  *   - `Authorization` headers. Stripped from request breadcrumbs.
  */
 
-import * as Sentry from "@sentry/react-native"
 import * as Updates from "expo-updates"
+import * as Sentry from "@sentry/react-native"
 
 import { logger } from "@/utils/logger"
 import type { LogAttributes } from "@/utils/logger"
@@ -56,6 +59,15 @@ const SENSITIVE_QUERY_KEYS = new Set([
   "code", // OAuth authorization codes
   "api_key",
   "key",
+  // The In-Person segment's /schedules/nearby call carries the user's precise
+  // position in the query string. apisauce → axios → XHR means Sentry's default
+  // XHR breadcrumb integration records that full URL, so without these two keys
+  // every nearby request would upload the user's coordinates with the next
+  // error event. The hook (app/hooks/useNearbySchedules.ts) is careful never to
+  // log or persist coordinates; this scrub is what closes the remaining
+  // transport. Do not remove without removing the caller.
+  "lat",
+  "lon",
 ])
 
 const SENSITIVE_HEADER_KEYS = new Set([

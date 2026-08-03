@@ -10,7 +10,14 @@
  * PRIVACY (non-negotiable, see the 2026-08-03 in-person-ui design doc):
  * - Raw coordinates live in `coordsRef` and nowhere else. Not React state
  *   (state is serialized into devtools/Reactotron snapshots), not MMKV, not
- *   SQLite. They leave the device only as `/schedules/nearby` query params.
+ *   SQLite. They leave the device only as `/schedules/nearby` query params —
+ *   and that required a second fix to be true: apisauce → axios → XHR means
+ *   Sentry's default XHR breadcrumb integration captures the request URL, so
+ *   `lat`/`lon` are in `SENSITIVE_QUERY_KEYS` in
+ *   `app/services/crashReporting/sentry.ts`. Without that scrub, every nearby
+ *   request rode along with the next uploaded error event. "We never log it"
+ *   and "it never leaves the device" are different claims; the second one has
+ *   to account for every transport, not every log site.
  * - Nothing here logs lat/lon. Our logs ship to Loki, so every log call below
  *   is limited to scalars we deliberately chose (radius, iso_dow, counts,
  *   API problem kinds). Never log the `params` object — it carries coords.
@@ -135,7 +142,12 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
   // sent nowhere but the /schedules/nearby query.
   const coordsRef = useRef<{ lat: number; lon: number } | null>(null)
 
-  /** False after unmount — every post-await setState is gated on it. */
+  /**
+   * False after unmount. Gates every post-await setState *and* the follow-on
+   * fetch in the acquire→fetch chains (see `fetchIfMounted`) — the OS
+   * permission dialog can stay open indefinitely, so "the component is gone by
+   * the time we resume" is a normal outcome here, not an edge case.
+   */
   const mountedRef = useRef(true)
   /** True after the first activation, so input changes can't fetch too early. */
   const startedRef = useRef(false)
@@ -189,7 +201,14 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       }
 
       setPermission("granted")
-      setFix("pending")
+      // Only announce "locating" when we have nothing to show for. A
+      // pull-to-refresh while holding usable coordinates would otherwise flip
+      // the mode to `locating` for up to 10 s, blanking the loaded list behind
+      // a second spinner while RefreshControl is already showing one. Holding a
+      // valid position is not "locating" — and a re-fix that *fails* still
+      // degrades correctly via the catch block below (coords dropped, fix
+      // "failed", mode "fallback").
+      if (!coordsRef.current) setFix("pending")
 
       // Race the fix against a 10 s timeout — a cold GPS indoors can hang
       // far longer, and the fallback list is more useful than a spinner.
@@ -243,6 +262,10 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       log.debug("Skipping nearby fetch — maintenance mode")
       fetchSeqRef.current++
       setIsLoading(false)
+      // Clear any earlier failure too: while maintenance is on, the
+      // MaintenanceBanner is the correct explanation, and a stale `error` would
+      // make the consumer render an error state on top of it.
+      setError(null)
       return
     }
 
@@ -346,11 +369,28 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     fetchLatestRef.current = fetchMeetings
   }, [fetchMeetings])
 
+  /**
+   * The shared tail of all three acquire→fetch chains, and the invariant the
+   * driver effect below depends on: **every** `acquireLocation()` caller must
+   * follow with a fetch, because the driver deliberately skips refetching while
+   * an acquire is in flight.
+   *
+   * The mounted check is the reason this is a function and not a bare call: an
+   * acquire can be parked on the OS permission dialog (no timeout) or on a 10 s
+   * fix, and `acquireLocation` self-guards only its own state writes. Without
+   * this, a segment the user navigated away from would still fire a real
+   * network request whose result nobody can read.
+   */
+  const fetchIfMounted = useCallback(async () => {
+    if (!mountedRef.current) return
+    await fetchLatestRef.current()
+  }, [])
+
   /** First activation: prompt + fix, then fetch whichever path that produced. */
   const startInitialLoad = useCallback(async () => {
     await acquireLocation()
-    await fetchLatestRef.current()
-  }, [acquireLocation])
+    await fetchIfMounted()
+  }, [acquireLocation, fetchIfMounted])
 
   // The single driver: first activation kicks the location chain, and every
   // later change to day / radius / fellowship / maintenance refetches (each
@@ -367,7 +407,9 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     // An acquire in flight will fetch itself when it settles, using the latest
     // inputs via fetchLatestRef. Firing here too would spend a request on the
     // day-browse path (coords aren't in yet) that the stale-guard then throws
-    // away, while the UI shows a "locating" spinner either way.
+    // away, while the UI shows a "locating" spinner either way. This skip is
+    // only safe because every acquire caller goes through `fetchIfMounted` —
+    // an acquire that returned without fetching would strand these inputs.
     if (acquiringRef.current) return
 
     void fetchMeetings()
@@ -383,8 +425,8 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
   /** Pull-to-refresh: re-fix location when we're allowed to, then refetch. */
   const refresh = useCallback(async () => {
     if (permission === "granted") await acquireLocation()
-    await fetchLatestRef.current()
-  }, [permission, acquireLocation])
+    await fetchIfMounted()
+  }, [permission, acquireLocation, fetchIfMounted])
 
   /**
    * Banner tap. Re-requests permission; when the OS has permanently denied it
@@ -393,8 +435,8 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
    */
   const requestLocation = useCallback(async () => {
     await acquireLocation()
-    await fetchLatestRef.current()
-  }, [acquireLocation])
+    await fetchIfMounted()
+  }, [acquireLocation, fetchIfMounted])
 
   const mode = resolveMode({ active, permission, fix, nearbyFetchFailed })
   // Only fallback mode shows a banner, and a nearby fetch failure is the more
