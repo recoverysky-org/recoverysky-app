@@ -759,6 +759,17 @@ const ar: Translations = {
     attendanceError: "تعذر حفظ الحضور — يرجى المحاولة مرة أخرى",
     tapTimesHint: "اضغط على وقت لتعيين تذكير",
   },
+  inPersonScreen: {
+    title: "حضوريًا",
+    withinRadius: "ضمن {{distance}}",
+    selectRadius: "مسافة البحث",
+    locationBanner: "فعّل الموقع لرؤية الاجتماعات القريبة منك",
+    locationBannerDenied: "الموقع معطّل — افتح الإعدادات لتفعيل النتائج القريبة",
+    nearbyFailedBanner: "تعذّر تحميل النتائج القريبة — اضغط لإعادة المحاولة",
+    emptyNearby: "لا توجد اجتماعات حضورية ضمن {{distance}} ({{day}}) — جرّب نطاقًا أوسع",
+    emptyFallback: "لا توجد اجتماعات {{fellowship}} حضورية ({{day}})",
+    selectFellowship: "اختر زمالة في الإعدادات لرؤية الاجتماعات",
+  },
 }
 
 export default ar

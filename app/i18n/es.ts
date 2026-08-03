@@ -772,6 +772,19 @@ const es: Translations = {
     attendanceError: "No se pudo guardar la asistencia — inténtalo de nuevo",
     tapTimesHint: "Toca una hora para crear un recordatorio",
   },
+  inPersonScreen: {
+    title: "En persona",
+    withinRadius: "En un radio de {{distance}}",
+    selectRadius: "Distancia de búsqueda",
+    locationBanner: "Activa la ubicación para ver reuniones cerca de ti",
+    locationBannerDenied:
+      "La ubicación está desactivada — ábrela en Ajustes para ver resultados cercanos",
+    nearbyFailedBanner: "No se pudieron cargar los resultados cercanos — toca para reintentar",
+    emptyNearby:
+      "No hay reuniones en persona en un radio de {{distance}} el {{day}} — prueba un radio mayor",
+    emptyFallback: "No hay reuniones en persona de {{fellowship}} el {{day}}",
+    selectFellowship: "Selecciona una confraternidad en Ajustes para ver reuniones",
+  },
 }
 
 export default es

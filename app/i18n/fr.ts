@@ -781,6 +781,19 @@ const fr: Translations = {
     attendanceError: "Impossible d'enregistrer la présence — veuillez réessayer",
     tapTimesHint: "Touchez une heure pour définir un rappel",
   },
+  inPersonScreen: {
+    title: "En personne",
+    withinRadius: "Dans un rayon de {{distance}}",
+    selectRadius: "Distance de recherche",
+    locationBanner: "Activez la localisation pour voir les réunions près de chez vous",
+    locationBannerDenied:
+      "La localisation est désactivée — ouvrez les Réglages pour activer les résultats à proximité",
+    nearbyFailedBanner: "Impossible de charger les résultats à proximité — touchez pour réessayer",
+    emptyNearby:
+      "Aucune réunion en présentiel dans un rayon de {{distance}} le {{day}} — essayez un rayon plus large",
+    emptyFallback: "Aucune réunion {{fellowship}} en présentiel le {{day}}",
+    selectFellowship: "Sélectionnez une fraternité dans les Réglages pour voir les réunions",
+  },
 }
 
 export default fr

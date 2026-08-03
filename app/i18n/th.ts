@@ -763,6 +763,17 @@ const th: Translations = {
     attendanceError: "ไม่สามารถบันทึกการเข้าร่วมได้ — โปรดลองอีกครั้ง",
     tapTimesHint: "แตะเวลาเพื่อตั้งการแจ้งเตือน",
   },
+  inPersonScreen: {
+    title: "แบบพบหน้า",
+    withinRadius: "ภายใน {{distance}}",
+    selectRadius: "ระยะการค้นหา",
+    locationBanner: "เปิดตำแหน่งที่ตั้งเพื่อดูการประชุมใกล้คุณ",
+    locationBannerDenied: "ตำแหน่งที่ตั้งปิดอยู่ — เปิดการตั้งค่าเพื่อดูผลลัพธ์ใกล้เคียง",
+    nearbyFailedBanner: "โหลดผลลัพธ์ใกล้เคียงไม่สำเร็จ — แตะเพื่อลองใหม่",
+    emptyNearby: "ไม่มีการประชุมแบบพบหน้าภายใน {{distance}} ใน {{day}} — ลองขยายระยะการค้นหา",
+    emptyFallback: "ไม่มีการประชุม {{fellowship}} แบบพบหน้าใน {{day}}",
+    selectFellowship: "เลือกกลุ่มมิตรภาพในการตั้งค่าเพื่อดูการประชุม",
+  },
 }
 
 export default th

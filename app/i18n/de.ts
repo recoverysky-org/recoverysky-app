@@ -781,6 +781,19 @@ const de: Translations = {
     attendanceError: "Anwesenheit konnte nicht gespeichert werden — bitte erneut versuchen",
     tapTimesHint: "Tippe auf eine Uhrzeit, um eine Erinnerung festzulegen",
   },
+  inPersonScreen: {
+    title: "Vor Ort",
+    withinRadius: "Im Umkreis von {{distance}}",
+    selectRadius: "Suchradius",
+    locationBanner: "Aktiviere den Standort, um Meetings in deiner Nähe zu sehen",
+    locationBannerDenied: "Standort ist aus — öffne die Einstellungen für Ergebnisse in der Nähe",
+    nearbyFailedBanner:
+      "Ergebnisse in der Nähe konnten nicht geladen werden — zum Wiederholen tippen",
+    emptyNearby:
+      "Keine Präsenz-Meetings im Umkreis von {{distance}} am {{day}} — versuche einen größeren Radius",
+    emptyFallback: "Keine {{fellowship}}-Präsenz-Meetings am {{day}}",
+    selectFellowship: "Wähle in den Einstellungen eine Gemeinschaft, um Meetings zu sehen",
+  },
 }
 
 export default de

@@ -770,6 +770,19 @@ const uk: Translations = {
     attendanceError: "Не вдалося зберегти відвідування — спробуйте ще раз",
     tapTimesHint: "Торкніться часу, щоб встановити нагадування",
   },
+  inPersonScreen: {
+    title: "Особисто",
+    withinRadius: "У радіусі {{distance}}",
+    selectRadius: "Радіус пошуку",
+    locationBanner: "Увімкніть геолокацію, щоб бачити зустрічі поруч із вами",
+    locationBannerDenied:
+      "Геолокацію вимкнено — відкрийте Налаштування, щоб увімкнути пошук поблизу",
+    nearbyFailedBanner: "Не вдалося завантажити результати поблизу — торкніться, щоб повторити",
+    emptyNearby:
+      "Немає очних зустрічей у радіусі {{distance}} ({{day}}) — спробуйте більший радіус",
+    emptyFallback: "Немає очних зустрічей {{fellowship}} ({{day}})",
+    selectFellowship: "Виберіть спільноту в Налаштуваннях, щоб побачити зустрічі",
+  },
 }
 
 export default uk

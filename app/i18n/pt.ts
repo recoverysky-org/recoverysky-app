@@ -773,6 +773,20 @@ const pt: Translations = {
     attendanceError: "Não foi possível salvar a presença — tente novamente",
     tapTimesHint: "Toque em um horário para definir um lembrete",
   },
+  inPersonScreen: {
+    title: "Presencial",
+    withinRadius: "Em um raio de {{distance}}",
+    selectRadius: "Distância de busca",
+    locationBanner: "Ative a localização para ver reuniões perto de você",
+    locationBannerDenied:
+      "A localização está desativada — abra os Ajustes para ver resultados próximos",
+    nearbyFailedBanner:
+      "Não foi possível carregar os resultados próximos — toque para tentar novamente",
+    emptyNearby:
+      "Nenhuma reunião presencial em um raio de {{distance}} em {{day}} — tente um raio maior",
+    emptyFallback: "Nenhuma reunião presencial de {{fellowship}} em {{day}}",
+    selectFellowship: "Selecione uma irmandade nos Ajustes para ver reuniões",
+  },
 }
 
 export default pt

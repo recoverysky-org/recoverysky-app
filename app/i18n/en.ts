@@ -786,6 +786,17 @@ const en = {
     attendanceError: "Couldn't save attendance — please try again",
     tapTimesHint: "Tap a time to set a reminder",
   },
+  inPersonScreen: {
+    title: "In-Person",
+    withinRadius: "Within {{distance}}",
+    selectRadius: "Search Distance",
+    locationBanner: "Enable location to see meetings near you",
+    locationBannerDenied: "Location is off — open Settings to enable nearby results",
+    nearbyFailedBanner: "Couldn't load nearby results — tap to retry",
+    emptyNearby: "No in-person meetings within {{distance}} on {{day}} — try a wider radius",
+    emptyFallback: "No in-person {{fellowship}} meetings on {{day}}",
+    selectFellowship: "Select a fellowship in Settings to see meetings",
+  },
 }
 
 export default en

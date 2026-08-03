@@ -771,6 +771,18 @@ const ru: Translations = {
     attendanceError: "Не удалось сохранить посещение — попробуйте ещё раз",
     tapTimesHint: "Нажмите на время, чтобы установить напоминание",
   },
+  inPersonScreen: {
+    title: "Очно",
+    withinRadius: "В радиусе {{distance}}",
+    selectRadius: "Радиус поиска",
+    locationBanner: "Включите геолокацию, чтобы видеть встречи рядом с вами",
+    locationBannerDenied:
+      "Геолокация выключена — откройте Настройки, чтобы включить поиск поблизости",
+    nearbyFailedBanner: "Не удалось загрузить результаты поблизости — нажмите, чтобы повторить",
+    emptyNearby: "Нет очных встреч в радиусе {{distance}} ({{day}}) — попробуйте больший радиус",
+    emptyFallback: "Нет очных встреч {{fellowship}} ({{day}})",
+    selectFellowship: "Выберите содружество в Настройках, чтобы увидеть встречи",
+  },
 }
 
 export default ru
