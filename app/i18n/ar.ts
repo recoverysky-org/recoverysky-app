@@ -144,6 +144,7 @@ const ar: Translations = {
     title: "الاجتماعات",
     placeholder: "قائمة الاجتماعات قريباً",
     liveSegment: "مباشر",
+    inPersonSegment: "حضوريًا",
     listingsSegment: "الدليل",
   },
   scheduleScreen: {

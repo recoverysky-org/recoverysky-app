@@ -8,7 +8,9 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 
 // Segment options for Meetings tab
-export type MeetingsSegment = "live" | "listings"
+// "listings" is labeled "Search" in the UI (2026-08-03 relabel) — the key
+// is unchanged so stored nav state and deep links keep working.
+export type MeetingsSegment = "live" | "inperson" | "listings"
 
 // Section options for Attendance tab
 export type AttendanceSection = "new" | "archive" | "reports"

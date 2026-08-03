@@ -143,6 +143,7 @@ const th: Translations = {
     title: "ประชุม",
     placeholder: "รายการประชุมกำลังมาเร็วๆ นี้",
     liveSegment: "สด",
+    inPersonSegment: "แบบพบหน้า",
     listingsSegment: "รายการ",
   },
   scheduleScreen: {

@@ -151,7 +151,9 @@ const en = {
     title: "Meetings",
     placeholder: "Meeting list coming soon",
     liveSegment: "Live",
-    listingsSegment: "Listings",
+    inPersonSegment: "In-Person",
+    // Relabeled from "Listings" 2026-08-03 — segment KEY stays "listings".
+    listingsSegment: "Search",
   },
   scheduleScreen: {
     title: "Schedule",
@@ -183,7 +185,8 @@ const en = {
     defaultFellowship: "AA",
   },
   listingsScreen: {
-    title: "Meeting Listings",
+    // Relabeled from "Meeting Listings" 2026-08-03 — namespace/key unchanged.
+    title: "Search",
     emptyState: "No meetings found",
     emptyStateFiltered: "No meetings for {{fellowship}}",
     selectFellowship: "Select a fellowship in Settings",

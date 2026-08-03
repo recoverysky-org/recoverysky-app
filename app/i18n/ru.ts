@@ -147,6 +147,7 @@ const ru: Translations = {
     title: "Собрания",
     placeholder: "Список собраний скоро появится",
     liveSegment: "Сейчас",
+    inPersonSegment: "Очно",
     listingsSegment: "Каталог",
   },
   scheduleScreen: {

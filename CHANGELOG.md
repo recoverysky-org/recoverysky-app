@@ -40,6 +40,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- Meetings tab: Listings segment renamed Search; new In-Person segment
+  (placeholder pending nearby list).
 - The Listings API client no longer sends the `includeExternal` query param on
   `/schedules/live` or `/schedules/daily`. External is the only mode now (the
   in-app Zoom SDK was removed in 4.5.0), so the server returns external meetings

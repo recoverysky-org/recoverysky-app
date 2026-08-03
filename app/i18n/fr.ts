@@ -150,6 +150,7 @@ const fr: Translations = {
     title: "Réunions",
     placeholder: "Liste des réunions à venir",
     liveSegment: "En direct",
+    inPersonSegment: "En personne",
     listingsSegment: "Répertoire",
   },
   scheduleScreen: {

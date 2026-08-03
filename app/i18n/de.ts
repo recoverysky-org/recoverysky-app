@@ -148,6 +148,7 @@ const de: Translations = {
     title: "Meetings",
     placeholder: "Meeting-Liste kommt bald",
     liveSegment: "Live",
+    inPersonSegment: "Vor Ort",
     listingsSegment: "Verzeichnis",
   },
   scheduleScreen: {

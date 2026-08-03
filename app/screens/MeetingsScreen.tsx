@@ -11,13 +11,17 @@ import type { ThemedStyle } from "@/theme/types"
 
 import { trackEvent } from "@/services/tracking"
 
+import { InPersonContent } from "./InPersonScreen"
 import { ListingsContent } from "./ListingsScreen"
 import { LiveContent } from "./LiveScreen"
 
 const SEGMENTS = [
   { key: "live", tx: "meetingsScreen:liveSegment" as const },
+  { key: "inperson", tx: "meetingsScreen:inPersonSegment" as const },
   { key: "listings", tx: "meetingsScreen:listingsSegment" as const },
 ]
+// Index↔key mapping is positional; keep this array aligned with SEGMENTS.
+const SEGMENT_KEYS: MeetingsSegment[] = ["live", "inperson", "listings"]
 
 /**
  * MeetingsScreen - Consolidated meetings tab with segment control
@@ -25,6 +29,11 @@ const SEGMENTS = [
  * Combines Live and Listings views into a single tab with iOS-style
  * SegmentedControl. Both views stay mounted for state preservation
  * and continued background polling.
+ * CHANGED 2026-08-03: added a third "In-Person" segment (key "inperson")
+ * between Live and Listings, and relabeled the Listings segment's display
+ * text to "Search" — its route key stays "listings" so deep links and
+ * stored nav state keep working. All three content views stay mounted and
+ * toggle via style, same pattern as before.
  */
 export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(function MeetingsScreen({
   navigation: meetingsNavigation,
@@ -66,10 +75,18 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   }, [route.params?.meetingId, meetingsNavigation])
 
   const handleSegmentChange = useCallback((index: number) => {
-    setActiveSegment(index === 0 ? "live" : "listings")
+    setActiveSegment(SEGMENT_KEYS[index] ?? "live")
   }, [])
 
-  const selectedIndex = activeSegment === "live" ? 0 : 1
+  const selectedIndex = Math.max(0, SEGMENT_KEYS.indexOf(activeSegment))
+
+  // Once the user has opened In-Person we keep it "active" so its state
+  // machine (location, fetches) survives segment switches like the other
+  // stay-mounted views.
+  const [inPersonActivated, setInPersonActivated] = useState(false)
+  useEffect(() => {
+    if (activeSegment === "inperson") setInPersonActivated(true)
+  }, [activeSegment])
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
@@ -82,9 +99,12 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
         />
       </View>
 
-      {/* Content Views - both mounted, inactive one hidden */}
+      {/* Content Views - all three mounted, inactive ones hidden via display:none */}
       <View style={[$content, activeSegment === "live" ? $contentVisible : $contentHidden]}>
         <LiveContent meetingId={route.params?.meetingId} />
+      </View>
+      <View style={[$content, activeSegment === "inperson" ? $contentVisible : $contentHidden]}>
+        <InPersonContent active={inPersonActivated} />
       </View>
       <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
         <ListingsContent />

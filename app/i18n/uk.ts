@@ -146,6 +146,7 @@ const uk: Translations = {
     title: "Зустрічі",
     placeholder: "Список зустрічей незабаром з'явиться",
     liveSegment: "Зараз",
+    inPersonSegment: "Особисто",
     listingsSegment: "Каталог",
   },
   scheduleScreen: {
