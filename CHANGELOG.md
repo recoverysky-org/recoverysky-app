@@ -43,8 +43,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   link, falls back to the Google Maps web URL if no app handles it),
   published contacts (tap to call or email), the same weekly schedule grid +
   reminder editor as the online popup, and an "I'm Here" button that logs
-  attendance for users with Cloud Backup / attendance tracking on. Translated
-  into all nine app locales (best-effort for seven of them — see
+  attendance for users with attendance tracking on. Translated into all
+  nine app locales (best-effort for seven of them — see
   `.superpowers/sdd/2026-08-03-in-person-ui/task-9-report.md` for the
   native-speaker review queue).
 

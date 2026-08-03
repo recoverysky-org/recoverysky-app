@@ -28,6 +28,7 @@ import {
   TextStyle,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
@@ -142,6 +143,17 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
       setSelectedCell({ row: rowIndex, col: dayIndex })
       setReminderEditorVisible(true)
     },
+    // `meeting` is intentionally absent from this array (eslint flags it —
+    // do not silence with an eslint-disable, and do not add it back without
+    // re-reading this comment). It is not stale: `findExistingReminder` IS
+    // in the deps, and its own hook (useReminders.ts) declares its deps as
+    // `[reminders, meeting?.id, meeting?.scheduleData]` — so whenever the
+    // popup's `meeting` prop changes, `findExistingReminder` is re-created,
+    // which transitively re-creates this callback too. That means the
+    // `meeting!.id` read inside the `returnTo` closure below can never go
+    // stale. Copied from SchedulePopup.tsx's identical handleCellPress,
+    // which relies on the same mechanism (and carries the same eslint
+    // warning) — verified against useReminders.ts before porting here.
     [isPremium, configStore, findExistingReminder, t, onClose],
   )
 
@@ -303,160 +315,179 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
         <View style={themed($content)}>
-          {/* Header */}
-          <View style={themed($header)}>
-            <View
-              style={[
-                $fellowshipBadge,
-                { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
-              ]}
-            >
-              <Text style={[$fellowshipBadgeText, { color: fellowshipColor }]}>
-                {meeting.fellowship || "?"}
+          {/* Unlike SchedulePopup's $content (which survives a bare maxHeight
+              because its body is roughly fixed-height), this card's body is
+              unbounded: the venue block, Get Directions button, and contacts
+              list all add variable height, and ScheduleGrid grows one row per
+              schedule entry with no maxHeight or scrolling of its own (it's
+              plain Views — verified in ScheduleGrid.tsx, no nested-scroll
+              conflict). Without this ScrollView, a meeting with several
+              contacts and a busy schedule overflows the 85% cap and the
+              bottom-most element — the "I'm Here" CTA — gets clipped
+              off-screen. `bounces={false}` matches ReminderEditorModal's
+              identical pattern. Touches here never reach the overlay-dismiss
+              Pressable behind it: this ScrollView is nested inside $content,
+              which is rendered (and therefore hit-tested) on top of the
+              backdrop, so scrolling can never accidentally close the popup. */}
+          <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <View style={themed($header)}>
+              <View
+                style={[
+                  $fellowshipBadge,
+                  { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+                ]}
+              >
+                <Text style={[$fellowshipBadgeText, { color: fellowshipColor }]}>
+                  {meeting.fellowship || "?"}
+                </Text>
+              </View>
+
+              {formattedTime && <Text style={themed($headerTime)}>{formattedTime}</Text>}
+
+              <Text style={themed($title)} numberOfLines={1}>
+                {meeting.name}
               </Text>
+
+              <Pressable
+                onPress={onClose}
+                style={themed($closeButton)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common:close")}
+              >
+                <Ionicons name="chevron-down" size={24} color={theme.colors.textDim} />
+              </Pressable>
             </View>
 
-            {formattedTime && <Text style={themed($headerTime)}>{formattedTime}</Text>}
-
-            <Text style={themed($title)} numberOfLines={1}>
-              {meeting.name}
-            </Text>
-
-            <Pressable
-              onPress={onClose}
-              style={themed($closeButton)}
-              accessibilityRole="button"
-              accessibilityLabel={t("common:close")}
-            >
-              <Ionicons name="chevron-down" size={24} color={theme.colors.textDim} />
-            </Pressable>
-          </View>
-
-          {/* Meta row: time + duration */}
-          <View style={themed($metaRow)}>
-            {formattedTime && (
-              <View style={$metaItem}>
-                <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>{formattedTime}</Text>
-              </View>
-            )}
-            {durationLabel && (
-              <View style={$metaItem}>
-                <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)}>{durationLabel}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Hybrid note — this meeting also has an online option */}
-          {meeting.hybrid && (
-            <View style={$metaItem}>
-              <Ionicons name="globe-outline" size={14} color={theme.colors.textDim} />
-              <Text style={themed($metaText)} tx="inPersonPopup:alsoOnline" />
-            </View>
-          )}
-
-          {/* Venue block */}
-          <View style={themed($venueBlock)}>
-            {!!meeting.venueName && <Text style={themed($venueName)}>{meeting.venueName}</Text>}
-            {!!meeting.formattedAddress && (
-              <Text style={themed($venueLine)}>{meeting.formattedAddress}</Text>
-            )}
-            {!!meeting.locationInfo && (
-              <Text style={themed($venueLineDim)}>{meeting.locationInfo}</Text>
-            )}
-            {meeting.approximate && (
-              <View style={$approximateRow}>
-                <Ionicons name="information-circle-outline" size={13} color={WARNING_COLOR} />
-                <Text
-                  style={[themed($venueLineDim), $approximateText]}
-                  tx="inPersonPopup:approximate"
-                />
-              </View>
-            )}
-          </View>
-
-          {/* Get Directions — hidden entirely when there's nothing to link to
-              (no coordinates AND no formatted address; see buildDirectionsUrl) */}
-          {!!directionsUrl && (
-            <Pressable
-              onPress={handleDirections}
-              style={themed($directionsButton)}
-              accessibilityRole="button"
-            >
-              <Ionicons name="navigate-outline" size={16} color={theme.colors.tint} />
-              <Text style={themed($directionsButtonText)} tx="inPersonPopup:getDirections" />
-            </Pressable>
-          )}
-
-          {/* Contacts */}
-          {!!meeting.contacts?.length && (
-            <View style={themed($contactsSection)}>
-              <Text style={themed($sectionTitle)} tx="inPersonPopup:contacts" />
-              {meeting.contacts.map((contact, idx) => (
-                <View key={idx} style={$contactRow}>
-                  {!!contact.name && <Text style={themed($contactName)}>{contact.name}</Text>}
-                  {!!contact.phone && (
-                    <Pressable onPress={() => handleCall(contact.phone)} accessibilityRole="button">
-                      <View style={$contactLine}>
-                        <Ionicons name="call-outline" size={14} color={theme.colors.tint} />
-                        <Text style={themed($contactLinkText)}>{contact.phone}</Text>
-                      </View>
-                    </Pressable>
-                  )}
-                  {!!contact.email && (
-                    <Pressable
-                      onPress={() => handleEmail(contact.email)}
-                      accessibilityRole="button"
-                    >
-                      <View style={$contactLine}>
-                        <Ionicons name="mail-outline" size={14} color={theme.colors.tint} />
-                        <Text style={themed($contactLinkText)}>{contact.email}</Text>
-                      </View>
-                    </Pressable>
-                  )}
+            {/* Meta row: time + duration */}
+            <View style={themed($metaRow)}>
+              {formattedTime && (
+                <View style={$metaItem}>
+                  <Ionicons name="time-outline" size={14} color={theme.colors.textDim} />
+                  <Text style={themed($metaText)}>{formattedTime}</Text>
                 </View>
-              ))}
-            </View>
-          )}
-
-          {/* Schedule grid + reminders */}
-          <ScheduleGrid
-            scheduleData={scheduleGridData}
-            currentDow={currentDow}
-            onCellPress={handleCellPress}
-            reminderCells={reminderCells}
-          />
-          <Text style={themed($reminderHint)} tx="inPersonPopup:tapTimesHint" />
-
-          {/* "I'm Here" — only surfaced when attendance tracking is on */}
-          {profileStore.attendanceEnabled && (
-            <Pressable
-              onPress={handleImHere}
-              disabled={logState !== "idle"}
-              style={[
-                themed($imHereButton),
-                logState === "logged" && themed($imHereButtonLogged),
-                logState === "saving" && themed($imHereButtonDisabled),
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: logState !== "idle" }}
-            >
-              {logState === "logged" && (
-                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
               )}
-              <Text
-                style={themed($imHereButtonText)}
-                tx={
-                  logState === "logged"
-                    ? "inPersonPopup:logged"
-                    : logState === "saving"
-                      ? "inPersonPopup:imHereSaving"
-                      : "inPersonPopup:imHere"
-                }
-              />
-            </Pressable>
-          )}
+              {durationLabel && (
+                <View style={$metaItem}>
+                  <Ionicons name="hourglass-outline" size={14} color={theme.colors.textDim} />
+                  <Text style={themed($metaText)}>{durationLabel}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Hybrid note — this meeting also has an online option */}
+            {meeting.hybrid && (
+              <View style={$metaItem}>
+                <Ionicons name="globe-outline" size={14} color={theme.colors.textDim} />
+                <Text style={themed($metaText)} tx="inPersonPopup:alsoOnline" />
+              </View>
+            )}
+
+            {/* Venue block */}
+            <View style={themed($venueBlock)}>
+              {!!meeting.venueName && <Text style={themed($venueName)}>{meeting.venueName}</Text>}
+              {!!meeting.formattedAddress && (
+                <Text style={themed($venueLine)}>{meeting.formattedAddress}</Text>
+              )}
+              {!!meeting.locationInfo && (
+                <Text style={themed($venueLineDim)}>{meeting.locationInfo}</Text>
+              )}
+              {meeting.approximate && (
+                <View style={$approximateRow}>
+                  <Ionicons name="information-circle-outline" size={13} color={WARNING_COLOR} />
+                  <Text
+                    style={[themed($venueLineDim), $approximateText]}
+                    tx="inPersonPopup:approximate"
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Get Directions — hidden entirely when there's nothing to link to
+              (no coordinates AND no formatted address; see buildDirectionsUrl) */}
+            {!!directionsUrl && (
+              <Pressable
+                onPress={handleDirections}
+                style={themed($directionsButton)}
+                accessibilityRole="button"
+              >
+                <Ionicons name="navigate-outline" size={16} color={theme.colors.tint} />
+                <Text style={themed($directionsButtonText)} tx="inPersonPopup:getDirections" />
+              </Pressable>
+            )}
+
+            {/* Contacts */}
+            {!!meeting.contacts?.length && (
+              <View style={themed($contactsSection)}>
+                <Text style={themed($sectionTitle)} tx="inPersonPopup:contacts" />
+                {meeting.contacts.map((contact, idx) => (
+                  <View key={idx} style={$contactRow}>
+                    {!!contact.name && <Text style={themed($contactName)}>{contact.name}</Text>}
+                    {!!contact.phone && (
+                      <Pressable
+                        onPress={() => handleCall(contact.phone)}
+                        accessibilityRole="button"
+                      >
+                        <View style={$contactLine}>
+                          <Ionicons name="call-outline" size={14} color={theme.colors.tint} />
+                          <Text style={themed($contactLinkText)}>{contact.phone}</Text>
+                        </View>
+                      </Pressable>
+                    )}
+                    {!!contact.email && (
+                      <Pressable
+                        onPress={() => handleEmail(contact.email)}
+                        accessibilityRole="button"
+                      >
+                        <View style={$contactLine}>
+                          <Ionicons name="mail-outline" size={14} color={theme.colors.tint} />
+                          <Text style={themed($contactLinkText)}>{contact.email}</Text>
+                        </View>
+                      </Pressable>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Schedule grid + reminders */}
+            <ScheduleGrid
+              scheduleData={scheduleGridData}
+              currentDow={currentDow}
+              onCellPress={handleCellPress}
+              reminderCells={reminderCells}
+            />
+            <Text style={themed($reminderHint)} tx="inPersonPopup:tapTimesHint" />
+
+            {/* "I'm Here" — only surfaced when attendance tracking is on */}
+            {profileStore.attendanceEnabled && (
+              <Pressable
+                onPress={handleImHere}
+                disabled={logState !== "idle"}
+                style={[
+                  themed($imHereButton),
+                  logState === "logged" && themed($imHereButtonLogged),
+                  logState === "saving" && themed($imHereButtonDisabled),
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: logState !== "idle" }}
+              >
+                {logState === "logged" && (
+                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                )}
+                <Text
+                  style={themed($imHereButtonText)}
+                  tx={
+                    logState === "logged"
+                      ? "inPersonPopup:logged"
+                      : logState === "saving"
+                        ? "inPersonPopup:imHereSaving"
+                        : "inPersonPopup:imHere"
+                  }
+                />
+              </Pressable>
+            )}
+          </ScrollView>
         </View>
       </View>
 
