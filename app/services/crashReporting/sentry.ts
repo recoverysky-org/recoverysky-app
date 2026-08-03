@@ -22,6 +22,17 @@
  *   - `?lat=` / `?lon=` on /schedules/nearby. Same mechanism — this is the
  *     only place in the app that puts the user's position in a URL, and the
  *     XHR breadcrumb integration would otherwise ship it.
+ *     CHANGED 2026-08-03: this bullet asserted a guarantee the code did not
+ *     deliver. Final review found two independent holes, both now closed:
+ *       (a) the JS `beforeBreadcrumb` hook is NOT sufficient on iOS —
+ *           sentry-cocoa's native network breadcrumb never passes through it
+ *           (see `scrubEventBreadcrumbs`), so scrubbing now runs in BOTH
+ *           hooks, and `beforeSend` is the one that actually guarantees it;
+ *       (b) `scrubUrl` was a no-op under React Native's `URL` polyfill,
+ *           leaving the raw coordinates in the string it claimed to have
+ *           filtered (see the rewrite note in `app/utils/scrubQuery.ts`).
+ *     Treat this list as intent that has to be re-verified against the
+ *     runtime, not as a description of proven behavior.
  *   - `Authorization` headers. Stripped from request breadcrumbs.
  */
 
@@ -30,6 +41,10 @@ import * as Sentry from "@sentry/react-native"
 
 import { logger } from "@/utils/logger"
 import type { LogAttributes } from "@/utils/logger"
+// Pure + vitest-covered on purpose: this module can't be unit-tested (it
+// imports @/utils/logger), and the URL/query scrubbing is too load-bearing to
+// go uncovered — it shipped broken once. See app/utils/scrubQuery.ts.
+import { scrubQueryString, scrubUrl } from "@/utils/scrubQuery"
 
 const log = logger.child({ module: "sentry" })
 
@@ -46,29 +61,15 @@ const DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
  */
 const OTA_COUNTER: string = require("../../../package.json").update ?? "0"
 
-// Sensitive query params we strip from any URL Sentry sees (breadcrumbs +
-// event request data). Kept narrow on purpose — over-eager scrubbing makes
-// stack traces useless. Add new keys here as the threat surface grows.
-const SENSITIVE_QUERY_KEYS = new Set([
-  "pwd", // Zoom join URL passcode (encrypted or plaintext)
-  "password",
-  "token",
-  "access_token",
-  "id_token",
-  "refresh_token",
-  "code", // OAuth authorization codes
-  "api_key",
-  "key",
-  // The In-Person segment's /schedules/nearby call carries the user's precise
-  // position in the query string. apisauce → axios → XHR means Sentry's default
-  // XHR breadcrumb integration records that full URL, so without these two keys
-  // every nearby request would upload the user's coordinates with the next
-  // error event. The hook (app/hooks/useNearbySchedules.ts) is careful never to
-  // log or persist coordinates; this scrub is what closes the remaining
-  // transport. Do not remove without removing the caller.
-  "lat",
-  "lon",
-])
+// The sensitive-query-key list and the two scrubbing functions used to live
+// here. CHANGED 2026-08-03: moved to `app/utils/scrubQuery.ts` so vitest can
+// cover them — this module imports `@/utils/logger`, which vitest can't
+// resolve, so nothing in this file is unit-testable. Two bugs found in final
+// review made that coverage non-negotiable: the key list was only ever
+// consulted by `beforeBreadcrumb` (which never sees iOS's native http
+// breadcrumb — see `scrubEventBreadcrumbs`), and `scrubUrl` itself was a
+// no-op under React Native's URL polyfill. Add new sensitive keys in
+// scrubQuery.ts, not here.
 
 const SENSITIVE_HEADER_KEYS = new Set([
   "authorization",
@@ -78,21 +79,66 @@ const SENSITIVE_HEADER_KEYS = new Set([
   "set-cookie",
 ])
 
-function scrubUrl(url: string | undefined): string | undefined {
-  if (!url || typeof url !== "string") return url
+/**
+ * Scrub sensitive data out of the breadcrumb list attached to an outgoing
+ * event. Mutates in place.
+ *
+ * THIS IS NOT REDUNDANT WITH `beforeBreadcrumb`. On iOS there is a whole class
+ * of breadcrumb that `beforeBreadcrumb` provably never sees, and it is the one
+ * carrying the user's coordinates:
+ *
+ *   1. `getNearbySchedules()` goes apisauce → axios → XHR → React Native's
+ *      `RCTHTTPRequestHandler` → `NSURLSession`.
+ *   2. sentry-cocoa swizzles `NSURLSession` (`enableSwizzling` and
+ *      `enableNetworkBreadcrumbs` both default to YES, and our `Sentry.init`
+ *      below sets neither) and manufactures an `http` breadcrumb natively.
+ *      `SentryNetworkTracker.m` sets `data["url"]` to a sanitized URL with the
+ *      query stripped — but then sets `data["http.query"]` to the RAW query.
+ *      `UrlSanitized` only ever redacts URL userinfo (`user:password@`); it
+ *      does not look at the query at all.
+ *   3. Our JS `beforeBreadcrumb` cannot intercept it, because
+ *      `@sentry/react-native`'s `RNSentry.mm` *replaces* the native
+ *      `beforeBreadcrumb` with its own block that only drops DSN and
+ *      dev-server URLs.
+ *   4. It reaches ordinary JS errors, not just native crashes: the
+ *      `DeviceContext` integration concatenates the native breadcrumb list
+ *      onto every event, and the native side filters out only breadcrumbs
+ *      whose `origin` is `"react-native"`.
+ *
+ * `beforeSend` runs after all event processors, so it is downstream of
+ * `DeviceContext` and is the only hook that can reach these. Android is
+ * unaffected (no equivalent native swizzle in our build), but the pass is
+ * platform-agnostic — cheap, and it means no one has to remember which OS.
+ *
+ * Everything here is defensive on purpose: a throw inside `beforeSend` drops
+ * the entire event, which would turn a privacy fix into a crash-reporting
+ * outage.
+ */
+function scrubEventBreadcrumbs(breadcrumbs: unknown): void {
+  if (!Array.isArray(breadcrumbs)) return
   try {
-    const parsed = new URL(url)
-    let mutated = false
-    for (const key of Array.from(parsed.searchParams.keys())) {
-      if (SENSITIVE_QUERY_KEYS.has(key.toLowerCase())) {
-        parsed.searchParams.set(key, "[Filtered]")
-        mutated = true
+    for (const crumb of breadcrumbs) {
+      if (!crumb || typeof crumb !== "object") continue
+      const data = (crumb as { data?: unknown }).data
+      if (!data || typeof data !== "object") continue
+      const record = data as Record<string, unknown>
+      // Defence in depth. sentry-cocoa already strips the query from `url`,
+      // but other breadcrumb sources (and future SDK versions) may not.
+      if (typeof record.url === "string") {
+        record.url = scrubUrl(record.url)
+      }
+      if (typeof record["http.query"] === "string") {
+        record["http.query"] = scrubQueryString(record["http.query"])
+      }
+      // Symmetry with http.query — set from the same `UrlSanitized` object,
+      // equally unredacted. Nothing we send today puts secrets in a fragment,
+      // but the cost of covering it is one line.
+      if (typeof record["http.fragment"] === "string") {
+        record["http.fragment"] = scrubQueryString(record["http.fragment"])
       }
     }
-    return mutated ? parsed.toString() : url
   } catch {
-    // Not a parseable URL (e.g., a custom scheme path); leave alone.
-    return url
+    // Never let scrubbing take down the event pipeline.
   }
 }
 
@@ -162,6 +208,11 @@ export function initSentry(): void {
     },
 
     beforeSend: (event) => {
+      // Scrub breadcrumbs that never passed through `beforeBreadcrumb` — on
+      // iOS that includes the native http breadcrumb carrying the raw
+      // /schedules/nearby query (lat/lon). See `scrubEventBreadcrumbs`.
+      scrubEventBreadcrumbs(event.breadcrumbs)
+
       // Strip request URLs + headers from event-level request data.
       if (event.request) {
         if (event.request.url) {

@@ -761,6 +761,9 @@ const fr: Translations = {
     reportSent: "Rapport envoyé",
     actionArchive: "Archiver",
     actionDelete: "Supprimer",
+    doubleTapToRetry: "Touchez deux fois pour réessayer",
+    doubleTapToAllowLocation: "Touchez deux fois pour autoriser l'accès à la localisation",
+    doubleTapToOpenSettings: "Touchez deux fois pour ouvrir les Réglages",
   },
   announcements: {
     cloudBackupTitle: "Sauvegarde cloud et synchronisation multi-appareils",

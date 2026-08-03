@@ -766,6 +766,13 @@ const en = {
     reportSent: "Report sent",
     actionArchive: "Archive",
     actionDelete: "Delete",
+    // The In-Person fallback banner is one control whose tap does three
+    // different things depending on why we're in fallback. The label announces
+    // the reason; these announce the consequence. Keep them 1:1 with the
+    // branches in InPersonListHeader's bannerHint.
+    doubleTapToRetry: "Double-tap to try again",
+    doubleTapToAllowLocation: "Double-tap to allow location access",
+    doubleTapToOpenSettings: "Double-tap to open Settings",
   },
   announcements: {
     cloudBackupTitle: "Cloud Backup & Multi-Device Sync",

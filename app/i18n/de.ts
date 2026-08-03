@@ -761,6 +761,9 @@ const de: Translations = {
     reportSent: "Bericht gesendet",
     actionArchive: "Archivieren",
     actionDelete: "Löschen",
+    doubleTapToRetry: "Doppeltippen, um es erneut zu versuchen",
+    doubleTapToAllowLocation: "Doppeltippen, um den Standortzugriff zu erlauben",
+    doubleTapToOpenSettings: "Doppeltippen, um die Einstellungen zu öffnen",
   },
   announcements: {
     cloudBackupTitle: "Cloud-Backup & geräteübergreifende Synchronisierung",

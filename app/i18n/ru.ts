@@ -751,6 +751,9 @@ const ru: Translations = {
     reportSent: "Отчёт отправлен",
     actionArchive: "Архивировать",
     actionDelete: "Удалить",
+    doubleTapToRetry: "Коснитесь дважды, чтобы повторить",
+    doubleTapToAllowLocation: "Коснитесь дважды, чтобы разрешить доступ к геолокации",
+    doubleTapToOpenSettings: "Коснитесь дважды, чтобы открыть настройки",
   },
   announcements: {
     cloudBackupTitle: "Облачное резервное копирование и синхронизация между устройствами",

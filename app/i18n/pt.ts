@@ -753,6 +753,9 @@ const pt: Translations = {
     reportSent: "Relatório enviado",
     actionArchive: "Arquivar",
     actionDelete: "Excluir",
+    doubleTapToRetry: "Toque duas vezes para tentar novamente",
+    doubleTapToAllowLocation: "Toque duas vezes para permitir o acesso à localização",
+    doubleTapToOpenSettings: "Toque duas vezes para abrir os Ajustes",
   },
   announcements: {
     cloudBackupTitle: "Backup na nuvem e sincronização entre dispositivos",

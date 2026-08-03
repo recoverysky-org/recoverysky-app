@@ -743,6 +743,9 @@ const th: Translations = {
     reportSent: "ส่งรายงานแล้ว",
     actionArchive: "เก็บถาวร",
     actionDelete: "ลบ",
+    doubleTapToRetry: "แตะสองครั้งเพื่อลองใหม่",
+    doubleTapToAllowLocation: "แตะสองครั้งเพื่ออนุญาตการเข้าถึงตำแหน่งที่ตั้ง",
+    doubleTapToOpenSettings: "แตะสองครั้งเพื่อเปิดการตั้งค่า",
   },
   announcements: {
     cloudBackupTitle: "การสำรองข้อมูลบนคลาวด์และการซิงก์หลายอุปกรณ์",

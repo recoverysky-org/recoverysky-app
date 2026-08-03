@@ -752,6 +752,9 @@ const es: Translations = {
     reportSent: "Informe enviado",
     actionArchive: "Archivar",
     actionDelete: "Eliminar",
+    doubleTapToRetry: "Toca dos veces para reintentar",
+    doubleTapToAllowLocation: "Toca dos veces para permitir el acceso a la ubicación",
+    doubleTapToOpenSettings: "Toca dos veces para abrir Ajustes",
   },
   announcements: {
     cloudBackupTitle: "Copia de seguridad en la nube y sincronización entre dispositivos",

@@ -739,6 +739,9 @@ const ar: Translations = {
     reportSent: "تم إرسال التقرير",
     actionArchive: "أرشفة",
     actionDelete: "حذف",
+    doubleTapToRetry: "انقر مرتين لإعادة المحاولة",
+    doubleTapToAllowLocation: "انقر مرتين للسماح بالوصول إلى الموقع",
+    doubleTapToOpenSettings: "انقر مرتين لفتح الإعدادات",
   },
   announcements: {
     cloudBackupTitle: "النسخ الاحتياطي السحابي والمزامنة بين الأجهزة",

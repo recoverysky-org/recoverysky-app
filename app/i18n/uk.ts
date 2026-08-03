@@ -750,6 +750,9 @@ const uk: Translations = {
     reportSent: "Звіт надіслано",
     actionArchive: "Архівувати",
     actionDelete: "Видалити",
+    doubleTapToRetry: "Торкніться двічі, щоб повторити",
+    doubleTapToAllowLocation: "Торкніться двічі, щоб дозволити доступ до геолокації",
+    doubleTapToOpenSettings: "Торкніться двічі, щоб відкрити налаштування",
   },
   announcements: {
     cloudBackupTitle: "Резервне копіювання у хмарі та синхронізація між пристроями",

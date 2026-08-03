@@ -131,6 +131,23 @@ documentation pass.
       `{{distance}}` inside RTL text with Latin numerals and needs checking
       on device. Also tracked in `docs/PRODUCTION_CHECKLIST.md`.
 
+- [ ] **A `markProcessed` failure gets reported to the user as success on the
+      next tap.** In `saveInPersonAttendance` (`app/services/inPerson/attendance.ts`)
+      the `create` lands before `markProcessed` is attempted, so if all four
+      `markProcessed` attempts fail, the function returns `{ ok: false }` — but
+      the created row is still there. `hasLoggedToday` only looks at `created`,
+      so the user's next tap short-circuits to `{ ok: true, alreadyLogged: true }`
+      and `InPersonPopup` shows "Attendance saved" for a record stuck in exactly
+      the created-but-unprocessed state the retry comment at
+      `attendance.ts:106-108` calls "orphaned" and "can't see or recover". The
+      second tap also fires `trackEvent("inperson_attendance_logged")` for a
+      write that never completed, so that metric can over-count relative to
+      processed records. Not a regression: `saveTimerAttendance` in
+      `app/services/zoom/externalAttendance.ts` has the same create-then-process
+      shape, so this is a house pattern and any fix should cover both. Likely
+      fix is to have the same-day guard require a *processed* record, or to have
+      a resumer re-drive `markProcessed` on orphans at launch.
+
 - [ ] **Stale doc comment in `app/db/meetingEvents.ts:16`.** The `MeetingEvent.reason`
       field's JSDoc says `/** Zoom end reason (e.g. "selfLeave", "endedByHost") */`.
       Neither string is emitted anywhere in the current codebase — the in-app

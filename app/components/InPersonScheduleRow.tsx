@@ -76,7 +76,19 @@ export const InPersonScheduleRow: FC<InPersonScheduleRowProps> = ({
       style={themed($container)}
       onPress={() => onPress?.(meeting)}
       accessibilityRole="button"
-      accessibilityLabel={`${meeting.fellowship || ""} ${meeting.name}, ${startTime}`.trim()}
+      // Distance is appended, not omitted: `$rightSection` below is
+      // accessible={false}, so the badge is invisible to VoiceOver. In nearby
+      // mode the list's entire organizing principle is nearest-first, and
+      // without this a screen-reader user gets an unexplained ordering.
+      // `distanceLabel` is undefined in day-browse mode, where there is no
+      // distance to announce — hence the filter rather than a bare template.
+      accessibilityLabel={[
+        `${meeting.fellowship || ""} ${meeting.name}`.trim(),
+        startTime,
+        distanceLabel,
+      ]
+        .filter(Boolean)
+        .join(", ")}
       accessibilityHint={translate("accessibility:doubleTapToView")}
     >
       {/* Fellowship accent bar — same color source as LiveMeetingRow's badge,

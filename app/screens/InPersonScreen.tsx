@@ -163,6 +163,20 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           : t("inPersonScreen:locationBannerDenied")
         : ""
 
+  // The banner text says *why* we're in fallback; the hint says what a tap will
+  // actually do. Those are three different actions (refetch / re-prompt / deep
+  // link to Settings) behind one control, so without a hint a screen-reader
+  // user has no way to tell them apart. Branches must stay 1:1 with
+  // handleBannerPress in InPersonScreen — if you add a route there, add a hint.
+  const bannerHint =
+    bannerReason === "nearbyFailed"
+      ? t("accessibility:doubleTapToRetry")
+      : bannerReason === "location"
+        ? canAskAgain
+          ? t("accessibility:doubleTapToAllowLocation")
+          : t("accessibility:doubleTapToOpenSettings")
+        : undefined
+
   return (
     <View>
       {/* Title + settings gear, matching LiveContent's and ListingsContent's
@@ -218,6 +232,7 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           onPress={onBannerPress}
           accessibilityRole="button"
           accessibilityLabel={bannerText}
+          accessibilityHint={bannerHint}
         >
           <Ionicons
             name={bannerReason === "nearbyFailed" ? "refresh-outline" : "location-outline"}
@@ -336,7 +351,12 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
       void requestLocation()
       return
     }
-    void Linking.openSettings()
+    // `.catch` rather than `void`: openSettings rejects on Android when no
+    // activity can handle the intent, and an unhandled rejection here would
+    // reach the global handler and ship a bogus error to Loki + Sentry. The
+    // user just sees the banner do nothing, which is the same outcome as a
+    // silent failure — matches the guarded Linking calls in InPersonPopup.
+    Linking.openSettings().catch(() => {})
   }, [bannerReason, canAskAgain, refresh, requestLocation])
 
   const handleClosePopup = useCallback(() => setSelectedMeeting(null), [])

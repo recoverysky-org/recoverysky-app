@@ -58,10 +58,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   with a guard against double-logging the same meeting.
 
   Your coordinates are used for the nearby search and nothing else: they are
-  never written to storage, never logged, and never attached to analytics.
-  Translated into all nine app locales (best-effort for seven of them — see
-  `.superpowers/sdd/2026-08-03-in-person-ui/task-9-report.md` and
-  `task-10-report.md` for the native-speaker review queue).
+  never written to storage, never logged, never attached to analytics, and
+  scrubbed out of crash reports on both platforms (see the Security entry
+  below). Translated into all nine app locales (best-effort for seven of them
+  — see `docs/translation-review-2026-08-03.md` for the native-speaker review
+  queue).
 
 ### Changed
 
@@ -104,6 +105,38 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   couldn't resolve it from the project root. (Metro still resolved the nested copy
   at runtime, so shipped builds were unaffected — this was typecheck/CI only.)
   Declared `expo-file-system` as a direct dependency to force top-level hoisting.
+
+### Security
+
+- **The crash-report URL scrubber did not actually remove anything.** It
+  parsed each URL, replaced the sensitive values, and then rebuilt the string
+  using React Native's `URL` implementation — which appends the replaced
+  values to the *original* URL instead of substituting them. The result kept
+  the real value and added a redacted decoy beside it, so a nearby search
+  uploaded as `?lat=37.7749&lon=-122.4194&lat=[Filtered]&lon=[Filtered]`. This
+  affected both platforms and every sensitive parameter the scrubber covers
+  (coordinates, Zoom passcodes, auth tokens, OAuth codes) — and it failed only
+  on URLs that contained one, since anything with nothing to redact was passed
+  through untouched. Rewritten without the URL parser, moved to
+  `app/utils/scrubQuery.ts`, and covered by unit tests that assert the secret
+  is *absent* rather than that a `[Filtered]` marker is present.
+- **iOS crash reports could carry the user's precise coordinates.** On iOS the
+  Sentry SDK watches network requests natively and records each one as a
+  breadcrumb, keeping the request's query string in a separate field from the
+  URL. The app's existing scrubber only cleaned the URL, and only through a
+  hook that the native breadcrumb never passes through — so after a user
+  opened the In-Person segment, the `lat`/`lon` of their nearby search rode
+  along with the next error report Sentry uploaded, for ordinary JavaScript
+  errors and not just crashes. Coordinates (and every other sensitive query
+  key: Zoom passcodes, tokens, OAuth codes) are now filtered out of the
+  breadcrumb list at send time, which is the one point every breadcrumb —
+  native or JavaScript — has to pass. Android was not affected.
+- iOS builds no longer declare the two "Always" location purpose strings.
+  `expo-location` injects `NSLocationAlwaysAndWhenInUseUsageDescription` and
+  `NSLocationAlwaysUsageDescription` by default, so the binary was asking App
+  Review to approve background location access the app never requests and has
+  no code path for. Only the When-In-Use string ships now, matching both the
+  app's actual behavior and its stated privacy policy.
 
 ---
 

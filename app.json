@@ -88,6 +88,8 @@
       "expo-location",
       {
         "locationWhenInUsePermission": "RecoverySky uses your location only to find in-person meetings near you. Your location is never stored or shared.",
+        "locationAlwaysAndWhenInUsePermission": false,
+        "locationAlwaysPermission": false,
         "isAndroidBackgroundLocationEnabled": false
       }
     ],

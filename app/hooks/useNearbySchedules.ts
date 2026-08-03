@@ -13,11 +13,27 @@
  *   SQLite. They leave the device only as `/schedules/nearby` query params —
  *   and that required a second fix to be true: apisauce → axios → XHR means
  *   Sentry's default XHR breadcrumb integration captures the request URL, so
- *   `lat`/`lon` are in `SENSITIVE_QUERY_KEYS` in
- *   `app/services/crashReporting/sentry.ts`. Without that scrub, every nearby
- *   request rode along with the next uploaded error event. "We never log it"
- *   and "it never leaves the device" are different claims; the second one has
- *   to account for every transport, not every log site.
+ *   `lat`/`lon` are in `SENSITIVE_QUERY_KEYS` in `app/utils/scrubQuery.ts`.
+ *   Without that scrub, every nearby request rode along with the next uploaded
+ *   error event. "We never log it" and "it never leaves the device" are
+ *   different claims; the second one has to account for every transport, not
+ *   every log site.
+ *   CHANGED 2026-08-03: the paragraph above used to end by claiming the
+ *   accounting was complete — that every transport had been covered. It was
+ *   not, and worse, the scrub it pointed at did not work. Final review found
+ *   two further problems, both now fixed:
+ *     - On iOS, sentry-cocoa swizzles NSURLSession and builds its own `http`
+ *       breadcrumb natively with the raw query in `http.query`, and
+ *       `@sentry/react-native` overwrites the native `beforeBreadcrumb`, so
+ *       our JS hook never saw it. Closed in `beforeSend`
+ *       (`scrubEventBreadcrumbs` in `app/services/crashReporting/sentry.ts`).
+ *     - `scrubUrl` itself was a no-op: React Native's `URL.toString()` appends
+ *       mutated params to the original string rather than replacing them, so
+ *       the raw coordinates survived every "scrub". Rewritten as pure string
+ *       splitting in `app/utils/scrubQuery.ts`, with vitest coverage.
+ *   Treat "every transport" as a standing obligation to re-audit against the
+ *   actual runtime, not a finished result — this list has now been wrong in
+ *   every review round it has survived.
  * - Nothing here logs lat/lon. Our logs ship to Loki, so every log call below
  *   is limited to scalars we deliberately chose (radius, iso_dow, counts,
  *   API problem kinds). Never log the `params` object — it carries coords.
