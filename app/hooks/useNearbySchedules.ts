@@ -20,20 +20,19 @@
  *   every log site.
  *   CHANGED 2026-08-03: the paragraph above used to end by claiming the
  *   accounting was complete — that every transport had been covered. It was
- *   not, and worse, the scrub it pointed at did not work. Final review found
- *   two further problems, both now fixed:
- *     - On iOS, sentry-cocoa swizzles NSURLSession and builds its own `http`
- *       breadcrumb natively with the raw query in `http.query`, and
- *       `@sentry/react-native` overwrites the native `beforeBreadcrumb`, so
- *       our JS hook never saw it. Closed in `beforeSend`
- *       (`scrubEventBreadcrumbs` in `app/services/crashReporting/sentry.ts`).
- *     - `scrubUrl` itself was a no-op: React Native's `URL.toString()` appends
- *       mutated params to the original string rather than replacing them, so
- *       the raw coordinates survived every "scrub". Rewritten as pure string
- *       splitting in `app/utils/scrubQuery.ts`, with vitest coverage.
- *   Treat "every transport" as a standing obligation to re-audit against the
- *   actual runtime, not a finished result — this list has now been wrong in
- *   every review round it has survived.
+ *   not. Final review found a fifth vector, now fixed: on iOS, sentry-cocoa
+ *   swizzles NSURLSession and builds its own `http` breadcrumb natively with
+ *   the raw query in `http.query`, and `@sentry/react-native` overwrites the
+ *   native `beforeBreadcrumb`, so our JS hook never saw it. Closed in
+ *   `beforeSend` (`scrubEventBreadcrumbs` in
+ *   `app/services/crashReporting/sentry.ts`).
+ *   Treat "every transport" as a standing obligation to re-audit, not a
+ *   finished result — this list has been wrong in every review round it has
+ *   survived. Re-audit against the runtime the app actually assembles, too:
+ *   a sixth "vector" was reported in the same round and turned out to be a
+ *   false alarm, because it was verified against React Native's `URL`
+ *   polyfill rather than the spec-compliant one Expo's winter runtime
+ *   installs over it. Reading the wrong layer is as misleading as not reading.
  * - Nothing here logs lat/lon. Our logs ship to Loki, so every log call below
  *   is limited to scalars we deliberately chose (radius, iso_dow, counts,
  *   API problem kinds). Never log the `params` object — it carries coords.

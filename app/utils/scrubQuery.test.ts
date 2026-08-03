@@ -3,17 +3,22 @@ import { describe, expect, it } from "vitest"
 import { scrubQueryString, scrubUrl } from "./scrubQuery"
 
 /**
- * These tests run under Node, whose `URL` / `URLSearchParams` are
- * spec-compliant. The app runs under Hermes with React Native's polyfills,
- * which are not. That gap is exactly how the original `scrubUrl` shipped
- * broken — it passed on paper because `new URL().toString()` behaves in Node,
- * while RN's polyfill appends the mutated params to the untouched original.
+ * The rule for this file: assert on the OUTPUT STRING, never on "it didn't
+ * throw", and always include a negative assertion that the secret is GONE —
+ * not merely that a `[Filtered]` marker is present.
  *
- * So the rule for this file: assert on the OUTPUT STRING, never on "it didn't
- * throw", and always include a negative assertion that the secret is gone. A
- * test that only checks `[Filtered]` is present would have passed against the
- * broken implementation, because it appended `[Filtered]` while keeping the
- * real value.
+ * Why absence and not presence: a scrubber can plausibly fail by *adding* the
+ * redacted value while leaving the original in place (any implementation that
+ * appends rather than replaces does this — React Native's own `URL.toString()`
+ * is written that way, though it is not the implementation the app ends up
+ * using; see the note on `scrubUrl`). A presence-only assertion passes against
+ * that failure. An absence assertion cannot.
+ *
+ * These tests run under Node. `scrubUrl` is deliberately implemented without a
+ * URL parser, so it behaves identically wherever it runs; `scrubQueryString`
+ * does use `URLSearchParams`, and its "return the original when nothing
+ * matched" contract is what keeps *its* result independent of which polyfill
+ * is installed. Neither depends on Node-vs-Hermes differences.
  */
 
 const COORDS_URL =
@@ -22,7 +27,7 @@ const COORDS_URL =
 describe("scrubUrl", () => {
   it("removes coordinates rather than merely adding a filtered copy", () => {
     const result = scrubUrl(COORDS_URL)
-    // The assertion that the old implementation failed:
+    // The absence assertions are the point — see the file header.
     expect(result).not.toContain("37.7749")
     expect(result).not.toContain("-122.4194")
     // Percent-encoded: URLSearchParams.toString() escapes the brackets. Sentry
@@ -43,7 +48,11 @@ describe("scrubUrl", () => {
     expect(result).toContain("un=am9l")
   })
 
-  it("handles custom schemes, which the RN URL polyfill mangles", () => {
+  // Custom schemes are handled by the spec-compliant URL Expo installs, and by
+  // string splitting. They are NOT handled by React Native's own polyfill,
+  // whose http/https-shaped regexes mangle them. Pinning the behavior here
+  // means a future change to which parser wins can't quietly break it.
+  it("handles custom schemes independently of the installed URL parser", () => {
     const result = scrubUrl("recoverysky-app://callback?code=abc123&state=xyz")
     expect(result).not.toContain("abc123")
     expect(result).toContain("recoverysky-app://callback?")
@@ -56,9 +65,10 @@ describe("scrubUrl", () => {
   })
 
   it("leaves a URL with no query string alone, including its trailing form", () => {
-    // Regression guard: the old `new URL()` implementation appended a trailing
-    // slash to bare paths. It happened to be masked by the early return, but
-    // string-splitting makes it structurally impossible.
+    // Byte-identical, not merely equivalent. Some URL parsers normalize bare
+    // paths by appending a trailing slash (React Native's does); string
+    // splitting can't, because it returns the input by reference when there is
+    // no query to scrub.
     expect(scrubUrl("https://api.recoverysky.org/status")).toBe(
       "https://api.recoverysky.org/status",
     )
