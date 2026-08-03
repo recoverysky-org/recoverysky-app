@@ -22,11 +22,31 @@ jest.mock("@expo/vector-icons", () => {
   // hoisted above imports and can't close over outer-scope bindings.
   const { createElement } = require("react")
   const { Text } = require("react-native")
-  const MockVectorIcon = (props: Record<string, unknown>) => createElement(Text, props, props.name)
+  // "icon:" prefix is deliberate: several real on-screen strings elsewhere in
+  // this app collide with icon names ("heart", "search", "close", "star",
+  // "notifications", "globe-outline"...). Without the prefix, a getByText()
+  // aimed at real UI copy could pass by accident because an icon's bare name
+  // happened to match — the prefix makes an icon glyph unable to masquerade
+  // as UI text, and lets tests that DO want to assert on a specific glyph do
+  // so unambiguously (see InPersonScheduleRow.test.tsx's hybrid-icon check).
+  const MockVectorIcon = (props: Record<string, unknown>) =>
+    createElement(Text, props, `icon:${props.name}`)
   return new Proxy(
     {},
     {
-      get: () => MockVectorIcon,
+      // The Proxy answers every property access (Ionicons, MaterialIcons,
+      // ...) with the same mock component. Two properties need special-casing
+      // or module interop breaks silently: `__esModule` must read `true`, not
+      // a truthy function, or Babel's CJS/ESM interop unwraps this the wrong
+      // way "by luck"; `then` must read `undefined`, or the whole namespace
+      // object becomes thenable and any `await import("@expo/vector-icons")`
+      // treats it as a Promise and calls `MockVectorIcon(resolve, reject)`,
+      // hanging forever instead of resolving.
+      get: (_target, prop) => {
+        if (prop === "__esModule") return true
+        if (prop === "then") return undefined
+        return MockVectorIcon
+      },
     },
   )
 })
@@ -119,32 +139,67 @@ jest.mock("../app/i18n/index.ts", () => ({
   },
 }))
 
-// useAppTheme() throws outside a <ThemeProvider> (see app/theme/context.tsx),
-// but ThemeProvider itself pulls in react-native-mmkv + useColorScheme wiring
-// that's noisy to stand up per test. Real screens wrap in ThemeProvider once
-// at the app root, so individual component tests reasonably expect theming to
-// "just work" without repeating that boilerplate — same idea as the i18next
-// mock above. Reproduces the real `themed()` reducer against a fixed light
-// theme so ThemedStyle functions in components under test actually run.
-// First needed by InPersonScheduleRow.test.tsx (2026-08-03), the first
-// jest-expo test for a themed, provider-less component.
+// useAppTheme() throws outside a <ThemeProvider> (see app/theme/context.tsx).
+// This mock's real benefit is not having to hand-wrap every themed component
+// under test in <ThemeProvider><NavigationContainer>... (per-test boilerplate
+// — see Text.test.tsx for what that looks like) — it does NOT avoid loading
+// the theme module itself; `jest.requireActual` below still pulls in
+// react-native-mmkv + useColorScheme like any other import. Reproduces the
+// real `themed()` reducer (same `.flat(3)` + map + `Object.assign` merge) so
+// ThemedStyle functions in components under test actually run, against a
+// theme that starts as `lightTheme` but is swappable per test (see
+// `__setMockTheme` below). First needed by InPersonScheduleRow.test.tsx
+// (2026-08-03), the first jest-expo test for a themed, provider-less
+// component.
+//
+// COST — read before relying on this for anything beyond "render without
+// throwing": (1) every test gets `lightTheme` unless it opts in via
+// `__setMockTheme`, so dark mode and the user-selectable tint color
+// (app/theme/context.tsx's `themeColor` → `colors.tint` merge) are NOT
+// exercised by default anywhere that uses this mock — including
+// Text.test.tsx, whose `<ThemeProvider>` wrapper is now decorative (the test
+// would pass identically with that wrapper deleted, since useAppTheme() is
+// intercepted before it would ever read the real context). That's a known,
+// accepted tradeoff, not a bug — don't rediscover it as one. (2) `themed` and
+// the two setters are created ONCE at module-eval time below and reused by
+// every `useAppTheme()` call — this matters because the real ThemeProvider's
+// versions are useCallback-memoized on `[theme]`; if this mock instead
+// created fresh closures/jest.fn()s on every call, any test with a
+// `useEffect(..., [themed])` (or `[setThemeColor]`, etc.) would infinite-loop
+// in tests only, since every render would see a "new" dependency.
 jest.mock("../app/theme/context", () => {
   const actual = jest.requireActual("../app/theme/context")
   const { lightTheme } = jest.requireActual("../app/theme/theme")
+
+  let mockTheme = lightTheme
+  let mockThemeContext: "light" | "dark" = "light"
+  const setThemeContextOverride = jest.fn()
+  const setThemeColor = jest.fn()
+  const themed = (styleOrStyleFn: unknown) => {
+    const flatStyles = [styleOrStyleFn].flat(3)
+    const stylesArray = flatStyles.map((f) => (typeof f === "function" ? f(mockTheme) : f))
+    return Object.assign({}, ...stylesArray)
+  }
+
   return {
     ...actual,
+    // Escape hatch for tests that need dark mode or a custom tint — call
+    // `__setMockTheme(darkTheme, "dark")` before rendering. Without this,
+    // hardcoding lightTheme would foreclose theme-aware assertions
+    // repo-wide; this keeps that door open without touching any existing
+    // call site or the mock's default behavior.
+    __setMockTheme: (theme: typeof lightTheme, themeContext: "light" | "dark" = "light") => {
+      mockTheme = theme
+      mockThemeContext = themeContext
+    },
     useAppTheme: () => ({
       navigationTheme: undefined,
-      setThemeContextOverride: jest.fn(),
-      setThemeColor: jest.fn(),
-      theme: lightTheme,
+      setThemeContextOverride,
+      setThemeColor,
+      theme: mockTheme,
       themeColor: undefined,
-      themeContext: "light",
-      themed: (styleOrStyleFn: unknown) => {
-        const flatStyles = [styleOrStyleFn].flat(3)
-        const stylesArray = flatStyles.map((f) => (typeof f === "function" ? f(lightTheme) : f))
-        return Object.assign({}, ...stylesArray)
-      },
+      themeContext: mockThemeContext,
+      themed,
     }),
   }
 })

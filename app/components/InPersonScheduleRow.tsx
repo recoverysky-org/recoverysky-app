@@ -125,7 +125,7 @@ export const InPersonScheduleRow: FC<InPersonScheduleRowProps> = ({
         </View>
 
         {distanceLabel && (
-          <View style={themed($distanceBadge)}>
+          <View testID="distance-badge" style={themed($distanceBadge)}>
             <Text style={themed($distanceText)}>{distanceLabel}</Text>
           </View>
         )}

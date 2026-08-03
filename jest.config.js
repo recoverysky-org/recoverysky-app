@@ -20,9 +20,17 @@ module.exports = {
   // exist, so ANY component under test that imports from the common package
   // fails with "Could not locate module". First hit: InPersonScheduleRow.tsx
   // (2026-08-03), the first jest-expo test to import `@recoverysky-org/common`.
-  // These two entries override the broken auto-derived ones (Jest merges
-  // config-level moduleNameMapper over the preset's per-key) and point
-  // straight at the built files.
+  // CORRECTED 2026-08-03 (review): these two entries do NOT overwrite the
+  // broken auto-derived ones per-key — jest-expo's key-generator
+  // (_jestMappingFromTypescriptPaths) escapes the hyphen in the package name,
+  // so its key is the literal string "^@recoverysky\-org/common/browser$",
+  // a different object key from ours below ("^@recoverysky-org/..."). Both
+  // entries coexist in the merged map (jest-config's normalize.js merges
+  // moduleNameMapper as `{...options, ...preset, ...options}`, and re-spread
+  // doesn't reorder an already-present key) — since options' keys land first,
+  // ours are tried first, and jest-resolve returns on first regex match. So
+  // these entries WIN by insertion order, not replacement; the broken
+  // auto-derived pair is still in the map, just permanently shadowed.
   moduleNameMapper: {
     "^@recoverysky-org/common/browser$":
       "<rootDir>/node_modules/@recoverysky-org/common/lib/browser.js",
@@ -32,9 +40,22 @@ module.exports = {
   // The common package ships ESM-only ("type": "module", no "require"
   // condition in its exports map — see its package.json). Babel-jest must
   // transform it like first-party source instead of being skipped as
-  // "already CJS" node_modules; the preset's default ignore pattern doesn't
-  // list this scope, so it's added here alongside the same allowlist
-  // react-native/jest-preset already carries.
+  // "already CJS" node_modules. CORRECTED 2026-08-03 (review): the allowlist
+  // in effect here is jest-expo's own (node_modules/jest-expo/jest-preset.js),
+  // NOT react-native/jest-preset's — react-native's is far narrower
+  // ('node_modules/(?!((jest-)?react-native|@react-native(-community)?)/)');
+  // jest-expo clones react-native's preset and then overwrites
+  // transformIgnorePatterns wholesale with this longer list. Restating the
+  // whole list below (instead of just appending our new entries) is
+  // required, not just tidy: unlike moduleNameMapper, jest-config's
+  // normalize.js does NOT merge transformIgnorePatterns between preset and
+  // project config — the project config's array REPLACES the preset's
+  // outright (normalizeUnmockedModulePathPatterns), so leaving any preset
+  // entries out here would silently un-transform them. Appended:
+  // @recoverysky-org plus the ESM-only deps it pulls in transitively (jose,
+  // @jenova-marie, @trex-ts, lodash-es, uuid — found iteratively, one
+  // SyntaxError at a time); luxon and zod are CJS-resolvable and correctly
+  // left out.
   transformIgnorePatterns: [
     "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|@recoverysky-org|jose|@jenova-marie|@trex-ts|lodash-es|uuid))",
     "/node_modules/react-native-reanimated/plugin/",
