@@ -146,6 +146,12 @@ export interface MeetingWithTrex extends meeting {
   scheduleData: ScheduleDataRow[] | null
   /** Whether this meeting requires a password to join externally */
   external?: boolean
+  /**
+   * Meters from the user's location — present only when the row came from
+   * /schedules/nearby (the In-Person segment). Every other fetch path leaves
+   * it undefined, which sorts last and hides the distance badge.
+   */
+  distance_m?: number
 }
 
 /** API connection status */
