@@ -163,9 +163,10 @@ export function buildDirectionsUrl(input: DirectionsInput): string {
  * source host (BMLT and TSML alike). It's not a server bug or a
  * projection gap; upstream simply never fills it in. The decomposed parts
  * are populated instead: street 98.8%, city 99.1%, state 92%, postalCode
- * 96% (country 99%, unused here — country isn't part of a US-style street
- * address display and pulling it in would need a second format branch for
- * no benefit today). Do not "simplify" this back to
+ * 96% (a `country` field is also populated 99% of the time but is not
+ * accepted by this function — it isn't part of a US-style street address
+ * display and pulling it in would need a second format branch for no
+ * benefit today). Do not "simplify" this back to
  * `meeting.formattedAddress` without re-checking those numbers — that's
  * the exact regression this function exists to prevent.
  *
@@ -191,8 +192,15 @@ export function composeAddress(m: {
 
   // "City, State" first — comma only appears when both are present.
   const cityState = [m.city, m.state].filter(Boolean).join(", ")
-  // Postal code rides after that group with a space (postal convention),
-  // and is simply dropped if there's no city/state to attach it to.
+  // Postal code rides after that group with a space (postal convention).
+  // CHANGED 2026-08-03: the comment here previously claimed the postal
+  // code is dropped when there's no city/state — that's backwards.
+  // `filter(Boolean)` drops the *empty* cityState string, not the postal
+  // code, so when city and state are both absent the postal code becomes
+  // the entire group on its own (e.g. street + bare zip, no comma). City
+  // is populated 99.1% of the time so this is a rare edge case, and
+  // "<street>, <zip>" is a reasonable degraded display — behavior is
+  // unchanged, only this comment was wrong.
   const cityStateZip = [cityState, m.postalCode].filter(Boolean).join(" ")
   // Street leads, then the city/state/zip group, joined by a comma —
   // either side drops out cleanly if empty.

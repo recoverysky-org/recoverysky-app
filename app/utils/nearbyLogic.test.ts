@@ -185,6 +185,14 @@ describe("composeAddress", () => {
   it("renders city alone when nothing else is present", () => {
     expect(composeAddress({ city: "San Francisco" })).toBe("San Francisco")
   })
+  it("attaches a bare postal code to street when city and state are both missing", () => {
+    expect(composeAddress({ street: "261 Fell Street", postalCode: "94102" })).toBe(
+      "261 Fell Street, 94102",
+    )
+  })
+  it("renders postal code alone when nothing else is present", () => {
+    expect(composeAddress({ postalCode: "94102" })).toBe("94102")
+  })
   it("returns empty string when nothing is available", () => {
     expect(composeAddress({})).toBe("")
   })
