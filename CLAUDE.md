@@ -250,7 +250,7 @@ SQLite with Drizzle ORM in `app/db/`:
 - **liveEvents.ts** / **reminderEvents.ts**: Similar pub/sub for live meeting preference and reminder changes
 - **Resumer/hydrator components** mounted in the provider tree: `ProfileHydrator`, `ChatHydrator`, `ReportPollingResumer` (restarts delivery polling after a cold start), `TimerSessionResumer` (recovers an external-Zoom timer session killed mid-meeting), `SyncResumer`
 
-Migrations come from `@sqlite` (recoverysky-common), using `useMigrations` hook.
+Migrations come from `@recoverysky-org/common/sqlite` (the `migrations` export), using the `useMigrations` hook.
 
 ### API Layer
 Apisauce wrapper in `app/services/api/`:

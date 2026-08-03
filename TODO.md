@@ -131,6 +131,17 @@ documentation pass.
       `{{distance}}` inside RTL text with Latin numerals and needs checking
       on device. Also tracked in `docs/PRODUCTION_CHECKLIST.md`.
 
+- [ ] **Stale doc comment in `app/db/meetingEvents.ts:16`.** The `MeetingEvent.reason`
+      field's JSDoc says `/** Zoom end reason (e.g. "selfLeave", "endedByHost") */`.
+      Neither string is emitted anywhere in the current codebase — the in-app
+      Zoom SDK that produced them was removed in 4.5.0. The only two reason
+      strings fired today are `"external-zoom-timer"`
+      (`app/services/zoom/externalAttendance.ts`) and `"in-person"`
+      (`app/services/inPerson/attendance.ts`, added on this branch). Small,
+      code-only fix (update the comment to name the current emitters) —
+      left untouched here because this pass is docs-only and that file is
+      source code, not a doc.
+
 ---
 
 ## ⚙️ Release checklist reminders

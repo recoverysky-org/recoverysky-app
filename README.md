@@ -412,8 +412,8 @@ SQLite with Drizzle ORM + SQLCipher encryption:
 const { status } = useDatabase()  // "seeded" when ready
 
 // Repositories for data access
-import { repositories } from "@/db"
-const meetings = await repositories.meeting.findLive()
+import { meetingRepo } from "@/db"
+const result = await meetingRepo.findAll()
 ```
 
 **Security Features:**
@@ -421,19 +421,16 @@ const meetings = await repositories.meeting.findLive()
 - 🔑 Keys stored in iOS Keychain / Android Keystore
 - 🔄 Seamless re-encryption on auth upgrade
 
-### Linked Packages
+### Shared Data Layer
 
-This app uses local packages from the monorepo:
+`@recoverysky-org/common` is a regular npm dependency (not a linked/symlinked
+monorepo package) providing data models and Drizzle schemas via two subpath
+exports — imported directly, with no `@common`/`@sqlite` alias involved:
 
-| Alias | Package | Description |
-|-------|---------|-------------|
-| `@common` | `recoverysky-common/lib/browser` | Data models, validation |
-| `@sqlite` | `recoverysky-common/lib/sqlite` | Drizzle schemas, migrations |
-
-After modifying linked packages:
-```bash
-npm start -- --clear
-```
+| Import from | Provides |
+|-------|---------|
+| `@recoverysky-org/common/browser` | Data models, validation |
+| `@recoverysky-org/common/sqlite` | Drizzle schemas, migrations |
 
 ---
 
