@@ -49,6 +49,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 - Bumped `@recoverysky-org/common` `^2.2.0` → `^2.2.1` (version-only bump in
   the linked common lib; no schema or code change).
+- Bumped `@recoverysky-org/common` `^2.2.1` → `^2.4.1` (adds the PostGIS-backed
+  geo search models behind the new `/schedules/nearby` route).
+- Jest no longer reports "No tests found" when run from inside a git worktree.
+  The `.claude/worktrees` ignore pattern was an unanchored regex matched against
+  each file's absolute path, so from a worktree — whose own path contains
+  `/.claude/` — it excluded the entire suite and exited green having run nothing.
+  Anchoring it to `<rootDir>` keeps the double-discovery guard working from the
+  main checkout while letting the suite run inside a worktree.
 
 ### Fixed
 

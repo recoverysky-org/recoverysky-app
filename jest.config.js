@@ -13,9 +13,15 @@ module.exports = {
   testMatch: ["**/*.test.tsx"],
   // .claude/worktrees holds full nested checkouts of this repo — without ignoring
   // it, Jest discovers and runs every .tsx test twice (once per checkout).
+  // CHANGED 2026-08-03: anchored to <rootDir>. The old bare "/\\.claude/" was an
+  // unanchored regex tested against each file's ABSOLUTE path, so running Jest
+  // from *inside* a worktree (whose own path contains /.claude/) excluded every
+  // test in the repo and reported "No tests found" — a green-looking no-op.
+  // Anchoring keeps the double-discovery fix intact from the main checkout while
+  // letting the suite actually run inside a worktree.
   testPathIgnorePatterns: [
     "/node_modules/",
     "/MeetingSDK-ReactNative-Quickstart/",
-    "/\\.claude/",
+    "<rootDir>/\\.claude/",
   ],
 }
