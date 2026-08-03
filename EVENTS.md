@@ -56,9 +56,19 @@ POST ${UMAMI_URL}/api/send
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `attendance_validated` | Attendance record finished processing and met the credit threshold | `{ source: "sdk" \| "external-timer" \| "unknown" }` | `app/app.tsx` (subscriber over `attendanceEvents.processed`) |
+| `attendance_validated` | Attendance record finished processing and met the credit threshold | `{ source: "sdk" \| "external-timer" \| "in-person" \| "unknown" }` | `app/app.tsx` (subscriber over `attendanceEvents.processed`); `"in-person"` added for the "I'm Here" flow (`app/services/inPerson/attendance.ts`); `"unknown"` is the `?? "unknown"` fallback when `source` is absent, not a value the type itself declares (`AttendanceSource` in `app/db/attendanceEvents.ts`) |
 | `report_sent` | Attendance report sent to email | `{ type: "initial" \| "resend" \| "replace" \| "forward" }` | `app/hooks/useReportSender.ts` |
 | `report_confirmed` | Report delivery confirmed via polling | — | `app/hooks/useReportSender.ts` |
+
+Not Umami-tracked, but related: `app/db/meetingEvents.ts`'s internal
+`meetingEvents.completed(reason)` pub/sub (consumed only by the rating-engine
+tally, not sent to Umami) gained a new `reason` string, `"in-person"`, fired
+by `saveInPersonAttendance()` alongside the existing `"external-zoom-timer"`
+fired by the external-Zoom timer path (`app/services/zoom/externalAttendance.ts`).
+The type's doc comment still mentions Zoom SDK end-reasons like `"selfLeave"` /
+`"endedByHost"` as examples, but no current code emits those — the in-app Zoom
+SDK that produced them was removed in 4.5.0 (see "Zoom Integration" in
+`CLAUDE.md`).
 
 ### Group 5: Subscription
 

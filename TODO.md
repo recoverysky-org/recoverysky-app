@@ -90,6 +90,49 @@ so this is `runtimeVersion`-level regardless of OTA counter._
 
 ---
 
+## 🔵 In-Person UI: deferred items (JS-only — NOT runtimeVersion-gated)
+
+Unlike everything above, these do not require a native build; they're listed
+here for visibility rather than to queue for the next `runtimeVersion` bump.
+Both owner-ruled (Jenova, 2026-08-03) during the In-Person UI branch's
+documentation pass.
+
+- [ ] **Premium-gate `returnTo` round-trip is broken for in-person meetings.**
+      `InPersonPopup` sends `returnTo: "Meetings:meetingId:<id>"` (copied
+      verbatim from `SchedulePopup`, per the plan) → `SettingsScreen.navigateReturn()`
+      hardcodes `segment: "live"` → `MeetingsScreen` force-routes to Live
+      whenever a `meetingId` route param is present → `LiveScreen` deliberately
+      drops in-person records (commit `16344c5`). Net effect: a user pays at
+      the paywall, gets bounced to the wrong segment, no popup reopens, and the
+      reminder they were trying to create was never created. Ruled **defer**.
+      Full analysis and three fix options:
+      `.superpowers/sdd/2026-08-03-in-person-ui/task-10-report.md` → "Question 2".
+
+- [ ] **Open question, not a bug: why is `formattedAddress` 0% populated for
+      in-person meetings?** `meeting.d.ts`'s `street` field JSDoc says "For
+      TSML there are no address components at all — only `formatted_address`
+      — so this is parsed, best-effort." If TSML's source data genuinely is a
+      formatted address and `street`/`city`/`state`/`postalCode` are parsed
+      out of it, then 0-of-55,617 population suggests ingest parses the
+      original into components and discards the composed string. This
+      reasoning comes from the shared model's JSDoc, not from reading their
+      ingest code — the docs may be stale. Ask the API team. Note: BMLT
+      publishes address components natively, so composing an address
+      client-side there really is synthesis and correctly belongs in
+      `composeAddress()` (`app/utils/nearbyLogic.ts`) rather than upstream.
+
+- [ ] **Translation review queue is a release blocker.** 133 machine-assisted
+      strings across seven locales (ar/de/fr/pt/ru/th/uk) await a
+      native-speaker pass before this ships — 70 in `inPersonPopup`, 63 in
+      `inPersonScreen`. Full list: `docs/translation-review-2026-08-03.md`.
+      Structure is already machine-verified (identical key sets across all
+      nine locales, every interpolation placeholder present); what's missing
+      is a semantics/register check. Flag for the reviewer: Arabic embeds
+      `{{distance}}` inside RTL text with Latin numerals and needs checking
+      on device. Also tracked in `docs/PRODUCTION_CHECKLIST.md`.
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).

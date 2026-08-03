@@ -23,6 +23,18 @@ Step-by-step checklist for preparing and publishing a **native store release**.
   - Move `CHANGELOG.md` `[Unreleased]` content under a new `[X.Y.Z]` heading
     with the date. The bump script does **not** touch the changelog.
 
+- [ ] **In-person nearby routes live in prod** (required since 4.8.0): the
+      store build calls `GET /schedules/nearby`; confirm
+      https://api.recoverysky.app/api/docs lists `/schedules/nearby` and
+      `/meetings/nearby` BEFORE submitting. Dev/TestFlight against dev is
+      fine; a store build without the prod routes degrades every located
+      user to day-browse (nearbyFailed banner).
+
+- [ ] **Translation review queue cleared** — `docs/translation-review-2026-08-03.md`
+      tracks 133 machine-assisted strings (ar/de/fr/pt/ru/th/uk) awaiting a
+      native-speaker pass. Confirm it's been reviewed (or explicitly waived)
+      before this release ships; see `TODO.md` for the same item.
+
 ## Version & Native Config
 
 - [ ] **4. Bump `runtimeVersion` in `app.json`** — MANUAL, most-forgotten step

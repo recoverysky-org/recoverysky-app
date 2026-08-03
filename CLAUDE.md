@@ -162,18 +162,28 @@ would break dev/preview builds where we genuinely need
 ## Architecture
 
 ### Path Aliases
-- `@/*` → `./app/*`
-- `@assets/*` → `./assets/*`
-- `@common` → `../recoverysky-common/lib/browser` (browser-safe exports)
-- `@sqlite` → `../recoverysky-common/lib/sqlite` (SQLite/Drizzle exports)
+- `@/*` → `./app/*` (`babel-plugin-module-resolver` in `babel.config.js`)
+- `@assets/*` → `./assets/*` (`config.resolver.extraNodeModules` in `metro.config.js`)
 
-**Important:** `@common` and `@sqlite` are separate aliases. Do NOT use `@common/sqlite` - it causes prefix-matching conflicts with babel-plugin-module-resolver.
+**There is no `@common` or `@sqlite` alias.** Code imports the common lib's subpath
+exports directly — `@recoverysky-org/common/browser` and
+`@recoverysky-org/common/sqlite` — resolved the normal Node/Metro way via
+`node_modules` (the package's `package.json` declares `"./browser"` and
+`"./sqlite"` in its `exports` map). `tsconfig.json`'s `paths` entries for those
+two specifiers just map the string to itself; they exist to satisfy TS's
+`paths` typing, not to alias anything. If you see `@common` or `@sqlite` in
+older code or docs, that's stale — see "Linked Packages" below for why.
 
-### Linked Packages
-Metro has poor symlink support. The `metro.config.js` includes workarounds:
-- `watchFolders`: Includes `recoverysky-common` path
-- `nodeModulesPaths`: Tells Metro where to find linked package dependencies
-- After modifying linked packages, restart Metro with `--clear`
+### Linked Packages (historical — no longer applies)
+`@recoverysky-org/common` used to be a symlinked sibling checkout, which needed
+Metro workarounds (`watchFolders`, `nodeModulesPaths`) and a `--clear` restart
+after edits, plus `@common`/`@sqlite` babel aliases pointing at its `lib/`
+output. That setup is gone: the package is now a plain registry dependency
+(`package.json` → `"@recoverysky-org/common": "^2.4.1"`), installed into
+`node_modules` like anything else. `metro.config.js` has no
+`watchFolders`/`nodeModulesPaths` entries and no sibling directory exists on
+disk. Bumping the version is a normal `npm install` + `package.json` edit —
+see the Build entries in `CHANGELOG.md` for recent bumps.
 
 ### State Management (MobX-State-Tree)
 MST with MMKV persistence in `app/models/`:
@@ -222,6 +232,8 @@ React Navigation v7 in `app/navigators/`:
 **App-level gating** (`AppNavigator.tsx`): outage check → Login → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. Two tabs are built but **hard-disabled behind local `const … = false` flags**, not entitlements: `agentTabVisible` (Agent — hidden until release-ready) and `socialTabVisible` (Community/Social — hidden pending SPA-side fixes; re-enable with `__DEV__ || isPremium`). `useSubscription()`'s `isPremium` is still read and `void`-ed here so the hook stays wired for future gates — don't "clean up" that line.
+
+**Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Live | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). A `meetingId` route param force-routes to the `live` segment regardless of which segment was active (`SettingsScreen.navigateReturn()` always passes `segment: "live"`) — see the "In-Person segment" note under "Smaller Subsystems" for a known gap this causes.
 
 **Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms.
 
@@ -435,6 +447,29 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   vitest imports it — see "Test Runner Split".
 - **Crash reporting** (`app/services/crashReporting/sentry.ts`) — Sentry;
   source maps are uploaded by `bump-update.sh` during `npm run update`.
+- **In-Person segment** (`useNearbySchedules` + pure `nearbyLogic.ts`, vitest
+  covered; `InPersonPopup`) — the Meetings tab's third segment (see
+  "Navigation" above). `useNearbySchedules` requests location with
+  `expo-location`'s foreground-only permission, never at app start; raw
+  coordinates live only in a ref, never in React state, MMKV, or logs (see
+  the file header comment). "I'm Here" writes attendance via
+  `saveInPersonAttendance()` (`app/services/inPerson/attendance.ts`) —
+  `source: "in-person"`, goes through the same `db/repositories.ts` mutation
+  choke point as every other write (so it enqueues to the sync outbox like
+  normal), and is guarded by a same-local-day check (`hasLoggedToday`) so
+  re-tapping doesn't double-log. Address display: `formattedAddress` is
+  populated on **0 of 55,617** active in-person meetings measured live
+  across every source — TSML apparently discards the composed address after
+  parsing `street`/`city`/`state`/`postalCode` out of it (92–99% populated).
+  `composeAddress()` in `nearbyLogic.ts` builds the display string from those
+  parts and prefers `formattedAddress` verbatim only when it's non-empty.
+  `InPersonScheduleRow`'s day-list row is deliberately different — a compact
+  `venueName • city` line, not the composed address — so don't "fix" it to
+  match the popup.
+  Known gap: the premium paywall's post-purchase `returnTo` round-trip
+  (`SettingsScreen.navigateReturn()`) always force-routes to the `live`
+  segment, so it silently drops in-person deep-links. Deferred — see
+  `TODO.md`.
 
 ### Theming
 Design token system in `app/theme/`:
@@ -444,10 +479,19 @@ Design token system in `app/theme/`:
 - Professional dark mode with iOS-style greys
 
 ### Internationalization
-i18next in `app/i18n/` with English and Spanish:
+i18next in `app/i18n/`, nine locales: `en`, `es`, `ar`, `de`, `fr`, `pt`,
+`ru`, `th`, `uk`.
 - Use `tx` prop on Text components, never hardcode strings
 - Use `useTranslation()` hook for reactive translations in navigators
 - Language switching via `changeLanguage()` from i18n exports
+- `en.ts` declares `export type Translations = typeof en`, and every other
+  locale file is typed `const xx: Translations`. That means **any new
+  translation key is a nine-file change** — add it to `en.ts` and the other
+  eight will not compile until they have it too. A missing key is a hard
+  `tsc` error, not a silent runtime fallback, so `npm run compile` catches it
+  immediately. New keys can ship English-only text in the other eight
+  locales as a placeholder (better a native-speaker review queue item than a
+  broken build) but the key must exist in all nine files.
 
 ## Test Runner Split (Vitest + Jest, by file extension)
 
@@ -612,7 +656,8 @@ Ignite CLI uses comment anchors for code generation. Preserve these:
 ```
 
 ### Shared Common Library
-The `@common` alias imports browser-safe exports from recoverysky-common:
+`@recoverysky-org/common`'s `/browser` subpath exports browser-safe data
+models and helpers (no aliasing — see "Path Aliases" above):
 ```typescript
 import {
   meeting, schedule, trex,           // Data models (plain interfaces)
@@ -623,7 +668,7 @@ import {
 } from "@recoverysky-org/common/browser"
 ```
 
-The `@sqlite` alias imports SQLite/Drizzle exports:
+The `/sqlite` subpath exports SQLite/Drizzle exports:
 ```typescript
 import {
   migrations,                        // Drizzle migrations for useMigrations hook
