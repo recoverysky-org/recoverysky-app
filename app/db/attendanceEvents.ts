@@ -23,7 +23,9 @@ export type AttendanceChangeType =
   // on these events is the constant "sync" (no single record changed).
   | "synced"
 
-export type AttendanceSource = "sdk" | "external-timer"
+// "in-person" is emitted by saveInPersonAttendance (app/services/inPerson/attendance.ts)
+// for records written from the "I'm Here" in-person meeting flow.
+export type AttendanceSource = "sdk" | "external-timer" | "in-person"
 
 export interface AttendanceChange {
   type: AttendanceChangeType
