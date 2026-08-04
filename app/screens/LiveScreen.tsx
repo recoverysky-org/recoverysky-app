@@ -169,11 +169,16 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // We peek (not consume) until the popup is actually shown, so a remount
   // mid-API-fetch doesn't lose the meetingId.
   // ---------------------------------------------------------------------------
-  const pendingMeetingId = usePendingMeetingId()
+  // CHANGED 2026-08-03: "live" is now passed explicitly. It is also the
+  // default, so behavior is unchanged — but InPersonContent shares this store
+  // and is mounted at the same time, so an id addressed to the in-person popup
+  // must not be swallowed here. Naming the target at the call site is what
+  // makes that guarantee visible.
+  const pendingMeetingId = usePendingMeetingId("live")
   const consumedMeetingIdRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    const targetId = peekPendingMeetingId()
+    const targetId = peekPendingMeetingId("live")
     if (!targetId || targetId === consumedMeetingIdRef.current) return
 
     log.debug("Opening schedule popup for meetingId", { meetingId: targetId })

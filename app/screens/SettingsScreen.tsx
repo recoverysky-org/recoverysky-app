@@ -36,6 +36,7 @@ import {
   useNetworkStore,
 } from "@/models"
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
+import { setPendingMeetingId } from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
@@ -56,6 +57,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
+import { parseReturnTo } from "@/utils/returnToLogic"
 import { clear as clearStorage, loadString, remove, saveString } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
@@ -422,18 +424,58 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     ])
   }
 
+  /**
+   * Return the user to wherever the paywall interrupted them. Grammar and
+   * parsing live in `@/utils/returnToLogic` (pure, vitest-covered); this
+   * function is only the navigation I/O.
+   *
+   * CHANGED 2026-08-03: became segment-aware and switched popup restoration to
+   * the pending-meeting store. Two bugs were fixed.
+   *
+   * First, the segment was hardcoded to "live", so a user who hit the paywall
+   * from InPersonPopup was returned to the Live segment — which deliberately
+   * discards in-person records (commit 16344c5). Nothing reopened, and the
+   * reminder they had just paid to create was never created.
+   *
+   * Second, this passed `meetingId` as a route param for the popup to read,
+   * but LiveContent stopped reading that prop when deep links moved to the
+   * module-level pending store — so even the live path only ever restored the
+   * segment, never the popup. Routing through `setPendingMeetingId` restores
+   * the popup in both segments, which is the entire point of coming back here.
+   */
   const navigateReturn = useCallback(() => {
     const returnTo = subscriptionReturnRef.current
     if (!returnTo) return
     subscriptionReturnRef.current = null
     remove("SUBSCRIPTION_RETURN")
-    const parts = returnTo.split(":")
-    const screen = parts[0]
-    if (screen === "Meetings" && parts[1] === "meetingId" && parts[2]) {
-      navigation.navigate("Meetings" as any, { segment: "live", meetingId: parts[2] })
-    } else {
-      const section = parts[1]
-      navigation.navigate(screen as any, section ? { section } : undefined)
+
+    const target = parseReturnTo(returnTo)
+    switch (target.kind) {
+      case "meetingPopup":
+        // The id the popup actually consumes travels in the module-level
+        // store, not the route param — see navigationUtilities.ts for why
+        // route params lose that race. `meetingId` is ALSO passed as a param
+        // because MeetingsScreen uses its presence to force the segment,
+        // overriding its own "route segment hasn't changed" short-circuit.
+        // Without it, returning to a segment whose route param is unchanged
+        // is a no-op and the user can land on the wrong one.
+        setPendingMeetingId(target.meetingId, target.segment)
+        navigation.navigate("Meetings" as any, {
+          segment: target.segment,
+          meetingId: target.meetingId,
+        })
+        return
+      case "meetingsTab":
+        navigation.navigate("Meetings" as any, undefined)
+        return
+      case "screen":
+        navigation.navigate(
+          target.screen as any,
+          target.section ? { section: target.section } : undefined,
+        )
+        return
+      case "none":
+        return
     }
   }, [navigation])
 

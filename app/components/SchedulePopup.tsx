@@ -67,6 +67,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
+import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 import { load, save } from "@/utils/storage"
 
 const log = logger.child({ module: "SchedulePopup" })
@@ -259,7 +260,13 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 "Settings" as never,
                 {
                   section: "subscription",
-                  returnTo: `Meetings:meetingId:${meeting!.id}`,
+                  // CHANGED 2026-08-03: was a hand-assembled
+                  // `Meetings:meetingId:<id>` (the legacy form, which
+                  // parseReturnTo still accepts for strings already persisted
+                  // in MMKV). Emitting the explicit form via the helper keeps
+                  // every producer on one grammar — hand-assembly is how the
+                  // in-person popup ended up sending a live-only string.
+                  returnTo: buildMeetingReturnTo("live", meeting!.id),
                 } as never,
               )
             },

@@ -97,16 +97,27 @@ here for visibility rather than to queue for the next `runtimeVersion` bump.
 Both owner-ruled (Jenova, 2026-08-03) during the In-Person UI branch's
 documentation pass.
 
-- [ ] **Premium-gate `returnTo` round-trip is broken for in-person meetings.**
-      `InPersonPopup` sends `returnTo: "Meetings:meetingId:<id>"` (copied
+- [x] **Premium-gate `returnTo` round-trip is broken for in-person meetings.**
+      ~~`InPersonPopup` sends `returnTo: "Meetings:meetingId:<id>"` (copied
       verbatim from `SchedulePopup`, per the plan) → `SettingsScreen.navigateReturn()`
       hardcodes `segment: "live"` → `MeetingsScreen` force-routes to Live
       whenever a `meetingId` route param is present → `LiveScreen` deliberately
-      drops in-person records (commit `16344c5`). Net effect: a user pays at
-      the paywall, gets bounced to the wrong segment, no popup reopens, and the
-      reminder they were trying to create was never created. Ruled **defer**.
-      Full analysis and three fix options:
+      drops in-person records (commit `16344c5`).~~ **FIXED 2026-08-03** — the
+      defer ruling was reversed the same day. Option (b) from the analysis,
+      full restoration: the grammar gained a segment-carrying form
+      (`Meetings:<segment>:meetingId:<id>`), parsing moved to the pure,
+      vitest-covered `app/utils/returnToLogic.ts`, and popup restoration now
+      goes through the module-level pending-meeting store — which grew a
+      `"live" | "inperson"` target so LiveContent and InPersonContent, both
+      mounted at once, can't race for the same id.
+      Fixing it surfaced a second, pre-existing bug on the **live** path:
+      `navigateReturn` passed `meetingId` as a route param, but `LiveContent`
+      stopped reading that prop when deep links moved to the pending store —
+      so a purchase from `SchedulePopup` restored the segment and never the
+      popup. Both paths are fixed. Original analysis:
       `.superpowers/sdd/2026-08-03-in-person-ui/task-10-report.md` → "Question 2".
+      **Not yet device-tested** — needs a real paywall purchase round-trip on
+      hardware, from both an in-person and an online meeting's reminder gate.
 
 - [ ] **Open question, not a bug: why is `formattedAddress` 0% populated for
       in-person meetings?** `meeting.d.ts`'s `street` field JSDoc says "For

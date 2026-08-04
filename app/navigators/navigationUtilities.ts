@@ -205,39 +205,67 @@ let pendingNavigation: { name: unknown; params?: unknown } | null = null
  *
  * The peek/consume split ensures the ID isn't lost if the component unmounts
  * before the API response arrives (cold-start remount scenario).
+ *
+ * CHANGED 2026-08-03: the store now carries a TARGET alongside the id. Two
+ * different segments of the Meetings tab reopen a popup this way — LiveContent
+ * (SchedulePopup) and InPersonContent (InPersonPopup) — and both are mounted
+ * simultaneously, so an untagged id would be raced for by whichever effect ran
+ * first. `peek` filters by target, so each consumer only ever sees ids meant
+ * for it. The target defaults to "live" everywhere, which is why the
+ * notification path in app.tsx and LiveContent needed no changes.
  */
+
+/** Which segment's popup should consume a pending meetingId. */
+export type PendingMeetingTarget = "live" | "inperson"
+
 let _pendingMeetingId: string | undefined
+let _pendingMeetingTarget: PendingMeetingTarget = "live"
 const _meetingIdListeners = new Set<() => void>()
 
-/** Store a meetingId from a notification tap. Notifies usePendingMeetingId() subscribers. */
-export function setPendingMeetingId(id: string) {
+/**
+ * Store a meetingId for a popup to pick up. Notifies usePendingMeetingId()
+ * subscribers. `target` selects which segment consumes it — default "live"
+ * because the original caller (the notification tap in app.tsx) is a live
+ * deep link.
+ */
+export function setPendingMeetingId(id: string, target: PendingMeetingTarget = "live") {
   _pendingMeetingId = id
+  _pendingMeetingTarget = target
   _meetingIdListeners.forEach((fn) => fn())
 }
 
-/** Read the pending meetingId without consuming it. Safe to call multiple times. */
-export function peekPendingMeetingId(): string | undefined {
-  return _pendingMeetingId
+/**
+ * Read the pending meetingId without consuming it. Safe to call multiple
+ * times. Returns undefined when the pending id is addressed to a different
+ * target — that is the whole point of the target field, so always pass the
+ * caller's own target rather than relying on the default.
+ */
+export function peekPendingMeetingId(target: PendingMeetingTarget = "live"): string | undefined {
+  return _pendingMeetingTarget === target ? _pendingMeetingId : undefined
 }
 
 /** Clear the pending meetingId. Call only after the popup has been shown. */
 export function consumePendingMeetingId(): void {
   _pendingMeetingId = undefined
+  _pendingMeetingTarget = "live"
 }
 
 /**
  * React hook that re-renders when setPendingMeetingId is called.
- * Returns the current pending meetingId (without consuming it).
- * Used as a useEffect dependency in LiveContent to trigger popup logic.
+ * Returns the current pending meetingId for `target` (without consuming it).
+ * Used as a useEffect dependency in LiveContent / InPersonContent to trigger
+ * popup logic. A store write for the OTHER target still re-renders both
+ * subscribers — harmless, since the non-addressed one reads undefined and its
+ * effect no-ops.
  */
-export function usePendingMeetingId(): string | undefined {
+export function usePendingMeetingId(target: PendingMeetingTarget = "live"): string | undefined {
   const { useSyncExternalStore } = require("react")
   return useSyncExternalStore(
     (cb: () => void) => {
       _meetingIdListeners.add(cb)
       return () => _meetingIdListeners.delete(cb)
     },
-    () => _pendingMeetingId,
+    () => peekPendingMeetingId(target),
   )
 }
 

@@ -6,10 +6,9 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { SegmentedControl } from "@/components/SegmentedControl"
 import { MainTabParamList, MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-
-import { trackEvent } from "@/services/tracking"
 
 import { InPersonContent } from "./InPersonScreen"
 import { ListingsContent } from "./ListingsScreen"
@@ -53,16 +52,31 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   useEffect(() => {
     const newSegment = route.params?.segment
     const meetingId = route.params?.meetingId
-    // Force live segment when meetingId is provided
-    if (meetingId && activeSegment !== "live") {
-      setActiveSegment("live")
-      lastRouteSegment.current = "live"
+    // A meetingId means "open this meeting's popup", so the segment that owns
+    // that popup must win over both local state and the unchanged-param
+    // short-circuit below.
+    // CHANGED 2026-08-03: this used to hardcode "live". Both Live and
+    // In-Person now restore a popup this way (paywall return, see
+    // SettingsScreen.navigateReturn), and forcing live sent in-person users to
+    // a segment that deliberately discards in-person records. Fall back to
+    // "live" when no segment is supplied — push-notification deep links pass
+    // meetingId alone and are always live.
+    const forced = newSegment ?? "live"
+    if (meetingId && activeSegment !== forced) {
+      setActiveSegment(forced)
+      lastRouteSegment.current = forced
       return
     }
     if (newSegment && newSegment !== lastRouteSegment.current) {
       lastRouteSegment.current = newSegment
       setActiveSegment(newSegment)
     }
+    // `activeSegment` is read but deliberately NOT a dep (eslint warns; this
+    // predates the 2026-08-03 change and is still correct). This effect exists
+    // to react to NAVIGATION, not to local segment taps — adding it would make
+    // the effect re-fire on every tap of the segmented control and re-force the
+    // route's segment, trapping the user on it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.segment, route.params?.meetingId])
 
   // Clear meetingId from route params after LiveContent reads it,

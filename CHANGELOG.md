@@ -90,6 +90,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Buying premium from a meeting's reminder gate dropped you in the wrong
+  place and never reopened the meeting.** Tapping a schedule cell without a
+  subscription sends you to the paywall with a note about where to return.
+  That note had no way to name a segment, so it always meant "Live" — an
+  in-person meeting sent you back to the Live segment, which deliberately
+  discards in-person meetings, leaving nothing on screen and no reminder
+  created, immediately after paying. Separately, the meeting itself was passed
+  by a route parameter the popup had stopped reading, so even from Live the
+  segment came back but the popup never did. Both paths now reopen the right
+  popup on the right segment, so the reminder you paid to create is one tap
+  away. Notes saved by an older build still work.
+- In-person meeting rows drew their left accent bar in the meeting's
+  fellowship color, so a screen of NA meetings was a column of green stripes
+  fighting the app's theme color. The bar now uses your theme color; the
+  fellowship is still shown in the meeting's detail sheet.
 - In-person meeting popups showed no street address, ever. The address line
   read `formattedAddress`, a field the live data confirms is populated on
   none of the 55,617 active in-person meetings across every source — not a

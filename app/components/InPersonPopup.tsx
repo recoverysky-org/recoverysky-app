@@ -55,6 +55,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
 import { buildDirectionsUrl, composeAddress } from "@/utils/nearbyLogic"
+import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 
 const log = logger.child({ module: "InPersonPopup" })
 
@@ -129,7 +130,15 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                 "Settings" as never,
                 {
                   section: "subscription",
-                  returnTo: `Meetings:meetingId:${meeting!.id}`,
+                  // CHANGED 2026-08-03: was a hand-assembled
+                  // `Meetings:meetingId:<id>`, copied verbatim from
+                  // SchedulePopup per the plan. That form has no way to say
+                  // "in-person", and SettingsScreen.navigateReturn() read it as
+                  // live — so after paying, the user was dropped on the Live
+                  // segment, which deliberately discards in-person records, and
+                  // this popup never reopened. Build it with the helper rather
+                  // than by hand; that is exactly how the wrong form got here.
+                  returnTo: buildMeetingReturnTo("inperson", meeting!.id),
                 } as never,
               )
             },

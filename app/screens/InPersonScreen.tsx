@@ -13,7 +13,7 @@
  * transport, not just log sites.
  */
 
-import { FC, useCallback, useEffect, useState } from "react"
+import { FC, useCallback, useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
@@ -38,11 +38,19 @@ import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
-import { navigate } from "@/navigators/navigationUtilities"
+import {
+  consumePendingMeetingId,
+  navigate,
+  peekPendingMeetingId,
+  usePendingMeetingId,
+} from "@/navigators/navigationUtilities"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { logger } from "@/utils/logger"
 import { formatDistance, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
+
+const log = logger.child({ module: "InPersonScreen" })
 
 // ============================================================================
 // Radius selector modal
@@ -305,6 +313,51 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   useEffect(() => {
     if (active) trackEvent("inperson_segment_viewed")
   }, [active])
+
+  // ---------------------------------------------------------------------------
+  // Paywall return → InPersonPopup auto-open
+  //
+  // The premium gate in InPersonPopup.handleCellPress sends the user to the
+  // paywall with `returnTo: "Meetings:inperson:meetingId:<id>"`. On a
+  // successful purchase, SettingsScreen.navigateReturn() parks that id in the
+  // module-level pending store under the "inperson" target and navigates back
+  // here. Reopening the popup means the reminder they just paid to create is
+  // one tap away instead of a re-navigation away.
+  //
+  // Same peek/consume shape as LiveContent's notification handler, and the
+  // same store — the "inperson" target is what stops LiveContent, which is
+  // mounted at the same time, from swallowing this id.
+  //
+  // Unlike LiveContent there is deliberately no API slow path. The only
+  // producer is the paywall round-trip, which leaves this component mounted
+  // with its list intact, so the meeting is effectively always in `meetings`.
+  // If it somehow isn't, give up once loading settles rather than hold the id
+  // forever — the user still lands on the right segment, which is already the
+  // behavior this fix was written to restore.
+  // ---------------------------------------------------------------------------
+  const pendingMeetingId = usePendingMeetingId("inperson")
+  const consumedMeetingIdRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    const targetId = peekPendingMeetingId("inperson")
+    if (!targetId || targetId === consumedMeetingIdRef.current) return
+
+    const found = meetings.find((m) => m.id === targetId)
+    if (found) {
+      consumedMeetingIdRef.current = targetId
+      consumePendingMeetingId()
+      setSelectedMeeting(found)
+      return
+    }
+    // Still fetching — leave the id parked so the next list lands it.
+    if (isLoading) return
+
+    log.warn("Pending in-person meeting not in the current list; dropping", {
+      meetingId: targetId,
+    })
+    consumedMeetingIdRef.current = targetId
+    consumePendingMeetingId()
+  }, [pendingMeetingId, meetings, isLoading])
 
   // ISO_DAYS always covers 1..7 and selectedDay is derived from a Date, so the
   // lookup can't miss — the ternary just avoids a non-null assertion on the
