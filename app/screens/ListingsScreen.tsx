@@ -663,12 +663,14 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             since $selectorRow stretches and a taller row beats a truncated
             one.
 
-            Cell order is Fellowship / Venue, Day / Time, Radius / Lang (Jenova,
-            2026-08-03): Day and Time — the pair a user almost always sets
-            together — now share a row instead of sitting diagonally apart. The
-            Custom start/end row below is consequently one row removed from the
-            Time cell that reveals it; that's accepted, the reveal is still
-            driven from the Time modal. */}
+            Cell order is Fellowship / Venue, Lang / Radius, Day / Time
+            (Jenova, 2026-08-04, revising the 2026-08-03 order of Fellowship /
+            Venue, Day / Time, Radius / Lang). The three rows now read as three
+            questions: what kind of meeting, in what language and how far, and
+            when. Day and Time keep sharing a row — they're the pair a user
+            almost always sets together — and moving them to the bottom puts
+            them directly above the Custom start/end row that the Time cell
+            reveals, which the previous order had one row removed. */}
         <View style={themed($selectorRow)}>
           <TouchableOpacity
             style={themed($selectorButton)}
@@ -704,36 +706,21 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         <View style={themed($selectorRow)}>
           <TouchableOpacity
             style={themed($selectorButton)}
-            onPress={() => setDayModalVisible(true)}
+            onPress={() => setLanguageModalVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
+            accessibilityLabel={`${t("listingsScreen:languageLabel")}, ${selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}`}
           >
-            <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
+            <Text style={themed($selectorLabel)}>{t("listingsScreen:langLabel")}</Text>
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)} numberOfLines={1}>
-                {selectedDayLabel}
+                {selectedLanguage
+                  ? getLanguageDisplayName(selectedLanguage)
+                  : t("listingsScreen:allLanguages")}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={() => setSearchTimeModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${searchTimeLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {searchTimeLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <View style={themed($selectorRow)}>
           {/* Radius: disabled — not hidden — when Venue is Online. `disabled`
               also removes it from the accessibility focus order's tap targets,
               and the label says why rather than leaving a dead control. */}
@@ -770,19 +757,34 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
               />
             </View>
           </TouchableOpacity>
+        </View>
+
+        <View style={themed($selectorRow)}>
+          <TouchableOpacity
+            style={themed($selectorButton)}
+            onPress={() => setDayModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
+          >
+            <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
+            <View style={$selectorValueRow}>
+              <Text style={themed($selectorValue)} numberOfLines={1}>
+                {selectedDayLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={themed($selectorButton)}
-            onPress={() => setLanguageModalVisible(true)}
+            onPress={() => setSearchTimeModalVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={`${t("listingsScreen:languageLabel")}, ${selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}`}
+            accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${searchTimeLabel}`}
           >
-            <Text style={themed($selectorLabel)}>{t("listingsScreen:langLabel")}</Text>
+            <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)} numberOfLines={1}>
-                {selectedLanguage
-                  ? getLanguageDisplayName(selectedLanguage)
-                  : t("listingsScreen:allLanguages")}
+                {searchTimeLabel}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
