@@ -124,6 +124,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   both kinds, and an empty slot next to a row reads as missing data rather than
   as "this one has no distance because it has no place".
 
+- **Recovery Dharma (RD) is a selectable fellowship again**, alongside AA, NA
+  and CMA — in Settings, onboarding, and the Live / Search / In-Person meeting
+  filters. Config-only change (`EXPO_PUBLIC_FELLOWSHIPS`); RD's display names,
+  badge colour and clean-time wording were never removed, so nothing else
+  needed restoring.
+
 - **In-person meeting details now carry the same header as online ones.** The
   in-person sheet used to stop at time and duration; it now also shows how many
   times a week the group meets, its language, and its meeting-type tags, and it

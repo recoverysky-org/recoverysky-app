@@ -3,13 +3,22 @@ import { Fellowship } from "@recoverysky-org/common/browser"
 /**
  * Active recovery fellowships surfaced in the app's pickers and filters
  * (Settings, Onboarding, Live tab, Listings tab), driven by the
- * `EXPO_PUBLIC_FELLOWSHIPS` build-time env var — e.g. `"AA,NA,CMA"`.
+ * `EXPO_PUBLIC_FELLOWSHIPS` build-time env var — e.g. `"AA,NA,CMA,RD"`.
  *
  * Why env-driven instead of a hardcoded array: the *set* of fellowships we
  * offer is a product decision that changes without any native change (we
  * dropped RD and added CMA here purely via .env). Before this, four screens
  * each carried their own `[AA, NA, RD]` literal, so adding/removing one meant
  * editing four files and risking drift. This is the single source of truth.
+ *
+ * CHANGED 2026-08-04: RD (Recovery Dharma) is back, as `"AA,NA,CMA,RD"` in
+ * both `.env` and `eas.json`'s production env — which is the whole point of
+ * the design above: no code changed, and the five pickers that read
+ * ACTIVE_FELLOWSHIPS (Settings, Onboarding, Live, Search, In-Person) picked it
+ * up for free. Its display names, colour and clean-time wording were never
+ * removed when it was dropped, so nothing else needed restoring. Note both
+ * files must be edited together — `.env` drives local dev, `eas.json` drives
+ * store builds; `npm run check:env` is what catches forgetting one.
  *
  * The canonical list of *valid* fellowship values still lives in the
  * `Fellowship` enum in recoverysky-common — this only narrows which of those
