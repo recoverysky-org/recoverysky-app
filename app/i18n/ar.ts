@@ -193,7 +193,7 @@ const ar: Translations = {
     venueOnline: "عبر الإنترنت",
     venueInPerson: "حضوري",
     timeCustom: "مخصص",
-    radiusAny: "أي مسافة",
+    radiusNoLocation: "فعّل الموقع للبحث حسب المسافة",
     radiusOnlineNote: "غير متاح للاجتماعات عبر الإنترنت",
     allLanguages: "الكل",
     startLabel: "البداية",

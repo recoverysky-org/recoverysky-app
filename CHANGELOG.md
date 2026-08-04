@@ -32,14 +32,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   they don't have. Choosing Online skips the in-person fetch entirely rather
   than fetching and discarding.
 
-- **Radius filter on the Search segment.** Defaults to "Any", so Search still
-  works with no location and never asks for it unattended; picking a real
-  radius is the opt-in, and only then does the prompt appear. It's greyed out
-  when Venue is Online — online meetings have no place, so a distance can't
-  include or exclude them. When active it narrows the in-person half of the
-  search server-side via the nearby endpoint, and results carry a distance
-  badge. If location is refused or the fix times out, the search still returns
-  the whole day rather than nothing.
+- **Radius filter on the Search segment**, offering exactly the same distances
+  as the In-Person segment. It narrows the in-person half of the search via the
+  nearby endpoint, and results carry a distance badge. It's greyed out when
+  Venue is Online — online meetings have no place, so a distance can't include
+  or exclude them.
+
+  Location is never requested on arrival: opening the radius picker is what
+  asks, since reaching for that control is the unambiguous "I care how far away
+  these are" signal. Until the app knows where you are the radius can't
+  actually narrow anything, so it shows dimmed and the picker says why, rather
+  than displaying a distance it isn't enforcing. If location is refused or the
+  fix times out, the search still returns the whole day rather than nothing.
 
 - **Time filter on the Search segment**, sharing the In-Person segment's four
   buckets (Morning / Afternoon / Evening / Overnight) plus **Custom**, which
@@ -136,13 +140,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   ratings, reminder bells, the hybrid globe, the external-Zoom marker and the
   distance badge all survive — and favourites and ratings now show on
   in-person meetings, which the old in-person row couldn't display at all.
-- **The Search filters are now a 2×3 grid** — Fellowship + Venue, Day + Lang,
-  Radius + Time. Fellowship used to own a full-width row for a two-letter
+- **The Search filters are now a 2×3 grid** — Fellowship + Venue, Day + Time,
+  Radius + Lang. Fellowship used to own a full-width row for a two-letter
   value. The Language cell's label is shortened to "Lang" in every locale
   because at half width the full word collided with native language names
   ("Português", "Українська").
-- **The In-Person filters are now a 2×2 grid** — Fellowship and Time on top,
-  Day and Radius below — rather than a row of two plus a full-width third.
+- **The In-Person filters are now a 2×2 grid** — Fellowship and Radius on top,
+  Day and Time below — rather than a row of two plus a full-width third.
   Four full-width rows would have pushed the first meeting off the fold on a
   small phone.
 - The In-Person radius selector is now labelled "Radius" (was "Search

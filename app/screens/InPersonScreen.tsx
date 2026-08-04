@@ -366,6 +366,11 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           "RadiusWith…", hiding the actual value. The full phrase survives for
           screen readers via `radiusA11yLabel`.
 
+          Cell order is Fellowship / Radius on top, Day / Time below (Jenova,
+          2026-08-03): the two "where" filters share the first row and the two
+          "when" filters the second, so the grid groups by question rather than
+          alternating them.
+
           Keep `numberOfLines={1}` on all four values — a value that wrapped
           under its own chevron reads as a layout bug. The *labels* are
           deliberately left free to wrap: at ~160dp per cell the long ones
@@ -390,14 +395,14 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
 
         <TouchableOpacity
           style={themed($selectorButton)}
-          onPress={onOpenShortTime}
+          onPress={onOpenRadius}
           accessibilityRole="button"
-          accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
+          accessibilityLabel={`${t("inPersonScreen:selectRadius")}, ${radiusA11yLabel}`}
         >
-          <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
+          <Text style={themed($selectorLabel)}>{t("inPersonScreen:selectRadius")}</Text>
           <View style={$selectorValueRow}>
             <Text style={themed($selectorValue)} numberOfLines={1}>
-              {shortTimeLabel}
+              {radiusLabel}
             </Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>
@@ -422,14 +427,14 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
 
         <TouchableOpacity
           style={themed($selectorButton)}
-          onPress={onOpenRadius}
+          onPress={onOpenShortTime}
           accessibilityRole="button"
-          accessibilityLabel={`${t("inPersonScreen:selectRadius")}, ${radiusA11yLabel}`}
+          accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
         >
-          <Text style={themed($selectorLabel)}>{t("inPersonScreen:selectRadius")}</Text>
+          <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
           <View style={$selectorValueRow}>
             <Text style={themed($selectorValue)} numberOfLines={1}>
-              {radiusLabel}
+              {shortTimeLabel}
             </Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>

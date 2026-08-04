@@ -195,7 +195,7 @@ const uk: Translations = {
     venueOnline: "Онлайн",
     venueInPerson: "Очно",
     timeCustom: "Свій",
-    radiusAny: "Будь-яка",
+    radiusNoLocation: "Увімкніть геолокацію, щоб шукати за відстанню",
     radiusOnlineNote: "недоступно для онлайн-зустрічей",
     allLanguages: "Усі",
     startLabel: "Початок",

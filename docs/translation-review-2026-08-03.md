@@ -344,7 +344,7 @@ Seven are new; `langLabel` is a shortened re-translation of an existing string.
 | `venueOnline` | Online | |
 | `venueInPerson` | In-Person | Should match `inPersonScreen:title` in your locale — same concept, two places. Check them side by side. |
 | `timeCustom` | Custom | The Time option that reveals the Start/End hour pickers. "Custom range" if your language needs the noun. |
-| `radiusAny` | Any | Radius default = no distance filter. Elides "any distance"; if the bare adjective is ungrammatical standing alone in your locale, use the full phrase. |
+| `radiusNoLocation` | Turn on location to search by distance | Shown under the radius picker's title, and read after the label on the dimmed radius cell, while the app has no position. It must read as an *instruction that will fix the problem*, not as an error report — tapping a distance is what triggers the permission prompt. **Replaced `radiusAny` ("Any")** on 2026-08-04 when the "Any" radius option was removed. |
 | `radiusOnlineNote` | not available for online meetings | **Screen-reader only** — never rendered visually. Read as the value of a disabled Radius control, i.e. "Radius, not available for online meetings". Lowercase and fragmentary on purpose. |
 
 ## Reviewer notes worth acting on first
@@ -353,10 +353,10 @@ Seven are new; `langLabel` is a shortened re-translation of an existing string.
   wrap to two lines rather than truncating, which is handled but not free.
   `venueLabel` and `langLabel` are the two most at risk. Prefer the shortest
   word that's still the *right* word.
-- **`venueAll` vs `radiusAny` are two different "no filter" words in English
-  on purpose** — "All" counts things, "Any" measures a distance. Languages that
-  use one word for both are fine; languages that would find "All" wrong for a
-  distance should not inherit English's split blindly either.
+- **`radiusNoLocation` is the only string here that asks for something.** The
+  rest label controls; this one has to move a user to act. Machine translation
+  reliably renders it as a flat statement of fact ("location is off"), which
+  loses the point — read it aloud and check it sounds like a next step.
 - **Venue vocabulary must agree with the segment names.** `venueInPerson` and
   the In-Person segment title are the same concept in the same tab; so are
   `venueOnline` and how Live describes its meetings. A locale that translates

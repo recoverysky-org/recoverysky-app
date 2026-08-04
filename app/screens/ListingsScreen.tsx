@@ -67,7 +67,6 @@ import {
   matchesSearchTime,
   matchesVenue,
   poolsForVenue,
-  RADIUS_ANY,
   radiusAppliesTo,
   SEARCH_TIME_OPTIONS,
   type SearchTime,
@@ -77,6 +76,7 @@ import {
 import { logger } from "@/utils/logger"
 import {
   buildNearbyParams,
+  DEFAULT_RADIUS_KM,
   distanceMeters,
   formatDistance,
   RADIUS_OPTIONS_KM,
@@ -152,7 +152,18 @@ const getCurrentIsoDow = (): number => {
  * Extracted from ListingsScreen to allow composition in MeetingsScreen.
  * Contains all the logic for displaying scheduled meetings with filtering.
  */
-export const ListingsContent: FC = observer(function ListingsContent() {
+interface ListingsContentProps {
+  /**
+   * True once the user has opened the Search segment. Stays true afterwards.
+   * Location must not be touched before this flips — all three segments are
+   * mounted from app start (see MeetingsScreen), so "mounted" is not "opened".
+   */
+  active?: boolean
+}
+
+export const ListingsContent: FC<ListingsContentProps> = observer(function ListingsContent({
+  active = false,
+}) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
@@ -180,8 +191,11 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   // ---------------------------------------------------------------------------
   const [venue, setVenue] = useState<VenueChoice>(DEFAULT_VENUE)
   const [venueModalVisible, setVenueModalVisible] = useState(false)
-  /** null = "Any distance". A number here is the user's opt-in to being located. */
-  const [radiusKm, setRadiusKm] = useState<number | null>(RADIUS_ANY)
+  // Always a real distance — same option list and same default as the
+  // In-Person segment (there is no "Any"). It's only *applied* once we hold a
+  // location fix; until then the in-person leg returns the whole day and the
+  // cell says so. See `radiusApplied` below.
+  const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [searchTime, setSearchTime] = useState<SearchTime>(DEFAULT_SEARCH_TIME)
   const [searchTimeModalVisible, setSearchTimeModalVisible] = useState(false)
@@ -191,14 +205,20 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   // Pick up a location fix if — and only if — the user has already granted
   // permission somewhere else in the app (the In-Person segment is the usual
   // place). This never prompts, so it doesn't touch the lazy-permission rule;
-  // it exists so distance badges appear for someone who has already said yes,
-  // instead of making them say yes again on this tab. A bumped `fixVersion`
-  // refetches, which is what turns the badges on.
+  // it exists so the radius works, and distance badges appear, for someone who
+  // has already said yes rather than making them say yes again on this tab. A
+  // bumped `fixVersion` refetches, which is what turns both on.
+  //
+  // Gated on `active`, NOT on mount: MeetingsScreen mounts all three segments
+  // at app start, so an unguarded version took a GPS fix at launch for a tab
+  // the user might never open.
   useEffect(() => {
+    if (!active) return
     void location.probeExisting()
-    // Mount-only: re-probing on every render would take a GPS fix per render.
+    // Fires once per activation. Depending on `location` would re-probe (and
+    // re-fix) on every status change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [active])
 
   // Merged venue pools (online + in_person) for the selected day.
   // CHANGED 2026-08-04: this used to be projected through `projectOnline` —
@@ -248,28 +268,50 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   // hidden: a filter that vanishes and reappears as you change another filter
   // is harder to trust than one that visibly steps aside.
   const radiusActive = radiusAppliesTo(venue)
-  const radiusLabel =
-    radiusKm === null ? t("listingsScreen:radiusAny") : formatDistance(radiusKm * 1000, useMiles)
+  const radiusLabel = formatDistance(radiusKm * 1000, useMiles)
 
   /**
-   * Picking a real radius is the user's opt-in to being located — the only
-   * thing on this tab that ever asks. Deliberately acquired here rather than
-   * on mount or on tab focus (lazy-permission rule; see the PRIVACY header in
-   * `useDeviceLocation`).
+   * Is the radius actually narrowing anything right now?
    *
-   * Two fetches can follow one tap: `setRadiusKm` refetches immediately (no
-   * coordinates yet → day endpoint, unfiltered by distance), then the fix
-   * lands, bumps `fixVersion`, and refetches through /schedules/nearby. That
-   * ordering is deliberate — results appear while the GPS is still working,
-   * then narrow — and it's also the degraded path's only path when permission
-   * is denied, so it has to stand on its own.
+   * A radius needs two things: a venue choice that can surface in-person
+   * meetings, and a location fix. Without the fix the in-person leg falls back
+   * to the plain day endpoint and the search is not distance-limited at all —
+   * so the cell must not sit there reading "16 mi" as though it were.
+   *
+   * This mattered less when the picker had an "Any" option, because "Any" was
+   * an honest description of the un-located state. With the option gone
+   * (2026-08-04), the display has to carry that meaning instead.
    */
+  const radiusApplied = radiusActive && location.status === "ready"
+
+  /**
+   * Opening the picker — not picking an option — is what prompts for location.
+   *
+   * Reaching for the radius control is the unambiguous "I care how far away
+   * these are" signal, and asking here means the permission dialog is resolved
+   * before the user chooses a distance, rather than ambushing them after. This
+   * is the only thing on this tab that ever prompts; nothing happens on
+   * arrival (lazy-permission rule — see `useDeviceLocation`'s header).
+   */
+  const handleOpenRadiusModal = useCallback(() => {
+    setRadiusModalVisible(true)
+    // `idle` means never asked. Re-prompting after a denial is the OS's call:
+    // `acquire` resolves without a dialog when permission is permanently
+    // denied, so this can't turn into a nag loop.
+    if (location.status === "idle") void location.acquire()
+  }, [location])
+
   const handleRadiusSelect = useCallback(
-    async (km: number | null) => {
+    async (km: number) => {
       setRadiusKm(km)
       // PRIVACY: a radius is a display preference, not a position.
-      trackEvent("listings_radius_changed", { km: km ?? 0 })
-      if (km !== null && location.status !== "ready") {
+      trackEvent("listings_radius_changed", { km })
+      // Normally already resolved by handleOpenRadiusModal above. Still tried
+      // here for the case where that prompt was dismissed without an answer
+      // and the user picked anyway — two fetches can follow (day endpoint
+      // first, then /schedules/nearby once the fix lands), which is the right
+      // order: results appear while the GPS is still working, then narrow.
+      if (location.status !== "ready") {
         await location.acquire()
       }
     },
@@ -607,7 +649,14 @@ export const ListingsContent: FC = observer(function ListingsContent() {
             native language name ("Português", "Українська") collided. All
             values carry `numberOfLines={1}`; the labels are left free to wrap,
             since $selectorRow stretches and a taller row beats a truncated
-            one. */}
+            one.
+
+            Cell order is Fellowship / Venue, Day / Time, Radius / Lang (Jenova,
+            2026-08-03): Day and Time — the pair a user almost always sets
+            together — now share a row instead of sitting diagonally apart. The
+            Custom start/end row below is consequently one row removed from the
+            Time cell that reveals it; that's accepted, the reveal is still
+            driven from the Time modal. */}
         <View style={themed($selectorRow)}>
           <TouchableOpacity
             style={themed($selectorButton)}
@@ -658,16 +707,14 @@ export const ListingsContent: FC = observer(function ListingsContent() {
 
           <TouchableOpacity
             style={themed($selectorButton)}
-            onPress={() => setLanguageModalVisible(true)}
+            onPress={() => setSearchTimeModalVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={`${t("listingsScreen:languageLabel")}, ${selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}`}
+            accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${searchTimeLabel}`}
           >
-            <Text style={themed($selectorLabel)}>{t("listingsScreen:langLabel")}</Text>
+            <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)} numberOfLines={1}>
-                {selectedLanguage
-                  ? getLanguageDisplayName(selectedLanguage)
-                  : t("listingsScreen:allLanguages")}
+                {searchTimeLabel}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
@@ -679,19 +726,27 @@ export const ListingsContent: FC = observer(function ListingsContent() {
               also removes it from the accessibility focus order's tap targets,
               and the label says why rather than leaving a dead control. */}
           <TouchableOpacity
-            style={[themed($selectorButton), !radiusActive && themed($selectorButtonDisabled)]}
-            onPress={() => setRadiusModalVisible(true)}
+            style={[themed($selectorButton), !radiusApplied && themed($selectorButtonDisabled)]}
+            onPress={handleOpenRadiusModal}
+            // Disabled ONLY for an online-only search, where the filter is
+            // meaningless. Having no location fix also dims the cell, but it
+            // stays tappable — that's precisely the state where the user needs
+            // to reach the picker to grant permission and make it work.
             disabled={!radiusActive}
             accessibilityRole="button"
             accessibilityState={{ disabled: !radiusActive }}
             accessibilityLabel={`${t("inPersonScreen:selectRadius")}, ${
-              radiusActive ? radiusLabel : t("listingsScreen:radiusOnlineNote")
+              !radiusActive
+                ? t("listingsScreen:radiusOnlineNote")
+                : radiusApplied
+                  ? radiusLabel
+                  : `${radiusLabel}, ${t("listingsScreen:radiusNoLocation")}`
             }`}
           >
             <Text style={themed($selectorLabel)}>{t("inPersonScreen:selectRadius")}</Text>
             <View style={$selectorValueRow}>
               <Text
-                style={[themed($selectorValue), !radiusActive && themed($selectorValueDisabled)]}
+                style={[themed($selectorValue), !radiusApplied && themed($selectorValueDisabled)]}
                 numberOfLines={1}
               >
                 {radiusLabel}
@@ -699,21 +754,23 @@ export const ListingsContent: FC = observer(function ListingsContent() {
               <Ionicons
                 name="chevron-down"
                 size={16}
-                color={radiusActive ? theme.colors.tint : theme.colors.textDim}
+                color={radiusApplied ? theme.colors.tint : theme.colors.textDim}
               />
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={themed($selectorButton)}
-            onPress={() => setSearchTimeModalVisible(true)}
+            onPress={() => setLanguageModalVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${searchTimeLabel}`}
+            accessibilityLabel={`${t("listingsScreen:languageLabel")}, ${selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}`}
           >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
+            <Text style={themed($selectorLabel)}>{t("listingsScreen:langLabel")}</Text>
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)} numberOfLines={1}>
-                {searchTimeLabel}
+                {selectedLanguage
+                  ? getLanguageDisplayName(selectedLanguage)
+                  : t("listingsScreen:allLanguages")}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
@@ -783,7 +840,11 @@ export const ListingsContent: FC = observer(function ListingsContent() {
       searchTime,
       searchTimeLabel,
       radiusActive,
+      // Load-bearing: without it the radius cell keeps its dimmed "no location"
+      // styling after a fix lands, because the header wouldn't re-render.
+      radiusApplied,
       radiusLabel,
+      handleOpenRadiusModal,
     ],
   )
 
@@ -969,8 +1030,9 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         </Pressable>
       </Modal>
 
-      {/* Radius Selector Modal — "Any" leads, because it's the default and the
-          only option that needs no location. */}
+      {/* Radius Selector Modal — exactly the In-Person segment's options, with
+          no "Any": an unbounded distance search isn't a meaningful ask, and two
+          pickers for one concept shouldn't offer different things. */}
       <Modal
         visible={radiusModalVisible}
         transparent
@@ -980,28 +1042,12 @@ export const ListingsContent: FC = observer(function ListingsContent() {
         <Pressable style={themed($modalOverlay)} onPress={() => setRadiusModalVisible(false)}>
           <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("inPersonScreen:selectRadius")}</Text>
-            <TouchableOpacity
-              style={[themed($modalOption), radiusKm === null && themed($modalOptionSelected)]}
-              onPress={() => {
-                void handleRadiusSelect(null)
-                setRadiusModalVisible(false)
-                listRef.current?.scrollToOffset({ offset: 0, animated: true })
-              }}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: radiusKm === null }}
-            >
-              <Text
-                style={[
-                  themed($modalOptionText),
-                  radiusKm === null && themed($modalOptionTextSelected),
-                ]}
-              >
-                {t("listingsScreen:radiusAny")}
-              </Text>
-              {radiusKm === null && (
-                <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-              )}
-            </TouchableOpacity>
+            {/* Shown only while the radius can't actually bite. Without it a
+                user who declined location picks distance after distance and
+                watches the same list come back, with nothing explaining why. */}
+            {!radiusApplied && (
+              <Text style={themed($modalNote)}>{t("listingsScreen:radiusNoLocation")}</Text>
+            )}
             {RADIUS_OPTIONS_KM.map((km) => {
               const isSelected = km === radiusKm
               // formatDistance takes meters; RADIUS_OPTIONS_KM is kilometers.
@@ -1323,6 +1369,16 @@ const $modalOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingVertical: spacing.sm,
   paddingHorizontal: spacing.sm,
   borderRadius: 8,
+})
+
+// Explanatory line under a modal title (the radius picker's "we don't know
+// where you are yet" note). Sits above the options, not inside one.
+const $modalNote: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: -spacing.sm,
+  marginBottom: spacing.sm,
 })
 
 const $modalOptionSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({

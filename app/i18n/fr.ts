@@ -199,7 +199,7 @@ const fr: Translations = {
     venueOnline: "En ligne",
     venueInPerson: "En personne",
     timeCustom: "Personnalisé",
-    radiusAny: "Indifférent",
+    radiusNoLocation: "Activez la localisation pour chercher par distance",
     radiusOnlineNote: "non disponible pour les réunions en ligne",
     allLanguages: "Toutes",
     startLabel: "Début",

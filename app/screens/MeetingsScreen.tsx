@@ -102,6 +102,17 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
     if (activeSegment === "inperson") setInPersonActivated(true)
   }, [activeSegment])
 
+  // Same latch for Search, added 2026-08-04 when its Radius filter started
+  // touching location. All three views are mounted from app start, so without
+  // this a location fix would be taken at launch for a segment the user may
+  // never open — the exact thing the In-Person latch above exists to prevent.
+  // Search's meeting *fetch* is deliberately not gated on this; it has always
+  // loaded on mount and that costs nothing but a request.
+  const [listingsActivated, setListingsActivated] = useState(false)
+  useEffect(() => {
+    if (activeSegment === "listings") setListingsActivated(true)
+  }, [activeSegment])
+
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
       {/* Segment Control */}
@@ -121,7 +132,7 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
         <InPersonContent active={inPersonActivated} />
       </View>
       <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
-        <ListingsContent />
+        <ListingsContent active={listingsActivated} />
       </View>
     </Screen>
   )

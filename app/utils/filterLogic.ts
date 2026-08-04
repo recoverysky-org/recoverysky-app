@@ -146,16 +146,14 @@ export function poolsForVenue(choice: VenueChoice): {
 // Search segment: radius
 // ============================================================================
 
-/**
- * "Any distance" — the Search radius default.
- *
- * Search is a browse-everything surface, so it must work fully without
- * location. `null` means the in-person leg uses the plain day endpoint and no
- * permission prompt ever fires; picking a real radius is the user's opt-in to
- * being located, which is what keeps the lazy-permission rule (see the PRIVACY
- * header in `useNearbySchedules.ts`) true on this tab too.
- */
-export const RADIUS_ANY = null
+// REMOVED 2026-08-04: `RADIUS_ANY`. Search's radius briefly had an "Any"
+// option and defaulted to it, so the tab could work without ever asking for
+// location. Jenova's call: Search offers the same fixed radius list as the
+// In-Person segment and nothing else — an unbounded distance search isn't a
+// meaningful thing to ask for, and two pickers for one concept shouldn't
+// disagree about what they offer. The lazy-permission rule is preserved
+// differently now: the radius is only *applied* once a fix exists, and the
+// prompt fires when the user opens the radius picker rather than on arrival.
 
 /** Radius applies to in-person venues only — online meetings have no place. */
 export function radiusAppliesTo(choice: VenueChoice): boolean {

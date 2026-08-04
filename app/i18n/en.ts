@@ -200,7 +200,7 @@ const en = {
     venueOnline: "Online",
     venueInPerson: "In-Person",
     timeCustom: "Custom",
-    radiusAny: "Any",
+    radiusNoLocation: "Turn on location to search by distance",
     radiusOnlineNote: "not available for online meetings",
     allLanguages: "All",
     startLabel: "Start",

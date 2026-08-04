@@ -192,7 +192,7 @@ const th: Translations = {
     venueOnline: "ออนไลน์",
     venueInPerson: "พบหน้า",
     timeCustom: "กำหนดเอง",
-    radiusAny: "ไม่จำกัด",
+    radiusNoLocation: "เปิดตำแหน่งที่ตั้งเพื่อค้นหาตามระยะทาง",
     radiusOnlineNote: "ใช้ไม่ได้กับการประชุมออนไลน์",
     allLanguages: "ทั้งหมด",
     startLabel: "เริ่ม",

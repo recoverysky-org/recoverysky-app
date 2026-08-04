@@ -197,7 +197,7 @@ const de: Translations = {
     venueOnline: "Online",
     venueInPerson: "Vor Ort",
     timeCustom: "Eigene",
-    radiusAny: "Beliebig",
+    radiusNoLocation: "Aktiviere den Standort, um nach Entfernung zu suchen",
     radiusOnlineNote: "für Online-Meetings nicht verfügbar",
     allLanguages: "Alle",
     startLabel: "Beginn",

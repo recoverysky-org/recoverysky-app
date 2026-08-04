@@ -196,7 +196,7 @@ const ru: Translations = {
     venueOnline: "Онлайн",
     venueInPerson: "Очно",
     timeCustom: "Свой",
-    radiusAny: "Любое",
+    radiusNoLocation: "Включите геолокацию, чтобы искать по расстоянию",
     radiusOnlineNote: "недоступно для онлайн-встреч",
     allLanguages: "Все",
     startLabel: "Начало",
