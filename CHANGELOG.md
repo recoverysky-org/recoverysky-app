@@ -119,6 +119,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Search results now say "Online"** on online meetings, in the same badge slot
+  where in-person results show their distance. Search is the only list holding
+  both kinds, and an empty slot next to a row reads as missing data rather than
+  as "this one has no distance because it has no place".
+
 - **Distance badges on in-person search results**, not just on the In-Person
   tab. Distance previously came only from the nearby endpoint, so it appeared
   in Search only while a radius was set — the same meeting showed a distance

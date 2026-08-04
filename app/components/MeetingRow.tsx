@@ -21,10 +21,10 @@
  * appears only when the meeting has somewhere to be, so online rows stay as
  * compact as they were.
  *
- * Still deliberately dumb about distance: `distanceLabel` arrives
- * pre-formatted from the caller rather than derived from `meeting.distance_m`
- * here, keeping unit/locale decisions in one place (`formatDistance`). When
- * omitted the badge must not render at all, not render empty — see the
+ * Still deliberately dumb about the badge slot: `distanceLabel` and `venueTag`
+ * both arrive pre-formatted and pre-translated from the caller rather than
+ * being derived here, keeping unit/locale decisions in one place. When neither
+ * is supplied the badge must not render at all, not render empty — see the
  * omission test.
  */
 
@@ -57,6 +57,16 @@ interface MeetingRowProps {
   /** Pre-formatted distance ("0.8 mi"). Only ever set for in-person results
    *  fetched with a location fix; omitted everywhere else. */
   distanceLabel?: string
+  /**
+   * Pre-translated venue word ("Online") shown in the distance badge's slot
+   * when there is no distance.
+   *
+   * Only mixed lists should pass it. On Live every meeting is online and on
+   * In-Person every meeting is a venue, so a tag there would label every row
+   * with the same word — noise that says nothing. Caller-owned and already
+   * translated, same contract as `distanceLabel`.
+   */
+  venueTag?: string
   /** Callback when row is pressed */
   onPress?: (meeting: MeetingWithTrex) => void
 }
@@ -77,6 +87,7 @@ export const MeetingRow: FC<MeetingRowProps> = ({
   isFavorite = false,
   hasReminder = false,
   distanceLabel,
+  venueTag,
   onPress,
 }) => {
   const { themed, theme } = useAppTheme()
@@ -110,7 +121,9 @@ export const MeetingRow: FC<MeetingRowProps> = ({
       accessibilityLabel={[
         `${meeting.fellowship || ""} ${meeting.name}`.trim(),
         startTime,
-        distanceLabel,
+        // Mirrors the badge slot's precedence so the spoken row matches the
+        // seen one — never both, never the wrong one.
+        distanceLabel || venueTag,
       ]
         .filter(Boolean)
         .join(", ")}
@@ -206,12 +219,20 @@ export const MeetingRow: FC<MeetingRowProps> = ({
           </View>
         )}
 
-        {/* Absent — not empty — when distanceLabel is undefined. Stacks under
-            the stars rather than replacing them: a venue you've rated has both,
-            and dropping either would lose real information. */}
+        {/* One badge slot, two possible occupants. Distance wins when we have
+            it; `venueTag` fills the same spot otherwise, which is how a mixed
+            list (Search) marks its online meetings in the place the eye is
+            already checking for distance. Absent — not empty — when neither is
+            supplied. Stacks under the stars rather than replacing them: a
+            venue you've rated has both, and dropping either loses information. */}
         {!!distanceLabel && (
-          <View testID="distance-badge" style={themed($distanceBadge)}>
-            <Text style={themed($distanceText)}>{distanceLabel}</Text>
+          <View testID="distance-badge" style={themed($slotBadge)}>
+            <Text style={themed($slotBadgeText)}>{distanceLabel}</Text>
+          </View>
+        )}
+        {!distanceLabel && !!venueTag && (
+          <View testID="venue-tag" style={themed($slotBadge)}>
+            <Text style={themed($slotBadgeText)}>{venueTag}</Text>
           </View>
         )}
       </View>
@@ -315,7 +336,10 @@ const $starsRow: ViewStyle = {
   marginTop: 2,
 }
 
-const $distanceBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
+// Shared by the distance badge and the venue tag — they occupy the same slot
+// and must be visually identical, or the eye reads them as different kinds of
+// thing rather than two answers to "where is this?".
+const $slotBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.card,
   borderRadius: 8,
   paddingHorizontal: 6,
@@ -323,7 +347,7 @@ const $distanceBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   marginTop: 2,
 })
 
-const $distanceText: ThemedStyle<TextStyle> = ({ colors }) => ({
+const $slotBadgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 11,
   color: colors.textDim,
 })

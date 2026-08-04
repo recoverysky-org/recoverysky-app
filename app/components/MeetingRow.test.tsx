@@ -97,6 +97,31 @@ describe("MeetingRow", () => {
     })
   })
 
+  describe("badge slot", () => {
+    it("shows a venue tag in the distance badge's place", () => {
+      render(<MeetingRow meeting={onlineMeeting} venueTag="Online" />)
+      expect(screen.getByTestId("venue-tag")).toBeTruthy()
+      expect(screen.getByText("Online")).toBeTruthy()
+    })
+
+    it("shows nothing when neither is supplied", () => {
+      // Only mixed lists pass a tag; Live and In-Person leave the slot empty
+      // rather than labelling every row with the same word.
+      render(<MeetingRow meeting={onlineMeeting} />)
+      expect(screen.queryByTestId("venue-tag")).toBeNull()
+      expect(screen.queryByTestId("distance-badge")).toBeNull()
+    })
+
+    it("lets distance win when both are supplied", () => {
+      // They share one slot. Rendering both would stack two badges and make
+      // the row taller than its neighbours; distance is the more specific
+      // answer to the same question, so it takes the spot.
+      render(<MeetingRow meeting={inPersonMeeting} distanceLabel="0.8 mi" venueTag="In-Person" />)
+      expect(screen.getByTestId("distance-badge")).toBeTruthy()
+      expect(screen.queryByTestId("venue-tag")).toBeNull()
+    })
+  })
+
   describe("shared chrome", () => {
     it("shows the language after the time", () => {
       render(<MeetingRow meeting={onlineMeeting} />)

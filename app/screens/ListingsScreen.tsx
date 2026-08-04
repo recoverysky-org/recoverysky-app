@@ -553,6 +553,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
    */
   const measureDistance = useCallback(
     (meeting: MeetingWithTrex): number | undefined => {
+      // In-person only. A pure online meeting has no venue to be near, so any
+      // coordinates on one are stale or placeholder data — measuring them
+      // would put a confident "12 mi" on a row that is nowhere, and would beat
+      // the "Online" tag to the badge slot.
+      if (!isInPersonVenue(meeting.venueType)) return undefined
       const coords = location.getCoords()
       return coords ? distanceMeters(coords, meeting) : undefined
     },
@@ -576,12 +581,19 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // in-person meetings, so `displayFeedback` is read for every row, not
       // just online ones.
       const feedback = displayFeedback.get(item.id)
+      // Search is the only mixed list, so it's the only screen that needs to
+      // say which kind each row is. The tag lands in the distance badge's slot
+      // (see MeetingRow), i.e. the spot the eye is already checking to answer
+      // "where is this?" — so online rows answer that question instead of
+      // leaving a blank that reads as missing data.
+      const isOnline = !isInPersonVenue(item.venueType)
       return (
         <MeetingRow
           meeting={item}
           rating={feedback?.rates ?? 0}
           isFavorite={feedback?.loves ?? false}
           hasReminder={meetingHasReminder(item, reminderLookup)}
+          venueTag={isOnline ? t("listingsScreen:venueOnline") : undefined}
           // Prefer the server's `distance_m` (only present when the nearby
           // endpoint answered), then fall back to measuring it here.
           // CHANGED 2026-08-04: used to be `distance_m` alone, which meant the
@@ -597,7 +609,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         />
       )
     },
-    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance],
+    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance, t],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
