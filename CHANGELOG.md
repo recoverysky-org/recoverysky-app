@@ -24,6 +24,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **Time-of-day filter on the In-Person segment.** A third selector, below the
+  Day and Distance row, narrows the list to Morning (5am–noon), Afternoon
+  (noon–5pm), Evening (5pm–10pm) or Overnight (10pm–5am), defaulting to "Any
+  time". Boundaries follow recovery meeting culture rather than the plain
+  calendar split — a 6am sunrise meeting belongs to Morning, and Overnight
+  reaches across midnight to 4:59am so the small-hours meetings are findable as
+  a group instead of being scattered. The bucket is applied client-side to the
+  already-fetched day, so changing it is instant and issues no request, and it
+  resets to "Any time" on each visit rather than persisting — a list silently
+  narrowed by a tap from last week is worse than one extra tap. When the filter
+  empties a day that does have meetings, the empty state says so and opens the
+  time picker, instead of the old copy blaming the search radius and sending
+  the user to widen a search that was never the problem.
+
 - In-person meeting data now loads into memory alongside online meetings: the
   live and daily schedule fetches pull both venue pools (`venueType=online` +
   `venueType=in_person`) and merge them, and deep-link meeting lookups fall
@@ -66,6 +80,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- The In-Person radius selector is now labelled "Distance" rather than "Search
+  Distance", in all nine locales. Shortened so it sits comfortably beside the
+  Day selector at half width, where the longer label was crowding its own value.
 - Meetings tab: Listings segment renamed Search, and a third In-Person
   segment sits between Live and Search (see Added). The Search rename covers
   all nine app locales for naming consistency (translations pending

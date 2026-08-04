@@ -776,7 +776,15 @@ const uk: Translations = {
   inPersonScreen: {
     title: "Особисто",
     withinRadius: "У радіусі {{distance}}",
-    selectRadius: "Радіус пошуку",
+    selectRadius: "Відстань",
+    shortTimeLabel: "Час",
+    shortTimeAll: "Будь-який час",
+    shortTimeMorning: "Ранок",
+    shortTimeAfternoon: "День",
+    shortTimeEvening: "Вечір",
+    shortTimeOvernight: "Ніч",
+    emptyShortTime:
+      "Немає зустрічей у {{day}}, що відповідають «{{time}}». Натисніть, щоб обрати інший час.",
     locationBanner: "Увімкніть геолокацію, щоб бачити зустрічі поруч із вами",
     locationBannerDenied:
       "Геолокацію вимкнено — відкрийте Налаштування, щоб увімкнути пошук поблизу",

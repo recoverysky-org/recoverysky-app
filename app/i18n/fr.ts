@@ -787,7 +787,15 @@ const fr: Translations = {
   inPersonScreen: {
     title: "En personne",
     withinRadius: "Dans un rayon de {{distance}}",
-    selectRadius: "Distance de recherche",
+    selectRadius: "Distance",
+    shortTimeLabel: "Heure",
+    shortTimeAll: "À toute heure",
+    shortTimeMorning: "Matin",
+    shortTimeAfternoon: "Après-midi",
+    shortTimeEvening: "Soir",
+    shortTimeOvernight: "Nuit",
+    emptyShortTime:
+      "Aucune réunion le {{day}} ne correspond à {{time}}. Touchez pour choisir une autre heure.",
     locationBanner: "Activez la localisation pour voir les réunions près de chez vous",
     locationBannerDenied:
       "La localisation est désactivée — ouvrez les Réglages pour activer les résultats à proximité",

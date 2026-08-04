@@ -1,6 +1,6 @@
 # Translation review queue — In-Person UI branch (2026-08-03)
 
-**133 machine-assisted strings awaiting a native-speaker pass before release.**
+**197 machine-assisted strings awaiting a native-speaker pass before release.**
 
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
@@ -9,11 +9,17 @@ are **not** in this queue — they need no review.
 
 The seven locales needing review: **ar, de, fr, pt, ru, th, uk**.
 
+The 2026-08-04 `shortTime` batch adds an eighth: **es**. The original `es`
+strings were authored in the plan and are exempt, but the shortTime ones were
+written by an implementer like every other locale, so they carry the same
+review obligation.
+
 | Namespace | Keys | Locales | Strings | Authored in |
 |---|---|---|---|---|
 | `inPersonPopup` | 10 | 7 | 70 | Task 9 |
 | `inPersonScreen` | 9 | 7 | 63 | Task 10 |
-| **Total** | | | **133** | |
+| `inPersonScreen` (shortTime) | 8 | 8 | 64 | shortTime filter, 2026-08-04 |
+| **Total** | | | **197** | |
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every
@@ -228,3 +234,48 @@ Keys: `getDirections`, `contacts`, `imHere`, `imHereSaving`, `logged`,
 | attendanceSaved | Відвідування збережено |
 | attendanceError | Не вдалося зберегти відвідування — спробуйте ще раз |
 | tapTimesHint | Торкніться часу, щоб встановити нагадування |
+
+
+---
+
+# Addendum — In-Person `shortTime` filter (2026-08-04)
+
+Eight keys across **eight** locales (es + the original seven) = **64 strings**.
+Seven keys are new; `selectRadius` is a re-translation.
+
+| Key | English | Notes |
+|---|---|---|
+| `shortTimeLabel` | Time | Row label AND modal title. Must stay short — it shares a row with a chevron. |
+| `shortTimeAll` | Any time | The default. Must read as "no filter applied", not as a bucket. |
+| `shortTimeMorning` | Morning | Bucket 05:00–11:59 |
+| `shortTimeAfternoon` | Afternoon | Bucket 12:00–16:59 |
+| `shortTimeEvening` | Evening | Bucket 17:00–21:59 |
+| `shortTimeOvernight` | Overnight | Bucket 22:00–04:59, **wraps midnight** |
+| `emptyShortTime` | No {{day}} meetings match {{time}}. Tap to pick another time. | `{{time}}` interpolates one of the five bucket labels above |
+| `selectRadius` | Distance | **Changed** 2026-08-04 from "Search Distance" at Jenova's request. Every locale was shortened to match. |
+
+## Reviewer notes worth acting on first
+
+- **The four buckets must partition the day, in the reader's head as well as in
+  code.** The boundaries are fixed in `app/utils/filterLogic.ts` and are not
+  translatable; the labels have to make a user predict the right one. Where a
+  language's everyday time words don't split 4 ways at 05/12/17/22, say so —
+  the fix may be to show the hour range in the picker rather than to force a
+  word.
+- **Spanish/Portuguese `tarde` covers both afternoon and evening.** Currently
+  `afternoon → Tarde`, `evening → Noche`/`Noite`, `overnight → Madrugada`.
+  That is the conventional split, but a native speaker should confirm `Noche`
+  reading as 17:00–21:59 rather than "night".
+- **Russian/Ukrainian `День` for afternoon** literally means "day". Idiomatic
+  for the 12–17 window, but check it doesn't read as "all day" beside
+  `Любое время` / `Будь-який час` in the same picker.
+- **German `Nachts` for overnight vs `Abends` for evening** — verify the pair
+  reads as adjacent spans and not as a synonym collision.
+- **Thai `emptyShortTime` omits spaces around the placeholders**
+  (`วัน{{day}}ที่ตรงกับ{{time}}`) per Thai orthography. Confirm on device — the
+  interpolated values are themselves Thai here, so this should render clean,
+  unlike the Latin-numeral distance case flagged above.
+- **`{{time}}` is interpolated mid-sentence**, so bucket labels are capitalized
+  in English ("No Tuesday meetings match Evening."). Locales where a mid-sentence
+  capital is wrong should either lowercase the bucket labels or restructure
+  `emptyShortTime` around them.

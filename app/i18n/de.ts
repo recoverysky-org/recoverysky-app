@@ -787,7 +787,15 @@ const de: Translations = {
   inPersonScreen: {
     title: "Vor Ort",
     withinRadius: "Im Umkreis von {{distance}}",
-    selectRadius: "Suchradius",
+    selectRadius: "Entfernung",
+    shortTimeLabel: "Zeit",
+    shortTimeAll: "Jederzeit",
+    shortTimeMorning: "Morgens",
+    shortTimeAfternoon: "Nachmittags",
+    shortTimeEvening: "Abends",
+    shortTimeOvernight: "Nachts",
+    emptyShortTime:
+      "Keine Meetings am {{day}} passen zu {{time}}. Tippen, um eine andere Zeit zu wählen.",
     locationBanner: "Aktiviere den Standort, um Meetings in deiner Nähe zu sehen",
     locationBannerDenied: "Standort ist aus — öffne die Einstellungen für Ergebnisse in der Nähe",
     nearbyFailedBanner:

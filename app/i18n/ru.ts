@@ -777,7 +777,15 @@ const ru: Translations = {
   inPersonScreen: {
     title: "Очно",
     withinRadius: "В радиусе {{distance}}",
-    selectRadius: "Радиус поиска",
+    selectRadius: "Расстояние",
+    shortTimeLabel: "Время",
+    shortTimeAll: "Любое время",
+    shortTimeMorning: "Утро",
+    shortTimeAfternoon: "День",
+    shortTimeEvening: "Вечер",
+    shortTimeOvernight: "Ночь",
+    emptyShortTime:
+      "Нет встреч в {{day}}, соответствующих «{{time}}». Нажмите, чтобы выбрать другое время.",
     locationBanner: "Включите геолокацию, чтобы видеть встречи рядом с вами",
     locationBannerDenied:
       "Геолокация выключена — откройте Настройки, чтобы включить поиск поблизости",

@@ -13,7 +13,7 @@
  * transport, not just log sites.
  */
 
-import { FC, useCallback, useEffect, useRef, useState } from "react"
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
@@ -47,10 +47,29 @@ import {
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import {
+  DEFAULT_SHORT_TIME,
+  matchesShortTime,
+  SHORT_TIME_OPTIONS,
+  type ShortTime,
+} from "@/utils/filterLogic"
 import { logger } from "@/utils/logger"
 import { formatDistance, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "InPersonScreen" })
+
+/**
+ * Translation key per bucket. A Record over the full `ShortTime` union rather
+ * than a template string, so adding a bucket to SHORT_TIME_OPTIONS without a
+ * label is a compile error instead of a `[missing key]` rendered on screen.
+ */
+const SHORT_TIME_TX: Record<ShortTime, string> = {
+  all: "inPersonScreen:shortTimeAll",
+  morning: "inPersonScreen:shortTimeMorning",
+  afternoon: "inPersonScreen:shortTimeAfternoon",
+  evening: "inPersonScreen:shortTimeEvening",
+  overnight: "inPersonScreen:shortTimeOvernight",
+}
 
 // ============================================================================
 // Radius selector modal
@@ -119,6 +138,63 @@ const RadiusSelectorModal: FC<RadiusSelectorModalProps> = ({
 }
 
 // ============================================================================
+// Time-of-day selector modal
+//
+// Same chrome as RadiusSelectorModal above, and kept as its own copy for the
+// same reason documented there.
+// ============================================================================
+
+interface ShortTimeSelectorModalProps {
+  visible: boolean
+  selected: ShortTime
+  /** Called with the tapped bucket; caller owns tracking + state */
+  onSelect: (value: ShortTime) => void
+  onClose: () => void
+}
+
+const ShortTimeSelectorModal: FC<ShortTimeSelectorModalProps> = ({
+  visible,
+  selected,
+  onSelect,
+  onClose,
+}) => {
+  const { t } = useTranslation()
+  const { themed, theme } = useAppTheme()
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={themed($modalOverlay)} onPress={onClose}>
+        <View style={themed($modalContent)} accessibilityViewIsModal>
+          <Text style={themed($modalTitle)}>{t("inPersonScreen:shortTimeLabel")}</Text>
+          {SHORT_TIME_OPTIONS.map((option) => {
+            const isSelected = option === selected
+            return (
+              <TouchableOpacity
+                key={option}
+                style={[themed($modalOption), isSelected && themed($modalOptionSelected)]}
+                onPress={() => {
+                  onSelect(option)
+                  onClose()
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+              >
+                <Text
+                  style={[themed($modalOptionText), isSelected && themed($modalOptionTextSelected)]}
+                >
+                  {t(SHORT_TIME_TX[option])}
+                </Text>
+                {isSelected && <Ionicons name="checkmark" size={18} color={theme.colors.tint} />}
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+      </Pressable>
+    </Modal>
+  )
+}
+
+// ============================================================================
 // List header
 //
 // A standalone component at module scope, NOT an inline `useCallback` — house
@@ -137,6 +213,8 @@ interface InPersonListHeaderProps {
   selectedDayLabel: string
   /** Translated "Within 25 km" for the radius selector's value column */
   radiusLabel: string
+  /** Translated bucket name ("Any time", "Evening") for the time selector */
+  shortTimeLabel: string
   /** Non-null only in fallback mode (the hook enforces that) */
   bannerReason: "location" | "nearbyFailed" | null
   /** OS still allows a permission prompt — decides re-ask vs deep link to Settings */
@@ -144,17 +222,20 @@ interface InPersonListHeaderProps {
   showSpinner: boolean
   onOpenDay: () => void
   onOpenRadius: () => void
+  onOpenShortTime: () => void
   onBannerPress: () => void
 }
 
 const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPersonListHeader({
   selectedDayLabel,
   radiusLabel,
+  shortTimeLabel,
   bannerReason,
   canAskAgain,
   showSpinner,
   onOpenDay,
   onOpenRadius,
+  onOpenShortTime,
   onBannerPress,
 }) {
   const { t } = useTranslation()
@@ -226,6 +307,28 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           <View style={$selectorValueRow}>
             <Text style={themed($selectorValue)} numberOfLines={1}>
               {radiusLabel}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Time-of-day selector — its own full-width row rather than a third cell
+          in the row above. At ~33% width both "Within 100 miles" and the longer
+          bucket names (de "Nachmittag", ru "После полудня") truncate on smaller
+          phones, and truncating a filter's current value is exactly the kind of
+          hidden state that makes an unexpectedly short list unexplainable. */}
+      <View style={themed($selectorRow)}>
+        <TouchableOpacity
+          style={themed($selectorButton)}
+          onPress={onOpenShortTime}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
+        >
+          <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
+          <View style={$selectorValueRow}>
+            <Text style={themed($selectorValue)} numberOfLines={1}>
+              {shortTimeLabel}
             </Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>
@@ -305,7 +408,14 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
 
   const [dayModalVisible, setDayModalVisible] = useState(false)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
+  const [shortTimeModalVisible, setShortTimeModalVisible] = useState(false)
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+
+  // Deliberately NOT persisted, unlike radius. Day and time are per-visit browse
+  // choices: coming back tomorrow to a list silently narrowed to "Overnight" by
+  // a tap you made last week is the kind of unexplained-empty-list confusion
+  // this filter is supposed to relieve, not cause.
+  const [shortTime, setShortTime] = useState<ShortTime>(DEFAULT_SHORT_TIME)
 
   // Segment-view analytics, once per activation. `active` only ever flips
   // false→true (MeetingsScreen latches it), so this fires exactly once per
@@ -366,6 +476,20 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const selectedDayLabel = selectedDayEntry ? t(selectedDayEntry.tx) : ""
   const radiusDistance = formatDistance(radiusKm * 1000, useMiles)
   const radiusLabel = t("inPersonScreen:withinRadius", { distance: radiusDistance })
+  const shortTimeLabel = t(SHORT_TIME_TX[shortTime])
+
+  // Client-side only: the time bucket never reaches the API. `/schedules/nearby`
+  // and the day-browse fallback both return a whole day, so narrowing here costs
+  // one pass over an already-fetched list and — unlike day or radius — triggers
+  // no refetch. Keep `meetings` (unfiltered) around: the empty state and the
+  // paywall-return popup both need to know what the day actually holds.
+  const visibleMeetings = useMemo(
+    () =>
+      shortTime === DEFAULT_SHORT_TIME
+        ? meetings
+        : meetings.filter((m) => matchesShortTime(m.millis, shortTime)),
+    [meetings, shortTime],
+  )
 
   const handleDaySelect = useCallback(
     (day: number) => {
@@ -385,8 +509,15 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     [setRadiusKm],
   )
 
+  const handleShortTimeSelect = useCallback((value: ShortTime) => {
+    setShortTime(value)
+    // PRIVACY: a time-of-day bucket is a display preference, not a position.
+    trackEvent("inperson_shorttime_changed", { shortTime: value })
+  }, [])
+
   const handleOpenDayModal = useCallback(() => setDayModalVisible(true), [])
   const handleOpenRadiusModal = useCallback(() => setRadiusModalVisible(true), [])
+  const handleOpenShortTimeModal = useCallback(() => setShortTimeModalVisible(true), [])
 
   /**
    * Banner tap routes three ways:
@@ -453,6 +584,28 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         </View>
       )
     }
+    // The time filter emptied a day that DOES have meetings. This has to
+    // outrank both branches below, because their copy blames the radius or the
+    // fellowship and the radius one opens the radius picker — sending the user
+    // to widen a search that was never the problem. Only reachable when the
+    // unfiltered day is non-empty; when the day is genuinely empty we fall
+    // through so the real reason still gets named.
+    if (shortTime !== DEFAULT_SHORT_TIME && meetings.length > 0) {
+      return (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={handleOpenShortTimeModal}
+          accessibilityRole="button"
+        >
+          <Text style={themed($emptyText)}>
+            {t("inPersonScreen:emptyShortTime", {
+              day: selectedDayLabel,
+              time: shortTimeLabel,
+            })}
+          </Text>
+        </Pressable>
+      )
+    }
     if (mode === "nearby") {
       // Tappable: the copy tells the user to try a wider radius, so the whole
       // message opens the radius picker rather than making them hunt for it.
@@ -490,6 +643,10 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     radiusDistance,
     selectedDayLabel,
     handleOpenRadiusModal,
+    shortTime,
+    shortTimeLabel,
+    meetings.length,
+    handleOpenShortTimeModal,
   ])
 
   // While we're waiting on a permission dialog / GPS fix, or on the very first
@@ -500,18 +657,20 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   return (
     <View style={$screenContainer}>
       <FlatList
-        data={meetings}
+        data={visibleMeetings}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={
           <InPersonListHeader
             selectedDayLabel={selectedDayLabel}
             radiusLabel={radiusLabel}
+            shortTimeLabel={shortTimeLabel}
             bannerReason={bannerReason}
             canAskAgain={canAskAgain}
             showSpinner={showSpinner}
             onOpenDay={handleOpenDayModal}
             onOpenRadius={handleOpenRadiusModal}
+            onOpenShortTime={handleOpenShortTimeModal}
             onBannerPress={handleBannerPress}
           />
         }
@@ -541,6 +700,13 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         useMiles={useMiles}
         onSelect={handleRadiusSelect}
         onClose={() => setRadiusModalVisible(false)}
+      />
+
+      <ShortTimeSelectorModal
+        visible={shortTimeModalVisible}
+        selected={shortTime}
+        onSelect={handleShortTimeSelect}
+        onClose={() => setShortTimeModalVisible(false)}
       />
 
       <InPersonPopup
