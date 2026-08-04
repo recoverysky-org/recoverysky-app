@@ -72,6 +72,16 @@ export interface UseDeviceLocationResult {
    * resolves true only when coordinates are now available.
    */
   acquire: () => Promise<boolean>
+  /**
+   * Take a fix ONLY if permission was already granted. Never prompts, never
+   * changes status when it declines to act.
+   *
+   * This is what lets a screen show distances to a user who has already said
+   * yes elsewhere in the app, without that screen having to ask again — a
+   * second dialog for consent already given reads as the app losing track of
+   * its own permissions. Safe to call on mount; `acquire` is not.
+   */
+  probeExisting: () => Promise<boolean>
 }
 
 export function useDeviceLocation(): UseDeviceLocationResult {
@@ -102,7 +112,12 @@ export function useDeviceLocation(): UseDeviceLocationResult {
 
   const getCoords = useCallback(() => coordsRef.current, [])
 
-  const acquire = useCallback(async (): Promise<boolean> => {
+  /**
+   * The shared body of `acquire` / `probeExisting`. `prompt` decides which
+   * expo-location call runs — the requesting one, which may show a dialog, or
+   * the getter, which never does.
+   */
+  const runAcquire = useCallback(async (prompt: boolean): Promise<boolean> => {
     const seq = ++seqRef.current
     const isCurrent = () => mountedRef.current && seqRef.current === seq
 
@@ -111,14 +126,21 @@ export function useDeviceLocation(): UseDeviceLocationResult {
     // Only announce "acquiring" when we have nothing to show for. Re-fixing
     // while already holding a position would otherwise blank a working radius
     // filter for up to 10 s — holding a valid position is not "acquiring".
-    if (!coordsRef.current) setStatus("acquiring")
+    if (prompt && !coordsRef.current) setStatus("acquiring")
 
     try {
-      const perm = await Location.requestForegroundPermissionsAsync()
+      const perm = prompt
+        ? await Location.requestForegroundPermissionsAsync()
+        : await Location.getForegroundPermissionsAsync()
       if (!isCurrent()) return false
       setCanAskAgain(perm.canAskAgain)
 
       if (!perm.granted) {
+        // A probe that finds no existing grant is a non-event: the user was
+        // never asked, so leave `status` alone. Flipping it to "unavailable"
+        // would make a screen that merely *checked* look like one that asked
+        // and was refused.
+        if (!prompt) return false
         // Drop coordinates from any earlier grant: we hold no position we're
         // not currently allowed to use, and a stale one would keep producing
         // distance-filtered results under a UI that says location is off.
@@ -158,6 +180,8 @@ export function useDeviceLocation(): UseDeviceLocationResult {
       // the coordinates we just asked for. Do not log the error object.
       log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
       coordsRef.current = null
+      // A failed probe still means we genuinely can't locate the device (we
+      // had permission and the fix failed), so this one does flip the status.
       setStatus("unavailable")
       return false
     } finally {
@@ -165,5 +189,8 @@ export function useDeviceLocation(): UseDeviceLocationResult {
     }
   }, [])
 
-  return { status, canAskAgain, fixVersion, getCoords, acquire }
+  const acquire = useCallback(() => runAcquire(true), [runAcquire])
+  const probeExisting = useCallback(() => runAcquire(false), [runAcquire])
+
+  return { status, canAskAgain, fixVersion, getCoords, acquire, probeExisting }
 }

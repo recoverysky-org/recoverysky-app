@@ -463,13 +463,23 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   parsing `street`/`city`/`state`/`postalCode` out of it (92–99% populated).
   `composeAddress()` in `nearbyLogic.ts` builds the display string from those
   parts and prefers `formattedAddress` verbatim only when it's non-empty.
-  `InPersonScheduleRow`'s day-list row is deliberately different — a compact
+  `MeetingRow`'s list row is deliberately different — a compact
   `venueName • city` line, not the composed address — so don't "fix" it to
   match the popup.
   Known gap: the premium paywall's post-purchase `returnTo` round-trip
   (`SettingsScreen.navigateReturn()`) always force-routes to the `live`
   segment, so it silently drops in-person deep-links. Deferred — see
   `TODO.md`.
+
+- **`MeetingRow`** (`app/components/MeetingRow.tsx`, jest-covered) — the one
+  meeting row, used by all three Meetings segments and the agent's results
+  card. It replaced `LiveMeetingRow` and `InPersonScheduleRow` on 2026-08-04,
+  when the Search segment started showing both venues in a single list and two
+  shapes for one object stopped being tenable. It does NOT branch on
+  `venueType`: the venue line, distance badge, hybrid glyph and external-Zoom
+  glyph each render when their data is present and are absent when it isn't.
+  Add new per-venue chrome the same way — a `venueType` branch here is the
+  thing the consolidation was undoing.
 
 ### Theming
 Design token system in `app/theme/`:

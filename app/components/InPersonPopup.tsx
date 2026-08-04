@@ -61,7 +61,7 @@ const log = logger.child({ module: "InPersonPopup" })
 
 /** Amber accent used for reminder cells (ScheduleGrid) and the "approximate
  * location" caveat row — matches the warm-accent convention established in
- * InPersonScheduleRow / ScheduleGrid rather than introducing a new hue. */
+ * MeetingRow / ScheduleGrid rather than introducing a new hue. */
 const WARNING_COLOR = "#f59e0b"
 
 interface InPersonPopupProps {

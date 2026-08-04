@@ -2,7 +2,7 @@
  * MeetingResultsCard Component
  *
  * Renders a list of meetings from AI tool results.
- * - Expanded: Shows LiveMeetingRow for each meeting
+ * - Expanded: Shows MeetingRow for each meeting
  * - Collapsed: Shows summary badge with selected meeting name
  */
 import { FC, useMemo } from "react"
@@ -10,7 +10,7 @@ import { View, ViewStyle, TextStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
-import { LiveMeetingRow } from "@/components/LiveMeetingRow"
+import { MeetingRow } from "@/components/MeetingRow"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useAppTheme } from "@/theme/context"
@@ -90,7 +90,7 @@ export const MeetingResultsCard: FC<MeetingResultsCardProps> = ({
 
       <View style={themed($meetingsList)}>
         {meetings.map((meeting) => (
-          <LiveMeetingRow
+          <MeetingRow
             key={meeting.id}
             meeting={meeting}
             rating={meeting.feedback?.rates ?? 0}

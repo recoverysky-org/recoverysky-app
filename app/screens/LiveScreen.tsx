@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
-import { LiveMeetingRow } from "@/components/LiveMeetingRow"
+import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -271,7 +271,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       // Use displayFeedback for live UI updates (doesn't affect sort order)
       const feedback = displayFeedback.get(item.id)
       return (
-        <LiveMeetingRow
+        <MeetingRow
           meeting={item}
           rating={feedback?.rates ?? 0}
           isFavorite={feedback?.loves ?? false}

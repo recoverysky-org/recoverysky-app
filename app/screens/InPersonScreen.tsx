@@ -32,7 +32,7 @@ import { useTranslation } from "react-i18next"
 
 import { DaySelectorModal, ISO_DAYS } from "@/components/DaySelectorModal"
 import { InPersonPopup } from "@/components/InPersonPopup"
-import { InPersonScheduleRow } from "@/components/InPersonScheduleRow"
+import { MeetingRow } from "@/components/MeetingRow"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
@@ -672,7 +672,7 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
 
   const renderItem = useCallback(
     ({ item }: { item: MeetingWithTrex }) => (
-      <InPersonScheduleRow
+      <MeetingRow
         meeting={item}
         // Distance badge only in nearby mode: the day-browse fallback's rows
         // carry no `distance_m`, and formatDistance returns "" for undefined —

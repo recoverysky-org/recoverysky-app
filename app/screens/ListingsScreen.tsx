@@ -10,11 +10,12 @@
  * This is the only surface that shows both venue types at once, so rows and
  * popups are chosen per meeting rather than per screen — see `renderItem`.
  *
- * PRIVACY: the radius filter is the one thing here that touches location.
- * Coordinates never enter this file's state or logs; they're read from
- * `useDeviceLocation`'s ref at request time and handed straight to
- * `buildNearbyParams`. Read that hook's header before changing anything on
- * that path.
+ * PRIVACY: two things here touch location — the radius filter (coordinates go
+ * to `/schedules/nearby`) and the distance badge (`measureDistance`, which
+ * computes on-device and sends nothing). Neither puts a coordinate in this
+ * file's state or logs; both read the ref at call time and drop it. The badge
+ * path deliberately never prompts — it only uses a grant the user already
+ * gave. Read `useDeviceLocation`'s header before changing either.
  */
 
 import { FC, useState, useEffect, useCallback, useMemo, useRef } from "react"
@@ -38,8 +39,7 @@ import { useTranslation } from "react-i18next"
 
 import { DaySelectorModal, ISO_DAYS } from "@/components/DaySelectorModal"
 import { InPersonPopup } from "@/components/InPersonPopup"
-import { InPersonScheduleRow } from "@/components/InPersonScheduleRow"
-import { LiveMeetingRow } from "@/components/LiveMeetingRow"
+import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -75,7 +75,12 @@ import {
   type VenueChoice,
 } from "@/utils/filterLogic"
 import { logger } from "@/utils/logger"
-import { buildNearbyParams, formatDistance, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
+import {
+  buildNearbyParams,
+  distanceMeters,
+  formatDistance,
+  RADIUS_OPTIONS_KM,
+} from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "ListingsScreen" })
 
@@ -182,6 +187,18 @@ export const ListingsContent: FC = observer(function ListingsContent() {
   const [searchTimeModalVisible, setSearchTimeModalVisible] = useState(false)
 
   const location = useDeviceLocation()
+
+  // Pick up a location fix if — and only if — the user has already granted
+  // permission somewhere else in the app (the In-Person segment is the usual
+  // place). This never prompts, so it doesn't touch the lazy-permission rule;
+  // it exists so distance badges appear for someone who has already said yes,
+  // instead of making them say yes again on this tab. A bumped `fixVersion`
+  // refetches, which is what turns the badges on.
+  useEffect(() => {
+    void location.probeExisting()
+    // Mount-only: re-probing on every render would take a GPS fix per render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Merged venue pools (online + in_person) for the selected day.
   // CHANGED 2026-08-04: this used to be projected through `projectOnline` —
@@ -481,6 +498,26 @@ export const ListingsContent: FC = observer(function ListingsContent() {
     })
   }, [meetings, searchTime, startHour, endHour, selectedLanguage])
 
+  /**
+   * Distance from the device to a meeting's venue, measured on-device.
+   *
+   * PRIVACY: this is the *more* private of the two paths — the coordinates
+   * never leave the device at all, unlike the nearby query. Coords are read
+   * from the hook's ref at call time and dropped; nothing here holds them.
+   *
+   * Keyed on `fixVersion` rather than on the coordinates, so the memo
+   * invalidates when a new fix lands without a position ever becoming a
+   * dependency (or entering the render tree).
+   */
+  const measureDistance = useCallback(
+    (meeting: MeetingWithTrex): number | undefined => {
+      const coords = location.getCoords()
+      return coords ? distanceMeters(coords, meeting) : undefined
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location.getCoords, location.fixVersion],
+  )
+
   // Meeting popup handlers
   const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
     setSelectedMeeting(meeting)
@@ -492,37 +529,33 @@ export const ListingsContent: FC = observer(function ListingsContent() {
 
   const renderItem = useCallback(
     ({ item }: { item: MeetingWithTrex }) => {
-      // Row type follows the venue, not the screen. Before the Venue filter,
-      // Search only ever held online meetings, so LiveMeetingRow was the only
-      // option; now that in-person rows can appear, they get the row built for
-      // them — LiveMeetingRow leads with joining a meeting online, which is
-      // exactly what an in-person listing can't do.
-      if (isInPersonVenue(item.venueType)) {
-        return (
-          <InPersonScheduleRow
-            meeting={item}
-            // Only present when the nearby endpoint answered (radius set +
-            // location granted). formatDistance returns "" for undefined, and
-            // `|| undefined` keeps the row from rendering an empty badge.
-            distanceLabel={formatDistance(item.distance_m, useMiles) || undefined}
-            hasReminder={meetingHasReminder(item, reminderLookup)}
-            onPress={handleMeetingPress}
-          />
-        )
-      }
-      // Use displayFeedback for live UI updates
+      // One row for both venues (2026-08-04) — it adapts to the meeting it's
+      // given, so this list no longer branches. Feedback still applies to
+      // in-person meetings, so `displayFeedback` is read for every row, not
+      // just online ones.
       const feedback = displayFeedback.get(item.id)
       return (
-        <LiveMeetingRow
+        <MeetingRow
           meeting={item}
           rating={feedback?.rates ?? 0}
           isFavorite={feedback?.loves ?? false}
           hasReminder={meetingHasReminder(item, reminderLookup)}
-          onPress={() => handleMeetingPress(item)}
+          // Prefer the server's `distance_m` (only present when the nearby
+          // endpoint answered), then fall back to measuring it here.
+          // CHANGED 2026-08-04: used to be `distance_m` alone, which meant the
+          // badge vanished whenever Radius was "Any" — the default — even
+          // though we knew both positions. Nothing on screen explained why the
+          // same meeting showed a distance under one radius and not another.
+          // formatDistance returns "" for undefined, and `|| undefined` keeps
+          // the row from rendering an empty badge.
+          distanceLabel={
+            formatDistance(item.distance_m ?? measureDistance(item), useMiles) || undefined
+          }
+          onPress={handleMeetingPress}
         />
       )
     },
-    [handleMeetingPress, displayFeedback, reminderLookup, useMiles],
+    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])

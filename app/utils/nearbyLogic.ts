@@ -89,6 +89,54 @@ export function sortByLocalTime<T extends { millis: number }>(items: T[]): T[] {
   })
 }
 
+const EARTH_RADIUS_M = 6_371_008.8
+
+/**
+ * Great-circle distance in meters between two points, or undefined when the
+ * venue has no usable coordinates.
+ *
+ * WHY THIS EXISTS: `distance_m` is only ever populated by `/schedules/nearby`.
+ * Every other path — the In-Person segment's day-browse fallback, and Search
+ * whenever its radius is "Any" — returns venues with no distance at all, so
+ * the badge silently disappeared on lists that were otherwise identical. The
+ * meeting already carries its own `latitude`/`longitude`, so once we hold a
+ * fix there is nothing to ask the server for.
+ *
+ * `(0, 0)` is treated as missing, matching `buildDirectionsUrl` above: sources
+ * use null island as a placeholder for ungeocodable venues, and a real
+ * "8,400 km away" badge on one of those is worse than no badge.
+ *
+ * Haversine on a spherical earth — accurate to ~0.5% at these distances, which
+ * is far inside the rounding `formatDistance` already applies. Do not reach for
+ * an ellipsoidal formula here; the badge says "3 mi".
+ */
+export function distanceMeters(
+  from: { lat: number; lon: number },
+  to: { latitude?: number; longitude?: number },
+): number | undefined {
+  const { latitude, longitude } = to
+  if (
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    (latitude === 0 && longitude === 0)
+  ) {
+    return undefined
+  }
+
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLat = toRad(latitude - from.lat)
+  const dLon = toRad(longitude - from.lon)
+  const lat1 = toRad(from.lat)
+  const lat2 = toRad(latitude)
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2)
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(a)))
+}
+
 const METERS_PER_MILE = 1609.344
 
 /** Trim a trailing ".0" from a one-decimal string ("5.0" → "5"). */

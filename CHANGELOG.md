@@ -115,6 +115,27 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Distance badges on in-person search results**, not just on the In-Person
+  tab. Distance previously came only from the nearby endpoint, so it appeared
+  in Search only while a radius was set — the same meeting showed a distance
+  under one radius setting and none under another, with nothing on screen
+  explaining the difference. It's now measured on-device from the venue's own
+  coordinates, so it shows whenever the app knows where you are. That never
+  triggers a new permission prompt: Search checks for a grant you've already
+  given (usually on the In-Person tab) and stays quiet if there isn't one.
+  Computing it locally also means these coordinates never leave the device.
+
+- **One meeting card everywhere.** The Live, In-Person and Search lists had
+  drifted into two different rows for the same thing — online meetings got a
+  square fellowship badge on one line, in-person meetings a vertical accent bar
+  and two. Search showing both venues at once made the mismatch visible in a
+  single scroll. There is now a single card that adapts to the meeting it's
+  given: the accent bar for everything, with the fellowship moved into a
+  subtitle line beside the venue and city (which are simply absent for online
+  meetings), and the language shown after the start time. Favourites, star
+  ratings, reminder bells, the hybrid globe, the external-Zoom marker and the
+  distance badge all survive — and favourites and ratings now show on
+  in-person meetings, which the old in-person row couldn't display at all.
 - **The Search filters are now a 2×3 grid** — Fellowship + Venue, Day + Lang,
   Radius + Time. Fellowship used to own a full-width row for a two-letter
   value. The Language cell's label is shortened to "Lang" in every locale

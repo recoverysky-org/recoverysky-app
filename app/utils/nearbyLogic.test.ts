@@ -4,6 +4,7 @@ import {
   buildDirectionsUrl,
   buildNearbyParams,
   composeAddress,
+  distanceMeters,
   formatDistance,
   isSameLocalDay,
   resolveMode,
@@ -208,5 +209,69 @@ describe("isSameLocalDay", () => {
     const a = new Date(2026, 7, 3, 23, 55).getTime()
     const b = new Date(2026, 7, 4, 0, 5).getTime()
     expect(isSameLocalDay(a, b)).toBe(false)
+  })
+})
+
+describe("distanceMeters", () => {
+  // Boise, ID — the fixture city used across the in-person tests.
+  const here = { lat: 43.615, lon: -116.2023 }
+
+  it("returns ~0 for the same point", () => {
+    expect(distanceMeters(here, { latitude: here.lat, longitude: here.lon })).toBeLessThan(1)
+  })
+
+  it("measures a known separation within haversine's tolerance", () => {
+    // Boise → Salt Lake City is ~476 km great-circle. Note that is NOT the
+    // ~544 km you get from a driving-directions site — this function measures
+    // straight-line distance, and so does the badge it feeds. A spherical-earth
+    // haversine is good to ~0.5%, so 3 km of slack is generous but still
+    // catches a wrong radius constant, a degrees/radians slip, or swapped
+    // lat/lon (all of which miss by far more than this).
+    const slc = { latitude: 40.7608, longitude: -111.891 }
+    const meters = distanceMeters(here, slc)
+    expect(meters).toBeDefined()
+    expect(Math.abs(meters! - 476_000)).toBeLessThan(3_000)
+  })
+
+  it("is symmetric", () => {
+    const there = { latitude: 40.7608, longitude: -111.891 }
+    const forward = distanceMeters(here, there)!
+    const back = distanceMeters(
+      { lat: there.latitude, lon: there.longitude },
+      {
+        latitude: here.lat,
+        longitude: here.lon,
+      },
+    )!
+    expect(Math.abs(forward - back)).toBeLessThan(1)
+  })
+
+  it("handles crossing the antimeridian without blowing up", () => {
+    // A naive implementation that subtracts longitudes without the haversine's
+    // sin(dLon/2) treatment reports ~half the earth here instead of ~430 km.
+    const a = { lat: 0, lon: 179.9 }
+    const b = { latitude: 0, longitude: -179.9 }
+    const meters = distanceMeters(a, b)!
+    expect(meters).toBeLessThan(30_000)
+  })
+
+  it("treats null island as missing, not as a real place", () => {
+    // Sources use (0, 0) as a placeholder for ungeocodable venues. An
+    // "8,400 km away" badge on one of those is worse than no badge — same
+    // rule buildDirectionsUrl applies.
+    expect(distanceMeters(here, { latitude: 0, longitude: 0 })).toBeUndefined()
+  })
+
+  it("returns undefined for missing or non-finite coordinates", () => {
+    expect(distanceMeters(here, {})).toBeUndefined()
+    expect(distanceMeters(here, { latitude: 43.6 })).toBeUndefined()
+    expect(distanceMeters(here, { latitude: NaN, longitude: -116 })).toBeUndefined()
+  })
+
+  it("feeds formatDistance, which is what the badge actually shows", () => {
+    // The two are always used together; this pins the seam so a unit change in
+    // one can't silently produce a badge reading "544000 m".
+    const slc = { latitude: 40.7608, longitude: -111.891 }
+    expect(formatDistance(distanceMeters(here, slc), true)).toMatch(/^\d+ mi$/)
   })
 })
