@@ -37,7 +37,6 @@ import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
-import { useProfileStore } from "@/models"
 import {
   consumePendingMeetingId,
   navigate,
@@ -47,6 +46,7 @@ import {
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
   DEFAULT_SHORT_TIME,
   matchesShortTime,
@@ -195,6 +195,69 @@ const ShortTimeSelectorModal: FC<ShortTimeSelectorModalProps> = ({
 }
 
 // ============================================================================
+// Fellowship selector modal
+//
+// Mirrors LiveContent's fellowship picker (same options, same "browsing isn't
+// a preference change" semantics) and shares this file's modal chrome. There
+// is deliberately no "All" option — LiveContent's picker has none either, and
+// here it would be worse than cosmetic: the nearby/daily endpoints filter by
+// fellowship server-side, so "all" would mean an unfiltered fetch of every
+// fellowship's meetings rather than a client-side widening.
+// ============================================================================
+
+interface FellowshipSelectorModalProps {
+  visible: boolean
+  /** Undefined when the user has never picked one — no row is checked */
+  selected?: string
+  /** Called with the tapped fellowship; caller owns tracking + state */
+  onSelect: (value: string) => void
+  onClose: () => void
+}
+
+const FellowshipSelectorModal: FC<FellowshipSelectorModalProps> = ({
+  visible,
+  selected,
+  onSelect,
+  onClose,
+}) => {
+  const { t } = useTranslation()
+  const { themed, theme } = useAppTheme()
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={themed($modalOverlay)} onPress={onClose}>
+        <View style={themed($modalContent)} accessibilityViewIsModal>
+          <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
+          {ACTIVE_FELLOWSHIPS.map((value) => {
+            const isSelected = value === selected
+            return (
+              <TouchableOpacity
+                key={value}
+                style={[themed($modalOption), isSelected && themed($modalOptionSelected)]}
+                onPress={() => {
+                  onSelect(value)
+                  onClose()
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={value}
+              >
+                <Text
+                  style={[themed($modalOptionText), isSelected && themed($modalOptionTextSelected)]}
+                >
+                  {value}
+                </Text>
+                {isSelected && <Ionicons name="checkmark" size={18} color={theme.colors.tint} />}
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+      </Pressable>
+    </Modal>
+  )
+}
+
+// ============================================================================
 // List header
 //
 // A standalone component at module scope, NOT an inline `useCallback` — house
@@ -209,10 +272,14 @@ const ShortTimeSelectorModal: FC<ShortTimeSelectorModalProps> = ({
 const BANNER_ACCENT = "#f59e0b"
 
 interface InPersonListHeaderProps {
+  /** Fellowship code ("AA") for the fellowship selector's value column */
+  fellowshipLabel: string
   /** Translated weekday name for the day selector's value column */
   selectedDayLabel: string
-  /** Translated "Within 25 km" for the radius selector's value column */
+  /** Bare distance ("25 mi") for the radius selector's value column */
   radiusLabel: string
+  /** Translated "Within 25 mi" — screen-reader-only, see the a11y label below */
+  radiusA11yLabel: string
   /** Translated bucket name ("Any time", "Evening") for the time selector */
   shortTimeLabel: string
   /** Non-null only in fallback mode (the hook enforces that) */
@@ -220,6 +287,7 @@ interface InPersonListHeaderProps {
   /** OS still allows a permission prompt — decides re-ask vs deep link to Settings */
   canAskAgain: boolean
   showSpinner: boolean
+  onOpenFellowship: () => void
   onOpenDay: () => void
   onOpenRadius: () => void
   onOpenShortTime: () => void
@@ -227,12 +295,15 @@ interface InPersonListHeaderProps {
 }
 
 const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPersonListHeader({
+  fellowshipLabel,
   selectedDayLabel,
   radiusLabel,
+  radiusA11yLabel,
   shortTimeLabel,
   bannerReason,
   canAskAgain,
   showSpinner,
+  onOpenFellowship,
   onOpenDay,
   onOpenRadius,
   onOpenShortTime,
@@ -282,43 +353,41 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
         </TouchableOpacity>
       </View>
 
-      {/* Day + radius selectors */}
+      {/* Four filters in a 2×2 grid (Jenova, 2026-08-04). The three-selector
+          layout this replaced put Time on its own full-width row, which stopped
+          scaling once Fellowship arrived — four full-width rows would have
+          pushed the first meeting off the fold on a small phone.
+
+          Every value here is short by construction so a half-width cell can
+          hold it: fellowship codes ("AA"), abbreviated weekdays ("Mon"), a bare
+          distance ("25 mi"), and one-word time buckets. That last one is why
+          the radius cell shows "25 mi" and not "Within 25 mi" — the label
+          column already says Radius, and the longer phrasing truncated to
+          "RadiusWith…", hiding the actual value. The full phrase survives for
+          screen readers via `radiusA11yLabel`.
+
+          Keep `numberOfLines={1}` on all four values — a value that wrapped
+          under its own chevron reads as a layout bug. The *labels* are
+          deliberately left free to wrap: at ~160dp per cell the long ones
+          (de "Gemeinschaft", ru "Сообщество") can need two lines, and since
+          $selectorRow stretches, that just makes the row taller with both
+          cells still matching. Truncating a label would be worse. */}
       <View style={themed($selectorRow)}>
         <TouchableOpacity
           style={themed($selectorButton)}
-          onPress={onOpenDay}
+          onPress={onOpenFellowship}
           accessibilityRole="button"
-          accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
+          accessibilityLabel={`${t("inPersonScreen:fellowshipLabel")}, ${fellowshipLabel}`}
         >
-          <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
-          <View style={$selectorValueRow}>
-            <Text style={themed($selectorValue)}>{selectedDayLabel}</Text>
-            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={themed($selectorButton)}
-          onPress={onOpenRadius}
-          accessibilityRole="button"
-          accessibilityLabel={`${t("inPersonScreen:selectRadius")}, ${radiusLabel}`}
-        >
-          <Text style={themed($selectorLabel)}>{t("inPersonScreen:selectRadius")}</Text>
+          <Text style={themed($selectorLabel)}>{t("inPersonScreen:fellowshipLabel")}</Text>
           <View style={$selectorValueRow}>
             <Text style={themed($selectorValue)} numberOfLines={1}>
-              {radiusLabel}
+              {fellowshipLabel}
             </Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>
         </TouchableOpacity>
-      </View>
 
-      {/* Time-of-day selector — its own full-width row rather than a third cell
-          in the row above. At ~33% width both "Within 100 miles" and the longer
-          bucket names (de "Nachmittag", ru "После полудня") truncate on smaller
-          phones, and truncating a filter's current value is exactly the kind of
-          hidden state that makes an unexpectedly short list unexplainable. */}
-      <View style={themed($selectorRow)}>
         <TouchableOpacity
           style={themed($selectorButton)}
           onPress={onOpenShortTime}
@@ -329,6 +398,38 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           <View style={$selectorValueRow}>
             <Text style={themed($selectorValue)} numberOfLines={1}>
               {shortTimeLabel}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={themed($selectorRow)}>
+        <TouchableOpacity
+          style={themed($selectorButton)}
+          onPress={onOpenDay}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
+        >
+          <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
+          <View style={$selectorValueRow}>
+            <Text style={themed($selectorValue)} numberOfLines={1}>
+              {selectedDayLabel}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={themed($selectorButton)}
+          onPress={onOpenRadius}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("inPersonScreen:selectRadius")}, ${radiusA11yLabel}`}
+        >
+          <Text style={themed($selectorLabel)}>{t("inPersonScreen:selectRadius")}</Text>
+          <View style={$selectorValueRow}>
+            <Text style={themed($selectorValue)} numberOfLines={1}>
+              {radiusLabel}
             </Text>
             <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
           </View>
@@ -381,13 +482,16 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
  * local controls (day, radius) keep working while the maintenance-exit refetch
  * and the fellowship-change refetch just stop happening — the screen still
  * looks fine, so nobody notices. Do not remove it.
+ * CHANGED 2026-08-04: this component no longer calls `useProfileStore()` itself
+ * (the Fellowship picker reads the effective value off the hook instead), so
+ * there is now NO store access visible in this file at all — which makes the
+ * `observer()` above look even more removable than it did before. It isn't.
  */
 export const InPersonContent: FC<{ active: boolean }> = observer(function InPersonContent({
   active,
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
-  const profileStore = useProfileStore()
   const reminderLookup = useReminderLookup()
 
   const {
@@ -400,6 +504,8 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     setSelectedDay,
     radiusKm,
     setRadiusKm,
+    fellowship,
+    setFellowship,
     useMiles,
     refresh,
     requestLocation,
@@ -409,6 +515,7 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const [dayModalVisible, setDayModalVisible] = useState(false)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [shortTimeModalVisible, setShortTimeModalVisible] = useState(false)
+  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
   // Deliberately NOT persisted, unlike radius. Day and time are per-visit browse
@@ -475,8 +582,14 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const selectedDayEntry = ISO_DAYS.find((d) => d.iso === selectedDay)
   const selectedDayLabel = selectedDayEntry ? t(selectedDayEntry.tx) : ""
   const radiusDistance = formatDistance(radiusKm * 1000, useMiles)
-  const radiusLabel = t("inPersonScreen:withinRadius", { distance: radiusDistance })
+  // Visible value is the bare distance; the "Within …" phrasing is kept for the
+  // screen reader only (see the grid comment in InPersonListHeader).
+  const radiusA11yLabel = t("inPersonScreen:withinRadius", { distance: radiusDistance })
   const shortTimeLabel = t(SHORT_TIME_TX[shortTime])
+  // An em dash, not the ProfileStore default: the user genuinely has no
+  // fellowship set here, and showing "AA" would claim a filter that isn't
+  // applied — the hook fetches nothing at all until one is chosen.
+  const fellowshipLabel = fellowship || "—"
 
   // Client-side only: the time bucket never reaches the API. `/schedules/nearby`
   // and the day-browse fallback both return a whole day, so narrowing here costs
@@ -515,9 +628,21 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     trackEvent("inperson_shorttime_changed", { shortTime: value })
   }, [])
 
+  const handleFellowshipSelect = useCallback(
+    (value: string) => {
+      // Browse-only — `setFellowship` writes to the hook's local override, not
+      // to ProfileStore, so Settings and the Live tab are left alone.
+      setFellowship(value)
+      // PRIVACY: a fellowship code is a display preference, not a position.
+      trackEvent("inperson_fellowship_changed", { fellowship: value })
+    },
+    [setFellowship],
+  )
+
   const handleOpenDayModal = useCallback(() => setDayModalVisible(true), [])
   const handleOpenRadiusModal = useCallback(() => setRadiusModalVisible(true), [])
   const handleOpenShortTimeModal = useCallback(() => setShortTimeModalVisible(true), [])
+  const handleOpenFellowshipModal = useCallback(() => setFellowshipModalVisible(true), [])
 
   /**
    * Banner tap routes three ways:
@@ -570,11 +695,19 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     // Order matters: "you haven't picked a fellowship" outranks any error or
     // empty copy, because the hook treats no-fellowship as a legitimate state
     // that never even issues a request.
-    if (!profileStore.fellowship) {
+    // CHANGED 2026-08-04: the copy used to send the user to Settings and the
+    // message wasn't tappable. Now that the header carries a Fellowship picker,
+    // pointing at Settings would route them past the control that's already on
+    // screen — so this opens that picker instead.
+    if (!fellowship) {
       return (
-        <View style={themed($emptyContainer)}>
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={handleOpenFellowshipModal}
+          accessibilityRole="button"
+        >
           <Text style={themed($emptyText)}>{t("inPersonScreen:selectFellowship")}</Text>
-        </View>
+        </Pressable>
       )
     }
     if (error) {
@@ -628,7 +761,7 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
       <View style={themed($emptyContainer)}>
         <Text style={themed($emptyText)}>
           {t("inPersonScreen:emptyFallback", {
-            fellowship: profileStore.fellowship,
+            fellowship,
             day: selectedDayLabel,
           })}
         </Text>
@@ -637,7 +770,7 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   }, [
     themed,
     t,
-    profileStore.fellowship,
+    fellowship,
     error,
     mode,
     radiusDistance,
@@ -647,6 +780,7 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     shortTimeLabel,
     meetings.length,
     handleOpenShortTimeModal,
+    handleOpenFellowshipModal,
   ])
 
   // While we're waiting on a permission dialog / GPS fix, or on the very first
@@ -662,12 +796,15 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         keyExtractor={keyExtractor}
         ListHeaderComponent={
           <InPersonListHeader
+            fellowshipLabel={fellowshipLabel}
             selectedDayLabel={selectedDayLabel}
-            radiusLabel={radiusLabel}
+            radiusLabel={radiusDistance}
+            radiusA11yLabel={radiusA11yLabel}
             shortTimeLabel={shortTimeLabel}
             bannerReason={bannerReason}
             canAskAgain={canAskAgain}
             showSpinner={showSpinner}
+            onOpenFellowship={handleOpenFellowshipModal}
             onOpenDay={handleOpenDayModal}
             onOpenRadius={handleOpenRadiusModal}
             onOpenShortTime={handleOpenShortTimeModal}
@@ -707,6 +844,13 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         selected={shortTime}
         onSelect={handleShortTimeSelect}
         onClose={() => setShortTimeModalVisible(false)}
+      />
+
+      <FellowshipSelectorModal
+        visible={fellowshipModalVisible}
+        selected={fellowship}
+        onSelect={handleFellowshipSelect}
+        onClose={() => setFellowshipModalVisible(false)}
       />
 
       <InPersonPopup

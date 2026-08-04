@@ -765,7 +765,8 @@ const ar: Translations = {
   inPersonScreen: {
     title: "حضوريًا",
     withinRadius: "ضمن {{distance}}",
-    selectRadius: "المسافة",
+    fellowshipLabel: "الزمالة",
+    selectRadius: "النطاق",
     shortTimeLabel: "الوقت",
     shortTimeAll: "أي وقت",
     shortTimeMorning: "صباحاً",
@@ -778,7 +779,7 @@ const ar: Translations = {
     nearbyFailedBanner: "تعذّر تحميل النتائج القريبة — اضغط لإعادة المحاولة",
     emptyNearby: "لا توجد اجتماعات حضورية ضمن {{distance}} ({{day}}) — جرّب نطاقًا أوسع",
     emptyFallback: "لا توجد اجتماعات {{fellowship}} حضورية ({{day}})",
-    selectFellowship: "اختر زمالة في الإعدادات لرؤية الاجتماعات",
+    selectFellowship: "اضغط لاختيار زمالة ورؤية الاجتماعات الحضورية",
   },
 }
 

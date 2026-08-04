@@ -777,7 +777,8 @@ const ru: Translations = {
   inPersonScreen: {
     title: "Очно",
     withinRadius: "В радиусе {{distance}}",
-    selectRadius: "Расстояние",
+    fellowshipLabel: "Сообщество",
+    selectRadius: "Радиус",
     shortTimeLabel: "Время",
     shortTimeAll: "Любое время",
     shortTimeMorning: "Утро",
@@ -792,7 +793,7 @@ const ru: Translations = {
     nearbyFailedBanner: "Не удалось загрузить результаты поблизости — нажмите, чтобы повторить",
     emptyNearby: "Нет очных встреч в радиусе {{distance}} ({{day}}) — попробуйте больший радиус",
     emptyFallback: "Нет очных встреч {{fellowship}} ({{day}})",
-    selectFellowship: "Выберите содружество в Настройках, чтобы увидеть встречи",
+    selectFellowship: "Нажмите, чтобы выбрать содружество и увидеть очные встречи",
   },
 }
 

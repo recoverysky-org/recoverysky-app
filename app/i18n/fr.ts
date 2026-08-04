@@ -787,7 +787,8 @@ const fr: Translations = {
   inPersonScreen: {
     title: "En personne",
     withinRadius: "Dans un rayon de {{distance}}",
-    selectRadius: "Distance",
+    fellowshipLabel: "Fraternité",
+    selectRadius: "Rayon",
     shortTimeLabel: "Heure",
     shortTimeAll: "À toute heure",
     shortTimeMorning: "Matin",
@@ -803,7 +804,7 @@ const fr: Translations = {
     emptyNearby:
       "Aucune réunion en présentiel dans un rayon de {{distance}} le {{day}} — essayez un rayon plus large",
     emptyFallback: "Aucune réunion {{fellowship}} en présentiel le {{day}}",
-    selectFellowship: "Sélectionnez une fraternité dans les Réglages pour voir les réunions",
+    selectFellowship: "Touchez pour choisir une fraternité et voir les réunions en présentiel",
   },
 }
 

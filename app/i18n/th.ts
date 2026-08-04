@@ -769,7 +769,8 @@ const th: Translations = {
   inPersonScreen: {
     title: "แบบพบหน้า",
     withinRadius: "ภายใน {{distance}}",
-    selectRadius: "ระยะทาง",
+    fellowshipLabel: "กลุ่ม",
+    selectRadius: "รัศมี",
     shortTimeLabel: "เวลา",
     shortTimeAll: "ทุกเวลา",
     shortTimeMorning: "เช้า",
@@ -782,7 +783,7 @@ const th: Translations = {
     nearbyFailedBanner: "โหลดผลลัพธ์ใกล้เคียงไม่สำเร็จ — แตะเพื่อลองใหม่",
     emptyNearby: "ไม่มีการประชุมแบบพบหน้าภายใน {{distance}} ใน {{day}} — ลองขยายระยะการค้นหา",
     emptyFallback: "ไม่มีการประชุม {{fellowship}} แบบพบหน้าใน {{day}}",
-    selectFellowship: "เลือกกลุ่มมิตรภาพในการตั้งค่าเพื่อดูการประชุม",
+    selectFellowship: "แตะเพื่อเลือกกลุ่มมิตรภาพและดูการประชุมแบบพบหน้า",
   },
 }
 

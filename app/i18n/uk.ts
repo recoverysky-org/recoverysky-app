@@ -776,7 +776,8 @@ const uk: Translations = {
   inPersonScreen: {
     title: "Особисто",
     withinRadius: "У радіусі {{distance}}",
-    selectRadius: "Відстань",
+    fellowshipLabel: "Спільнота",
+    selectRadius: "Радіус",
     shortTimeLabel: "Час",
     shortTimeAll: "Будь-який час",
     shortTimeMorning: "Ранок",
@@ -792,7 +793,7 @@ const uk: Translations = {
     emptyNearby:
       "Немає очних зустрічей у радіусі {{distance}} ({{day}}) — спробуйте більший радіус",
     emptyFallback: "Немає очних зустрічей {{fellowship}} ({{day}})",
-    selectFellowship: "Виберіть спільноту в Налаштуваннях, щоб побачити зустрічі",
+    selectFellowship: "Натисніть, щоб вибрати спільноту та побачити очні зустрічі",
   },
 }
 

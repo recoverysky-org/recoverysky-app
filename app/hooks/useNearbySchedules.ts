@@ -113,6 +113,14 @@ export interface UseNearbySchedulesResult {
   setSelectedDay: (isoDow: number) => void
   radiusKm: number
   setRadiusKm: (km: number) => void
+  /**
+   * Fellowship the list is currently filtered to — the segment's local browse
+   * choice when one has been made, otherwise the saved ProfileStore preference.
+   * Empty/undefined when the user has never picked one.
+   */
+  fellowship?: string
+  /** Browse a different fellowship. Does NOT write to ProfileStore. */
+  setFellowship: (value: string) => void
   useMiles: boolean
   /** Pull-to-refresh: re-fix location (if permitted) then refetch */
   refresh: () => Promise<void>
@@ -138,7 +146,7 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
   // INTEGRATION REQUIREMENT: the component calling this hook MUST be wrapped
   // in `observer()`, or neither reaction happens.
   const maintenanceMode = configStore.maintenanceMode
-  const fellowship = profileStore.fellowship
+  const savedFellowship = profileStore.fellowship
 
   const [permission, setPermission] = useState<"undetermined" | "granted" | "denied">(
     "undetermined",
@@ -151,6 +159,22 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
   const [error, setError] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState(getCurrentIsoDow)
   const [radiusKm, setRadiusKmState] = useState(loadRadius)
+
+  /**
+   * Local override for the segment's Fellowship picker.
+   *
+   * Same semantics as LiveContent's fellowship filter — browsing another
+   * fellowship here is a look-around, not a change to the user's saved
+   * preference, so this deliberately never writes to ProfileStore. It lives in
+   * the hook rather than the screen (where Live keeps its equivalent) because
+   * fellowship is a *fetch* param for the nearby/daily endpoints, not a
+   * client-side pass over already-loaded rows.
+   *
+   * `null` means "follow the saved preference", which is why it isn't seeded
+   * from `savedFellowship`: seeding would freeze the value at mount and a later
+   * Settings change would silently stop reaching this segment.
+   */
+  const [fellowshipOverride, setFellowshipOverride] = useState<string | null>(null)
 
   // PRIVACY: coordinates live in this ref only — never state (avoids
   // accidental serialization in devtools snapshots), never MMKV/SQLite,
@@ -180,6 +204,18 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       mountedRef.current = false
     }
   }, [])
+
+  // A Settings change wins over a stale browse choice — the same reset
+  // LiveContent performs on the `preferences_changed` event, minus the event
+  // bus: `savedFellowship` is already observable here, so the store value IS
+  // the signal. Fires a harmless null→null set on mount (React bails out).
+  useEffect(() => {
+    setFellowshipOverride(null)
+  }, [savedFellowship])
+
+  // The value every fetch below uses. Changing it changes `fetchMeetings`'s
+  // identity, which is what makes the driver effect refetch.
+  const fellowship = fellowshipOverride ?? savedFellowship
 
   // Locale measurement system is fixed for the process lifetime; resolve once.
   const useMiles = useMemo(() => getLocales()[0]?.measurementSystem === "us", [])
@@ -469,6 +505,8 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     setSelectedDay,
     radiusKm,
     setRadiusKm,
+    fellowship,
+    setFellowship: setFellowshipOverride,
     useMiles,
     refresh,
     requestLocation,

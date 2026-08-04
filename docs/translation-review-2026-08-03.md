@@ -1,6 +1,6 @@
 # Translation review queue — In-Person UI branch (2026-08-03)
 
-**197 machine-assisted strings awaiting a native-speaker pass before release.**
+**221 machine-assisted strings awaiting a native-speaker pass before release.**
 
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
@@ -9,9 +9,9 @@ are **not** in this queue — they need no review.
 
 The seven locales needing review: **ar, de, fr, pt, ru, th, uk**.
 
-The 2026-08-04 `shortTime` batch adds an eighth: **es**. The original `es`
-strings were authored in the plan and are exempt, but the shortTime ones were
-written by an implementer like every other locale, so they carry the same
+The two 2026-08-04 batches (`shortTime`, `fellowship`) add an eighth: **es**.
+The original `es` strings were authored in the plan and are exempt, but these
+were written by an implementer like every other locale, so they carry the same
 review obligation.
 
 | Namespace | Keys | Locales | Strings | Authored in |
@@ -19,7 +19,8 @@ review obligation.
 | `inPersonPopup` | 10 | 7 | 70 | Task 9 |
 | `inPersonScreen` | 9 | 7 | 63 | Task 10 |
 | `inPersonScreen` (shortTime) | 8 | 8 | 64 | shortTime filter, 2026-08-04 |
-| **Total** | | | **197** | |
+| `inPersonScreen` (fellowship) | 3 | 8 | 24 | fellowship filter, 2026-08-04 |
+| **Total** | | | **221** | |
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every
@@ -51,6 +52,12 @@ Copied from `.superpowers/sdd/2026-08-03-in-person-ui/translation-review-queue.m
 ---
 
 ## `inPersonScreen` — 63 strings (7 locales × 9 keys)
+
+> **Stale entries below, by design.** This section records what Task 10
+> authored. Two of these keys were re-translated on 2026-08-04 and the strings
+> shown here are no longer what ships: `selectRadius` (twice — see both
+> addenda) and `selectFellowship`. Review the addendum versions, not these.
+> The rest of the section is still current.
 
 ### ar (Arabic)
 - title: "حضوريًا"
@@ -279,3 +286,43 @@ Seven keys are new; `selectRadius` is a re-translation.
   in English ("No Tuesday meetings match Evening."). Locales where a mid-sentence
   capital is wrong should either lowercase the bucket labels or restructure
   `emptyShortTime` around them.
+
+---
+
+# Addendum — In-Person Fellowship filter + 2×2 grid (2026-08-04)
+
+Three keys across **eight** locales (es + the original seven) = **24 strings**.
+One key is new; two are re-translations of strings this branch already shipped.
+
+| Key | English | Notes |
+|---|---|---|
+| `fellowshipLabel` | Fellowship | **New.** Compact label for a half-width grid cell. Must be short — see the layout note below. |
+| `selectRadius` | Radius | **Changed** 2026-08-04, second time this branch: "Search Distance" → "Distance" → "Radius". The visible value beside it is now a bare distance ("25 mi"), not "Within 25 mi". |
+| `selectFellowship` | Tap to pick a fellowship and see in-person meetings | **Changed.** Used to send the user to Settings; the segment now has its own picker, and the message itself is the tap target. |
+
+## Reviewer notes worth acting on first
+
+- **`fellowshipLabel` shares a ~160dp cell with its value and a chevron.** Long
+  translations (de `Gemeinschaft`, ru `Сообщество`, uk `Спільнота`,
+  pt `Irmandade`, fr `Fraternité`) will wrap to two lines on a 360dp-wide
+  phone. That is handled — the row stretches and both cells stay level — but
+  if your language has a shorter everyday word for the same concept, prefer it.
+  Do not sacrifice the established domain term just to save a line.
+- **Term consistency is deliberate here.** `fellowshipLabel` was matched to the
+  word each locale already uses in `settingsScreen:selectFellowship`, because
+  that string is the title of the very modal this label opens. If the two
+  disagree in your locale, they should be fixed together, not separately.
+  Note `es` already carries two words for this — `grupo` in the settings
+  picker, `confraternidad` in the in-person empty state. The new label follows
+  `grupo` (the modal it opens); whether the whole `es` set should converge on
+  one term is a reviewer call.
+- **`selectFellowship` is now an instruction to tap, not a pointer elsewhere.**
+  The copy has to read as an action on *this* screen. A locale that renders it
+  as a passive description ("A fellowship has not been selected") loses the
+  affordance — the text is the button.
+- **`selectRadius` must not re-lengthen.** It is a label column beside a value
+  column; the previous wording overflowed and truncated to `RadiusWith…`,
+  hiding the value entirely. Prefer the shortest accurate word. Flagged for
+  `ar` in particular: `النطاق` was chosen over the literal geometric
+  `نصف القطر`, which is both long and wrong in register for a search radius —
+  confirm it reads naturally.

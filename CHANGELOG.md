@@ -24,8 +24,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
-- **Time-of-day filter on the In-Person segment.** A third selector, below the
-  Day and Distance row, narrows the list to Morning (5am–noon), Afternoon
+- **Fellowship filter on the In-Person segment**, matching the one on the Live
+  segment: pick AA / NA / whichever fellowships the build offers, without
+  leaving the tab. Like Live's, it's a browse control — it filters what you're
+  looking at now and deliberately does **not** change the fellowship saved in
+  Settings, so the rest of the app is unaffected. Changing the preference in
+  Settings still wins and resets the segment back to it. Unlike Live's, the
+  choice is sent to the server (in-person meetings are fetched per fellowship
+  rather than filtered locally), so switching refetches the list. Users who
+  have never picked a fellowship now get a tappable prompt that opens this
+  picker, replacing copy that sent them to Settings for a control that is now
+  on the screen in front of them.
+
+- **Time-of-day filter on the In-Person segment.** A selector alongside
+  Fellowship, Day and Radius narrows the list to Morning (5am–noon), Afternoon
   (noon–5pm), Evening (5pm–10pm) or Overnight (10pm–5am), defaulting to "Any
   time". Boundaries follow recovery meeting culture rather than the plain
   calendar split — a 6am sunrise meeting belongs to Morning, and Overnight
@@ -80,9 +92,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
-- The In-Person radius selector is now labelled "Distance" rather than "Search
-  Distance", in all nine locales. Shortened so it sits comfortably beside the
-  Day selector at half width, where the longer label was crowding its own value.
+- **The In-Person filters are now a 2×2 grid** — Fellowship and Time on top,
+  Day and Radius below — rather than a row of two plus a full-width third.
+  Four full-width rows would have pushed the first meeting off the fold on a
+  small phone.
+- The In-Person radius selector is now labelled "Radius" (was "Search
+  Distance", then briefly "Distance"), in all nine locales, and its value shows
+  a bare distance like "25 mi" instead of "Within 25 mi". At half width the
+  label and the longer value collided and rendered as "RadiusWith…" — hiding
+  the number, which is the only part that matters. Screen readers still get the
+  full "Within 25 mi" phrasing.
 - Meetings tab: Listings segment renamed Search, and a third In-Person
   segment sits between Live and Search (see Added). The Search rename covers
   all nine app locales for naming consistency (translations pending

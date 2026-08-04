@@ -787,7 +787,8 @@ const de: Translations = {
   inPersonScreen: {
     title: "Vor Ort",
     withinRadius: "Im Umkreis von {{distance}}",
-    selectRadius: "Entfernung",
+    fellowshipLabel: "Gemeinschaft",
+    selectRadius: "Umkreis",
     shortTimeLabel: "Zeit",
     shortTimeAll: "Jederzeit",
     shortTimeMorning: "Morgens",
@@ -803,7 +804,7 @@ const de: Translations = {
     emptyNearby:
       "Keine Präsenz-Meetings im Umkreis von {{distance}} am {{day}} — versuche einen größeren Radius",
     emptyFallback: "Keine {{fellowship}}-Präsenz-Meetings am {{day}}",
-    selectFellowship: "Wähle in den Einstellungen eine Gemeinschaft, um Meetings zu sehen",
+    selectFellowship: "Tippe, um eine Gemeinschaft zu wählen und Präsenzmeetings zu sehen",
   },
 }
 

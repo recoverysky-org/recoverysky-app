@@ -779,7 +779,8 @@ const pt: Translations = {
   inPersonScreen: {
     title: "Presencial",
     withinRadius: "Em um raio de {{distance}}",
-    selectRadius: "Distância",
+    fellowshipLabel: "Irmandade",
+    selectRadius: "Raio",
     shortTimeLabel: "Horário",
     shortTimeAll: "Qualquer horário",
     shortTimeMorning: "Manhã",
@@ -796,7 +797,7 @@ const pt: Translations = {
     emptyNearby:
       "Nenhuma reunião presencial em um raio de {{distance}} em {{day}} — tente um raio maior",
     emptyFallback: "Nenhuma reunião presencial de {{fellowship}} em {{day}}",
-    selectFellowship: "Selecione uma irmandade nos Ajustes para ver reuniões",
+    selectFellowship: "Toque para escolher uma irmandade e ver reuniões presenciais",
   },
 }
 

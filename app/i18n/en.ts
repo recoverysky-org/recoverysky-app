@@ -796,7 +796,8 @@ const en = {
   inPersonScreen: {
     title: "In-Person",
     withinRadius: "Within {{distance}}",
-    selectRadius: "Distance",
+    fellowshipLabel: "Fellowship",
+    selectRadius: "Radius",
     shortTimeLabel: "Time",
     shortTimeAll: "Any time",
     shortTimeMorning: "Morning",
@@ -809,7 +810,7 @@ const en = {
     nearbyFailedBanner: "Couldn't load nearby results — tap to retry",
     emptyNearby: "No in-person meetings within {{distance}} on {{day}} — try a wider radius",
     emptyFallback: "No in-person {{fellowship}} meetings on {{day}}",
-    selectFellowship: "Select a fellowship in Settings to see meetings",
+    selectFellowship: "Tap to pick a fellowship and see in-person meetings",
   },
 }
 
