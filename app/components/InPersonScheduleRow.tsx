@@ -13,7 +13,6 @@
 import { FC, useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
-import { FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
@@ -37,7 +36,7 @@ interface InPersonScheduleRowProps {
 
 /**
  * InPersonScheduleRow displays a condensed in-person (or hybrid) meeting row:
- * fellowship accent bar, name + reminder bell, venue/city line, and a right
+ * theme-tinted accent bar, name + reminder bell, venue/city line, and a right
  * column carrying the local start time, an optional distance badge, and a
  * hybrid glyph when the meeting also has an online option.
  *
@@ -61,10 +60,6 @@ export const InPersonScheduleRow: FC<InPersonScheduleRowProps> = ({
     () => (meeting.millis === 0 ? "24h" : formatMillisToLocalTime(meeting.millis)),
     [meeting.millis],
   )
-
-  const fellowshipColor = useMemo(() => {
-    return FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
-  }, [meeting.fellowship])
 
   // Venue line composes from data the meeting already carries (venue name +
   // city) rather than introducing new copy — per the i18n guidance, prefer
@@ -91,9 +86,18 @@ export const InPersonScheduleRow: FC<InPersonScheduleRowProps> = ({
         .join(", ")}
       accessibilityHint={translate("accessibility:doubleTapToView")}
     >
-      {/* Fellowship accent bar — same color source as LiveMeetingRow's badge,
-          rendered as a bar here to leave room for the two-line venue text. */}
-      <View style={[$accentBar, { backgroundColor: fellowshipColor }]} accessible={false} />
+      {/* Accent bar — originally took its color from FELLOWSHIP_COLORS, the
+          same source as LiveMeetingRow's badge, rendered as a bar here to
+          leave room for the two-line venue text.
+          CHANGED 2026-08-03: the bar now uses the app's theme tint (the
+          user's chosen color, electric pink by default). At badge-text size
+          a fellowship color reads as a small accent; at full-row-height bar
+          size it dominated the list — a screen of NA meetings rendered as a
+          column of green stripes that fought the pink theme. Fellowship is
+          still conveyed: by the badge text in InPersonPopup, and by the
+          accessibilityLabel below. Do not restore the fellowship color here
+          without shrinking the bar. */}
+      <View style={[$accentBar, { backgroundColor: theme.colors.tint }]} accessible={false} />
 
       <View style={$textColumn} accessible={false}>
         {/* Name row: meeting name + reminder bell, matching LiveMeetingRow's
