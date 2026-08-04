@@ -7,8 +7,9 @@
  * shape. Type-only imports would be fine (they're erased); value imports are
  * not.
  *
- * Holds the `shortTime` bucket definitions and their predicate, used by the
- * In-Person segment's Time filter.
+ * Holds the `shortTime` bucket definitions and their predicate (In-Person's
+ * Time filter), plus the Search segment's venue / radius / extended-time
+ * choices.
  */
 
 // ============================================================================
@@ -84,4 +85,126 @@ export function matchesShortTime(millis: number, bucket: ShortTime): boolean {
   // Wrapping bucket (overnight): the span runs past midnight, so a matching
   // hour is either late in the evening OR early the next morning.
   return hour >= range.startHour || hour <= range.endHour
+}
+
+// ============================================================================
+// Search segment: venue
+// ============================================================================
+
+/**
+ * Venue choice for the Search segment's Venue filter.
+ *
+ * Unlike `VenueFilter` in `app/services/api` (which is the wire value and has
+ * no "all" — omitting the param IS "all", and the server defaults it to
+ * online), this is the *UI* choice, so it names all three states explicitly.
+ * There is no value-to-value converter: `poolsForVenue` turns the choice into
+ * "which legs run", and each leg passes its own literal wire value.
+ */
+export type VenueChoice = "all" | "online" | "in_person"
+
+/** Selector order. `all` leads because it's the default (no narrowing). */
+export const VENUE_OPTIONS: readonly VenueChoice[] = ["all", "online", "in_person"]
+
+/** The neutral value — both pools fetched and shown. */
+export const DEFAULT_VENUE: VenueChoice = "all"
+
+/**
+ * Does a meeting's `venueType` satisfy the chosen venue filter?
+ *
+ * Venue semantics are the common lib's: `""` (legacy online rows scraped
+ * before VenueType existed) and `"online"` are both online; only `"in_person"`
+ * is in-person. That one-liner is duplicated from `isInPersonVenue` in
+ * `app/context/meetingPools.ts` rather than imported, because this module must
+ * stay free of runtime `@/` imports for vitest (see the header). If the venue
+ * vocabulary ever grows a third value, both copies change together.
+ */
+export function matchesVenue(venueType: string, choice: VenueChoice): boolean {
+  if (choice === "all") return true
+  const isInPerson = venueType === "in_person"
+  return choice === "in_person" ? isInPerson : !isInPerson
+}
+
+/**
+ * Which pools a venue choice needs fetched. Both flags true for "all".
+ *
+ * Returned as a pair rather than derived at each call site because the Search
+ * fetch has to decide *before* it knows what the rows look like — skipping a
+ * pool is the whole point (an online-only search shouldn't spend a request, or
+ * a location prompt, on in-person meetings).
+ */
+export function poolsForVenue(choice: VenueChoice): {
+  online: boolean
+  inPerson: boolean
+} {
+  return {
+    online: choice !== "in_person",
+    inPerson: choice !== "online",
+  }
+}
+
+// ============================================================================
+// Search segment: radius
+// ============================================================================
+
+/**
+ * "Any distance" — the Search radius default.
+ *
+ * Search is a browse-everything surface, so it must work fully without
+ * location. `null` means the in-person leg uses the plain day endpoint and no
+ * permission prompt ever fires; picking a real radius is the user's opt-in to
+ * being located, which is what keeps the lazy-permission rule (see the PRIVACY
+ * header in `useNearbySchedules.ts`) true on this tab too.
+ */
+export const RADIUS_ANY = null
+
+/** Radius applies to in-person venues only — online meetings have no place. */
+export function radiusAppliesTo(choice: VenueChoice): boolean {
+  return choice !== "online"
+}
+
+// ============================================================================
+// Search segment: time
+// ============================================================================
+
+/**
+ * Search's Time filter: In-Person's four buckets plus an explicit custom
+ * hour range.
+ *
+ * `custom` exists here and NOT in `SHORT_TIME_OPTIONS` on purpose. In-Person
+ * offers presets only; Search has always had start/end hour pickers and this
+ * folds them into the same control instead of spending a permanent row on a
+ * range most users never change. Adding `custom` to `ShortTime` would leak an
+ * option In-Person has no picker for.
+ */
+export type SearchTime = ShortTime | "custom"
+
+export const SEARCH_TIME_OPTIONS: readonly SearchTime[] = [...SHORT_TIME_OPTIONS, "custom"]
+
+/** Same neutral default as In-Person. */
+export const DEFAULT_SEARCH_TIME: SearchTime = DEFAULT_SHORT_TIME
+
+/**
+ * Does a meeting's local start hour fall inside [startHour, endHour)?
+ *
+ * End-exclusive, matching the range the Search pickers have always produced:
+ * start is 0–23, end is 1–24, and 24 means "through midnight". A meeting at
+ * 23:30 is in [23, 24) but not in [22, 23).
+ */
+export function matchesHourRange(millis: number, startHour: number, endHour: number): boolean {
+  const hour = new Date(millis).getHours()
+  return hour >= startHour && hour < endHour
+}
+
+/**
+ * The one predicate the Search list filters on, folding both time modes into
+ * one call so the screen never has to branch on which mode is active.
+ */
+export function matchesSearchTime(
+  millis: number,
+  choice: SearchTime,
+  startHour: number,
+  endHour: number,
+): boolean {
+  if (choice === "custom") return matchesHourRange(millis, startHour, endHour)
+  return matchesShortTime(millis, choice)
 }

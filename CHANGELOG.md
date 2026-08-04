@@ -24,6 +24,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **In-person meetings are now searchable.** The Meetings tab's Search segment
+  gained a **Venue** filter (All / Online / In-Person) and, with it, in-person
+  listings — which Search had been holding back while the In-Person segment was
+  built. In-person results get the in-person row and popup (venue, address,
+  directions, "I'm Here"), not the online one whose main action is a Zoom link
+  they don't have. Choosing Online skips the in-person fetch entirely rather
+  than fetching and discarding.
+
+- **Radius filter on the Search segment.** Defaults to "Any", so Search still
+  works with no location and never asks for it unattended; picking a real
+  radius is the opt-in, and only then does the prompt appear. It's greyed out
+  when Venue is Online — online meetings have no place, so a distance can't
+  include or exclude them. When active it narrows the in-person half of the
+  search server-side via the nearby endpoint, and results carry a distance
+  badge. If location is refused or the fix times out, the search still returns
+  the whole day rather than nothing.
+
+- **Time filter on the Search segment**, sharing the In-Person segment's four
+  buckets (Morning / Afternoon / Evening / Overnight) plus **Custom**, which
+  reveals the existing Start/End hour pickers. Those pickers used to occupy a
+  permanent row that most people never touched; they now appear only when
+  asked for, which is what freed the space for the new filters.
+
 - **Fellowship filter on the In-Person segment**, matching the one on the Live
   segment: pick AA / NA / whichever fellowships the build offers, without
   leaving the tab. Like Live's, it's a browse control — it filters what you're
@@ -92,6 +115,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **The Search filters are now a 2×3 grid** — Fellowship + Venue, Day + Lang,
+  Radius + Time. Fellowship used to own a full-width row for a two-letter
+  value. The Language cell's label is shortened to "Lang" in every locale
+  because at half width the full word collided with native language names
+  ("Português", "Українська").
 - **The In-Person filters are now a 2×2 grid** — Fellowship and Time on top,
   Day and Radius below — rather than a row of two plus a full-width third.
   Four full-width rows would have pushed the first meeting off the fold on a

@@ -1,6 +1,6 @@
 # Translation review queue — In-Person UI branch (2026-08-03)
 
-**221 machine-assisted strings awaiting a native-speaker pass before release.**
+**285 machine-assisted strings awaiting a native-speaker pass before release.**
 
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
@@ -9,7 +9,8 @@ are **not** in this queue — they need no review.
 
 The seven locales needing review: **ar, de, fr, pt, ru, th, uk**.
 
-The two 2026-08-04 batches (`shortTime`, `fellowship`) add an eighth: **es**.
+The three 2026-08-04 batches (`shortTime`, `fellowship`, Search filters) add
+an eighth: **es**.
 The original `es` strings were authored in the plan and are exempt, but these
 were written by an implementer like every other locale, so they carry the same
 review obligation.
@@ -20,7 +21,8 @@ review obligation.
 | `inPersonScreen` | 9 | 7 | 63 | Task 10 |
 | `inPersonScreen` (shortTime) | 8 | 8 | 64 | shortTime filter, 2026-08-04 |
 | `inPersonScreen` (fellowship) | 3 | 8 | 24 | fellowship filter, 2026-08-04 |
-| **Total** | | | **221** | |
+| `listingsScreen` (venue/radius/time) | 8 | 8 | 64 | Search filters, 2026-08-04 |
+| **Total** | | | **285** | |
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every
@@ -326,3 +328,43 @@ One key is new; two are re-translations of strings this branch already shipped.
   `ar` in particular: `النطاق` was chosen over the literal geometric
   `نصف القطر`, which is both long and wrong in register for a search radius —
   confirm it reads naturally.
+
+---
+
+# Addendum — Search segment filters (2026-08-04)
+
+Eight keys across **eight** locales (es + the original seven) = **64 strings**.
+Seven are new; `langLabel` is a shortened re-translation of an existing string.
+
+| Key | English | Notes |
+|---|---|---|
+| `langLabel` | Lang | **New, but replaces `languageLabel` on screen.** `languageLabel` ("Language") still exists and is still used for the picker's own title — this is the compact grid-cell version. Only shorten if your language genuinely has a shorter form; a "shortening" that isn't a real word is worse than the long one. |
+| `venueLabel` | Venue | Grid-cell label AND modal title. |
+| `venueAll` | All | Both venue types. Must read as "no filter", not as "all in-person". |
+| `venueOnline` | Online | |
+| `venueInPerson` | In-Person | Should match `inPersonScreen:title` in your locale — same concept, two places. Check them side by side. |
+| `timeCustom` | Custom | The Time option that reveals the Start/End hour pickers. "Custom range" if your language needs the noun. |
+| `radiusAny` | Any | Radius default = no distance filter. Elides "any distance"; if the bare adjective is ungrammatical standing alone in your locale, use the full phrase. |
+| `radiusOnlineNote` | not available for online meetings | **Screen-reader only** — never rendered visually. Read as the value of a disabled Radius control, i.e. "Radius, not available for online meetings". Lowercase and fragmentary on purpose. |
+
+## Reviewer notes worth acting on first
+
+- **These labels live in half-width grid cells (~160dp).** Long translations
+  wrap to two lines rather than truncating, which is handled but not free.
+  `venueLabel` and `langLabel` are the two most at risk. Prefer the shortest
+  word that's still the *right* word.
+- **`venueAll` vs `radiusAny` are two different "no filter" words in English
+  on purpose** — "All" counts things, "Any" measures a distance. Languages that
+  use one word for both are fine; languages that would find "All" wrong for a
+  distance should not inherit English's split blindly either.
+- **Venue vocabulary must agree with the segment names.** `venueInPerson` and
+  the In-Person segment title are the same concept in the same tab; so are
+  `venueOnline` and how Live describes its meetings. A locale that translates
+  them differently makes the Venue filter look like it's filtering something
+  else. Flagged specifically for `ru`/`uk`/`th`, where the label was rendered
+  as "format" (Формат / รูปแบบ) rather than a literal "venue" — that reads
+  better for a two-option online/in-person split, but confirm it.
+- **`radiusOnlineNote` is a fragment, by design.** It is concatenated after the
+  label by the accessibility layer, never shown as a sentence. If your language
+  can't produce a natural fragment there, rewrite it as a full clause that
+  still reads correctly *after* the word for "Radius".

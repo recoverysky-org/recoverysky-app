@@ -59,6 +59,16 @@ export function isInPersonVenue(venueType: string): boolean {
  * in_person rows and nothing else (legacy "" rows are online — see module
  * header). When the in-person UI/UX lands, consumers switch off this
  * projection deliberately, surface by surface.
+ *
+ * Surfaces switched off so far:
+ * - **Search** (`ListingsScreen`), 2026-08-04 — replaced by the user-facing
+ *   Venue filter, which calls `matchesVenue` (`app/utils/filterLogic.ts`)
+ *   instead. Same self-verification, but now the user picks.
+ *
+ * Still projected: **Live** (`MeetingContext.liveMeetings`). Live is an
+ * "in session right now, tap to join" surface, which an in-person meeting
+ * can't satisfy — that hold-back is a product decision, not a pending task,
+ * so don't remove it just to finish the list.
  */
 export function projectOnline<T extends { venueType: string }>(items: T[]): T[] {
   return items.filter((item) => !isInPersonVenue(item.venueType))
