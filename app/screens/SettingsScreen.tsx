@@ -452,18 +452,26 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     const target = parseReturnTo(returnTo)
     switch (target.kind) {
       case "meetingPopup":
-        // The id the popup actually consumes travels in the module-level
-        // store, not the route param — see navigationUtilities.ts for why
-        // route params lose that race. `meetingId` is ALSO passed as a param
-        // because MeetingsScreen uses its presence to force the segment,
+        // NAVIGATE FIRST, then publish the id. Both popups close themselves
+        // when the Meetings tab loses focus (`if (!isFocused && visible)
+        // onClose()`), so an id that lands while we are still on Settings
+        // could open a popup that immediately closes itself. React batches
+        // these two updates into one render, which is why the existing
+        // notification path gets away with the opposite order — but the
+        // ordering here does not depend on that, and it costs nothing.
+        //
+        // `meetingId` is passed as a route param as well as through the store
+        // because MeetingsScreen uses its presence to FORCE the segment,
         // overriding its own "route segment hasn't changed" short-circuit.
-        // Without it, returning to a segment whose route param is unchanged
-        // is a no-op and the user can land on the wrong one.
-        setPendingMeetingId(target.meetingId, target.segment)
+        // Without it, returning to a segment whose route param is unchanged is
+        // a no-op and the user can land on the wrong one. The param is not
+        // what opens the popup — see navigationUtilities.ts for why route
+        // params lose that race.
         navigation.navigate("Meetings" as any, {
           segment: target.segment,
           meetingId: target.meetingId,
         })
+        setPendingMeetingId(target.meetingId, target.segment)
         return
       case "meetingsTab":
         navigation.navigate("Meetings" as any, undefined)
