@@ -124,6 +124,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   both kinds, and an empty slot next to a row reads as missing data rather than
   as "this one has no distance because it has no place".
 
+- **In-person meeting details now carry the same header as online ones.** The
+  in-person sheet used to stop at time and duration; it now also shows how many
+  times a week the group meets, its language, and its meeting-type tags, and it
+  gained the favourite heart and 5-star rating. The rating gap was the pointed
+  one: an in-person row already displayed hearts and stars, so a user could see
+  a rating with nowhere to set it. A meeting shouldn't tell you less about
+  itself because it happens to have an address.
+
 - **Distance badges on in-person search results**, not just on the In-Person
   tab. Distance previously came only from the nearby endpoint, so it appeared
   in Search only while a radius was set — the same meeting showed a distance

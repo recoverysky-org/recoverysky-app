@@ -3,9 +3,12 @@
  *
  * Modal popup shown when a user taps an in-person (face-to-face) meeting
  * row. Displays:
- * - Meeting name, fellowship badge, local time + duration, hybrid note
+ * - Meeting name, fellowship badge, local time
+ * - Meta row: time, duration, meeting count, language, hybrid note
+ * - Meeting type tags
  * - Venue block: venue name, address, extra location info, approximate caveat
- * - Get Directions button (platform deep link, falls back to Maps web)
+ * - Get Directions button (platform deep link, falls back to Maps web) with
+ *   the favourite heart + 5-star rating beside it
  * - Published contacts (tap to call / email)
  * - Weekly schedule grid + reminders
  * - "I'm Here" attendance confirmation
@@ -13,9 +16,18 @@
  * Structural shell (overlay Modal, card, close-on-overlay-press, auto-close
  * on screen blur via useIsFocused) and the reminder wiring are copied from
  * SchedulePopup.tsx — see that file for the online-meeting machinery this
- * deliberately omits (Zoom join, feedback stars, topic panel, rating
- * soft-ask, the External Zoom timer). In-person attendance is a single
- * user-confirmed tap, not an elapsed-time credit, so none of that applies.
+ * deliberately omits (Zoom join, topic panel, rating soft-ask, the External
+ * Zoom timer). In-person attendance is a single user-confirmed tap, not an
+ * elapsed-time credit, so none of that applies.
+ *
+ * CHANGED 2026-08-04: the header used to stop at time + duration, and the
+ * feedback controls were listed above as deliberately omitted. Both were
+ * wrong once MeetingRow consolidated: an in-person row already *renders* the
+ * heart and stars, so leaving them out of the popup meant a user could see
+ * their rating but had nowhere to set it. Meeting count, language and the
+ * type tags came along for the same reason — a meeting's identity shouldn't
+ * shrink because it happens to have an address. The header now matches
+ * SchedulePopup's block-for-block; keep them in step.
  */
 
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -43,7 +55,7 @@ import { Text } from "@/components/Text"
 import { useToast } from "@/components/Toast"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
-import type { ReminderRecord } from "@/db"
+import { feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
 import { useReminders } from "@/hooks/useReminders"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
@@ -63,6 +75,14 @@ const log = logger.child({ module: "InPersonPopup" })
  * location" caveat row — matches the warm-accent convention established in
  * MeetingRow / ScheduleGrid rather than introducing a new hue. */
 const WARNING_COLOR = "#f59e0b"
+
+/** Feedback accents. Hard-coded rather than themed for the same reason
+ * SchedulePopup and MeetingRow hard-code them: a favourited heart is red and
+ * a filled star is gold in every theme, and all three surfaces must agree —
+ * a row and the popup it opens showing different reds would read as two
+ * different states. Keep these in sync with MeetingRow.tsx. */
+const FAVORITE_COLOR = "#ef4444"
+const STAR_COLOR = "#fbbf24"
 
 interface InPersonPopupProps {
   visible: boolean
@@ -168,8 +188,64 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
 
   const scheduleGridData = useMemo(() => meeting?.scheduleData ?? [], [meeting?.scheduleData])
 
+  // Total weekly occurrences — every non-null cell in the grid. Same
+  // derivation as SchedulePopup so the two popups can't disagree about how
+  // many times a group meets.
+  const meetingCount = useMemo(
+    () => scheduleGridData.reduce((count, row) => count + row.filter(Boolean).length, 0),
+    [scheduleGridData],
+  )
+
   // Current day for highlighting (1=Mon, 7=Sun) — same source as SchedulePopup.
   const currentDow = DateTime.now().weekday
+
+  // ==========================================================================
+  // Feedback (favourite + rating) — same cache, same wiring as SchedulePopup
+  //
+  // SchedulePopup's joins row (below the stars) is deliberately NOT ported:
+  // `joins` counts Zoom joins, which an in-person meeting never accrues. The
+  // equivalent here is "I'm Here", and that's recorded as attendance.
+  // ==========================================================================
+
+  // Local mirror of the cached record. `feedbackCache.get` is a synchronous
+  // read, so the heart/stars are correct on the popup's first frame rather
+  // than popping in a moment later.
+  const [feedback, setFeedback] = useState<FeedbackRecord | null>(null)
+
+  useEffect(() => {
+    if (visible && meeting?.id) {
+      setFeedback(feedbackCache.get(meeting.id))
+    } else {
+      setFeedback(null)
+    }
+  }, [visible, meeting?.id])
+
+  const isFavorite = feedback?.loves ?? false
+  const rating = feedback?.rates ?? 0
+
+  const handleToggleLove = useCallback(async () => {
+    if (!meeting?.id) return
+    const newLoves = await feedbackCache.toggleLove(meeting.id)
+    setFeedback((prev) =>
+      prev
+        ? { ...prev, loves: newLoves }
+        : { mid: meeting.id, loves: newLoves, rates: 0, joins: 0, lastJoin: 0 },
+    )
+    trackEvent("meeting_favorited", { action: newLoves ? "add" : "remove" })
+  }, [meeting?.id])
+
+  const handleSetRating = useCallback(
+    async (star: number) => {
+      if (!meeting?.id) return
+      await feedbackCache.setRating(meeting.id, star)
+      setFeedback((prev) =>
+        prev
+          ? { ...prev, rates: star }
+          : { mid: meeting.id, loves: false, rates: star, joins: 0, lastJoin: 0 },
+      )
+    },
+    [meeting?.id],
+  )
 
   // ==========================================================================
   // Address
@@ -392,7 +468,9 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
               </Pressable>
             </View>
 
-            {/* Meta row: time + duration */}
+            {/* Meta row: time, duration, weekly count, language, hybrid note.
+                Wraps, so a long language + hybrid pair drops to a second line
+                rather than truncating. */}
             <View style={themed($metaRow)}>
               {formattedTime && (
                 <View style={$metaItem}>
@@ -406,13 +484,49 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                   <Text style={themed($metaText)}>{durationLabel}</Text>
                 </View>
               )}
+              {meetingCount > 0 && (
+                <View style={$metaItem}>
+                  <Ionicons name="people-outline" size={14} color={theme.colors.textDim} />
+                  <Text style={themed($metaText)}>
+                    {meetingCount === 1
+                      ? t("liveScreen:meeting", { count: meetingCount })
+                      : t("liveScreen:meetings", { count: meetingCount })}
+                  </Text>
+                </View>
+              )}
+              {!!meeting.language && (
+                <View style={$metaItem}>
+                  <Ionicons name="globe-outline" size={14} color={theme.colors.textDim} />
+                  <Text style={themed($metaText)}>{meeting.language.toUpperCase()}</Text>
+                </View>
+              )}
+              {/* Hybrid note — this meeting also has an online option.
+                  CHANGED 2026-08-04: was globe-outline, on its own row below
+                  the meta row. Language moved into the meta row wearing the
+                  globe (that's what it means in SchedulePopup), so hybrid
+                  needed its own glyph — two globes side by side would read as
+                  one concept. videocam says "also meets online" without
+                  colliding. Note MeetingRow's hybrid glyph is still the globe:
+                  the row has no language icon to collide with, and changing it
+                  would churn a component this branch just consolidated. */}
+              {meeting.hybrid && (
+                <View style={$metaItem}>
+                  <Ionicons name="videocam-outline" size={14} color={theme.colors.textDim} />
+                  <Text style={themed($metaText)} tx="inPersonPopup:alsoOnline" />
+                </View>
+              )}
             </View>
 
-            {/* Hybrid note — this meeting also has an online option */}
-            {meeting.hybrid && (
-              <View style={$metaItem}>
-                <Ionicons name="globe-outline" size={14} color={theme.colors.textDim} />
-                <Text style={themed($metaText)} tx="inPersonPopup:alsoOnline" />
+            {/* Meeting tags — same flattening as SchedulePopup: `tags` and
+                `meetingTypes` are two upstream fields the user reads as one
+                set of labels. Renders nothing when both are empty. */}
+            {!!(meeting.tags?.length || meeting.meetingTypes?.length) && (
+              <View style={themed($tagsRow)}>
+                {[...(meeting.tags || []), ...(meeting.meetingTypes || [])].map((tag, idx) => (
+                  <View key={idx} style={themed($tag)}>
+                    <Text style={themed($tagText)}>{tag}</Text>
+                  </View>
+                ))}
               </View>
             )}
 
@@ -438,18 +552,62 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
               )}
             </View>
 
-            {/* Get Directions — hidden entirely when there's nothing to link to
-              (no coordinates AND no formatted address; see buildDirectionsUrl) */}
-            {!!directionsUrl && (
-              <Pressable
-                onPress={handleDirections}
-                style={themed($directionsButton)}
-                accessibilityRole="button"
-              >
-                <Ionicons name="navigate-outline" size={16} color={theme.colors.tint} />
-                <Text style={themed($directionsButtonText)} tx="inPersonPopup:getDirections" />
-              </Pressable>
-            )}
+            {/* Action row: Get Directions (left) + feedback (right) — the same
+                shape as SchedulePopup's Join + feedback row, with directions
+                standing in for the join. The feedback block keeps flex:1 and
+                right-alignment so the heart and stars stay pinned to the edge
+                whether or not there's a directions button beside them (there
+                isn't when the meeting has no coordinates AND no address — see
+                buildDirectionsUrl). */}
+            <View style={themed($actionRow)}>
+              {!!directionsUrl && (
+                <Pressable
+                  onPress={handleDirections}
+                  style={themed($directionsButton)}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="navigate-outline" size={16} color={theme.colors.tint} />
+                  <Text style={themed($directionsButtonText)} tx="inPersonPopup:getDirections" />
+                </Pressable>
+              )}
+
+              <View style={themed($feedbackSection)}>
+                <View style={themed($heartStarsRow)}>
+                  <Pressable
+                    onPress={handleToggleLove}
+                    style={themed($heartButton)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("accessibility:favoriteToggle")}
+                    accessibilityState={{ selected: isFavorite }}
+                    accessibilityHint={t("accessibility:doubleTapToToggleFavorite")}
+                  >
+                    <Ionicons
+                      name={isFavorite ? "heart" : "heart-outline"}
+                      size={26}
+                      color={isFavorite ? FAVORITE_COLOR : theme.colors.textDim}
+                    />
+                  </Pressable>
+                  <View style={$ratingContainer}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Pressable
+                        key={star}
+                        onPress={() => handleSetRating(star)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("accessibility:rateStars", { count: star })}
+                        accessibilityState={{ selected: star <= rating }}
+                        accessibilityHint={t("accessibility:doubleTapToRate")}
+                      >
+                        <Ionicons
+                          name={star <= rating ? "star" : "star-outline"}
+                          size={20}
+                          color={star <= rating ? STAR_COLOR : theme.colors.textDim}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
 
             {/* Contacts */}
             {!!meeting.contacts?.length && (
@@ -665,6 +823,9 @@ const $approximateText: TextStyle = {
   marginBottom: 0,
 }
 
+// CHANGED 2026-08-04: dropped `marginBottom` — the button now lives inside
+// $actionRow, which owns the gap to whatever follows. Left in place it
+// double-spaced the row.
 const $directionsButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
@@ -676,7 +837,6 @@ const $directionsButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingHorizontal: spacing.lg,
   borderRadius: 10,
   gap: spacing.xs,
-  marginBottom: spacing.sm,
   shadowColor: colors.tint,
   shadowOffset: { width: 0, height: 0 },
   shadowOpacity: 0.6,
@@ -689,6 +849,58 @@ const $directionsButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 15,
   fontWeight: "600",
 })
+
+// Tags / feedback styles mirror SchedulePopup's so the two popups' headers
+// are visually identical — a user moving between an online and an in-person
+// meeting shouldn't feel the layout shift under them.
+const $tagsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  flexWrap: "wrap",
+  gap: spacing.xs,
+  paddingBottom: spacing.sm,
+})
+
+const $tag: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.border,
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 12,
+})
+
+const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  fontWeight: "600",
+  color: colors.text,
+})
+
+// `alignItems: "flex-start"` keeps the directions button its natural height
+// instead of stretching to match the stars column.
+const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "flex-start",
+  gap: spacing.md,
+  marginBottom: spacing.md,
+})
+
+const $feedbackSection: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  alignItems: "flex-end",
+})
+
+const $heartStarsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $heartButton: ThemedStyle<ViewStyle> = () => ({
+  paddingHorizontal: 4,
+})
+
+const $ratingContainer: ViewStyle = {
+  flexDirection: "row",
+  gap: 4,
+}
 
 const $contactsSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.sm,
