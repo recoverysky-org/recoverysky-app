@@ -116,8 +116,14 @@ documentation pass.
       so a purchase from `SchedulePopup` restored the segment and never the
       popup. Both paths are fixed. Original analysis:
       `.superpowers/sdd/2026-08-03-in-person-ui/task-10-report.md` → "Question 2".
-      **Not yet device-tested** — needs a real paywall purchase round-trip on
-      hardware, from both an in-person and an online meeting's reminder gate.
+      **Device verification (2026-08-03):** the in-person path is confirmed
+      working on Android hardware — a real paywall purchase from `InPersonPopup`
+      returns to the In-Person segment with the popup reopened. Still
+      unverified: (a) the **live** path on any device — that's the
+      pre-existing bug above, the one existing users hit, and it has to be
+      exercised from an online meeting's reminder gate in `SchedulePopup`;
+      (b) **iOS**, on either path. The change is JS-only so iOS is expected to
+      behave identically, but "expected" isn't "checked".
 
 - [ ] **Open question, not a bug: why is `formattedAddress` 0% populated for
       in-person meetings?** `meeting.d.ts`'s `street` field JSDoc says "For
