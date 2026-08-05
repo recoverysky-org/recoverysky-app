@@ -808,6 +808,28 @@ const pt: Translations = {
     attendanceError: "Não foi possível salvar a presença — tente novamente",
     tapTimesHint: "Toque em um horário para definir um lembrete",
   },
+  presence: {
+    // {{distance}} e {{radius}} chegam já formatados por formatDistance()
+    // (milhas ou km conforme o idioma) — não adicione uma unidade ao texto.
+    outOfRangeTitle: "Você ainda não chegou",
+    outOfRangeMessage:
+      "Você está a cerca de {{distance}} desta reunião. Aproxime-se a menos de {{radius}} para registrar sua presença.",
+    noVenueCoordsTitle: "Não é possível verificar este local",
+    noVenueCoordsMessage:
+      "Não temos uma localização precisa para esta reunião, então não podemos confirmar que você está aqui.",
+    deniedTitle: "Localização necessária",
+    deniedMessage:
+      "Registrar presença presencial requer sua localização para confirmar que você está na reunião.",
+    openSettings: "Abrir Configurações",
+    fixFailedTitle: "Não conseguimos encontrar você",
+    fixFailedMessage:
+      "Não conseguimos obter sua localização. Saia para fora ou tente novamente em instantes.",
+    checking: "Verificando…",
+  },
+  inPersonTimer: {
+    title: "Cronômetro de Presença",
+    hint: "Encerre o cronômetro quando sua reunião terminar. Salvar requer pelo menos {{minutes}} min.",
+  },
   inPersonScreen: {
     title: "Presencial",
     withinRadius: "Em um raio de {{distance}}",

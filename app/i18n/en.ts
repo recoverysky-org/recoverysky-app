@@ -837,6 +837,27 @@ const en = {
     attendanceError: "Couldn't save attendance — please try again",
     tapTimesHint: "Tap a time to set a reminder",
   },
+  presence: {
+    // {{distance}} and {{radius}} arrive pre-formatted by formatDistance()
+    // (locale-aware miles vs km) — do NOT append a unit in the string.
+    outOfRangeTitle: "You're not there yet",
+    outOfRangeMessage:
+      "You're about {{distance}} from this meeting. Get within {{radius}} to record your attendance.",
+    noVenueCoordsTitle: "Can't verify this location",
+    noVenueCoordsMessage:
+      "We don't have a precise location for this meeting, so we can't confirm you're here.",
+    deniedTitle: "Location needed",
+    deniedMessage:
+      "Recording in-person attendance needs your location to confirm you're at the meeting.",
+    openSettings: "Open Settings",
+    fixFailedTitle: "Couldn't find you",
+    fixFailedMessage: "We couldn't get your location. Step outside or try again in a moment.",
+    checking: "Checking…",
+  },
+  inPersonTimer: {
+    title: "Attendance Timer",
+    hint: "End the timer when your meeting finishes. Save requires at least {{minutes}} min.",
+  },
   inPersonScreen: {
     title: "In-Person",
     withinRadius: "Within {{distance}}",

@@ -798,6 +798,25 @@ const ar: Translations = {
     attendanceError: "تعذر حفظ الحضور — يرجى المحاولة مرة أخرى",
     tapTimesHint: "اضغط على وقت لتعيين تذكير",
   },
+  presence: {
+    // تصل {{distance}} و {{radius}} منسقتين مسبقًا من formatDistance()
+    // (أميال أو كيلومترات حسب اللغة) — لا تُضِف وحدة قياس إلى النص.
+    outOfRangeTitle: "لست هناك بعد",
+    outOfRangeMessage:
+      "أنت على بُعد حوالي {{distance}} من هذا الاجتماع. اقترب لمسافة أقل من {{radius}} لتسجيل حضورك.",
+    noVenueCoordsTitle: "يتعذر التحقق من هذا الموقع",
+    noVenueCoordsMessage: "ليس لدينا موقع دقيق لهذا الاجتماع، لذا لا يمكننا التأكد من وجودك هنا.",
+    deniedTitle: "الموقع مطلوب",
+    deniedMessage: "يتطلب تسجيل الحضور الشخصي موقعك لتأكيد وجودك في الاجتماع.",
+    openSettings: "فتح الإعدادات",
+    fixFailedTitle: "تعذر تحديد موقعك",
+    fixFailedMessage: "تعذر الحصول على موقعك. اخرج إلى الخارج أو حاول مرة أخرى بعد قليل.",
+    checking: "جارٍ التحقق…",
+  },
+  inPersonTimer: {
+    title: "مؤقت الحضور",
+    hint: "أنهِ المؤقت عند انتهاء اجتماعك. يتطلب الحفظ على الأقل {{minutes}} دقيقة.",
+  },
   inPersonScreen: {
     title: "حضوريًا",
     withinRadius: "ضمن {{distance}}",
