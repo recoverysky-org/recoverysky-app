@@ -11,7 +11,9 @@
  *   the favourite heart + 5-star rating beside it
  * - Published contacts (tap to call / email)
  * - Weekly schedule grid + reminders
- * - "I'm Here" attendance confirmation
+ * - GPS-verified "I'm Here" attendance: a presence check gates a shared
+ *   attendance timer, followed by the same topic/host panel the online path
+ *   uses
  *
  * Structural shell (overlay Modal, card, close-on-overlay-press, auto-close
  * on screen blur via useIsFocused) and the reminder wiring are copied from
@@ -19,6 +21,14 @@
  * deliberately omits (Zoom join, topic panel, rating soft-ask, the External
  * Zoom timer). In-person attendance is a single user-confirmed tap, not an
  * elapsed-time credit, so none of that applies.
+ *
+ * CHANGED 2026-08-05: two of those three omissions no longer hold. Task 10
+ * replaced the single-tap write with a GPS-verified presence check gating
+ * the same shared attendance timer the online path uses, followed by the
+ * same topic/host panel (TopicPanelOverlay, mounted below) — so "topic
+ * panel" moved from omitted to shared. Zoom join still doesn't apply (there
+ * is no Zoom meeting to join here) and the rating soft-ask is still
+ * genuinely absent; don't read this note as reversing those two.
  *
  * CHANGED 2026-08-04: the header used to stop at time + duration, and the
  * feedback controls were listed above as deliberately omitted. Both were
@@ -770,9 +780,20 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
           visible={timerVisible}
           meeting={timerMeeting}
           presence={verifiedPresence}
-          onClose={() => setTimerVisible(false)}
+          onClose={() => {
+            setTimerVisible(false)
+            // PRIVACY: release the raw fix once the timer no longer needs it.
+            // Coordinates otherwise stay out of React state everywhere else in
+            // the app (see useNearbySchedules.ts) — this popup's copy is the
+            // one narrow, documented exception, and it should live no longer
+            // than the timer that consumes it. Mirrors PersistedTimerSession's
+            // own lifecycle note (timerSession.ts) — cleared on Save or Cancel.
+            setVerifiedPresence(null)
+          }}
           onSaved={() => {
             setTimerVisible(false)
+            // See the PRIVACY note in onClose above — same reason, same rule.
+            setVerifiedPresence(null)
           }}
         />
       )}
