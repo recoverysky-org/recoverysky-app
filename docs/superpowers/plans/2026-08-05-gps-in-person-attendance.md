@@ -23,6 +23,7 @@ Every task's requirements implicitly include this section.
 - **Nine locales.** `app/i18n/en.ts` declares `export type Translations = typeof en`; the other eight are typed against it. A key missing from any of `en, es, ar, de, fr, pt, ru, th, uk` is a hard `tsc` error. Non-English ships English placeholder text.
 - **Test runner split.** `*.test.ts` → vitest, which **cannot resolve the `@/` alias**. Any module you want unit-tested must have zero runtime `@/` imports (type-only imports are erased and are fine). `*.test.tsx` → jest-expo.
 - **ESLint must be scoped**: `npx eslint <specific files>`. Never repo-wide — it takes 22+ minutes at 99% CPU.
+- **`react-hooks/exhaustive-deps` IS registered in this repo, as a warning.** ADDED 2026-08-05 after Task 3 review: it arrives transitively via `extends: ["expo"]` (`eslint-config-expo`), so grepping `.eslintrc.js` for the plugin finds nothing and wrongly suggests the rule is off. Confirm with `npx eslint --print-config <file>`, not grep. **When it fires on `useAttendanceTimer` or any timer effect, resolve it with a ref — never by adding the dependency.** Adding the dependency is the bug that resets a user's running clock and re-launches Zoom mid-meeting.
 - **Never use bare `git stash` / `git stash pop`.** The stash stack is shared across worktrees and concurrent sessions. Use `git stash push -u -m "<unique-tag>"` and restore by SHA.
 - **Comment liberally.** This repo deliberately overrides the minimal-comment default (see `CLAUDE.md` → Code Conventions → Comments). When you change existing behavior, keep the original comment and append a `CHANGED 2026-08-05:` note explaining the failure mode or motivation — do not delete it.
 - **No `runtimeVersion` bump.** `expo-location` is already a dependency; nothing native changes. This ships as an OTA.
@@ -2008,7 +2009,7 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
   const meetingName = meeting?.name
   const uid = authStore.userId || "anonymous"
 
-  const { startedAt, elapsed, beginSave, endSave } = useAttendanceTimer({
+  const { startedAt, elapsed, isResume, beginSave, endSave } = useAttendanceTimer({
     active: visible && !!meetingId && !!presence,
     sessionKey: meetingId ?? "",
     matchesPersisted: (s) => sessionSource(s) === "in-person" && s.meetingId === meetingId,
@@ -2023,6 +2024,22 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
     // No onStart: nothing is launched. This is the only structural difference
     // from ExternalZoomTimerModal.
   })
+
+  // ADDED 2026-08-05 (Task 3 review): mirror the Zoom modal's resume log. The
+  // resume branch has no automated coverage and is the one documented in
+  // TimerSessionResumer as having cost customers their attendance — without
+  // this line, "we adopted the persisted session" is only provable from Loki
+  // by its absence. Logged here rather than through a hook callback because a
+  // callback would have to hand over the whole PersistedTimerSession, which
+  // carries a `presence` GPS fix that must never reach Loki. Log scalars only.
+  useEffect(() => {
+    if (!isResume || !startedAt) return
+    log.info("In-person timer resumed from persisted session", {
+      mid: meetingId,
+      startedAt,
+      elapsedMs: Date.now() - startedAt,
+    })
+  }, [isResume, startedAt])
 
   const minMinutes = Math.ceil(EXTERNAL_MIN_CREDIT_MS / 60000)
   const canSave = elapsed >= EXTERNAL_MIN_CREDIT_MS && !saving
