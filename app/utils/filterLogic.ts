@@ -94,19 +94,29 @@ export function matchesShortTime(millis: number, bucket: ShortTime): boolean {
 /**
  * Venue choice for the Search segment's Venue filter.
  *
- * Unlike `VenueFilter` in `app/services/api` (which is the wire value and has
- * no "all" — omitting the param IS "all", and the server defaults it to
- * online), this is the *UI* choice, so it names all three states explicitly.
- * There is no value-to-value converter: `poolsForVenue` turns the choice into
- * "which legs run", and each leg passes its own literal wire value.
+ * These are the same two values as `VenueFilter` in `app/services/api` (the
+ * wire value), but this is the *UI* choice and stays a separate type: there is
+ * no value-to-value converter, because `poolsForVenue` turns the choice into
+ * "which legs run" and each leg passes its own literal wire value.
+ *
+ * CHANGED 2026-08-04: dropped the third choice, `"all"`. Jenova's call — a
+ * mixed list is the one result set where a row's most important fact (can I
+ * walk there, or do I open Zoom?) had to be carried by a tag the eye may not
+ * reach, and every other surface in the app is single-venue. Removing it also
+ * removes the state where Search silently fetched two pools, and with them a
+ * location prompt the user never asked for. If you re-add it, the Online tag
+ * on `MeetingRow` (removed with it) has to come back too.
  */
-export type VenueChoice = "all" | "online" | "in_person"
+export type VenueChoice = "online" | "in_person"
 
-/** Selector order. `all` leads because it's the default (no narrowing). */
-export const VENUE_OPTIONS: readonly VenueChoice[] = ["all", "online", "in_person"]
+/** Selector order. `online` leads because it's the default. */
+export const VENUE_OPTIONS: readonly VenueChoice[] = ["online", "in_person"]
 
-/** The neutral value — both pools fetched and shown. */
-export const DEFAULT_VENUE: VenueChoice = "all"
+/**
+ * Default venue. Online: it needs no location, so a first visit still asks for
+ * nothing, and it matches what the server returns when the param is omitted.
+ */
+export const DEFAULT_VENUE: VenueChoice = "online"
 
 /**
  * Does a meeting's `venueType` satisfy the chosen venue filter?
@@ -119,26 +129,29 @@ export const DEFAULT_VENUE: VenueChoice = "all"
  * vocabulary ever grows a third value, both copies change together.
  */
 export function matchesVenue(venueType: string, choice: VenueChoice): boolean {
-  if (choice === "all") return true
   const isInPerson = venueType === "in_person"
   return choice === "in_person" ? isInPerson : !isInPerson
 }
 
 /**
- * Which pools a venue choice needs fetched. Both flags true for "all".
+ * Which pools a venue choice needs fetched.
  *
- * Returned as a pair rather than derived at each call site because the Search
- * fetch has to decide *before* it knows what the rows look like — skipping a
- * pool is the whole point (an online-only search shouldn't spend a request, or
- * a location prompt, on in-person meetings).
+ * Returned as a pair rather than a single value because the Search fetch has to
+ * decide *before* it knows what the rows look like — skipping a pool is the
+ * whole point (an online-only search shouldn't spend a request, or a location
+ * prompt, on in-person meetings).
+ *
+ * CHANGED 2026-08-04: with `"all"` gone, exactly one flag is true for every
+ * choice. The pair shape stays because both call sites read the flags
+ * independently, and because a future third venue could again need two legs.
  */
 export function poolsForVenue(choice: VenueChoice): {
   online: boolean
   inPerson: boolean
 } {
   return {
-    online: choice !== "in_person",
-    inPerson: choice !== "online",
+    online: choice === "online",
+    inPerson: choice === "in_person",
   }
 }
 
@@ -157,7 +170,7 @@ export function poolsForVenue(choice: VenueChoice): {
 
 /** Radius applies to in-person venues only — online meetings have no place. */
 export function radiusAppliesTo(choice: VenueChoice): boolean {
-  return choice !== "online"
+  return choice === "in_person"
 }
 
 // ============================================================================

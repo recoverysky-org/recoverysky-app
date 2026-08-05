@@ -50,18 +50,23 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Platform } from "react-native"
 import { getLocales } from "expo-localization"
 import * as Location from "expo-location"
 
 import { MeetingWithTrex } from "@/context/MeetingContext"
 import { inPersonPoolOf } from "@/context/meetingPools"
+import { feedbackCache } from "@/db"
 import { useConfigStore, useProfileStore } from "@/models"
 import { api, LiveSchedule } from "@/services/api"
+import { sortByFeedback } from "@/utils/feedbackSort"
 import { logger } from "@/utils/logger"
 import {
   buildNearbyParams,
   DEFAULT_RADIUS_KM,
+  NearbyBannerReason,
   NearbyMode,
+  resolveBannerReason,
   resolveMode,
   sortByDistance,
   sortByLocalTime,
@@ -72,8 +77,34 @@ const log = logger.child({ module: "useNearbySchedules" })
 
 /** MMKV key for the persisted radius preference (a preference, NOT location data). */
 const RADIUS_STORAGE_KEY = "inperson.radius"
-/** Give the GPS 10 s before degrading to day-browse. */
-const FIX_TIMEOUT_MS = 10_000
+/**
+ * Budget for a *fresh* fix before we give up on it.
+ *
+ * CHANGED 2026-08-04: was a flat 10 s. Android's fused provider routinely
+ * needs longer than that for its first fresh fix on a cold process indoors
+ * (CoreLocation, by contrast, answers from its own cache almost immediately —
+ * which is why this only ever bit Android). Every miss flipped `fix` to
+ * "failed" and showed the "Enable location" banner to users who had already
+ * granted permission; tapping it worked only because the first attempt had
+ * warmed the provider. The cached seed below is the real fix; the longer
+ * budget just stops us abandoning a fix that was nearly there.
+ */
+const FIX_TIMEOUT_MS = Platform.OS === "android" ? 20_000 : 10_000
+
+/**
+ * How stale the OS's cached position may be before we ignore it. Ten minutes
+ * of travel cannot move you out of the smallest radius option (10 km), and the
+ * fresh fix that follows corrects it anyway.
+ */
+const LAST_KNOWN_MAX_AGE_MS = 10 * 60_000
+
+/**
+ * Budget for the fresh fix when a cached position is ALREADY in hand. Short on
+ * purpose: the fresh fix is a refinement at that point, and the caller blocks
+ * on it before fetching, so a long wait here would trade a list the user could
+ * be reading for a slightly better sort order.
+ */
+const REFINE_TIMEOUT_MS = 5_000
 
 const getCurrentIsoDow = (): number => {
   const jsDay = new Date().getDay()
@@ -93,7 +124,12 @@ const loadRadius = (): number => {
 const toMeetings = (schedules: LiveSchedule[]): MeetingWithTrex[] =>
   schedules.map((s) => ({
     ...s.meeting,
-    feedback: null,
+    // CHANGED 2026-08-04: was hard-coded `null`, which left the In-Person list
+    // with nothing to order favourites by. Read once, here, at fetch time —
+    // this is the SNAPSHOT `sortByFeedback` uses. It must not be live cache
+    // state, or a row would jump out from under the finger that just tapped its
+    // heart; InPersonScreen keeps a separate live map for the rendered glyphs.
+    feedback: feedbackCache.get(s.meeting.id),
     sid: s.sid,
     millis: s.millis,
     duration_ms: s.duration_ms ?? 0,
@@ -108,7 +144,7 @@ export interface UseNearbySchedulesResult {
   /** Set only when the ACTIVE path's fetch failed (fallback fetch failing, or total dead-end) */
   error: string | null
   /** Why the fallback banner is showing (null in nearby/locating modes) */
-  bannerReason: "location" | "nearbyFailed" | null
+  bannerReason: NearbyBannerReason | null
   selectedDay: number
   setSelectedDay: (isoDow: number) => void
   radiusKm: number
@@ -232,6 +268,12 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
 
     acquiringRef.current = true
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    /**
+     * Set once the cached position below has been committed, so the catch
+     * block knows a failed *fresh* fix still leaves us located — without it the
+     * timeout would drop a position we had already used to render the list.
+     */
+    let seededFromCache = false
 
     try {
       const perm = await Location.requestForegroundPermissionsAsync()
@@ -261,19 +303,41 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // "failed", mode "fallback").
       if (!coordsRef.current) setFix("pending")
 
-      // Race the fix against a 10 s timeout — a cold GPS indoors can hang
-      // far longer, and the fallback list is more useful than a spinner.
-      // The handle is cleared in `finally` on BOTH outcomes; leaving it
-      // dangling would keep a timer (and this closure) alive for 10 s after
-      // a fast fix, and fire a rejection nobody is listening to. A position
-      // that resolves after the timeout won is simply dropped by the race —
-      // it is never awaited again, so it cannot write stale coordinates.
+      // Seed from whatever position the OS already holds before asking for a
+      // new one. This is the fix for "I granted location but every restart
+      // shows the Enable-location banner until I tap it": the fresh fix below
+      // regularly misses its budget on Android, and until 2026-08-04 that was
+      // the *only* way this hook could ever obtain coordinates. The cached
+      // position needs no hardware wakeup and no wait, and is accurate to far
+      // better than the 10 km smallest radius.
+      // PRIVACY: handled exactly like any other fix — into the ref, nowhere
+      // else, and never logged.
+      const cached = await Location.getLastKnownPositionAsync({
+        maxAge: LAST_KNOWN_MAX_AGE_MS,
+      }).catch(() => null)
+      if (!isCurrent()) return false
+      if (cached) {
+        coordsRef.current = { lat: cached.coords.latitude, lon: cached.coords.longitude }
+        seededFromCache = true
+        setFix("acquired")
+      }
+
+      // Race the fix against its timeout — a cold GPS indoors can hang far
+      // longer than any budget we'd want to impose on the UI. The handle is
+      // cleared in `finally` on BOTH outcomes; leaving it dangling would keep
+      // a timer (and this closure) alive after a fast fix, and fire a
+      // rejection nobody is listening to. A position that resolves after the
+      // timeout won is simply dropped by the race — it is never awaited again,
+      // so it cannot write stale coordinates.
+      // The budget depends on whether the seed above gave us anything: with a
+      // position in hand this is a refinement the user is waiting on, without
+      // one it's the difference between a located segment and an empty one.
       const position = await Promise.race([
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
         new Promise<never>((_, reject) => {
           timeoutHandle = setTimeout(
             () => reject(new Error("location fix timeout")),
-            FIX_TIMEOUT_MS,
+            seededFromCache ? REFINE_TIMEOUT_MS : FIX_TIMEOUT_MS,
           )
         }),
       ])
@@ -288,6 +352,11 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // toString never includes a request config or URL, so this cannot leak
       // the coordinates we just asked for. Do not log the error object.
       log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
+      // A cached position committed earlier in this call is still valid — the
+      // fresh fix timing out doesn't make it wrong. Degrading here would throw
+      // away the position the list is already sorted by, which is the exact
+      // failure this change exists to remove.
+      if (seededFromCache) return true
       coordsRef.current = null
       setNearbyFetchFailed(false)
       setFix("failed")
@@ -341,50 +410,68 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
 
     try {
       const coords = coordsRef.current
-      if (coords) {
-        const params = buildNearbyParams(coords.lat, coords.lon, radiusKm, selectedDay, fellowship)
-        // Spec §4: degrade only "after the standard retry" — one immediate
-        // retry on a non-ok result before falling back to day-browse, so a
-        // single dropped packet doesn't demote a user with a good GPS fix.
-        let result = await api.getNearbySchedules(params)
-        if (result.kind !== "ok") {
-          // PRIVACY: log the scalars individually — never spread `params`,
-          // which carries lat/lon.
-          log.warn("Nearby fetch failed; retrying once", {
-            kind: result.kind,
-            radius: params.radius,
-            iso_dow: params.iso_dow,
-          })
-          result = await api.getNearbySchedules(params)
-        }
-        if (!isCurrent()) return
-
-        if (result.kind === "ok") {
-          // Self-verify venue like the daily path (2026-08-02 fix wave):
-          // a proxy/older server answering with online rows yields an
-          // empty pool rather than mislabeled meetings.
-          const pool = inPersonPoolOf(true, toMeetings(result.schedules))
-          setMeetings(sortByDistance(pool.items))
-          setNearbyFetchFailed(false)
-          log.debug("Loaded nearby schedules", {
-            count: pool.items.length,
-            iso_dow: selectedDay,
-            radiusKm,
-          })
-          return
-        }
-
-        log.warn("Nearby fetch failed after retry; degrading to day-browse", { kind: result.kind })
-        setNearbyFetchFailed(true)
-        // fall through to the fallback fetch below
+      // CHANGED 2026-08-04: no position now means no request at all. This
+      // used to fall through to the day-browse fetch below, which returns
+      // every in-person meeting on the server for the day — a list of rooms
+      // the user cannot get to, presented underneath a banner blaming their
+      // permissions. The empty state in InPersonScreen names the real problem
+      // and offers the action that fixes it. Note this is NOT symmetric with
+      // the `nearbyFetchFailed` path below: there we know where the user is
+      // and only the nearby endpoint is broken, so an unsorted day list is a
+      // genuine degrade rather than noise.
+      if (!coords) {
+        setMeetings([])
+        log.debug("No position — skipping in-person fetch", { iso_dow: selectedDay })
+        return
       }
+
+      const params = buildNearbyParams(coords.lat, coords.lon, radiusKm, selectedDay, fellowship)
+      // Spec §4: degrade only "after the standard retry" — one immediate
+      // retry on a non-ok result before falling back to day-browse, so a
+      // single dropped packet doesn't demote a user with a good GPS fix.
+      let result = await api.getNearbySchedules(params)
+      if (result.kind !== "ok") {
+        // PRIVACY: log the scalars individually — never spread `params`,
+        // which carries lat/lon.
+        log.warn("Nearby fetch failed; retrying once", {
+          kind: result.kind,
+          radius: params.radius,
+          iso_dow: params.iso_dow,
+        })
+        result = await api.getNearbySchedules(params)
+      }
+      if (!isCurrent()) return
+
+      if (result.kind === "ok") {
+        // Self-verify venue like the daily path (2026-08-02 fix wave):
+        // a proxy/older server answering with online rows yields an
+        // empty pool rather than mislabeled meetings.
+        const pool = inPersonPoolOf(true, toMeetings(result.schedules))
+        // Favourites first, nearest-first within each tier. `sortByFeedback` is
+        // stable, so it layers over the distance sort rather than replacing it
+        // — the nearby list stays nearest-first for everything the user hasn't
+        // touched, which is nearly all of it. ADDED 2026-08-04 to match Live.
+        setMeetings(sortByFeedback(sortByDistance(pool.items)))
+        setNearbyFetchFailed(false)
+        log.debug("Loaded nearby schedules", {
+          count: pool.items.length,
+          iso_dow: selectedDay,
+          radiusKm,
+        })
+        return
+      }
+
+      log.warn("Nearby fetch failed after retry; degrading to day-browse", { kind: result.kind })
+      setNearbyFetchFailed(true)
 
       const fallback = await api.getDailySchedules(selectedDay, fellowship, "in_person")
       if (!isCurrent()) return
 
       if (fallback.kind === "ok") {
         const pool = inPersonPoolOf(true, toMeetings(fallback.schedules))
-        setMeetings(sortByLocalTime(pool.items))
+        // Same tiering as the nearby path above; the day-browse fallback's
+        // primary key is local start time instead of distance.
+        setMeetings(sortByFeedback(sortByLocalTime(pool.items)))
         log.debug("Loaded in-person day-browse schedules", {
           count: pool.items.length,
           iso_dow: selectedDay,
@@ -489,11 +576,11 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     await fetchIfMounted()
   }, [acquireLocation, fetchIfMounted])
 
-  const mode = resolveMode({ active, permission, fix, nearbyFetchFailed })
-  // Only fallback mode shows a banner, and a nearby fetch failure is the more
-  // specific reason — we only reach it with location working.
-  const bannerReason: "location" | "nearbyFailed" | null =
-    mode !== "fallback" ? null : nearbyFetchFailed ? "nearbyFailed" : "location"
+  const modeInput = { active, permission, fix, nearbyFetchFailed }
+  const mode = resolveMode(modeInput)
+  // Only fallback mode shows a banner. Which reason it carries is a pure
+  // decision, so it lives in nearbyLogic where vitest can reach it.
+  const bannerReason = resolveBannerReason(modeInput)
 
   return {
     mode,

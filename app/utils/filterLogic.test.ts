@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   DEFAULT_SEARCH_TIME,
   DEFAULT_SHORT_TIME,
+  DEFAULT_VENUE,
   matchesHourRange,
   matchesSearchTime,
   matchesShortTime,
@@ -107,12 +108,6 @@ describe("matchesShortTime", () => {
 })
 
 describe("matchesVenue", () => {
-  it("passes everything for the neutral choice", () => {
-    for (const venueType of ["", "online", "in_person"]) {
-      expect(matchesVenue(venueType, "all")).toBe(true)
-    }
-  })
-
   it("treats the empty venueType as online, not as unknown", () => {
     // Legacy rows scraped before VenueType existed carry "". Classifying them
     // as anything but online would silently hide them from an online search —
@@ -128,21 +123,19 @@ describe("matchesVenue", () => {
     expect(matchesVenue("in_person", "online")).toBe(false)
   })
 
-  it("assigns every venueType to exactly one non-neutral choice", () => {
+  it("assigns every venueType to exactly one choice", () => {
     // Same partition guarantee the shortTime buckets carry: a row must never
-    // vanish from both Online and In-Person, and never appear in both.
+    // vanish from both Online and In-Person, and never appear in both. With
+    // "all" removed (2026-08-04) this covers the whole option list, so a row
+    // that matches nothing is now genuinely unreachable in Search.
     for (const venueType of ["", "online", "in_person"]) {
-      const matched = (["online", "in_person"] as const).filter((c) => matchesVenue(venueType, c))
+      const matched = VENUE_OPTIONS.filter((c) => matchesVenue(venueType, c))
       expect(matched, `venueType "${venueType}" matched ${matched.length}`).toHaveLength(1)
     }
   })
 })
 
 describe("poolsForVenue", () => {
-  it("fetches both pools for the neutral choice", () => {
-    expect(poolsForVenue("all")).toEqual({ online: true, inPerson: true })
-  })
-
   it("skips the pool it doesn't need", () => {
     // The skip is the point: an online-only search must not spend a request —
     // or a location prompt — on in-person meetings.
@@ -156,11 +149,17 @@ describe("poolsForVenue", () => {
       expect(pools.online || pools.inPerson, `${choice} fetches nothing`).toBe(true)
     }
   })
+
+  it("defaults to the pool that needs no location", () => {
+    // The lazy-permission rule in shape: arriving on Search must not fetch a
+    // pool that would prompt for GPS. Changing DEFAULT_VENUE to "in_person"
+    // would do exactly that, so this test is the guard.
+    expect(poolsForVenue(DEFAULT_VENUE)).toEqual({ online: true, inPerson: false })
+  })
 })
 
 describe("radiusAppliesTo", () => {
   it("is live for every choice that can surface an in-person meeting", () => {
-    expect(radiusAppliesTo("all")).toBe(true)
     expect(radiusAppliesTo("in_person")).toBe(true)
   })
 

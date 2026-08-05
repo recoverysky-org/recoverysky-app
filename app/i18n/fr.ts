@@ -159,7 +159,7 @@ const fr: Translations = {
     placeholder: "Vue de l'horaire à venir",
   },
   liveScreen: {
-    title: "Réunions en direct",
+    title: "En direct en ligne",
     noMeetings: "Aucune réunion en direct en ce moment",
     lastRefresh: "Dernière vérification : {{time}}",
     joinMeeting: "Joindre",
@@ -195,11 +195,13 @@ const fr: Translations = {
     languageLabel: "Langue",
     langLabel: "Langue",
     venueLabel: "Lieu",
-    venueAll: "Tous",
     venueOnline: "En ligne",
     venueInPerson: "En personne",
     timeCustom: "Personnalisé",
     radiusNoLocation: "Activez la localisation pour chercher par distance",
+    radiusOff: "Localisation désactivée",
+    emptyNoLocation:
+      "Activez la localisation pour rechercher des réunions en présentiel près de vous",
     radiusOnlineNote: "non disponible pour les réunions en ligne",
     allLanguages: "Toutes",
     startLabel: "Début",
@@ -816,6 +818,9 @@ const fr: Translations = {
     emptyNearby:
       "Aucune réunion en présentiel dans un rayon de {{distance}} le {{day}} — essayez un rayon plus large",
     emptyFallback: "Aucune réunion {{fellowship}} en présentiel le {{day}}",
+    locationFixFailedBanner: "Impossible d'obtenir votre position — touchez pour réessayer",
+    emptyNoLocation: "Activez la localisation pour trouver des réunions en présentiel près de vous",
+    emptyFixFailed: "Impossible d'obtenir votre position — touchez pour réessayer",
     selectFellowship: "Touchez pour choisir une fraternité et voir les réunions en présentiel",
   },
 }

@@ -35,6 +35,7 @@ import { InPersonPopup } from "@/components/InPersonPopup"
 import { MeetingRow } from "@/components/MeetingRow"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
 import {
@@ -54,7 +55,7 @@ import {
   type ShortTime,
 } from "@/utils/filterLogic"
 import { logger } from "@/utils/logger"
-import { formatDistance, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
+import { formatDistance, type NearbyBannerReason, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "InPersonScreen" })
 
@@ -283,7 +284,7 @@ interface InPersonListHeaderProps {
   /** Translated bucket name ("Any time", "Evening") for the time selector */
   shortTimeLabel: string
   /** Non-null only in fallback mode (the hook enforces that) */
-  bannerReason: "location" | "nearbyFailed" | null
+  bannerReason: NearbyBannerReason | null
   /** OS still allows a permission prompt — decides re-ask vs deep link to Settings */
   canAskAgain: boolean
   showSpinner: boolean
@@ -314,14 +315,20 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
 
   // A permanently-denied user can't be re-prompted by the OS, so the copy has
   // to send them to Settings instead of implying a tap will ask again.
+  // CHANGED 2026-08-04: "fixFailed" split out of what used to be a single
+  // "location" reason. It means permission is granted and the fix didn't land
+  // — telling that user to enable location is both wrong and unactionable, so
+  // it gets the retry copy instead.
   const bannerText =
     bannerReason === "nearbyFailed"
       ? t("inPersonScreen:nearbyFailedBanner")
-      : bannerReason === "location"
-        ? canAskAgain
-          ? t("inPersonScreen:locationBanner")
-          : t("inPersonScreen:locationBannerDenied")
-        : ""
+      : bannerReason === "fixFailed"
+        ? t("inPersonScreen:locationFixFailedBanner")
+        : bannerReason === "denied"
+          ? canAskAgain
+            ? t("inPersonScreen:locationBanner")
+            : t("inPersonScreen:locationBannerDenied")
+          : ""
 
   // The banner text says *why* we're in fallback; the hint says what a tap will
   // actually do. Those are three different actions (refetch / re-prompt / deep
@@ -331,11 +338,13 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
   const bannerHint =
     bannerReason === "nearbyFailed"
       ? t("accessibility:doubleTapToRetry")
-      : bannerReason === "location"
-        ? canAskAgain
-          ? t("accessibility:doubleTapToAllowLocation")
-          : t("accessibility:doubleTapToOpenSettings")
-        : undefined
+      : bannerReason === "fixFailed"
+        ? t("accessibility:doubleTapToRetry")
+        : bannerReason === "denied"
+          ? canAskAgain
+            ? t("accessibility:doubleTapToAllowLocation")
+            : t("accessibility:doubleTapToOpenSettings")
+          : undefined
 
   return (
     <View>
@@ -452,7 +461,9 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           accessibilityHint={bannerHint}
         >
           <Ionicons
-            name={bannerReason === "nearbyFailed" ? "refresh-outline" : "location-outline"}
+            // Only a denial is a location-settings problem; the other two
+            // reasons are "try that again", and the glyph should say which.
+            name={bannerReason === "denied" ? "location-outline" : "refresh-outline"}
             size={14}
             color={BANNER_ACCENT}
           />
@@ -528,6 +539,31 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   // a tap you made last week is the kind of unexplained-empty-list confusion
   // this filter is supposed to relieve, not cause.
   const [shortTime, setShortTime] = useState<ShortTime>(DEFAULT_SHORT_TIME)
+
+  // ---------------------------------------------------------------------------
+  // Live feedback, for DISPLAY only — never for sorting (2026-08-04)
+  //
+  // Same split Live and Search use, and the split is the point: the heart and
+  // stars on a row must update the instant the user taps them in the popup,
+  // but the ORDER must not. `useNearbySchedules` stamps a feedback snapshot at
+  // fetch time and sorts on that, so a row can never reorder itself out from
+  // under the finger that's touching it. It settles into its new position on
+  // the next refresh, which is what Live has always done.
+  // ---------------------------------------------------------------------------
+  const [displayFeedback, setDisplayFeedback] = useState<Map<string, FeedbackRecord>>(() =>
+    feedbackCache.getAll(),
+  )
+
+  useEffect(() => {
+    const unsubscribe = feedbackCache.subscribe((mid, feedback) => {
+      setDisplayFeedback((prev) => {
+        const next = new Map(prev)
+        next.set(mid, feedback)
+        return next
+      })
+    })
+    return unsubscribe
+  }, [])
 
   // Segment-view analytics, once per activation. `active` only ever flips
   // false→true (MeetingsScreen latches it), so this fires exactly once per
@@ -650,8 +686,12 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const handleOpenFellowshipModal = useCallback(() => setFellowshipModalVisible(true), [])
 
   /**
-   * Banner tap routes three ways:
+   * Banner tap routes four ways:
    * - nearby fetch failed → just retry the fetch
+   * - fix failed (permission granted) → take another run at the position;
+   *   `requestLocation` resolves without a dialog when permission is already
+   *   held, so this is a retry, not a re-prompt. This is the case that used to
+   *   be indistinguishable from a denial.
    * - location off, OS will still prompt → re-request permission
    * - location permanently denied → `requestLocation()` would resolve without
    *   ever showing a dialog, so send the user to the OS Settings page instead.
@@ -659,6 +699,10 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const handleBannerPress = useCallback(() => {
     if (bannerReason === "nearbyFailed") {
       void refresh()
+      return
+    }
+    if (bannerReason === "fixFailed") {
+      void requestLocation()
       return
     }
     if (canAskAgain) {
@@ -685,11 +729,18 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         distanceLabel={
           mode === "nearby" ? formatDistance(item.distance_m, useMiles) || undefined : undefined
         }
+        // ADDED 2026-08-04 alongside the favourites-first ordering. Without the
+        // glyphs, a favourite sitting above a nearer meeting looks like the
+        // distance sort is broken — the heart is what explains the position.
+        // Read from the LIVE map, not from `item.feedback` (the sort snapshot),
+        // so a heart tapped in the popup lights up immediately.
+        rating={displayFeedback.get(item.id)?.rates ?? 0}
+        isFavorite={displayFeedback.get(item.id)?.loves ?? false}
         hasReminder={meetingHasReminder(item, reminderLookup)}
         onPress={setSelectedMeeting}
       />
     ),
-    [mode, useMiles, reminderLookup],
+    [mode, useMiles, reminderLookup, displayFeedback],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -744,6 +795,30 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         </Pressable>
       )
     }
+    // No position → no request was made at all (see useNearbySchedules'
+    // fetchMeetings). Added 2026-08-04 alongside dropping the worldwide
+    // day-browse fallback: without this branch the user would land on
+    // `emptyFallback` below, which blames the fellowship and the day for an
+    // absence that is really about location. Tappable, and it runs the exact
+    // same routing as the banner above it — the two are saying the same thing,
+    // so they must do the same thing.
+    if (bannerReason === "denied" || bannerReason === "fixFailed") {
+      return (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={handleBannerPress}
+          accessibilityRole="button"
+        >
+          <Text style={themed($emptyText)}>
+            {t(
+              bannerReason === "fixFailed"
+                ? "inPersonScreen:emptyFixFailed"
+                : "inPersonScreen:emptyNoLocation",
+            )}
+          </Text>
+        </Pressable>
+      )
+    }
     if (mode === "nearby") {
       // Tappable: the copy tells the user to try a wider radius, so the whole
       // message opens the radius picker rather than making them hunt for it.
@@ -786,6 +861,8 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     meetings.length,
     handleOpenShortTimeModal,
     handleOpenFellowshipModal,
+    bannerReason,
+    handleBannerPress,
   ])
 
   // While we're waiting on a permission dialog / GPS fix, or on the very first

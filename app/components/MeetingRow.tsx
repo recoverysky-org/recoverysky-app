@@ -65,6 +65,11 @@ interface MeetingRowProps {
    * In-Person every meeting is a venue, so a tag there would label every row
    * with the same word — noise that says nothing. Caller-owned and already
    * translated, same contract as `distanceLabel`.
+   *
+   * NOTE 2026-08-04: no production caller passes this today. Search dropped its
+   * "All" venue choice, so the app currently has no mixed list at all. Kept
+   * (with its tests) because the badge slot below is written around it and the
+   * next mixed list will want it back — not because something is using it.
    */
   venueTag?: string
   /** Callback when row is pressed */

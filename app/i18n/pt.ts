@@ -155,7 +155,7 @@ const pt: Translations = {
     placeholder: "Visualização da agenda em breve",
   },
   liveScreen: {
-    title: "Reuniões ao Vivo",
+    title: "Ao Vivo Online",
     noMeetings: "Nenhuma reunião ao vivo agora",
     lastRefresh: "Última verificação: {{time}}",
     joinMeeting: "Participar",
@@ -191,11 +191,12 @@ const pt: Translations = {
     languageLabel: "Idioma",
     langLabel: "Idioma",
     venueLabel: "Local",
-    venueAll: "Todos",
     venueOnline: "Online",
     venueInPerson: "Presencial",
     timeCustom: "Personalizado",
     radiusNoLocation: "Ative a localização para buscar por distância",
+    radiusOff: "Localização desativada",
+    emptyNoLocation: "Ative a localização para buscar reuniões presenciais perto de você",
     radiusOnlineNote: "indisponível para reuniões online",
     allLanguages: "Todos",
     startLabel: "Início",
@@ -809,6 +810,9 @@ const pt: Translations = {
     emptyNearby:
       "Nenhuma reunião presencial em um raio de {{distance}} em {{day}} — tente um raio maior",
     emptyFallback: "Nenhuma reunião presencial de {{fellowship}} em {{day}}",
+    locationFixFailedBanner: "Não foi possível obter sua localização — toque para tentar novamente",
+    emptyNoLocation: "Ative a localização para encontrar reuniões presenciais perto de você",
+    emptyFixFailed: "Não foi possível obter sua localização — toque para tentar novamente",
     selectFellowship: "Toque para escolher uma irmandade e ver reuniões presenciais",
   },
 }

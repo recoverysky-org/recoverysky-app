@@ -155,7 +155,7 @@ const uk: Translations = {
     placeholder: "Розклад незабаром з'явиться",
   },
   liveScreen: {
-    title: "Зустрічі онлайн",
+    title: "Зараз онлайн",
     noMeetings: "Зараз немає зустрічей онлайн",
     lastRefresh: "Остання перевірка: {{time}}",
     joinMeeting: "Приєднатися",
@@ -191,11 +191,12 @@ const uk: Translations = {
     languageLabel: "Мова",
     langLabel: "Мова",
     venueLabel: "Формат",
-    venueAll: "Усі",
     venueOnline: "Онлайн",
     venueInPerson: "Очно",
     timeCustom: "Свій",
     radiusNoLocation: "Увімкніть геолокацію, щоб шукати за відстанню",
+    radiusOff: "Геолокацію вимкнено",
+    emptyNoLocation: "Увімкніть геолокацію, щоб шукати очні зустрічі поруч із вами",
     radiusOnlineNote: "недоступно для онлайн-зустрічей",
     allLanguages: "Усі",
     startLabel: "Початок",
@@ -805,6 +806,9 @@ const uk: Translations = {
     emptyNearby:
       "Немає очних зустрічей у радіусі {{distance}} ({{day}}) — спробуйте більший радіус",
     emptyFallback: "Немає очних зустрічей {{fellowship}} ({{day}})",
+    locationFixFailedBanner: "Не вдалося визначити місцезнаходження — торкніться, щоб повторити",
+    emptyNoLocation: "Увімкніть геолокацію, щоб знайти очні зустрічі поруч із вами",
+    emptyFixFailed: "Не вдалося визначити місцезнаходження — торкніться, щоб повторити",
     selectFellowship: "Натисніть, щоб вибрати спільноту та побачити очні зустрічі",
   },
 }

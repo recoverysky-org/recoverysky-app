@@ -157,7 +157,7 @@ const de: Translations = {
     placeholder: "Zeitplan-Ansicht kommt bald",
   },
   liveScreen: {
-    title: "Live-Meetings",
+    title: "Live Online",
     noMeetings: "Gerade finden keine Meetings statt",
     lastRefresh: "Zuletzt geprüft: {{time}}",
     joinMeeting: "Beitreten",
@@ -193,11 +193,12 @@ const de: Translations = {
     languageLabel: "Sprache",
     langLabel: "Sprache",
     venueLabel: "Ort",
-    venueAll: "Alle",
     venueOnline: "Online",
     venueInPerson: "Vor Ort",
     timeCustom: "Eigene",
     radiusNoLocation: "Aktiviere den Standort, um nach Entfernung zu suchen",
+    radiusOff: "Standort aus",
+    emptyNoLocation: "Aktiviere den Standort, um Präsenz-Meetings in deiner Nähe zu suchen",
     radiusOnlineNote: "für Online-Meetings nicht verfügbar",
     allLanguages: "Alle",
     startLabel: "Beginn",
@@ -816,6 +817,9 @@ const de: Translations = {
     emptyNearby:
       "Keine Präsenz-Meetings im Umkreis von {{distance}} am {{day}} — versuche einen größeren Radius",
     emptyFallback: "Keine {{fellowship}}-Präsenz-Meetings am {{day}}",
+    locationFixFailedBanner: "Standort konnte nicht ermittelt werden — zum Wiederholen tippen",
+    emptyNoLocation: "Aktiviere den Standort, um Präsenz-Meetings in deiner Nähe zu finden",
+    emptyFixFailed: "Standort konnte nicht ermittelt werden — zum Wiederholen tippen",
     selectFellowship: "Tippe, um eine Gemeinschaft zu wählen und Präsenzmeetings zu sehen",
   },
 }

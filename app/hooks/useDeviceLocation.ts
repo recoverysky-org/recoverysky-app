@@ -29,14 +29,41 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Platform } from "react-native"
 import * as Location from "expo-location"
 
 import { logger } from "@/utils/logger"
+import { isNearlySamePosition } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "useDeviceLocation" })
 
-/** Give the GPS 10 s before giving up — matches useNearbySchedules. */
-const FIX_TIMEOUT_MS = 10_000
+/**
+ * Budget for a *fresh* fix — matches useNearbySchedules.
+ *
+ * CHANGED 2026-08-04: was a flat 10 s, which Android's fused provider misses
+ * routinely on a cold process indoors (it wants a new fix; CoreLocation hands
+ * back a cached one almost immediately, which is why this only ever bit
+ * Android). Every timeout demoted the Search tab to an unbounded in-person
+ * search with a dimmed radius cell and no explanation. Now that the cached
+ * position below covers the "show me something now" case, the fresh fix can
+ * afford to wait longer on the platform that needs it.
+ */
+const FIX_TIMEOUT_MS = Platform.OS === "android" ? 20_000 : 10_000
+
+/**
+ * How stale the OS's cached position may be before we ignore it. Ten minutes
+ * of travel cannot move you out of the smallest radius option (10 km) at any
+ * speed a meeting-goer is likely to be doing, and the fresh fix that follows
+ * corrects it either way.
+ */
+const LAST_KNOWN_MAX_AGE_MS = 10 * 60_000
+
+/**
+ * Budget for the fresh fix when a cached position is ALREADY in hand — matches
+ * useNearbySchedules. Short on purpose: at that point the fix is a refinement
+ * of a search that has already run, so a long one only costs battery.
+ */
+const REFINE_TIMEOUT_MS = 5_000
 
 export type LocationStatus =
   /** Never asked. No prompt has been shown. */
@@ -68,8 +95,10 @@ export interface UseDeviceLocationResult {
    */
   getCoords: () => { lat: number; lon: number } | null
   /**
-   * Prompt if needed, then take one balanced-accuracy fix. Never rejects —
-   * resolves true only when coordinates are now available.
+   * Prompt if needed, then seed from the OS's cached position and take one
+   * balanced-accuracy fix. Never rejects — resolves true only when coordinates
+   * are now available, which now includes "the fresh fix timed out but the
+   * cached position stands".
    */
   acquire: () => Promise<boolean>
   /**
@@ -122,6 +151,13 @@ export function useDeviceLocation(): UseDeviceLocationResult {
     const isCurrent = () => mountedRef.current && seqRef.current === seq
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    /**
+     * Set once the cached position below has been committed, so the catch
+     * block knows a failed *fresh* fix still leaves us with usable
+     * coordinates — without it, the timeout would throw away the position we
+     * just successfully showed the user.
+     */
+    let seededFromCache = false
 
     // Only announce "acquiring" when we have nothing to show for. Re-fixing
     // while already holding a position would otherwise blank a working radius
@@ -149,6 +185,27 @@ export function useDeviceLocation(): UseDeviceLocationResult {
         return false
       }
 
+      // Seed from whatever position the OS already has before asking for a new
+      // one. This is the fix for "the radius filter is dead on every cold
+      // start": Android's fused provider regularly needs longer than the
+      // timeout below to produce a *fresh* fix, and until 2026-08-04 that meant
+      // a granted user got no coordinates at all. The cached position costs
+      // nothing (no hardware wakeup, no wait) and is accurate to far better
+      // than the 10 km smallest radius. `maxAge` is enforced by expo-location;
+      // a null result just means we fall through to the fresh fix as before.
+      // PRIVACY: same handling as any other fix — straight into the ref,
+      // nowhere else, and the error path logs no coordinates.
+      const cached = await Location.getLastKnownPositionAsync({
+        maxAge: LAST_KNOWN_MAX_AGE_MS,
+      }).catch(() => null)
+      if (!isCurrent()) return false
+      if (cached) {
+        coordsRef.current = { lat: cached.coords.latitude, lon: cached.coords.longitude }
+        seededFromCache = true
+        setStatus("ready")
+        setFixVersion((v) => v + 1)
+      }
+
       // Race the fix against a timeout — a cold GPS indoors can hang far
       // longer than a user will wait for a filter to apply. The handle is
       // cleared in `finally` on BOTH outcomes; leaving it dangling would keep
@@ -156,22 +213,33 @@ export function useDeviceLocation(): UseDeviceLocationResult {
       // nobody is listening to. A position that resolves after the timeout won
       // is simply dropped — it is never awaited again, so it cannot write
       // stale coordinates.
+      // With a cached seed in hand this is only a refinement, and the search it
+      // would improve has already run — so it gets a much shorter budget rather
+      // than holding the GPS awake for twenty seconds to move a result by a
+      // block.
       const position = await Promise.race([
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
         new Promise<never>((_, reject) => {
           timeoutHandle = setTimeout(
             () => reject(new Error("location fix timeout")),
-            FIX_TIMEOUT_MS,
+            seededFromCache ? REFINE_TIMEOUT_MS : FIX_TIMEOUT_MS,
           )
         }),
       ])
       if (!isCurrent()) return false
 
-      coordsRef.current = { lat: position.coords.latitude, lon: position.coords.longitude }
+      const fresh = { lat: position.coords.latitude, lon: position.coords.longitude }
+      // A fresh fix that lands within a couple of city blocks of what we
+      // already hold (usually the cached seed above) would return an identical
+      // list, so take the coordinates but skip the version bump — consumers key
+      // their refetch on `fixVersion`, and a second request for the same rows
+      // is the one cost the cached-seed change could otherwise have added.
+      const redundant = isNearlySamePosition(fresh, coordsRef.current)
+      coordsRef.current = fresh
       setStatus("ready")
       // Bump last: consumers keyed on this will refetch, and the coordinates
       // have to be in place before that happens.
-      setFixVersion((v) => v + 1)
+      if (!redundant) setFixVersion((v) => v + 1)
       return true
     } catch (err) {
       if (!isCurrent()) return false
@@ -179,6 +247,10 @@ export function useDeviceLocation(): UseDeviceLocationResult {
       // toString never includes a request config or URL, so this cannot leak
       // the coordinates we just asked for. Do not log the error object.
       log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
+      // A cached position already committed this call is still a valid one —
+      // the fresh fix timing out does not make it wrong. Reporting
+      // "unavailable" here would blank a radius filter that is working.
+      if (seededFromCache) return true
       coordsRef.current = null
       // A failed probe still means we genuinely can't locate the device (we
       // had permission and the fix failed), so this one does flip the status.

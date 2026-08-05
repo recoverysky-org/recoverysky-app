@@ -160,7 +160,10 @@ const en = {
     placeholder: "Schedule view coming soon",
   },
   liveScreen: {
-    title: "Live Meetings",
+    // Relabeled 2026-08-04: "Live Meetings" → "Live Online". The screen only
+    // ever lists online meetings, and with the In-Person segment beside it
+    // "Live" alone read as "live meetings of any kind".
+    title: "Live Online",
     noMeetings: "No meetings are live right now",
     lastRefresh: "Last checked: {{time}}",
     joinMeeting: "Join Meeting",
@@ -196,11 +199,12 @@ const en = {
     languageLabel: "Language",
     langLabel: "Lang",
     venueLabel: "Venue",
-    venueAll: "All",
     venueOnline: "Online",
     venueInPerson: "In-Person",
     timeCustom: "Custom",
     radiusNoLocation: "Turn on location to search by distance",
+    radiusOff: "Location off",
+    emptyNoLocation: "Turn on location to search for in-person meetings near you",
     radiusOnlineNote: "not available for online meetings",
     allLanguages: "All",
     startLabel: "Start",
@@ -822,6 +826,9 @@ const en = {
     nearbyFailedBanner: "Couldn't load nearby results — tap to retry",
     emptyNearby: "No in-person meetings within {{distance}} on {{day}} — try a wider radius",
     emptyFallback: "No in-person {{fellowship}} meetings on {{day}}",
+    locationFixFailedBanner: "Couldn't get your location — tap to retry",
+    emptyNoLocation: "Turn on location to find in-person meetings near you",
+    emptyFixFailed: "We couldn't get your location — tap to try again",
     selectFellowship: "Tap to pick a fellowship and see in-person meetings",
   },
 }

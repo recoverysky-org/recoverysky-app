@@ -7,8 +7,12 @@
  * the in-person leg onto `/schedules/nearby`; language and time are pure
  * client-side passes over what came back.
  *
- * This is the only surface that shows both venue types at once, so rows and
- * popups are chosen per meeting rather than per screen — see `renderItem`.
+ * This is the only surface that can show either venue type, so rows and popups
+ * are chosen per meeting rather than per screen — see `renderItem`.
+ * CHANGED 2026-08-04: it no longer shows both at *once* — the Venue filter's
+ * "All" choice was removed, so a given list is all-online or all-in-person.
+ * The per-meeting dispatch stays: which kind a list holds is still a runtime
+ * fact here, unlike on Live (always online) or In-Person (always a venue).
  *
  * PRIVACY: two things here touch location — the radius filter (coordinates go
  * to `/schedules/nearby`) and the distance badge (`measureDistance`, which
@@ -60,6 +64,7 @@ import { api, LiveSchedule } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { sortByFeedback } from "@/utils/feedbackSort"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
   DEFAULT_SEARCH_TIME,
@@ -120,7 +125,6 @@ const getLanguageDisplayName = (code: string): string => LANGUAGE_DISPLAY_NAMES[
 /** Translation key per venue choice. A Record so a new choice without a label
  *  is a compile error rather than a `[missing key]` rendered on screen. */
 const VENUE_TX: Record<VenueChoice, string> = {
-  all: "listingsScreen:venueAll",
   online: "listingsScreen:venueOnline",
   in_person: "listingsScreen:venueInPerson",
 }
@@ -186,15 +190,18 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   // ---------------------------------------------------------------------------
   // Venue / radius / time filters (2026-08-04)
   //
-  // All three default to their neutral value, so a first visit behaves exactly
-  // as Search always has: every meeting for the day, no location prompt.
+  // Every default is a value that needs no location, so a first visit still
+  // asks the user for nothing: Venue defaults to Online, which skips the
+  // in-person leg (and with it the GPS prompt) entirely.
+  // CHANGED 2026-08-04: Venue's default used to be "All" — every meeting for
+  // the day, both pools. That choice is gone; see `VenueChoice`.
   // ---------------------------------------------------------------------------
   const [venue, setVenue] = useState<VenueChoice>(DEFAULT_VENUE)
   const [venueModalVisible, setVenueModalVisible] = useState(false)
   // Always a real distance — same option list and same default as the
   // In-Person segment (there is no "Any"). It's only *applied* once we hold a
-  // location fix; until then the in-person leg returns the whole day and the
-  // cell says so. See `radiusApplied` below.
+  // location fix; until then the in-person leg is skipped and the cell says so.
+  // See `radiusApplied` and `needsLocation` below.
   const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [searchTime, setSearchTime] = useState<SearchTime>(DEFAULT_SEARCH_TIME)
@@ -274,15 +281,29 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
    * Is the radius actually narrowing anything right now?
    *
    * A radius needs two things: a venue choice that can surface in-person
-   * meetings, and a location fix. Without the fix the in-person leg falls back
-   * to the plain day endpoint and the search is not distance-limited at all —
-   * so the cell must not sit there reading "16 mi" as though it were.
+   * meetings, and a location fix. Without the fix the in-person leg is skipped
+   * entirely — so the cell must not sit there reading "16 mi" as though it
+   * were narrowing anything.
    *
    * This mattered less when the picker had an "Any" option, because "Any" was
    * an honest description of the un-located state. With the option gone
    * (2026-08-04), the display has to carry that meaning instead.
+   * CHANGED 2026-08-04: the un-located case used to mean "distance filter
+   * doesn't bite"; it now means "in-person results are absent", which is a
+   * much bigger claim on the user's attention — hence `needsLocation` below,
+   * which puts it in the cell's value column and in the empty state instead of
+   * leaving it to a dimmed control nobody reads.
    */
   const radiusApplied = radiusActive && location.status === "ready"
+
+  /**
+   * The venue filter wants in-person meetings and we can't supply any, because
+   * we have no position to search around. `acquiring` is deliberately excluded
+   * — a fix in flight resolves in seconds and the list is showing a spinner
+   * anyway, so announcing a problem there would be premature.
+   */
+  const needsLocation =
+    radiusActive && (location.status === "idle" || location.status === "unavailable")
 
   /**
    * Opening the picker — not picking an option — is what prompts for location.
@@ -298,7 +319,15 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     // `idle` means never asked. Re-prompting after a denial is the OS's call:
     // `acquire` resolves without a dialog when permission is permanently
     // denied, so this can't turn into a nag loop.
-    if (location.status === "idle") void location.acquire()
+    // CHANGED 2026-08-04: `unavailable` retries too. That status covers a
+    // granted user whose fix merely timed out (routine on Android from a cold
+    // start), and the old `idle`-only check left them with a permanently dead
+    // radius filter: opening the picker did nothing, and the only accidental
+    // way out was re-selecting the distance they already had, because
+    // `handleRadiusSelect` below acquires on any non-ready status.
+    if (location.status === "idle" || location.status === "unavailable") {
+      void location.acquire()
+    }
   }, [location])
 
   const handleRadiusSelect = useCallback(
@@ -397,10 +426,15 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       const pools = poolsForVenue(venue)
 
       // The nearby endpoint is used for the in-person leg only when the user
-      // has picked a real radius AND we hold a fix. Without either we fall
-      // back to the plain day endpoint, which returns the whole day
-      // unfiltered by distance — the radius silently not applying is why
-      // `radiusActive` below drives the cell's subtitle.
+      // has picked a real radius AND we hold a fix.
+      // CHANGED 2026-08-04: without a fix the in-person leg is now SKIPPED
+      // rather than sent to the plain day endpoint. That fallback returned
+      // every in-person meeting on the server for the day — worldwide,
+      // unbounded, silently — so an Android user whose fix timed out (the
+      // common case before the cached-position seed in useDeviceLocation) got
+      // rooms on other continents mixed into their search with nothing but a
+      // dimmed radius cell to explain it. Online results are unaffected: a
+      // meeting you join over video is genuinely location-independent.
       const coords = radiusKm !== null && pools.inPerson ? location.getCoords() : null
       // Built here rather than inline so TypeScript narrows `radiusKm` for
       // real — the inline form needed a non-null assertion, and an assertion
@@ -412,11 +446,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
       const [onlineResult, inPersonResult] = await Promise.all([
         pools.online ? api.getDailySchedules(selectedDay, fellowship, "online") : null,
-        pools.inPerson
-          ? nearbyParams
-            ? api.getNearbySchedules(nearbyParams)
-            : api.getDailySchedules(selectedDay, fellowship, "in_person")
-          : null,
+        pools.inPerson && nearbyParams ? api.getNearbySchedules(nearbyParams) : null,
       ])
 
       // `distance_m` sits on the schedule row, not on the nested meeting the
@@ -425,7 +455,13 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       const toMeetings = (schedules: LiveSchedule[]): MeetingWithTrex[] =>
         schedules.map((s: LiveSchedule) => ({
           ...s.meeting,
-          feedback: null,
+          // CHANGED 2026-08-04: was hard-coded `null`, which left the Search
+          // list with nothing to order favourites by. Read once, here, at fetch
+          // time — this is the SNAPSHOT the sort uses, and it must not be live
+          // cache state or a row would jump out from under the finger that just
+          // tapped its heart. `displayFeedback` (subscribed above) is the live
+          // one, and it drives the rendered heart/star only.
+          feedback: feedbackCache.get(s.meeting.id),
           sid: s.sid,
           millis: s.millis,
           duration_ms: s.duration_ms ?? 0,
@@ -491,13 +527,21 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
       // Sort the merged pool once by local time (hour:minute), not UTC millis,
       // so the future in-person UI inherits correct ordering.
-      const sorted = [...merged.items].sort((a, b) => {
+      const byTime = [...merged.items].sort((a, b) => {
         const aLocal = DateTime.fromMillis(a.millis).toLocal()
         const bLocal = DateTime.fromMillis(b.millis).toLocal()
         const aMinutes = aLocal.hour * 60 + aLocal.minute
         const bMinutes = bLocal.hour * 60 + bLocal.minute
         return aMinutes - bMinutes
       })
+
+      // ADDED 2026-08-04: favourites float to the top, the same three tiers the
+      // Live segment has always used. Layered OVER the time sort rather than
+      // replacing it — `sortByFeedback` is stable, so untouched meetings keep
+      // their chronological order and favourites are chronological among
+      // themselves. Ordering happens once per fetch, on the feedback snapshot
+      // stamped in `toMeetings`, so the list never reshuffles mid-scroll.
+      const sorted = sortByFeedback(byTime)
 
       setAllMeetings(sorted)
       // PRIVACY: scalars only. Never log the nearby params object — it carries
@@ -581,19 +625,17 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // in-person meetings, so `displayFeedback` is read for every row, not
       // just online ones.
       const feedback = displayFeedback.get(item.id)
-      // Search is the only mixed list, so it's the only screen that needs to
-      // say which kind each row is. The tag lands in the distance badge's slot
-      // (see MeetingRow), i.e. the spot the eye is already checking to answer
-      // "where is this?" — so online rows answer that question instead of
-      // leaving a blank that reads as missing data.
-      const isOnline = !isInPersonVenue(item.venueType)
+      // REMOVED 2026-08-04: the per-row "Online" tag. It existed because Search
+      // was the app's only mixed list and a row had to say which kind it was.
+      // Dropping the "All" venue choice (see `VenueChoice`) made every list on
+      // this screen single-venue, so the tag restated the filter the user just
+      // set on every row. If "All" ever returns, so must the tag.
       return (
         <MeetingRow
           meeting={item}
           rating={feedback?.rates ?? 0}
           isFavorite={feedback?.loves ?? false}
           hasReminder={meetingHasReminder(item, reminderLookup)}
-          venueTag={isOnline ? t("listingsScreen:venueOnline") : undefined}
           // Prefer the server's `distance_m` (only present when the nearby
           // endpoint answered), then fall back to measuring it here.
           // CHANGED 2026-08-04: used to be `distance_m` alone, which meant the
@@ -609,7 +651,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         />
       )
     },
-    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance, t],
+    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -617,20 +659,35 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
   const ListEmptyComponent = useCallback(
-    () => (
-      <View style={themed($emptyContainer)}>
-        {!profileStore.fellowship ? (
-          <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
-        ) : error ? (
-          <Text style={themed($errorText)}>{error}</Text>
-        ) : (
-          <Text style={themed($emptyText)}>
-            {t("listingsScreen:emptyStateFiltered", { fellowship: profileStore.fellowship })}
-          </Text>
-        )}
-      </View>
-    ),
-    [themed, t, profileStore.fellowship, error],
+    () =>
+      // The location branch is tappable, so it can't live inside the shared
+      // View below. Added 2026-08-04: with the in-person leg skipped when we
+      // hold no position, an In-Person search with location off empties the
+      // list entirely — and "No meetings for AA" would blame the fellowship
+      // for it. Tapping opens the radius picker, which is what prompts.
+      needsLocation && !error && profileStore.fellowship ? (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={handleOpenRadiusModal}
+          accessibilityRole="button"
+          accessibilityHint={t("accessibility:doubleTapToAllowLocation")}
+        >
+          <Text style={themed($emptyText)}>{t("listingsScreen:emptyNoLocation")}</Text>
+        </Pressable>
+      ) : (
+        <View style={themed($emptyContainer)}>
+          {!profileStore.fellowship ? (
+            <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
+          ) : error ? (
+            <Text style={themed($errorText)}>{error}</Text>
+          ) : (
+            <Text style={themed($emptyText)}>
+              {t("listingsScreen:emptyStateFiltered", { fellowship: profileStore.fellowship })}
+            </Text>
+          )}
+        </View>
+      ),
+    [themed, t, profileStore.fellowship, error, needsLocation, handleOpenRadiusModal],
   )
 
   const ListHeaderComponent = useCallback(
@@ -744,11 +801,17 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           >
             <Text style={themed($selectorLabel)}>{t("inPersonScreen:selectRadius")}</Text>
             <View style={$selectorValueRow}>
+              {/* Shows "Location off" rather than a distance we aren't
+                  applying. Added 2026-08-04 with the skipped in-person leg:
+                  a dimmed "16 mi" reads as an active filter, and it is now the
+                  only on-screen sign that in-person results are missing
+                  altogether. Tapping still routes to the picker, which
+                  re-prompts. */}
               <Text
                 style={[themed($selectorValue), !radiusApplied && themed($selectorValueDisabled)]}
                 numberOfLines={1}
               >
-                {radiusLabel}
+                {needsLocation ? t("listingsScreen:radiusOff") : radiusLabel}
               </Text>
               <Ionicons
                 name="chevron-down"
@@ -857,6 +920,9 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // Load-bearing: without it the radius cell keeps its dimmed "no location"
       // styling after a fix lands, because the header wouldn't re-render.
       radiusApplied,
+      // Same reason, for the cell's value column: it reads "Location off" until
+      // a fix lands and must switch back to the distance when one does.
+      needsLocation,
       radiusLabel,
       handleOpenRadiusModal,
     ],

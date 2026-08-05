@@ -1,6 +1,6 @@
 # Translation review queue — In-Person UI branch (2026-08-03)
 
-**285 machine-assisted strings awaiting a native-speaker pass before release.**
+**325 machine-assisted strings awaiting a native-speaker pass before release.**
 
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
@@ -21,8 +21,10 @@ review obligation.
 | `inPersonScreen` | 9 | 7 | 63 | Task 10 |
 | `inPersonScreen` (shortTime) | 8 | 8 | 64 | shortTime filter, 2026-08-04 |
 | `inPersonScreen` (fellowship) | 3 | 8 | 24 | fellowship filter, 2026-08-04 |
-| `listingsScreen` (venue/radius/time) | 8 | 8 | 64 | Search filters, 2026-08-04 |
-| **Total** | | | **285** | |
+| `listingsScreen` (venue/radius/time) | 7 | 8 | 56 | Search filters, 2026-08-04 |
+| location-failure copy (both namespaces) | 5 | 8 | 40 | Android location fix, 2026-08-04 |
+| `liveScreen` (retitle) | 1 | 8 | 8 | Live Online retitle, 2026-08-04 |
+| **Total** | | | **325** | |
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every
@@ -333,14 +335,18 @@ One key is new; two are re-translations of strings this branch already shipped.
 
 # Addendum — Search segment filters (2026-08-04)
 
-Eight keys across **eight** locales (es + the original seven) = **64 strings**.
-Seven are new; `langLabel` is a shortened re-translation of an existing string.
+Seven keys across **eight** locales (es + the original seven) = **56 strings**.
+Six are new; `langLabel` is a shortened re-translation of an existing string.
+
+> **`venueAll` ("All") was deleted on 2026-08-04**, before any review happened —
+> Search dropped the "All" venue choice entirely. It was listed here in the
+> original eight; do not translate it, and drop it from any in-flight review
+> file. That is where the count went from 64 to 56.
 
 | Key | English | Notes |
 |---|---|---|
 | `langLabel` | Lang | **New, but replaces `languageLabel` on screen.** `languageLabel` ("Language") still exists and is still used for the picker's own title — this is the compact grid-cell version. Only shorten if your language genuinely has a shorter form; a "shortening" that isn't a real word is worse than the long one. |
 | `venueLabel` | Venue | Grid-cell label AND modal title. |
-| `venueAll` | All | Both venue types. Must read as "no filter", not as "all in-person". |
 | `venueOnline` | Online | |
 | `venueInPerson` | In-Person | Should match `inPersonScreen:title` in your locale — same concept, two places. Check them side by side. |
 | `timeCustom` | Custom | The Time option that reveals the Start/End hour pickers. "Custom range" if your language needs the noun. |
@@ -368,3 +374,61 @@ Seven are new; `langLabel` is a shortened re-translation of an existing string.
   label by the accessibility layer, never shown as a sentence. If your language
   can't produce a natural fragment there, rewrite it as a full clause that
   still reads correctly *after* the word for "Radius".
+
+---
+
+## Location-failure copy — 40 strings (8 locales × 5 keys), 2026-08-04
+
+Added with the Android location fix. Five keys across two namespaces, all of
+them shown when the app cannot narrow a search to where the user is.
+
+| Key | English | Notes for the reviewer |
+|---|---|---|
+| `inPersonScreen:locationFixFailedBanner` | Couldn't get your location — tap to retry | **The whole point of this batch.** It is shown to a user whose location permission is GRANTED and whose GPS fix simply didn't land. It must not read as "location is off" or "enable location" — that is `locationBanner`, a different string for a different person. This one says the app tried and failed, and that tapping tries again. |
+| `inPersonScreen:emptyNoLocation` | Turn on location to find in-person meetings near you | The empty list body when location is off. An instruction that will fix the problem, like `radiusNoLocation` — not a statement of fact. |
+| `inPersonScreen:emptyFixFailed` | We couldn't get your location — tap to try again | Empty-list twin of `locationFixFailedBanner`. Fine to share wording with it in your language; they appear one above the other, so identical phrasing reads as repetition — prefer a shorter form here if that's awkward. |
+| `listingsScreen:radiusOff` | Location off | Replaces the distance in the Search tab's Radius cell when we hold no position. **A half-width grid cell (~160dp) at value-text size — keep it to two short words.** It is the only visible sign that in-person results are missing from the search entirely, so it must not read as a mere styling state. |
+| `listingsScreen:emptyNoLocation` | Turn on location to search for in-person meetings near you | Same instruction as the In-Person one, phrased for a *search*. Keep the two consistent in your locale; a user hitting both should not think they are about different features. |
+
+### Reviewer notes worth acting on first
+
+- **"Denied" vs "failed" is the distinction this batch exists to make.** Before
+  2026-08-04 both cases shared `locationBanner` ("Enable location…"), which told
+  users to switch on something already switched on. If your language collapses
+  the two — or if the retry phrasing implies a settings trip — the bug is back
+  in that locale. Read `locationBanner`, `locationBannerDenied`, and
+  `locationFixFailedBanner` side by side; they must be three clearly different
+  messages.
+- **Every one of these strings is on a tappable surface.** Banner and empty
+  state both act when tapped. Copy that reads as an apology with no next step
+  loses that affordance for anyone who doesn't try tapping.
+- **`radiusOff` shares a cell with real distances** ("16 mi", "25 km"). It has
+  to look like a *state* where a value should be, not like a truncated value.
+
+---
+
+## `liveScreen` retitle — 8 strings (8 locales × 1 key), 2026-08-04
+
+`liveScreen:title` changed from "Live Meetings" to **"Live Online"**. Not a new
+key — a re-translation of one that already shipped, so the existing value in
+your locale is what a user has been reading until now.
+
+| Key | English | Notes |
+|---|---|---|
+| `liveScreen:title` | Live Online | The heading over the Live segment, which lists **online meetings that are streaming right now**. Both halves carry weight: *live* = happening at this moment, *online* = not a physical venue. The old title said only the first half, which stopped being enough once the In-Person segment appeared beside it — "Live Meetings" now reads as "live meetings of any kind", including ones you'd drive to. |
+
+### Reviewer notes worth acting on first
+
+- **Check this against the segment labels in the same tab.** The three segments
+  are Live / In-Person / Search (`meetingsScreen:liveSegment` etc.). This
+  heading sits directly under them, so the word you choose for "online" should
+  be the same one `listingsScreen:venueOnline` uses. Three words for one concept
+  in one tab is the failure mode here.
+- **`ru`, `uk`, `th` need the closest look.** Their previous titles were already
+  built around "online" (Собрания онлайн / Зустрічі онлайн / ประชุมสด) rather
+  than "live", so the machine-assisted rewrite ("Сейчас онлайн" / "Зараз
+  онлайн" / "สดออนไลน์") is doing more than adding a word — confirm it still
+  names the right thing and doesn't just read as a status.
+- **`de` and `en` are now identical** ("Live Online"). That is plausible for
+  German, where both words are in common use, but confirm it isn't lazier than
+  a native heading would be.

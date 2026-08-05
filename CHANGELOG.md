@@ -25,7 +25,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Added
 
 - **In-person meetings are now searchable.** The Meetings tab's Search segment
-  gained a **Venue** filter (All / Online / In-Person) and, with it, in-person
+  gained a **Venue** filter (Online / In-Person) and, with it, in-person
   listings — which Search had been holding back while the In-Person segment was
   built. In-person results get the in-person row and popup (venue, address,
   directions, "I'm Here"), not the online one whose main action is a Zoom link
@@ -131,10 +131,31 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
-- **Search results now say "Online"** on online meetings, in the same badge slot
-  where in-person results show their distance. Search is the only list holding
-  both kinds, and an empty slot next to a row reads as missing data rather than
-  as "this one has no distance because it has no place".
+- **Favourites and star ratings now order the In-Person and Search lists too**,
+  the same way the Live segment has always ordered its own: favourites first
+  (highest-rated first), then anything else you've rated or joined, then the
+  rest. It layers over each list's existing order rather than replacing it, so
+  within every group In-Person is still nearest-first and Search is still by
+  start time. In-Person rows also gained the heart and star glyphs — they were
+  the one meeting list not showing them, and without them a favourite sitting
+  above a nearer meeting just looks like a broken distance sort.
+
+  As on Live, the order is fixed when the list loads: tapping a heart lights it
+  up immediately but doesn't move the row out from under your finger — it
+  settles into its new position on the next refresh.
+
+- **The Live segment is now titled "Live Online"** (was "Live Meetings"), in all
+  nine locales. It has only ever listed online meetings, and standing next to an
+  In-Person segment the old title read as "live meetings of any kind".
+
+- **Search's Venue filter offers Online and In-Person only** — the "All" choice
+  is gone, and Online is the default. A mixed list is the one result set where
+  a row's most important fact (can I walk there, or do I open Zoom?) had to be
+  carried by a small tag, and every other list in the app is single-venue. With
+  it goes the per-row "Online" tag, which now restated the filter the user had
+  just set. Defaulting to Online also means arriving on Search still asks for
+  nothing: the in-person leg, and with it the location prompt, is skipped until
+  you choose In-Person.
 
 - **Recovery Dharma (RD) is a selectable fellowship again**, alongside AA, NA
   and CMA — in Settings, onboarding, and the Live / Search / In-Person meeting
@@ -209,6 +230,33 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   main checkout while letting the suite run inside a worktree.
 
 ### Fixed
+
+- **Android: "Enable location to see meetings near you" came back on every app
+  restart, even with location already allowed — and tapping it always worked.**
+  The permission was never the problem. The app asked Android for a brand-new
+  position and gave up after ten seconds, which a cold phone indoors regularly
+  misses; the first attempt warmed up the hardware, so the tap that followed
+  succeeded and looked like the fix. It now starts from the position Android
+  already has (no wait, no hardware wakeup) and only asks for a fresh one to
+  refine it, so a granted user is located immediately on launch. The banner
+  also tells the truth when a fix genuinely fails: it says the location
+  couldn't be obtained and offers a retry, instead of telling someone to switch
+  on a setting they already switched on.
+
+- **No location meant a worldwide list of in-person meetings.** Both the
+  In-Person segment and the Search tab quietly fell back to every in-person
+  meeting on the server for that day — rooms on other continents, presented as
+  results, with nothing but a dimmed radius control to hint at why. In-Person
+  now shows an empty state naming the real problem, with a tap that fixes it,
+  and Search leaves in-person results out (online results are unaffected —
+  those genuinely don't depend on where you are) with the Radius cell reading
+  "Location off" rather than a distance it isn't applying.
+
+- **Search: the Radius filter could get permanently stuck.** Opening the radius
+  picker only asked for location if the app had never asked before, so a user
+  whose fix had merely timed out found the picker did nothing at all — the only
+  way out was to re-select the distance they already had. Opening the picker
+  now retries whenever there's no usable position.
 
 - **Subscribing from the Attendance tab left you sitting on Settings.** Tapping
   Subscribe on Attendance sends you to the Settings subscription section with a

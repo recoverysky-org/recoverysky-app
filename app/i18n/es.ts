@@ -154,7 +154,7 @@ const es: Translations = {
     placeholder: "Vista de horario próximamente",
   },
   liveScreen: {
-    title: "Reuniones en Vivo",
+    title: "En Vivo Online",
     noMeetings: "No hay reuniones en vivo ahora",
     lastRefresh: "Última verificación: {{time}}",
     joinMeeting: "Unirse",
@@ -190,11 +190,12 @@ const es: Translations = {
     languageLabel: "Idioma",
     langLabel: "Idioma",
     venueLabel: "Lugar",
-    venueAll: "Todos",
     venueOnline: "En línea",
     venueInPerson: "Presencial",
     timeCustom: "Personalizado",
     radiusNoLocation: "Activa la ubicación para buscar por distancia",
+    radiusOff: "Ubicación desactivada",
+    emptyNoLocation: "Activa la ubicación para buscar reuniones presenciales cerca de ti",
     radiusOnlineNote: "no disponible para reuniones en línea",
     allLanguages: "Todos",
     startLabel: "Inicio",
@@ -807,6 +808,9 @@ const es: Translations = {
     emptyNearby:
       "No hay reuniones en persona en un radio de {{distance}} el {{day}} — prueba un radio mayor",
     emptyFallback: "No hay reuniones en persona de {{fellowship}} el {{day}}",
+    locationFixFailedBanner: "No se pudo obtener tu ubicación — toca para reintentar",
+    emptyNoLocation: "Activa la ubicación para encontrar reuniones presenciales cerca de ti",
+    emptyFixFailed: "No se pudo obtener tu ubicación — toca para reintentar",
     selectFellowship: "Toca para elegir un grupo y ver reuniones presenciales",
   },
 }

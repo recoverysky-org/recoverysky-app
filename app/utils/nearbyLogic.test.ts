@@ -6,7 +6,9 @@ import {
   composeAddress,
   distanceMeters,
   formatDistance,
+  isNearlySamePosition,
   isSameLocalDay,
+  resolveBannerReason,
   resolveMode,
   sortByDistance,
   sortByLocalTime,
@@ -40,6 +42,59 @@ describe("resolveMode", () => {
   })
   it("is nearby with permission, fix, and a healthy fetch", () => {
     expect(resolveMode(base)).toBe("nearby")
+  })
+})
+
+describe("resolveBannerReason", () => {
+  const base = {
+    active: true,
+    permission: "granted",
+    fix: "acquired",
+    nearbyFetchFailed: false,
+  } as const
+
+  it("shows no banner in nearby mode", () => {
+    expect(resolveBannerReason(base)).toBeNull()
+  })
+  it("shows no banner while still locating", () => {
+    expect(resolveBannerReason({ ...base, fix: "pending" })).toBeNull()
+  })
+  it("reports a denial", () => {
+    expect(resolveBannerReason({ ...base, permission: "denied" })).toBe("denied")
+  })
+  // The regression this split exists for: permission granted, fix timed out.
+  // Reported "location" before 2026-08-04, which rendered as "Enable location"
+  // to a user who already had.
+  it("reports a failed fix separately from a denial", () => {
+    expect(resolveBannerReason({ ...base, fix: "failed" })).toBe("fixFailed")
+  })
+  it("reports a failed nearby fetch when we are located", () => {
+    expect(resolveBannerReason({ ...base, nearbyFetchFailed: true })).toBe("nearbyFailed")
+  })
+  it("prefers the denial over a stale fetch failure", () => {
+    expect(resolveBannerReason({ ...base, permission: "denied", nearbyFetchFailed: true })).toBe(
+      "denied",
+    )
+  })
+})
+
+describe("isNearlySamePosition", () => {
+  const here = { lat: 45.52, lon: -122.68 }
+
+  it("is false when either side is missing", () => {
+    expect(isNearlySamePosition(null, here)).toBe(false)
+    expect(isNearlySamePosition(here, null)).toBe(false)
+    expect(isNearlySamePosition(null, null)).toBe(false)
+  })
+  it("treats an identical position as the same", () => {
+    expect(isNearlySamePosition(here, { ...here })).toBe(true)
+  })
+  it("treats a fix a block away as the same", () => {
+    expect(isNearlySamePosition(here, { lat: 45.5205, lon: -122.6805 })).toBe(true)
+  })
+  it("treats a fix in the next town as different", () => {
+    expect(isNearlySamePosition(here, { lat: 45.6, lon: -122.68 })).toBe(false)
+    expect(isNearlySamePosition(here, { lat: 45.52, lon: -122.5 })).toBe(false)
   })
 })
 

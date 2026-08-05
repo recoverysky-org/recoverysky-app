@@ -19,8 +19,13 @@ export interface NearbyModeInput {
 
 /**
  * Resolve the segment's display mode. Order matters: permission denial
- * and fix failure route to fallback (day-browse) *before* fetch health is
- * considered — the segment must always render something useful.
+ * and fix failure route to fallback *before* fetch health is considered.
+ *
+ * CHANGED 2026-08-04: "fallback" no longer implies a day-browse list. Without
+ * a position the segment now renders an empty state instead of every in-person
+ * meeting on the server (see useNearbySchedules.fetchMeetings) — a worldwide
+ * list of places you can't drive to was never "something useful". The mode
+ * values are unchanged; only what fallback renders is.
  */
 export function resolveMode(input: NearbyModeInput): NearbyMode {
   if (!input.active) return "locating"
@@ -29,6 +34,72 @@ export function resolveMode(input: NearbyModeInput): NearbyMode {
   if (input.fix === "pending") return "locating"
   if (input.fix === "failed") return "fallback"
   return input.nearbyFetchFailed ? "fallback" : "nearby"
+}
+
+/**
+ * Why the segment is in fallback mode, which is also what the banner says and
+ * what tapping it does.
+ *
+ * CHANGED 2026-08-04: "denied" and "fixFailed" used to be a single "location"
+ * reason, so a user whose permission was granted but whose GPS fix had timed
+ * out was told to "enable location" — advice they had already taken, for a
+ * control that was already on. They are different problems with different
+ * remedies (Settings vs. retry) and the copy has to say so.
+ */
+export type NearbyBannerReason =
+  /** Permission refused (or never granted). */
+  | "denied"
+  /** Permission granted, but we could not obtain a position. */
+  | "fixFailed"
+  /** Located fine; /schedules/nearby failed after its retry. */
+  | "nearbyFailed"
+
+/**
+ * Resolve the banner reason, or null when no banner belongs on screen.
+ *
+ * Denial is checked before fetch health on purpose: a denied user never
+ * reaches the nearby endpoint, so a stale failure flag from an earlier grant
+ * must not out-rank the reason they are actually looking at.
+ */
+export function resolveBannerReason(input: NearbyModeInput): NearbyBannerReason | null {
+  if (resolveMode(input) !== "fallback") return null
+  if (input.permission === "denied") return "denied"
+  if (input.nearbyFetchFailed) return "nearbyFailed"
+  return "fixFailed"
+}
+
+/**
+ * Degrees of latitude/longitude below which two fixes are treated as the same
+ * place. 0.0025° is ~275 m of latitude (and less than that of longitude away
+ * from the equator, so this is conservative in the direction that matters).
+ *
+ * Sized against what it guards, not against GPS accuracy: the only consumer of
+ * a position here is a radius filter whose smallest option is 10 km. A quarter
+ * of a kilometre cannot change which meetings fall inside that, so a "new" fix
+ * that close to the last one is not worth a refetch.
+ */
+const SAME_POSITION_EPSILON_DEG = 0.0025
+
+/**
+ * True when a freshly acquired fix is close enough to the one we already hold
+ * that re-running the search would return the same rows.
+ *
+ * Exists because both location hooks now seed from the OS's cached position
+ * before taking a real fix (see their headers): without this, every activation
+ * would bump `fixVersion` twice and spend two network requests to render the
+ * identical list. Deliberately a flat degree box rather than a haversine — the
+ * threshold is two orders of magnitude below the smallest radius option, so
+ * precision here buys nothing.
+ */
+export function isNearlySamePosition(
+  a: { lat: number; lon: number } | null,
+  b: { lat: number; lon: number } | null,
+): boolean {
+  if (!a || !b) return false
+  return (
+    Math.abs(a.lat - b.lat) < SAME_POSITION_EPSILON_DEG &&
+    Math.abs(a.lon - b.lon) < SAME_POSITION_EPSILON_DEG
+  )
 }
 
 export const RADIUS_OPTIONS_KM: readonly number[] = [10, 25, 50, 100]
