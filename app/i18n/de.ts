@@ -316,6 +316,10 @@ const de: Translations = {
     subscriptionSuccess: "Willkommen bei Premium!",
     subscriptionSuccessMessage:
       "Danke für deine Unterstützung von RecoverySky. Genieße deine Premium-Funktionen!",
+    subscriptionSuccessBackupMessage:
+      "Danke für deine Unterstützung von RecoverySky. Möchtest du deinen Anwesenheitsverlauf sichern und auf allen Geräten synchron halten?",
+    cloudBackupPromptAccept: "Anwesenheit sichern",
+    cloudBackupPromptDecline: "Jetzt nicht",
     restoreSuccess: "Käufe wiederhergestellt",
     restoreSuccessMessage: "Dein Abonnement wurde erfolgreich wiederhergestellt.",
     restoreNoSubscription: "Kein Abonnement gefunden",

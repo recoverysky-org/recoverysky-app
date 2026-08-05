@@ -310,6 +310,10 @@ const ar: Translations = {
     restorePurchases: "استعادة المشتريات",
     subscriptionSuccess: "مرحباً بك في المميز!",
     subscriptionSuccessMessage: "شكراً لدعمك لـ RecoverySky. استمتع بالميزات المميزة!",
+    subscriptionSuccessBackupMessage:
+      "شكراً لدعمك لـ RecoverySky. هل تريد نسخ سجل حضورك احتياطيًا والاحتفاظ به متزامنًا عبر أجهزتك؟",
+    cloudBackupPromptAccept: "نسخ الحضور احتياطيًا",
+    cloudBackupPromptDecline: "ليس الآن",
     restoreSuccess: "تمت استعادة المشتريات",
     restoreSuccessMessage: "تمت استعادة اشتراكك بنجاح.",
     restoreNoSubscription: "لم يتم العثور على اشتراك",

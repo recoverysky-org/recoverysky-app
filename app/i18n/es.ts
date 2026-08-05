@@ -304,6 +304,10 @@ const es: Translations = {
     subscriptionSuccess: "¡Bienvenido a Premium!",
     subscriptionSuccessMessage:
       "Gracias por apoyar a RecoverySky. ¡Disfruta de tus funciones premium!",
+    subscriptionSuccessBackupMessage:
+      "Gracias por apoyar a RecoverySky. ¿Quieres respaldar tu historial de asistencia y mantenerlo sincronizado entre tus dispositivos?",
+    cloudBackupPromptAccept: "Respaldar asistencia",
+    cloudBackupPromptDecline: "Ahora no",
     restoreSuccess: "Compras Restauradas",
     restoreSuccessMessage: "Tu suscripción ha sido restaurada exitosamente.",
     restoreNoSubscription: "No se Encontró Suscripción",

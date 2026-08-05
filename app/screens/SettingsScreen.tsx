@@ -27,6 +27,7 @@ import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
+import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import {
   useProfileStore,
@@ -48,6 +49,7 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
+import { ENTITLEMENTS, hasEntitlement } from "@/services/purchases"
 import { requestRatingFromSettings } from "@/services/rating"
 import { attendanceSync } from "@/services/sync"
 import { trackEvent } from "@/services/tracking"
@@ -58,7 +60,7 @@ import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
 import { parseReturnTo } from "@/utils/returnToLogic"
-import { clear as clearStorage, loadString, remove, saveString } from "@/utils/storage"
+import { clear as clearStorage, saveString } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
@@ -125,18 +127,19 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const { themed, themeContext, setThemeContextOverride, themeColor, theme } = useAppTheme()
   const { logout } = useAuth0Wrapper()
 
-  // Track where to return after subscription (e.g. "Attendance:new")
-  const subscriptionReturnRef = useRef<string | null>(
-    route.params?.returnTo ?? loadString("SUBSCRIPTION_RETURN"),
+  // Track where to return after subscription (e.g. "Attendance:new").
+  // CHANGED 2026-08-03: moved out of an inline `useRef(route.params?.returnTo
+  // ?? loadString(...))` + persist-only effect. That ref's initializer only
+  // runs at mount, and this is a bottom-tab screen that stays mounted after
+  // first focus, so a returnTo arriving from another tab was persisted but
+  // never readable — users who tapped Subscribe on the Attendance tab bought
+  // premium and were stranded here. The hook owns param updates, MMKV
+  // persistence (for the Auth0 round-trip), and single-use consumption.
+  const clearReturnToParam = useCallback(
+    () => navigation.setParams({ returnTo: undefined }),
+    [navigation],
   )
-  // Persist returnTo so it survives the login flow
-  useEffect(() => {
-    const returnTo = route.params?.returnTo
-    if (returnTo) {
-      saveString("SUBSCRIPTION_RETURN", returnTo)
-      navigation.setParams({ returnTo: undefined })
-    }
-  }, [route.params?.returnTo, navigation])
+  const subscriptionReturn = useSubscriptionReturn(route.params?.returnTo, clearReturnToParam)
 
   // Scroll-to-section support
   const scrollRef = useRef<ScrollView>(null)
@@ -442,63 +445,129 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
    * module-level pending store — so even the live path only ever restored the
    * segment, never the popup. Routing through `setPendingMeetingId` restores
    * the popup in both segments, which is the entire point of coming back here.
+   *
+   * CHANGED 2026-08-03 (later): takes the destination as an argument instead of
+   * reading and clearing a ref itself. Ownership of that value — accepting it
+   * from route params, persisting it across the Auth0 round-trip, and handing
+   * it over exactly once — now lives in `useSubscriptionReturn`, which is where
+   * the "stays mounted, so the mount-time read never fires again" bug was.
    */
-  const navigateReturn = useCallback(() => {
-    const returnTo = subscriptionReturnRef.current
-    if (!returnTo) return
-    subscriptionReturnRef.current = null
-    remove("SUBSCRIPTION_RETURN")
+  const navigateReturn = useCallback(
+    (returnTo: string) => {
+      const target = parseReturnTo(returnTo)
+      switch (target.kind) {
+        case "meetingPopup":
+          // NAVIGATE FIRST, then publish the id. Both popups close themselves
+          // when the Meetings tab loses focus (`if (!isFocused && visible)
+          // onClose()`), so an id that lands while we are still on Settings
+          // could open a popup that immediately closes itself. React batches
+          // these two updates into one render, which is why the existing
+          // notification path gets away with the opposite order — but the
+          // ordering here does not depend on that, and it costs nothing.
+          //
+          // `meetingId` is passed as a route param as well as through the store
+          // because MeetingsScreen uses its presence to FORCE the segment,
+          // overriding its own "route segment hasn't changed" short-circuit.
+          // Without it, returning to a segment whose route param is unchanged is
+          // a no-op and the user can land on the wrong one. The param is not
+          // what opens the popup — see navigationUtilities.ts for why route
+          // params lose that race.
+          navigation.navigate("Meetings" as any, {
+            segment: target.segment,
+            meetingId: target.meetingId,
+          })
+          setPendingMeetingId(target.meetingId, target.segment)
+          return
+        case "meetingsTab":
+          navigation.navigate("Meetings" as any, undefined)
+          return
+        case "screen":
+          navigation.navigate(
+            target.screen as any,
+            target.section ? { section: target.section } : undefined,
+          )
+          return
+        case "none":
+          return
+      }
+    },
+    [navigation],
+  )
 
-    const target = parseReturnTo(returnTo)
-    switch (target.kind) {
-      case "meetingPopup":
-        // NAVIGATE FIRST, then publish the id. Both popups close themselves
-        // when the Meetings tab loses focus (`if (!isFocused && visible)
-        // onClose()`), so an id that lands while we are still on Settings
-        // could open a popup that immediately closes itself. React batches
-        // these two updates into one render, which is why the existing
-        // notification path gets away with the opposite order — but the
-        // ordering here does not depend on that, and it costs nothing.
-        //
-        // `meetingId` is passed as a route param as well as through the store
-        // because MeetingsScreen uses its presence to FORCE the segment,
-        // overriding its own "route segment hasn't changed" short-circuit.
-        // Without it, returning to a segment whose route param is unchanged is
-        // a no-op and the user can land on the wrong one. The param is not
-        // what opens the popup — see navigationUtilities.ts for why route
-        // params lose that race.
-        navigation.navigate("Meetings" as any, {
-          segment: target.segment,
-          meetingId: target.meetingId,
-        })
-        setPendingMeetingId(target.meetingId, target.segment)
-        return
-      case "meetingsTab":
-        navigation.navigate("Meetings" as any, undefined)
-        return
-      case "screen":
-        navigation.navigate(
-          target.screen as any,
-          target.section ? { section: target.section } : undefined,
-        )
-        return
-      case "none":
-        return
+  /**
+   * Post-purchase success dialog. Folds the cloud-backup opt-in into the same
+   * Alert rather than stacking a second one on top of it, so a user who just
+   * paid taps through one modal, not two.
+   *
+   * The prompt only replaces the plain success message when the user can
+   * actually act on it: the attendance entitlement is live AND backup is still
+   * off. Otherwise this is exactly the Alert that has always been here.
+   *
+   * ENTITLEMENT IS RE-READ, NOT TAKEN FROM `hasAttendance`. That context value
+   * is React state captured in this closure when the screen last rendered, so
+   * immediately after `await showPaywall()` it still holds the PRE-purchase
+   * value — the user has just bought the entitlement and the closure would say
+   * they don't have it, silently skipping the prompt in the one case it exists
+   * for. `hasEntitlement()` reads RevenueCat's customer info, which
+   * `showPaywall()` already refreshed via `loadSubscriptionInfo()`.
+   *
+   * It checks ATTENDANCE rather than premium because the Cloud Backup section
+   * itself is gated on `hasAttendance` (see its render block below) — the /sync
+   * API requires that entitlement. Prompting a premium-only buyer would flip a
+   * toggle whose section never renders.
+   *
+   * `profileStore.syncEnabled` needs no such care: it's read off the MobX store
+   * object at call time, so it's always live.
+   */
+  const showPurchaseSuccessAlert = useCallback(async () => {
+    const canBackUp = await hasEntitlement(ENTITLEMENTS.ATTENDANCE)
+
+    if (!canBackUp || profileStore.syncEnabled) {
+      Alert.alert(
+        translate("settingsScreen:subscriptionSuccess"),
+        translate("settingsScreen:subscriptionSuccessMessage"),
+      )
+      return
     }
-  }, [navigation])
+
+    Alert.alert(
+      translate("settingsScreen:subscriptionSuccess"),
+      translate("settingsScreen:subscriptionSuccessBackupMessage"),
+      [
+        {
+          text: translate("settingsScreen:cloudBackupPromptDecline"),
+          style: "cancel",
+          onPress: () => trackEvent("cloud_backup_prompt", { accepted: false }),
+        },
+        {
+          text: translate("settingsScreen:cloudBackupPromptAccept"),
+          onPress: () => {
+            trackEvent("cloud_backup_prompt", { accepted: true })
+            // Reuse the toggle handler rather than setting syncEnabled here —
+            // it owns the analytics event and the initialBackup() kickoff, and
+            // its fire-and-forget semantics are documented at its definition.
+            handleSyncToggle(true)
+          },
+        },
+      ],
+    )
+  }, [profileStore, handleSyncToggle])
 
   const handleUpgrade = async () => {
     trackEvent("upgrade_tapped")
     const purchased = await showPaywall()
     if (purchased) {
       trackEvent("upgrade_purchased")
-      if (subscriptionReturnRef.current) {
-        navigateReturn()
+      // Consume (not peek) — the destination is single-use, so a later upgrade
+      // from Settings itself doesn't re-navigate somewhere stale.
+      const returnTo = subscriptionReturn.consume()
+      if (returnTo) {
+        // Deliberately no backup prompt on this path: the user hit the paywall
+        // from somewhere else (a meeting popup, the Attendance tab) and is
+        // owed the thing they paid for, not a dialog in front of it.
+        navigateReturn(returnTo)
       } else {
-        Alert.alert(
-          translate("settingsScreen:subscriptionSuccess"),
-          translate("settingsScreen:subscriptionSuccessMessage"),
-        )
+        await showPurchaseSuccessAlert()
       }
     }
   }

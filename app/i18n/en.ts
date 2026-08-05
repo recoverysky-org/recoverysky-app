@@ -310,6 +310,10 @@ const en = {
     subscriptionSuccess: "Welcome to Premium!",
     subscriptionSuccessMessage:
       "Thank you for supporting RecoverySky. Enjoy your premium features!",
+    subscriptionSuccessBackupMessage:
+      "Thank you for supporting RecoverySky. Want to back up your attendance history and keep it synced across your devices?",
+    cloudBackupPromptAccept: "Back up attendance",
+    cloudBackupPromptDecline: "Not now",
     restoreSuccess: "Purchases Restored",
     restoreSuccessMessage: "Your subscription has been restored successfully.",
     restoreNoSubscription: "No Subscription Found",
