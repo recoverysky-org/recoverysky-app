@@ -7,7 +7,7 @@
  * record (gated on EXPO_PUBLIC_MIN_CREDIT_MINUTES) via saveTimerAttendance.
  */
 
-import { FC, useMemo, useRef, useState } from "react"
+import { FC, useEffect, useMemo, useRef, useState } from "react"
 import {
   Alert,
   Linking,
@@ -111,7 +111,7 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
   const meetingName = meeting?.name
   const uid = authStore.userId || "anonymous"
 
-  const { startedAt, elapsed, beginSave, endSave } = useAttendanceTimer({
+  const { startedAt, elapsed, isResume, beginSave, endSave } = useAttendanceTimer({
     active: visible && !!meetingId && !!meetingUrl,
     sessionKey: meetingId ?? "",
     // A persisted session belongs to this timer only when BOTH the id and the
@@ -124,6 +124,13 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
     buildSession: (start) => ({
       startedAt: start,
       uid,
+      // Non-null assertion is safe only because of a cross-file invariant:
+      // the hook calls buildSession exclusively from inside its launch
+      // effect, which early-returns unless `active` is true, and `active`
+      // above is `visible && !!meetingId && !!meetingUrl`. If a future
+      // change to useAttendanceTimer ever let buildSession run while
+      // inactive, this would silently persist a session with
+      // meetingId: undefined.
       meetingId: meetingId!,
       meetingName: meetingName ?? "",
       meetingUrl,
@@ -135,7 +142,9 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       // the user can retry opening Zoom manually if the first launch fails.
       // Defensive string guard: Linking.openURL throws SYNCHRONOUSLY (not as a
       // promise rejection) if the arg isn't a string, which would bypass the
-      // .catch below.
+      // .catch below. The buildExternalZoomUrl chain always returns a string
+      // today, but if a future code path passes a malformed prop we'd rather
+      // log and keep the timer running than crash the app.
       if (typeof meetingUrl === "string" && meetingUrl.length > 0) {
         Linking.openURL(meetingUrl).catch((err: unknown) => {
           log.error("Failed to launch external Zoom", { error: String(err) })
@@ -145,6 +154,25 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       }
     },
   })
+
+  // Restores the "Timer resumed…" line that lived in the pre-refactor effect.
+  // CHANGED 2026-08-05: logged from the modal rather than the hook, because a
+  // hook-level onResume callback would have to hand the consumer the whole
+  // PersistedTimerSession — which can carry a `presence` GPS fix that must
+  // never reach Loki. The modal already holds every field this log needs.
+  // Fires one commit later than the original; the resume branch sets isResume
+  // inside the effect, so this is the first render that can observe it.
+  useEffect(() => {
+    if (!isResume || !startedAt) return
+    log.info("Timer resumed from persisted session", {
+      mid: meetingId,
+      startedAt,
+      elapsedMs: Date.now() - startedAt,
+    })
+    // `meetingId` included: unlike the hook's launch effect, this one only
+    // logs — it holds no timer state, so re-firing on a meetingId change
+    // costs nothing. Safe to satisfy exhaustive-deps normally here.
+  }, [isResume, startedAt, meetingId])
 
   const canSave = elapsed >= EXTERNAL_MIN_CREDIT_MS && !saving
 

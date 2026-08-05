@@ -10,9 +10,12 @@
  *  - SchedulePopup is meeting-scoped and only mounts when the user opens a
  *    specific meeting. On cold start the user lands on Home — no popup is
  *    open — so we need a route-independent place for the modal to live.
- *  - The modal's existing resume path (ExternalZoomTimerModal:115–160)
- *    adopts the persisted startedAt and DOES NOT re-launch Zoom on resume,
- *    so the timer just picks up where it left off.
+ *  - The modal's existing resume path — now the resume branch of
+ *    useAttendanceTimer's launch effect (app/hooks/useAttendanceTimer.ts;
+ *    referenced by symbol name, not line number, since it moved out of
+ *    ExternalZoomTimerModal on 2026-08-05) — adopts the persisted startedAt
+ *    and DOES NOT re-launch Zoom on resume, so the timer just picks up where
+ *    it left off.
  *
  * Why we don't have to worry about double-mounting with the SchedulePopup
  * version: only set once at cold start, cleared on Save/Cancel. Any
