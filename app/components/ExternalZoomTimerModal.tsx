@@ -27,13 +27,8 @@ import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
 import { useAuthenticationStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
-import {
-  clearTimerSession,
-  EXTERNAL_MIN_CREDIT_MS,
-  loadTimerSession,
-  saveTimerAttendance,
-  saveTimerSession,
-} from "@/services/zoom"
+import { clearTimerSession, loadTimerSession, saveTimerSession } from "@/services/attendance"
+import { EXTERNAL_MIN_CREDIT_MS, saveTimerAttendance } from "@/services/zoom"
 import { extractZoomMeetingNumber } from "@/services/zoom/useZoomMeeting"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"

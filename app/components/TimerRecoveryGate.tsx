@@ -21,7 +21,7 @@
 
 import { useCallback, useMemo } from "react"
 
-import { setRecoverySession, useRecoverySession } from "@/services/zoom"
+import { setRecoverySession, useRecoverySession } from "@/services/attendance"
 
 import { ExternalZoomTimerModal } from "./ExternalZoomTimerModal"
 
@@ -34,6 +34,14 @@ export function TimerRecoveryGate() {
 
   const meeting = useMemo(() => {
     if (!session) return null
+    // TimerRecoveryGate currently only remounts ExternalZoomTimerModal, whose
+    // MeetingTarget.url is required. `meetingUrl` became optional 2026-08-05
+    // (PersistedTimerSession now also covers in-person sessions, which have
+    // no URL). An in-person session isn't recoverable through this gate yet
+    // — Task 11 adds a source-aware recovery path — so guard rather than
+    // passing "" through, which would look like a valid (bogus) URL to
+    // ExternalZoomTimerModal's Zoom-launch logic.
+    if (!session.meetingUrl) return null
     return {
       id: session.meetingId,
       name: session.meetingName,
@@ -44,11 +52,6 @@ export function TimerRecoveryGate() {
   if (!session || !meeting) return null
 
   return (
-    <ExternalZoomTimerModal
-      visible
-      meeting={meeting}
-      onClose={handleClose}
-      onSaved={handleClose}
-    />
+    <ExternalZoomTimerModal visible meeting={meeting} onClose={handleClose} onSaved={handleClose} />
   )
 }

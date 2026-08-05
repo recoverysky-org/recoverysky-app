@@ -1,5 +1,5 @@
 /**
- * Cross-component subscription channel for the External Zoom timer recovery
+ * Cross-component subscription channel for the attendance timer recovery
  * surface.
  *
  * On cold start (after the OS killed the JS process mid-meeting),
@@ -10,7 +10,13 @@
  * off — instead of seeing a destructive "Save or Discard" alert that would
  * end the timer prematurely.
  *
- * Singleton state — only one external Zoom timer can be active at a time.
+ * MOVED 2026-08-05 from app/services/zoom/. Its payload is a
+ * PersistedTimerSession, which is source-agnostic as of the in-person timer,
+ * and it is always read together with timerSession.ts — leaving it behind
+ * would split a pair.
+ *
+ * Singleton state — only one attendance timer can be active at a time,
+ * regardless of source.
  */
 
 import { useEffect, useState } from "react"

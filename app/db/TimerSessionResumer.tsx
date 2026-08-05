@@ -30,12 +30,8 @@
 
 import { useEffect, useRef } from "react"
 
-import {
-  clearTimerSession,
-  EXTERNAL_MIN_CREDIT_MS,
-  loadTimerSession,
-  setRecoverySession,
-} from "@/services/zoom"
+import { clearTimerSession, loadTimerSession, setRecoverySession } from "@/services/attendance"
+import { EXTERNAL_MIN_CREDIT_MS } from "@/services/zoom"
 import { logger } from "@/utils/logger"
 
 import { useDatabase } from "./DatabaseProvider"
