@@ -34,6 +34,7 @@ import { api } from "@/services/api"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { sortByFeedback } from "@/utils/feedbackSort"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
 
@@ -125,32 +126,12 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // Sort meetings: 1) favorites by stars, 2) rated non-favorites, 3) rest
   // Uses meeting.feedback which is a snapshot from when meetings were loaded,
   // so sorting only changes on refresh, not when user interacts
-  const sortedMeetings = useMemo(() => {
-    return [...filteredMeetings].sort((a, b) => {
-      const fbA = a.feedback
-      const fbB = b.feedback
-
-      const lovedA = fbA?.loves ?? false
-      const lovedB = fbB?.loves ?? false
-      const ratingA = fbA?.rates ?? 0
-      const ratingB = fbB?.rates ?? 0
-      const hasFeedbackA = fbA !== null
-      const hasFeedbackB = fbB !== null
-
-      // 1) Favorites first, sorted by stars descending
-      if (lovedA && !lovedB) return -1
-      if (!lovedA && lovedB) return 1
-      if (lovedA && lovedB) return ratingB - ratingA
-
-      // 2) Non-favorites with feedback, sorted by stars descending
-      if (hasFeedbackA && !hasFeedbackB) return -1
-      if (!hasFeedbackA && hasFeedbackB) return 1
-      if (hasFeedbackA && hasFeedbackB) return ratingB - ratingA
-
-      // 3) Rest (no feedback) - maintain original order
-      return 0
-    })
-  }, [filteredMeetings])
+  // CHANGED 2026-08-04: the comparator moved to the pure `sortByFeedback` and
+  // this screen now calls it. Behavior is identical — it was lifted verbatim —
+  // but the In-Person and Search segments needed the same ordering, and three
+  // hand-written copies of a three-tier comparator would have drifted on the
+  // first edit. The tier semantics are documented (and vitest-covered) there.
+  const sortedMeetings = useMemo(() => sortByFeedback(filteredMeetings), [filteredMeetings])
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
