@@ -1,9 +1,10 @@
 /**
  * TimerRecoveryGate
  *
- * App-root surface that remounts ExternalZoomTimerModal pre-seeded with a
- * persisted timer session after a cold start. Driven by the recovery channel
- * in `services/attendance/timerRecovery` (populated by TimerSessionResumer
+ * App-root surface that remounts ExternalZoomTimerModal or InPersonTimerModal
+ * — whichever the persisted session's source dictates — pre-seeded with the
+ * session after a cold start. Driven by the recovery channel in
+ * `services/attendance/timerRecovery` (populated by TimerSessionResumer
  * when the DB is ready and a fresh persisted session exists).
  *
  * Why mounted here and not inside SchedulePopup:
@@ -20,6 +21,27 @@
  * Why we don't have to worry about double-mounting with the SchedulePopup
  * version: only set once at cold start, cleared on Save/Cancel. Any
  * subsequent Join flow uses the SchedulePopup-owned modal.
+ *
+ * CHANGED 2026-08-05: this now has to cover a second owner too —
+ * InPersonPopup mounts its own InPersonTimerModal (Task 10) the same way
+ * SchedulePopup mounts ExternalZoomTimerModal. It still can't double-mount,
+ * but not because the channel's producer only ever fires once: TimerSession-
+ * Resumer's `hasRun` ref is one-shot per MOUNT, not per process, so a
+ * resumer remount could in principle push a second, different session into
+ * the channel while this gate still held session A. What actually prevents
+ * it is that TimerSessionResumer and this gate are both unconditional
+ * descendants of the same DatabaseProvider in app.tsx, gate strictly
+ * deeper — the only asymmetric remount is this gate remounting alone (safe:
+ * it just re-reads the singleton), because any ancestor remount that would
+ * reset the resumer is also an ancestor of this gate, tearing down whatever
+ * modal instance it held in the same pass. (Updates.reloadAsync(), used on
+ * the outage-recovery path, resets the whole tree together — a fresh mount,
+ * not an A-to-B handoff.) The one real gap is Fast Refresh in dev: editing
+ * TimerSessionResumer.tsx alone can reset its ref while this gate's mounted
+ * child survives untouched — dev-only, and the worst case is one
+ * misattributed log line, never wrong data. Move either component out from
+ * under DatabaseProvider, or make one conditionally mounted, and this
+ * guarantee needs re-deriving.
  *
  * CHANGED 2026-08-05: routes on sessionSource(). An in-person session has no
  * meetingUrl, so handing it to ExternalZoomTimerModal would hit that modal's

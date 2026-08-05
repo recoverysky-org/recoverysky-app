@@ -5,7 +5,8 @@
  * On cold start (after the OS killed the JS process mid-meeting),
  * TimerSessionResumer reads the MMKV-persisted session and, if it's still
  * fresh, stashes it here. TimerRecoveryGate (mounted at the app root)
- * observes this and remounts ExternalZoomTimerModal pre-seeded with the
+ * observes this and remounts the matching timer modal — ExternalZoomTimerModal
+ * or InPersonTimerModal, chosen by the session's source — pre-seeded with the
  * persisted session, so the user picks up the running timer where they left
  * off — instead of seeing a destructive "Save or Discard" alert that would
  * end the timer prematurely.
