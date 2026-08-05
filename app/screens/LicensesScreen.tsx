@@ -8,6 +8,7 @@ import { FC } from "react"
 import { View, ViewStyle, TextStyle, Pressable, ScrollView } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
+import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { ossLicensesText } from "@assets/content/oss"
@@ -19,17 +20,32 @@ import type { ThemedStyle } from "@/theme/types"
 export const LicensesScreen: FC = function LicensesScreen() {
   const navigation = useNavigation()
   const { themed, theme } = useAppTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
 
   return (
     <View style={[themed($container), { paddingTop: insets.top }]}>
       <View style={themed($header)}>
-        <Text style={themed($title)} tx="settingsScreen:thirdPartyLicenses" />
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+        <Text
+          style={themed($title)}
+          tx="settingsScreen:thirdPartyLicenses"
+          accessibilityRole="header"
+        />
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={12}
+          accessibilityRole="button"
+          // Bare glyph with no text — without a label VoiceOver announces
+          // nothing at all, leaving the modal with no discoverable exit.
+          accessibilityLabel={t("common:close")}
+        >
           <Ionicons name="close" size={24} color={theme.colors.text} />
         </Pressable>
       </View>
       <ScrollView style={$scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
+        {/* The OSS licence blob is thousands of lines of monospace legalese.
+            Leave it readable, but don't make a screen reader recite the whole
+            thing as one element — the ScrollView keeps it navigable by line. */}
         <Text style={themed($body)} text={ossLicensesText} />
       </ScrollView>
     </View>

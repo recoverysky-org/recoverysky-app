@@ -195,22 +195,48 @@ sweep is about closing the remaining holes, not starting from zero.
 `accessibilityViewIsModal` / `accessibilityRole="radio"` /
 `accessibilityState` up front. The uncovered files are older surfaces.
 
-- [ ] **Audit files with interactive elements and zero a11y props.** Verified
-      by grep (`onPress`/`Pressable`/`Touchable*` present, no
-      `accessibilityLabel|Role|Hint|State|accessible=`):
-      - `app/components/Toast.tsx` (7 touchables) — toasts also want
-        `accessibilityLiveRegion` / `AccessibilityInfo.announceForAccessibility`
-        so a screen reader hears them at all, not just a labelled dismiss.
-      - `app/components/ScheduleGrid.tsx` (4) — grid cells; likely wants
-        `accessibilityRole="button"` + a composed day/time label.
-      - `app/screens/onboarding/ProgressDots.tsx` (4)
-      - `app/screens/TermsScreen.tsx` (3), `app/screens/LicensesScreen.tsx` (3)
-      - `app/components/EmptyState.tsx` (2)
-      - `app/components/agent/MeetingResultsCard.tsx` (1)
+- [x] **Audit files with interactive elements and zero a11y props.**
+      **DONE 2026-08-04.** Covered in the first sweep pass:
+      - `app/components/ScheduleGrid.tsx` — the worst of them, and now the only
+        one with test coverage (`ScheduleGrid.test.tsx`). Cells compose
+        "Monday, 7:00p, reminder on" from new `accessibility:` keys, the 24h
+        sentinel is spelled out, hints distinguish create-vs-edit, and the
+        empty spacers (5 of every 7 in a typical row) are hidden on both
+        platforms. That test mocks `react-i18next` against the real `en`
+        catalogue rather than using setup.ts's key-echo stub — see the header
+        comment there before copying the pattern.
+      - `app/screens/onboarding/ProgressDots.tsx` — tablist/tab with
+        "Step N of 7" and selected state.
+      - `app/screens/TermsScreen.tsx`, `app/screens/LicensesScreen.tsx` —
+        labelled close button + header role.
+      - `app/components/Toast.tsx` — the tappable variant is labelled. It
+        already had `accessibilityLiveRegion` **and**
+        `announceForAccessibility`; the original grep missed them because the
+        pattern only looked for `Label|Role|Hint|State|accessible=`. Widen the
+        pattern before trusting a future audit's file list.
+      - `app/screens/ErrorScreen/ErrorDetails.tsx`,
+        `app/components/agent/MeetingResultsCard.tsx` — header roles,
+        decorative icons hidden.
+
       Confirmed *not* gaps despite scoring 0 — `HomeScreen`, `MeetingsScreen`,
       `ScheduleScreen`, `NewsCard`, `CollapsedResultBadge`,
       `ToolResultRenderer` have no touchables of their own; they compose
-      children that are already labelled. Don't "fix" those.
+      children that are already labelled. Don't "fix" those. `app.tsx`'s two
+      `onPress` hits are `Alert.alert` button configs, not components.
+
+      Deliberately skipped as unreachable code, not as accepted debt:
+      `app/components/EmptyState.tsx` and `app/screens/WelcomeScreen.tsx` have
+      **zero references anywhere in the app** — Ignite boilerplate, same
+      status as `DevScreen.tsx`. Give them a11y props if anything ever routes
+      to them; better still, delete all three.
+
+- [ ] **Not a11y, found during the sweep: `MeetingResultsCard.tsx` has a
+      hardcoded English string.** `` `Showing ${n} of ${m} meetings` `` at the
+      `hasMore` branch bypasses i18n entirely, so it stays English in all nine
+      locales — and a screen reader in Spanish reads it in English. Left alone
+      because the Agent tab is hard-disabled (`agentTabVisible = false` in
+      `MainNavigator.tsx`), so it isn't user-reachable; fix it whenever that
+      tab is turned on, along with a proper `agentScreen:` key.
 
 - [ ] **Second pass: quality, not just presence.** Only 15
       `accessibilityHint`s exist app-wide against 173 labels, and several
@@ -223,7 +249,21 @@ sweep is about closing the remaining holes, not starting from zero.
 - [ ] **Verify on device, both platforms.** VoiceOver (iOS) and TalkBack
       (Android). Add the check to `docs/PRODUCTION_CHECKLIST.md` if it
       isn't there. Any new i18n keys are a nine-file change (see
-      CLAUDE.md §Internationalization).
+      CLAUDE.md §Internationalization). **Nothing from the 2026-08-04 pass has
+      been heard on a real screen reader yet** — it's verified by `tsc`, eslint,
+      and 8 jest assertions, which prove the props are present and correctly
+      composed but say nothing about how VoiceOver actually reads them. The
+      grid's per-cell labels are the ones to listen to first: seven columns of
+      "Monday, 7:00p" may be correct and still be exhausting to swipe through,
+      which only a device pass will tell you.
+
+- [ ] **Translation review: 20 new `accessibility:` keys × 8 locales.** Added
+      2026-08-04 (7 weekday names + grid/onboarding strings). Machine-assisted,
+      structurally verified by `npm run compile` (the `Translations` type makes
+      a missing key a hard error) but not semantically reviewed. Append to the
+      existing queue in `docs/translation-review-2026-08-03.md`. Arabic
+      `scheduleCell` interpolates a Latin-digit clock time into RTL text —
+      same bidi caveat already flagged for `{{distance}}`, needs a device check.
 
 ---
 

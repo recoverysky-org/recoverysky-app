@@ -8,6 +8,7 @@
 import { FC } from "react"
 import { View, ViewStyle, Pressable } from "react-native"
 import { NavigationProp, useNavigation } from "@react-navigation/native"
+import { useTranslation } from "react-i18next"
 
 import type { OnboardingParamList } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
@@ -33,6 +34,7 @@ interface ProgressDotsProps {
  */
 export const ProgressDots: FC<ProgressDotsProps> = ({ currentIndex }) => {
   const { theme } = useAppTheme()
+  const { t } = useTranslation()
   const navigation = useNavigation<NavigationProp<OnboardingParamList>>()
 
   const handleDotPress = (index: number) => {
@@ -42,12 +44,29 @@ export const ProgressDots: FC<ProgressDotsProps> = ({ currentIndex }) => {
   }
 
   return (
-    <View style={$progress}>
+    // tablist/tab rather than button: the dots are a set of peers with exactly
+    // one selected, which is what lets VoiceOver announce "2 of 7" positionally
+    // and matches how SegmentedControl models the same relationship.
+    <View style={$progress} accessibilityRole="tablist">
       {SCREENS.map((_, index) => (
         <Pressable
           key={index}
           onPress={() => handleDotPress(index)}
           hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+          accessibilityRole="tab"
+          // The dot itself is an 8pt circle with no text, so the position in
+          // the flow is the only thing there is to announce. Selected state
+          // is otherwise carried purely by the tint fill.
+          accessibilityLabel={t("accessibility:onboardingStep", {
+            step: index + 1,
+            total: SCREENS.length,
+          })}
+          accessibilityState={{ selected: index === currentIndex }}
+          // Tapping the current dot is a no-op (see handleDotPress), so don't
+          // promise navigation that won't happen.
+          accessibilityHint={
+            index === currentIndex ? undefined : t("accessibility:doubleTapToGoToStep")
+          }
         >
           <View
             style={[

@@ -29,6 +29,20 @@ const DAY_KEYS = [
   "liveScreen:sun",
 ] as const
 
+// Full day names, same Mon..Sun order as DAY_KEYS. Screen readers announce the
+// abbreviated header labels literally ("Mon"), and a cell's day is otherwise
+// only conveyed by its column position — which a screen reader can't see. Every
+// cell label therefore restates the day from these.
+const DAY_KEYS_FULL = [
+  "accessibility:weekdays.mon",
+  "accessibility:weekdays.tue",
+  "accessibility:weekdays.wed",
+  "accessibility:weekdays.thu",
+  "accessibility:weekdays.fri",
+  "accessibility:weekdays.sat",
+  "accessibility:weekdays.sun",
+] as const
+
 /** Amber/gold color for reminder indicators */
 const REMINDER_COLOR = "#f59e0b"
 
@@ -74,6 +88,31 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
     [onCellPress],
   )
 
+  /**
+   * Builds the screen-reader label for one cell: "Monday, 7:00 PM" plus the
+   * reminder state when there is one. The reminder state has to be spoken
+   * because sighted users read it from the gold (enabled) / grey (disabled)
+   * fill, which is invisible to VoiceOver and also fails as a colour-only
+   * signal for low-vision users.
+   */
+  const cellLabel = useCallback(
+    (millis: number, colIndex: number, reminderState: "enabled" | "disabled" | undefined) => {
+      const day = t(DAY_KEYS_FULL[colIndex])
+      // millis === 0 is the sentinel for a continuous (24/7) meeting, rendered
+      // visually as the string "24h" — spell that out rather than say "24 h".
+      const time =
+        millis === 0 ? t("accessibility:continuousMeeting") : formatMillisToLocalTime(millis)
+      if (reminderState === "enabled") {
+        return t("accessibility:scheduleCellReminderOn", { day, time })
+      }
+      if (reminderState === "disabled") {
+        return t("accessibility:scheduleCellReminderOff", { day, time })
+      }
+      return t("accessibility:scheduleCell", { day, time })
+    },
+    [t],
+  )
+
   if (scheduleData.length === 0) {
     return null
   }
@@ -86,6 +125,17 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
           <View
             key={dayKey}
             style={[themed($headerCell), index === currentDayIndex && themed($headerCellActive)]}
+            // The header is one a11y element per column rather than a header
+            // element wrapping a text node, so the "today" underline (a purely
+            // visual tint + border) gets spoken. Announce the full day name,
+            // not the "Mon" the sighted user sees.
+            accessible
+            accessibilityRole="header"
+            accessibilityLabel={
+              index === currentDayIndex
+                ? t("accessibility:dayToday", { day: t(DAY_KEYS_FULL[index]) })
+                : t(DAY_KEYS_FULL[index])
+            }
           >
             <Text
               style={[themed($headerText), index === currentDayIndex && themed($headerTextActive)]}
@@ -127,20 +177,46 @@ export const ScheduleGrid: FC<ScheduleGridProps> = ({
                       <Pressable
                         onPress={() => handleCellPress(cell.millis, cell.id, colIndex, rowIndex)}
                         style={({ pressed }) => [innerStyle, pressed && $cellPressed]}
+                        accessibilityRole="button"
+                        accessibilityLabel={cellLabel(cell.millis, colIndex, reminderState)}
+                        // Which action the tap performs depends on whether a
+                        // reminder already exists — same branch the caller takes
+                        // in handleCellPress, so keep the two in step.
+                        accessibilityHint={
+                          hasReminder
+                            ? t("accessibility:doubleTapToEditReminder")
+                            : t("accessibility:doubleTapToSetReminder")
+                        }
                       >
                         <Text style={textStyle}>
                           {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </Pressable>
                     ) : (
-                      <View style={innerStyle}>
+                      // Read-only grid (no onCellPress): still one labelled
+                      // element per cell so the day is announced with the time.
+                      <View
+                        style={innerStyle}
+                        accessible
+                        accessibilityLabel={cellLabel(cell.millis, colIndex, reminderState)}
+                      >
                         <Text style={textStyle}>
                           {cell.millis === 0 ? "24h" : formatMillisToLocalTime(cell.millis)}
                         </Text>
                       </View>
                     )
                   ) : (
-                    <View style={themed($emptyCellInner)} />
+                    // Spacer for a day with no meeting in this row. A full grid
+                    // is mostly empties, so leaving them focusable made
+                    // VoiceOver swipe through dozens of silent stops between
+                    // real times. Hide them from the accessibility tree on both
+                    // platforms (iOS reads accessibilityElementsHidden, Android
+                    // reads importantForAccessibility).
+                    <View
+                      style={themed($emptyCellInner)}
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                    />
                   )}
                 </View>
               )

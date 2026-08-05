@@ -14,7 +14,14 @@ import {
   useRef,
   useState,
 } from "react"
-import { AccessibilityInfo, Animated, Pressable, StyleSheet, ViewStyle, TextStyle } from "react-native"
+import {
+  AccessibilityInfo,
+  Animated,
+  Pressable,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { translate, TxKeyPath } from "@/i18n"
@@ -171,6 +178,12 @@ export const ToastProvider: FC<ToastProviderProps> = ({ children }) => {
                 hideToast()
               }}
               style={styles.pressable}
+              accessibilityRole="button"
+              // Nothing here marks the toast as actionable visually either —
+              // it looks identical to the non-tappable variant — so the hint
+              // is the only signal that the tap does anything.
+              accessibilityLabel={toast.tx ? translate(toast.tx) : toast.message}
+              accessibilityHint={translate("accessibility:doubleTapToDismiss")}
             >
               <Text
                 style={[styles.text, toast.type === "info" ? { color: theme.colors.text } : null]}

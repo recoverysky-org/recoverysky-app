@@ -28,8 +28,15 @@ export function ErrorDetails(props: ErrorDetailsProps) {
       contentContainerStyle={themed($contentContainer)}
     >
       <View style={$topSection}>
+        {/* Decorative. Icon already self-hides from the a11y tree when it has
+            no accessibilityLabel (see Icon.tsx) — don't add one here. */}
         <Icon icon="ladybug" size={64} />
-        <Text style={themed($heading)} preset="subheading" tx="errorScreen:title" />
+        <Text
+          style={themed($heading)}
+          preset="subheading"
+          tx="errorScreen:title"
+          accessibilityRole="header"
+        />
         <Text tx="errorScreen:friendlySubtitle" />
       </View>
 

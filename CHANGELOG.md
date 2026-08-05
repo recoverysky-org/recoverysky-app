@@ -129,6 +129,36 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   — see `docs/translation-review-2026-08-03.md` for the native-speaker review
   queue).
 
+- **Screen-reader support for the weekly schedule grid, onboarding progress
+  dots, and the Terms / Licenses screens.** First pass of an app-wide
+  accessibility sweep over older surfaces that predate the standard in
+  `CONTRIBUTING.md` — the newer In-Person work already met it.
+
+  The schedule grid was the worst of them. Each cell announced only a bare time
+  ("7:00p") because the day lived purely in the column position, which a screen
+  reader can't see; whether a reminder was set — and whether it was on or off —
+  was carried entirely by the gold or grey fill, which is invisible to
+  VoiceOver and also fails as a colour-only signal for low-vision users. Cells
+  now announce "Monday, 7:00p, reminder on", the continuous-meeting sentinel
+  reads as "runs continuously, 24 hours" instead of the literal "24h" glyph,
+  and the hint distinguishes creating a reminder from editing one. The empty
+  spacer cells — five of every seven in a typical row — were leaving silent,
+  unlabelled stops between real times and are now hidden from the
+  accessibility tree on both platforms.
+
+  The onboarding progress dots were 8pt circles with no label at all: they now
+  announce "Step 3 of 7" with the selected state, and don't promise navigation
+  when tapping the dot you're already on. The Terms and Licenses modals had a
+  bare close glyph with no label, which left them with no exit a screen reader
+  could find. Toast's tappable variant, the crash screen's heading, and the
+  agent results header got labels and header roles as well.
+
+  Adds a full set of weekday names plus grid and onboarding strings to all nine
+  locales; the eight non-English ones are machine-assisted and join the
+  native-speaker review queue. Arabic interpolates a Latin-digit clock time
+  into RTL text and is flagged for a device check, the same caveat already
+  noted for `{{distance}}`.
+
 ### Changed
 
 - **Favourites and star ratings now order the In-Person and Search lists too**,

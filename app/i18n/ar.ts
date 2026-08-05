@@ -755,6 +755,29 @@ const ar: Translations = {
     doubleTapToRetry: "انقر مرتين لإعادة المحاولة",
     doubleTapToAllowLocation: "انقر مرتين للسماح بالوصول إلى الموقع",
     doubleTapToOpenSettings: "انقر مرتين لفتح الإعدادات",
+    weekdays: {
+      mon: "الاثنين",
+      tue: "الثلاثاء",
+      wed: "الأربعاء",
+      thu: "الخميس",
+      fri: "الجمعة",
+      sat: "السبت",
+      sun: "الأحد",
+    },
+    dayToday: "{{day}}، اليوم",
+    // RTL note for the translation reviewer: {{time}} interpolates a
+    // locale-formatted clock time with Latin digits into Arabic text, the
+    // same pattern flagged for inPersonScreen's {{distance}}. Needs a device
+    // check that the bidi run reads correctly under VoiceOver.
+    scheduleCell: "{{day}}، {{time}}",
+    scheduleCellReminderOn: "{{day}}، {{time}}، التذكير مُفعّل",
+    scheduleCellReminderOff: "{{day}}، {{time}}، التذكير مُعطّل",
+    continuousMeeting: "يُعقد باستمرار، 24 ساعة",
+    doubleTapToSetReminder: "انقر مرتين لضبط تذكير",
+    doubleTapToEditReminder: "انقر مرتين لتعديل هذا التذكير",
+    onboardingProgress: "تقدم الإعداد",
+    onboardingStep: "الخطوة {{step}} من {{total}}",
+    doubleTapToGoToStep: "انقر مرتين للانتقال إلى هذه الخطوة",
   },
   announcements: {
     cloudBackupTitle: "النسخ الاحتياطي السحابي والمزامنة بين الأجهزة",

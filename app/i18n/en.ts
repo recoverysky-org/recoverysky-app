@@ -789,6 +789,34 @@ const en = {
     doubleTapToRetry: "Double-tap to try again",
     doubleTapToAllowLocation: "Double-tap to allow location access",
     doubleTapToOpenSettings: "Double-tap to open Settings",
+    // Full weekday names, used only to compose screen-reader labels. The
+    // visible ScheduleGrid header uses the abbreviated liveScreen:mon…sun
+    // keys, but VoiceOver/TalkBack announce "Mon" literally as "Mon" — so
+    // the grid builds its cell labels from these instead. Don't swap the
+    // visible header over to them; the grid has seven columns of room.
+    weekdays: {
+      mon: "Monday",
+      tue: "Tuesday",
+      wed: "Wednesday",
+      thu: "Thursday",
+      fri: "Friday",
+      sat: "Saturday",
+      sun: "Sunday",
+    },
+    dayToday: "{{day}}, today",
+    // ScheduleGrid cell labels. A bare time ("7:00 PM") is meaningless to a
+    // screen reader because the day only exists as a visual column, so every
+    // cell restates its day. The reminder variants replace the gold/grey fill
+    // that sighted users read as state.
+    scheduleCell: "{{day}}, {{time}}",
+    scheduleCellReminderOn: "{{day}}, {{time}}, reminder on",
+    scheduleCellReminderOff: "{{day}}, {{time}}, reminder off",
+    continuousMeeting: "runs continuously, 24 hours",
+    doubleTapToSetReminder: "Double-tap to set a reminder",
+    doubleTapToEditReminder: "Double-tap to edit this reminder",
+    onboardingProgress: "Onboarding progress",
+    onboardingStep: "Step {{step}} of {{total}}",
+    doubleTapToGoToStep: "Double-tap to go to this step",
   },
   announcements: {
     cloudBackupTitle: "Cloud Backup & Multi-Device Sync",

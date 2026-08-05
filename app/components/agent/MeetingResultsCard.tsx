@@ -80,8 +80,15 @@ export const MeetingResultsCard: FC<MeetingResultsCardProps> = ({
   return (
     <View style={themed($container)}>
       <View style={themed($header)}>
-        <Ionicons name="calendar-outline" size={14} color={theme.colors.tint} />
-        <Text style={themed($headerText)}>
+        {/* Decorative — the adjacent text already says "meetings". */}
+        <Ionicons
+          name="calendar-outline"
+          size={14}
+          color={theme.colors.tint}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+        <Text style={themed($headerText)} accessibilityRole="header">
           {hasMore
             ? `Showing ${meetings.length} of ${allMeetings.length} meetings`
             : t("agentScreen:meetingsFound", { count: allMeetings.length })}

@@ -8,6 +8,7 @@ import { FC, useState, useEffect, useRef } from "react"
 import { View, ViewStyle, TextStyle, Pressable, ScrollView, ActivityIndicator } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
+import { useTranslation } from "react-i18next"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Text } from "@/components/Text"
@@ -33,6 +34,7 @@ function htmlToText(html: string): string {
 export const TermsScreen: FC = function TermsScreen() {
   const navigation = useNavigation()
   const { themed, theme } = useAppTheme()
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
 
   const [content, setContent] = useState("")
@@ -54,8 +56,19 @@ export const TermsScreen: FC = function TermsScreen() {
   return (
     <View style={[themed($container), { paddingTop: insets.top }]}>
       <View style={themed($header)}>
-        <Text style={themed($title)} tx="settingsScreen:termsAndConditions" />
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+        <Text
+          style={themed($title)}
+          tx="settingsScreen:termsAndConditions"
+          accessibilityRole="header"
+        />
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={12}
+          accessibilityRole="button"
+          // Bare glyph with no text — without a label VoiceOver announces
+          // nothing at all, leaving the modal with no discoverable exit.
+          accessibilityLabel={t("common:close")}
+        >
           <Ionicons name="close" size={24} color={theme.colors.text} />
         </Pressable>
       </View>
