@@ -30,6 +30,7 @@ Every task's requirements implicitly include this section.
 - **The credit floor is `EXTERNAL_MIN_CREDIT_MS`**, imported from `@/services/zoom`. Do not define a second threshold. Do not rename it.
 - **Verification is at timer start only.** Never re-check at Save.
 - **No override.** There is no "log anyway" escape hatch for an out-of-range user.
+- **A test that claims to guard an invariant must actually fail when that invariant is broken.** ADDED 2026-08-05 after Task 1 review: two tests in this plan carried comments describing exactly the mutation they guarded (`<=` → `<`, and accuracy widening the radius) and passed against both mutations. Where a test's comment names a specific bug it prevents, prove it: mutate the implementation, run the test, confirm it fails, revert, and confirm `git diff` shows the implementation unchanged.
 - Run `npm run compile` (tsc) after every task. It is the fastest real gate in this repo.
 
 ## File Structure
@@ -143,9 +144,23 @@ describe("verifyPresence", () => {
     // The boundary is INCLUSIVE. This test is the guard against someone
     // "tidying" `<=` into `<` and silently rejecting users standing on the
     // line — a change that would be invisible in every other test.
-    const distanceM = 150
-    const result = verifyPresence({ fix: AT_VENUE, venue: VENUE, radiusM: distanceM })
+    //
+    // Measure a real offset fix's distance first, then feed that exact value
+    // back as the radius. distanceMeters is pure, so both calls yield the
+    // identical float: `d <= d` passes, `d < d` fails.
+    //
+    // CHANGED 2026-08-05: this test originally used `AT_VENUE` (coincident
+    // with the venue) against a hardcoded radius of 150. That measures 0 m,
+    // and `0 < 150` is just as true as `0 <= 150` — so the test passed
+    // against the very mutation its comment claimed to guard. Caught in
+    // Task 1 review.
+    const fix = { lat: 41.8781, lon: -87.6198 }
+    const measured = verifyPresence({ fix, venue: VENUE, radiusM: 150 })
+    const exactDistanceM = measured.distanceM!
+
+    const result = verifyPresence({ fix, venue: VENUE, radiusM: exactDistanceM })
     expect(result.inRange).toBe(true)
+    expect(result.reason).toBe("in-range")
   })
 
   it("reports no-venue-coords for a null-island venue", () => {
@@ -178,14 +193,25 @@ describe("verifyPresence", () => {
   })
 
   it("does not widen the radius by the fix's own accuracy", () => {
-    // A 500 m-accurate fix 830 m away is still out of range. Widening by
-    // accuracy would make the gate stochastic — the same user in the same
-    // chair would pass or fail depending on GPS conditions.
+    // Widening by accuracy would make the gate stochastic — the same user in
+    // the same chair would pass or fail depending on GPS conditions.
+    //
+    // The fix must sit in the gap a buggy implementation would open: further
+    // than radiusM (150 m) but nearer than radiusM + accuracyM (650 m). The
+    // two distance assertions keep this honest if the coordinates are edited.
+    //
+    // CHANGED 2026-08-05: this test originally used a fix ~830 m out, which
+    // is beyond 650 m — so a radius wrongly widened by accuracy would have
+    // rejected it too, and the test passed either way. Caught in Task 1
+    // review. Confirm the offset lands inside the gap rather than trusting
+    // the arithmetic.
     const result = verifyPresence({
-      fix: { lat: 41.8781, lon: -87.6198, accuracyM: 500 },
+      fix: { lat: 41.8781, lon: -87.6248, accuracyM: 500 },
       venue: VENUE,
       radiusM: 150,
     })
+    expect(result.distanceM).toBeGreaterThan(150)
+    expect(result.distanceM).toBeLessThan(650)
     expect(result.inRange).toBe(false)
   })
 
