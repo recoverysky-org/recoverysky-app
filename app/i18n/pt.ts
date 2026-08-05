@@ -323,6 +323,10 @@ const pt: Translations = {
     subscriptionSuccess: "Bem-vindo ao Premium!",
     subscriptionSuccessMessage:
       "Obrigado por apoiar o RecoverySky. Aproveite seus recursos premium!",
+    subscriptionSuccessBackupMessage:
+      "Obrigado por apoiar o RecoverySky. Quer fazer backup do seu histórico de presença e mantê-lo sincronizado entre seus dispositivos?",
+    cloudBackupPromptAccept: "Fazer backup da presença",
+    cloudBackupPromptDecline: "Agora não",
     restoreSuccess: "Compras Restauradas",
     restoreSuccessMessage: "Sua assinatura foi restaurada com sucesso.",
     restoreNoSubscription: "Nenhuma Assinatura Encontrada",

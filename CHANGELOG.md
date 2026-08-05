@@ -77,6 +77,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   time picker, instead of the old copy blaming the search radius and sending
   the user to widen a search that was never the problem.
 
+- Subscribing from Settings now offers to turn on Cloud Backup. Previously a
+  new subscriber saw a plain "Welcome to Premium!" confirmation and had to
+  find the Cloud Backup toggle themselves — a section that only appears once
+  they're subscribed, so most never did and their attendance history stayed
+  device-only. The confirmation now asks directly, with **Back up attendance**
+  turning it on (running the same initial backup as the toggle) and **Not
+  now** leaving it off. Only shown when the attendance entitlement is live and
+  backup is still off, so it never nags an existing backup user. Purchases
+  that were interrupted by a premium gate elsewhere in the app are unaffected
+  — those still return you straight to what you paid for rather than putting a
+  dialog in front of it.
+
 - In-person meeting data now loads into memory alongside online meetings: the
   live and daily schedule fetches pull both venue pools (`venueType=online` +
   `venueType=in_person`) and merge them, and deep-link meeting lookups fall
@@ -198,6 +210,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Subscribing from the Attendance tab left you sitting on Settings.** Tapping
+  Subscribe on Attendance sends you to the Settings subscription section with a
+  note about where to return afterwards, but Settings only ever read that note
+  the very first time it opened — and since the Attendance tab has to be turned
+  on in Settings before it appears, Settings had essentially always been opened
+  already. The note was saved and never looked at, so a completed purchase
+  showed a generic success alert and stranded you on Settings instead of taking
+  you back. Every return-here-after-you-buy trip now works no matter how many
+  times you've visited Settings, including the meeting-popup returns fixed
+  below.
 - **Buying premium from a meeting's reminder gate dropped you in the wrong
   place and never reopened the meeting.** Tapping a schedule cell without a
   subscription sends you to the paywall with a note about where to return.

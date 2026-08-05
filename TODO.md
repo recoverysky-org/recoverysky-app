@@ -178,6 +178,55 @@ documentation pass.
 
 ---
 
+## ♿ App-wide accessibility sweep (JS-only — NOT runtimeVersion-gated)
+
+VoiceOver / TalkBack support is a first-class concern in this repo — the
+standard lives in `CONTRIBUTING.md` §Accessibility (`accessibilityRole`,
+translated `accessibilityLabel`, `accessibilityHint` for non-obvious
+actions, `accessibilityState` where it changes, `accessibilityActions`
+over hidden buttons for multi-action rows). Coverage today is real but
+uneven — 386 a11y props across 48 of 84 non-test `.tsx` files — so the
+sweep is about closing the remaining holes, not starting from zero.
+
+**Note for whoever picks this up:** the In-Person work is *not* the gap.
+`InPersonScreen.tsx` (12), `InPersonScheduleRow.tsx` (9), and
+`InPersonPopup.tsx` (7) all carry a11y props; the design plan
+(`docs/superpowers/plans/2026-08-03-in-person-ui.md`) specified
+`accessibilityViewIsModal` / `accessibilityRole="radio"` /
+`accessibilityState` up front. The uncovered files are older surfaces.
+
+- [ ] **Audit files with interactive elements and zero a11y props.** Verified
+      by grep (`onPress`/`Pressable`/`Touchable*` present, no
+      `accessibilityLabel|Role|Hint|State|accessible=`):
+      - `app/components/Toast.tsx` (7 touchables) — toasts also want
+        `accessibilityLiveRegion` / `AccessibilityInfo.announceForAccessibility`
+        so a screen reader hears them at all, not just a labelled dismiss.
+      - `app/components/ScheduleGrid.tsx` (4) — grid cells; likely wants
+        `accessibilityRole="button"` + a composed day/time label.
+      - `app/screens/onboarding/ProgressDots.tsx` (4)
+      - `app/screens/TermsScreen.tsx` (3), `app/screens/LicensesScreen.tsx` (3)
+      - `app/components/EmptyState.tsx` (2)
+      - `app/components/agent/MeetingResultsCard.tsx` (1)
+      Confirmed *not* gaps despite scoring 0 — `HomeScreen`, `MeetingsScreen`,
+      `ScheduleScreen`, `NewsCard`, `CollapsedResultBadge`,
+      `ToolResultRenderer` have no touchables of their own; they compose
+      children that are already labelled. Don't "fix" those.
+
+- [ ] **Second pass: quality, not just presence.** Only 15
+      `accessibilityHint`s exist app-wide against 173 labels, and several
+      covered files score 1–2 (`Header.tsx`, `MaintenanceBanner.tsx`, the
+      three `Toggle/` primitives). Check that labels are translated (`tx`
+      keys, not hardcoded English), that `accessibilityState` tracks
+      `disabled`/`selected`/`busy` where it changes, and that the
+      maintenance banner announces itself.
+
+- [ ] **Verify on device, both platforms.** VoiceOver (iOS) and TalkBack
+      (Android). Add the check to `docs/PRODUCTION_CHECKLIST.md` if it
+      isn't there. Any new i18n keys are a nine-file change (see
+      CLAUDE.md §Internationalization).
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).

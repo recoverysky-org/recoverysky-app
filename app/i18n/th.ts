@@ -319,6 +319,10 @@ const th: Translations = {
     subscriptionSuccess: "ยินดีต้อนรับสู่พรีเมียม!",
     subscriptionSuccessMessage:
       "ขอบคุณที่สนับสนุน RecoverySky เพลิดเพลินกับฟีเจอร์พรีเมียมได้เลยนะ!",
+    subscriptionSuccessBackupMessage:
+      "ขอบคุณที่สนับสนุน RecoverySky ต้องการสำรองข้อมูลประวัติการเข้าร่วมและซิงค์ข้ามอุปกรณ์ของคุณไหม?",
+    cloudBackupPromptAccept: "สำรองข้อมูลการเข้าร่วม",
+    cloudBackupPromptDecline: "ไว้ก่อน",
     restoreSuccess: "กู้คืนการซื้อสำเร็จ",
     restoreSuccessMessage: "สมาชิกของคุณได้รับการกู้คืนเรียบร้อยแล้ว",
     restoreNoSubscription: "ไม่พบสมาชิก",

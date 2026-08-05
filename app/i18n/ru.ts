@@ -322,6 +322,10 @@ const ru: Translations = {
     restorePurchases: "Восстановить покупки",
     subscriptionSuccess: "Добро пожаловать в Премиум!",
     subscriptionSuccessMessage: "Спасибо за поддержку RecoverySky. Наслаждайся премиум-функциями!",
+    subscriptionSuccessBackupMessage:
+      "Спасибо за поддержку RecoverySky. Хочешь сохранить историю посещений и синхронизировать её между устройствами?",
+    cloudBackupPromptAccept: "Сохранять посещаемость",
+    cloudBackupPromptDecline: "Не сейчас",
     restoreSuccess: "Покупки восстановлены",
     restoreSuccessMessage: "Твоя подписка успешно восстановлена.",
     restoreNoSubscription: "Подписка не найдена",
