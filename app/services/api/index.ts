@@ -879,6 +879,7 @@ export class Api {
           MAINTENANCE_MESSAGE?: string
           MAINTENANCE_UNTIL?: string
           LATEST_VERSION?: string
+          PRESENCE_RADIUS_M?: number
         }
       }
     | GeneralApiProblem
@@ -900,6 +901,7 @@ export class Api {
       MAINTENANCE_MESSAGE?: string
       MAINTENANCE_UNTIL?: string
       LATEST_VERSION?: string
+      PRESENCE_RADIUS_M?: number
     }>("/config")
 
     if (!response.ok) {
