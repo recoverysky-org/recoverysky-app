@@ -172,7 +172,14 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
       const result = await saveInPersonTimerAttendance({
         uid,
         mid: meeting.id,
-        zid: meeting.zid,
+        // Falls back to "" like the Zoom path (extractZoomMeetingNumber(...)
+        // ?? "") and Task 11's recovery code — three call sites writing the
+        // same field should agree on the fallback rather than each deciding
+        // separately. Nothing downstream branches on zid: it's absent from
+        // the SQLite schema's indexed/matched columns and unused by
+        // syncLogic.ts or useReportSender.ts, so an empty string here is a
+        // no-op, not a latent bug.
+        zid: meeting.zid ?? "",
         meetingName: meeting.name,
         startedAt,
         endedAt,
@@ -196,6 +203,12 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
       const creditMs = endedAt - startedAt
       const dismissed = load<boolean>(LONG_ATTENDANCE_NOTICE_DISMISSED_KEY) === true
       if (creditMs > LONG_ATTENDANCE_NOTICE_MS && !dismissed) {
+        // Mirrors ExternalZoomTimerModal's three long-attendance-notice logs
+        // (shown / dismissed-permanently / navigated-away). Scalars only.
+        log.info("Showing in-person long-attendance notice", {
+          mid: meeting.id,
+          creditMs,
+        })
         Alert.alert(
           translate("externalZoomTimer:longAttendanceTitle"),
           translate("externalZoomTimer:longAttendanceMessage"),
@@ -204,11 +217,17 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
             {
               text: translate("externalZoomTimer:longAttendanceDontShow"),
               style: "destructive",
-              onPress: () => save(LONG_ATTENDANCE_NOTICE_DISMISSED_KEY, true),
+              onPress: () => {
+                save(LONG_ATTENDANCE_NOTICE_DISMISSED_KEY, true)
+                log.info("User dismissed in-person long-attendance notice permanently")
+              },
             },
             {
               text: translate("externalZoomTimer:longAttendanceGoTo"),
-              onPress: () => navigate("Attendance", { section: "new" }),
+              onPress: () => {
+                log.info("User chose to navigate to Attendance from in-person notice")
+                navigate("Attendance", { section: "new" })
+              },
             },
           ],
         )
@@ -239,6 +258,13 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
   const handleCancel = () => {
     // Below the credit floor there is nothing to lose — close immediately.
     if (elapsed < EXTERNAL_MIN_CREDIT_MS) {
+      // Mirrors ExternalZoomTimerModal's cancel-below-threshold log. Scalars
+      // only (mid, elapsed duration) — never `presence`, which this modal
+      // holds for its whole life.
+      log.info("In-person timer cancelled below credit threshold", {
+        mid: meeting?.id,
+        elapsedMs: elapsed,
+      })
       clearTimerSession()
       onClose()
       return
@@ -260,6 +286,11 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
           text: translate("externalZoomTimer:discard"),
           style: "destructive",
           onPress: () => {
+            // Mirrors ExternalZoomTimerModal's discard-after-confirm log.
+            log.info("In-person timer discarded after confirm", {
+              mid: meeting?.id,
+              elapsedMs: elapsed,
+            })
             clearTimerSession()
             onClose()
           },
