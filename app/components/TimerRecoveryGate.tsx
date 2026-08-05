@@ -3,8 +3,8 @@
  *
  * App-root surface that remounts ExternalZoomTimerModal pre-seeded with a
  * persisted timer session after a cold start. Driven by the recovery channel
- * in `services/zoom/timerRecovery` (populated by TimerSessionResumer when
- * the DB is ready and a fresh persisted session exists).
+ * in `services/attendance/timerRecovery` (populated by TimerSessionResumer
+ * when the DB is ready and a fresh persisted session exists).
  *
  * Why mounted here and not inside SchedulePopup:
  *  - SchedulePopup is meeting-scoped and only mounts when the user opens a

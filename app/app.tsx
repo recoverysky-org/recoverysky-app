@@ -957,7 +957,7 @@ export function App() {
                           AppNavigator so it survives navigator state
                           swaps and renders above every screen. Driven
                           by TimerSessionResumer via the recovery
-                          channel in services/zoom/timerRecovery. */}
+                          channel in services/attendance/timerRecovery. */}
                       <TimerRecoveryGate />
                       <AnnouncementGate />
                     </ToastProvider>
