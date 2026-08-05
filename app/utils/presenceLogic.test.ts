@@ -30,12 +30,17 @@ describe("verifyPresence", () => {
   })
 
   it("treats a fix exactly at the radius as in range", () => {
-    // The boundary is INCLUSIVE. This test is the guard against someone
-    // "tidying" `<=` into `<` and silently rejecting users standing on the
-    // line — a change that would be invisible in every other test.
-    const distanceM = 150
-    const result = verifyPresence({ fix: AT_VENUE, venue: VENUE, radiusM: distanceM })
+    // The boundary is INCLUSIVE. Measure a real offset fix's distance first,
+    // then set the radius to exactly that. A fix coincident with the venue
+    // measures 0 m and passes under `<` just as happily, so it cannot guard
+    // this invariant — that was the original bug in this test.
+    const fix = { lat: 41.8781, lon: -87.6198 }
+    const measured = verifyPresence({ fix, venue: VENUE, radiusM: 150 })
+    const exactDistanceM = measured.distanceM!
+
+    const result = verifyPresence({ fix, venue: VENUE, radiusM: exactDistanceM })
     expect(result.inRange).toBe(true)
+    expect(result.reason).toBe("in-range")
   })
 
   it("reports no-venue-coords for a null-island venue", () => {
@@ -68,14 +73,18 @@ describe("verifyPresence", () => {
   })
 
   it("does not widen the radius by the fix's own accuracy", () => {
-    // A 500 m-accurate fix 830 m away is still out of range. Widening by
-    // accuracy would make the gate stochastic — the same user in the same
-    // chair would pass or fail depending on GPS conditions.
+    // The fix sits in the gap a buggy implementation would open: further than
+    // radiusM (150 m) but nearer than radiusM + accuracyM (650 m). Widening by
+    // accuracy would make the gate stochastic — the same user in the same chair
+    // would pass or fail depending on GPS conditions. The two distance
+    // assertions keep this test honest if the coordinates are ever edited.
     const result = verifyPresence({
-      fix: { lat: 41.8781, lon: -87.6198, accuracyM: 500 },
+      fix: { lat: 41.8781, lon: -87.6248, accuracyM: 500 },
       venue: VENUE,
       radiusM: 150,
     })
+    expect(result.distanceM).toBeGreaterThan(150)
+    expect(result.distanceM).toBeLessThan(650)
     expect(result.inRange).toBe(false)
   })
 
