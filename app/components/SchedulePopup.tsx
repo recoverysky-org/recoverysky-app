@@ -510,6 +510,15 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
+        {/* cardAnimatedStyle and onCardLayout are load-bearing for the topic
+            panel, which is NOT defined in this file: cardAnimatedStyle is a
+            useNativeDriver:false tween owned by useTopicPanel (layout props
+            like minHeight/maxHeight/borderRadius can't be native-driven), and
+            onCardLayout feeds the height measurement TopicPanelOverlay
+            translates by when it slides in. Swapping either out — e.g. for a
+            local measurement or a different maxHeight source — silently
+            breaks the panel two files away. See the EXTRACTED 2026-08-05
+            block above (near the useTopicPanel call) for the full picture. */}
         <Animated.View
           style={[themed($content), cardAnimatedStyle]}
           accessibilityViewIsModal

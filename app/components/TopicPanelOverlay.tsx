@@ -14,6 +14,17 @@
 
 import { FC } from "react"
 import { Animated, StyleSheet, ViewStyle } from "react-native"
+// react-native-keyboard-controller's KeyboardAvoidingView is a drop-in
+// replacement for RN's that reads the actual keyboard frame from the
+// native side and handles Android + edge-to-edge correctly. Using RN's
+// KeyboardAvoidingView with behavior="height" on Android caused a flash
+// + scroll feedback loop because it competed with the OS adjustResize
+// AND the parent Animated.View's non-native-driver layout animation —
+// three layout systems racing on every keyboard frame.
+// RESTORED 2026-08-05: this note didn't survive the move from SchedulePopup
+// and matters more here — Animated/StyleSheet/ViewStyle are imported from
+// react-native one line above, which makes "just import KeyboardAvoidingView
+// from react-native too, tidier" a plausible, silently-wrong future edit.
 import { KeyboardAvoidingView } from "react-native-keyboard-controller"
 
 import { TopicPromptContent } from "@/components/TopicPromptContent"

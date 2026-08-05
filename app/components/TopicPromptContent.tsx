@@ -1,11 +1,18 @@
 /**
  * TopicPromptContent
  *
- * Inline panel used by SchedulePopup to capture a meeting topic (and
- * optionally host) after attendance is recorded. This is a plain View — NOT
- * an RN Modal — because it renders INSIDE SchedulePopup's existing modal,
- * which avoids the iOS modal-stacking race that prevented the standalone
- * TopicPromptModal from presenting while the Zoom SDK UI was mid-dismiss.
+ * Inline panel that captures a meeting topic (and optionally host) after
+ * attendance is recorded. This is a plain View — NOT an RN Modal — because it
+ * renders INSIDE the host popup's existing modal, which avoids the iOS
+ * modal-stacking race that prevented the standalone TopicPromptModal from
+ * presenting while the Zoom SDK UI was mid-dismiss.
+ *
+ * RESTORED 2026-08-05: sole consumer is TopicPanelOverlay
+ * (app/components/TopicPanelOverlay.tsx), which itself renders inside
+ * whichever host popup is currently active — SchedulePopup today via
+ * useTopicPanel. Describe the consumer by component, not by the popup that
+ * happens to be using it, so this doesn't go stale again when a second popup
+ * (in-person) starts rendering the same overlay.
  */
 
 import { FC, useEffect, useState } from "react"
