@@ -820,7 +820,10 @@ const pt: Translations = {
     deniedTitle: "Localização necessária",
     deniedMessage:
       "Registrar presença presencial requer sua localização para confirmar que você está na reunião.",
-    openSettings: "Abrir Configurações",
+    // "Ajustes", not "Configurações": this file already deep-links to the OS
+    // settings app from the notification-permission alert as "Abrir Ajustes",
+    // and names the Settings tab itself "Ajustes". Same action, same words.
+    openSettings: "Abrir Ajustes",
     fixFailedTitle: "Não conseguimos encontrar você",
     fixFailedMessage:
       "Não conseguimos obter sua localização. Saia para fora ou tente novamente em instantes.",

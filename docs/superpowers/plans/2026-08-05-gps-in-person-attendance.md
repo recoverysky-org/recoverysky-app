@@ -1643,7 +1643,7 @@ In `app/i18n/en.ts`, insert two new namespaces immediately after the `inPersonPo
 
 - [ ] **Step 2: Translate into the other eight locales**
 
-For each of `es`, `ar`, `de`, `fr`, `pt`, `ru`, `th`, `uk`, add both namespaces at the position matching `en.ts` (after that file's `inPersonPopup` block), translating the eleven English strings above.
+For each of `es`, `ar`, `de`, `fr`, `pt`, `ru`, `th`, `uk`, add both namespaces at the position matching `en.ts` (after that file's `inPersonPopup` block), translating the twelve English strings above (`presence` has 10 keys, `inPersonTimer` has 2 — CORRECTED 2026-08-05 from "eleven", which undercounted `presence` by one and propagated into the review-queue totals).
 
 Rules:
 
@@ -2801,7 +2801,7 @@ Under `### Changed`:
 
 - [ ] **Step 4: Queue the translations for review**
 
-Append a section to `docs/translation-review-2026-08-03.md` listing the two new namespaces: `presence` (11 keys) and `inPersonTimer` (2 keys), × 8 non-English locales = 104 strings, and update the document's running total. Flag `presence:outOfRangeMessage` and `inPersonTimer:hint` specifically — both carry interpolation tokens (`{{distance}}` / `{{radius}}` / `{{minutes}}`) that a reviewer must confirm survived translation intact and unreordered in a way that breaks the sentence.
+Append a section to `docs/translation-review-2026-08-03.md` listing the two new namespaces: `presence` (10 keys) and `inPersonTimer` (2 keys), × 8 non-English locales = 96 strings, and update the document's running total. (CORRECTED 2026-08-05: this read "11 keys … 104 strings". Task 7 already appended the section and Task 12 need only verify the totals read 12 keys / 96 strings / running total 421.) Flag `presence:outOfRangeMessage` and `inPersonTimer:hint` specifically — both carry interpolation tokens (`{{distance}}` / `{{radius}}` / `{{minutes}}`) that a reviewer must confirm survived translation intact and unreordered in a way that breaks the sentence.
 
 - [ ] **Step 5: Run the full gate**
 

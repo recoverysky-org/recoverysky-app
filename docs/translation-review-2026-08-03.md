@@ -1,6 +1,6 @@
 # Translation review queue — In-Person UI branch (2026-08-03)
 
-**413 machine-assisted strings awaiting a native-speaker pass before release.**
+**421 machine-assisted strings awaiting a native-speaker pass before release.**
 
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
@@ -24,8 +24,8 @@ review obligation.
 | `listingsScreen` (venue/radius/time) | 7 | 8 | 56 | Search filters, 2026-08-04 |
 | location-failure copy (both namespaces) | 5 | 8 | 40 | Android location fix, 2026-08-04 |
 | `liveScreen` (retitle) | 1 | 8 | 8 | Live Online retitle, 2026-08-04 |
-| `presence` + `inPersonTimer` | 11 | 8 | 88 | GPS in-person attendance, Task 7, 2026-08-05 |
-| **Total** | | | **413** | |
+| `presence` + `inPersonTimer` | 12 | 8 | 96 | GPS in-person attendance, Task 7, 2026-08-05 |
+| **Total** | | | **421** | |
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every
@@ -436,7 +436,7 @@ your locale is what a user has been reading until now.
 
 ---
 
-## `presence` + `inPersonTimer` — 88 strings (8 locales × 11 keys), 2026-08-05
+## `presence` + `inPersonTimer` — 96 strings (8 locales × 12 keys), 2026-08-05
 
 New namespaces for the GPS-verified in-person attendance feature (Task 7 of
 the `feat/gps-in-person-attendance` plan). `presence` covers the out-of-range
