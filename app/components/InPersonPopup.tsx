@@ -22,13 +22,24 @@
  * Zoom timer). In-person attendance is a single user-confirmed tap, not an
  * elapsed-time credit, so none of that applies.
  *
- * CHANGED 2026-08-05: two of those three omissions no longer hold. Task 10
- * replaced the single-tap write with a GPS-verified presence check gating
- * the same shared attendance timer the online path uses, followed by the
- * same topic/host panel (TopicPanelOverlay, mounted below) — so "topic
- * panel" moved from omitted to shared. Zoom join still doesn't apply (there
- * is no Zoom meeting to join here) and the rating soft-ask is still
- * genuinely absent; don't read this note as reversing those two.
+ * CHANGED 2026-08-05: the omissions list above, and the sentence after it —
+ * "a single user-confirmed tap, not an elapsed-time credit" — describe the
+ * pre-Task-10 model and are no longer accurate for this file. That sentence
+ * specifically is false now: attendance here IS an elapsed-time credit.
+ * Walking the omissions list item by item, since which changed matters more
+ * than how many did:
+ * - Zoom join — still omitted. There is no Zoom meeting to join at a
+ *   face-to-face meeting.
+ * - topic panel — no longer omitted. This popup now renders the same
+ *   TopicPanelOverlay the online path uses (mounted below).
+ * - rating soft-ask — still genuinely absent.
+ * - the External Zoom timer — the *External Zoom* timer specifically still
+ *   doesn't apply (there's no Zoom app to hand off to), but the underlying
+ *   elapsed-time timer does: Task 3 extracted the shared core
+ *   (useAttendanceTimer) out of the External Zoom timer, and
+ *   InPersonTimerModal is built on that same shared core. So this entry is
+ *   neither "still omitted" nor "now shared" outright — the Zoom-specific
+ *   half is gone, the timer half survived underneath it.
  *
  * CHANGED 2026-08-04: the header used to stop at time + duration, and the
  * feedback controls were listed above as deliberately omitted. Both were
