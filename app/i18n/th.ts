@@ -790,12 +790,9 @@ const th: Translations = {
     getDirections: "ขอเส้นทาง",
     contacts: "ผู้ติดต่อ",
     imHere: "ฉันอยู่ที่นี่",
-    imHereSaving: "กำลังบันทึก…",
-    logged: "บันทึกการเข้าร่วมแล้ว",
     alsoOnline: "จัดประชุมออนไลน์ด้วย",
     approximate: "ตำแหน่งที่แสดงเป็นตำแหน่งโดยประมาณ",
     attendanceSaved: "บันทึกการเข้าร่วมแล้ว",
-    attendanceError: "ไม่สามารถบันทึกการเข้าร่วมได้ — โปรดลองอีกครั้ง",
     tapTimesHint: "แตะเวลาเพื่อตั้งการแจ้งเตือน",
   },
   presence: {

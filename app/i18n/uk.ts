@@ -797,12 +797,9 @@ const uk: Translations = {
     getDirections: "Прокласти маршрут",
     contacts: "Контакти",
     imHere: "Я тут",
-    imHereSaving: "Збереження…",
-    logged: "Відвідування зафіксовано",
     alsoOnline: "Також зустрічається онлайн",
     approximate: "Показане місцезнаходження приблизне",
     attendanceSaved: "Відвідування збережено",
-    attendanceError: "Не вдалося зберегти відвідування — спробуйте ще раз",
     tapTimesHint: "Торкніться часу, щоб встановити нагадування",
   },
   presence: {

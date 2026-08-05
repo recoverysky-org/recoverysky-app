@@ -800,12 +800,9 @@ const pt: Translations = {
     getDirections: "Como chegar",
     contacts: "Contatos",
     imHere: "Estou aqui",
-    imHereSaving: "Salvando…",
-    logged: "Presença registrada",
     alsoOnline: "Também se reúne on-line",
     approximate: "O local exibido é aproximado",
     attendanceSaved: "Presença salva",
-    attendanceError: "Não foi possível salvar a presença — tente novamente",
     tapTimesHint: "Toque em um horário para definir um lembrete",
   },
   presence: {

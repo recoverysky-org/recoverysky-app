@@ -808,12 +808,9 @@ const de: Translations = {
     getDirections: "Route anzeigen",
     contacts: "Kontakte",
     imHere: "Ich bin hier",
-    imHereSaving: "Wird gespeichert…",
-    logged: "Anwesenheit erfasst",
     alsoOnline: "Trifft sich auch online",
     approximate: "Der angezeigte Standort ist ungefähr",
     attendanceSaved: "Anwesenheit gespeichert",
-    attendanceError: "Anwesenheit konnte nicht gespeichert werden — bitte erneut versuchen",
     tapTimesHint: "Tippe auf eine Uhrzeit, um eine Erinnerung festzulegen",
   },
   presence: {

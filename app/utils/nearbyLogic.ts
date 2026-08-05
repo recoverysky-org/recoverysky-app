@@ -325,14 +325,3 @@ export function composeAddress(m: {
   // either side drops out cleanly if empty.
   return [m.street, cityStateZip].filter(Boolean).join(", ")
 }
-
-/** Same local calendar day (device timezone) — the "I'm Here" double-log guard. */
-export function isSameLocalDay(aMillis: number, bMillis: number): boolean {
-  const a = new Date(aMillis)
-  const b = new Date(bMillis)
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
-}

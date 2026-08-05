@@ -799,12 +799,9 @@ const es: Translations = {
     getDirections: "Cómo llegar",
     contacts: "Contactos",
     imHere: "Estoy aquí",
-    imHereSaving: "Guardando…",
-    logged: "Asistencia registrada",
     alsoOnline: "También se reúne en línea",
     approximate: "La ubicación mostrada es aproximada",
     attendanceSaved: "Asistencia guardada",
-    attendanceError: "No se pudo guardar la asistencia — inténtalo de nuevo",
     tapTimesHint: "Toca una hora para crear un recordatorio",
   },
   presence: {

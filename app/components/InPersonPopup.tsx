@@ -30,7 +30,7 @@
  * SchedulePopup's block-for-block; keep them in step.
  */
 
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import {
   Alert,
   Linking,
@@ -42,34 +42,42 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Animated,
 } from "react-native"
+import { getLocales } from "expo-localization"
 import { Ionicons } from "@expo/vector-icons"
 import { useIsFocused } from "@react-navigation/native"
 import { DateTime, FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { InPersonTimerModal } from "@/components/InPersonTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import { useToast } from "@/components/Toast"
+import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
+import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
+import { usePresenceCheck } from "@/hooks/usePresenceCheck"
 import { useReminders } from "@/hooks/useReminders"
+import { useTopicPanel } from "@/hooks/useTopicPanel"
 import { translate } from "@/i18n"
-import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
-import { hasLoggedToday, saveInPersonAttendance } from "@/services/inPerson/attendance"
+import type { PersistedPresence } from "@/services/attendance"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
-import { logger } from "@/utils/logger"
-import { buildDirectionsUrl, composeAddress } from "@/utils/nearbyLogic"
+import { buildDirectionsUrl, composeAddress, formatDistance } from "@/utils/nearbyLogic"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 
-const log = logger.child({ module: "InPersonPopup" })
+// No module-level logger here anymore: usePresenceCheck and InPersonTimerModal
+// own every log call in this feature (see their headers for the PRIVACY
+// rules on what may and may not be logged). This popup only decides whether
+// to show the timer — it has nothing of its own worth logging.
 
 /** Amber accent used for reminder cells (ScheduleGrid) and the "approximate
  * location" caveat row — matches the warm-accent convention established in
@@ -99,7 +107,6 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
   const configStore = useConfigStore()
-  const authStore = useAuthenticationStore()
   const { isPremium } = useSubscription()
   const toast = useToast()
   const isFocused = useIsFocused()
@@ -314,79 +321,129 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // "I'm Here" attendance
   // ==========================================================================
 
-  const [logState, setLogState] = useState<"idle" | "saving" | "logged">("idle")
+  // REMOVED 2026-08-05: the `logState` machine, the sequence-guarded
+  // hasLoggedToday probe, and the same-local-day double-log guard.
+  //
+  // They existed because a single tap wrote a finished record, so a second tap
+  // would silently duplicate it. Attendance is now a timer: a second tap
+  // starts a timer, which is exactly what the online path does and what a user
+  // who left and came back would expect. Online has never had a same-day
+  // guard; in-person now matches it. Do not add one back without also adding
+  // one to SchedulePopup — divergence here is what made the two flows feel
+  // like different products.
 
-  // Re-armed on mount (StrictMode double-mounts in dev — see the identical
-  // pattern in useNearbySchedules.ts). Gates the probe's post-await setState
-  // so a resolution arriving after unmount never touches state.
-  const mountedRef = useRef(true)
-  useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
+  const { check, isChecking } = usePresenceCheck()
+  const [timerVisible, setTimerVisible] = useState(false)
+  const [verifiedPresence, setVerifiedPresence] = useState<PersistedPresence | null>(null)
 
-  // Monotonic sequence for the hasLoggedToday probe below. Without this, a
-  // probe started for meeting A can resolve AFTER the popup closes or
-  // reopens on meeting B and write "logged" onto B's state — the exact bug
-  // class Task 6's useNearbySchedules hit and fixed with sequence numbers
-  // (fixSeqRef/fetchSeqRef there). The seq is bumped unconditionally at the
-  // top of the effect — including on the "closing" run — so a probe that
-  // was in flight when the popup closed is invalidated even though closing
-  // doesn't unmount the component.
-  const probeSeqRef = useRef(0)
+  // Locale measurement system is fixed for the process lifetime; resolve once.
+  // Not available from useNearbySchedules here — this popup takes a `meeting`
+  // prop from InPersonScreen and never calls that hook.
+  const useMiles = useMemo(() => getLocales()[0]?.measurementSystem === "us", [])
 
-  // Reset + probe the double-log guard each time the popup opens on a meeting
-  useEffect(() => {
-    const seq = ++probeSeqRef.current
-    const isCurrent = () => mountedRef.current && probeSeqRef.current === seq
-    if (!visible || !meeting?.id) return
-    setLogState("idle")
-    hasLoggedToday(meeting.id).then((logged) => {
-      if (!isCurrent()) return
-      if (logged) setLogState("logged")
-    })
-  }, [visible, meeting?.id])
+  const { cardAnimatedStyle, onCardLayout, panelProps } = useTopicPanel({
+    visible,
+    meetingId: meeting?.id,
+    meetingName: meeting?.name,
+    // An in-person meeting has a chair, and nothing else can tell us who it
+    // was — the user is the only source.
+    includeHost: true,
+  })
 
-  // Synchronous in-flight guard for the "I'm Here" double-tap race. React
-  // state updates are not synchronous, so two taps landing in the same
-  // event-loop tick can both read `logState === "idle"` before the first
-  // tap's setLogState("saving") commits — `logState !== "idle"` alone does
-  // NOT close this gap (Task 8 review finding). A ref is mutated the instant
-  // the first tap is accepted, so the second tap's check sees it immediately.
-  // The `disabled` prop on the button below is a second, UI-level line of
-  // defense, not a substitute for this ref.
-  const savingInFlightRef = useRef(false)
+  const timerMeeting = useMemo(
+    () => (meeting ? { id: meeting.id, name: meeting.name, zid: meeting.zid } : null),
+    [meeting],
+  )
 
+  // NO maintenance-mode gate here, deliberately — every other in-person path
+  // has one, so its absence is the thing that needs explaining. The GPS check
+  // needs no server, attendance is local-first, and the write queues to the
+  // sync outbox like any other mutation. Gating would deny a user the
+  // attendance they are standing in the room for because a server is down.
+  // Do not "restore consistency" by adding one.
   const handleImHere = useCallback(async () => {
-    if (!meeting || savingInFlightRef.current || logState !== "idle") return
-    savingInFlightRef.current = true
-    setLogState("saving")
-    try {
-      const result = await saveInPersonAttendance({
-        uid: authStore.userId || "anonymous",
-        mid: meeting.id,
-        zid: meeting.zid,
-        meetingName: meeting.name,
-        durationMs: meeting.duration_ms || 60 * 60 * 1000, // default 1 h if the wire omitted duration
-      })
-      if (result.ok) {
-        setLogState("logged")
-        trackEvent("inperson_attendance_logged")
-        toast.showToast({ tx: "inPersonPopup:attendanceSaved", type: "success" })
-      } else {
-        setLogState("idle")
-        Alert.alert(translate("inPersonPopup:attendanceError"))
-      }
-    } catch (err) {
-      log.error("I'm Here save threw", { mid: meeting.id, error: String(err) })
-      setLogState("idle")
-      Alert.alert(translate("inPersonPopup:attendanceError"))
-    } finally {
-      savingInFlightRef.current = false
+    if (!meeting || isChecking) return
+
+    const outcome = await check({ latitude: meeting.latitude, longitude: meeting.longitude })
+
+    switch (outcome.status) {
+      case "verified":
+        setVerifiedPresence({
+          lat: outcome.fix.lat,
+          lon: outcome.fix.lon,
+          accuracyM: outcome.fix.accuracyM,
+          distanceM: outcome.distanceM,
+          radiusM: outcome.radiusM,
+        })
+        setTimerVisible(true)
+        // PRIVACY: no payload. The distance must never ride along with an
+        // analytics event — same rule handleDirections follows.
+        trackEvent("inperson_attendance_started")
+        return
+
+      case "out-of-range":
+        Alert.alert(
+          translate("presence:outOfRangeTitle"),
+          translate("presence:outOfRangeMessage", {
+            distance: formatDistance(outcome.distanceM, useMiles),
+            radius: formatDistance(outcome.radiusM, useMiles),
+          }),
+        )
+        return
+
+      case "no-venue-coords":
+        Alert.alert(
+          translate("presence:noVenueCoordsTitle"),
+          translate("presence:noVenueCoordsMessage"),
+        )
+        return
+
+      case "denied":
+        // When the OS won't prompt again, the only remedy is Settings — the
+        // same split useNearbySchedules' banner tap makes.
+        Alert.alert(translate("presence:deniedTitle"), translate("presence:deniedMessage"), [
+          { text: translate("common:cancel"), style: "cancel" },
+          ...(outcome.canAskAgain
+            ? []
+            : [
+                {
+                  text: translate("presence:openSettings"),
+                  onPress: () => {
+                    Linking.openSettings().catch(() => {})
+                  },
+                },
+              ]),
+        ])
+        return
+
+      case "fix-failed":
+        Alert.alert(translate("presence:fixFailedTitle"), translate("presence:fixFailedMessage"))
     }
-  }, [meeting, logState, authStore.userId, toast])
+    // The popup stays open in every rejection case above so the user can
+    // retry without re-navigating.
+  }, [meeting, isChecking, check, useMiles])
+
+  // Copy wrinkle accepted, not fixed: formatDistance renders the 150 m radius
+  // as "0.1 mi" for US users, which reads oddly for a threshold. It's the same
+  // function the distance badge uses on every meeting row and in the
+  // In-Person empty state, so switching to feet here would make this alert
+  // disagree with the list the user just came from. Consistency wins; revisit
+  // only if it confuses real users.
+
+  // Toast fires on "acknowledged" rather than inline in handleImHere, so it
+  // shows AFTER the topic panel resolves (or immediately when topic capture
+  // is off) instead of flashing behind it — same ordering SchedulePopup's
+  // banner uses.
+  useEffect(() => {
+    if (!visible || !meeting?.id) return
+    const unsub = attendanceEvents.subscribe((event) => {
+      if (event.mid !== meeting.id) return
+      if (event.type === "acknowledged" && event.valid) {
+        toast.showToast({ tx: "inPersonPopup:attendanceSaved", type: "success" })
+      }
+    })
+    return unsub
+  }, [visible, meeting?.id, toast])
 
   // ==========================================================================
   // Derived display values
@@ -423,7 +480,14 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
-        <View style={themed($content)}>
+        {/* cardAnimatedStyle and onCardLayout are load-bearing for the topic
+            panel, which is NOT defined in this file: cardAnimatedStyle is a
+            useNativeDriver:false tween owned by useTopicPanel (layout props
+            like minHeight/maxHeight/borderRadius can't be native-driven), and
+            onCardLayout feeds the height measurement TopicPanelOverlay uses
+            to park itself off-screen until it has real numbers. See the hook
+            call above for the full picture — copied from SchedulePopup.tsx. */}
+        <Animated.View style={[themed($content), cardAnimatedStyle]} onLayout={onCardLayout}>
           {/* Unlike SchedulePopup's $content (which survives a bare maxHeight
               because its body is roughly fixed-height), this card's body is
               unbounded: the venue block, Get Directions button, and contacts
@@ -652,36 +716,31 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
             />
             <Text style={themed($reminderHint)} tx="inPersonPopup:tapTimesHint" />
 
-            {/* "I'm Here" — only surfaced when attendance tracking is on */}
+            {/* "I'm Here" — only surfaced when attendance tracking is on.
+                Tapping it takes a fresh GPS fix (usePresenceCheck) and only
+                opens the timer once the user is verified within radius; every
+                rejection is explained via Alert in handleImHere above rather
+                than reflected in this button's own visual state. */}
             {profileStore.attendanceEnabled && (
               <Pressable
                 onPress={handleImHere}
-                disabled={logState !== "idle"}
-                style={[
-                  themed($imHereButton),
-                  logState === "logged" && themed($imHereButtonLogged),
-                  logState === "saving" && themed($imHereButtonDisabled),
-                ]}
+                disabled={isChecking}
+                style={[themed($imHereButton), isChecking && themed($imHereButtonDisabled)]}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: logState !== "idle" }}
+                accessibilityState={{ disabled: isChecking }}
               >
-                {logState === "logged" && (
-                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                )}
                 <Text
                   style={themed($imHereButtonText)}
-                  tx={
-                    logState === "logged"
-                      ? "inPersonPopup:logged"
-                      : logState === "saving"
-                        ? "inPersonPopup:imHereSaving"
-                        : "inPersonPopup:imHere"
-                  }
+                  tx={isChecking ? "presence:checking" : "inPersonPopup:imHere"}
                 />
               </Pressable>
             )}
           </ScrollView>
-        </View>
+
+          {/* EXTRACTED 2026-08-05: render moved into TopicPanelOverlay; all
+              state/animation lives in useTopicPanel above (panelProps). */}
+          <TopicPanelOverlay {...panelProps} />
+        </Animated.View>
       </View>
 
       {/* Reminder Editor Modal */}
@@ -697,6 +756,24 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
           onUpdate={updateReminder}
           onDelete={deleteReminder}
           onCheckOverlap={checkOverlap}
+        />
+      )}
+
+      {/* In-person attendance timer — mounted only once presence has been
+          verified for the meeting. onSaved just closes the timer:
+          saveInPersonTimerAttendance already emitted attendanceEvents
+          "processed", which useTopicPanel picks up to slide the topic panel
+          in — or to emit "acknowledged" directly when topic capture is off,
+          which is what fires the toast subscription above. */}
+      {timerMeeting && (
+        <InPersonTimerModal
+          visible={timerVisible}
+          meeting={timerMeeting}
+          presence={verifiedPresence}
+          onClose={() => setTimerVisible(false)}
+          onSaved={() => {
+            setTimerVisible(false)
+          }}
         />
       )}
     </Modal>
@@ -957,10 +1034,6 @@ const $imHereButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
 
 const $imHereButtonDisabled: ThemedStyle<ViewStyle> = () => ({
   opacity: 0.7,
-})
-
-const $imHereButtonLogged: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.tintInactive,
 })
 
 const $imHereButtonText: ThemedStyle<TextStyle> = () => ({
