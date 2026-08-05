@@ -94,6 +94,9 @@ buck-out/
 # Claude
 .claude
 
+# Superpowers SDD scratch (ledgers, task briefs, review packages)
+.superpowers
+
 # Expo
 .expo/*
 bin/Exponent.app
