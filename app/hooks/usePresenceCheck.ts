@@ -115,9 +115,18 @@ export function usePresenceCheck(): UsePresenceCheckResult {
         }
         return { status: "verified", fix, distanceM: result.distanceM!, radiusM }
       } catch (err) {
-        // PRIVACY: String(err) yields "Name: message" only — an Error's
-        // toString never carries a position or a request config, so this
-        // cannot leak what we just asked for. Do not log the error object.
+        // PRIVACY: String(err) yields "Name: message" only, and that is safe
+        // here because of WHAT CAN REACH THIS CATCH — not because of any
+        // general property of Error. Only two things throw inside this try:
+        // expo-location, whose rejections carry static or status-only messages
+        // on every platform (iOS LocationExceptions.swift, Android
+        // LocationExceptions.kt, web GeolocationPositionError — audited
+        // 2026-08-05), and our own timeout above. An arbitrary throw could put
+        // anything in .message, including a position.
+        //
+        // So: if you widen this try block to cover another call, re-audit that
+        // call's rejection messages before assuming this still holds. Never
+        // log the error object itself.
         log.warn("Presence fix failed", { error: String(err) })
         return { status: "fix-failed" }
       } finally {
