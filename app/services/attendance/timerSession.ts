@@ -63,6 +63,13 @@ export interface PersistedTimerSession {
   source?: TimerSource
   /** In-person only. */
   presence?: PersistedPresence
+  /**
+   * In-person only. The Zoom path re-derives zid from meetingUrl via
+   * extractZoomMeetingNumber at restore time; an in-person session has no URL,
+   * so the value has to be carried. Optional because sessions written before
+   * 2026-08-05 don't have it — and don't need it, being external-zoom.
+   */
+  zid?: string
 }
 
 /**

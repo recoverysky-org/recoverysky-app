@@ -29,11 +29,22 @@
  *
  * Place inside DatabaseProvider alongside the other *Resumer / *Hydrator
  * components, below ProfileHydrator so we have a user context.
+ *
+ * CHANGED 2026-08-05: the persisted session can now be an in-person timer as
+ * well as an external-Zoom one. Nothing here branches on it — the staleness
+ * cap and the restore decision are identical for both — but TimerRecoveryGate
+ * does, so the source is logged here to make a mis-routed recovery diagnosable
+ * from Loki without a device.
  */
 
 import { useEffect, useRef } from "react"
 
-import { clearTimerSession, loadTimerSession, setRecoverySession } from "@/services/attendance"
+import {
+  clearTimerSession,
+  loadTimerSession,
+  sessionSource,
+  setRecoverySession,
+} from "@/services/attendance"
 import { EXTERNAL_MIN_CREDIT_MS } from "@/services/zoom"
 import { logger } from "@/utils/logger"
 
@@ -73,6 +84,7 @@ export function TimerSessionResumer(): null {
     // gating still happens inside the modal via canSave.
     log.info("Restoring persisted timer session via recovery surface", {
       mid: session.meetingId,
+      source: sessionSource(session),
       elapsedMs,
       belowCredit: elapsedMs < EXTERNAL_MIN_CREDIT_MS,
     })

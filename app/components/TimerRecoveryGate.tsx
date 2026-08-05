@@ -20,13 +20,23 @@
  * Why we don't have to worry about double-mounting with the SchedulePopup
  * version: only set once at cold start, cleared on Save/Cancel. Any
  * subsequent Join flow uses the SchedulePopup-owned modal.
+ *
+ * CHANGED 2026-08-05: routes on sessionSource(). An in-person session has no
+ * meetingUrl, so handing it to ExternalZoomTimerModal would hit that modal's
+ * !meetingUrl guard and drop a live timer on the floor — the precise harm this
+ * whole recovery surface exists to prevent.
+ *
+ * Topic capture is deliberately skipped on this path for BOTH sources: the
+ * gate mounts at app root with no popup behind it, so there is no useTopicPanel
+ * host and onSaved simply closes. Unchanged from the Zoom-only behavior.
  */
 
 import { useCallback, useMemo } from "react"
 
-import { setRecoverySession, useRecoverySession } from "@/services/attendance"
+import { setRecoverySession, sessionSource, useRecoverySession } from "@/services/attendance"
 
 import { ExternalZoomTimerModal } from "./ExternalZoomTimerModal"
+import { InPersonTimerModal } from "./InPersonTimerModal"
 
 export function TimerRecoveryGate() {
   const session = useRecoverySession()
@@ -35,26 +45,52 @@ export function TimerRecoveryGate() {
     setRecoverySession(null)
   }, [])
 
-  const meeting = useMemo(() => {
-    if (!session) return null
-    // TimerRecoveryGate currently only remounts ExternalZoomTimerModal, whose
-    // MeetingTarget.url is required. `meetingUrl` became optional 2026-08-05
-    // (PersistedTimerSession now also covers in-person sessions, which have
-    // no URL). An in-person session isn't recoverable through this gate yet
-    // — Task 11 adds a source-aware recovery path — so guard rather than
-    // passing "" through, which would look like a valid (bogus) URL to
-    // ExternalZoomTimerModal's Zoom-launch logic.
-    if (!session.meetingUrl) return null
+  const source = session ? sessionSource(session) : null
+
+  const zoomMeeting = useMemo(() => {
+    if (!session || source !== "external-zoom") return null
     return {
       id: session.meetingId,
       name: session.meetingName,
-      url: session.meetingUrl,
+      url: session.meetingUrl ?? "",
     }
-  }, [session])
+  }, [session, source])
 
-  if (!session || !meeting) return null
+  const inPersonMeeting = useMemo(() => {
+    if (!session || source !== "in-person") return null
+    return {
+      id: session.meetingId,
+      name: session.meetingName,
+      zid: session.zid ?? "",
+    }
+  }, [session, source])
+
+  if (!session) return null
+
+  if (inPersonMeeting) {
+    return (
+      <InPersonTimerModal
+        visible
+        meeting={inPersonMeeting}
+        // The verification taken at the venue, carried through the process
+        // kill. InPersonTimerModal re-reads the persisted block at save time
+        // and prefers it over this prop; passing it here keeps the modal's
+        // `active` guard (which requires a presence) satisfied on mount.
+        presence={session.presence ?? null}
+        onClose={handleClose}
+        onSaved={handleClose}
+      />
+    )
+  }
+
+  if (!zoomMeeting) return null
 
   return (
-    <ExternalZoomTimerModal visible meeting={meeting} onClose={handleClose} onSaved={handleClose} />
+    <ExternalZoomTimerModal
+      visible
+      meeting={zoomMeeting}
+      onClose={handleClose}
+      onSaved={handleClose}
+    />
   )
 }

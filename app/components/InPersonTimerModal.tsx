@@ -105,6 +105,9 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
       meetingName: meetingName ?? "",
       source: "in-person",
       presence: presence!,
+      // Carried so a cold-start recovery (TimerRecoveryGate, Task 11) can
+      // write the attendance record without a URL to re-derive zid from.
+      zid: meeting?.zid ?? "",
     }),
     // No onStart: unlike ExternalZoomTimerModal, this modal launches nothing.
     // The user is already physically at the venue — usePresenceCheck already
