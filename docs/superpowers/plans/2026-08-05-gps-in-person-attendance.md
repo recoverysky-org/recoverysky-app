@@ -2874,6 +2874,6 @@ Authored-By: Jenova Marie <jenova-marie@pm.me>
 
 **No `runtimeVersion` bump.** `expo-location` was already a dependency, no native module is added, and no `app.json` / Podfile / Gradle config changes. This ships as an OTA via `npm run update`.
 
-**Before releasing:** the translation review of the 104 new non-English strings is a release blocker per `docs/PRODUCTION_CHECKLIST.md`, and the 22-item manual checklist above must be complete.
+**Before releasing:** the translation review of the 96 new non-English strings is a release blocker per `docs/PRODUCTION_CHECKLIST.md`, and the 22-item manual checklist above must be complete. (CORRECTED 2026-08-05: this read "104" — the third copy of the same miscount fixed at line 2804. The real figure is 12 keys × 8 non-English locales = 96.)
 
 **Server-side:** `/config` should begin returning `PRESENCE_RADIUS_M` so the radius can be tuned without a build. The client works correctly without it (150 m default), so the two can ship independently, in either order.
