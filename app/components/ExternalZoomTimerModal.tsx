@@ -10,8 +10,6 @@
 import { FC, useEffect, useMemo, useRef, useState } from "react"
 import {
   Alert,
-  AppState,
-  type AppStateStatus,
   Linking,
   Modal,
   Pressable,
@@ -24,16 +22,12 @@ import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
+import { useAttendanceTimer } from "@/hooks/useAttendanceTimer"
 import { translate } from "@/i18n"
 import { useAuthenticationStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
-import {
-  clearTimerSession,
-  EXTERNAL_MIN_CREDIT_MS,
-  loadTimerSession,
-  saveTimerAttendance,
-  saveTimerSession,
-} from "@/services/zoom"
+import { clearTimerSession, sessionSource } from "@/services/attendance"
+import { EXTERNAL_MIN_CREDIT_MS, saveTimerAttendance } from "@/services/zoom"
 import { extractZoomMeetingNumber } from "@/services/zoom/useZoomMeeting"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -92,18 +86,9 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
   const { themed, theme } = useAppTheme()
   const authStore = useAuthenticationStore()
 
-  const [startedAt, setStartedAt] = useState<number | null>(null)
-  const [elapsed, setElapsed] = useState(0)
   const [saving, setSaving] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // Real lock for the Save path. `saving` state is for visuals; state updates
-  // aren't synchronous, so a same-tick double-tap can pass the `!canSave`
-  // guard twice and create two attendance records. This ref flips
-  // synchronously and is authoritative.
-  const savingRef = useRef(false)
 
   const minMinutes = Math.ceil(EXTERNAL_MIN_CREDIT_MS / 60000)
-  const canSave = elapsed >= EXTERNAL_MIN_CREDIT_MS && !saving
 
   // Launch external Zoom + start timer on open.
   //
@@ -114,91 +99,96 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
   // observers in SchedulePopup fire, resetting the elapsed counter to 00:00
   // and re-launching Zoom. Keying on id+url pins the effect to the actual
   // meeting being timed.
+  // CHANGED 2026-08-05: the clock, resync, persistence and resume logic that
+  // used to live in this component's own useEffect now live in
+  // useAttendanceTimer, shared with the (Task 9) in-person timer modal. The
+  // `active` expression below is where the old effect's
+  // `!visible || !meetingId || !meetingUrl` guard now lives — it's scoped to
+  // this modal, not the shared hook, because an in-person session has no URL
+  // and must never be dropped by it.
   const meetingId = meeting?.id
   const meetingUrl = meeting?.url
   const meetingName = meeting?.name
   const uid = authStore.userId || "anonymous"
-  useEffect(() => {
-    if (!visible || !meetingId || !meetingUrl) return
 
-    // If a session for this exact meeting is already persisted — e.g. the app
-    // was killed mid-meeting and the user reopened it, or we re-entered the
-    // effect after a transient drop — adopt the existing startedAt so the
-    // clock keeps its accumulated time and we DON'T re-launch Zoom on top of
-    // the live call.
-    const persisted = loadTimerSession()
-    const isResume =
-      persisted !== null &&
-      persisted.meetingId === meetingId &&
-      persisted.meetingUrl === meetingUrl &&
-      persisted.startedAt > 0
-
-    const start = isResume ? persisted.startedAt : Date.now()
-    setStartedAt(start)
-    setElapsed(Date.now() - start)
-
-    if (isResume) {
-      log.info("Timer resumed from persisted session", {
-        mid: meetingId,
-        startedAt: start,
-        elapsedMs: Date.now() - start,
-      })
-    } else {
-      log.info("Timer started, launching external Zoom", {
-        mid: meetingId,
-        url: meetingUrl,
-      })
-      saveTimerSession({
-        startedAt: start,
-        uid,
-        meetingId,
-        meetingName: meetingName ?? "",
-        meetingUrl,
-      })
+  const { startedAt, elapsed, isResume, beginSave, endSave } = useAttendanceTimer({
+    active: visible && !!meetingId && !!meetingUrl,
+    sessionKey: meetingId ?? "",
+    // A persisted session belongs to this timer only when BOTH the id and the
+    // url match — the url is part of the identity because the same meeting id
+    // can be re-joined through a different link.
+    matchesPersisted: (s) =>
+      sessionSource(s) === "external-zoom" &&
+      s.meetingId === meetingId &&
+      s.meetingUrl === meetingUrl,
+    buildSession: (start) => ({
+      startedAt: start,
+      uid,
+      // Non-null assertion is safe only because of a cross-file invariant:
+      // the hook calls buildSession exclusively from inside its launch
+      // effect, which early-returns unless `active` is true, and `active`
+      // above is `visible && !!meetingId && !!meetingUrl`. If a future
+      // change to useAttendanceTimer ever let buildSession run while
+      // inactive, this would silently persist a session with
+      // meetingId: undefined.
+      meetingId: meetingId!,
+      meetingName: meetingName ?? "",
+      meetingUrl,
+      source: "external-zoom",
+    }),
+    onStart: () => {
+      log.info("Timer started, launching external Zoom", { mid: meetingId, url: meetingUrl })
       // Fire and forget — failures surface in logs; the timer still runs so
       // the user can retry opening Zoom manually if the first launch fails.
-      // Defensive string guard: Linking.openURL throws synchronously (not as
-      // a promise rejection) if the arg isn't a string, which would bypass
-      // the .catch below. The buildExternalZoomUrl chain always returns a
-      // string today, but if a future code path passes a malformed prop
-      // we'd rather log and keep the timer running than crash the app.
+      // Defensive string guard: Linking.openURL throws SYNCHRONOUSLY (not as a
+      // promise rejection) if the arg isn't a string, which would bypass the
+      // .catch below. The buildExternalZoomUrl chain always returns a string
+      // today, but if a future code path passes a malformed prop we'd rather
+      // log and keep the timer running than crash the app.
       if (typeof meetingUrl === "string" && meetingUrl.length > 0) {
         Linking.openURL(meetingUrl).catch((err: unknown) => {
           log.error("Failed to launch external Zoom", { error: String(err) })
         })
       } else {
-        log.warn("Timer started but meetingUrl is not a usable string", {
-          mid: meetingId,
-        })
+        log.warn("Timer started but meetingUrl is not a usable string", { mid: meetingId })
       }
-    }
+    },
+  })
 
-    const tick = () => setElapsed(Date.now() - start)
-    intervalRef.current = setInterval(tick, 1000)
-
-    // Resync on foreground — intervals in JS can drift or pause when backgrounded
-    const appStateSub = AppState.addEventListener("change", (next: AppStateStatus) => {
-      if (next === "active") tick()
+  // Restores the "Timer resumed…" line that lived in the pre-refactor effect.
+  // CHANGED 2026-08-05: logged from the modal rather than the hook, because a
+  // hook-level onResume callback would have to hand the consumer the whole
+  // PersistedTimerSession — which can carry a `presence` GPS fix that must
+  // never reach Loki. The modal already holds every field this log needs.
+  // Fires one commit later than the original; the resume branch sets isResume
+  // inside the effect, so this is the first render that can observe it.
+  useEffect(() => {
+    if (!isResume || !startedAt) return
+    log.info("Timer resumed from persisted session", {
+      mid: meetingId,
+      startedAt,
+      elapsedMs: Date.now() - startedAt,
     })
+    // `meetingId` included: unlike the hook's launch effect, this one only
+    // logs — it holds no timer state, so re-firing on a meetingId change
+    // costs nothing. Safe to satisfy exhaustive-deps normally here.
+  }, [isResume, startedAt, meetingId])
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      intervalRef.current = null
-      appStateSub.remove()
-      setStartedAt(null)
-      setElapsed(0)
-    }
-  }, [visible, meetingId, meetingUrl, meetingName, uid])
+  const canSave = elapsed >= EXTERNAL_MIN_CREDIT_MS && !saving
 
   const handleSave = async (force = false) => {
-    // Ref lock is authoritative — blocks same-tick re-entries before React
-    // has a chance to flush the `saving` state update.
-    if (!meeting || !startedAt || savingRef.current) return
+    if (!meeting || !startedAt) return
     // `force` bypasses the credit threshold (used by the 7-tap shortcut —
     // support path for sessions that legitimately ran long but fell through
     // the SDK). Normal Save path still gates on canSave.
     if (!force && !canSave) return
-    savingRef.current = true
+    // Ref-backed lock inside the hook — blocks same-tick re-entries before
+    // React has flushed the `saving` state update.
+    // CHANGED 2026-08-05: the lock ref itself now lives inside
+    // useAttendanceTimer (shared with the in-person timer) instead of a
+    // local savingRef here; beginSave()/endSave() are the synchronous
+    // interface to it.
+    if (!beginSave()) return
     setSaving(true)
     const endedAt = Date.now()
     log.info("Saving timer attendance", {
@@ -300,7 +290,7 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
       })
       onClose()
     } finally {
-      savingRef.current = false
+      endSave()
       setSaving(false)
     }
   }

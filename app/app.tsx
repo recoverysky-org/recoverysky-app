@@ -58,6 +58,7 @@ import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
+import { isTimerSessionActive } from "./services/attendance"
 import {
   attestDevice,
   type AttestationError,
@@ -564,6 +565,22 @@ export function App() {
             meetingId?: string
           }) => {
             if (data?.screen) {
+              // Refuse to navigate while an attendance timer is running.
+              // navTo() bypasses the tab bar entirely, so MainNavigator's
+              // tabPress lock does not see it — and this is the LIKELIER of
+              // the two paths, because meeting reminders fire around meeting
+              // times, which is exactly when a timer is up. Navigating away
+              // unmounts the popup hosting the timer modal and destroys the
+              // clock; the user is sitting in the meeting they just lost
+              // credit for. Deliberately dropped rather than queued: by the
+              // time they save or cancel, a reminder for a meeting that has
+              // already started is not worth yanking them anywhere.
+              if (isTimerSessionActive()) {
+                log.info("Notification tap ignored — attendance timer running", {
+                  screen: data.screen,
+                })
+                return
+              }
               log.info("Notification clicked, navigating", { screen: data.screen, ...data })
               const {
                 navigate: navTo,
@@ -957,7 +974,7 @@ export function App() {
                           AppNavigator so it survives navigator state
                           swaps and renders above every screen. Driven
                           by TimerSessionResumer via the recovery
-                          channel in services/zoom/timerRecovery. */}
+                          channel in services/attendance/timerRecovery. */}
                       <TimerRecoveryGate />
                       <AnnouncementGate />
                     </ToastProvider>

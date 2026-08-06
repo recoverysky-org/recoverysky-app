@@ -56,14 +56,18 @@ POST ${UMAMI_URL}/api/send
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `attendance_validated` | Attendance record finished processing and met the credit threshold | `{ source: "sdk" \| "external-timer" \| "in-person" \| "unknown" }` | `app/app.tsx` (subscriber over `attendanceEvents.processed`); `"in-person"` added for the "I'm Here" flow (`app/services/inPerson/attendance.ts`); `"unknown"` is the `?? "unknown"` fallback when `source` is absent, not a value the type itself declares (`AttendanceSource` in `app/db/attendanceEvents.ts`) |
+| `attendance_validated` | Attendance record finished processing and met the credit threshold | `{ source: "sdk" \| "external-timer" \| "in-person" \| "unknown" }` | `app/app.tsx` (subscriber over `attendanceEvents.processed`); `"in-person"` added for the "I'm Here" flow (`app/services/inPerson/timerAttendance.ts` — was `inPerson/attendance.ts` until 2026-08-05, when single-tap logging was replaced by the GPS-verified timer; the event and its payload are unchanged); `"unknown"` is the `?? "unknown"` fallback when `source` is absent, not a value the type itself declares (`AttendanceSource` in `app/db/attendanceEvents.ts`) |
+| `inperson_attendance_started` | User passed the GPS presence check at an in-person meeting and the attendance timer opened | — (deliberately no payload) | `app/components/InPersonPopup.tsx` (added 2026-08-05). **Fires at timer open, not at save** — it mirrors `meeting_joined`, which the online path also fires at launch rather than on a completed record, so neither venue has an event for a *saved* attendance. The empty payload is a privacy requirement, not an oversight: distance and accuracy must never ride along with an analytics event. It replaces `inperson_attendance_logged`, which fired on a successful single-tap write and was removed with that flow — any funnel keyed on the old name reads zero from 2026-08-05 |
 | `report_sent` | Attendance report sent to email | `{ type: "initial" \| "resend" \| "replace" \| "forward" }` | `app/hooks/useReportSender.ts` |
 | `report_confirmed` | Report delivery confirmed via polling | — | `app/hooks/useReportSender.ts` |
 
 Not Umami-tracked, but related: `app/db/meetingEvents.ts`'s internal
 `meetingEvents.completed(reason)` pub/sub (consumed only by the rating-engine
 tally, not sent to Umami) gained a new `reason` string, `"in-person"`, fired
-by `saveInPersonAttendance()` alongside the existing `"external-zoom-timer"`
+by `saveInPersonTimerAttendance()` (`app/services/inPerson/timerAttendance.ts:165`;
+this was `saveInPersonAttendance()` in the now-deleted `inPerson/attendance.ts`
+until 2026-08-05 — the reason string is unchanged, only the emitter moved)
+alongside the existing `"external-zoom-timer"`
 fired by the external-Zoom timer path (`app/services/zoom/externalAttendance.ts`).
 The type's doc comment still mentions Zoom SDK end-reasons like `"selfLeave"` /
 `"endedByHost"` as examples, but no current code emits those — the in-app Zoom

@@ -3,6 +3,7 @@ import { flow, Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { api } from "@/services/api"
 import { logger } from "@/utils/logger"
+import { DEFAULT_PRESENCE_RADIUS_M, DEV_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
 
 const log = logger.child({ module: "ConfigStore" })
 
@@ -79,6 +80,31 @@ export const ConfigStoreModel = types
     outageMode: types.optional(types.boolean, false),
     /** Latest native app version available in the App Store / Play Store */
     latestVersion: types.optional(types.string, ""),
+    /**
+     * Radius in meters within which a user counts as present at an in-person
+     * meeting. Server-tunable so the threshold can be corrected without
+     * shipping a build — see docs/superpowers/specs/2026-08-05-gps-in-person-
+     * attendance-design.md for why 150 m.
+     *
+     * Not persisted to MMKV (no ConfigStore field is). The hardcoded default
+     * therefore applies until /config resolves, which is harmless: it IS the
+     * intended value, so a user who taps "I'm Here" during a cold start is
+     * checked against exactly the right radius.
+     */
+    presenceRadiusM: types.optional(types.number, DEFAULT_PRESENCE_RADIUS_M),
+    /**
+     * Presence radius used by `__DEV__` builds only, from the server's
+     * `DEV_PRESENCE_RADIUS_M`. Read through the `effectivePresenceRadiusM`
+     * view — never directly, or a production build will use it.
+     *
+     * A simulator reports a fixed location (Apple HQ unless Xcode is told
+     * otherwise) that is never within the real radius of a real venue, so
+     * without this every "I'm Here" tap fails out-of-range and nothing past
+     * the GPS gate is reachable locally. Kept as its own field rather than
+     * overwriting `presenceRadiusM` so the store stays an honest record of
+     * what the server actually sent for production.
+     */
+    devPresenceRadiusM: types.optional(types.number, DEV_PRESENCE_RADIUS_M),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -95,6 +121,15 @@ export const ConfigStoreModel = types
       if (Platform.OS === "ios") return store.revenueCatAppleKey
       if (Platform.OS === "android") return store.revenueCatGoogleKey
       return store.revenueCatTestKey
+    },
+    /**
+     * The presence radius actually enforced — the wide dev value in `__DEV__`
+     * builds, the real server/default value everywhere else. `__DEV__` is
+     * false in TestFlight and store builds, so no shipped binary can widen the
+     * gate. This is the ONLY thing `usePresenceCheck` should read.
+     */
+    get effectivePresenceRadiusM(): number {
+      return __DEV__ ? store.devPresenceRadiusM : store.presenceRadiusM
     },
   }))
   .actions((store) => ({
@@ -135,6 +170,18 @@ export const ConfigStoreModel = types
               store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
               store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
               if (config.LATEST_VERSION) store.latestVersion = config.LATEST_VERSION
+              // Guarded on > 0: a server sending 0 (or a malformed value that
+              // coerces to it) would make every check fail with "you are 3 m
+              // away, you must be within 0 m" — an unfixable-from-the-client
+              // outage of the whole feature. Falling back to the default is
+              // the safe failure.
+              if (config.PRESENCE_RADIUS_M && config.PRESENCE_RADIUS_M > 0)
+                store.presenceRadiusM = config.PRESENCE_RADIUS_M
+              // Same > 0 guard, same reason. Stored unconditionally rather
+              // than behind `__DEV__` — the field is inert in production
+              // because `effectivePresenceRadiusM` is what gates its use.
+              if (config.DEV_PRESENCE_RADIUS_M && config.DEV_PRESENCE_RADIUS_M > 0)
+                store.devPresenceRadiusM = config.DEV_PRESENCE_RADIUS_M
               // Clear any cold-start outage gate ONLY when the service
               // reports itself as healthy. While maintenance is active we
               // keep the gate up so the user-facing state (full-screen vs

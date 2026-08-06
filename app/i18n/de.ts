@@ -808,13 +808,32 @@ const de: Translations = {
     getDirections: "Route anzeigen",
     contacts: "Kontakte",
     imHere: "Ich bin hier",
-    imHereSaving: "Wird gespeichert…",
-    logged: "Anwesenheit erfasst",
     alsoOnline: "Trifft sich auch online",
     approximate: "Der angezeigte Standort ist ungefähr",
     attendanceSaved: "Anwesenheit gespeichert",
-    attendanceError: "Anwesenheit konnte nicht gespeichert werden — bitte erneut versuchen",
     tapTimesHint: "Tippe auf eine Uhrzeit, um eine Erinnerung festzulegen",
+  },
+  presence: {
+    // {{distance}} und {{radius}} kommen bereits formatiert von formatDistance()
+    // (regionsabhängig Meilen oder km) — hänge keine Einheit an den String.
+    outOfRangeTitle: "Du bist noch nicht dort",
+    outOfRangeMessage:
+      "Du bist etwa {{distance}} von diesem Meeting entfernt. Komm näher als {{radius}}, um deine Teilnahme zu erfassen.",
+    noVenueCoordsTitle: "Standort kann nicht bestätigt werden",
+    noVenueCoordsMessage:
+      "Wir haben keinen genauen Standort für dieses Meeting, daher können wir nicht bestätigen, dass du hier bist.",
+    deniedTitle: "Standort erforderlich",
+    deniedMessage:
+      "Um die persönliche Teilnahme zu erfassen, benötigen wir deinen Standort, um zu bestätigen, dass du beim Meeting bist.",
+    openSettings: "Einstellungen öffnen",
+    fixFailedTitle: "Standort nicht gefunden",
+    fixFailedMessage:
+      "Wir konnten deinen Standort nicht ermitteln. Geh nach draußen oder versuch es gleich noch einmal.",
+    checking: "Wird geprüft…",
+  },
+  inPersonTimer: {
+    title: "Teilnahme-Timer",
+    hint: "Beende den Timer, wenn dein Meeting endet. Speichern erfordert mindestens {{minutes}} Min.",
   },
   inPersonScreen: {
     title: "Vor Ort",

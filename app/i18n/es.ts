@@ -799,13 +799,32 @@ const es: Translations = {
     getDirections: "Cómo llegar",
     contacts: "Contactos",
     imHere: "Estoy aquí",
-    imHereSaving: "Guardando…",
-    logged: "Asistencia registrada",
     alsoOnline: "También se reúne en línea",
     approximate: "La ubicación mostrada es aproximada",
     attendanceSaved: "Asistencia guardada",
-    attendanceError: "No se pudo guardar la asistencia — inténtalo de nuevo",
     tapTimesHint: "Toca una hora para crear un recordatorio",
+  },
+  presence: {
+    // {{distance}} y {{radius}} llegan ya formateados desde formatDistance()
+    // (millas o km según la configuración regional) — no añadas una unidad.
+    outOfRangeTitle: "Todavía no estás allí",
+    outOfRangeMessage:
+      "Estás a unos {{distance}} de esta reunión. Acércate a menos de {{radius}} para registrar tu asistencia.",
+    noVenueCoordsTitle: "No podemos verificar esta ubicación",
+    noVenueCoordsMessage:
+      "No tenemos una ubicación precisa para esta reunión, así que no podemos confirmar que estás aquí.",
+    deniedTitle: "Se necesita tu ubicación",
+    deniedMessage:
+      "Registrar la asistencia en persona necesita tu ubicación para confirmar que estás en la reunión.",
+    openSettings: "Abrir Configuración",
+    fixFailedTitle: "No pudimos encontrarte",
+    fixFailedMessage:
+      "No pudimos obtener tu ubicación. Sal afuera o inténtalo de nuevo en un momento.",
+    checking: "Comprobando…",
+  },
+  inPersonTimer: {
+    title: "Temporizador de Asistencia",
+    hint: "Termina el temporizador cuando acabe tu reunión. Guardar requiere al menos {{minutes}} min.",
   },
   inPersonScreen: {
     title: "En persona",

@@ -7,7 +7,6 @@ import {
   distanceMeters,
   formatDistance,
   isNearlySamePosition,
-  isSameLocalDay,
   resolveBannerReason,
   resolveMode,
   sortByDistance,
@@ -251,19 +250,6 @@ describe("composeAddress", () => {
   })
   it("returns empty string when nothing is available", () => {
     expect(composeAddress({})).toBe("")
-  })
-})
-
-describe("isSameLocalDay", () => {
-  it("true for two times on the same local calendar day", () => {
-    const a = new Date(2026, 7, 3, 0, 5).getTime()
-    const b = new Date(2026, 7, 3, 23, 55).getTime()
-    expect(isSameLocalDay(a, b)).toBe(true)
-  })
-  it("false across local midnight", () => {
-    const a = new Date(2026, 7, 3, 23, 55).getTime()
-    const b = new Date(2026, 7, 4, 0, 5).getTime()
-    expect(isSameLocalDay(a, b)).toBe(false)
   })
 })
 

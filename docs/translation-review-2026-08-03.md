@@ -1,6 +1,6 @@
 # Translation review queue — In-Person UI branch (2026-08-03)
 
-**325 machine-assisted strings awaiting a native-speaker pass before release.**
+**421 machine-assisted strings awaiting a native-speaker pass before release.**
 
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
@@ -24,7 +24,8 @@ review obligation.
 | `listingsScreen` (venue/radius/time) | 7 | 8 | 56 | Search filters, 2026-08-04 |
 | location-failure copy (both namespaces) | 5 | 8 | 40 | Android location fix, 2026-08-04 |
 | `liveScreen` (retitle) | 1 | 8 | 8 | Live Online retitle, 2026-08-04 |
-| **Total** | | | **325** | |
+| `presence` + `inPersonTimer` | 12 | 8 | 96 | GPS in-person attendance, Task 7, 2026-08-05 |
+| **Total** | | | **421** | |
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every
@@ -432,3 +433,67 @@ your locale is what a user has been reading until now.
 - **`de` and `en` are now identical** ("Live Online"). That is plausible for
   German, where both words are in common use, but confirm it isn't lazier than
   a native heading would be.
+
+---
+
+## `presence` + `inPersonTimer` — 96 strings (8 locales × 12 keys), 2026-08-05
+
+New namespaces for the GPS-verified in-person attendance feature (Task 7 of
+the `feat/gps-in-person-attendance` plan). `presence` covers the out-of-range
+alert, permission-denied messaging, and location-fix-failure copy shown when
+a user taps "I'm Here"; `inPersonTimer` is the timer modal's title and
+credit-floor hint (Tasks 9/10 consume both). Unlike the `en`/`es` split noted
+at the top of this doc, **`es` here is implementer-authored, not
+plan-authored** — it carries the same review obligation as the other seven.
+
+| Key | English | Notes for the reviewer |
+|---|---|---|
+| `presence:outOfRangeTitle` | You're not there yet | Alert title shown when a GPS check fails distance. |
+| `presence:outOfRangeMessage` | You're about {{distance}} from this meeting. Get within {{radius}} to record your attendance. | **Both `{{distance}}` and `{{radius}}` arrive pre-formatted** ("3 mi" / "250 m") by `formatDistance()` — never append a unit. This is the one string in the whole app where a live distance reaches the user's screen; it must never reach a log (see `CLAUDE.md`). |
+| `presence:noVenueCoordsTitle` | Can't verify this location | Shown instead of the distance alert when the meeting record itself has no coordinates to check against — a data problem, not a location problem. Keep it distinct from `outOfRangeTitle`/`deniedTitle` in your locale; conflating them tells the user to fix something (their location, their permission) that isn't the actual cause. |
+| `presence:noVenueCoordsMessage` | We don't have a precise location for this meeting, so we can't confirm you're here. | Companion to the above — explains the meeting is at fault, not the user's device. |
+| `presence:deniedTitle` | Location needed | Shown when OS location permission is denied/restricted. |
+| `presence:deniedMessage` | Recording in-person attendance needs your location to confirm you're at the meeting. | Paired with `openSettings` as the action button — should read as an explanation for why the app is about to ask, not a scold. |
+| `presence:openSettings` | Open Settings | Button label that deep-links to the OS settings app. Short, imperative — match the register your locale already uses for `common` button labels rather than inventing new phrasing. |
+| `presence:fixFailedTitle` | Couldn't find you | Shown when permission is granted but the GPS fix itself failed (weak signal, indoors, etc.) — the closest analogue is `locationFixFailedBanner` from the 2026-08-04 batch above; keep the "we tried and it didn't land" tone consistent with that string in your locale. |
+| `presence:fixFailedMessage` | We couldn't get your location. Step outside or try again in a moment. | Actionable retry copy — "step outside" is the one concrete suggestion; don't lose it to a vaguer "try again". |
+| `presence:checking` | Checking… | Transient in-progress label, likely on a spinner or disabled button. Keep it short — this is not the place for a full sentence. |
+| `inPersonTimer:title` | Attendance Timer | Deliberately the same English string as `externalZoomTimer:title` (this modal is the in-person sibling of the external-Zoom timer). **Reused the existing translation verbatim in every locale** rather than re-translating, to keep the two timer modals terminologically identical — confirm that read is still right for your language rather than assuming it's a placeholder. |
+| `inPersonTimer:hint` | End the timer when your meeting finishes. Save requires at least {{minutes}} min. | `{{minutes}}` must stay literal. `externalZoomTimer:hint` already solved this phrasing in every locale ("Return here when your meeting ends…"); this is a reworded variant ("End the timer…") since there's no separate app to return from in the in-person flow — check the reworded half reads naturally, not just the copied `{{minutes}}` clause. |
+
+### Reviewer notes worth acting on first
+
+- **`presence:outOfRangeMessage` is the highest-scrutiny string in this batch.**
+  It's the only place a real GPS distance is ever shown to a user, it fires
+  every time someone taps "I'm Here" too far from the venue, and it carries
+  two interpolations back to back (`{{distance}}` then `{{radius}}`) — a
+  transposed or reworded token here silently breaks the sentence. Verify token
+  order reads naturally in each language, not just that both tokens are present.
+- **Least confident, by locale** (where I'd start a review):
+  - `ar` — `presence:outOfRangeTitle` ("لست هناك بعد"). Literal "not there yet"
+    idiom translated fairly directly; a native speaker may have a more natural
+    fixed phrase for "you haven't arrived."
+  - `de` — `presence:fixFailedMessage` ("Geh nach draußen…"). "Step outside" as
+    a literal command reads slightly blunt in German; a softer construction may
+    fit better.
+  - `fr` — `presence:noVenueCoordsMessage`. Long compound sentence translated
+    clause-for-clause; worth checking it isn't running on longer than natural
+    French phrasing would.
+  - `pt` — `presence:outOfRangeMessage`. Brazilian vs. European Portuguese
+    register wasn't distinguished; "Aproxime-se" reads natural for BR (matching
+    the file's existing "você" register) but confirm that's the intended
+    target audience.
+  - `ru` — `presence:deniedMessage`. Formal "вы" is consistent with the file,
+    but the sentence is dense (two clauses via "чтобы"); check it doesn't read
+    as bureaucratic.
+  - `th` — `presence:outOfRangeMessage`. Thai has no plural/singular
+    distinction on the interpolated units, and no existing `{{radius}}`
+    analogue in this file to pattern-match against (`inPersonScreen:selectRadius`
+    is a label, not a sentence) — the clause order around both tokens is a
+    first-principles translation, most worth a native check.
+  - `uk` — `presence:fixFailedMessage`. Same "step outside" literalness
+    concern as `de`; Ukrainian phrasing may prefer an indirect suggestion.
+  - `es` — `presence:noVenueCoordsTitle` ("No podemos verificar esta
+    ubicación"). Straightforward but this is the first `es` string in this
+    doc's queue — flagging it because unlike the plan-authored `es` baseline,
+    nothing here has had *any* prior review pass.

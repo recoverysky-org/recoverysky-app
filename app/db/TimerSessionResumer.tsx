@@ -15,10 +15,13 @@
  * Zoom after that got zero credit because the persisted session was cleared.
  * Multiple confirmed reports of customers losing attendance this way.
  *
- * The new flow uses the existing modal resume path (see
- * ExternalZoomTimerModal lines 115–131): adopt the persisted startedAt, show
- * the running timer with correct wall-clock elapsed, let the user keep using
- * Zoom and Save when the meeting *actually* ends with full duration captured.
+ * The new flow uses the existing modal resume path (see the resume branch of
+ * useAttendanceTimer's launch effect, app/hooks/useAttendanceTimer.ts —
+ * EXTRACTED 2026-08-05 from ExternalZoomTimerModal, referenced here by symbol
+ * name rather than line number so this pointer survives the next refactor):
+ * adopt the persisted startedAt, show the running timer with correct
+ * wall-clock elapsed, let the user keep using Zoom and Save when the meeting
+ * *actually* ends with full duration captured.
  *
  * A 6-hour staleness cap silently discards sessions old enough that the
  * meeting must have ended (and the device sat with no app re-entry). Tunable
@@ -26,16 +29,23 @@
  *
  * Place inside DatabaseProvider alongside the other *Resumer / *Hydrator
  * components, below ProfileHydrator so we have a user context.
+ *
+ * CHANGED 2026-08-05: the persisted session can now be an in-person timer as
+ * well as an external-Zoom one. Nothing here branches on it — the staleness
+ * cap and the restore decision are identical for both — but TimerRecoveryGate
+ * does, so the source is logged here to make a mis-routed recovery diagnosable
+ * from Loki without a device.
  */
 
 import { useEffect, useRef } from "react"
 
 import {
   clearTimerSession,
-  EXTERNAL_MIN_CREDIT_MS,
   loadTimerSession,
+  sessionSource,
   setRecoverySession,
-} from "@/services/zoom"
+} from "@/services/attendance"
+import { EXTERNAL_MIN_CREDIT_MS } from "@/services/zoom"
 import { logger } from "@/utils/logger"
 
 import { useDatabase } from "./DatabaseProvider"
@@ -74,6 +84,7 @@ export function TimerSessionResumer(): null {
     // gating still happens inside the modal via canSave.
     log.info("Restoring persisted timer session via recovery surface", {
       mid: session.meetingId,
+      source: sessionSource(session),
       elapsedMs,
       belowCredit: elapsedMs < EXTERNAL_MIN_CREDIT_MS,
     })

@@ -159,6 +159,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   into RTL text and is flagged for a device check, the same caveat already
   noted for `{{distance}}`.
 
+- **In-person attendance is now location-verified and timed.** Tapping "I'm
+  Here" checks where you are and only starts recording once you're actually at
+  the meeting — if you're not there yet, it tells you how far you have to go.
+  Attendance is then the real time you spent, ended by you, followed by the
+  same topic and host prompt online meetings use. The saved record stores where
+  your attendance was confirmed. Meetings we don't have a precise location for
+  can't be verified and can't be logged; that source data is being corrected.
+
 ### Changed
 
 - **Favourites and star ratings now order the In-Person and Search lists too**,
@@ -246,6 +254,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   in-app Zoom SDK was removed in 4.5.0), so the server returns external meetings
   by default; the flag and its `options` plumbing were removed as dead code.
 
+- The in-person and online attendance timers now share one implementation, so
+  a fix to either reaches both.
+
 ### Build
 
 - Bumped `@recoverysky-org/common` `^2.2.0` → `^2.2.1` (version-only bump in
@@ -258,8 +269,27 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `/.claude/` — it excluded the entire suite and exited green having run nothing.
   Anchoring it to `<rootDir>` keeps the double-discovery guard working from the
   main checkout while letting the suite run inside a worktree.
+- `__DEV__` builds now use the server's `DEV_PRESENCE_RADIUS_M` for the
+  in-person presence check (falling back to 10 km until /config resolves).
+  `/config` was already returning the field; the app ignored it. A simulator
+  reports a fixed location that is never within the real radius of a real
+  venue, so every "I'm Here" tap failed out-of-range and nothing past the GPS
+  gate — timer, save, topic panel — could be exercised locally. Selection is a
+  `ConfigStore.effectivePresenceRadiusM` view gated on `__DEV__`, which is
+  false in TestFlight and store builds, so production still uses
+  `PRESENCE_RADIUS_M`.
 
 ### Fixed
+
+- **Leaving the app's current tab while an attendance timer was running lost
+  the whole meeting.** Switching tabs — or, far more likely, tapping a meeting
+  reminder notification, which navigates on your behalf — tore down the screen
+  holding the timer and stopped the clock, with no way back to it short of
+  restarting the app. If you simply pocketed the phone, the session expired
+  after six hours and the attendance was gone. The app now refuses to navigate
+  away while a timer is running, and the tabs grey out to show why. Saving or
+  cancelling releases it, as before. This applies to both the in-person and
+  the online timer.
 
 - **Android: "Enable location to see meetings near you" came back on every app
   restart, even with location already allowed — and tapping it always worked.**

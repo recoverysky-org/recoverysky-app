@@ -18,6 +18,7 @@ import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { SocialScreen } from "@/screens/SocialScreen"
+import { isTimerSessionActive } from "@/services/attendance"
 import { useAppTheme } from "@/theme/context"
 import { loadString, remove } from "@/utils/storage"
 
@@ -53,6 +54,10 @@ export const MainNavigator = observer(function MainNavigator() {
   // `__DEV__ || isPremium` once the SPA-side bugs are addressed.
   const socialTabVisible = false
 
+  // Observable read — this is what makes the tab bar re-render when a timer
+  // starts or ends. See the screenListeners comment below.
+  const timerLocked = isTimerSessionActive()
+
   // Post-login redirect: if a section was saved before logout, open Settings tab first
   const postLoginSectionRef = useRef(loadString("POST_LOGIN_SECTION") as SettingsSection | null)
   if (postLoginSectionRef.current) {
@@ -62,6 +67,23 @@ export const MainNavigator = observer(function MainNavigator() {
   return (
     <Tab.Navigator
       initialRouteName={postLoginSectionRef.current ? "Settings" : "Home"}
+      // Tab switching is refused while an attendance timer is running. Leaving
+      // the tab unmounts the popup that hosts the timer modal (RN Modal returns
+      // null once hidden), which runs useAttendanceTimer's cleanup and destroys
+      // the clock — nothing re-surfaces it until a cold start, so the user
+      // silently loses the meeting they are sitting in. Save and Cancel both
+      // call clearTimerSession(), so those are the only ways out and the lock
+      // cannot strand anyone. preventDefault() is the supported way to refuse a
+      // tab press; the greyed tabBarStyle below is the matching affordance.
+      // NOTE: this covers taps only. Programmatic navigation (notification
+      // taps -> navTo) bypasses tabPress entirely and is gated separately in
+      // app.tsx's handleNotificationData — fixing one without the other leaves
+      // the more likely path open.
+      screenListeners={{
+        tabPress: (e) => {
+          if (isTimerSessionActive()) e.preventDefault()
+        },
+      }}
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
@@ -71,6 +93,10 @@ export const MainNavigator = observer(function MainNavigator() {
           paddingTop: 10,
           backgroundColor: colors.background,
           borderTopColor: colors.border,
+          // Reads as disabled while the timer holds the lock. Observed at
+          // render (not inside the listener) so this component re-renders when
+          // the flag flips.
+          opacity: timerLocked ? 0.4 : 1,
         },
         tabBarActiveTintColor: colors.tint,
         tabBarInactiveTintColor: colors.textDim,
@@ -95,9 +121,10 @@ export const MainNavigator = observer(function MainNavigator() {
         component={MeetingsScreen}
         options={{
           tabBarLabel: t("mainNavigator:meetingsTab"),
-          tabBarAccessibilityLabel: liveMeetings.length > 0
-            ? `${t("mainNavigator:meetingsTab")}, ${liveMeetings.length} live`
-            : t("mainNavigator:meetingsTab"),
+          tabBarAccessibilityLabel:
+            liveMeetings.length > 0
+              ? `${t("mainNavigator:meetingsTab")}, ${liveMeetings.length} live`
+              : t("mainNavigator:meetingsTab"),
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
               <Ionicons name="videocam" size={24} color={focused ? colors.tint : colors.textDim} />
@@ -118,9 +145,10 @@ export const MainNavigator = observer(function MainNavigator() {
           component={AttendanceScreen}
           options={{
             tabBarLabel: t("mainNavigator:attendanceTab"),
-            tabBarAccessibilityLabel: validUnproducedCount > 0
-              ? `${t("mainNavigator:attendanceTab")}, ${validUnproducedCount} new`
-              : t("mainNavigator:attendanceTab"),
+            tabBarAccessibilityLabel:
+              validUnproducedCount > 0
+                ? `${t("mainNavigator:attendanceTab")}, ${validUnproducedCount} new`
+                : t("mainNavigator:attendanceTab"),
             tabBarIcon: ({ focused }) => (
               <View style={styles.iconContainer}>
                 <Ionicons

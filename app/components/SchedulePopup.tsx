@@ -17,8 +17,6 @@ import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
 import {
   Alert,
   Animated,
-  Dimensions,
-  Easing,
   InteractionManager,
   Linking,
   View,
@@ -33,31 +31,18 @@ import { useIsFocused } from "@react-navigation/native"
 import { FELLOWSHIP_COLORS, DateTime, Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
-// react-native-keyboard-controller's KeyboardAvoidingView is a drop-in
-// replacement for RN's that reads the actual keyboard frame from the
-// native side and handles Android + edge-to-edge correctly. Using RN's
-// KeyboardAvoidingView with behavior="height" on Android caused a flash
-// + scroll feedback loop because it competed with the OS adjustResize
-// AND the parent Animated.View's non-native-driver layout animation —
-// three layout systems racing on every keyboard frame.
-import { KeyboardAvoidingView, KeyboardController } from "react-native-keyboard-controller"
 
 import { ExternalZoomEducationModal } from "@/components/ExternalZoomEducationModal"
 import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
-import { TopicPromptContent } from "@/components/TopicPromptContent"
+import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
-import {
-  attendanceEvents,
-  attendanceRepo,
-  feedbackCache,
-  type FeedbackRecord,
-  type ReminderRecord,
-} from "@/db"
+import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
 import { useReminders } from "@/hooks/useReminders"
+import { useTopicPanel } from "@/hooks/useTopicPanel"
 import { useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { maybePresentRatingPrompt } from "@/services/rating"
@@ -84,17 +69,6 @@ const EXTERNAL_ZOOM_EDUCATION_SEEN_KEY = "external-zoom-education-seen-v1"
 // fires the Modal's onDismiss (precise, earlier) and a ref guards against both
 // presenting for the same close.
 const RATING_PROMPT_AFTER_CLOSE_MS = 550
-
-// Dismiss the keyboard and wait for it to fully settle (keyboardDidHide),
-// capped at 400ms (> iOS's ~250ms hide animation) so we never hang if the
-// event doesn't fire. Used before tearing down the topic panel — see
-// handleTopicSave for the crash this prevents.
-async function dismissKeyboardAndSettle(): Promise<void> {
-  await Promise.race([
-    KeyboardController.dismiss(),
-    new Promise<void>((resolve) => setTimeout(resolve, 400)),
-  ])
-}
 
 interface SchedulePopupProps {
   visible: boolean
@@ -171,57 +145,26 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // Rendered INLINE as a slide-up panel over the popup's body so it doesn't
   // present a new RN Modal during the Zoom SDK's native dismiss animation
   // (which iOS silently refuses). Both SDK and external paths funnel through
-  // the shared `attendanceEvents` "processed" subscription below.
-  const [topicActive, setTopicActive] = useState(false)
-  const topicContextRef = useRef<{ attendanceId: string; mid: string } | null>(null)
-  // Only "external" remains after the 4.5.0 SDK removal — kept as a ref
-  // (instead of a literal constant) so the existing "processed" subscriber
-  // pattern, which clears the ref on success, still expresses intent.
-  const attendanceSourceRef = useRef<"external" | null>(null)
-
-  // Slide animation for the topic panel. `progress` is 0 when hidden
-  // (translated below the card) and 1 when fully shown. We measure the
-  // popup card's layout height so the panel can translate by exactly that
-  // amount, keeping native-driver transforms.
-  const topicProgress = useRef(new Animated.Value(0)).current
-  const [contentHeight, setContentHeight] = useState(0)
-
-  // Separate driver for the card's own expansion: when the topic panel is
-  // active we grow the popup card to full screen so the topic editor gets
-  // the whole canvas. Uses `useNativeDriver: false` because layout props
-  // (minHeight/maxHeight/border radius) aren't native-drivable.
-  const cardExpansion = useRef(new Animated.Value(0)).current
-  const screenHeight = useMemo(() => Dimensions.get("window").height, [])
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(topicProgress, {
-        toValue: topicActive ? 1 : 0,
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(cardExpansion, {
-        toValue: topicActive ? 1 : 0,
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }),
-    ]).start()
-  }, [topicActive, topicProgress, cardExpansion])
-
-  // Reset the topic panel each time a fresh popup opens or the meeting
-  // changes. Without this, a prior meeting's source/context could bleed
-  // into the next one.
-  useEffect(() => {
-    if (visible) {
-      setTopicActive(false)
-      topicContextRef.current = null
-      attendanceSourceRef.current = null
-      topicProgress.setValue(0)
-      cardExpansion.setValue(0)
-    }
-  }, [visible, meeting?.id, topicProgress, cardExpansion])
+  // the shared `attendanceEvents` "processed" subscription, which now lives
+  // inside useTopicPanel (see below).
+  // EXTRACTED 2026-08-05: state, both animation drivers, the "processed"
+  // subscription, and the save/skip handlers moved into useTopicPanel so
+  // InPersonPopup (Task 10) can render the identical panel instead of a
+  // hand-written second copy.
+  const {
+    topicActive: _topicActive,
+    cardAnimatedStyle,
+    onCardLayout,
+    panelProps,
+  } = useTopicPanel({
+    visible,
+    meetingId: meeting?.id,
+    meetingName: meeting?.name,
+    // Always true: the external-Zoom path has no SDK-side host capture, so the
+    // user is the only source for it. Replaces the old attendanceSourceRef
+    // check, which could only ever be "external" after the 4.5.0 SDK removal.
+    includeHost: true,
+  })
 
   // Reminder state
   const [reminderEditorVisible, setReminderEditorVisible] = useState(false)
@@ -291,34 +234,18 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const bannerOpacity = useRef(new Animated.Value(0)).current
   const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Subscribe to attendance events. The popup owns two reactions:
-  //   1. "processed" (valid) → if topic capture is on, slide the topic panel
-  //      in; otherwise emit "acknowledged" immediately so the banner fires.
-  //   2. "acknowledged" → show the "Attendance Saved" banner.
+  // Subscribe to attendance events. The popup owns one reaction here — the
+  // "processed" → topic-panel reaction moved into useTopicPanel above.
+  //   "acknowledged" → show the "Attendance Saved" banner.
   useEffect(() => {
     if (!visible || !meeting?.id) return
 
     const unsub = attendanceEvents.subscribe((event) => {
       if (event.mid !== meeting.id) return
 
-      if (event.type === "processed" && event.valid) {
-        if (profileStore.enableMeetingTopic) {
-          topicContextRef.current = { attendanceId: event.id, mid: event.mid }
-          setTopicActive(true)
-        } else {
-          attendanceEvents.emit({
-            type: "acknowledged",
-            id: event.id,
-            mid: event.mid,
-            valid: true,
-          })
-        }
-        return
-      }
-
-      // Banner fires on "acknowledged" (emitted after the topic panel resolves
-      // or immediately when topic capture is disabled) so it never flashes
-      // behind the topic UI.
+      // Banner fires on "acknowledged" (emitted by useTopicPanel after the
+      // topic panel resolves, or immediately when topic capture is disabled)
+      // so it never flashes behind the topic UI.
       if (event.type === "acknowledged" && event.valid) {
         setShowBanner(true)
         Animated.timing(bannerOpacity, {
@@ -342,7 +269,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       unsub()
       if (bannerTimeoutRef.current) clearTimeout(bannerTimeoutRef.current)
     }
-  }, [visible, meeting?.id, bannerOpacity, profileStore.enableMeetingTopic])
+  }, [visible, meeting?.id, bannerOpacity])
 
   // Reset banner when popup closes
   useEffect(() => {
@@ -506,7 +433,11 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       if (profileStore.attendanceEnabled) {
         // Tag the source so the "processed" subscription shows the host
         // field when the topic panel slides in.
-        attendanceSourceRef.current = "external"
+        // CHANGED 2026-08-05: attendanceSourceRef removed — useTopicPanel now
+        // takes includeHost as a static prop (always true, see the hook call
+        // above) because both SchedulePopup and the in-person popup want the
+        // host field, and external-Zoom was the only source this ref could
+        // ever hold since the 4.5.0 SDK removal anyway.
         setTimerVisible(true)
       } else {
         const zoomUrl = buildExternalZoomUrl({
@@ -562,73 +493,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     InteractionManager.runAfterInteractions(next)
   }, [])
 
-  const handleTopicSave = useCallback(async ({ topic, host }: { topic: string; host?: string }) => {
-    const pending = topicContextRef.current
-    if (!pending) return
-    topicContextRef.current = null
-
-    // Dismiss the keyboard and WAIT for it to settle BEFORE sliding the
-    // panel out. setTopicActive(false) starts the parent Animated.parallel
-    // slide-out — which includes a useNativeDriver:false (layout) tween on
-    // cardExpansion. If that runs while the keyboard is still hiding, three
-    // layout systems mutate this subtree on the same frame: keyboard-
-    // controller's reanimated KeyboardAvoidingView (animating off the
-    // keyboard-height shared value), the legacy translateY/cardExpansion
-    // slide, and the topicActive reconcile. Reanimated's per-frame shadow-
-    // tree clone then reads a prop map the others just freed → EXC_BAD_ACCESS
-    // in folly::dynamic::hash (cloneShadowTreeWithNewPropsRecursive). Letting
-    // the keyboard fully hide first serializes hide → slide so they never
-    // commit concurrently.
-    await dismissKeyboardAndSettle()
-
-    setTopicActive(false)
-    try {
-      const result = await attendanceRepo.update(pending.attendanceId, {
-        meetingTopic: topic,
-        ...(host ? { meetingHost: host } : {}),
-      })
-      if (!result.ok) {
-        log.error("Failed to persist meeting topic/host", {
-          attendanceId: pending.attendanceId,
-        })
-      } else {
-        log.info("Meeting topic saved", {
-          attendanceId: pending.attendanceId,
-          hasHost: !!host,
-        })
-      }
-    } catch (err) {
-      log.error("Failed to persist meeting topic/host", {
-        attendanceId: pending.attendanceId,
-        error: String(err),
-      })
-    }
-    attendanceEvents.emit({
-      type: "acknowledged",
-      id: pending.attendanceId,
-      mid: pending.mid,
-      valid: true,
-    })
-  }, [])
-
-  const handleTopicSkip = useCallback(async () => {
-    const pending = topicContextRef.current
-    topicContextRef.current = null
-    // Same teardown ordering as handleTopicSave — dismiss the keyboard and let
-    // it settle before the slide-out to avoid the concurrent reanimated commit
-    // / layout-tween shadow-tree crash.
-    await dismissKeyboardAndSettle()
-    setTopicActive(false)
-    if (pending) {
-      attendanceEvents.emit({
-        type: "acknowledged",
-        id: pending.attendanceId,
-        mid: pending.mid,
-        valid: true,
-      })
-    }
-  }, [])
-
   if (!meeting) return null
 
   return (
@@ -646,30 +510,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       <View style={themed($overlay)}>
         <Pressable style={themed($backdrop)} onPress={onClose} />
 
+        {/* cardAnimatedStyle and onCardLayout are load-bearing for the topic
+            panel, which is NOT defined in this file: cardAnimatedStyle is a
+            useNativeDriver:false tween owned by useTopicPanel (layout props
+            like minHeight/maxHeight/borderRadius can't be native-driven), and
+            onCardLayout feeds the height measurement TopicPanelOverlay
+            translates by when it slides in. Swapping either out — e.g. for a
+            local measurement or a different maxHeight source — silently
+            breaks the panel two files away. See the EXTRACTED 2026-08-05
+            block above (near the useTopicPanel call) for the full picture. */}
         <Animated.View
-          style={[
-            themed($content),
-            {
-              minHeight: cardExpansion.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, screenHeight],
-              }),
-              maxHeight: cardExpansion.interpolate({
-                inputRange: [0, 1],
-                outputRange: [screenHeight * 0.85, screenHeight],
-              }),
-              borderTopLeftRadius: cardExpansion.interpolate({
-                inputRange: [0, 1],
-                outputRange: [20, 0],
-              }),
-              borderTopRightRadius: cardExpansion.interpolate({
-                inputRange: [0, 1],
-                outputRange: [20, 0],
-              }),
-            },
-          ]}
+          style={[themed($content), cardAnimatedStyle]}
           accessibilityViewIsModal
-          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+          onLayout={onCardLayout}
         >
           {/* Attendance banner */}
           {showBanner && (
@@ -870,44 +723,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           {/* Slide-in topic panel. Rendered inside $content (not as its own
               Modal) so iOS doesn't have to present a second native modal
               over the Zoom SDK's dismiss animation — which is the race that
-              broke the previous TopicPromptModal approach. */}
-          <Animated.View
-            pointerEvents={topicActive ? "auto" : "none"}
-            style={[
-              themed($topicOverlay),
-              {
-                opacity: topicProgress,
-                transform:
-                  contentHeight > 0
-                    ? [
-                        {
-                          translateY: topicProgress.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [contentHeight, 0],
-                          }),
-                        },
-                      ]
-                    : [{ translateY: 9999 }],
-              },
-            ]}
-          >
-            <KeyboardAvoidingView
-              style={themed($topicKeyboardAvoider)}
-              // `padding` works on both platforms with the keyboard-controller
-              // KAV (it normalizes via the native KeyboardEvent stream). Was
-              // conditional on Platform.OS with "height" on Android, which
-              // double-resized against the OS and the parent's layout animation.
-              behavior="padding"
-            >
-              <TopicPromptContent
-                active={topicActive}
-                meetingName={meeting.name}
-                includeHost={attendanceSourceRef.current === "external"}
-                onSave={handleTopicSave}
-                onSkip={handleTopicSkip}
-              />
-            </KeyboardAvoidingView>
-          </Animated.View>
+              broke the previous TopicPromptModal approach.
+              EXTRACTED 2026-08-05: render moved into TopicPanelOverlay; all
+              state/animation lives in useTopicPanel above (panelProps). */}
+          <TopicPanelOverlay {...panelProps} />
         </Animated.View>
       </View>
 
@@ -971,26 +790,6 @@ const $content: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingTop: spacing.md,
   paddingHorizontal: spacing.md,
   paddingBottom: spacing.xl,
-})
-
-// Slide-in panel that covers the popup body while the topic prompt is active.
-// Matches the content card's background so the transition feels like the
-// popup's contents swapping rather than a layered modal.
-const $topicOverlay: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  ...StyleSheet.absoluteFillObject,
-  backgroundColor: colors.background,
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  paddingTop: spacing.md,
-  paddingHorizontal: spacing.md,
-  paddingBottom: spacing.xl,
-})
-
-// KeyboardAvoidingView handles vertical centering so that when the keyboard
-// appears, the topic card lifts above it instead of being half-covered.
-const $topicKeyboardAvoider: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  justifyContent: "center",
 })
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({

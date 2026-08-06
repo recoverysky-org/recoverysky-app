@@ -809,13 +809,32 @@ const fr: Translations = {
     getDirections: "Itinéraire",
     contacts: "Contacts",
     imHere: "Je suis ici",
-    imHereSaving: "Enregistrement…",
-    logged: "Présence enregistrée",
     alsoOnline: "Se réunit aussi en ligne",
     approximate: "L'emplacement affiché est approximatif",
     attendanceSaved: "Présence enregistrée",
-    attendanceError: "Impossible d'enregistrer la présence — veuillez réessayer",
     tapTimesHint: "Touchez une heure pour définir un rappel",
+  },
+  presence: {
+    // {{distance}} et {{radius}} arrivent déjà formatés par formatDistance()
+    // (miles ou km selon la langue) — n'ajoutez pas d'unité dans la chaîne.
+    outOfRangeTitle: "Vous n'y êtes pas encore",
+    outOfRangeMessage:
+      "Vous êtes à environ {{distance}} de cette réunion. Rapprochez-vous à moins de {{radius}} pour enregistrer votre présence.",
+    noVenueCoordsTitle: "Impossible de vérifier cet emplacement",
+    noVenueCoordsMessage:
+      "Nous n'avons pas d'emplacement précis pour cette réunion, nous ne pouvons donc pas confirmer votre présence.",
+    deniedTitle: "Localisation nécessaire",
+    deniedMessage:
+      "L'enregistrement de la présence en personne nécessite votre position pour confirmer que vous êtes à la réunion.",
+    openSettings: "Ouvrir les réglages",
+    fixFailedTitle: "Impossible de vous localiser",
+    fixFailedMessage:
+      "Nous n'avons pas pu obtenir votre position. Sortez ou réessayez dans un instant.",
+    checking: "Vérification…",
+  },
+  inPersonTimer: {
+    title: "Minuteur de présence",
+    hint: "Arrêtez le minuteur lorsque votre réunion se termine. Enregistrer nécessite au moins {{minutes}} min.",
   },
   inPersonScreen: {
     title: "En personne",

@@ -23,7 +23,7 @@ export type AttendanceChangeType =
   // on these events is the constant "sync" (no single record changed).
   | "synced"
 
-// "in-person" is emitted by saveInPersonAttendance (app/services/inPerson/attendance.ts)
+// "in-person" is emitted by saveInPersonTimerAttendance (app/services/inPerson/timerAttendance.ts)
 // for records written from the "I'm Here" in-person meeting flow.
 export type AttendanceSource = "sdk" | "external-timer" | "in-person"
 
@@ -34,7 +34,13 @@ export interface AttendanceChange {
   record?: AttendanceRecord
   /** Our internal meeting ID (available on 'processed' events) */
   mid?: string
-  /** Whether attendance met minimum duration (available on 'processed' events) */
+  /**
+   * Whether attendance met minimum duration (available on 'processed' events).
+   * CHANGED 2026-08-05: `useTopicPanel` (extracted from `SchedulePopup` in
+   * Task 4, now shared by the in-person timer too) also sets this on the
+   * `acknowledged` events it emits after a valid `processed` event, so
+   * downstream listeners that only look at `acknowledged` still see it.
+   */
   valid?: boolean
   /** How the attendance was captured (available on 'processed' events) */
   source?: AttendanceSource
