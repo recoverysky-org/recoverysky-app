@@ -452,12 +452,20 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   "Navigation" above). `useNearbySchedules` requests location with
   `expo-location`'s foreground-only permission, never at app start; raw
   coordinates live only in a ref, never in React state, MMKV, or logs (see
-  the file header comment). "I'm Here" writes attendance via
-  `saveInPersonAttendance()` (`app/services/inPerson/attendance.ts`) —
-  `source: "in-person"`, goes through the same `db/repositories.ts` mutation
-  choke point as every other write (so it enqueues to the sync outbox like
-  normal), and is guarded by a same-local-day check (`hasLoggedToday`) so
-  re-tapping doesn't double-log. Address display: `formattedAddress` is
+  the file header comment). "I'm Here" now runs a GPS presence check
+  (`usePresenceCheck` → the pure `verifyPresence` in `presenceLogic.ts`) and,
+  only when the user is within `configStore.presenceRadiusM` (default 150 m)
+  of the venue, opens `InPersonTimerModal`. Attendance is real elapsed time
+  written by `saveInPersonTimerAttendance()` at Save, followed by the shared
+  topic/host panel — the same shape as the online path, sharing
+  `useAttendanceTimer` and `useTopicPanel` with it. The record's `events[].json`
+  carries the verified fix, distance, accuracy, and the radius in force. There
+  is no override for an out-of-range user and no same-day double-log guard
+  (online has never had one). The single-tap `saveInPersonAttendance` and
+  `hasLoggedToday` were removed 2026-08-05. Raw coordinates are still ref-only
+  for the browse path above; the attendance path persists and syncs the
+  verified fix by design — see the PRIVACY header in `useNearbySchedules.ts`
+  for the full accounting. Address display: `formattedAddress` is
   populated on **0 of 55,617** active in-person meetings measured live
   across every source — TSML apparently discards the composed address after
   parsing `street`/`city`/`state`/`postalCode` out of it (92–99% populated).

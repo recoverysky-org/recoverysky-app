@@ -159,6 +159,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   into RTL text and is flagged for a device check, the same caveat already
   noted for `{{distance}}`.
 
+- **In-person attendance is now location-verified and timed.** Tapping "I'm
+  Here" checks where you are and only starts recording once you're actually at
+  the meeting — if you're not there yet, it tells you how far you have to go.
+  Attendance is then the real time you spent, ended by you, followed by the
+  same topic and host prompt online meetings use. The saved record stores where
+  your attendance was confirmed. Meetings we don't have a precise location for
+  can't be verified and can't be logged; that source data is being corrected.
+
 ### Changed
 
 - **Favourites and star ratings now order the In-Person and Search lists too**,
@@ -245,6 +253,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `/schedules/live` or `/schedules/daily`. External is the only mode now (the
   in-app Zoom SDK was removed in 4.5.0), so the server returns external meetings
   by default; the flag and its `options` plumbing were removed as dead code.
+
+- The in-person and online attendance timers now share one implementation, so
+  a fix to either reaches both.
 
 ### Build
 

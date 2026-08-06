@@ -40,6 +40,19 @@
  *   segment, never at app launch. A user who never opens In-Person is never
  *   asked for location.
  *
+ * AMENDED 2026-08-05: the rule above still governs THIS hook and the whole
+ * /schedules/nearby browse path — coordinates here still live only in
+ * `coordsRef` and are still scrubbed from every transport. It no longer
+ * describes the app as a whole. GPS-verified in-person attendance deliberately
+ * persists the user's fix: to encrypted SQLite (the attendance record's
+ * events[].json), to the server when cloud backup is on (events is part of
+ * ServerAttendanceRecord and is sent verbatim), and to MMKV for the lifetime
+ * of a running timer session. A verified attendance record is the product and
+ * the proof has to be durable. The unchanged parts — nothing logged, lazy
+ * foreground-only permission, browse coordinates ref-only — are unchanged
+ * deliberately, not by omission. See
+ * docs/superpowers/specs/2026-08-05-gps-in-person-attendance-design.md.
+ *
  * The persisted radius (MMKV) is a display *preference*, not location data —
  * persisting it is correct and carries no positional information.
  *
