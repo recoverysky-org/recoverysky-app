@@ -58,6 +58,27 @@ is the product; the proof has to be durable. As of this design:
   is sent verbatim.
 - It **is** written to MMKV for the lifetime of a running timer session, so a
   process kill mid-meeting doesn't lose the verification.
+- It **is** sent to `POST /reports` whenever the user sends an attendance
+  report — `useReportSender` hands `AttendanceRecord[]` to `api.sendReport()`
+  verbatim, and `events` rides along.
+
+  **CORRECTED 2026-08-06.** The three bullets above were written as an
+  exhaustive list and this fourth destination was missing from it; a
+  whole-branch review found it. Two things make it worth calling out rather
+  than quietly appending. First, unlike the sync bullet, the report path is
+  **not** gated on the cloud-backup opt-in — `syncEnabled` defaults OFF, and
+  a user who leaves it off still transmits the fix the moment they send a
+  report. Second, a report's recipient is by design a third party the user
+  types in: a sponsor, an employer, a court or probation officer. This is
+  intended — the fix is what authenticates the attendance claim to that
+  recipient, which is the whole point of a verified record — but it is a
+  deliberate decision, not a side effect, and it is recorded here so it isn't
+  rediscovered as a surprise. Whether the coordinates are rendered into the
+  delivered email is a server-template question, outside this repo.
+
+  **Rule going forward:** this list is load-bearing precisely because it
+  reads as exhaustive. Any new egress of the fix updates it in the same
+  commit that introduces the egress.
 
 Everything else in the old rule stands unchanged:
 

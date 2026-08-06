@@ -272,6 +272,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Leaving the app's current tab while an attendance timer was running lost
+  the whole meeting.** Switching tabs — or, far more likely, tapping a meeting
+  reminder notification, which navigates on your behalf — tore down the screen
+  holding the timer and stopped the clock, with no way back to it short of
+  restarting the app. If you simply pocketed the phone, the session expired
+  after six hours and the attendance was gone. The app now refuses to navigate
+  away while a timer is running, and the tabs grey out to show why. Saving or
+  cancelling releases it, as before. This applies to both the in-person and
+  the online timer.
+
 - **Android: "Enable location to see meetings near you" came back on every app
   restart, even with location already allowed — and tapping it always worked.**
   The permission was never the problem. The app asked Android for a brand-new

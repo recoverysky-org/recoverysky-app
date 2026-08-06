@@ -16,6 +16,8 @@
  * services/zoom/ owning in-person sessions is a trap for whoever reads it next.
  */
 
+import { observable, runInAction } from "mobx"
+
 import { load, remove, save } from "@/utils/storage"
 
 /**
@@ -86,14 +88,78 @@ export function sessionSource(session: PersistedTimerSession): TimerSource {
   return session.source ?? "external-zoom"
 }
 
+/**
+ * How stale a persisted session can be and still count as "live" for
+ * `isTimerSessionActive()`. Mirrors TimerSessionResumer's MAX_RECOVERY_AGE_MS
+ * deliberately: a session that resumer would refuse to restore must not be
+ * allowed to hold the navigation lock either, or a user who force-quit mid
+ * meeting a week ago comes back to permanently disabled tabs. Kept as its own
+ * constant rather than imported to avoid app/services -> app/db coupling; if
+ * you change one, change both.
+ */
+const MAX_ACTIVE_SESSION_AGE_MS = 6 * 60 * 60 * 1000
+
+/**
+ * Observable mirror of "a timer session is live right now".
+ *
+ * ADDED 2026-08-06 to fix a real loss-of-attendance path: navigating to
+ * another tab unmounted InPersonPopup (its RN Modal returns null when hidden),
+ * which unmounted InPersonTimerModal, which ran useAttendanceTimer's cleanup
+ * and destroyed the clock. TimerSessionResumer only fires once per mount, so
+ * nothing re-surfaced the timer until a cold start — and if none happened
+ * within MAX_RECOVERY_AGE_MS the attendance was simply gone.
+ *
+ * The signal has to live HERE, on the persisted session, not in the modal's
+ * React state. The modal's own mount lifecycle cannot drive a lock whose
+ * entire job is to prevent that modal from being unmounted — clearing on
+ * unmount would release the lock at exactly the moment it was needed.
+ *
+ * MobX (not a new event channel) for the reason CLAUDE.md gives for
+ * maintenanceMode: MainNavigator is already an observer() and reacts for free,
+ * and a parallel pub/sub would be a second source of truth.
+ *
+ * Seeded from MMKV at module load so a cold-start recovery (resumer restores
+ * -> TimerRecoveryGate shows the modal) is locked too, since that path resumes
+ * rather than re-saving and so never calls saveTimerSession().
+ */
+const timerSessionActive = observable.box(false)
+
+function seedActiveFromStorage(): void {
+  const existing = load<PersistedTimerSession>(STORAGE_KEY)
+  const live =
+    existing !== null &&
+    existing.startedAt > 0 &&
+    Date.now() - existing.startedAt <= MAX_ACTIVE_SESSION_AGE_MS
+  runInAction(() => timerSessionActive.set(live))
+}
+seedActiveFromStorage()
+
+/**
+ * True while an attendance timer is running (either venue).
+ *
+ * Read from an observer() component and it re-renders when this flips. Callers
+ * use it to refuse navigation that would unmount the timer — see
+ * MainNavigator's tab lock and app.tsx's notification handler.
+ */
+export function isTimerSessionActive(): boolean {
+  return timerSessionActive.get()
+}
+
 export function saveTimerSession(session: PersistedTimerSession): void {
   save(STORAGE_KEY, session)
+  runInAction(() => timerSessionActive.set(true))
 }
 
 export function loadTimerSession(): PersistedTimerSession | null {
   return load<PersistedTimerSession>(STORAGE_KEY)
 }
 
+/**
+ * Clears the session AND releases the navigation lock. Save and Cancel are the
+ * only two paths that reach here, which is what makes the lock safe: every
+ * legitimate way out of a running timer goes through this function.
+ */
 export function clearTimerSession(): void {
   remove(STORAGE_KEY)
+  runInAction(() => timerSessionActive.set(false))
 }
