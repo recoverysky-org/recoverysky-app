@@ -880,6 +880,8 @@ export class Api {
           MAINTENANCE_UNTIL?: string
           LATEST_VERSION?: string
           PRESENCE_RADIUS_M?: number
+          /** Dev-build-only presence radius; ignored entirely in production. */
+          DEV_PRESENCE_RADIUS_M?: number
         }
       }
     | GeneralApiProblem
@@ -902,6 +904,7 @@ export class Api {
       MAINTENANCE_UNTIL?: string
       LATEST_VERSION?: string
       PRESENCE_RADIUS_M?: number
+      DEV_PRESENCE_RADIUS_M?: number
     }>("/config")
 
     if (!response.ok) {

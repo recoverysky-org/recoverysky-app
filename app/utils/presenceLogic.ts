@@ -21,6 +21,24 @@ import { distanceMeters } from "./nearbyLogic"
  */
 export const DEFAULT_PRESENCE_RADIUS_M = 150
 
+/**
+ * Fallback radius for `__DEV__` builds, until the server's
+ * `DEV_PRESENCE_RADIUS_M` arrives via /config.
+ *
+ * A simulator reports whatever fixed location Xcode/Android Studio is
+ * simulating (Apple HQ by default), which is never within 150 m of a real
+ * meeting venue, so every "I'm Here" tap fails "out-of-range" and the whole
+ * timer path below the gate is untestable locally. 10 km is wide enough to
+ * cover a simulated location against venues in the same metro, and matches the
+ * browse radius useNearbySchedules already uses.
+ *
+ * The `__DEV__` selection happens in `ConfigStore.effectivePresenceRadiusM` —
+ * NOT here — because `__DEV__` is a React Native global that does not exist
+ * under vitest, and this module must stay importable by the pure tests (see
+ * CLAUDE.md "Test Runner Split").
+ */
+export const DEV_PRESENCE_RADIUS_M = 10_000
+
 export type PresenceReason = "in-range" | "out-of-range" | "no-venue-coords"
 
 export interface PresenceFix {

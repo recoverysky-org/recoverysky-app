@@ -269,6 +269,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `/.claude/` — it excluded the entire suite and exited green having run nothing.
   Anchoring it to `<rootDir>` keeps the double-discovery guard working from the
   main checkout while letting the suite run inside a worktree.
+- `__DEV__` builds now use the server's `DEV_PRESENCE_RADIUS_M` for the
+  in-person presence check (falling back to 10 km until /config resolves).
+  `/config` was already returning the field; the app ignored it. A simulator
+  reports a fixed location that is never within the real radius of a real
+  venue, so every "I'm Here" tap failed out-of-range and nothing past the GPS
+  gate — timer, save, topic panel — could be exercised locally. Selection is a
+  `ConfigStore.effectivePresenceRadiusM` view gated on `__DEV__`, which is
+  false in TestFlight and store builds, so production still uses
+  `PRESENCE_RADIUS_M`.
 
 ### Fixed
 

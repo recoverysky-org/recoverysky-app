@@ -57,7 +57,11 @@ export function usePresenceCheck(): UsePresenceCheckResult {
    */
   const checkingRef = useRef(false)
 
-  const radiusM = configStore.presenceRadiusM
+  // NOT `presenceRadiusM` — the view picks the wide dev radius in `__DEV__`
+  // builds so a simulator's fixed location still lands inside a venue, and the
+  // real server value everywhere else. Reading the raw field here would make
+  // the local simulator untestable again.
+  const radiusM = configStore.effectivePresenceRadiusM
 
   const check = useCallback(
     async (venue: PresenceVenue): Promise<PresenceCheckOutcome> => {
