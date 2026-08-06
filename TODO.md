@@ -138,32 +138,59 @@ documentation pass.
       client-side there really is synthesis and correctly belongs in
       `composeAddress()` (`app/utils/nearbyLogic.ts`) rather than upstream.
 
-- [ ] **Translation review queue is a release blocker.** 133 machine-assisted
-      strings across seven locales (ar/de/fr/pt/ru/th/uk) await a
-      native-speaker pass before this ships — 70 in `inPersonPopup`, 63 in
-      `inPersonScreen`. Full list: `docs/translation-review-2026-08-03.md`.
+- [ ] **Translation review queue is a release blocker.** 421 machine-assisted
+      strings across eight non-English locales (es/ar/de/fr/pt/ru/th/uk) await
+      a native-speaker pass before this ships. Full list, with the per-namespace
+      breakdown: `docs/translation-review-2026-08-03.md` — treat that document
+      as authoritative and do not restate its total here again.
+      UPDATED 2026-08-05: this read "133 strings across seven locales
+      (ar/de/fr/pt/ru/th/uk) — 70 in `inPersonPopup`, 63 in `inPersonScreen`",
+      which was correct on 2026-08-03 and then drifted as four more namespaces
+      landed (location-failure copy, `liveScreen`, and `presence` +
+      `inPersonTimer`, the last 96 strings being the GPS in-person attendance
+      work). It also omitted `es`. A duplicated count in a second file is what
+      went stale; the pointer above is the fix.
       Structure is already machine-verified (identical key sets across all
       nine locales, every interpolation placeholder present); what's missing
       is a semantics/register check. Flag for the reviewer: Arabic embeds
       `{{distance}}` inside RTL text with Latin numerals and needs checking
       on device. Also tracked in `docs/PRODUCTION_CHECKLIST.md`.
 
-- [ ] **A `markProcessed` failure gets reported to the user as success on the
-      next tap.** In `saveInPersonAttendance` (`app/services/inPerson/attendance.ts`)
-      the `create` lands before `markProcessed` is attempted, so if all four
-      `markProcessed` attempts fail, the function returns `{ ok: false }` — but
-      the created row is still there. `hasLoggedToday` only looks at `created`,
-      so the user's next tap short-circuits to `{ ok: true, alreadyLogged: true }`
-      and `InPersonPopup` shows "Attendance saved" for a record stuck in exactly
-      the created-but-unprocessed state the retry comment at
-      `attendance.ts:106-108` calls "orphaned" and "can't see or recover". The
-      second tap also fires `trackEvent("inperson_attendance_logged")` for a
-      write that never completed, so that metric can over-count relative to
-      processed records. Not a regression: `saveTimerAttendance` in
-      `app/services/zoom/externalAttendance.ts` has the same create-then-process
-      shape, so this is a house pattern and any fix should cover both. Likely
-      fix is to have the same-day guard require a *processed* record, or to have
-      a resumer re-drive `markProcessed` on orphans at launch.
+- [ ] **A failed `markProcessed` leaves an orphaned created-but-unprocessed
+      attendance row.** Every attendance writer does `create` first and
+      `markProcessed` after, so if all four `markProcessed` attempts fail the
+      function returns `{ ok: false }` while the created row survives — stuck in
+      the state the retry comment calls "orphaned" and "can't see or recover".
+      This is a house pattern, not one path's bug: it holds for
+      `saveTimerAttendance` (`app/services/zoom/externalAttendance.ts`) and for
+      `saveInPersonTimerAttendance` (`app/services/inPerson/timerAttendance.ts`)
+      alike, so any fix should cover both. Likely fix is a resumer that
+      re-drives `markProcessed` on orphans at launch.
+
+      REWRITTEN 2026-08-05: the original item was filed against
+      `saveInPersonAttendance` (`app/services/inPerson/attendance.ts`) and its
+      `hasLoggedToday` same-day guard, both deleted when GPS-verified timed
+      attendance replaced single-tap logging. The *reported-as-success*
+      half of this bug died with them — there is no same-day guard left to
+      short-circuit into `{ ok: true, alreadyLogged: true }`, and the
+      `inperson_attendance_logged` event that could over-count is gone too
+      (see the separate note below about its missing successor). The orphan
+      risk described above is what survived, and it was never in-person
+      specific. Left open deliberately: the item is smaller than it was, not
+      done.
+
+- [ ] **No analytics event marks a *saved* in-person attendance.**
+      `inperson_attendance_logged` fired on a successful single-tap write and
+      was removed 2026-08-05 with that flow. Its replacement,
+      `inperson_attendance_started` (`app/components/InPersonPopup.tsx:402`),
+      fires when the timer opens — so any funnel keyed on the old event reads
+      zero from that date, and nothing distinguishes "opened the timer" from
+      "actually saved a record." Deliberate for now: it matches the online
+      precedent, where `SchedulePopup` fires `meeting_joined` at launch and
+      likewise has no saved-attendance event. Worth fixing for both venues at
+      once rather than adding a one-sided in-person event. Payload must stay
+      empty either way — distance and accuracy must never ride along with an
+      analytics event.
 
 - [ ] **Stale doc comment in `app/db/meetingEvents.ts:16`.** The `MeetingEvent.reason`
       field's JSDoc says `/** Zoom end reason (e.g. "selfLeave", "endedByHost") */`.
@@ -171,7 +198,8 @@ documentation pass.
       Zoom SDK that produced them was removed in 4.5.0. The only two reason
       strings fired today are `"external-zoom-timer"`
       (`app/services/zoom/externalAttendance.ts`) and `"in-person"`
-      (`app/services/inPerson/attendance.ts`, added on this branch). Small,
+      (`app/services/inPerson/timerAttendance.ts:165` — added on this branch,
+      moved there 2026-08-05 from the deleted `inPerson/attendance.ts`). Small,
       code-only fix (update the comment to name the current emitters) —
       left untouched here because this pass is docs-only and that file is
       source code, not a doc.
