@@ -11,7 +11,6 @@
  * with the cold-start sequence it blocks.
  */
 
-import { api } from "@/services/api"
 import { logger } from "@/utils/logger"
 
 import { attestDevice, isAttestationSupported, type AttestationError } from "./index"
@@ -63,19 +62,28 @@ export function isUsingApiKeyFallback(): boolean {
   return usingApiKeyFallback
 }
 
-/** Switch to the X-API-Key fallback used by simulators, web, and dev builds. */
+/**
+ * Switch to the X-API-Key fallback used by simulators, web, and dev builds.
+ *
+ * CHANGED 2026-08-06: no longer calls api.setApiKeyAuth(). The auth gate reads
+ * this module state through the device refresher on every request and stamps
+ * X-API-Key itself when the refresher returns null, so pushing a sticky header
+ * into the API layer is both redundant and the bug the gate exists to fix.
+ */
 export function setApiKeyFallback(): void {
   usingApiKeyFallback = true
   deviceJwt = null
   jwtExpiresAt = null
-  api.setApiKeyAuth()
 }
 
 /**
- * Perform device attestation with retries and update API headers.
+ * Perform device attestation with retries.
  * Returns `{ ok: true }` on success, or `{ ok: false, error }` with the
  * last AttestationError on failure so the caller can choose a matching
  * user-facing alert.
+ *
+ * CHANGED 2026-08-06: no longer pushes the JWT into the API layer via
+ * api.setDeviceJwt(). The gate pulls it from getDeviceJwt() per request.
  */
 export async function performAttestation(
   deviceId: string,
@@ -102,7 +110,6 @@ export async function performAttestation(
       deviceJwt = result.data.deviceJwt
       jwtExpiresAt = result.data.expiresAt
       usingApiKeyFallback = false
-      api.setDeviceJwt(result.data.deviceJwt)
       log.info("Device attestation complete", {
         attempt,
         expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",

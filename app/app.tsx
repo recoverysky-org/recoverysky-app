@@ -67,7 +67,11 @@ import {
   setApiKeyFallback,
   isUsingApiKeyFallback,
 } from "./services/attestation/deviceToken"
-import { clearStoredCredentials, createUserTokenRefresher } from "./services/auth"
+import {
+  clearStoredCredentials,
+  createDeviceTokenRefresher,
+  createUserTokenRefresher,
+} from "./services/auth"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { clearAuthCredentials } from "./services/auth/secureStorage"
 import { setSentryUser } from "./services/crashReporting/sentry"
@@ -396,25 +400,13 @@ export function App() {
           logger.updateConfig({ apiKey: _rootStore.configStore.otlpApiKey })
         }
 
-        // Set initial OAuth auth (user authentication)
         const authStore = _rootStore.authenticationStore
-        api.updateAuth(authStore.isAnonymous, authStore.accessToken)
-        log.debug("API auth configured", {
-          isAnonymous: authStore.isAnonymous,
-          hasToken: !!authStore.accessToken,
-        })
 
-        // React to auth state changes
-        reaction(
-          () => ({
-            isAnonymous: authStore.isAnonymous,
-            accessToken: authStore.accessToken,
-          }),
-          ({ isAnonymous, accessToken }) => {
-            log.info("Auth state changed", { isAnonymous, hasToken: !!accessToken })
-            api.updateAuth(isAnonymous, accessToken)
-          },
-        )
+        // CHANGED 2026-08-06: the initial api.updateAuth() call and the
+        // auth-state reaction that mirrored it into the API layer are gone.
+        // Both existed only to keep a *sticky* Authorization header in sync
+        // with the store; the auth gate now reads the store through the user
+        // refresher on every single request, so there is nothing left to push.
 
         // ---- Forced logout on a dead refresh token ----------------------
         //
@@ -447,6 +439,19 @@ export function App() {
               performForcedLogout()
             }
           },
+        })
+
+        // Wire both refreshers into the API's per-request auth gate. This is
+        // the injection point that keeps app/services/api free of any import
+        // edge into services/auth or services/attestation — depcruise would
+        // see a cycle otherwise (the existing direction is attestation → api).
+        const deviceRefresher = createDeviceTokenRefresher({
+          getDeviceId: () => deviceIdRef.current,
+        })
+
+        api.registerTokenRefreshers({
+          device: deviceRefresher.getToken,
+          user: userRefresher.getToken,
         })
 
         // Fire the deferred eject the moment the timer releases. Reads the

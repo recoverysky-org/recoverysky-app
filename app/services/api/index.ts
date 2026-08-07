@@ -284,6 +284,29 @@ export const DEFAULT_API_CONFIG: ApiConfig = {
 }
 
 /**
+ * Header that tells the auth gate to leave a request alone.
+ *
+ * A sentinel rather than a URL allow-list because getPublicStatus() and the
+ * authenticated getStatus() hit the SAME /status path — a URL match cannot
+ * tell them apart, and would silently start bypassing the gate for both.
+ */
+export const SKIP_AUTH_GATE_HEADER = "X-Skip-Auth-Gate"
+
+/**
+ * Token providers injected at startup.
+ *
+ * Injected rather than imported so this module gains no edge into
+ * services/auth or services/attestation. The existing direction is
+ * attestation → api; importing back would make depcruise see a cycle.
+ */
+export interface TokenRefreshers {
+  /** Fresh device JWT, or null when running the X-API-Key fallback. */
+  device: () => Promise<string | null>
+  /** Fresh access token, or null when anonymous / signed out. */
+  user: () => Promise<string | null>
+}
+
+/**
  * Manages all requests to the API. You can use this class to build out
  * various requests that you need to call from your backend API.
  */
@@ -297,8 +320,15 @@ export class Api {
   /** Auth key for simulator fallback (from env var) */
   private authKey: string = process.env.EXPO_PUBLIC_AUTH_KEY || ""
 
-  /** Device JWT for production (physical devices) - kept in memory only */
-  private deviceJwt: string | null = null
+  /**
+   * Token providers. No-ops until registerTokenRefreshers() runs, so any call
+   * made during early cold start (before wiring) simply goes out unauthorized
+   * rather than throwing.
+   */
+  private refreshers: TokenRefreshers = {
+    device: async () => null,
+    user: async () => null,
+  }
 
   /** Promise that resolves when attestation completes - used for request queueing */
   private attestationPromise: Promise<void> | null = null
@@ -325,42 +355,67 @@ export class Api {
         Accept: "application/json",
       },
     })
+
+    this.installAuthGate()
+  }
+
+  // ===========================================================================
+  // Auth Gate
+  // ===========================================================================
+
+  /**
+   * Install the token providers. Called once from app.tsx during init.
+   */
+  registerTokenRefreshers(refreshers: TokenRefreshers) {
+    log.debug("Registering token refreshers")
+    this.refreshers = refreshers
+  }
+
+  /**
+   * Install the proactive auth gate on the RecoverySky client.
+   *
+   * CHANGED 2026-08-06: replaces setDeviceJwt/setAuthToken/updateAuth, which
+   * wrote *sticky instance headers*. Sticky headers meant a request that
+   * started before a refresh could still go out carrying the old token, and
+   * they meant the Auth0 access token was only ever updated when the
+   * useAuth0Wrapper `[user]` effect happened to re-run — which is to say,
+   * essentially never after login. Stamping per-request makes both problems
+   * structurally impossible.
+   */
+  private installAuthGate() {
+    this.recoverySkyApi.addAsyncRequestTransform(async (request) => {
+      const headers = (request.headers ?? {}) as Record<string, string>
+      request.headers = headers as typeof request.headers
+
+      // Bypass. /attest is called while we are still obtaining device
+      // credentials, and getPublicStatus() runs before any credential exists.
+      // This is ALSO the recursion guard: the device refresher calls
+      // verifyAttestation(), which comes straight back through this transform.
+      if (headers[SKIP_AUTH_GATE_HEADER]) {
+        delete headers[SKIP_AUTH_GATE_HEADER]
+        return
+      }
+
+      const [deviceJwt, accessToken] = await Promise.all([
+        this.refreshers.device(),
+        this.refreshers.user(),
+      ])
+
+      if (deviceJwt) {
+        headers["X-Device-Token"] = deviceJwt
+      } else if (this.authKey) {
+        headers["X-API-Key"] = this.authKey
+      }
+
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`
+      }
+    })
   }
 
   // ===========================================================================
   // Device Authorization Methods
   // ===========================================================================
-
-  /**
-   * Set device JWT for production use (physical devices)
-   * This clears any X-API-Key fallback and uses the device token instead
-   */
-  setDeviceJwt(jwt: string | null) {
-    this.deviceJwt = jwt
-    this.recoverySkyApi.deleteHeader("X-API-Key") // Clear simulator fallback
-    if (jwt) {
-      log.debug("Setting X-Device-Token header")
-      this.recoverySkyApi.setHeader("X-Device-Token", jwt)
-    } else {
-      log.debug("Clearing X-Device-Token header")
-      this.recoverySkyApi.deleteHeader("X-Device-Token")
-    }
-  }
-
-  /**
-   * Set X-API-Key header for simulator fallback
-   * Only used in development when attestation isn't available
-   */
-  setApiKeyAuth() {
-    this.deviceJwt = null
-    this.recoverySkyApi.deleteHeader("X-Device-Token") // Clear device JWT
-    if (this.authKey) {
-      log.debug("Setting X-API-Key header (simulator fallback)")
-      this.recoverySkyApi.setHeader("X-API-Key", this.authKey)
-    } else {
-      log.warn("No auth key available for simulator fallback")
-    }
-  }
 
   /**
    * Signal that attestation is in progress
@@ -385,41 +440,6 @@ export class Api {
   }
 
   // ===========================================================================
-  // User Authentication Methods (OAuth)
-  // ===========================================================================
-
-  /**
-   * Set authorization header for authenticated users (OAuth token)
-   * This is separate from device authorization (X-Device-Token)
-   */
-  setAuthToken(token: string) {
-    log.debug("Setting Bearer token auth")
-    this.recoverySkyApi.setHeader("Authorization", `Bearer ${token}`)
-  }
-
-  /**
-   * Clear OAuth authorization header
-   * Device authorization (X-Device-Token or X-API-Key) remains unchanged
-   */
-  clearAuthToken() {
-    log.debug("Clearing Bearer token auth")
-    this.recoverySkyApi.deleteHeader("Authorization")
-  }
-
-  /**
-   * Update OAuth auth based on current authentication state
-   * Note: This only handles user authentication (OAuth), not device authorization
-   * Device authorization is handled separately via setDeviceJwt/setApiKeyAuth
-   */
-  updateAuth(isAnonymous: boolean, accessToken?: string) {
-    if (isAnonymous || !accessToken) {
-      this.clearAuthToken()
-    } else {
-      this.setAuthToken(accessToken)
-    }
-  }
-
-  // ===========================================================================
   // Attestation Endpoint
   // ===========================================================================
 
@@ -435,7 +455,9 @@ export class Api {
   ): Promise<{ kind: "ok"; data: AttestationVerifyResult } | GeneralApiProblem> {
     log.debug("Verifying attestation with backend", { platform: params.platform })
 
-    const response = await this.recoverySkyApi.post<AttestationVerifyResult>("/attest", params)
+    const response = await this.recoverySkyApi.post<AttestationVerifyResult>("/attest", params, {
+      headers: { [SKIP_AUTH_GATE_HEADER]: "1" },
+    })
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
@@ -490,6 +512,11 @@ export class Api {
    * Binary pass/fail — body field is ignored. /status itself doesn't
    * require auth, and at cold start no X-Device-Token / X-API-Key has
    * been set yet, so the request goes out unauthenticated.
+   *
+   * CHANGED 2026-08-06: no longer relies on "no headers have been set yet" —
+   * it passes SKIP_AUTH_GATE_HEADER so the auth gate leaves it alone
+   * explicitly. The old implicit version broke the moment anything set a
+   * header earlier in cold start.
    */
   async getPublicStatus(timeoutMs = 2500): Promise<{ kind: "ok" } | GeneralApiProblem> {
     log.debug("Checking API public status (pre-attestation)")
@@ -502,6 +529,7 @@ export class Api {
     // ceiling fails fast so we route to MaintenanceScreen quickly instead.
     const response = await this.recoverySkyApi.get<{ status: string }>("/status", undefined, {
       timeout: timeoutMs,
+      headers: { [SKIP_AUTH_GATE_HEADER]: "1" },
     })
 
     if (!response.ok) {
