@@ -129,6 +129,14 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
         // out and fail on its own. Blocking would hang every call in the app.
         return await withTimeout(refresh(), USER_REFRESH_TIMEOUT_MS, current)
       } catch (err) {
+        // Concurrent callers share one in-flight refresh (createSingleFlight),
+        // so a permanent rejection lands in EVERY waiting caller's catch. Only
+        // the first one may latch and eject: performForcedLogout() ends with
+        // reset(), so a second pass would log the user out twice AND leave the
+        // latch cleared, re-enabling the dead-refresh retries this latch exists
+        // to stop.
+        if (permanentlyFailed) return null
+
         if (classifyRefreshError(err) === "permanent") {
           log.error("Access token refresh failed permanently — forcing logout", {
             error: String(err),
