@@ -321,9 +321,17 @@ export class Api {
   private authKey: string = process.env.EXPO_PUBLIC_AUTH_KEY || ""
 
   /**
-   * Token providers. No-ops until registerTokenRefreshers() runs, so any call
-   * made during early cold start (before wiring) simply goes out unauthorized
-   * rather than throwing.
+   * Token providers. No-ops until registerTokenRefreshers() runs, so a call
+   * made during early cold start degrades rather than throwing.
+   *
+   * CHANGED 2026-08-07: this comment used to claim such a call "simply goes out
+   * unauthorized". That was wrong in a way that hid a real bug. device()
+   * returning null makes the gate fall through to the X-API-Key branch, so the
+   * request goes out with the API key when authKey is set (dev/simulator) and
+   * with NO credential at all when it isn't (production, where
+   * EXPO_PUBLIC_AUTH_KEY is absent). Neither is "unauthorized" in the harmless
+   * sense the old wording implied — hence the hard ordering requirement on
+   * registerTokenRefreshers() in app.tsx.
    */
   private refreshers: TokenRefreshers = {
     device: async () => null,
@@ -384,6 +392,15 @@ export class Api {
    */
   private installAuthGate() {
     this.recoverySkyApi.addAsyncRequestTransform(async (request) => {
+      // Exact-case bracket access and `delete` are correct here because
+      // apisauce merges the instance and per-request headers into a PLAIN
+      // OBJECT before running async request transforms — axios's AxiosHeaders
+      // (which lower-cases names and would make exact-case lookup unreliable)
+      // is only constructed later, downstream of this hook. Verified against
+      // apisauce 3.1.1 / axios 1.16.1. If an apisauce bump ever starts handing
+      // this transform an AxiosHeaders instance, the sentinel strip below
+      // breaks SILENTLY — the bypass would stop matching and the sentinel would
+      // leak to the wire. Re-verify the header type on upgrade.
       const headers = (request.headers ?? {}) as Record<string, string>
       request.headers = headers as typeof request.headers
 
@@ -391,11 +408,19 @@ export class Api {
       // credentials, and getPublicStatus() runs before any credential exists.
       // This is ALSO the recursion guard: the device refresher calls
       // verifyAttestation(), which comes straight back through this transform.
-      if (headers[SKIP_AUTH_GATE_HEADER]) {
+      //
+      // CHANGED 2026-08-07: presence check, not truthiness. A sentinel value of
+      // "" or "0" previously failed to bypass AND leaked the header onward,
+      // which is the worst of both outcomes.
+      if (SKIP_AUTH_GATE_HEADER in headers) {
         delete headers[SKIP_AUTH_GATE_HEADER]
         return
       }
 
+      // Neither refresher may throw: a rejection here escapes Promise.all and
+      // rejects the whole request, making API methods THROW instead of
+      // returning a GeneralApiProblem, which every call site destructures.
+      // Both are internally try/caught — keep it that way.
       const [deviceJwt, accessToken] = await Promise.all([
         this.refreshers.device(),
         this.refreshers.user(),
@@ -405,6 +430,16 @@ export class Api {
         headers["X-Device-Token"] = deviceJwt
       } else if (this.authKey) {
         headers["X-API-Key"] = this.authKey
+      } else {
+        // No device JWT and no API key — this request carries no device
+        // credential at all and the server will almost certainly reject it.
+        // Restored 2026-08-07: the deleted setApiKeyAuth() logged an
+        // equivalent warning, and its absence is what let a cold-start
+        // ordering bug (refreshers registered after /config) reach review
+        // undetected. It is the only field-visible signal of that class of
+        // failure, since it is invisible on dev builds where .env supplies
+        // EXPO_PUBLIC_AUTH_KEY.
+        log.warn("Request going out with no device credential", { url: request.url })
       }
 
       if (accessToken) {

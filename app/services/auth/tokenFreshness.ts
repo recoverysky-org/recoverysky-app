@@ -197,7 +197,29 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
       if (isUsingApiKeyFallback()) return null
       if (!isJwtExpiredOrNearExpiry()) return getDeviceJwt()
 
-      return withTimeout(refresh(), DEVICE_REFRESH_TIMEOUT_MS, getDeviceJwt())
+      try {
+        return await withTimeout(refresh(), DEVICE_REFRESH_TIMEOUT_MS, getDeviceJwt())
+      } catch (err) {
+        // A refresher must NEVER throw into the auth gate. The gate awaits both
+        // lanes in one Promise.all, so a rejection here would reject the whole
+        // request and make every API method throw instead of returning a
+        // GeneralApiProblem — which call sites destructure as `.kind`. That is
+        // an app-wide blast radius from one bad attestation round trip.
+        //
+        // withTimeout only resolves its fallback on TIMEOUT; it deliberately
+        // propagates rejections, and performAttestation() returning a result
+        // object rather than throwing is not a guarantee we should depend on
+        // from here. The user lane is already fully try/caught — this makes the
+        // two symmetric.
+        //
+        // Falling back to the stale token matches this lane's documented
+        // policy: never eject anyone mid-meeting because attestation had a bad
+        // day. A stale token yields a clean 401, not a thrown request.
+        log.error("Device token refresh threw — falling back to existing token", {
+          error: String(err),
+        })
+        return getDeviceJwt()
+      }
     },
   }
 }

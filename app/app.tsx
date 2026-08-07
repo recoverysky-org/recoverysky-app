@@ -327,6 +327,89 @@ export function App() {
         _rootStore.authenticationStore.setDeviceId(deviceId)
         logger.setContext({ deviceId })
 
+        const authStore = _rootStore.authenticationStore
+
+        // CHANGED 2026-08-06: the initial api.updateAuth() call and the
+        // auth-state reaction that mirrored it into the API layer are gone.
+        // Both existed only to keep a *sticky* Authorization header in sync
+        // with the store; the auth gate now reads the store through the user
+        // refresher on every single request, so there is nothing left to push.
+
+        // ---- Forced logout on a dead refresh token ----------------------
+        //
+        // Two beats, deliberately. Beat one is inside the user refresher: it
+        // returns null forever after a permanent failure, so no stale Bearer
+        // can go out regardless of what happens below. Beat two is the actual
+        // eject, which we hold while an attendance timer is live.
+        const performForcedLogout = () => {
+          log.warn("Performing forced logout after permanent refresh failure")
+          authStore.logout()
+          // Both credential stores must go. Clearing only ours leaves the SDK's
+          // keychain entry intact and the next useAuth0Wrapper sync would
+          // cheerfully re-hydrate the dead session.
+          clearAuthCredentials().catch((err) =>
+            log.error("Failed to clear auth credentials", { error: String(err) }),
+          )
+          clearStoredCredentials().catch((err) =>
+            log.error("Failed to clear SDK credentials", { error: String(err) }),
+          )
+          userRefresher.reset()
+        }
+
+        const userRefresher = createUserTokenRefresher({
+          authStore,
+          onPermanentFailure: () => {
+            if (isTimerSessionActive()) {
+              log.warn("Refresh dead but timer is live — deferring logout")
+              authStore.setPendingLogout(true)
+            } else {
+              performForcedLogout()
+            }
+          },
+        })
+
+        // Wire both refreshers into the API's per-request auth gate. This is
+        // the injection point that keeps app/services/api free of any import
+        // edge into services/auth or services/attestation — depcruise would
+        // see a cycle otherwise (the existing direction is attestation → api).
+        const deviceRefresher = createDeviceTokenRefresher({
+          getDeviceId: () => deviceIdRef.current,
+        })
+
+        // ⚠️ ORDERING: registration MUST stay ahead of fetchConfig() below —
+        // do not "tidy" this down next to the other auth wiring.
+        //
+        // CHANGED 2026-08-07: this block used to sit after fetchConfig(). The
+        // gate goes live in the Api constructor, so between there and this call
+        // `refreshers.device()` is the no-op default returning null. /config is
+        // a device-auth-gated secrets endpoint, and EXPO_PUBLIC_AUTH_KEY only
+        // exists in .env (gitignored AND easignored, absent from eas.json), so
+        // on a production build the X-API-Key fallback is empty too — /config
+        // went out with NO device credential at all, failed every retry, and
+        // dropped every production cold start onto the MaintenanceScreen. The
+        // old sticky-header code accidentally avoided this because
+        // performAttestation() pushed the JWT into the API layer itself.
+        //
+        // Registering this early is safe: nothing between here and attestation
+        // hits the gate. The only request in that window is getPublicStatus(),
+        // which carries SKIP_AUTH_GATE_HEADER, and the device refresher's own
+        // /attest call carries it too — so a live refresher cannot recurse.
+        api.registerTokenRefreshers({
+          device: deviceRefresher.getToken,
+          user: userRefresher.getToken,
+        })
+
+        // Fire the deferred eject the moment the timer releases. Reads the
+        // observable box in services/attendance/timerSession, so Save and
+        // Cancel both trip it for free. MobX rather than a new event channel,
+        // for the reason CLAUDE.md gives for maintenanceMode.
+        reaction(
+          () => ({ pending: authStore.pendingLogout, live: isTimerSessionActive() }),
+          ({ pending, live }) => {
+            if (pending && !live) performForcedLogout()
+          },
+        )
+
         // /status precheck — runs BEFORE attestation. If the API is
         // unreachable, /attest will fail with a misleading "Device
         // Verification Failed" alert. /status is unauthenticated and
@@ -399,71 +482,6 @@ export function App() {
         if (_rootStore.configStore.otlpApiKey) {
           logger.updateConfig({ apiKey: _rootStore.configStore.otlpApiKey })
         }
-
-        const authStore = _rootStore.authenticationStore
-
-        // CHANGED 2026-08-06: the initial api.updateAuth() call and the
-        // auth-state reaction that mirrored it into the API layer are gone.
-        // Both existed only to keep a *sticky* Authorization header in sync
-        // with the store; the auth gate now reads the store through the user
-        // refresher on every single request, so there is nothing left to push.
-
-        // ---- Forced logout on a dead refresh token ----------------------
-        //
-        // Two beats, deliberately. Beat one is inside the user refresher: it
-        // returns null forever after a permanent failure, so no stale Bearer
-        // can go out regardless of what happens below. Beat two is the actual
-        // eject, which we hold while an attendance timer is live.
-        const performForcedLogout = () => {
-          log.warn("Performing forced logout after permanent refresh failure")
-          authStore.logout()
-          // Both credential stores must go. Clearing only ours leaves the SDK's
-          // keychain entry intact and the next useAuth0Wrapper sync would
-          // cheerfully re-hydrate the dead session.
-          clearAuthCredentials().catch((err) =>
-            log.error("Failed to clear auth credentials", { error: String(err) }),
-          )
-          clearStoredCredentials().catch((err) =>
-            log.error("Failed to clear SDK credentials", { error: String(err) }),
-          )
-          userRefresher.reset()
-        }
-
-        const userRefresher = createUserTokenRefresher({
-          authStore,
-          onPermanentFailure: () => {
-            if (isTimerSessionActive()) {
-              log.warn("Refresh dead but timer is live — deferring logout")
-              authStore.setPendingLogout(true)
-            } else {
-              performForcedLogout()
-            }
-          },
-        })
-
-        // Wire both refreshers into the API's per-request auth gate. This is
-        // the injection point that keeps app/services/api free of any import
-        // edge into services/auth or services/attestation — depcruise would
-        // see a cycle otherwise (the existing direction is attestation → api).
-        const deviceRefresher = createDeviceTokenRefresher({
-          getDeviceId: () => deviceIdRef.current,
-        })
-
-        api.registerTokenRefreshers({
-          device: deviceRefresher.getToken,
-          user: userRefresher.getToken,
-        })
-
-        // Fire the deferred eject the moment the timer releases. Reads the
-        // observable box in services/attendance/timerSession, so Save and
-        // Cancel both trip it for free. MobX rather than a new event channel,
-        // for the reason CLAUDE.md gives for maintenanceMode.
-        reaction(
-          () => ({ pending: authStore.pendingLogout, live: isTimerSessionActive() }),
-          ({ pending, live }) => {
-            if (pending && !live) performForcedLogout()
-          },
-        )
 
         // Cloud backup / multi-device sync — wires the outbox mutation hook,
         // resume + gate-clear reactions, and fires a cold-start catch-up.
