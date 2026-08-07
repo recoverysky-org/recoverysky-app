@@ -295,6 +295,53 @@ sweep is about closing the remaining holes, not starting from zero.
 
 ---
 
+## 🔑 Token freshness gate: deferred items (JS-only — NOT runtimeVersion-gated)
+
+Follow-ups from the 2026-08-07 proactive JWT refresh work. None block that
+change; all were surfaced by review and deliberately left out of its scope.
+Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design.md`.
+
+- [ ] **Manual verification on a production-profile physical device.** This is
+      the one genuinely outstanding item, and nothing automated can substitute
+      for it. `tokenFreshness.ts` and `installAuthGate` have no coverage by
+      design (they import `@/`, which vitest can't resolve), and — more
+      importantly — the whole `X-API-Key` fallback lane makes simulators
+      structurally blind to device-credential bugs: `.env` supplies
+      `EXPO_PUBLIC_AUTH_KEY` locally, but it is absent from `eas.json`, so
+      production has no fallback at all. Confirm `/config` succeeds at cold
+      start and that `log.warn("Request going out with no device credential")`
+      never appears in Loki. Work the 8-item checklist in the design spec at
+      the same time.
+
+- [ ] **Outage-mode escape hatch leaves the device lane undecided.** The 60 s
+      `/config` poll keeps running during outage, and `ConfigStore.fetchConfig`
+      clears `outageMode` on any success with maintenance off. If `/config`
+      ever succeeds while `/status` is still failing, outage clears *without*
+      the recovery reload, `initializeDeviceAuthorization` never runs, and the
+      device refresher returns null for the rest of the session. Needs a
+      half-up server plus a credential `/config` accepts, so it is effectively
+      dev-only — and it is **not** new: pre-gate, outage mode likewise never
+      called `setApiKeyAuth()`. Cleanest fix is to decide the lane before the
+      outage early-return rather than after.
+
+- [ ] **`useAuth0Wrapper.ts` can still blank a stored refresh token.** Lines
+      ~112 and ~129 pass `credentials.refreshToken ?? undefined` into
+      `setTokens()` / `saveAuthCredentials()`, so a response that doesn't
+      rotate a refresh token clears our copy — the same bug fixed in
+      `tokenFreshness.ts` on 2026-08-07, on the SDK-sync path. Lower impact
+      (that path reads the SDK's own stored credentials, which normally carry
+      the token) but it makes `canRefresh` lie. Apply the same
+      `?? authStore.refreshToken` treatment.
+
+- [ ] **`AgentScreen.tsx` builds its own `Authorization` header outside the
+      gate** (~lines 97-98), so the agent lane gets no proactive refresh — it
+      inherits whatever the last gated call happened to write back. Harmless
+      today because the Agent tab is hard-disabled behind a local `const`, but
+      it must be routed through the gate (or handed the user refresher) before
+      that tab ships.
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).
