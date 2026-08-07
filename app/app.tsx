@@ -67,7 +67,9 @@ import {
   setApiKeyFallback,
   isUsingApiKeyFallback,
 } from "./services/attestation/deviceToken"
+import { clearStoredCredentials, createUserTokenRefresher } from "./services/auth"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
+import { clearAuthCredentials } from "./services/auth/secureStorage"
 import { setSentryUser } from "./services/crashReporting/sentry"
 import {
   initializeNotifications,
@@ -411,6 +413,50 @@ export function App() {
           ({ isAnonymous, accessToken }) => {
             log.info("Auth state changed", { isAnonymous, hasToken: !!accessToken })
             api.updateAuth(isAnonymous, accessToken)
+          },
+        )
+
+        // ---- Forced logout on a dead refresh token ----------------------
+        //
+        // Two beats, deliberately. Beat one is inside the user refresher: it
+        // returns null forever after a permanent failure, so no stale Bearer
+        // can go out regardless of what happens below. Beat two is the actual
+        // eject, which we hold while an attendance timer is live.
+        const performForcedLogout = () => {
+          log.warn("Performing forced logout after permanent refresh failure")
+          authStore.logout()
+          // Both credential stores must go. Clearing only ours leaves the SDK's
+          // keychain entry intact and the next useAuth0Wrapper sync would
+          // cheerfully re-hydrate the dead session.
+          clearAuthCredentials().catch((err) =>
+            log.error("Failed to clear auth credentials", { error: String(err) }),
+          )
+          clearStoredCredentials().catch((err) =>
+            log.error("Failed to clear SDK credentials", { error: String(err) }),
+          )
+          userRefresher.reset()
+        }
+
+        const userRefresher = createUserTokenRefresher({
+          authStore,
+          onPermanentFailure: () => {
+            if (isTimerSessionActive()) {
+              log.warn("Refresh dead but timer is live — deferring logout")
+              authStore.setPendingLogout(true)
+            } else {
+              performForcedLogout()
+            }
+          },
+        })
+
+        // Fire the deferred eject the moment the timer releases. Reads the
+        // observable box in services/attendance/timerSession, so Save and
+        // Cancel both trip it for free. MobX rather than a new event channel,
+        // for the reason CLAUDE.md gives for maintenanceMode.
+        reaction(
+          () => ({ pending: authStore.pendingLogout, live: isTimerSessionActive() }),
+          ({ pending, live }) => {
+            if (pending && !live) performForcedLogout()
           },
         )
 

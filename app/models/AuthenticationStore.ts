@@ -29,6 +29,16 @@ export const AuthenticationStoreModel = types
     expiresAt: undefined as number | undefined,
     /** Whether auth initialization is complete (Auth0 session resolved) */
     authReady: false,
+    /**
+     * Set when a refresh failed permanently but an attendance timer is still
+     * running. A forced logout swaps the tree at the AppNavigator level, ABOVE
+     * MainNavigator's isTimerSessionActive() tab lock, so that lock does not
+     * catch it — the timer modal would unmount and TimerSessionResumer only
+     * fires once per mount, losing the meeting. We hold the eject until the
+     * timer resolves instead. Not persisted: a cold start re-derives auth
+     * state from scratch.
+     */
+    pendingLogout: false,
   }))
   .views((store) => ({
     /**
@@ -128,6 +138,14 @@ export const AuthenticationStoreModel = types
       store.authReady = true
     },
     /**
+     * Defer a forced logout until a running attendance timer finishes.
+     * See the pendingLogout volatile field for why this exists.
+     */
+    setPendingLogout(value: boolean) {
+      log.info("setPendingLogout()", { value })
+      store.pendingLogout = value
+    },
+    /**
      * Login as anonymous user
      * Uses deviceId as userId for tracking
      */
@@ -148,6 +166,7 @@ export const AuthenticationStoreModel = types
       store.authEmail = ""
       store.userId = undefined
       store.isAnonymous = false
+      store.pendingLogout = false
       // Note: deviceId is NOT cleared - it persists across sessions
     },
   }))
