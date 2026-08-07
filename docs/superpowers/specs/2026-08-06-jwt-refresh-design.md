@@ -370,6 +370,13 @@ is verified by hand.
 1. Signed in, backgrounded past token expiry (shorten the Auth0 API token TTL in
    dev to make this fast), foreground, trigger a fetch → Loki shows one refresh,
    request succeeds, no logout.
+   ⚠️ **Keep the test TTL above ~120 s.** `getFreshCredentials` passes
+   `minTtl = 60` seconds, and the SDK throws `LARGE_MIN_TTL` when the token's
+   whole lifetime is below the requested `minTtl`. That code is not in
+   `PERMANENT_REFRESH_ERROR_CODES`, so it classifies **transient**: the refresh
+   silently never happens, the request goes out with the old token, and a
+   perfectly working gate reads as broken. A TTL comfortably above the 60 s
+   margin leaves a real expiry window to test against.
 2. Airplane mode with an expired token → calls fail, **no logout**, recovery on
    reconnect.
 3. Revoke the refresh token in the Auth0 dashboard → next call → lands on Login.

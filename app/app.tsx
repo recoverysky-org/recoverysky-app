@@ -318,18 +318,6 @@ export function App() {
       const _rootStore = RootStoreModel.create({})
 
       try {
-        // setupRootStore logs its own params/results
-        await setupRootStore(_rootStore)
-
-        // Auth0 SDK handles token persistence internally
-        // We just need to set up deviceId for anonymous users
-
-        // getDeviceId logs its own params/results
-        const deviceId = await getDeviceId()
-        deviceIdRef.current = deviceId
-        _rootStore.authenticationStore.setDeviceId(deviceId)
-        logger.setContext({ deviceId })
-
         const authStore = _rootStore.authenticationStore
 
         // CHANGED 2026-08-06: the initial api.updateAuth() call and the
@@ -380,8 +368,8 @@ export function App() {
         })
         deviceRefresherRef.current = deviceRefresher
 
-        // ⚠️ ORDERING: registration MUST stay ahead of fetchConfig() below —
-        // do not "tidy" this down next to the other auth wiring.
+        // ⚠️ ORDERING: registration MUST stay ahead of every await below — do
+        // not "tidy" this down next to setupRootStore or the device wiring.
         //
         // CHANGED 2026-08-07: this block used to sit after fetchConfig(). The
         // gate goes live in the Api constructor, so between there and this call
@@ -394,10 +382,32 @@ export function App() {
         // old sticky-header code accidentally avoided this because
         // performAttestation() pushed the JWT into the API layer itself.
         //
-        // Registering this early is safe: nothing between here and attestation
-        // hits the gate. The only request in that window is getPublicStatus(),
-        // which carries SKIP_AUTH_GATE_HEADER, and the device refresher's own
-        // /attest call carries it too — so a live refresher cannot recurse.
+        // CHANGED 2026-08-07 (again): moved further up, ahead of
+        // setupRootStore() and getDeviceId(). "Before fetchConfig" was too weak
+        // a requirement — the real rule is that registration must precede ANY
+        // code that can throw. getDeviceId() touches SecureStore and can throw
+        // on a device with keychain trouble; a throw there landed in the outer
+        // catch, which mounts the store and lets the app run normally, with the
+        // refreshers stuck on their no-op defaults forever. That is the
+        // production no-credential failure above, except outageMode is false,
+        // so the user gets a normal-looking app with permanently empty lists
+        // instead of the MaintenanceScreen.
+        //
+        // Both refreshers tolerate running this early. createUserTokenRefresher
+        // needs only `_rootStore.authenticationStore`, which exists the moment
+        // RootStoreModel.create() returns and is read lazily per getToken()
+        // call — setupRootStore() applies a snapshot to that same node rather
+        // than replacing it. createDeviceTokenRefresher reads deviceIdRef
+        // through a closure and returns the current (null) token when it is
+        // unset, so it is safe before getDeviceId() resolves.
+        //
+        // Registering this early is safe in the other direction too: nothing
+        // between here and attestation hits the gate. The only request in that
+        // window is getPublicStatus(), which carries SKIP_AUTH_GATE_HEADER, and
+        // the device refresher's own /attest call carries it too — so a live
+        // refresher cannot recurse. The device lane additionally refuses to
+        // attest at all until initializeDeviceAuthorization() has chosen a lane
+        // (isDeviceAuthInitialized() in services/attestation/deviceToken).
         api.registerTokenRefreshers({
           device: deviceRefresher.getToken,
           user: userRefresher.getToken,
@@ -407,12 +417,30 @@ export function App() {
         // observable box in services/attendance/timerSession, so Save and
         // Cancel both trip it for free. MobX rather than a new event channel,
         // for the reason CLAUDE.md gives for maintenanceMode.
+        //
+        // Safe to register before setupRootStore() (CHANGED 2026-08-07, moved
+        // up with the registration block): `pendingLogout` is a VOLATILE field,
+        // so the applySnapshot() inside setupRootStore cannot flip it and trip
+        // this reaction into logging someone out on cold start. Keep it
+        // volatile — persisting it would make that a live hazard.
         reaction(
           () => ({ pending: authStore.pendingLogout, live: isTimerSessionActive() }),
           ({ pending, live }) => {
             if (pending && !live) performForcedLogout()
           },
         )
+
+        // setupRootStore logs its own params/results
+        await setupRootStore(_rootStore)
+
+        // Auth0 SDK handles token persistence internally
+        // We just need to set up deviceId for anonymous users
+
+        // getDeviceId logs its own params/results
+        const deviceId = await getDeviceId()
+        deviceIdRef.current = deviceId
+        _rootStore.authenticationStore.setDeviceId(deviceId)
+        logger.setContext({ deviceId })
 
         // /status precheck — runs BEFORE attestation. If the API is
         // unreachable, /attest will fail with a misleading "Device

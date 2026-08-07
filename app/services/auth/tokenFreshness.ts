@@ -14,6 +14,7 @@
 
 import {
   getDeviceJwt,
+  isDeviceAuthInitialized,
   isJwtExpiredOrNearExpiry,
   isUsingApiKeyFallback,
   performAttestation,
@@ -89,19 +90,24 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
     // Auth0 returns expiresAt in SECONDS; the rest of the app uses ms.
     const expiresAt = creds.expiresAt * 1000
 
-    authStore.setTokens(
-      creds.accessToken,
-      creds.refreshToken ?? undefined,
-      creds.idToken ?? undefined,
-      expiresAt,
-    )
+    // CHANGED 2026-08-07: keep the stored refresh token when the response does
+    // not carry a new one. Auth0 only returns a refresh token when it actually
+    // rotates one, and passing undefined through blanked BOTH copies —
+    // setTokens() assigns unconditionally and saveAuthCredentials() rewrites
+    // the whole record. The session still refreshed fine (the SDK's own
+    // keychain is the real source of truth) but AuthenticationStore.canRefresh
+    // then reported false for a session that could refresh perfectly well.
+    // Read before setTokens(), which is what would overwrite it.
+    const refreshToken = creds.refreshToken ?? authStore.refreshToken
+
+    authStore.setTokens(creds.accessToken, refreshToken, creds.idToken ?? undefined, expiresAt)
 
     // Write-back matters: without it the same refresh repeats on every cold
     // start, because setupRootStore hydrates from SecureStore and would keep
     // reading the old expiry.
     saveAuthCredentials({
       accessToken: creds.accessToken,
-      refreshToken: creds.refreshToken ?? undefined,
+      refreshToken,
       idToken: creds.idToken ?? undefined,
       expiresAt,
     }).catch((err) => log.error("Failed to persist refreshed credentials", { error: String(err) }))
@@ -117,6 +123,12 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
     getToken: async () => {
       if (permanentlyFailed) return null
       if (authStore.isAnonymous) return null
+      // Load-bearing, not defensive. A user who has never signed in has no
+      // tokens at all, so without this the very first request would call
+      // getFreshCredentials(), the SDK would throw NO_CREDENTIALS, and
+      // classifyRefreshError() treats that as PERMANENT — which fires
+      // onPermanentFailure() and force-logs-out someone who was never logged
+      // in. Bail before the refresh, not inside it.
       if (!authStore.accessToken && !authStore.refreshToken) return null
 
       const current = authStore.accessToken ?? null
@@ -194,6 +206,19 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
 
   return {
     getToken: async () => {
+      // ADDED 2026-08-07: never drive attestation before cold-start init has
+      // chosen a lane. Until then `isUsingApiKeyFallback()` is false and
+      // `isJwtExpiredOrNearExpiry()` is true (no expiry recorded yet), which
+      // looks exactly like "attested device, token expired" and sends us
+      // straight into performAttestation. Outage mode is the live case: app.tsx
+      // returns early before initializeDeviceAuthorization() but still mounts
+      // the provider tree and starts the /config poll, so those requests were
+      // burning ~4 Apple App Attest key generations a minute for the length of
+      // the outage — against Apple's rate limit, and stalling each request
+      // DEVICE_REFRESH_TIMEOUT_MS on the way. Returning the (null) token here
+      // restores the pre-gate behaviour: outage mode attempts no attestation.
+      // Full accounting on `deviceAuthInitialized` in deviceToken.ts.
+      if (!isDeviceAuthInitialized()) return getDeviceJwt()
       if (isUsingApiKeyFallback()) return null
       if (!isJwtExpiredOrNearExpiry()) return getDeviceJwt()
 

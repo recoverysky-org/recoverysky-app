@@ -35,6 +35,36 @@ let jwtExpiresAt: number | null = null
 let usingApiKeyFallback = false
 
 /**
+ * Whether cold-start init has chosen a device-auth lane yet.
+ *
+ * ADDED 2026-08-07. `initializeDeviceAuthorization()` in app.tsx decides which
+ * lane this device is on — real attestation, or the X-API-Key fallback used by
+ * simulators, web, and `__DEV__` physical builds. Until it has decided, the
+ * module state is indistinguishable from "attested device whose JWT has
+ * expired": `usingApiKeyFallback` is false and `jwtExpiresAt` is null, which
+ * makes isJwtExpiredOrNearExpiry() return true. The request gate reads exactly
+ * those two signals, so without this flag it would drive attestation itself,
+ * before init ran, on any request that happens to go out first.
+ *
+ * The case that motivated it is outage mode: the /status precheck failing makes
+ * app.tsx return early, BEFORE initializeDeviceAuthorization(), while still
+ * mounting the provider tree (MeetingProvider's getStatus/getLiveSchedules) and
+ * starting the 60 s /config poll. Every one of those requests hit the gate and
+ * ran performAttestation — which does the Apple App Attest round trip
+ * (generateKeyAsync + attestKeyAsync) FIRST and only then fails at /attest, 4×
+ * per cycle. Apple rate-limits App Attest key generation, and a throttled
+ * device then trips the fatal blocking alert in app.tsx on the recovery reload:
+ * a recovered outage turned into a bricked launch. On an Android dev build it
+ * also re-introduced exactly the Play Integrity churn the __DEV__ skip exists to
+ * prevent. Before the gate landed, outage mode attempted no attestation at all.
+ *
+ * Deliberately one-way: nothing clears it. Once a lane is chosen it stays
+ * chosen for the process lifetime, and setApiKeyFallback() can be called again
+ * without harm.
+ */
+let deviceAuthInitialized = false
+
+/**
  * Re-attest this far before actual expiry.
  *
  * Five minutes, not seconds: attestation is a multi-second round trip to
@@ -63,17 +93,33 @@ export function isUsingApiKeyFallback(): boolean {
 }
 
 /**
+ * Whether cold-start init has committed this device to a lane.
+ *
+ * Read by the device refresher, which must NOT attempt a refresh while this is
+ * false — see the `deviceAuthInitialized` declaration above for the failure
+ * mode that motivated it.
+ */
+export function isDeviceAuthInitialized(): boolean {
+  return deviceAuthInitialized
+}
+
+/**
  * Switch to the X-API-Key fallback used by simulators, web, and dev builds.
  *
  * CHANGED 2026-08-06: no longer calls api.setApiKeyAuth(). The auth gate reads
  * this module state through the device refresher on every request and stamps
  * X-API-Key itself when the refresher returns null, so pushing a sticky header
  * into the API layer is both redundant and the bug the gate exists to fix.
+ *
+ * CHANGED 2026-08-07: also marks device auth initialized. Choosing the fallback
+ * IS a completed lane decision, so the gate is free to act on module state from
+ * here on.
  */
 export function setApiKeyFallback(): void {
   usingApiKeyFallback = true
   deviceJwt = null
   jwtExpiresAt = null
+  deviceAuthInitialized = true
 }
 
 /**
@@ -107,9 +153,19 @@ export async function performAttestation(
     const result = await attestDevice(deviceId)
 
     if (result.ok) {
+      // Not dead stores — these three ARE the module's public state. The auth
+      // gate calls getDeviceJwt() / isUsingApiKeyFallback() /
+      // isJwtExpiredOrNearExpiry() on EVERY request, so what we write here is
+      // what gets stamped on the wire from the next request onward. They read
+      // as inert only because nothing in this file consumes them afterwards.
       deviceJwt = result.data.deviceJwt
       jwtExpiresAt = result.data.expiresAt
       usingApiKeyFallback = false
+      // A successful attestation is a completed lane decision, same as
+      // setApiKeyFallback(). Set only on success: a failed attempt leaves the
+      // lane undecided so the gate keeps its hands off (see
+      // `deviceAuthInitialized` above).
+      deviceAuthInitialized = true
       log.info("Device attestation complete", {
         attempt,
         expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",
