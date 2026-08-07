@@ -289,6 +289,27 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **A failed token refresh no longer retries on every single request.** The
+  proactive token freshness gate recorded nothing when a refresh failed, so
+  during any backend hiccup every outgoing request started a fresh attempt.
+  On the device lane that meant up to 16 Apple App Attest key generations a
+  minute from the config poll alone — against Apple's rate limit, which could
+  leave a throttled device unable to pass attestation at its next cold start
+  (the fatal "Device Verification Failed" alert). On the user lane it meant a
+  session with a revoked refresh token hammered Auth0 with a renewal per
+  request, forever. Both lanes now back off after failures (escalating to a
+  15-minute hold), going out with the stale token in the meantime — a clean
+  401 instead of load — and reset the moment a refresh succeeds.
+
+- **Returning after the access token expired flashed the Login screen and
+  leaned on the Auth0 SDK's own session restore to recover.** Cold start
+  skipped hydrating stored credentials entirely when the access token was
+  expired — dropping the still-valid refresh token with it, so the token
+  freshness gate (which treats a token-less store as "never signed in") never
+  attempted the renewal it was built for. Expired credentials are now hydrated
+  too; the first API call refreshes them and signs the user back in without
+  waiting on the SDK.
+
 - **Leaving the app's current tab while an attendance timer was running lost
   the whole meeting.** Switching tabs — or, far more likely, tapping a meeting
   reminder notification, which navigates on your behalf — tore down the screen

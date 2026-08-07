@@ -53,20 +53,34 @@ export async function setupRootStore(rootStore: RootStore) {
   // Load auth credentials from SecureStore.
   // If we have a valid (non-expired) access token, hydrate auth immediately —
   // no need to wait for Auth0 SDK. This eliminates the Login screen flash.
+  //
+  // CHANGED 2026-08-07: hydrate even when the access token is EXPIRED.
+  // Skipping hydration dropped the refresh token along with the access token,
+  // and the request gate's user refresher bails when the store holds neither
+  // (its never-signed-in guard) — so the gate never attempted a renewal for a
+  // returning user whose refresh token was perfectly good, and recovery waited
+  // on the Auth0Provider [user] effect after the provider tree mounted: the
+  // exact dependency the gate exists to remove. isAuthenticated still returns
+  // false for an expired token, so navigation is unchanged — the first gated
+  // request refreshes it and flips auth on its own.
   try {
     const creds = await loadAuthCredentials()
-    if (creds && creds.expiresAt > Date.now()) {
+    if (creds) {
       rootStore.authenticationStore.setTokens(
         creds.accessToken,
         creds.refreshToken,
         creds.idToken,
         creds.expiresAt,
       )
-      log.info("Auth credentials restored from SecureStore", {
-        expiresIn: Math.round((creds.expiresAt - Date.now()) / 1000 / 60) + " min",
-      })
-    } else if (creds) {
-      log.info("Stored auth credentials expired, user will need to re-authenticate")
+      if (creds.expiresAt > Date.now()) {
+        log.info("Auth credentials restored from SecureStore", {
+          expiresIn: Math.round((creds.expiresAt - Date.now()) / 1000 / 60) + " min",
+        })
+      } else {
+        log.info("Stored access token expired — hydrated for gate-driven refresh", {
+          hasRefreshToken: !!creds.refreshToken,
+        })
+      }
     }
   } catch (e) {
     log.error("Failed to load auth credentials from SecureStore", { error: String(e) })
