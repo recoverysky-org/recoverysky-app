@@ -51,7 +51,7 @@
  * SchedulePopup's block-for-block; keep them in step.
  */
 
-import { FC, useCallback, useEffect, useMemo, useState } from "react"
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Alert,
   Linking,
@@ -76,7 +76,6 @@ import { InPersonTimerModal } from "@/components/InPersonTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
-import { useToast } from "@/components/Toast"
 import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
@@ -129,7 +128,6 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const profileStore = useProfileStore()
   const configStore = useConfigStore()
   const { isPremium } = useSubscription()
-  const toast = useToast()
   const isFocused = useIsFocused()
 
   // Auto-close when parent screen loses focus (e.g. navigating to Settings
@@ -451,20 +449,65 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // disagree with the list the user just came from. Consistency wins; revisit
   // only if it confuses real users.
 
-  // Toast fires on "acknowledged" rather than inline in handleImHere, so it
-  // shows AFTER the topic panel resolves (or immediately when topic capture
-  // is off) instead of flashing behind it — same ordering SchedulePopup's
-  // banner uses.
+  // Attendance banner state
+  const [showBanner, setShowBanner] = useState(false)
+  const bannerOpacity = useRef(new Animated.Value(0)).current
+  const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Confirmation fires on "acknowledged" rather than inline in handleImHere,
+  // so it shows AFTER the topic panel resolves (or immediately when topic
+  // capture is off) instead of flashing behind it — same ordering
+  // SchedulePopup's banner uses.
+  //
+  // CHANGED 2026-08-06: was a root-level toast (useToast), now the same
+  // in-card banner SchedulePopup uses. The toast rendered over the Meetings
+  // screen rather than over the popup the user was looking at, so the
+  // confirmation appeared to belong to the app rather than to the meeting
+  // just logged. Online and in-person now confirm identically; keep them in
+  // step, and note this is the only remaining copy of this block — extract
+  // both into useTopicPanel if a third venue ever needs it.
   useEffect(() => {
     if (!visible || !meeting?.id) return
+
     const unsub = attendanceEvents.subscribe((event) => {
       if (event.mid !== meeting.id) return
+
       if (event.type === "acknowledged" && event.valid) {
-        toast.showToast({ tx: "inPersonPopup:attendanceSaved", type: "success" })
+        setShowBanner(true)
+        Animated.timing(bannerOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start()
+
+        // Auto-hide after 4 seconds
+        bannerTimeoutRef.current = setTimeout(() => {
+          Animated.timing(bannerOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => setShowBanner(false))
+        }, 4000)
       }
     })
-    return unsub
-  }, [visible, meeting?.id, toast])
+
+    return () => {
+      unsub()
+      if (bannerTimeoutRef.current) clearTimeout(bannerTimeoutRef.current)
+    }
+  }, [visible, meeting?.id, bannerOpacity])
+
+  // Reset banner when popup closes
+  useEffect(() => {
+    if (!visible) {
+      setShowBanner(false)
+      bannerOpacity.setValue(0)
+      if (bannerTimeoutRef.current) {
+        clearTimeout(bannerTimeoutRef.current)
+        bannerTimeoutRef.current = null
+      }
+    }
+  }, [visible, bannerOpacity])
 
   // ==========================================================================
   // Derived display values
@@ -509,6 +552,34 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
             to park itself off-screen until it has real numbers. See the hook
             call above for the full picture — copied from SchedulePopup.tsx. */}
         <Animated.View style={[themed($content), cardAnimatedStyle]} onLayout={onCardLayout}>
+          {/* Attendance banner. Deliberately OUTSIDE the ScrollView below,
+              unlike every other element in this card: by the time it fires the
+              user has tapped "I'm Here", which lives at the very bottom of a
+              scrollable card, so a banner rendered as scroll content would
+              appear above the viewport and never be seen. SchedulePopup has no
+              ScrollView, so its identical banner sits in the same visual spot
+              without needing this. */}
+          {showBanner && (
+            <Pressable
+              onPress={() => {
+                onClose()
+                navigate("Attendance", { section: "new" })
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t("inPersonPopup:attendanceSaved")}
+            >
+              <Animated.View
+                style={[
+                  $attendanceBanner,
+                  { backgroundColor: theme.colors.tint, opacity: bannerOpacity },
+                ]}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                <Text style={$attendanceBannerText} tx="inPersonPopup:attendanceSaved" />
+              </Animated.View>
+            </Pressable>
+          )}
+
           {/* Unlike SchedulePopup's $content (which survives a bare maxHeight
               because its body is roughly fixed-height), this card's body is
               unbounded: the venue block, Get Directions button, and contacts
@@ -785,7 +856,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
           saveInPersonTimerAttendance already emitted attendanceEvents
           "processed", which useTopicPanel picks up to slide the topic panel
           in — or to emit "acknowledged" directly when topic capture is off,
-          which is what fires the toast subscription above. */}
+          which is what fires the banner subscription above. */}
       {timerMeeting && (
         <InPersonTimerModal
           visible={timerVisible}
@@ -835,6 +906,26 @@ const $content: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   paddingHorizontal: spacing.md,
   paddingBottom: spacing.xl,
 })
+
+/* Copied verbatim from SchedulePopup's banner styles so the two confirmations
+   are visually identical — a user who logs both an online and an in-person
+   meeting should not see two different "saved" chips. Change both together. */
+const $attendanceBanner: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  paddingVertical: 10,
+  paddingHorizontal: 16,
+  borderRadius: 10,
+  marginBottom: 8,
+}
+
+const $attendanceBannerText: TextStyle = {
+  fontSize: 15,
+  fontWeight: "600",
+  color: "#FFFFFF",
+}
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",

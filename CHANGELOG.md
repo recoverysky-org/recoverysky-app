@@ -169,6 +169,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Logging an in-person meeting now confirms in the same place an online one
+  does** — a green "Attendance saved" banner across the top of the meeting's
+  own popup, instead of a toast floating over the Meetings screen behind it.
+  The toast read as an app-level notice rather than confirmation of the meeting
+  you just logged, and the two paths disagreeing made the newer one look
+  unfinished. Tapping the banner opens the new attendance record, as it already
+  did online.
+
 - **Favourites and star ratings now order the In-Person and Search lists too**,
   the same way the Live segment has always ordered its own: favourites first
   (highest-rated first), then anything else you've rated or joined, then the

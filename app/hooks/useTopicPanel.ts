@@ -12,6 +12,12 @@
  * the confirmation UI it drives. SchedulePopup shows an animated banner,
  * InPersonPopup shows a toast — genuinely different, and each popup keeps its
  * own.
+ *
+ * CHANGED 2026-08-06: that last paragraph's premise is gone — InPersonPopup
+ * now shows the same in-card banner, so the two are duplicates rather than
+ * genuinely different. They still live in the popups (moving them here means
+ * the hook owning host-card chrome, which is a wider job than it has), but a
+ * third venue is the trigger to extract them; two copies is the ceiling.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
