@@ -59,13 +59,14 @@ import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api } from "./services/api"
 import { isTimerSessionActive } from "./services/attendance"
+import { type AttestationError, isSimulator, preparePlayIntegrity } from "./services/attestation"
 import {
-  attestDevice,
-  type AttestationError,
-  isAttestationSupported,
-  isSimulator,
-  preparePlayIntegrity,
-} from "./services/attestation"
+  GOOGLE_CLOUD_PROJECT_NUMBER,
+  isJwtExpiredOrNearExpiry,
+  performAttestation,
+  setApiKeyFallback,
+  isUsingApiKeyFallback,
+} from "./services/attestation/deviceToken"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { setSentryUser } from "./services/crashReporting/sentry"
 import {
@@ -109,108 +110,6 @@ logger.setContext({ sessionId, appVersion })
 
 log.info("App module loaded")
 
-// =============================================================================
-// Device Attestation State (memory-only)
-// =============================================================================
-
-/** Tracks device JWT expiry time for re-attestation on foreground */
-let jwtExpiresAt: number | null = null
-
-/** Whether we're using X-API-Key fallback (simulators) instead of device JWT */
-let usingApiKeyFallback = false
-
-/** Google Cloud project number for Play Integrity (Android only) */
-const GOOGLE_CLOUD_PROJECT_NUMBER = process.env.EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER || ""
-
-/**
- * Check if JWT is expired or near expiry (within 5 minutes)
- */
-function isJwtExpiredOrNearExpiry(): boolean {
-  if (!jwtExpiresAt) return true
-  const FIVE_MINUTES_MS = 5 * 60 * 1000
-  return Date.now() > jwtExpiresAt - FIVE_MINUTES_MS
-}
-
-/** Retry delays for attestation attempts (exponential backoff) */
-const ATTESTATION_RETRY_DELAYS = [1000, 2000, 3000]
-const ATTESTATION_MAX_ATTEMPTS = ATTESTATION_RETRY_DELAYS.length + 1
-
-/**
- * Perform device attestation with retries and update API headers.
- * Returns `{ ok: true }` on success, or `{ ok: false, error }` with the
- * last AttestationError on failure so the caller can choose a matching
- * user-facing alert.
- */
-async function performAttestation(
-  deviceId: string,
-): Promise<{ ok: true } | { ok: false; error: AttestationError }> {
-  if (!isAttestationSupported()) {
-    log.info("Attestation not supported on this platform/device")
-    return {
-      ok: false,
-      error: {
-        code: "UNSUPPORTED",
-        message: "Attestation not supported on this platform/device",
-        temporary: false,
-      },
-    }
-  }
-
-  let lastError: AttestationError | undefined
-
-  for (let attempt = 1; attempt <= ATTESTATION_MAX_ATTEMPTS; attempt++) {
-    log.info("Performing device attestation", { attempt, of: ATTESTATION_MAX_ATTEMPTS })
-    const result = await attestDevice(deviceId)
-
-    if (result.ok) {
-      api.setDeviceJwt(result.data.deviceJwt)
-      jwtExpiresAt = result.data.expiresAt
-      log.info("Device attestation complete", {
-        attempt,
-        expiresIn: Math.round((result.data.expiresAt - Date.now()) / 1000 / 60) + " min",
-      })
-      return { ok: true }
-    }
-
-    lastError = result.error
-    log.error("Device attestation failed", {
-      attempt,
-      code: result.error.code,
-      kind: result.error.kind,
-      temporary: result.error.temporary,
-      message: result.error.message,
-    })
-
-    // Short-circuit: if the error is non-transient (unsupported device,
-    // 401/403 from backend, bad-data), no number of retries will help.
-    // Fail fast and let the caller surface a specific alert.
-    if (!result.error.temporary) {
-      log.warn("Attestation error is non-temporary — skipping remaining retries", {
-        code: result.error.code,
-        kind: result.error.kind,
-      })
-      return { ok: false, error: result.error }
-    }
-
-    // Wait before retrying (unless last attempt)
-    if (attempt < ATTESTATION_MAX_ATTEMPTS) {
-      const delay = ATTESTATION_RETRY_DELAYS[attempt - 1]
-      log.info("Retrying attestation", { nextAttempt: attempt + 1, delay })
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-  }
-
-  log.error("All attestation attempts exhausted", { attempts: ATTESTATION_MAX_ATTEMPTS })
-  return {
-    ok: false,
-    error: lastError ?? {
-      code: "ATTESTATION_FAILED",
-      message: "Attestation exhausted with no error captured",
-      temporary: true,
-    },
-  }
-}
-
 /**
  * Initialize device authorization (called once on cold start)
  * - Physical devices: Perform attestation to get device JWT
@@ -220,16 +119,14 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
   // Web platform - no attestation
   if (Platform.OS === "web") {
     log.info("Web platform, skipping attestation")
-    api.setApiKeyAuth()
-    usingApiKeyFallback = true
+    setApiKeyFallback()
     return
   }
 
   // Simulator/emulator - use X-API-Key fallback
   if (isSimulator()) {
     log.info("Simulator detected, using X-API-Key fallback")
-    api.setApiKeyAuth()
-    usingApiKeyFallback = true
+    setApiKeyFallback()
     return
   }
 
@@ -239,8 +136,7 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
   // Use X-API-Key fallback up front for a snappy dev loop.
   if (__DEV__) {
     log.info("Android dev build, skipping attestation and using X-API-Key")
-    api.setApiKeyAuth()
-    usingApiKeyFallback = true
+    setApiKeyFallback()
     return
   }
 
@@ -845,7 +741,7 @@ export function App() {
   // Foreground re-attestation: re-attest when app comes to foreground with expired JWT
   useEffect(() => {
     // Skip if using API key fallback (simulator) or on web
-    if (usingApiKeyFallback || Platform.OS === "web") {
+    if (isUsingApiKeyFallback() || Platform.OS === "web") {
       return
     }
 
