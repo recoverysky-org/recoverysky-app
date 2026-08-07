@@ -257,7 +257,7 @@ Apisauce wrapper in `app/services/api/`:
 - Dual auth: device authorization (`X-Device-Token` / `X-API-Key`) + user OAuth (`Authorization: Bearer`)
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
 - Attestation queueing: `createSingleFlight` inside the refreshers dedupes concurrent attestation calls — every request reaches it through the token freshness gate, rather than only the methods that remembered to call a helper.
-- Device auth: `setDeviceJwt(jwt)` sets `X-Device-Token`; `setApiKeyAuth()` fallback for simulators without attestation
+- Device auth: no exposed setter any more — `installAuthGate` stamps `X-Device-Token` from the device refresher's return value on each request, falling back inline to `X-API-Key` from `this.authKey` when the refresher returns null (simulators, web, Android dev builds — see `setApiKeyFallback()` below)
 - Public status probe: `getPublicStatus()` bypasses the token freshness gate via the `X-Skip-Auth-Gate` sentinel header and is the only API call that can run before any device JWT is set. Used at cold start to detect API outage *before* attempting attestation — see "Maintenance Mode" below. The authenticated `getStatus()` (which goes through the gate) is still used at runtime by `MeetingContext` for the connectivity indicator.
 - Server config endpoint (`/config`) provides runtime keys for RC, OTLP, Umami
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
@@ -278,9 +278,10 @@ Three separate trust layers, easy to confuse:
 2. **Device trust — attestation** (`app/services/attestation/`). Apple App
    Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
    exchanged with the backend for a device JWT that becomes
-   `X-Device-Token`. Simulators fall back to `setApiKeyAuth()`. Every API
-   call except `getPublicStatus()` goes through the token freshness gate
-   described below.
+   `X-Device-Token`. Simulators, web, and Android dev builds call
+   `setApiKeyFallback()` (`app/services/attestation/deviceToken.ts`) to take
+   the `X-API-Key` path instead. Every API call except `getPublicStatus()`
+   goes through the token freshness gate described below.
 3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
    Anonymous users get a locally generated 256-bit key in SecureStore
    (`sqlite_encryption_key_v1`); authenticated users get the key from JWT
