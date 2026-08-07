@@ -309,6 +309,9 @@ export function App() {
   // Track deviceId for foreground re-attestation
   const deviceIdRef = useRef<string | null>(null)
 
+  // Set during store init so the foreground warm-up can reach the refresher.
+  const deviceRefresherRef = useRef<{ getToken: () => Promise<string | null> } | null>(null)
+
   // Initialize MST RootStore with persistence
   useEffect(() => {
     ;(async () => {
@@ -375,6 +378,7 @@ export function App() {
         const deviceRefresher = createDeviceTokenRefresher({
           getDeviceId: () => deviceIdRef.current,
         })
+        deviceRefresherRef.current = deviceRefresher
 
         // ⚠️ ORDERING: registration MUST stay ahead of fetchConfig() below —
         // do not "tidy" this down next to the other auth wiring.
@@ -820,9 +824,18 @@ export function App() {
       // App coming to foreground from background/inactive
       if (appState.match(/inactive|background/) && nextState === "active") {
         if (isJwtExpiredOrNearExpiry() && deviceIdRef.current) {
-          log.info("JWT expired/near-expiry, re-attesting in background")
-          const attestPromise = performAttestation(deviceIdRef.current).then(() => {})
-          api.setAttestationInProgress(attestPromise)
+          log.info("JWT expired/near-expiry, warming re-attestation")
+          // Fire and forget. Queueing is no longer this listener's job:
+          // single-flight inside the device refresher gives every caller the
+          // same in-flight promise, which is exactly why
+          // setAttestationInProgress could be deleted.
+          //
+          // CHANGED 2026-08-06: this warm-up is now redundant for
+          // *correctness* — the request gate refreshes on demand — but it is
+          // kept for latency. Attestation is a multi-second Apple/Play round
+          // trip; without it the first fetch after a long background sleep
+          // pays that cost inline and visibly.
+          void deviceRefresherRef.current?.getToken()
         }
       }
       appState = nextState

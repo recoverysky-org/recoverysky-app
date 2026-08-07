@@ -338,9 +338,6 @@ export class Api {
     user: async () => null,
   }
 
-  /** Promise that resolves when attestation completes - used for request queueing */
-  private attestationPromise: Promise<void> | null = null
-
   /**
    * Set up our API instance. Keep this lightweight!
    */
@@ -449,32 +446,6 @@ export class Api {
   }
 
   // ===========================================================================
-  // Device Authorization Methods
-  // ===========================================================================
-
-  /**
-   * Signal that attestation is in progress
-   * API calls will wait for this promise to resolve before proceeding
-   */
-  setAttestationInProgress(promise: Promise<void>) {
-    this.attestationPromise = promise
-    promise.finally(() => {
-      this.attestationPromise = null
-    })
-  }
-
-  /**
-   * Wait for any in-progress attestation to complete
-   * Called before API requests to queue them during re-attestation
-   */
-  private async waitForAttestation(): Promise<void> {
-    if (this.attestationPromise) {
-      log.debug("Waiting for attestation to complete")
-      await this.attestationPromise
-    }
-  }
-
-  // ===========================================================================
   // Attestation Endpoint
   // ===========================================================================
 
@@ -519,7 +490,6 @@ export class Api {
    * GET /status
    */
   async getStatus(): Promise<{ kind: "ok"; status: string } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Checking API status")
 
     const response = await this.recoverySkyApi.get<{ status: string }>("/status")
@@ -538,11 +508,11 @@ export class Api {
   /**
    * Public health probe used at cold start, BEFORE attestation runs.
    *
-   * Skips waitForAttestation() — that's the whole point: we need to know
-   * whether the API is reachable before we attempt /attest. If the API is
-   * down, attestation would fail with a misleading "Device Verification
-   * Failed" alert; this precheck lets us route directly to the outage
-   * MaintenanceScreen instead.
+   * Bypasses the auth gate entirely (see SKIP_AUTH_GATE_HEADER below) — that's
+   * the whole point: we need to know whether the API is reachable before we
+   * attempt /attest. If the API is down, attestation would fail with a
+   * misleading "Device Verification Failed" alert; this precheck lets us
+   * route directly to the outage MaintenanceScreen instead.
    *
    * Binary pass/fail — body field is ignored. /status itself doesn't
    * require auth, and at cold start no X-Device-Token / X-API-Key has
@@ -590,7 +560,6 @@ export class Api {
   async getLiveMeetingIds(): Promise<
     { kind: "ok"; ids: string[]; count: number } | GeneralApiProblem
   > {
-    await this.waitForAttestation()
     log.debug("Fetching live meeting IDs from API")
 
     const response = await this.recoverySkyApi.get<{
@@ -628,7 +597,6 @@ export class Api {
   async getLiveSchedules(
     venueType?: VenueFilter,
   ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
-    await this.waitForAttestation()
     // Get device timezone in IANA format (e.g., "America/New_York")
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     log.debug("Fetching live schedules from API", { tz, venueType })
@@ -677,7 +645,6 @@ export class Api {
     fellowship: string,
     venueType?: VenueFilter,
   ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
-    await this.waitForAttestation()
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     log.debug("Fetching daily schedules from API", { iso_dow, fellowship, tz, venueType })
 
@@ -731,7 +698,6 @@ export class Api {
     iso_dow: number
     fellowship?: string
   }): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching nearby schedules from API", {
       radius: params.radius,
       iso_dow: params.iso_dow,
@@ -792,7 +758,6 @@ export class Api {
     mid: string,
     venueType?: VenueFilter,
   ): Promise<{ kind: "ok"; schedule: LiveSchedule } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching schedule by meeting ID", { mid, venueType })
 
     const response = await this.recoverySkyApi.get<{
@@ -843,7 +808,6 @@ export class Api {
    * @param zid - The Zoom meeting ID to join
    */
   async getZoomJwt(zid: string): Promise<{ kind: "ok"; jwt: string } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching Zoom JWT from API", { zid })
 
     const response = await this.recoverySkyApi.post<{ jwt: string }>("/zoom/jwt", {
@@ -874,7 +838,6 @@ export class Api {
    * WebView via postMessage({ type: "replyke_token", token }).
    */
   async getReplykeToken(): Promise<{ kind: "ok"; token: string } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching Replyke token from API")
 
     const response = await this.recoverySkyApi.post<{ token: string }>("/api/replyke/sign-token")
@@ -904,7 +867,6 @@ export class Api {
   async updateAuth0Profile(
     fields: { name: string },
   ): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Updating Auth0 profile", { hasName: !!fields.name })
 
     const response = await this.recoverySkyApi.post("/auth0/profile", fields)
@@ -949,7 +911,6 @@ export class Api {
       }
     | GeneralApiProblem
   > {
-    await this.waitForAttestation()
     log.debug("Fetching config from API")
 
     const response = await this.recoverySkyApi.get<{
@@ -998,7 +959,6 @@ export class Api {
     document: string,
     collection = "RecoverySky_Content",
   ): Promise<{ kind: "ok"; content: string; updatedAt?: string } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching content from API", { collection, document })
 
     const response = await this.recoverySkyApi.get<{
@@ -1034,7 +994,6 @@ export class Api {
    * DELETE /reminders?uid=...
    */
   async deleteReminders(uid: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Deleting remote reminders", { uid })
 
     const response = await this.recoverySkyApi.delete(`/reminders?uid=${encodeURIComponent(uid)}`)
@@ -1065,7 +1024,6 @@ export class Api {
     fid?: string
     attendance?: AttendanceRecord[]
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.info("Sending attendance report to API", {
       reportId: params.id,
       email: params.email,
@@ -1108,7 +1066,6 @@ export class Api {
     id: string
     uid: string
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.info("Resending attendance report", { reportId: params.id, uid: params.uid })
 
     const response = await this.recoverySkyApi.post<SendReportResponse>("/reports", params)
@@ -1147,7 +1104,6 @@ export class Api {
   async getReportStatus(params: {
     id: string
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Polling report status", { reportId: params.id })
 
     const response = await this.recoverySkyApi.post<SendReportResponse>("/reports/status", params)
@@ -1178,7 +1134,6 @@ export class Api {
    * GET /firebase/user — uid extracted from OAuth token server-side
    */
   async checkFirebaseUser(): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Checking Firebase user data")
 
     const response = await this.recoverySkyApi.get("/firebase/user")
@@ -1199,7 +1154,6 @@ export class Api {
    * GET /firebase/user — uid extracted from OAuth token server-side
    */
   async getFirebaseUser(): Promise<{ kind: "ok"; data: FirebaseUserData } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching Firebase user data")
 
     const response = await this.recoverySkyApi.get<FirebaseUserData>("/firebase/user")
@@ -1220,7 +1174,6 @@ export class Api {
   async getFirebaseAttendance(): Promise<
     { kind: "ok"; data: FirebaseAttendanceRecord[] } | GeneralApiProblem
   > {
-    await this.waitForAttestation()
     log.debug("Fetching Firebase attendance")
 
     const response =
@@ -1242,7 +1195,6 @@ export class Api {
   async getFirebaseReports(): Promise<
     { kind: "ok"; data: FirebaseReportRecord[] } | GeneralApiProblem
   > {
-    await this.waitForAttestation()
     log.debug("Fetching Firebase reports")
 
     const response = await this.recoverySkyApi.get<FirebaseReportRecord[]>("/firebase/reports")
@@ -1264,7 +1216,6 @@ export class Api {
   async pushSyncAttendance(
     records: ServerAttendanceRecord[],
   ): Promise<{ kind: "ok"; data: SyncPushResult } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Pushing sync attendance", { count: records.length })
 
     const response = await this.recoverySkyApi.post<SyncPushResult>("/sync/attendance", {
@@ -1293,7 +1244,6 @@ export class Api {
     since: number,
     limit = 500,
   ): Promise<{ kind: "ok"; data: SyncPullEnvelope<ServerAttendanceRecord> } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Pulling sync attendance", { since, limit })
 
     const response = await this.recoverySkyApi.get<SyncPullEnvelope<ServerAttendanceRecord>>(
@@ -1323,7 +1273,6 @@ export class Api {
     since: number,
     limit = 500,
   ): Promise<{ kind: "ok"; data: SyncPullEnvelope<ServerReportRecord> } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Pulling sync reports", { since, limit })
 
     const response = await this.recoverySkyApi.get<SyncPullEnvelope<ServerReportRecord>>(
@@ -1353,7 +1302,6 @@ export class Api {
   async getReport(params: {
     id: string
   }): Promise<{ kind: "ok"; data: ReportDetail } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching report detail", { reportId: params.id })
 
     const response = await this.recoverySkyApi.get<ReportDetail>(`/reports/${params.id}`)
@@ -1380,7 +1328,6 @@ export class Api {
     uri: string,
     language = "en-US",
   ): Promise<{ kind: "ok"; data: TranscribeResponse } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Transcribing audio", { language, uri: uri.slice(-20) })
 
     const formData = new FormData()
@@ -1421,7 +1368,6 @@ export class Api {
   // ==========================================================================
 
   async createReminder(input: ReminderApiInput): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Creating reminder", { mid: input.mid, scope: input.scope })
 
     const response = await this.recoverySkyApi.post<ReminderApiResponse>("/reminders", input)
@@ -1441,7 +1387,6 @@ export class Api {
     id: string,
     input: Partial<ReminderApiInput>,
   ): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Updating reminder", { id })
 
     const response = await this.recoverySkyApi.patch<ReminderApiResponse>(`/reminders/${id}`, input)
@@ -1458,7 +1403,6 @@ export class Api {
   }
 
   async deleteReminder(id: string, uid: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Deleting reminder", { id })
 
     const response = await this.recoverySkyApi.delete<ReminderApiResponse>(
@@ -1481,7 +1425,6 @@ export class Api {
   async getReminders(
     uid: string,
   ): Promise<{ kind: "ok"; reminders: ReminderApiResponse[] } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching reminders", { uid })
 
     const response = await this.recoverySkyApi.get<ReminderApiResponse[]>("/reminders", { uid })
@@ -1512,7 +1455,6 @@ export class Api {
     language?: string
     enabled?: boolean
   }): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Registering push token", { userId: input.userId.slice(0, 8) + "..." })
 
     const response = await this.recoverySkyApi.post("/push-tokens/", input)
@@ -1541,7 +1483,6 @@ export class Api {
     description: string
     email: string
   }): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.info("Sending bug report", { deviceId: params.deviceId, sessionId: params.sessionId })
 
     const response = await this.recoverySkyApi.post("/issues", params)
@@ -1562,7 +1503,6 @@ export class Api {
    * GET /news
    */
   async getNews(): Promise<{ kind: "ok"; title: string; body: string } | GeneralApiProblem> {
-    await this.waitForAttestation()
     log.debug("Fetching news from API")
 
     const response = await this.recoverySkyApi.get<{
