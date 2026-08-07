@@ -39,11 +39,7 @@ export const PERMANENT_REFRESH_ERROR_CODES: readonly string[] = [
  * A missing expiry counts as "refresh" — we cannot prove the token is good, and
  * an unnecessary refresh is far cheaper than a request that 401s.
  */
-export function shouldRefresh(
-  expiresAt: number | undefined,
-  now: number,
-  skewMs: number,
-): boolean {
+export function shouldRefresh(expiresAt: number | undefined, now: number, skewMs: number): boolean {
   if (expiresAt === undefined) return true
   return expiresAt - skewMs <= now
 }
@@ -73,10 +69,17 @@ export function createSingleFlight<T>(fn: () => Promise<T>): () => Promise<T> {
   return () => {
     if (inFlight) return inFlight
 
-    // Promise.resolve().then(fn) rather than fn() so a *synchronous* throw
-    // inside fn still becomes a rejected promise, and still clears the slot.
-    // Calling fn() bare would throw before the assignment below and wedge
-    // `inFlight` at null-but-already-running.
+    // Call fn() directly and synchronously (not deferred) so concurrent callers
+    // within the same JS tick all receive the same promise, and so a caller can
+    // resolve the returned promise synchronously after calling flight(). Deferring
+    // via Promise.resolve().then(fn) would run fn on the next microtask, breaking
+    // that: the caller's sync code runs first, but fn hasn't been called yet, so
+    // the resolve function isn't assigned yet.
+    // CHANGED 2026-08-06: The deferred form (Promise.resolve().then(fn)) was tried
+    // and breaks concurrent tests because it schedules fn past the caller's sync
+    // continuation, making it impossible for the caller to invoke the inner promise's
+    // resolve before awaiting. Synchronous call + try/catch achieves the same goal
+    // (synchronous throws become rejections that clear the slot) without the timing break.
     let basePromise: Promise<T>
     try {
       basePromise = fn()
