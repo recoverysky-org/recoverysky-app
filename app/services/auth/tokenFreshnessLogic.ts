@@ -96,6 +96,57 @@ export function createSingleFlight<T>(fn: () => Promise<T>): () => Promise<T> {
   }
 }
 
+/** Escalating hold-off between failed refresh attempts. See createFailureBackoff. */
+export interface FailureBackoff {
+  /** Whether a new refresh attempt is allowed at `now`. */
+  shouldAttempt: (now: number) => boolean
+  /** Record a failed attempt; blocks further attempts per the delay ladder. */
+  recordFailure: (now: number) => void
+  /** Record a successful attempt; resets the ladder entirely. */
+  recordSuccess: () => void
+}
+
+/**
+ * Escalating backoff for refresh failures.
+ *
+ * ADDED 2026-08-07. The request gate made token refresh *request-driven*, and
+ * nothing recorded that a refresh had just failed — so every request started a
+ * brand-new attempt. On the device lane that meant an unbounded re-attestation
+ * storm during any post-init backend failure: the 60 s /config poll alone
+ * (4 fetchConfig retries per cycle) drove up to 16 Apple App Attest key
+ * generations a minute, against Apple's rate limit — a throttled device then
+ * fails *initial* attestation on the next cold start and lands on the fatal
+ * blocking alert. On the user lane it meant a dead-but-transient-classified
+ * refresh token (RENEW_FAILED — the SDK's bucket for invalid_grant, i.e. the
+ * ordinary revoked-token case) re-attempted a full renewal on every request,
+ * forever.
+ *
+ * Consecutive failures walk `delaysMs` left to right and stay parked on the
+ * last entry; one success resets everything. Callers pass `now` explicitly —
+ * same pattern as shouldRefresh — so this stays clock-free and testable.
+ */
+export function createFailureBackoff(delaysMs: readonly number[]): FailureBackoff {
+  let failures = 0
+  let blockedUntil = 0
+
+  return {
+    shouldAttempt: (now) => now >= blockedUntil,
+    recordFailure: (now) => {
+      // An empty ladder means "no backoff" — never block. Guarded because
+      // indexing [-1] below would set blockedUntil to NaN, and `now >= NaN`
+      // is false: an empty array would silently block FOREVER, the exact
+      // opposite of what it reads as.
+      if (delaysMs.length === 0) return
+      failures += 1
+      blockedUntil = now + delaysMs[Math.min(failures, delaysMs.length) - 1]
+    },
+    recordSuccess: () => {
+      failures = 0
+      blockedUntil = 0
+    },
+  }
+}
+
 /**
  * Resolve `fallback` if `promise` hasn't settled within `ms`.
  *

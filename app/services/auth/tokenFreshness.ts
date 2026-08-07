@@ -25,6 +25,7 @@ import { getFreshCredentials } from "./auth0Client"
 import { saveAuthCredentials } from "./secureStorage"
 import {
   classifyRefreshError,
+  createFailureBackoff,
   createSingleFlight,
   shouldRefresh,
   withTimeout,
@@ -41,6 +42,23 @@ export const USER_TOKEN_SKEW_MS = 60 * 1000
 /** Caps so one hung refresh can't stall every request behind it. */
 export const USER_REFRESH_TIMEOUT_MS = 10 * 1000
 export const DEVICE_REFRESH_TIMEOUT_MS = 15 * 1000
+
+/**
+ * Hold-off ladders after failed refreshes (see createFailureBackoff for the
+ * failure modes these exist to stop). ADDED 2026-08-07: without them, refresh
+ * was retried at REQUEST rate — the gate runs on every API call, so a backend
+ * hiccup drove attestation (Apple-rate-limited Secure Enclave key generation
+ * on every attempt, since the App Attest key is deliberately never persisted)
+ * as fast as requests went out.
+ *
+ * Device starts higher because each attempt is a multi-second Apple/Play
+ * round trip and Apple throttles key generation; user attempts are one cheap
+ * network hop. Both park at 15 min — the AppState foreground warm-up and the
+ * next successful attempt are the recovery paths, and a stale token in the
+ * meantime yields clean 401s, not thrown requests.
+ */
+export const USER_REFRESH_BACKOFF_MS: readonly number[] = [15_000, 60_000, 300_000, 900_000]
+export const DEVICE_REFRESH_BACKOFF_MS: readonly number[] = [30_000, 60_000, 300_000, 900_000]
 
 /** The slice of AuthenticationStore the user refresher touches. */
 export interface UserRefresherStore {
@@ -84,39 +102,60 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
    */
   let permanentlyFailed = false
 
+  /**
+   * ADDED 2026-08-07: hold-off between failed renewals. RENEW_FAILED — the
+   * SDK's bucket for invalid_grant, i.e. the ORDINARY revoked/expired refresh
+   * token — is classified transient on purpose, which used to mean a dead
+   * session re-attempted a full renewal on every single request, forever. The
+   * backoff absorbs that cost so the classification can stay conservative.
+   */
+  const backoff = createFailureBackoff(USER_REFRESH_BACKOFF_MS)
+
   const refresh = createSingleFlight(async () => {
-    const creds = await getFreshCredentials(USER_TOKEN_SKEW_MS / 1000)
+    // Outcome recording lives INSIDE the single-flight fn, not in getToken's
+    // catch: when withTimeout resolves the stale fallback, the underlying
+    // refresh keeps running and settles after the caller has moved on — this
+    // is the only place that observes that late outcome.
+    try {
+      const creds = await getFreshCredentials(USER_TOKEN_SKEW_MS / 1000)
 
-    // Auth0 returns expiresAt in SECONDS; the rest of the app uses ms.
-    const expiresAt = creds.expiresAt * 1000
+      // Auth0 returns expiresAt in SECONDS; the rest of the app uses ms.
+      const expiresAt = creds.expiresAt * 1000
 
-    // CHANGED 2026-08-07: keep the stored refresh token when the response does
-    // not carry a new one. Auth0 only returns a refresh token when it actually
-    // rotates one, and passing undefined through blanked BOTH copies —
-    // setTokens() assigns unconditionally and saveAuthCredentials() rewrites
-    // the whole record. The session still refreshed fine (the SDK's own
-    // keychain is the real source of truth) but AuthenticationStore.canRefresh
-    // then reported false for a session that could refresh perfectly well.
-    // Read before setTokens(), which is what would overwrite it.
-    const refreshToken = creds.refreshToken ?? authStore.refreshToken
+      // CHANGED 2026-08-07: keep the stored refresh token when the response does
+      // not carry a new one. Auth0 only returns a refresh token when it actually
+      // rotates one, and passing undefined through blanked BOTH copies —
+      // setTokens() assigns unconditionally and saveAuthCredentials() rewrites
+      // the whole record. The session still refreshed fine (the SDK's own
+      // keychain is the real source of truth) but AuthenticationStore.canRefresh
+      // then reported false for a session that could refresh perfectly well.
+      // Read before setTokens(), which is what would overwrite it.
+      const refreshToken = creds.refreshToken ?? authStore.refreshToken
 
-    authStore.setTokens(creds.accessToken, refreshToken, creds.idToken ?? undefined, expiresAt)
+      authStore.setTokens(creds.accessToken, refreshToken, creds.idToken ?? undefined, expiresAt)
 
-    // Write-back matters: without it the same refresh repeats on every cold
-    // start, because setupRootStore hydrates from SecureStore and would keep
-    // reading the old expiry.
-    saveAuthCredentials({
-      accessToken: creds.accessToken,
-      refreshToken,
-      idToken: creds.idToken ?? undefined,
-      expiresAt,
-    }).catch((err) => log.error("Failed to persist refreshed credentials", { error: String(err) }))
+      // Write-back matters: without it the same refresh repeats on every cold
+      // start, because setupRootStore hydrates from SecureStore and would keep
+      // reading the old expiry.
+      saveAuthCredentials({
+        accessToken: creds.accessToken,
+        refreshToken,
+        idToken: creds.idToken ?? undefined,
+        expiresAt,
+      }).catch((err) =>
+        log.error("Failed to persist refreshed credentials", { error: String(err) }),
+      )
 
-    log.info("Access token refreshed", {
-      expiresIn: Math.round((expiresAt - Date.now()) / 1000 / 60) + " min",
-    })
+      log.info("Access token refreshed", {
+        expiresIn: Math.round((expiresAt - Date.now()) / 1000 / 60) + " min",
+      })
 
-    return creds.accessToken
+      backoff.recordSuccess()
+      return creds.accessToken
+    } catch (err) {
+      backoff.recordFailure(Date.now())
+      throw err
+    }
   })
 
   return {
@@ -133,6 +172,13 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
 
       const current = authStore.accessToken ?? null
       if (!shouldRefresh(authStore.expiresAt, Date.now(), USER_TOKEN_SKEW_MS)) {
+        return current
+      }
+
+      // Backing off after recent failures — go out with what we have. A stale
+      // Bearer yields a clean 401; hammering the renewal endpoint on every
+      // request yields nothing but load.
+      if (!backoff.shouldAttempt(Date.now())) {
         return current
       }
 
@@ -168,6 +214,9 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
     /** Clear the latch after a completed forced logout, so a re-login works. */
     reset: () => {
       permanentlyFailed = false
+      // The dead session's failure ladder must not throttle the NEW session's
+      // first refreshes after re-login.
+      backoff.recordSuccess()
     },
   }
 }
@@ -189,17 +238,48 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
 } {
   const { getDeviceId } = deps
 
+  /**
+   * ADDED 2026-08-07: hold-off between failed re-attestations. Without it a
+   * failed attestation recorded NOTHING — jwtExpiresAt stayed stale, so
+   * isJwtExpiredOrNearExpiry() stayed true and the very next request started a
+   * fresh cycle. performAttestation retries up to 4×, and on iOS every attempt
+   * is a NEW Secure Enclave key generation (the App Attest key is deliberately
+   * never persisted) — so the 60 s /config poll alone (4 fetchConfig retries
+   * per cycle) drove up to 16 key generations a minute for the length of any
+   * backend failure. Apple rate-limits key generation; a throttled device then
+   * fails INITIAL attestation on the next cold start and hits the fatal
+   * blocking alert in app.tsx — a transient backend hiccup turned into a
+   * bricked launch. Same failure family as the pre-init storm the
+   * deviceAuthInitialized flag closed; this closes the post-init half.
+   */
+  const backoff = createFailureBackoff(DEVICE_REFRESH_BACKOFF_MS)
+
   const refresh = createSingleFlight(async () => {
     const deviceId = getDeviceId()
+    // No deviceId is "not ready", not a failure — don't touch the ladder.
     if (!deviceId) return getDeviceJwt()
 
-    const result = await performAttestation(deviceId)
-    if (!result.ok) {
-      log.error("Re-attestation failed — continuing with existing device token", {
-        code: result.error.code,
-        kind: result.error.kind,
-        temporary: result.error.temporary,
-      })
+    // Outcome recording lives INSIDE the single-flight fn (mirroring the user
+    // lane): when withTimeout hands the caller the stale fallback, the
+    // attestation round trip is still running, and this is the only code that
+    // observes how it eventually settled.
+    try {
+      const result = await performAttestation(deviceId)
+      if (!result.ok) {
+        backoff.recordFailure(Date.now())
+        log.error("Re-attestation failed — continuing with existing device token", {
+          code: result.error.code,
+          kind: result.error.kind,
+          temporary: result.error.temporary,
+        })
+      } else {
+        backoff.recordSuccess()
+      }
+    } catch (err) {
+      // performAttestation returns result objects rather than throwing, but
+      // (per the getToken catch below) that is not a guarantee we depend on.
+      backoff.recordFailure(Date.now())
+      throw err
     }
     return getDeviceJwt()
   })
@@ -221,6 +301,10 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
       if (!isDeviceAuthInitialized()) return getDeviceJwt()
       if (isUsingApiKeyFallback()) return null
       if (!isJwtExpiredOrNearExpiry()) return getDeviceJwt()
+
+      // Backing off after recent failures — go out with the stale token (clean
+      // 401) instead of driving another Apple/Play round trip per request.
+      if (!backoff.shouldAttempt(Date.now())) return getDeviceJwt()
 
       try {
         return await withTimeout(refresh(), DEVICE_REFRESH_TIMEOUT_MS, getDeviceJwt())

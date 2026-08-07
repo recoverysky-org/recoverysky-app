@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest"
 
 import {
   classifyRefreshError,
+  createFailureBackoff,
   createSingleFlight,
   shouldRefresh,
   withTimeout,
@@ -138,6 +139,63 @@ describe("createSingleFlight", () => {
 
     await expect(flight()).rejects.toThrow("sync boom")
     await expect(flight()).rejects.toThrow("sync boom")
+  })
+})
+
+describe("createFailureBackoff", () => {
+  const DELAYS = [1000, 2000, 5000]
+  const NOW = 1_000_000
+
+  it("allows the first attempt", () => {
+    const backoff = createFailureBackoff(DELAYS)
+    expect(backoff.shouldAttempt(NOW)).toBe(true)
+  })
+
+  it("blocks after a failure until the first delay elapses", () => {
+    const backoff = createFailureBackoff(DELAYS)
+    backoff.recordFailure(NOW)
+    expect(backoff.shouldAttempt(NOW)).toBe(false)
+    expect(backoff.shouldAttempt(NOW + 999)).toBe(false)
+    expect(backoff.shouldAttempt(NOW + 1000)).toBe(true)
+  })
+
+  it("escalates through the ladder on consecutive failures", () => {
+    const backoff = createFailureBackoff(DELAYS)
+    backoff.recordFailure(NOW)
+    backoff.recordFailure(NOW + 1000)
+    // Second failure uses the second delay: blocked until NOW+1000+2000.
+    expect(backoff.shouldAttempt(NOW + 2999)).toBe(false)
+    expect(backoff.shouldAttempt(NOW + 3000)).toBe(true)
+  })
+
+  it("parks on the last delay once the ladder is exhausted", () => {
+    const backoff = createFailureBackoff(DELAYS)
+    backoff.recordFailure(NOW)
+    backoff.recordFailure(NOW)
+    backoff.recordFailure(NOW)
+    backoff.recordFailure(NOW) // fourth failure — beyond the ladder
+    expect(backoff.shouldAttempt(NOW + 4999)).toBe(false)
+    expect(backoff.shouldAttempt(NOW + 5000)).toBe(true)
+  })
+
+  it("resets the ladder on success", () => {
+    const backoff = createFailureBackoff(DELAYS)
+    backoff.recordFailure(NOW)
+    backoff.recordFailure(NOW)
+    backoff.recordSuccess()
+    expect(backoff.shouldAttempt(NOW)).toBe(true)
+    // And the next failure starts back at the FIRST delay.
+    backoff.recordFailure(NOW)
+    expect(backoff.shouldAttempt(NOW + 1000)).toBe(true)
+  })
+
+  // Indexing an empty ladder would compute blockedUntil = NaN, and
+  // `now >= NaN` is false — silently blocking forever. Guard must hold.
+  it("never blocks with an empty delay ladder", () => {
+    const backoff = createFailureBackoff([])
+    backoff.recordFailure(NOW)
+    backoff.recordFailure(NOW)
+    expect(backoff.shouldAttempt(NOW)).toBe(true)
   })
 })
 
