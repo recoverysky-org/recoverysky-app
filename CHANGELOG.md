@@ -366,6 +366,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   couldn't resolve it from the project root. (Metro still resolved the nested copy
   at runtime, so shipped builds were unaffected — this was typecheck/CI only.)
   Declared `expo-file-system` as a direct dependency to force top-level hoisting.
+- Signed-in users silently lost API access once their Auth0 access token
+  expired — meetings, reports and cloud backup would quietly stop working
+  until the app was force-quit and reopened. Both the access token and the
+  device attestation token are now refreshed proactively before each API
+  call. If the session cannot be renewed at all (revoked or expired sign-in),
+  the app returns to the sign-in screen — but never while an attendance timer
+  is running, so an in-progress meeting is never lost to it.
 
 ### Security
 

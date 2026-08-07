@@ -256,9 +256,9 @@ Migrations come from `@recoverysky-org/common/sqlite` (the `migrations` export),
 Apisauce wrapper in `app/services/api/`:
 - Dual auth: device authorization (`X-Device-Token` / `X-API-Key`) + user OAuth (`Authorization: Bearer`)
 - API methods return discriminated unions: `{ kind: "ok", data } | GeneralApiProblem`
-- Attestation queueing: `setAttestationInProgress(promise)` — API calls wait via `waitForAttestation()` before proceeding
+- Attestation queueing: `createSingleFlight` inside the refreshers dedupes concurrent attestation calls — every request reaches it through the token freshness gate, rather than only the methods that remembered to call a helper.
 - Device auth: `setDeviceJwt(jwt)` sets `X-Device-Token`; `setApiKeyAuth()` fallback for simulators without attestation
-- Public status probe: `getPublicStatus()` skips `waitForAttestation()` and is the only API call that can run before any device JWT is set. Used at cold start to detect API outage *before* attempting attestation — see "Maintenance Mode" below. The authenticated `getStatus()` (which awaits attestation) is still used at runtime by `MeetingContext` for the connectivity indicator.
+- Public status probe: `getPublicStatus()` bypasses the token freshness gate via the `X-Skip-Auth-Gate` sentinel header and is the only API call that can run before any device JWT is set. Used at cold start to detect API outage *before* attempting attestation — see "Maintenance Mode" below. The authenticated `getStatus()` (which goes through the gate) is still used at runtime by `MeetingContext` for the connectivity indicator.
 - Server config endpoint (`/config`) provides runtime keys for RC, OTLP, Umami
 - Report endpoints: `sendReport()`, `resendReport()`, `getReportStatus()` for attendance report delivery and polling
 - Firebase import endpoints: `getFirebaseUser()`, `getFirebaseAttendance()`, `getFirebaseReports()`, `checkFirebaseUser()` — types exported as `FirebaseUserData`, `FirebaseAttendanceRecord`, `FirebaseReportRecord`
@@ -279,12 +279,44 @@ Three separate trust layers, easy to confuse:
    Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
    exchanged with the backend for a device JWT that becomes
    `X-Device-Token`. Simulators fall back to `setApiKeyAuth()`. Every API
-   call except `getPublicStatus()` waits on `waitForAttestation()`.
+   call except `getPublicStatus()` goes through the token freshness gate
+   described below.
 3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
    Anonymous users get a locally generated 256-bit key in SecureStore
    (`sqlite_encryption_key_v1`); authenticated users get the key from JWT
    custom claims. This is what makes ProfileStore's "volatile (encrypted
    SQLite)" tier actually encrypted.
+
+**Token freshness gate.** Both JWTs are refreshed *proactively*, by a single
+apisauce async request transform installed in the `Api` constructor
+(`installAuthGate`). It awaits two injected refreshers and stamps
+`X-Device-Token` / `Authorization` onto each individual request — there are no
+sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
+`updateAuth` / `waitForAttestation` are gone.
+
+- Refreshers are **injected** via `api.registerTokenRefreshers()` from
+  `app.tsx`, never imported. `app/services/api/` must stay a dependency leaf:
+  the direction is `attestation → api`, and importing back would make
+  `depcruise` see a cycle.
+- Bypass is the `X-Skip-Auth-Gate` sentinel header, **not** a URL list —
+  `getPublicStatus()` and the authenticated `getStatus()` share the `/status`
+  path. It is also the recursion guard for the device refresher's own
+  `/attest` call.
+- Skews are asymmetric on purpose: 60 s for the Auth0 token (one cheap hop,
+  handed to the SDK as `minTtl`), 5 min for the device token (a multi-second
+  Apple/Play round trip that must start early).
+- A refresh failure classified `permanent` (see `tokenFreshnessLogic.ts`)
+  forces a logout — **deferred while `isTimerSessionActive()`**, because the
+  eject swaps the tree above `MainNavigator`'s timer tab-lock and
+  `TimerSessionResumer` would not re-fire after re-login. Unknown error codes
+  default to `transient` deliberately; do not "tidy" that default.
+- There is **no reactive 401 path**. Both server middlewares return an
+  identical 401 body, so the client cannot tell which token failed. Accepted
+  consequence: server-side revocation and large clock skew are not
+  self-healing within a session.
+
+Design + manual test checklist:
+`docs/superpowers/specs/2026-08-06-jwt-refresh-design.md`.
 
 ### Maintenance Mode
 
@@ -306,8 +338,8 @@ the wrong gate has historically killed in-meeting Zoom timers.
   1. `/status` precheck failed (API unreachable). This runs BEFORE
      attestation specifically so an outage doesn't get misreported as
      "Device Verification Failed" (`/attest` would fail too). Calls
-     `api.getPublicStatus()` which skips `waitForAttestation()` since
-     no JWT exists yet.
+     `api.getPublicStatus()` which bypasses the token freshness gate via
+     `X-Skip-Auth-Gate` since no JWT exists yet.
   2. `/config` fetch failed after the `/status` precheck passed
      (transient half-up state).
   3. `/config` fetch succeeded but reported `MAINTENANCE_MODE=true`
