@@ -33,6 +33,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   attempt doesn't inflate the count. As with online meetings, a meeting you've
   visited also sorts above ones you've never touched.
 
+- **Meeting lists now rank the meetings you actually attend higher.** Across
+  Live, In-Person and Search, meetings you've been to more often sort above
+  ones you've been to less, once favourites and star ratings have had their
+  say. Previously attendance only decided whether a meeting counted as
+  "touched" at all, so a room visited twice could sit below one visited once
+  purely because it was nearer or started sooner. Ratings still outrank
+  attendance — an explicit five stars beats simply turning up — and meetings
+  you've never interacted with keep their nearest-first / soonest-first order.
+
 - **In-person meetings are now searchable.** The Meetings tab's Search segment
   gained a **Venue** filter (Online / In-Person) and, with it, in-person
   listings — which Search had been holding back while the In-Person segment was
