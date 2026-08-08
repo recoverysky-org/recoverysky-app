@@ -530,13 +530,34 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
 // Screen
 // ============================================================================
 
+interface InPersonContentProps {
+  /**
+   * Latch: true from the first time the user opens the In-Person segment,
+   * never false again. Owns the lazy-location contract — see below.
+   */
+  active: boolean
+  /**
+   * Live: true only while In-Person is the segment actually on screen.
+   * ADDED 2026-08-08 for the map. Deliberately separate from `active` because
+   * the two answer different questions, and using either one for the other's
+   * job is a real bug in both directions: gating the data hook on `visible`
+   * would tear down location/fetch state on every segment switch, and gating
+   * the map on `active` leaves a GL surface alive inside a `display: "none"`
+   * view for the rest of the session.
+   */
+  visible: boolean
+}
+
 /**
  * InPersonContent - In-person meetings: nearest-first via /schedules/nearby,
  * day-browse fallback without location. Composed into MeetingsScreen as the
  * middle segment (2026-08-03 in-person UI spec).
  *
  * `active` flips true the first time the user opens the segment — location
- * permission is requested lazily off it, never at app start.
+ * permission is requested lazily off it, never at app start. `visible` is the
+ * live companion to that latch: it is true only while In-Person is the
+ * on-screen segment. Everything that should survive a segment switch keys off
+ * `active`; only the map subtree keys off `visible` (see `effectiveViewMode`).
  *
  * `observer()` is LOAD-BEARING and its absence fails silently: `useNearbySchedules`
  * reads `configStore.maintenanceMode` and `profileStore.fellowship` during
@@ -556,8 +577,9 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
  * and keeping every store read on this side means one component to reason
  * about when asking why something did or didn't re-render.
  */
-export const InPersonContent: FC<{ active: boolean }> = observer(function InPersonContent({
+export const InPersonContent: FC<InPersonContentProps> = observer(function InPersonContent({
   active,
+  visible,
 }) {
   const { t } = useTranslation()
   const { themed, theme, themeContext } = useAppTheme()
@@ -606,6 +628,18 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     saveString(VIEW_MODE_STORAGE_KEY, next)
   }, [])
 
+  /**
+   * Session-only "the map didn't load" override. NOT persisted, and that is the
+   * entire point: a style/tile load failure is usually transient (flaky
+   * network, a momentary MapTiler hiccup), and `setViewMode` writes through to
+   * MMKV — so routing handleMapFailed through it silently and permanently
+   * rewrote the user's saved preference to "list". They were never told, and on
+   * the next launch they were on the list with no memory of ever having chosen
+   * the map. Cleared by handleToggleView so tapping back to map is a real
+   * retry rather than a no-op.
+   */
+  const [mapFailedThisSession, setMapFailedThisSession] = useState(false)
+
   const showMapToggle = shouldShowMapToggle({
     platform: Platform.OS,
     styleUrlLight: configStore.mapStyleUrlLight,
@@ -638,10 +672,29 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   // the `active` latch, but the map's native location path does not go through
   // that hook, so this conjunct is the only thing gating it. `active` latches
   // true on first open and never reverts to false, so this only changes
-  // behavior before the segment's first activation — it does not affect the
-  // map once the user has actually opened In-Person.
+  // behavior before the segment's first activation.
+  //
+  // CHANGED 2026-08-08: the sentence that used to end the paragraph above —
+  // "it does not affect the map once the user has actually opened In-Person" —
+  // was accurate and was the bug. `active` closed the cold-start hole and left
+  // the post-activation half wide open: once In-Person had been opened in map
+  // mode, switching to Live/Search (or another tab) left the MapLibre GL
+  // surface and <NativeUserLocation /> mounted inside the `display: "none"`
+  // view for the rest of the session, with no user action short of a force-quit
+  // to unmount them. `visible` is the live value MeetingsScreen already has,
+  // threaded in alongside the latch so that ONLY the map subtree comes down on
+  // a segment switch — `useNearbySchedules` still keys off `active`, because
+  // its location/fetch state machine is exactly the thing that must survive.
+  // Returning to the segment remounts the map and re-fits the camera, which is
+  // already the documented behavior of every list→map toggle.
+  //
+  // `!mapFailedThisSession` is the session-only fallback described at that
+  // state's definition above: a failed style load drops us to the list for this
+  // session without touching the persisted preference.
   const effectiveViewMode: InPersonViewMode =
-    viewMode === "map" && showMapToggle && active ? "map" : "list"
+    viewMode === "map" && showMapToggle && active && visible && !mapFailedThisSession
+      ? "map"
+      : "list"
 
   // Deliberately NOT persisted, unlike radius. Day and time are per-visit browse
   // choices: coming back tomorrow to a list silently narrowed to "Overnight" by
@@ -830,6 +883,12 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
 
   const handleToggleView = useCallback(() => {
     const next: InPersonViewMode = effectiveViewMode === "list" ? "map" : "list"
+    // ADDED 2026-08-08: clearing the session override is what makes "tap the
+    // toggle to try the map again" actually work. Without it, a user who hit a
+    // style-load failure would tap map, `viewMode` would already be "map" (it
+    // is never rewritten to "list" any more), the override would still be set,
+    // and the tap would be a silent no-op.
+    if (next === "map") setMapFailedThisSession(false)
     setViewMode(next)
     // PRIVACY: a view-mode choice is a display preference, not a position.
     trackEvent("inperson_view_toggled", { view: next })
@@ -838,9 +897,14 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const handleMapFailed = useCallback(() => {
     // Style/tile load failure (network, MapTiler cap, bad style) → say so and
     // fall back to the list; the toggle stays visible for a manual retry.
+    // CHANGED 2026-08-08: this used to call setViewMode("list"), which writes
+    // through to MMKV — so one transient failure permanently discarded a
+    // preference the user had deliberately set, silently. Flip the session-only
+    // override instead; the persisted choice survives and the next launch (or
+    // the next toggle tap) puts them back on the map.
     showToast({ message: t("inPersonScreen:mapUnavailable"), type: "error" })
-    setViewMode("list")
-  }, [showToast, t, setViewMode])
+    setMapFailedThisSession(true)
+  }, [showToast, t])
 
   const handleVenuePress = useCallback(
     (meetingIds: string[]) => {

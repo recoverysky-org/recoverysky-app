@@ -49,6 +49,15 @@ just iOS — see "Clustering" below for the full check.
       mount inside a `display:none` segment on every relaunch after a user's
       first map toggle) — confirm the fix holds, i.e. silence until the
       In-Person segment is actually opened.
+- [ ] Segment-switch unmount (the post-activation half of the same bug, fixed
+      2026-08-08): open In-Person, toggle to map, then switch to the Live or
+      Search segment — and separately, to another tab. Confirm the location
+      indicator goes **out** and MapTiler tile requests stop, i.e. the GL
+      surface actually unmounted rather than living on inside a `display:none`
+      view for the rest of the session. Switching back to In-Person must
+      restore the map (remounted, re-fitted) with the toggle still on "map",
+      and the list's day/radius/fellowship state must be unchanged by the
+      round trip — only the map subtree unmounts.
 
 ## Accessibility
 
@@ -56,6 +65,11 @@ just iOS — see "Clustering" below for the full check.
       "Show list" correctly for the control's current state.
 - [ ] Toggle disabled state (offline) is announced by the screen reader, not
       just shown visually greyed out.
+- [ ] Map a11y label follows a language change: with the map open, change the
+      app language in Settings, come back, and confirm the screen reader reads
+      the map's orienting label in the NEW language without needing the map to
+      be toggled off and on (fixed 2026-08-08 — it used to be captured at
+      render time by the imperative `translate()`).
 
 ## Theming
 
@@ -81,10 +95,18 @@ just iOS — see "Clustering" below for the full check.
       hand.)
 - [ ] Zero results and no location fix: camera falls back to a
       continent-level default view rather than an empty/blank close-up.
+- [ ] Persisted-map cold start (fixed 2026-08-08): with `inperson.viewMode =
+      "map"` already persisted and location permission already granted,
+      cold-start the app and tap In-Person. The camera must settle on the
+      search radius around the user once the fix lands — NOT sit at the
+      continent-level default with the meetings in one tiny cluster. (The map
+      mounts before the fix exists, so this is the deferred one-shot fit
+      doing its job; the fallback view is only ever the starting frame.)
 - [ ] Camera does not refit when results change under a panned map: toggle to
-      map, pan/zoom away from the initial fit, let a background refresh land
-      new data, and confirm the camera stays where the user left it (it only
-      fits on mount, by design).
+      map, wait for the initial fit to land, pan/zoom away from it, let a
+      background refresh land new data, and confirm the camera stays where the
+      user left it (it fits exactly once per mount, by design — the one-shot
+      latch must not re-arm on data changes).
 - [ ] Radius / day / fellowship / time-of-day filter changes while already in
       map mode update the rendered pins in place; the camera position is
       unaffected by the filter change.
@@ -130,6 +152,13 @@ just iOS — see "Clustering" below for the full check.
       (e.g. on a dev server) and confirm the app shows the "map unavailable"
       toast and automatically flips back to the list view, with the toggle
       still present so the user can retry.
+- [ ] Map-load failure does NOT destroy the saved preference (fixed
+      2026-08-08): after the failure above, fix the style URL and tap the
+      toggle back to map — it must actually re-enter map mode, not no-op.
+      Then, separately, trigger the failure again and cold-restart the app
+      **without** tapping the toggle: the user must come back on the *map*,
+      because a transient tile/style failure is session-only and never
+      rewrites `inperson.viewMode` in MMKV.
 - [ ] Airplane mode while already on the map: the toggle stays tappable and
       switches back to the list on tap (it is not disabled while already in
       map mode, only when *entering* it offline).

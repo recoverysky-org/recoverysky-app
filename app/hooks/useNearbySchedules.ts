@@ -62,9 +62,20 @@
  * docs/superpowers/specs/2026-08-05-gps-in-person-attendance-design.md.
  *
  * AMENDED 2026-08-07 (map view): `coordsRef` gained one new ON-DEVICE
- * consumer — `getCoords()`, read once by InPersonMapView for the mount-time
- * camera fit and handed to the native Camera/UserLocation components; the
- * fix still never enters JS state, MMKV, or logs. NEW third-party egress:
+ * consumer — `getCoords()`, read by InPersonMapView for its one-shot camera
+ * fit (on the first render where a fix exists, then never again for that
+ * mount) and converted immediately into a bounding box handed to the native
+ * `Camera` component; the fix still never enters JS state, MMKV, or logs.
+ * CORRECTED 2026-08-08: this paragraph used to say the fix was "read once for
+ * the mount-time camera fit and handed to the native Camera/UserLocation
+ * components". Both halves were wrong and the second one dangerously so. The
+ * map's blue-dot puck is `NativeUserLocation`, which we render with NO props
+ * at all — it receives no coordinate from us and holds none in JS, sourcing
+ * its own position natively. `UserLocation` is the sibling component the map
+ * deliberately does NOT use, precisely because its JS location hook
+ * round-trips every fix through React state; naming it here as a recipient of
+ * the coordinate described the exact thing this file forbids.
+ * NEW third-party egress:
  * while the map view is open, the tile provider (MapTiler) necessarily
  * receives viewport tile requests (approximate browsed area + IP, keyed to
  * our style URL). Accepted explicitly in the 2026-08-07 map-view spec's

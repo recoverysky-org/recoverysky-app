@@ -171,9 +171,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   nearby results as a clustered MapLibre map — pins colored by fellowship,
   deliberately-approximate venues shown as translucent areas instead of
   precise pins, and your own position as the native blue dot. Tapping a pin
-  opens the same meeting popup as the list. Requires the server to provide
-  MapTiler style URLs via /config (absent = feature hidden); native release
-  only (new native dependency — runtimeVersion bump required).
+  opens the same meeting popup as the list. The map opens framed on your
+  search area as soon as your location is known — including on the common
+  path where you reopen the app straight into map view and the fix arrives a
+  moment after the map does — and it stops drawing and stops using location
+  the moment you leave the In-Person segment, rather than running unseen for
+  the rest of the session. If the map itself fails to load (flaky network, a
+  provider hiccup) it drops you to the list for that session only, without
+  quietly discarding your saved preference for the map. Requires the server
+  to provide MapTiler style URLs via /config (absent = feature hidden);
+  native release only (new native dependency — runtimeVersion bump required).
 
 ### Changed
 

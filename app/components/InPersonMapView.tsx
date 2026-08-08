@@ -7,8 +7,13 @@
  *
  * PRIVACY: `getSearchCenter` is an accessor into useNearbySchedules' coordsRef
  * (the ONE sanctioned new consumer — see that file's header). The fix is read
- * once for the mount-time camera, handed to the native Camera component, and
- * never stored, logged, or tracked here. The puck is MapLibre's
+ * for the camera fit only, converted straight into a bounding box and handed to
+ * the native Camera component, and never stored, logged, or tracked here.
+ * CHANGED 2026-08-08: the fit is no longer strictly mount-time (see the
+ * one-shot fit effect below), so the fix may be read on more than one render —
+ * but only until the first successful fit, and it still never lands in a
+ * variable that outlives the read: no state, no ref, no prop, no telemetry.
+ * The puck is MapLibre's
  * `NativeUserLocation` — a codegen'd Fabric host component
  * (`MLRNNativeUserLocation`) whose only props are `mode` and
  * `androidPreferredFramesPerSecond`; it owns its own native location
@@ -41,7 +46,7 @@
  * typings file:line citations.
  */
 
-import { FC, useCallback, useMemo, useRef } from "react"
+import { FC, useCallback, useEffect, useMemo, useRef } from "react"
 import type { NativeSyntheticEvent, ViewStyle } from "react-native"
 import { getLocales } from "expo-localization"
 import {
@@ -56,9 +61,9 @@ import {
   NativeUserLocation,
   type PressEventWithFeatures,
 } from "@maplibre/maplibre-react-native"
+import { useTranslation } from "react-i18next"
 
 import type { MeetingWithTrex } from "@/context/MeetingContext"
-import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import {
   boundsForRadius,
@@ -107,15 +112,32 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
   onVenuePress,
   onMapFailed,
 }) => {
+  const { t } = useTranslation()
   const { theme } = useAppTheme()
   const cameraRef = useRef<CameraRef>(null)
   const shapeSourceRef = useRef<GeoJSONSourceRef>(null)
+  /**
+   * Latches once the camera has been framed on a real input. See the one-shot
+   * fit effect below — this ref is what keeps "fit once" from becoming "refit
+   * on every data change".
+   */
+  const hasFittedRef = useRef(false)
 
   const featureCollection = useMemo(() => venuesToFeatureCollection(meetings), [meetings])
 
   // Mount-time only, by design: refitting on every result change would yank
   // the map out from under a panning user. Toggling list→map remounts this
   // component, which is exactly when a fresh fit is wanted.
+  // CHANGED 2026-08-08: this memo is now only the *initial* view, not the whole
+  // camera story — the one-shot effect below finishes the job. On the most
+  // common path for a returning map user (cold start, tap In-Person with a
+  // persisted viewMode of "map") this component mounts in the same render that
+  // flips `active` true: `getSearchCenter()` is still null (useNearbySchedules'
+  // location effect has not run) and `meetings` is still empty, so both bounds
+  // branches missed and the empty deps meant the camera stayed pinned at the
+  // continent-level fallback forever, even once the fix and the results landed
+  // milliseconds later. Keeping this memo means the map is never blank while we
+  // wait; the effect supplies the real frame the moment there is one.
   const initialViewState = useMemo<InitialViewState>(() => {
     const center = getSearchCenter()
     if (center) return { bounds: toLngLatBounds(boundsForRadius(center.lat, center.lon, radiusKm)) }
@@ -125,6 +147,54 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
     return { center: fallback.centerCoordinate, zoom: fallback.zoomLevel }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // One-shot deferred fit: frame the camera on the FIRST render where a usable
+  // input actually exists, then never again for the life of this mount. This is
+  // deliberately not a reactive refit — `hasFittedRef` is the whole point, and
+  // removing it would re-introduce exactly the "map yanked out from under a
+  // panning user" behavior the memo above exists to avoid.
+  //
+  // No dependency array on purpose: the input we are waiting for is a *ref*
+  // read (`getSearchCenter()`), which by design cannot appear in a dep list —
+  // coordinates must never enter state or props (see this file's PRIVACY
+  // header). So the only correct trigger is "check again after every render
+  // until it lands", which is cheap: one ref read and, at most, one pass over
+  // the features, and it stops entirely once latched.
+  //
+  // PRIVACY: `center` lives inside this closure for the two lines it takes to
+  // become a bounding box handed to the native camera. It is not stored,
+  // logged, or tracked.
+  useEffect(() => {
+    if (hasFittedRef.current) return
+    const center = getSearchCenter()
+    const bounds = center
+      ? boundsForRadius(center.lat, center.lon, radiusKm)
+      : boundsForVenues(featureCollection)
+    // Nothing usable yet — stay on defaultCameraForRegion's initial view and
+    // try again next render. If a fix never arrives and no venue ever renders,
+    // that fallback stays the final answer, which is the spec's intent for
+    // genuinely location-less fallback mode.
+    if (!bounds) return
+
+    try {
+      // duration 0: this is the framing the map should have opened with, so it
+      // should read as "it loaded here", not as the camera flying somewhere on
+      // its own a second after the user arrived.
+      const fit = cameraRef.current?.fitBounds(toLngLatBounds(bounds), { duration: 0 })
+      // `fitBounds` is typed `void` but actually returns the native module's
+      // promise (Camera.js → setStop). Adopting it here means a rejection (map
+      // not initialized yet) is swallowed instead of surfacing as an unhandled
+      // rejection in Sentry — same treatment as the cluster-expansion easeTo
+      // below.
+      void Promise.resolve(fit).catch(() => {})
+      hasFittedRef.current = true
+    } catch {
+      // setStop throws synchronously when the native camera node handle isn't
+      // attached yet. Deliberately do NOT latch: leaving the ref false means
+      // the next render retries, which is the whole reason this is a
+      // check-every-render effect.
+    }
+  })
 
   const handleSourcePress = useCallback(
     async (event: NativeSyntheticEvent<PressEventWithFeatures>) => {
@@ -178,7 +248,12 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
       mapStyle={mapStyleUrl}
       onDidFailLoadingMap={onMapFailed}
       attribution
-      accessibilityLabel={translate("inPersonScreen:mapA11yLabel")}
+      // CHANGED 2026-08-08: was the imperative `translate()`, which reads the
+      // catalogue at call time and creates no i18next subscription — switching
+      // language in Settings left this label in the old language until
+      // something else happened to re-render the map. The hook matches how the
+      // rest of this tree (MapListToggle, InPersonListHeader) translates.
+      accessibilityLabel={t("inPersonScreen:mapA11yLabel")}
     >
       <Camera ref={cameraRef} initialViewState={initialViewState} />
 
