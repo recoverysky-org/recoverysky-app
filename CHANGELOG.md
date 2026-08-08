@@ -167,6 +167,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   your attendance was confirmed. Meetings we don't have a precise location for
   can't be verified and can't be logged; that source data is being corrected.
 
+- In-Person segment map view: a list/map toggle on the Meetings tab renders
+  nearby results as a clustered MapLibre map — pins colored by fellowship,
+  deliberately-approximate venues shown as translucent areas instead of
+  precise pins, and your own position as the native blue dot. Tapping a pin
+  opens the same meeting popup as the list. Requires the server to provide
+  MapTiler style URLs via /config (absent = feature hidden); native release
+  only (new native dependency — runtimeVersion bump required).
+
 ### Changed
 
 - **Logging an in-person meeting now confirms in the same place an online one
@@ -286,6 +294,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `ConfigStore.effectivePresenceRadiusM` view gated on `__DEV__`, which is
   false in TestFlight and store builds, so production still uses
   `PRESENCE_RADIUS_M`.
+- Bumped `@recoverysky-org/common` `^2.4.1` → `^2.5.0` — incidental to
+  installing `@maplibre/maplibre-react-native` for the In-Person map view;
+  `npm install` resolved the caret range to the latest published patch at the
+  same time. No schema or code change in this repo depends on it.
 
 ### Fixed
 
