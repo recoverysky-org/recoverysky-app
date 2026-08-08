@@ -154,7 +154,8 @@
         "project": "recoverysky-app",
         "url": "https://sentry.io/"
       }
-    ]
+    ],
+    "@maplibre/maplibre-react-native"
   ],
   "experiments": {
     "tsconfigPaths": true
