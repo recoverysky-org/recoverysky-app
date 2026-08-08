@@ -108,6 +108,26 @@ export interface InPersonMapViewProps {
  * adapter for the native API, not a decision — the box itself always comes
  * from boundsForRadius / boundsForVenues in inPersonMapLogic.ts.
  */
+/**
+ * Font stack for our own symbol layers (the cluster and multi-meeting venue
+ * counts).
+ *
+ * ADDED 2026-08-08 — this is not cosmetic. Omitting `text-font` makes MapLibre
+ * fall back to the style-spec default, `["Open Sans Regular", "Arial Unicode
+ * MS Regular"]`, which MapTiler's streets-v4 does not use. The result was a
+ * second, entirely separate glyph-range download for a font stack nothing else
+ * on the map needed, logged as "Failed to load glyph range 0-255 for font
+ * stack Open Sans Regular,Arial Unicode MS Regular". When those requests fail
+ * the count bubbles render empty — a cluster pin with no number in it.
+ *
+ * This stack is the one streets-v4's own labels request, so our glyphs come
+ * from a range the basemap is already fetching: same cache entry, zero extra
+ * network. That does couple this constant to the configured style — if
+ * MAP_STYLE_URL_* is ever pointed at a style built on different fonts, the
+ * counts go blank and this is the line to change.
+ */
+const MAP_TEXT_FONT = ["Roboto Regular", "Noto Sans Regular"]
+
 function toLngLatBounds(bounds: CameraBounds): LngLatBounds {
   return [bounds.sw[0], bounds.sw[1], bounds.ne[0], bounds.ne[1]]
 }
@@ -292,6 +312,7 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
           filter={["has", "point_count"]}
           layout={{
             "text-field": ["get", "point_count_abbreviated"],
+            "text-font": MAP_TEXT_FONT,
             "text-size": 12,
             "text-allow-overlap": true,
             "text-ignore-placement": true,
@@ -350,6 +371,7 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
           filter={["all", ["!", ["has", "point_count"]], [">", ["get", "count"], 1]]}
           layout={{
             "text-field": ["to-string", ["get", "count"]],
+            "text-font": MAP_TEXT_FONT,
             "text-size": 11,
             "text-allow-overlap": true,
             "text-ignore-placement": true,

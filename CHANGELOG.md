@@ -209,9 +209,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   app and buried real errors. Those failures are transient and self-healing;
   the signal that a map is genuinely broken is `onDidFailLoadingMap`, which
   the In-Person map already handles by falling back to the list. Records now
-  go to the app logger at `debug`, so they stay readable in Metro during
-  development and are dropped before OTLP in production rather than flooding
-  the log backend from every user on a weak connection.
+  go to the development console only, and nowhere at all in production. They
+  deliberately do not go through the app logger: in development that ships
+  every record to OTLP over the network, and since the records are themselves
+  network failures, it amplified the very problem it was reporting.
+
+- **The In-Person map's cluster and venue counts now request the same fonts as
+  the basemap.** The count labels carried no `text-font`, so MapLibre fell
+  back to the style-spec default (Open Sans / Arial Unicode MS) — a font stack
+  MapTiler's Streets basemap never uses — and downloaded a whole second set of
+  glyphs nothing else on the map needed. When those requests failed, cluster
+  pins rendered with no number in them.
 
 - **The wide `__DEV__` presence radius is now opt-in**, so a development build
   can finally be pointed at the production radius. Previously `__DEV__` builds
