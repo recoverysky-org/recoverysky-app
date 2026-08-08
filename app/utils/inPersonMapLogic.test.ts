@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  boundsForRadius,
+  boundsForVenues,
+  defaultCameraForRegion,
   fellowshipColor,
   hasUsableCoords,
   parseVenueIds,
+  shouldShowMapToggle,
   venuesToFeatureCollection,
 } from "./inPersonMapLogic"
 
@@ -73,5 +77,74 @@ describe("parseVenueIds", () => {
     expect(parseVenueIds(undefined)).toEqual([])
     expect(parseVenueIds(42)).toEqual([])
     expect(parseVenueIds("")).toEqual([])
+  })
+})
+
+describe("boundsForRadius", () => {
+  it("builds a box that spans roughly 2× the radius in latitude", () => {
+    const b = boundsForRadius(40.7, -74.0, 25)
+    const latSpanKm = (b.ne[1] - b.sw[1]) * 111.32
+    expect(latSpanKm).toBeGreaterThan(45)
+    expect(latSpanKm).toBeLessThan(55)
+    expect(b.ne[0]).toBeGreaterThan(b.sw[0])
+  })
+  it("widens the longitude span at high latitude", () => {
+    const equator = boundsForRadius(0, 10, 25)
+    const arctic = boundsForRadius(70, 10, 25)
+    expect(arctic.ne[0] - arctic.sw[0]).toBeGreaterThan(equator.ne[0] - equator.sw[0])
+  })
+})
+
+describe("boundsForVenues", () => {
+  const fc = (coords: Array<[number, number]>) => ({
+    type: "FeatureCollection" as const,
+    features: coords.map(([lon, lat]) => ({
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [lon, lat] as [number, number] },
+      properties: { ids: "x", count: 1, color: "#000", approximate: false },
+    })),
+  })
+
+  it("returns null for an empty collection", () => {
+    expect(boundsForVenues(fc([]))).toBeNull()
+  })
+  it("pads a single point into a non-degenerate box", () => {
+    const b = boundsForVenues(fc([[-74.0, 40.7]]))!
+    expect(b.ne[0]).toBeGreaterThan(b.sw[0])
+    expect(b.ne[1]).toBeGreaterThan(b.sw[1])
+  })
+  it("contains all points with padding", () => {
+    const b = boundsForVenues(fc([[-74.0, 40.7], [-73.5, 41.0]]))!
+    expect(b.sw[0]).toBeLessThan(-74.0)
+    expect(b.ne[0]).toBeGreaterThan(-73.5)
+    expect(b.sw[1]).toBeLessThan(40.7)
+    expect(b.ne[1]).toBeGreaterThan(41.0)
+  })
+})
+
+describe("defaultCameraForRegion", () => {
+  it("returns a continent-level camera for a known region", () => {
+    const cam = defaultCameraForRegion("US")
+    expect(cam.zoomLevel).toBeGreaterThanOrEqual(2)
+    expect(cam.centerCoordinate[0]).toBeLessThan(-60) // somewhere over North America
+  })
+  it("falls back to a world view for unknown/absent regions", () => {
+    expect(defaultCameraForRegion(undefined).zoomLevel).toBeLessThanOrEqual(1.5)
+    expect(defaultCameraForRegion("ZZ").zoomLevel).toBeLessThanOrEqual(1.5)
+  })
+})
+
+describe("shouldShowMapToggle", () => {
+  const urls = { styleUrlLight: "https://x/light.json", styleUrlDark: "https://x/dark.json" }
+  it("shows on native platforms with both style URLs", () => {
+    expect(shouldShowMapToggle({ platform: "ios", ...urls })).toBe(true)
+    expect(shouldShowMapToggle({ platform: "android", ...urls })).toBe(true)
+  })
+  it("hides on web (spec decision #10)", () => {
+    expect(shouldShowMapToggle({ platform: "web", ...urls })).toBe(false)
+  })
+  it("hides when either style URL is missing (config kill switch)", () => {
+    expect(shouldShowMapToggle({ platform: "ios", styleUrlLight: "", styleUrlDark: "x" })).toBe(false)
+    expect(shouldShowMapToggle({ platform: "ios", styleUrlLight: "x", styleUrlDark: "" })).toBe(false)
   })
 })
