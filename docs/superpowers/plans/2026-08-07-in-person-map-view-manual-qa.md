@@ -15,6 +15,35 @@ and native-bridge ones).
 
 ---
 
+## ⚠️ Known non-bug: the iOS Simulator freezes on map + modal
+
+**Do not debug this again.** On the iOS Simulator, opening any modal over the
+live map — the schedule popup, the radius/day/fellowship selectors — wedges
+the UI thread. The app looks completely locked: taps stop reaching JS and
+nothing re-renders. **Verified working on a physical iPhone on 2026-08-08.**
+
+It is not a React bug and no JS change will fix it. Diagnosis, so nobody
+re-derives it: a JS heartbeat (`setInterval` logging once a second) kept
+ticking with metronomic 1017 ms gaps through the entire freeze, and the render
+count stopped at the single render that opened the popup. JS alive + UI dead =
+below React entirely. MapLibre Native draws through Metal on iOS, and the
+Simulator's Metal path is a documented weak spot for this library — see
+https://github.com/maplibre/maplibre-react-native/discussions/568, where a
+developer hit crashes "during load and C++ MetalKit draw calls, specifically
+on the iOS simulator" and concluded it was GPU acceleration not working,
+having "had to acquire an iPhone to work around this."
+
+**Consequence for this checklist:** every map item below that involves a modal
+— venue chooser, schedule popup, "I'm Here" — is *only* verifiable on physical
+hardware. A simulator pass on those items proves nothing.
+
+Cross-reference: this is also why the LogBox suppression in
+`app/services/maplibre/logging.ts` matters more than it looks. Before it, the
+red overlay covered the map on any tile failure, which hid this freeze by
+making the pins unreachable in the first place.
+
+---
+
 ## ⚠️ Highest priority: `cluster_id` bridge type on Android
 
 **Before anything else, confirm cluster taps work on a physical Android

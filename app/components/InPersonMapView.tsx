@@ -103,12 +103,6 @@ export interface InPersonMapViewProps {
 }
 
 /**
- * Reshapes the pure module's `{ne, sw}` bounds into MapLibre's flat
- * `[west, south, east, north]` LngLatBounds tuple. This is a data-format
- * adapter for the native API, not a decision — the box itself always comes
- * from boundsForRadius / boundsForVenues in inPersonMapLogic.ts.
- */
-/**
  * Font stack for our own symbol layers (the cluster and multi-meeting venue
  * counts).
  *
@@ -128,6 +122,12 @@ export interface InPersonMapViewProps {
  */
 const MAP_TEXT_FONT = ["Roboto Regular", "Noto Sans Regular"]
 
+/**
+ * Reshapes the pure module's `{ne, sw}` bounds into MapLibre's flat
+ * `[west, south, east, north]` LngLatBounds tuple. This is a data-format
+ * adapter for the native API, not a decision — the box itself always comes
+ * from boundsForRadius / boundsForVenues in inPersonMapLogic.ts.
+ */
 function toLngLatBounds(bounds: CameraBounds): LngLatBounds {
   return [bounds.sw[0], bounds.sw[1], bounds.ne[0], bounds.ne[1]]
 }
