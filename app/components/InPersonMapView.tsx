@@ -8,8 +8,18 @@
  * PRIVACY: `getSearchCenter` is an accessor into useNearbySchedules' coordsRef
  * (the ONE sanctioned new consumer — see that file's header). The fix is read
  * once for the mount-time camera, handed to the native Camera component, and
- * never stored, logged, or tracked here. The puck is MapLibre's native
- * UserLocation — coordinates stay in the GL layer and never enter JS.
+ * never stored, logged, or tracked here. The puck is MapLibre's
+ * `NativeUserLocation` — a codegen'd Fabric host component
+ * (`MLRNNativeUserLocation`) whose only props are `mode` and
+ * `androidPreferredFramesPerSecond`; it owns its own native location
+ * subscription and never surfaces a coordinate as a JS prop or React state.
+ * CHANGED 2026-08-08: the sibling `UserLocation` component (do not use it
+ * here) is a different, JS-backed component — its `useCurrentPosition()` hook
+ * puts every GPS fix into React state and keeps its own continuous native
+ * location subscription alive for the whole map lifetime, independent of this
+ * app's foreground-only `expo-location` lifecycle. That is real coordinate
+ * traffic through JS this file must not introduce; `NativeUserLocation` is
+ * the one that keeps the puck fully native-side.
  * The tile provider (MapTiler) necessarily sees the viewport; that egress is
  * accepted and documented in the 2026-08-07 map-view spec.
  *
@@ -43,11 +53,12 @@ import {
   Layer,
   type LngLatBounds,
   Map as MapLibreMap,
+  NativeUserLocation,
   type PressEventWithFeatures,
-  UserLocation,
 } from "@maplibre/maplibre-react-native"
 
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import {
   boundsForRadius,
@@ -67,7 +78,11 @@ interface InPersonMapViewProps {
   radiusKm: number
   /** Pin tapped → meeting ids at that venue (caller resolves + opens popup/chooser) */
   onVenuePress: (meetingIds: string[]) => void
-  /** Style/tile load failure → caller toasts + flips back to list */
+  /**
+   * Style load failure → caller toasts + flips back to list. Wired to
+   * `onDidFailLoadingMap`, which per the typings (Map.d.ts) only fires on a
+   * failed *style* load — a runtime tile 404 does not trigger this callback.
+   */
   onMapFailed: () => void
 }
 
@@ -120,16 +135,26 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
         // assumed — see task-7-report.md deviation table.
         const clusterId = properties.cluster_id
         if (typeof clusterId !== "number") return
-        const zoom = await shapeSourceRef.current?.getClusterExpansionZoom(clusterId)
         if (feature.geometry.type !== "Point") return
         const [lon, lat] = feature.geometry.coordinates
-        cameraRef.current?.easeTo({
-          center: [lon, lat],
-          // +0.5 past the expansion zoom so the leaves separate visibly
-          // instead of landing exactly at the split threshold.
-          zoom: (zoom ?? 14) + 0.5,
-          duration: 300,
-        })
+        try {
+          // This is async and unawaited by our `void`-returning onPress prop,
+          // so a rejection here (stale cluster id, or the component unmounted
+          // mid-tap leaving the native node handle null) would otherwise
+          // surface as an unhandled promise rejection / Sentry noise. Treat a
+          // failed expansion as a silent no-op tap, not an error.
+          const zoom = await shapeSourceRef.current?.getClusterExpansionZoom(clusterId)
+          cameraRef.current?.easeTo({
+            center: [lon, lat],
+            // +0.5 past the expansion zoom so the leaves separate visibly
+            // instead of landing exactly at the split threshold.
+            zoom: (zoom ?? 14) + 0.5,
+            duration: 300,
+          })
+        } catch {
+          // No-op: a failed cluster expansion should not crash or log — see
+          // comment above.
+        }
         return
       }
 
@@ -140,7 +165,18 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
   )
 
   return (
-    <MapLibreMap style={$map} mapStyle={mapStyleUrl} onDidFailLoadingMap={onMapFailed} attribution>
+    // MapProps extends ViewProps, so accessibilityLabel is available here.
+    // The list view (behind the segment toggle) remains the fully accessible
+    // equivalent path — a GL canvas can't expose individual pins to
+    // VoiceOver/TalkBack, so this label orients a screen-reader user to what
+    // the surface is rather than making its contents navigable.
+    <MapLibreMap
+      style={$map}
+      mapStyle={mapStyleUrl}
+      onDidFailLoadingMap={onMapFailed}
+      attribution
+      accessibilityLabel={translate("inPersonScreen:mapA11yLabel")}
+    >
       <Camera ref={cameraRef} initialViewState={initialViewState} />
 
       <GeoJSONSource
@@ -194,12 +230,22 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
           }}
         />
 
-        {/* Precise venues: fellowship-colored dot */}
+        {/* Precise venues: fellowship-colored dot.
+            Fail-CLOSED on purpose: `["==", ["get","approximate"], false]`
+            draws nothing for a feature with a missing/malformed `approximate`
+            property, instead of `!=` true's fail-OPEN reading (a missing
+            property would draw a precise pin). This layer and
+            inperson-venue-approx above are correctness-coupled to
+            venuesToFeatureCollection() in app/utils/inPersonMapLogic.ts
+            always writing `approximate` as a real boolean — if that
+            invariant ever breaks, the fail-closed direction here means the
+            venue silently doesn't render rather than exposing a
+            deliberately-fuzzed coordinate as a precise pin. */}
         <Layer
           type="circle"
           id="inperson-venue-pins"
           source="inperson-venues"
-          filter={["all", ["!", ["has", "point_count"]], ["!=", ["get", "approximate"], true]]}
+          filter={["all", ["!", ["has", "point_count"]], ["==", ["get", "approximate"], false]]}
           paint={{
             "circle-color": ["get", "color"],
             "circle-radius": 9,
@@ -229,8 +275,17 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
       {/* Native blue-dot puck: renders inside the GL layer, coords never
           enter JS (spec decision #8). v11 dropped the `visible` prop that
           the brief expected — UserLocationProps has no such prop, so simply
-          mounting the component is what shows it. */}
-      <UserLocation />
+          mounting the component is what shows it.
+          CHANGED 2026-08-08: swapped `UserLocation` → `NativeUserLocation`.
+          `UserLocation` is JS-backed (`useCurrentPosition()` puts every GPS
+          fix into React state) and the PRIVACY header's "never enter JS"
+          claim was false for it — see the file header. `NativeUserLocation`
+          is the real native-only puck (`MLRNNativeUserLocation`,
+          src/components/user-location/UserLocationNativeComponent.ts): a
+          codegen'd Fabric host component whose props are just `mode` /
+          `androidPreferredFramesPerSecond`, no coordinate ever crosses the
+          bridge. */}
+      <NativeUserLocation />
     </MapLibreMap>
   )
 }
