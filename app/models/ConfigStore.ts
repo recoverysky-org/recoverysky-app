@@ -81,6 +81,18 @@ export const ConfigStoreModel = types
     /** Latest native app version available in the App Store / Play Store */
     latestVersion: types.optional(types.string, ""),
     /**
+     * MapTiler style URLs for the In-Person map view, light + dark. Full URLs
+     * with the API key embedded — served by /config so the key is never baked
+     * into the binary and can be rotated (or the provider swapped) without a
+     * release. EMPTY IS THE KILL SWITCH: shouldShowMapToggle() hides the map
+     * toggle unless both are non-empty, so an old server or a deliberate
+     * server-side clear degrades to the list-only segment. No env fallback on
+     * purpose — there is no safe client-side default for a keyed URL.
+     * Spec: docs/superpowers/specs/2026-08-07-in-person-map-view-design.md
+     */
+    mapStyleUrlLight: types.optional(types.string, ""),
+    mapStyleUrlDark: types.optional(types.string, ""),
+    /**
      * Radius in meters within which a user counts as present at an in-person
      * meeting. Server-tunable so the threshold can be corrected without
      * shipping a build — see docs/superpowers/specs/2026-08-05-gps-in-person-
@@ -170,6 +182,8 @@ export const ConfigStoreModel = types
               store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
               store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
               if (config.LATEST_VERSION) store.latestVersion = config.LATEST_VERSION
+              if (config.MAP_STYLE_URL_LIGHT) store.mapStyleUrlLight = config.MAP_STYLE_URL_LIGHT
+              if (config.MAP_STYLE_URL_DARK) store.mapStyleUrlDark = config.MAP_STYLE_URL_DARK
               // Guarded on > 0: a server sending 0 (or a malformed value that
               // coerces to it) would make every check fail with "you are 3 m
               // away, you must be within 0 m" — an unfixable-from-the-client
@@ -259,6 +273,8 @@ export const ConfigStoreModel = types
       store.maintenanceMode = false
       store.maintenanceMessage = ""
       store.maintenanceUntil = ""
+      store.mapStyleUrlLight = ""
+      store.mapStyleUrlDark = ""
       store.outageMode = false
       store.isLoaded = false
     },

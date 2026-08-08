@@ -61,6 +61,26 @@
  * deliberately, not by omission. See
  * docs/superpowers/specs/2026-08-05-gps-in-person-attendance-design.md.
  *
+ * AMENDED 2026-08-07 (map view): `coordsRef` gained one new ON-DEVICE
+ * consumer — `getCoords()`, read by InPersonMapView for its one-shot camera
+ * fit (on the first render where a fix exists, then never again for that
+ * mount) and converted immediately into a bounding box handed to the native
+ * `Camera` component; the fix still never enters JS state, MMKV, or logs.
+ * CORRECTED 2026-08-08: this paragraph used to say the fix was "read once for
+ * the mount-time camera fit and handed to the native Camera/UserLocation
+ * components". Both halves were wrong and the second one dangerously so. The
+ * map's blue-dot puck is `NativeUserLocation`, which we render with NO props
+ * at all — it receives no coordinate from us and holds none in JS, sourcing
+ * its own position natively. `UserLocation` is the sibling component the map
+ * deliberately does NOT use, precisely because its JS location hook
+ * round-trips every fix through React state; naming it here as a recipient of
+ * the coordinate described the exact thing this file forbids.
+ * NEW third-party egress:
+ * while the map view is open, the tile provider (MapTiler) necessarily
+ * receives viewport tile requests (approximate browsed area + IP, keyed to
+ * our style URL). Accepted explicitly in the 2026-08-07 map-view spec's
+ * privacy section; the browse-path scrubbing above is unchanged.
+ *
  * The persisted radius (MMKV) is a display *preference*, not location data —
  * persisting it is correct and carries no positional information.
  *
@@ -184,6 +204,12 @@ export interface UseNearbySchedulesResult {
   /** Banner tap: re-request permission (no-op → Settings when !canAskAgain) */
   requestLocation: () => Promise<void>
   canAskAgain: boolean
+  /**
+   * Read the current fix. Null until one is acquired, and null again after a
+   * denial (see acquireLocation). Deliberately a function rather than a value:
+   * see the PRIVACY note on the implementation.
+   */
+  getCoords: () => { lat: number; lon: number } | null
 }
 
 /**
@@ -597,6 +623,14 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     await fetchIfMounted()
   }, [acquireLocation, fetchIfMounted])
 
+  /**
+   * Accessor for the current fix, for the map view's mount-time camera. A
+   * function returning the ref's current value — deliberately not state and
+   * not the raw ref — so coordinates still never appear in a serializable
+   * snapshot and no consumer can subscribe to position changes.
+   */
+  const getCoords = useCallback(() => coordsRef.current, [])
+
   const modeInput = { active, permission, fix, nearbyFetchFailed }
   const mode = resolveMode(modeInput)
   // Only fallback mode shows a banner. Which reason it carries is a pure
@@ -619,5 +653,6 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     refresh,
     requestLocation,
     canAskAgain,
+    getCoords,
   }
 }

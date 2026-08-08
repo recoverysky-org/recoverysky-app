@@ -860,6 +860,12 @@ const fr: Translations = {
     emptyNoLocation: "Activez la localisation pour trouver des réunions en présentiel près de vous",
     emptyFixFailed: "Impossible d'obtenir votre position — touchez pour réessayer",
     selectFellowship: "Touchez pour choisir une fraternité et voir les réunions en présentiel",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
+    mapA11yLabel: "Map of nearby in-person meetings",
   },
 }
 

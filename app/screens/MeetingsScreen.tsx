@@ -104,6 +104,10 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   // Once the user has opened In-Person we keep it "active" so its state
   // machine (location, fetches) survives segment switches like the other
   // stay-mounted views.
+  // NOTE 2026-08-08: because this never reverts, it is NOT a usable answer to
+  // "is In-Person on screen right now". Anything that must come down when the
+  // segment is hidden — currently the map's GL surface — takes the separate
+  // `visible` prop below instead. See InPersonContentProps in InPersonScreen.
   const [inPersonActivated, setInPersonActivated] = useState(false)
   useEffect(() => {
     if (activeSegment === "inperson") setInPersonActivated(true)
@@ -136,7 +140,7 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
         <LiveContent meetingId={route.params?.meetingId} />
       </View>
       <View style={[$content, activeSegment === "inperson" ? $contentVisible : $contentHidden]}>
-        <InPersonContent active={inPersonActivated} />
+        <InPersonContent active={inPersonActivated} visible={activeSegment === "inperson"} />
       </View>
       <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
         <ListingsContent active={listingsActivated} />

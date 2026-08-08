@@ -855,6 +855,12 @@ const pt: Translations = {
     emptyNoLocation: "Ative a localização para encontrar reuniões presenciais perto de você",
     emptyFixFailed: "Não foi possível obter sua localização — toque para tentar novamente",
     selectFellowship: "Toque para escolher uma irmandade e ver reuniões presenciais",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
+    mapA11yLabel: "Map of nearby in-person meetings",
   },
 }
 

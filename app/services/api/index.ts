@@ -907,6 +907,9 @@ export class Api {
           PRESENCE_RADIUS_M?: number
           /** Dev-build-only presence radius; ignored entirely in production. */
           DEV_PRESENCE_RADIUS_M?: number
+          /** In-Person map style URLs (keyed MapTiler URLs); absent = map off */
+          MAP_STYLE_URL_LIGHT?: string
+          MAP_STYLE_URL_DARK?: string
         }
       }
     | GeneralApiProblem
@@ -929,6 +932,8 @@ export class Api {
       LATEST_VERSION?: string
       PRESENCE_RADIUS_M?: number
       DEV_PRESENCE_RADIUS_M?: number
+      MAP_STYLE_URL_LIGHT?: string
+      MAP_STYLE_URL_DARK?: string
     }>("/config")
 
     if (!response.ok) {

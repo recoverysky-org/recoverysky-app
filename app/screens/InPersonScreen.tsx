@@ -7,10 +7,19 @@
  * presentation layer and the analytics call sites.
  *
  * PRIVACY: nothing here may put a coordinate, a `distance_m`, or a directions
- * URL into `trackEvent` or a log call. The two events fired below carry a
- * weekday and a radius — display preferences, not position. See the header
- * comment in `app/hooks/useNearbySchedules.ts` for why the rule is about every
- * transport, not just log sites.
+ * URL into `trackEvent` or a log call. Every event fired below carries a
+ * display preference — a weekday, a radius, a time bucket, a fellowship code,
+ * a list/map choice — never a position. See the header comment in
+ * `app/hooks/useNearbySchedules.ts` for why the rule is about every transport,
+ * not just log sites.
+ * CHANGED 2026-08-07 (map view): the sentence above used to say "the two
+ * events fired below carry a weekday and a radius", which had already gone
+ * stale as filters were added and would have gone staler again here. It is
+ * phrased as a rule over all events now rather than an enumeration that has
+ * to be maintained. This screen also gained `getCoords` — the hook's accessor
+ * into its coords ref — which it passes STRAIGHT THROUGH to InPersonMapView
+ * as `getSearchCenter` and never calls itself; the fix must not be read into
+ * a variable, a prop value, state, or an event here.
  */
 
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -19,8 +28,10 @@ import {
   FlatList,
   Linking,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   TextStyle,
   TouchableOpacity,
   View,
@@ -31,14 +42,18 @@ import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
 import { DaySelectorModal, ISO_DAYS } from "@/components/DaySelectorModal"
+import { InPersonMapView } from "@/components/InPersonMapView"
 import { InPersonPopup } from "@/components/InPersonPopup"
+import { MapListToggle, type InPersonViewMode } from "@/components/MapListToggle"
 import { MeetingRow } from "@/components/MeetingRow"
 import { Text } from "@/components/Text"
+import { useToast } from "@/components/Toast"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
+import { useConfigStore, useNetworkStore } from "@/models"
 import {
   consumePendingMeetingId,
   navigate,
@@ -56,8 +71,10 @@ import {
   SHORT_TIME_OPTIONS,
   type ShortTime,
 } from "@/utils/filterLogic"
+import { shouldShowMapToggle } from "@/utils/inPersonMapLogic"
 import { logger } from "@/utils/logger"
 import { formatDistance, type NearbyBannerReason, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
+import { loadString, saveString } from "@/utils/storage"
 
 const log = logger.child({ module: "InPersonScreen" })
 
@@ -73,6 +90,13 @@ const SHORT_TIME_TX: Record<ShortTime, string> = {
   evening: "inPersonScreen:shortTimeEvening",
   overnight: "inPersonScreen:shortTimeOvernight",
 }
+
+/** MMKV key for the persisted list/map choice (a display preference, NOT
+ * location data — same class as inperson.radius). */
+const VIEW_MODE_STORAGE_KEY = "inperson.viewMode"
+
+const loadViewMode = (): InPersonViewMode =>
+  loadString(VIEW_MODE_STORAGE_KEY) === "map" ? "map" : "list"
 
 // ============================================================================
 // Radius selector modal
@@ -295,6 +319,12 @@ interface InPersonListHeaderProps {
   onOpenRadius: () => void
   onOpenShortTime: () => void
   onBannerPress: () => void
+  /** Render the list/map toggle (config kill switch + platform rule) */
+  showMapToggle: boolean
+  viewMode: InPersonViewMode
+  /** Offline → disabled (spec Error handling #3) */
+  mapToggleDisabled: boolean
+  onToggleView: () => void
 }
 
 const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPersonListHeader({
@@ -311,6 +341,10 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
   onOpenRadius,
   onOpenShortTime,
   onBannerPress,
+  showMapToggle,
+  viewMode,
+  mapToggleDisabled,
+  onToggleView,
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
@@ -354,14 +388,26 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           headers so all three segments of the Meetings tab read the same. */}
       <View style={themed($header)}>
         <Text preset="heading" tx="inPersonScreen:title" />
-        <TouchableOpacity
-          onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t("mainNavigator:settingsTab")}
-        >
-          <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
-        </TouchableOpacity>
+        {/* The toggle sits to the LEFT of the gear so the gear stays the
+            right-most control here, as it is in Live's and Search's headers —
+            the three segments share this row and muscle memory for it. */}
+        <View style={$headerActions}>
+          {showMapToggle && (
+            <MapListToggle
+              viewMode={viewMode}
+              disabled={mapToggleDisabled}
+              onToggle={onToggleView}
+            />
+          )}
+          <TouchableOpacity
+            onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("mainNavigator:settingsTab")}
+          >
+            <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Four filters in a 2×2 grid (Jenova, 2026-08-04). The three-selector
@@ -486,13 +532,34 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
 // Screen
 // ============================================================================
 
+interface InPersonContentProps {
+  /**
+   * Latch: true from the first time the user opens the In-Person segment,
+   * never false again. Owns the lazy-location contract — see below.
+   */
+  active: boolean
+  /**
+   * Live: true only while In-Person is the segment actually on screen.
+   * ADDED 2026-08-08 for the map. Deliberately separate from `active` because
+   * the two answer different questions, and using either one for the other's
+   * job is a real bug in both directions: gating the data hook on `visible`
+   * would tear down location/fetch state on every segment switch, and gating
+   * the map on `active` leaves a GL surface alive inside a `display: "none"`
+   * view for the rest of the session.
+   */
+  visible: boolean
+}
+
 /**
  * InPersonContent - In-person meetings: nearest-first via /schedules/nearby,
  * day-browse fallback without location. Composed into MeetingsScreen as the
  * middle segment (2026-08-03 in-person UI spec).
  *
  * `active` flips true the first time the user opens the segment — location
- * permission is requested lazily off it, never at app start.
+ * permission is requested lazily off it, never at app start. `visible` is the
+ * live companion to that latch: it is true only while In-Person is the
+ * on-screen segment. Everything that should survive a segment switch keys off
+ * `active`; only the map subtree keys off `visible` (see `effectiveViewMode`).
  *
  * `observer()` is LOAD-BEARING and its absence fails silently: `useNearbySchedules`
  * reads `configStore.maintenanceMode` and `profileStore.fellowship` during
@@ -504,13 +571,27 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
  * (the Fellowship picker reads the effective value off the hook instead), so
  * there is now NO store access visible in this file at all — which makes the
  * `observer()` above look even more removable than it did before. It isn't.
+ * CHANGED 2026-08-07 (map view): there IS visible store access again —
+ * `useConfigStore()` for the two map style URLs (the remote kill switch) and
+ * `useNetworkStore()` for the offline-disabled toggle. Both are read in the
+ * body below rather than in `InPersonListHeader`, which takes them as plain
+ * props: the header is a module-scope component whose identity must not churn,
+ * and keeping every store read on this side means one component to reason
+ * about when asking why something did or didn't re-render.
  */
-export const InPersonContent: FC<{ active: boolean }> = observer(function InPersonContent({
+export const InPersonContent: FC<InPersonContentProps> = observer(function InPersonContent({
   active,
+  visible,
 }) {
   const { t } = useTranslation()
-  const { themed, theme } = useAppTheme()
+  const { themed, theme, themeContext } = useAppTheme()
   const reminderLookup = useReminderLookup()
+  const { showToast } = useToast()
+  // Read inside this observed component so MobX tracks them — the map toggle's
+  // visibility and its offline-disabled state both have to react. See the
+  // `observer()` note above: this file's store reads must all live in here.
+  const configStore = useConfigStore()
+  const networkStore = useNetworkStore()
 
   const {
     mode,
@@ -528,6 +609,10 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
     refresh,
     requestLocation,
     canAskAgain,
+    // PRIVACY: passed straight through to InPersonMapView's `getSearchCenter`
+    // and never called in this file. Calling it here would put a coordinate in
+    // a local — see this file's header.
+    getCoords,
   } = useNearbySchedules(active)
 
   const [dayModalVisible, setDayModalVisible] = useState(false)
@@ -535,6 +620,83 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   const [shortTimeModalVisible, setShortTimeModalVisible] = useState(false)
   const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+
+  const [viewMode, setViewModeState] = useState<InPersonViewMode>(loadViewMode)
+  /** Meetings at a multi-meeting venue pin awaiting a chooser pick */
+  const [venueMeetings, setVenueMeetings] = useState<MeetingWithTrex[]>([])
+
+  const setViewMode = useCallback((next: InPersonViewMode) => {
+    setViewModeState(next)
+    saveString(VIEW_MODE_STORAGE_KEY, next)
+  }, [])
+
+  /**
+   * Session-only "the map didn't load" override. NOT persisted, and that is the
+   * entire point: a style/tile load failure is usually transient (flaky
+   * network, a momentary MapTiler hiccup), and `setViewMode` writes through to
+   * MMKV — so routing handleMapFailed through it silently and permanently
+   * rewrote the user's saved preference to "list". They were never told, and on
+   * the next launch they were on the list with no memory of ever having chosen
+   * the map. Cleared by handleToggleView so tapping back to map is a real
+   * retry rather than a no-op.
+   */
+  const [mapFailedThisSession, setMapFailedThisSession] = useState(false)
+
+  const showMapToggle = shouldShowMapToggle({
+    platform: Platform.OS,
+    styleUrlLight: configStore.mapStyleUrlLight,
+    styleUrlDark: configStore.mapStyleUrlDark,
+  })
+  const mapStyleUrl =
+    themeContext === "dark" ? configStore.mapStyleUrlDark : configStore.mapStyleUrlLight
+
+  // A persisted "map" preference must degrade to the list whenever the toggle
+  // isn't actually available — a fresh launch against a server that no longer
+  // sends the style URLs (ConfigStore isn't persisted; on relaunch it's simply
+  // reconstructed with empty defaults, so the URLs are absent until the next
+  // successful /config fetch), or a platform where the map can't render at all
+  // (web). Without this the user would restore straight into a blank area with
+  // no way back, because the control that would take them there isn't rendered
+  // either.
+  // Note this is a LAUNCH-time and availability-time degrade, not a mid-session
+  // one: ConfigStore only assigns the URLs when the incoming values are truthy,
+  // so a /config poll that CLEARS them cannot switch the feature off until the
+  // next cold start.
+  //
+  // `active` is also required, and is NOT redundant with the persisted
+  // preference: MeetingsScreen mounts all three segments from app start and
+  // hides the inactive ones with `display: "none"` (see the comment there).
+  // Without gating on `active`, a user who toggled to map on some earlier visit
+  // would get `effectiveViewMode === "map"` on every later cold start even
+  // while sitting on the Live segment — mounting <InPersonMapView> (a MapLibre
+  // GL surface plus a native <NativeUserLocation /> location consumer) inside a
+  // hidden view for a segment they never opened. `useNearbySchedules` honors
+  // the `active` latch, but the map's native location path does not go through
+  // that hook, so this conjunct is the only thing gating it. `active` latches
+  // true on first open and never reverts to false, so this only changes
+  // behavior before the segment's first activation.
+  //
+  // CHANGED 2026-08-08: the sentence that used to end the paragraph above —
+  // "it does not affect the map once the user has actually opened In-Person" —
+  // was accurate and was the bug. `active` closed the cold-start hole and left
+  // the post-activation half wide open: once In-Person had been opened in map
+  // mode, switching to Live/Search (or another tab) left the MapLibre GL
+  // surface and <NativeUserLocation /> mounted inside the `display: "none"`
+  // view for the rest of the session, with no user action short of a force-quit
+  // to unmount them. `visible` is the live value MeetingsScreen already has,
+  // threaded in alongside the latch so that ONLY the map subtree comes down on
+  // a segment switch — `useNearbySchedules` still keys off `active`, because
+  // its location/fetch state machine is exactly the thing that must survive.
+  // Returning to the segment remounts the map and re-fits the camera, which is
+  // already the documented behavior of every list→map toggle.
+  //
+  // `!mapFailedThisSession` is the session-only fallback described at that
+  // state's definition above: a failed style load drops us to the list for this
+  // session without touching the persisted preference.
+  const effectiveViewMode: InPersonViewMode =
+    viewMode === "map" && showMapToggle && active && visible && !mapFailedThisSession
+      ? "map"
+      : "list"
 
   // Deliberately NOT persisted, unlike radius. Day and time are per-visit browse
   // choices: coming back tomorrow to a list silently narrowed to "Overnight" by
@@ -801,6 +963,53 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
 
   const handleClosePopup = useCallback(() => setSelectedMeeting(null), [])
 
+  const handleToggleView = useCallback(() => {
+    const next: InPersonViewMode = effectiveViewMode === "list" ? "map" : "list"
+    // ADDED 2026-08-08: clearing the session override is what makes "tap the
+    // toggle to try the map again" actually work. Without it, a user who hit a
+    // style-load failure would tap map, `viewMode` would already be "map" (it
+    // is never rewritten to "list" any more), the override would still be set,
+    // and the tap would be a silent no-op.
+    if (next === "map") setMapFailedThisSession(false)
+    setViewMode(next)
+    // PRIVACY: a view-mode choice is a display preference, not a position.
+    trackEvent("inperson_view_toggled", { view: next })
+  }, [effectiveViewMode, setViewMode])
+
+  const handleMapFailed = useCallback(() => {
+    // Style/tile load failure (network, MapTiler cap, bad style) → say so and
+    // fall back to the list; the toggle stays visible for a manual retry.
+    // CHANGED 2026-08-08: this used to call setViewMode("list"), which writes
+    // through to MMKV — so one transient failure permanently discarded a
+    // preference the user had deliberately set, silently. Flip the session-only
+    // override instead; the persisted choice survives and the next launch (or
+    // the next toggle tap) puts them back on the map.
+    showToast({ message: t("inPersonScreen:mapUnavailable"), type: "error" })
+    setMapFailedThisSession(true)
+  }, [showToast, t])
+
+  const handleVenuePress = useCallback(
+    (meetingIds: string[]) => {
+      // Resolve against the UNFILTERED day list, not visibleMeetings: the pin
+      // was built from what the map renders, but ids are stable either way and
+      // the popup can show any meeting of the day.
+      const found = meetings.filter((m) => meetingIds.includes(m.id))
+      if (found.length === 1) {
+        setSelectedMeeting(found[0])
+      } else if (found.length > 1) {
+        setVenueMeetings(found)
+      }
+    },
+    [meetings],
+  )
+
+  const handleVenueChooserPick = useCallback((meeting: MeetingWithTrex) => {
+    setVenueMeetings([])
+    setSelectedMeeting(meeting)
+  }, [])
+
+  const handleVenueChooserClose = useCallback(() => setVenueMeetings([]), [])
+
   const renderItem = useCallback(
     ({ item }: { item: MeetingWithTrex }) => (
       <MeetingRow
@@ -952,13 +1161,25 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   // wrong a second later. RefreshControl owns the spinner once rows exist.
   const showSpinner = mode === "locating" || (isLoading && meetings.length === 0)
 
+  // Only block ENTERING map mode while offline (blank tiles beat nobody —
+  // spec Error handling #3). Computed once here, outside the two JSX
+  // branches below, and passed to both — inside the `effectiveViewMode ===
+  // "map"` branch TS narrows the type to the literal "map", which makes an
+  // inline `effectiveViewMode === "list"` comparison a compile error (no
+  // overlap) even though the intent — never disable while the map is
+  // showing — is exactly what this variable already encodes. Leaving map
+  // mode must always be possible, so a user who goes offline mid-browse on
+  // the map is never stranded there with no way back to the list.
+  const mapToggleDisabled = effectiveViewMode === "list" && networkStore.isOffline
+
   return (
     <View style={$screenContainer}>
-      <FlatList
-        data={visibleMeetings}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={
+      {/* The SAME header renders in both modes — deliberately. The filters,
+          the day/radius/fellowship selectors and the permission banner all
+          stay reachable while the map is up; a map you can't re-filter without
+          switching back to the list would make the toggle a dead end. */}
+      {effectiveViewMode === "map" ? (
+        <View style={$screenContainer}>
           <InPersonListHeader
             fellowshipLabel={fellowshipLabel}
             selectedDayLabel={selectedDayLabel}
@@ -973,20 +1194,62 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
             onOpenRadius={handleOpenRadiusModal}
             onOpenShortTime={handleOpenShortTimeModal}
             onBannerPress={handleBannerPress}
+            showMapToggle={showMapToggle}
+            viewMode={effectiveViewMode}
+            // See mapToggleDisabled definition above — always false here
+            // since effectiveViewMode is narrowed to "map" in this branch.
+            mapToggleDisabled={mapToggleDisabled}
+            onToggleView={handleToggleView}
           />
-        }
-        ItemSeparatorComponent={ItemSeparatorComponent}
-        ListEmptyComponent={showSpinner ? null : ListEmptyComponent}
-        contentContainerStyle={themed($listContent)}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading && meetings.length > 0}
-            onRefresh={refresh}
-            tintColor={theme.colors.tint}
+          <InPersonMapView
+            meetings={visibleMeetings}
+            mapStyleUrl={mapStyleUrl}
+            getSearchCenter={getCoords}
+            radiusKm={radiusKm}
+            onVenuePress={handleVenuePress}
+            onMapFailed={handleMapFailed}
           />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+        </View>
+      ) : (
+        <FlatList
+          data={visibleMeetings}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={
+            <InPersonListHeader
+              fellowshipLabel={fellowshipLabel}
+              selectedDayLabel={selectedDayLabel}
+              radiusLabel={radiusDistance}
+              radiusA11yLabel={radiusA11yLabel}
+              shortTimeLabel={shortTimeLabel}
+              bannerReason={bannerReason}
+              canAskAgain={canAskAgain}
+              showSpinner={showSpinner}
+              onOpenFellowship={handleOpenFellowshipModal}
+              onOpenDay={handleOpenDayModal}
+              onOpenRadius={handleOpenRadiusModal}
+              onOpenShortTime={handleOpenShortTimeModal}
+              onBannerPress={handleBannerPress}
+              showMapToggle={showMapToggle}
+              viewMode={effectiveViewMode}
+              // See mapToggleDisabled definition above.
+              mapToggleDisabled={mapToggleDisabled}
+              onToggleView={handleToggleView}
+            />
+          }
+          ItemSeparatorComponent={ItemSeparatorComponent}
+          ListEmptyComponent={showSpinner ? null : ListEmptyComponent}
+          contentContainerStyle={themed($listContent)}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading && meetings.length > 0}
+              onRefresh={refresh}
+              tintColor={theme.colors.tint}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <DaySelectorModal
         visible={dayModalVisible}
@@ -1022,6 +1285,59 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         meeting={selectedMeeting}
         onClose={handleClosePopup}
       />
+
+      {/* Venue chooser — a pin holding more than one of the day's meetings.
+          Same modal chrome as RadiusSelectorModal above, copied rather than
+          extracted for the reason documented there.
+
+          Inline rather than a module-scope component like the three selectors:
+          those take scalars, while this needs `meetings`, `displayFeedback`,
+          `reminderLookup`, `mode` and `useMiles` to render rows identical to
+          the list's — five props to relocate one `.map()`. It is not a
+          FlatList header, so the identity-churn rule that governs
+          InPersonListHeader does not apply here.
+
+          A venue is one address, and a clubhouse can host 8-12 meetings in a
+          single day — this list is data-driven and unbounded, unlike the fixed,
+          short option lists the other selector modals show. $modalContent's
+          maxHeight: "70%" caps the CARD's height, not the row count — it does
+          NOT make overflowed rows reachable. Without the ScrollView below,
+          rows past what fits are clipped (Android) or drawn outside the card
+          and untappable (iOS). Plain ScrollView rather than FlatList to stay
+          consistent with the inline-`.map()` shape above; revisit if a venue
+          list large enough to need virtualization ever turns up. */}
+      <Modal
+        visible={venueMeetings.length > 0}
+        transparent
+        animationType="fade"
+        onRequestClose={handleVenueChooserClose}
+      >
+        <Pressable style={themed($modalOverlay)} onPress={handleVenueChooserClose}>
+          <View style={themed($modalContent)} accessibilityViewIsModal>
+            <Text style={themed($modalTitle)}>{t("inPersonScreen:venueMeetings")}</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {venueMeetings.map((m) => (
+                // Every prop mirrors the list's `renderItem` exactly — a row that
+                // reads differently here than three taps away in the list would
+                // look like two different meetings.
+                <MeetingRow
+                  key={m.id}
+                  meeting={m}
+                  distanceLabel={
+                    mode === "nearby"
+                      ? formatDistance(m.distance_m, useMiles) || undefined
+                      : undefined
+                  }
+                  rating={displayFeedback.get(m.id)?.rates ?? 0}
+                  isFavorite={displayFeedback.get(m.id)?.loves ?? false}
+                  hasReminder={meetingHasReminder(m, reminderLookup)}
+                  onPress={handleVenueChooserPick}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   )
 })
@@ -1046,6 +1362,15 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.md,
   paddingBottom: spacing.sm,
 })
+
+// Toggle + settings gear, side by side at the end of the title row. A fixed
+// gap rather than a spacing token: both children are 22px Ionicons and this is
+// the distance that keeps two bare glyphs from reading as one control.
+const $headerActions: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 16,
+}
 
 const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",

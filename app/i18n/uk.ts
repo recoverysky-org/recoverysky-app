@@ -848,6 +848,12 @@ const uk: Translations = {
     emptyNoLocation: "Увімкніть геолокацію, щоб знайти очні зустрічі поруч із вами",
     emptyFixFailed: "Не вдалося визначити місцезнаходження — торкніться, щоб повторити",
     selectFellowship: "Натисніть, щоб вибрати спільноту та побачити очні зустрічі",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
+    mapA11yLabel: "Map of nearby in-person meetings",
   },
 }
 
