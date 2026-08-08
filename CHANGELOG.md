@@ -24,6 +24,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **In-person meetings now count your visits, the same way online meetings
+  count your joins.** Tapping "I'm Here" and passing the GPS presence check
+  records a visit, and the in-person popup shows the same "N joins · X ago"
+  line the online popup has always had — so a returning user can see whether
+  they've been to this room before, and when. Visits are recorded on a verified
+  presence, not on the tap itself, so an out-of-range or location-denied
+  attempt doesn't inflate the count. As with online meetings, a meeting you've
+  visited also sorts above ones you've never touched.
+
 - **In-person meetings are now searchable.** The Meetings tab's Search segment
   gained a **Venue** filter (Online / In-Person) and, with it, in-person
   listings — which Search had been holding back while the In-Person segment was

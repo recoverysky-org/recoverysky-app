@@ -8,7 +8,8 @@
  * - Meeting type tags
  * - Venue block: venue name, address, extra location info, approximate caveat
  * - Get Directions button (platform deep link, falls back to Maps web) with
- *   the favourite heart + 5-star rating beside it
+ *   the favourite heart + 5-star rating beside it, and the visit count /
+ *   last-visit line beneath them
  * - Published contacts (tap to call / email)
  * - Weekly schedule grid + reminders
  * - GPS-verified "I'm Here" attendance: a presence check gates a shared
@@ -226,11 +227,26 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const currentDow = DateTime.now().weekday
 
   // ==========================================================================
-  // Feedback (favourite + rating) — same cache, same wiring as SchedulePopup
+  // Feedback (favourite + rating + joins) — same cache, same wiring as
+  // SchedulePopup
   //
-  // SchedulePopup's joins row (below the stars) is deliberately NOT ported:
-  // `joins` counts Zoom joins, which an in-person meeting never accrues. The
-  // equivalent here is "I'm Here", and that's recorded as attendance.
+  // CHANGED 2026-08-07: SchedulePopup's joins row (below the stars) used to be
+  // deliberately NOT ported, on the reasoning that `joins` counts Zoom joins
+  // and an in-person meeting never accrues one. That was wrong twice over.
+  // Mechanically, `joins`/`lastJoin` are just "how many times you went to this
+  // meeting, and when last" — nothing in feedbackCache or feedbackRepo is
+  // Zoom-specific, and six of the nine locales already render the label as
+  // "visits" (es/pt "visitas", fr "visites", de "Besuche", ru/uk "визитов"),
+  // so the field's meaning was never venue-bound. Behaviourally, it left a
+  // returning user with no answer to "have I been here before?" on exactly the
+  // meetings where that question is hardest — you can see your own Zoom
+  // history but not your own room history. "I'm Here" now records a join at
+  // the same commitment point SchedulePopup does.
+  //
+  // The English copy stays "join"/"joins" rather than gaining an in-person
+  // "visit"/"visits" pair: divergent wording between the two popups is the
+  // thing the 2026-08-04 consolidation was undoing, and the key is already the
+  // app's word for this count everywhere else.
   // ==========================================================================
 
   // Local mirror of the cached record. `feedbackCache.get` is a synchronous
@@ -248,6 +264,8 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
 
   const isFavorite = feedback?.loves ?? false
   const rating = feedback?.rates ?? 0
+  const joinCount = feedback?.joins ?? 0
+  const lastJoin = feedback?.lastJoin ?? 0
 
   const handleToggleLove = useCallback(async () => {
     if (!meeting?.id) return
@@ -386,7 +404,28 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     const outcome = await check({ latitude: meeting.latitude, longitude: meeting.longitude })
 
     switch (outcome.status) {
-      case "verified":
+      // Braced because of the `const now` below — a bare lexical declaration
+      // in a case clause is a `no-case-declarations` error.
+      case "verified": {
+        // Record the visit BEFORE opening the timer, mirroring
+        // SchedulePopup.handleJoin recording before it hands off to Zoom.
+        //
+        // "Verified" is the honest analogue of that moment, and the reason
+        // this is not on the raw button press: online, the tap always results
+        // in Zoom actually opening, so recording on tap records a real join.
+        // Here the tap can end in out-of-range / denied / fix-failed, none of
+        // which are visits — counting them would make in-person's number mean
+        // something weaker than online's. Attendance itself is still written
+        // later (and only if the user saves the timer); this count tracks
+        // showing up, which is why it isn't deferred to the save either.
+        await feedbackCache.recordJoin(meeting.id)
+        const now = Date.now()
+        setFeedback((prev) =>
+          prev
+            ? { ...prev, joins: prev.joins + 1, lastJoin: now }
+            : { mid: meeting.id, loves: false, rates: 0, joins: 1, lastJoin: now },
+        )
+
         setVerifiedPresence({
           lat: outcome.fix.lat,
           lon: outcome.fix.lon,
@@ -397,8 +436,15 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
         setTimerVisible(true)
         // PRIVACY: no payload. The distance must never ride along with an
         // analytics event — same rule handleDirections follows.
+        //
+        // Deliberately NOT `meeting_joined` (SchedulePopup's event), even
+        // though the feedback write above is now identical: the two events
+        // feed separate Umami funnels, and folding in-person taps into
+        // `meeting_joined` would silently restate every historical
+        // online-join figure.
         trackEvent("inperson_attendance_started")
         return
+      }
 
       case "out-of-range":
         Alert.alert(
@@ -762,6 +808,21 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                     ))}
                   </View>
                 </View>
+
+                {/* Visit count + how long ago — same markup, glyph and copy as
+                    SchedulePopup's joins row, right-aligned under the stars by
+                    $feedbackSection. Hidden entirely at zero rather than
+                    showing "0 joins", so a meeting the user has never been to
+                    reads the same as it always did. */}
+                {joinCount > 0 && (
+                  <View style={themed($joinsRow)}>
+                    <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
+                    <Text style={themed($joinsText)}>
+                      {joinCount} {joinCount === 1 ? t("liveScreen:join") : t("liveScreen:joins")}
+                      {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -1095,6 +1156,20 @@ const $heartStarsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $heartButton: ThemedStyle<ViewStyle> = () => ({
   paddingHorizontal: 4,
+})
+
+/* Copied verbatim from SchedulePopup's joins styles — the two popups render
+   the same row and must not drift. Change both together. */
+const $joinsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+  marginTop: spacing.xs,
+})
+
+const $joinsText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
 })
 
 const $ratingContainer: ViewStyle = {
