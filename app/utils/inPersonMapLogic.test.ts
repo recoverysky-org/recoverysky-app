@@ -114,7 +114,12 @@ describe("boundsForVenues", () => {
     expect(b.ne[1]).toBeGreaterThan(b.sw[1])
   })
   it("contains all points with padding", () => {
-    const b = boundsForVenues(fc([[-74.0, 40.7], [-73.5, 41.0]]))!
+    const b = boundsForVenues(
+      fc([
+        [-74.0, 40.7],
+        [-73.5, 41.0],
+      ]),
+    )!
     expect(b.sw[0]).toBeLessThan(-74.0)
     expect(b.ne[0]).toBeGreaterThan(-73.5)
     expect(b.sw[1]).toBeLessThan(40.7)
@@ -144,7 +149,11 @@ describe("shouldShowMapToggle", () => {
     expect(shouldShowMapToggle({ platform: "web", ...urls })).toBe(false)
   })
   it("hides when either style URL is missing (config kill switch)", () => {
-    expect(shouldShowMapToggle({ platform: "ios", styleUrlLight: "", styleUrlDark: "x" })).toBe(false)
-    expect(shouldShowMapToggle({ platform: "ios", styleUrlLight: "x", styleUrlDark: "" })).toBe(false)
+    expect(shouldShowMapToggle({ platform: "ios", styleUrlLight: "", styleUrlDark: "x" })).toBe(
+      false,
+    )
+    expect(shouldShowMapToggle({ platform: "ios", styleUrlLight: "x", styleUrlDark: "" })).toBe(
+      false,
+    )
   })
 })

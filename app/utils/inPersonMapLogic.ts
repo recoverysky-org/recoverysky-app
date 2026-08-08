@@ -183,9 +183,7 @@ const REGION_CAMERAS: Record<string, CenterZoomCamera> = {
 
 const WORLD_CAMERA: CenterZoomCamera = { centerCoordinate: [0, 20], zoomLevel: 1 }
 
-export function defaultCameraForRegion(
-  regionCode: string | null | undefined,
-): CenterZoomCamera {
+export function defaultCameraForRegion(regionCode: string | null | undefined): CenterZoomCamera {
   if (!regionCode) return WORLD_CAMERA
   return REGION_CAMERAS[regionCode.toUpperCase()] ?? WORLD_CAMERA
 }
