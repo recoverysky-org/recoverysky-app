@@ -1,8 +1,13 @@
 # In-Person Meetings: Map Surface — Design Spec
 
 **Date:** 2026-08-03
-**Status:** Draft — not approved. Written as a follow-on to the In-Person UI
-release; nothing here is scheduled.
+**Status:** SUPERSEDED by `2026-08-07-in-person-map-view-design.md`
+(2026-08-07). The browse map was approved with MapLibre + MapTiler; this
+draft's still-valid requirements (approximate-venue circles, deep-link
+retention, key handling, New Arch gate) were carried into that spec — do
+not implement from this document.
+Original status: Draft — not approved. Written as a follow-on to the
+In-Person UI release; nothing here is scheduled.
 **Scope:** Add map rendering to the in-person meeting experience, in two
 phases with an explicit decision point between them. Native release — see
 Release Path.
