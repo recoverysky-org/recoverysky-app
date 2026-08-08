@@ -69,7 +69,10 @@ import {
   venuesToFeatureCollection,
 } from "@/utils/inPersonMapLogic"
 
-interface InPersonMapViewProps {
+// Exported so the web stub (InPersonMapView.web.tsx) can import this exact
+// type instead of redeclaring it — a redeclared copy would silently drift
+// out of sync with this interface as props are added/changed here.
+export interface InPersonMapViewProps {
   meetings: MeetingWithTrex[]
   /** Theme-appropriate style URL from ConfigStore (never "" — caller gates) */
   mapStyleUrl: string

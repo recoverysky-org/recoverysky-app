@@ -997,6 +997,17 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   // wrong a second later. RefreshControl owns the spinner once rows exist.
   const showSpinner = mode === "locating" || (isLoading && meetings.length === 0)
 
+  // Only block ENTERING map mode while offline (blank tiles beat nobody —
+  // spec Error handling #3). Computed once here, outside the two JSX
+  // branches below, and passed to both — inside the `effectiveViewMode ===
+  // "map"` branch TS narrows the type to the literal "map", which makes an
+  // inline `effectiveViewMode === "list"` comparison a compile error (no
+  // overlap) even though the intent — never disable while the map is
+  // showing — is exactly what this variable already encodes. Leaving map
+  // mode must always be possible, so a user who goes offline mid-browse on
+  // the map is never stranded there with no way back to the list.
+  const mapToggleDisabled = effectiveViewMode === "list" && networkStore.isOffline
+
   return (
     <View style={$screenContainer}>
       {/* The SAME header renders in both modes — deliberately. The filters,
@@ -1021,7 +1032,9 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
             onBannerPress={handleBannerPress}
             showMapToggle={showMapToggle}
             viewMode={effectiveViewMode}
-            mapToggleDisabled={networkStore.isOffline}
+            // See mapToggleDisabled definition above — always false here
+            // since effectiveViewMode is narrowed to "map" in this branch.
+            mapToggleDisabled={mapToggleDisabled}
             onToggleView={handleToggleView}
           />
           <InPersonMapView
@@ -1055,7 +1068,8 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
               onBannerPress={handleBannerPress}
               showMapToggle={showMapToggle}
               viewMode={effectiveViewMode}
-              mapToggleDisabled={networkStore.isOffline}
+              // See mapToggleDisabled definition above.
+              mapToggleDisabled={mapToggleDisabled}
               onToggleView={handleToggleView}
             />
           }
