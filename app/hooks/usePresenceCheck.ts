@@ -61,6 +61,9 @@ export function usePresenceCheck(): UsePresenceCheckResult {
   // builds so a simulator's fixed location still lands inside a venue, and the
   // real server value everywhere else. Reading the raw field here would make
   // the local simulator untestable again.
+  // CHANGED 2026-08-08: the dev radius now applies only when the server
+  // actually sends `DEV_PRESENCE_RADIUS_M`; omit it and a dev build enforces
+  // the production radius. Still read through the view, not either field.
   const radiusM = configStore.effectivePresenceRadiusM
 
   const check = useCallback(

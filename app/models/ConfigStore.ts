@@ -3,7 +3,7 @@ import { flow, Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { api } from "@/services/api"
 import { logger } from "@/utils/logger"
-import { DEFAULT_PRESENCE_RADIUS_M, DEV_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
+import { DEFAULT_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
 
 const log = logger.child({ module: "ConfigStore" })
 
@@ -111,12 +111,19 @@ export const ConfigStoreModel = types
      *
      * A simulator reports a fixed location (Apple HQ unless Xcode is told
      * otherwise) that is never within the real radius of a real venue, so
-     * without this every "I'm Here" tap fails out-of-range and nothing past
-     * the GPS gate is reachable locally. Kept as its own field rather than
-     * overwriting `presenceRadiusM` so the store stays an honest record of
-     * what the server actually sent for production.
+     * without a wide override every "I'm Here" tap fails out-of-range and
+     * nothing past the GPS gate is reachable locally. Kept as its own field
+     * rather than overwriting `presenceRadiusM` so the store stays an honest
+     * record of what the server actually sent for production.
+     *
+     * CHANGED 2026-08-08: defaults to 0 ("server sent nothing") instead of a
+     * hardcoded 10 km. 0 is the absent sentinel, never a radius — the fetch
+     * guard below rejects non-positive values, so this field is either 0 or a
+     * real server value. The override is now opt-in: without it, a dev build
+     * enforces the production radius, which is what makes `PRESENCE_RADIUS_M`
+     * testable locally at all.
      */
-    devPresenceRadiusM: types.optional(types.number, DEV_PRESENCE_RADIUS_M),
+    devPresenceRadiusM: types.optional(types.number, 0),
     /** Whether config has been fetched from server */
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
@@ -139,9 +146,17 @@ export const ConfigStoreModel = types
      * builds, the real server/default value everywhere else. `__DEV__` is
      * false in TestFlight and store builds, so no shipped binary can widen the
      * gate. This is the ONLY thing `usePresenceCheck` should read.
+     *
+     * CHANGED 2026-08-08: the dev override now requires BOTH `__DEV__` and a
+     * dev radius the server actually sent. It previously fell back to a
+     * hardcoded 10 km whenever `DEV_PRESENCE_RADIUS_M` was absent, which meant
+     * a dev build could not be pointed at the production radius at all —
+     * serving `PRESENCE_RADIUS_M` alone was silently ignored. Both branches
+     * still land on `presenceRadiusM`, so production is unchanged.
      */
     get effectivePresenceRadiusM(): number {
-      return __DEV__ ? store.devPresenceRadiusM : store.presenceRadiusM
+      if (__DEV__ && store.devPresenceRadiusM > 0) return store.devPresenceRadiusM
+      return store.presenceRadiusM
     },
   }))
   .actions((store) => ({
@@ -194,6 +209,10 @@ export const ConfigStoreModel = types
               // Same > 0 guard, same reason. Stored unconditionally rather
               // than behind `__DEV__` — the field is inert in production
               // because `effectivePresenceRadiusM` is what gates its use.
+              // CHANGED 2026-08-08: this guard is now load-bearing in a second
+              // way — 0 is the "server sent no dev radius" sentinel, so letting
+              // a non-positive value through would be indistinguishable from
+              // absence rather than merely being a bad radius.
               if (config.DEV_PRESENCE_RADIUS_M && config.DEV_PRESENCE_RADIUS_M > 0)
                 store.devPresenceRadiusM = config.DEV_PRESENCE_RADIUS_M
               // Clear any cold-start outage gate ONLY when the service

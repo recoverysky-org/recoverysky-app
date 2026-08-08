@@ -202,6 +202,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **The wide `__DEV__` presence radius is now opt-in**, so a development build
+  can finally be pointed at the production radius. Previously `__DEV__` builds
+  fell back to a hardcoded 10 km whenever the server omitted
+  `DEV_PRESENCE_RADIUS_M`, which meant serving only `PRESENCE_RADIUS_M` was
+  silently ignored and the real gate could not be exercised outside a
+  TestFlight build — "get within 6.2 mi" was the fallback talking, not the
+  config. The dev radius now applies only when `__DEV__` **and** the server
+  actually sent one; otherwise both dev and production enforce
+  `PRESENCE_RADIUS_M`. No change to shipped builds, where `__DEV__` is false
+  and the dev field was never read.
+
 - **Logging an in-person meeting now confirms in the same place an online one
   does** — a green "Attendance saved" banner across the top of the meeting's
   own popup, instead of a toast floating over the Meetings screen behind it.
