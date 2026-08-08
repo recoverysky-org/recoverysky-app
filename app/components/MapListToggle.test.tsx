@@ -47,5 +47,14 @@ describe("MapListToggle", () => {
     fireEvent.press(button)
     expect(onToggle).not.toHaveBeenCalled()
     expect(button.props.accessibilityState?.disabled).toBe(true)
+    // When disabled, the hint is present with the offline message
+    expect(button.props.accessibilityHint).toBe("Map is unavailable offline")
+  })
+
+  it("does not expose the accessibility hint when enabled", () => {
+    render(<MapListToggle viewMode="list" onToggle={jest.fn()} />)
+    const button = screen.getByRole("button")
+    // When not disabled, the hint should be undefined
+    expect(button.props.accessibilityHint).toBeUndefined()
   })
 })
