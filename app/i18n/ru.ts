@@ -848,6 +848,11 @@ const ru: Translations = {
     emptyNoLocation: "Включите геолокацию, чтобы найти очные встречи рядом с вами",
     emptyFixFailed: "Не удалось определить местоположение — нажмите, чтобы повторить",
     selectFellowship: "Нажмите, чтобы выбрать содружество и увидеть очные встречи",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
   },
 }
 

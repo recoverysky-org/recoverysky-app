@@ -835,6 +835,11 @@ const ar: Translations = {
     emptyNoLocation: "فعّل الموقع للعثور على اجتماعات حضورية بالقرب منك",
     emptyFixFailed: "تعذّر تحديد موقعك — اضغط لإعادة المحاولة",
     selectFellowship: "اضغط لاختيار زمالة ورؤية الاجتماعات الحضورية",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
   },
 }
 

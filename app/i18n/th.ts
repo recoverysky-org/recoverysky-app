@@ -837,6 +837,11 @@ const th: Translations = {
     emptyNoLocation: "เปิดตำแหน่งที่ตั้งเพื่อค้นหาการประชุมแบบพบหน้าใกล้คุณ",
     emptyFixFailed: "ไม่สามารถระบุตำแหน่งของคุณได้ — แตะเพื่อลองใหม่",
     selectFellowship: "แตะเพื่อเลือกกลุ่มมิตรภาพและดูการประชุมแบบพบหน้า",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
   },
 }
 

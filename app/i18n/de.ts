@@ -859,6 +859,11 @@ const de: Translations = {
     emptyNoLocation: "Aktiviere den Standort, um Präsenz-Meetings in deiner Nähe zu finden",
     emptyFixFailed: "Standort konnte nicht ermittelt werden — zum Wiederholen tippen",
     selectFellowship: "Tippe, um eine Gemeinschaft zu wählen und Präsenzmeetings zu sehen",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
   },
 }
 

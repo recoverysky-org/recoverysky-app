@@ -876,6 +876,11 @@ const en = {
     emptyNoLocation: "Turn on location to find in-person meetings near you",
     emptyFixFailed: "We couldn't get your location — tap to try again",
     selectFellowship: "Tap to pick a fellowship and see in-person meetings",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
   },
 }
 

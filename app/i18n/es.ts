@@ -850,6 +850,11 @@ const es: Translations = {
     emptyNoLocation: "Activa la ubicación para encontrar reuniones presenciales cerca de ti",
     emptyFixFailed: "No se pudo obtener tu ubicación — toca para reintentar",
     selectFellowship: "Toca para elegir un grupo y ver reuniones presenciales",
+    showMap: "Show map",
+    showList: "Show list",
+    mapOffline: "Map is unavailable offline",
+    mapUnavailable: "Couldn't load the map — showing the list instead",
+    venueMeetings: "Meetings at this location",
   },
 }
 
