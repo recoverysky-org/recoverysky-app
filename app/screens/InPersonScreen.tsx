@@ -35,6 +35,7 @@ import { InPersonPopup } from "@/components/InPersonPopup"
 import { MeetingRow } from "@/components/MeetingRow"
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
@@ -44,6 +45,7 @@ import {
   peekPendingMeetingId,
   usePendingMeetingId,
 } from "@/navigators/navigationUtilities"
+import { api } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -573,33 +575,51 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
   }, [active])
 
   // ---------------------------------------------------------------------------
-  // Paywall return → InPersonPopup auto-open
+  // Deep link / paywall return → InPersonPopup auto-open
   //
-  // The premium gate in InPersonPopup.handleCellPress sends the user to the
-  // paywall with `returnTo: "Meetings:inperson:meetingId:<id>"`. On a
-  // successful purchase, SettingsScreen.navigateReturn() parks that id in the
-  // module-level pending store under the "inperson" target and navigates back
-  // here. Reopening the popup means the reminder they just paid to create is
-  // one tap away instead of a re-navigation away.
+  // Two producers park an id in the module-level pending store under the
+  // "inperson" target:
+  //
+  // 1. The premium gate in InPersonPopup.handleCellPress sends the user to the
+  //    paywall with `returnTo: "Meetings:inperson:meetingId:<id>"`. On a
+  //    successful purchase, SettingsScreen.navigateReturn() parks the id and
+  //    navigates back here. Reopening the popup means the reminder they just
+  //    paid to create is one tap away instead of a re-navigation away.
+  // 2. A reminder push for an in-person meeting (app.tsx
+  //    handleNotificationData, via the payload's `segment`).
   //
   // Same peek/consume shape as LiveContent's notification handler, and the
   // same store — the "inperson" target is what stops LiveContent, which is
   // mounted at the same time, from swallowing this id.
   //
-  // Unlike LiveContent there is deliberately no API slow path. The only
-  // producer is the paywall round-trip, which leaves this component mounted
-  // with its list intact, so the meeting is effectively always in `meetings`.
-  // If it somehow isn't, give up once loading settles rather than hold the id
-  // forever — the user still lands on the right segment, which is already the
-  // behavior this fix was written to restore.
+  // CHANGED 2026-08-07: this used to have no API slow path, on the grounds
+  // that "the only producer is the paywall round-trip, which leaves this
+  // component mounted with its list intact, so the meeting is effectively
+  // always in `meetings`". Producer 2 breaks every clause of that. A push tap
+  // can MOUNT this component (cold start, or a segment the user has never
+  // opened) with `meetings: []` and — because `useNearbySchedules` starts at
+  // `isLoading: false` — no load yet in flight, so the old code dropped the id
+  // on its very first run. Worse, even a fully-loaded list is filtered by
+  // location permission, GPS fix, radius, day and fellowship, while a reminder
+  // is for a meeting the user CHOSE: one set at home for a venue 20 miles away
+  // is legitimately absent from a 5-mile list. So: fall back to fetching the
+  // meeting by id, exactly like LiveContent does.
   // ---------------------------------------------------------------------------
   const pendingMeetingId = usePendingMeetingId("inperson")
   const consumedMeetingIdRef = useRef<string | undefined>(undefined)
+  // Separate from `consumedMeetingIdRef` on purpose: the effect re-runs on
+  // every `meetings` change, which can happen repeatedly while a fetch is in
+  // flight (the id is deliberately NOT consumed until the popup opens). Without
+  // this we'd fire a duplicate request per list update.
+  const slowPathIdRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     const targetId = peekPendingMeetingId("inperson")
     if (!targetId || targetId === consumedMeetingIdRef.current) return
 
+    // Fast path: already in the list. Preferred over the fetch even when both
+    // would work — only the list carries `distance_m`, so this is the one that
+    // shows the distance in the popup header.
     const found = meetings.find((m) => m.id === targetId)
     if (found) {
       consumedMeetingIdRef.current = targetId
@@ -607,14 +627,76 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
       setSelectedMeeting(found)
       return
     }
-    // Still fetching — leave the id parked so the next list lands it.
+    // A load is genuinely in flight — leave the id parked so the next list
+    // lands it (and keeps its distance). This is the paywall-return case: the
+    // list is intact or about to be, and the fetch below would be waste.
     if (isLoading) return
+    if (slowPathIdRef.current === targetId) return
+    slowPathIdRef.current = targetId
 
-    log.warn("Pending in-person meeting not in the current list; dropping", {
-      meetingId: targetId,
-    })
-    consumedMeetingIdRef.current = targetId
-    consumePendingMeetingId()
+    // Slow path: fetch by id. Asks the in_person pool directly rather than
+    // going through getScheduleByMeetingIdAnyVenue — we're on the "inperson"
+    // target precisely because the sender resolved venueType for us, so the
+    // any-venue helper's online-first attempt would just be a wasted round trip
+    // before the same answer.
+    api
+      .getScheduleByMeetingId(targetId, "in_person")
+      .then((result) => {
+        // The list won the race while we were out — it already opened the
+        // popup, with a distance we don't have. Leave it alone.
+        if (consumedMeetingIdRef.current === targetId) return
+
+        if (result.kind !== "ok") {
+          log.warn("Failed to fetch in-person schedule for pending meetingId", {
+            meetingId: targetId,
+            kind: result.kind,
+          })
+          consumedMeetingIdRef.current = targetId
+          consumePendingMeetingId()
+          return
+        }
+
+        const s = result.schedule
+        // Self-verify the venue rather than trusting the param, same reasoning
+        // as `inPersonPoolOf`: a server that doesn't understand `venueType`
+        // answers from the online pool regardless, and InPersonPopup on an
+        // online record is a dead end — no address, no directions, and an
+        // "I'm Here" presence check against a venue with no coordinates.
+        if (!isInPersonVenue(s.meeting.venueType)) {
+          log.info("Pending in-person meetingId resolved to a non-in-person venue; dropping", {
+            meetingId: targetId,
+            venueType: s.meeting.venueType,
+          })
+          consumedMeetingIdRef.current = targetId
+          consumePendingMeetingId()
+          return
+        }
+
+        // Same projection as `toMeetings` in useNearbySchedules, minus
+        // `distance_m`: this record didn't come from /schedules/nearby, so
+        // there is no distance to report. It's optional on MeetingWithTrex and
+        // `formatDistance(undefined)` returns "", so the badge simply doesn't
+        // render — do NOT synthesize one from the user's current position.
+        const meetingWithTrex: MeetingWithTrex = {
+          ...s.meeting,
+          feedback: feedbackCache.get(s.meeting.id),
+          sid: s.sid,
+          millis: s.millis,
+          duration_ms: s.duration_ms ?? 0,
+          scheduleData: s.data,
+        }
+        consumedMeetingIdRef.current = targetId
+        consumePendingMeetingId()
+        setSelectedMeeting(meetingWithTrex)
+      })
+      .catch((err) => {
+        log.error("Error fetching in-person schedule for pending meetingId", {
+          meetingId: targetId,
+          error: String(err),
+        })
+        consumedMeetingIdRef.current = targetId
+        consumePendingMeetingId()
+      })
   }, [pendingMeetingId, meetings, isLoading])
 
   // ISO_DAYS always covers 1..7 and selectedDay is derived from a Date, so the

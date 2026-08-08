@@ -59,8 +59,15 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
     // In-Person now restore a popup this way (paywall return, see
     // SettingsScreen.navigateReturn), and forcing live sent in-person users to
     // a segment that deliberately discards in-person records. Fall back to
-    // "live" when no segment is supplied — push-notification deep links pass
-    // meetingId alone and are always live.
+    // "live" when no segment is supplied.
+    // CHANGED 2026-08-07: that fallback used to be justified as "push
+    // notification deep links pass meetingId alone and are always live". Both
+    // halves are now false — reminder pushes carry a `segment` and it is
+    // "inperson" for a face-to-face meeting. The fallback itself is still
+    // right, but it now covers pushes from API builds predating the field
+    // rather than all pushes. The value arrives from the network, so it is
+    // narrowed in app.tsx (parseDeepLinkSegment) before it reaches here — an
+    // unrecognised key would hide all three content views below.
     const forced = newSegment ?? "live"
     if (meetingId && activeSegment !== forced) {
       setActiveSegment(forced)

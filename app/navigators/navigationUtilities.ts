@@ -211,8 +211,15 @@ let pendingNavigation: { name: unknown; params?: unknown } | null = null
  * (SchedulePopup) and InPersonContent (InPersonPopup) — and both are mounted
  * simultaneously, so an untagged id would be raced for by whichever effect ran
  * first. `peek` filters by target, so each consumer only ever sees ids meant
- * for it. The target defaults to "live" everywhere, which is why the
- * notification path in app.tsx and LiveContent needed no changes.
+ * for it. The target defaults to "live" everywhere, which is why LiveContent
+ * needed no changes.
+ *
+ * CHANGED 2026-08-07: the notification path in app.tsx DOES pass a target now.
+ * Reminder pushes carry a `segment` derived from the meeting's venueType, and
+ * an in-person reminder has to reach InPersonPopup (the only surface with a
+ * Directions button) rather than land on a segment whose popup discards
+ * in-person records. The default stays "live" for every other caller and for
+ * pushes from API builds that predate the field.
  */
 
 /** Which segment's popup should consume a pending meetingId. */
@@ -225,8 +232,10 @@ const _meetingIdListeners = new Set<() => void>()
 /**
  * Store a meetingId for a popup to pick up. Notifies usePendingMeetingId()
  * subscribers. `target` selects which segment consumes it — default "live"
- * because the original caller (the notification tap in app.tsx) is a live
- * deep link.
+ * because that is where a deep link with no segment information belongs
+ * (originally the only kind; now also any push from an API build that predates
+ * the `segment` field). Callers that know the venue should say so: app.tsx
+ * passes `pendingTargetForSegment(...)`.
  */
 export function setPendingMeetingId(id: string, target: PendingMeetingTarget = "live") {
   _pendingMeetingId = id

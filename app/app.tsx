@@ -92,6 +92,7 @@ import { initializeUmami, setTrackingUserId, trackEvent } from "./services/track
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { checkForUpdates } from "./utils/checkForUpdates"
+import { parseDeepLinkSegment, pendingTargetForSegment } from "./utils/deepLinkLogic"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
 import { logger } from "./utils/logger"
@@ -550,11 +551,21 @@ export function App() {
             },
           )
 
-          // Handle notification click → navigate to screen and open SchedulePopup
-          // if meetingId is present. setPendingMeetingId stores the meetingId in a
-          // module-level variable that LiveContent subscribes to — this is the
-          // reliable path for opening the popup (route params race with clearing).
-          // See navigationUtilities.ts for the full explanation.
+          // Handle notification click → navigate to screen and open the meeting
+          // popup if meetingId is present. setPendingMeetingId stores the
+          // meetingId in a module-level variable that the popup's host
+          // subscribes to — this is the reliable path for opening the popup
+          // (route params race with clearing). See navigationUtilities.ts for
+          // the full explanation.
+          //
+          // CHANGED 2026-08-07: the popup is no longer always SchedulePopup.
+          // Reminder pushes now carry `segment` (the sender derives it from
+          // `meetings."venueType"`), and an in-person reminder must open
+          // InPersonPopup — the only surface with the Directions button — via
+          // the "inperson" pending target. Both the segment route param and
+          // the pending target are narrowed through parseDeepLinkSegment
+          // rather than passed through: see that module for why an
+          // unrecognised value is a blank Meetings tab, not a cosmetic miss.
           const handleNotificationData = (data: {
             screen?: string
             section?: string
@@ -585,10 +596,15 @@ export function App() {
               } = require("./navigators/navigationUtilities")
               const params: Record<string, string> = {}
               if (data.section) params.section = data.section
-              if (data.segment) params.segment = data.segment
+              // Narrow once, use for both: the route param that picks the
+              // visible segment and the target that picks the popup. They must
+              // agree, or the user watches a popup open on a segment they
+              // aren't looking at.
+              const segment = parseDeepLinkSegment(data.segment)
+              if (segment) params.segment = segment
               if (data.meetingId) {
                 params.meetingId = data.meetingId
-                setPendingMeetingId(data.meetingId)
+                setPendingMeetingId(data.meetingId, pendingTargetForSegment(segment))
                 trackEvent("notification_meeting_opened", { screen: data.screen })
               }
               navTo(data.screen as never, Object.keys(params).length > 0 ? params : undefined)

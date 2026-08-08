@@ -289,6 +289,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Tapping a reminder for an in-person meeting now opens that meeting.**
+  It used to open nothing at all. Reminder pushes carry a segment now (the
+  server derives it from the meeting's venue), so an in-person reminder lands
+  on the In-Person segment and opens the meeting's popup — with the address,
+  the Get Directions button and "I'm Here" one tap away, which is the whole
+  point of a reminder that fires while you're deciding whether to leave the
+  house. Previously the tap dropped the user on the Live segment, which
+  deliberately shows no in-person meetings, so the popup never opened. The
+  meeting is fetched by id when it isn't already on screen, so this works on a
+  cold start, before location permission resolves, and for a venue outside the
+  radius the In-Person list is currently browsing — a reminder is for a meeting
+  you chose, not one that happens to be nearby right now. Reminders for online
+  meetings are unchanged, as are pushes from older server builds that send no
+  segment.
+
 - **A failed token refresh no longer retries on every single request.** The
   proactive token freshness gate recorded nothing when a refresh failed, so
   during any backend hiccup every outgoing request started a fresh attempt.
