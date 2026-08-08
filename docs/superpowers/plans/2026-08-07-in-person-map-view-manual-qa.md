@@ -33,14 +33,18 @@ developer hit crashes "during load and C++ MetalKit draw calls, specifically
 on the iOS simulator" and concluded it was GPU acceleration not working,
 having "had to acquire an iPhone to work around this."
 
+The popup itself renders correctly and completely — it is not a layout or
+render failure. Only touch delivery dies.
+
 **Consequence for this checklist:** every map item below that involves a modal
 — venue chooser, schedule popup, "I'm Here" — is *only* verifiable on physical
 hardware. A simulator pass on those items proves nothing.
 
-Cross-reference: this is also why the LogBox suppression in
-`app/services/maplibre/logging.ts` matters more than it looks. Before it, the
-red overlay covered the map on any tile failure, which hid this freeze by
-making the pins unreachable in the first place.
+**Already ruled out, do not re-suspect:** the MapLibre log handler in
+`app/services/maplibre/logging.ts`. It was suspected purely because the freeze
+was first noticed shortly after it landed. Bisected on 2026-08-08 by disabling
+`installMapLogging()` and reproducing on the simulator: the freeze is
+identical with the handler off. It has no bearing on this.
 
 ---
 
