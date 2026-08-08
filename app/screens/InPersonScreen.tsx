@@ -31,6 +31,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   TextStyle,
   TouchableOpacity,
   View,
@@ -615,15 +616,32 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
 
   // A persisted "map" preference must degrade to the list whenever the toggle
   // isn't actually available — a fresh launch against a server that no longer
-  // sends the style URLs (ConfigStore isn't persisted, so `reset()` handles
-  // relaunch), or a platform where the map can't render at all (web). Without
-  // this the user would restore straight into a blank area with no way back,
-  // because the control that would take them there isn't rendered either.
+  // sends the style URLs (ConfigStore isn't persisted; on relaunch it's simply
+  // reconstructed with empty defaults, so the URLs are absent until the next
+  // successful /config fetch), or a platform where the map can't render at all
+  // (web). Without this the user would restore straight into a blank area with
+  // no way back, because the control that would take them there isn't rendered
+  // either.
   // Note this is a LAUNCH-time and availability-time degrade, not a mid-session
   // one: ConfigStore only assigns the URLs when the incoming values are truthy,
   // so a /config poll that CLEARS them cannot switch the feature off until the
   // next cold start.
-  const effectiveViewMode: InPersonViewMode = viewMode === "map" && showMapToggle ? "map" : "list"
+  //
+  // `active` is also required, and is NOT redundant with the persisted
+  // preference: MeetingsScreen mounts all three segments from app start and
+  // hides the inactive ones with `display: "none"` (see the comment there).
+  // Without gating on `active`, a user who toggled to map on some earlier visit
+  // would get `effectiveViewMode === "map"` on every later cold start even
+  // while sitting on the Live segment — mounting <InPersonMapView> (a MapLibre
+  // GL surface plus a native <NativeUserLocation /> location consumer) inside a
+  // hidden view for a segment they never opened. `useNearbySchedules` honors
+  // the `active` latch, but the map's native location path does not go through
+  // that hook, so this conjunct is the only thing gating it. `active` latches
+  // true on first open and never reverts to false, so this only changes
+  // behavior before the segment's first activation — it does not affect the
+  // map once the user has actually opened In-Person.
+  const effectiveViewMode: InPersonViewMode =
+    viewMode === "map" && showMapToggle && active ? "map" : "list"
 
   // Deliberately NOT persisted, unlike radius. Day and time are per-visit browse
   // choices: coming back tomorrow to a list silently narrowed to "Overnight" by
@@ -1133,8 +1151,15 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
           FlatList header, so the identity-churn rule that governs
           InPersonListHeader does not apply here.
 
-          A day's co-located meetings are a handful, so no FlatList;
-          $modalContent's maxHeight: "70%" caps the pathological case. */}
+          A venue is one address, and a clubhouse can host 8-12 meetings in a
+          single day — this list is data-driven and unbounded, unlike the fixed,
+          short option lists the other selector modals show. $modalContent's
+          maxHeight: "70%" caps the CARD's height, not the row count — it does
+          NOT make overflowed rows reachable. Without the ScrollView below,
+          rows past what fits are clipped (Android) or drawn outside the card
+          and untappable (iOS). Plain ScrollView rather than FlatList to stay
+          consistent with the inline-`.map()` shape above; revisit if a venue
+          list large enough to need virtualization ever turns up. */}
       <Modal
         visible={venueMeetings.length > 0}
         transparent
@@ -1144,24 +1169,26 @@ export const InPersonContent: FC<{ active: boolean }> = observer(function InPers
         <Pressable style={themed($modalOverlay)} onPress={handleVenueChooserClose}>
           <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("inPersonScreen:venueMeetings")}</Text>
-            {venueMeetings.map((m) => (
-              // Every prop mirrors the list's `renderItem` exactly — a row that
-              // reads differently here than three taps away in the list would
-              // look like two different meetings.
-              <MeetingRow
-                key={m.id}
-                meeting={m}
-                distanceLabel={
-                  mode === "nearby"
-                    ? formatDistance(m.distance_m, useMiles) || undefined
-                    : undefined
-                }
-                rating={displayFeedback.get(m.id)?.rates ?? 0}
-                isFavorite={displayFeedback.get(m.id)?.loves ?? false}
-                hasReminder={meetingHasReminder(m, reminderLookup)}
-                onPress={handleVenueChooserPick}
-              />
-            ))}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {venueMeetings.map((m) => (
+                // Every prop mirrors the list's `renderItem` exactly — a row that
+                // reads differently here than three taps away in the list would
+                // look like two different meetings.
+                <MeetingRow
+                  key={m.id}
+                  meeting={m}
+                  distanceLabel={
+                    mode === "nearby"
+                      ? formatDistance(m.distance_m, useMiles) || undefined
+                      : undefined
+                  }
+                  rating={displayFeedback.get(m.id)?.rates ?? 0}
+                  isFavorite={displayFeedback.get(m.id)?.loves ?? false}
+                  hasReminder={meetingHasReminder(m, reminderLookup)}
+                  onPress={handleVenueChooserPick}
+                />
+              ))}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>

@@ -2,11 +2,15 @@
  * InPersonMapView — WEB STUB. Do not delete without reading this comment.
  *
  * Metro resolves platform-specific extensions (`.web.tsx` / `.ios.tsx` /
- * `.android.tsx`) before the bare `.tsx` file for a matching build target
- * (default Expo/Metro `resolver.platforms` behavior — see metro.config.js,
- * which doesn't override it). For the web bundle, this file is picked
- * instead of InPersonMapView.tsx, so `@maplibre/maplibre-react-native` never
- * enters the web module graph at all.
+ * `.android.tsx`) before the bare `.tsx` file for a matching build target.
+ * This is driven by `metro-resolver`'s `resolveSourceFileForAllExts`, which
+ * tries `<name>.<platform>.<ext>` before the bare `<name>.<ext>` using the
+ * `platform` argument passed per bundling request (e.g. `web` for
+ * `expo export --platform web` / `expo start --web`) — it is independent of
+ * the `resolver.platforms` config array in metro.config.js (which this repo
+ * doesn't touch either way). For the web bundle, this file is picked instead
+ * of InPersonMapView.tsx, so `@maplibre/maplibre-react-native` never enters
+ * the web module graph at all.
  *
  * That matters because two of that package's modules call
  * `TurboModuleRegistry.getEnforcing(...)` at MODULE SCOPE, unguarded by any
