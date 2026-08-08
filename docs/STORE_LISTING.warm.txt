@@ -92,7 +92,7 @@ Find a live AA, NA, or CMA meeting happening right now — the link works, the r
 --- KEYWORDS (100-char field, comma-separated, NO spaces) ---
 
 Optimized (89 / 100) — drops words already in the name/subtitle:
-online,virtual,attendance,verified,pinkcloud,zoom,find,sober,anonymous,group,court
+recovery,meeting,finder,addiction,attendance,verified,alcohol,narcotics,meth,dharma
 
 Simple fallback (93 / 100) — one list across both stores:
 aa,na,cma,meetings,online,recovery,attendance,verification,pinkcloud,zoom,find,finder,court

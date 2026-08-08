@@ -1,0 +1,215 @@
+========================================================
+RECOVERYSKY — APP STORE LISTINGS (plain text, paste-ready)
+"IN-PERSON" EDITION — friendly-technical voice
+========================================================
+
+Voice: friendly but technical — say what the app does and how, name real
+numbers, describe the mechanism when it builds trust (GPS verification,
+encryption, foreground-only location). Two exceptions carry over from the
+warm listing: the link-verification bot stays invisible (promise "the link
+works", never the method), and we do NOT advertise unreleased features
+(Sky AI, Social).
+
+ASO pivot: position as a general AA / NA / CMA / RD **meeting finder** —
+online AND in person — rather than an online-only live-meeting app.
+This listing is for the release that ships the In-Person tab; do not
+publish it before that build/OTA is live.
+
+
+========================================================
+GOOGLE PLAY
+========================================================
+
+--- TITLE (30 / 30 — unchanged) ---
+
+RecoverySky AA NA CMA Meetings
+
+(Kept: it's exactly 30 chars and already carries the three highest-volume
+fellowship tokens. "Finder", "RD", and "in person" move to the short
+description, which Google also indexes.)
+
+
+--- SHORT DESCRIPTION (80 / 80) ---
+
+AA, NA, CMA & Recovery Dharma meeting finder — online now or in person near you.
+
+
+--- FULL DESCRIPTION (paste everything between the lines) ---
+
+Find a meeting. Online, in person, happening right now, or any day this week. Then prove you were there, with verified attendance reports.
+
+RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma. It tracks live online meetings you can join in one tap, and more than 55,000 in-person meetings you can walk into — searchable by fellowship, day, time of day, and distance from you.
+
+FIND A MEETING ONLINE
+• See AA, NA, CMA, and Recovery Dharma meetings that are live right now
+• One tap from the listing into the meeting (opens in Zoom Workplace — free, just have it installed)
+• Every meeting's full weekly schedule, so you always know when it's on
+• Filter by fellowship, day, and time
+
+We keep the listings honest: meeting details are kept current, and every live listing is verified. When you tap Join, you get a room with others — not a broken link or a wrong password.
+
+FIND A MEETING NEAR YOU
+• 55,000+ in-person meetings across AA, NA, CMA, and Recovery Dharma
+• Sorted nearest first, with the distance on every row — pick your own search radius
+• Browse any day of the week, or narrow to morning, afternoon, evening, or overnight
+• Every venue has a detail page: address, one-tap directions in your maps app, published contacts, and the full weekly schedule
+• Your location is read only while you're searching or logging in-person attendance — never at app start — and browsing coordinates are never stored or logged
+
+ATTENDANCE YOU CAN PROVE
+If someone needs proof that you're showing up — drug court, DFS, probation, parole, a sponsor, or a treatment team — RecoverySky documents both kinds of meetings:
+• Online attendance records the real time you spent in the meeting
+• In-person attendance is GPS-verified: tap "I'm Here" at the venue, the app confirms you're actually there, then times your visit
+• Your attendance becomes a clean, digitally-verifiable PDF, emailed straight to whoever's asking or yourself
+
+Unlimited reports come with RecoverySky Premium ($6.99/mo), which also unlocks meeting reminders, encrypted cloud backup, and sync across your devices — and keeps RecoverySky alive and growing.
+
+YOUR RECOVERY, IN ONE PLACE
+• Clean-time tracker and milestones
+• Money-saved tracker
+• The 90-in-90 challenge, with a certificate when you finish
+• Meeting history and a simple picture of your progress
+
+PRIVATE BY DESIGN
+Your recovery data is stored encrypted on your device. We don't track you and we don't sell your data — the only thing we'll ever sell is the subscription that keeps the app running. That will never change. RecoverySky is a 501(c)(3) nonprofit organization, and our platform is built and operated on HIPAA-compliant AWS infrastructure.
+
+There's a meeting on right now, and another around the corner this week. Open the app and find it — we'll be here.
+
+Learn more at recoverysky.app
+
+RecoverySky Premium is $6.99/month. Payment is charged to your Google Play account at confirmation. Your subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Google Play account settings.
+
+
+--- KEYWORDS ---
+
+Google Play has no keyword field. It reads the title + short + full
+description — which is why "finder", "in person", "near you", "Recovery
+Dharma", "GPS-verified", and "drug court" all appear in the text above.
+
+
+========================================================
+APPLE APP STORE
+========================================================
+
+--- APP NAME (30 / 30 — unchanged) ---
+
+RecoverySky AA NA CMA Meetings
+
+
+--- SUBTITLE (25 / 30) ---
+
+Online & in-person finder
+
+(Replaces "Live recovery meeting finder": adds the "in-person" token,
+which is the pivot; "meeting" and the fellowships are already in the name.)
+
+
+--- PROMOTIONAL TEXT (167 / 170 — updatable without review) ---
+
+New: in-person meetings. Search 55,000+ AA, NA, CMA & Recovery Dharma meetings near you, get directions, and log GPS-verified attendance — plus every live online room.
+
+
+--- KEYWORDS (100-char field, comma-separated, NO spaces) ---
+
+Optimized (95 / 100) — drops words already in the name/subtitle
+(meetings, online, in-person, finder, AA/NA/CMA):
+recovery,meeting,near,me,dharma,addiction,attendance,court,sober,alcohol,narcotics,meth,zoom,rd
+
+Alternate (91 / 100) — trades "sober,zoom,rd" for the competitor-capture
+token if we'd rather keep chasing Pink Cloud's searchers:
+recovery,meeting,near,me,dharma,addiction,attendance,court,alcohol,narcotics,meth,pinkcloud
+
+
+--- DESCRIPTION ---
+
+Same as the Google Play FULL DESCRIPTION above, through "Learn more at
+recoverysky.app", then replace the final subscription block with:
+
+RecoverySky Premium is $6.99/month. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings.
+Terms of Use: https://www.recoverysky.app/terms
+Privacy Policy: https://www.recoverysky.app/privacy
+
+(^ VERIFY these two URLs are live before submitting — Apple rejects dead links.)
+
+
+========================================================
+WHAT'S NEW / RELEASE NOTES
+========================================================
+
+Covers the in-person release (In-Person tab, searchable in-person listings,
+GPS-verified attendance, RD's return, unified meeting card, accessibility).
+Google Play limit: 500 chars.
+
+--- FULL (bulleted, ~480 / 500) ---
+
+RecoverySky now finds meetings in the real world, too:
+
+• New In-Person tab: 55,000+ AA, NA, CMA & Recovery Dharma meetings, sorted nearest first — distance, directions, contacts, and weekly schedules included.
+• Search now covers online AND in-person, with fellowship, day, time, and radius filters.
+• GPS-verified in-person attendance: tap "I'm Here" at the venue, and your timed, location-confirmed visit goes on your PDF report.
+• Recovery Dharma is back.
+
+Keep coming back. 🌤️
+
+--- SHORT (~240 / 500) ---
+
+New in RecoverySky:
+• In-Person tab: 55,000+ meetings near you, with directions & schedules
+• Search across online and in-person meetings
+• GPS-verified in-person attendance for your reports
+• Recovery Dharma is back
+
+Keep coming back. 🌤️
+
+
+========================================================
+DECISIONS & RATIONALE
+========================================================
+
+- VOICE: friendly-technical replaces warm. We now name mechanisms when they
+  build trust (GPS verification, encryption at rest, foreground-only
+  location, real meeting counts) — the supervision/court audience and
+  privacy-conscious users both respond to specifics. The two warm-era
+  guardrails that are about SAFETY, not tone, still apply:
+  - Hugo (the verification bot) stays invisible. Outcome, not method.
+    That also rules out monitoring-flavored phrasing like "continuously
+    checked while they're on" — it implies a presence inside the room and
+    spooks meeting hosts and attendees. Say listings are "verified" (state,
+    not activity) and stop there.
+  - Sky AI + Social are NOT advertised — built but hidden pending content.
+- TITLE/NAME unchanged (30/30): already max-length with the top fellowship
+  tokens. The ASO pivot to "meeting finder" lives in the Apple subtitle,
+  Google short description, and keywords instead.
+- "55,000+" is a real number: 55,617 active in-person meetings measured live
+  across all sources (2026-08, see CLAUDE.md "In-Person segment" note).
+  Re-verify the count is still ≥ 55,000 before each store submission; round
+  DOWN to whatever the data supports.
+- RD (Recovery Dharma) claims are live as of 2026-08-04 — RD is a selectable
+  fellowship in Settings/onboarding and the Live / Search / In-Person
+  filters (`EXPO_PUBLIC_FELLOWSHIPS="AA,NA,CMA,RD"` in .env + eas.json).
+  Do not publish this listing against a build made before that config.
+- LOCATION CLAIMS are worded to match actual behavior, and must stay that
+  way: browsing coordinates are foreground-only, never stored/logged/in
+  analytics — but the VERIFIED check-in fix IS saved to the attendance
+  record (that's what makes the report verifiable) and syncs if Cloud
+  Backup is on. So we say "browsing coordinates are never stored", never a
+  blanket "your location never leaves your device." The copy also discloses
+  BOTH reads up front ("while you're searching or logging in-person
+  attendance") — keep that pairing; listing only the search read would make
+  the claim incomplete.
+- "GPS-verified" chosen over "location-verified" — it's the phrase the
+  court/supervision audience actually searches, and it's accurate
+  (usePresenceCheck verifies a GPS fix against the venue).
+- "court" kept in keywords (high-intent supervision audience); "near,me"
+  added for in-person search intent.
+- "pinkcloud" demoted to the alternate keyword list — the general-finder
+  tokens (near me, court, rd) now outrank competitor capture. Swap lists if
+  Pink Cloud referral volume says otherwise.
+- Data Safety / privacy framing unchanged from the warm listing: "we don't
+  track you / don't sell your data", never "we collect nothing" (the app
+  requires an account and offers cloud backup + location features, all
+  disclosed on Google's Data Safety form).
+- NO emoji or exotic Unicode in the Apple Description field — App Store
+  Connect rejects them. Emoji is fine in Google Play's description and in
+  "What's New" on both stores.
+- This file coexists with STORE_LISTING.warm.txt (the warm-voice
+  alternative). Whichever ships, keep the other for A/B reference.
