@@ -202,6 +202,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **MapLibre's native log stream no longer goes to the console.** The map
+  emits one record per failed tile request, and MapLibre routes those to
+  `console.error`, so a slow connection stacked dozens of LogBox overlays
+  ("Failed to load source maptiler_planet_v4: The request timed out") over the
+  app and buried real errors. Those failures are transient and self-healing;
+  the signal that a map is genuinely broken is `onDidFailLoadingMap`, which
+  the In-Person map already handles by falling back to the list. Records now
+  go to the app logger at `debug`, so they stay readable in Metro during
+  development and are dropped before OTLP in production rather than flooding
+  the log backend from every user on a weak connection.
+
 - **The wide `__DEV__` presence radius is now opt-in**, so a development build
   can finally be pointed at the production radius. Previously `__DEV__` builds
   fell back to a hardcoded 10 km whenever the server omitted

@@ -64,6 +64,7 @@ import {
 import { useTranslation } from "react-i18next"
 
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { installMapLogging } from "@/services/maplibre/logging"
 import { useAppTheme } from "@/theme/context"
 import {
   boundsForRadius,
@@ -73,6 +74,13 @@ import {
   parseVenueIds,
   venuesToFeatureCollection,
 } from "@/utils/inPersonMapLogic"
+
+// Installed at module scope, not in an effect, so the handler is in place
+// before MapLibre's own Map component runs its useLayoutEffect and starts
+// pumping native log records. An effect here would run after the child's, and
+// the first failed tile fetch could still reach LogBox. Idempotent — see
+// services/maplibre/logging.ts for why this stream is suppressed at all.
+installMapLogging()
 
 // Exported so the web stub (InPersonMapView.web.tsx) can import this exact
 // type instead of redeclaring it — a redeclared copy would silently drift
