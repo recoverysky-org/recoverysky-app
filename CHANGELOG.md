@@ -296,8 +296,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `PRESENCE_RADIUS_M`.
 - Bumped `@recoverysky-org/common` `^2.4.1` → `^2.5.0` — incidental to
   installing `@maplibre/maplibre-react-native` for the In-Person map view;
-  `npm install` resolved the caret range to the latest published patch at the
-  same time. No schema or code change in this repo depends on it.
+  `npm install` re-resolved the `^2.4.1` caret range to the newest matching
+  minor at the same time. No schema or code change in this repo depends on it.
 
 ### Fixed
 
