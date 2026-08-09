@@ -143,6 +143,10 @@ documentation pass.
       a native-speaker pass before this ships. Full list, with the per-namespace
       breakdown: `docs/translation-review-2026-08-03.md` — treat that document
       as authoritative and do not restate its total here again.
+      WAIVED FOR 4.8.0 (2026-08-09): the 4.8.0 native release shipped these as
+      machine-assisted text by explicit decision. The waiver covers 4.8.0 only
+      and does NOT clear this item — it stays open. Locale files are JS, so a
+      reviewed batch can ship as an OTA on top of 4.8.0 with no native build.
       UPDATED 2026-08-05: this read "133 strings across seven locales
       (ar/de/fr/pt/ru/th/uk) — 70 in `inPersonPopup`, 63 in `inPersonScreen`",
       which was correct on 2026-08-03 and then drifted as four more namespaces

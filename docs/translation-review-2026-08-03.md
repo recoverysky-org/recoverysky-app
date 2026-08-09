@@ -2,6 +2,20 @@
 
 **421 machine-assisted strings awaiting a native-speaker pass before release.**
 
+> **WAIVED FOR 4.8.0 (Jenova, 2026-08-09).** This queue is a release blocker
+> per `TODO.md` and `docs/PRODUCTION_CHECKLIST.md`; for the 4.8.0 native
+> release it was explicitly waived rather than cleared. 4.8.0 ships all 421
+> strings as machine-assisted text. `en` and `es` are human-authored in the
+> plan and unaffected.
+>
+> The waiver covers **4.8.0 only** — it does not clear the queue and does not
+> carry to later releases. The table below is still outstanding work.
+>
+> Correcting these later needs **no native build**: locale files are JS, so a
+> reviewed batch ships as an OTA (`npm run update`) on top of 4.8.0. That is
+> what made waiving cheap, and it is the reason not to let the queue drift —
+> the fix path stays open the whole time.
+
 Standing ruling (Jenova, 2026-08-03): implementers write best-effort
 translations in all nine locales now, and every string gets listed here for
 review before the release ships. `en` and `es` were authored in the plan and

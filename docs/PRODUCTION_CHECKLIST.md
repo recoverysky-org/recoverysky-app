@@ -31,9 +31,16 @@ Step-by-step checklist for preparing and publishing a **native store release**.
       user to day-browse (nearbyFailed banner).
 
 - [ ] **Translation review queue cleared** — `docs/translation-review-2026-08-03.md`
-      tracks 133 machine-assisted strings (ar/de/fr/pt/ru/th/uk) awaiting a
-      native-speaker pass. Confirm it's been reviewed (or explicitly waived)
-      before this release ships; see `TODO.md` for the same item.
+      tracks the machine-assisted strings awaiting a native-speaker pass.
+      Confirm it's been reviewed (or explicitly waived) before this release
+      ships; see `TODO.md` for the same item.
+      CHANGED 2026-08-09: this used to restate the total as "133 strings
+      (ar/de/fr/pt/ru/th/uk)". That was correct on 2026-08-03 and then drifted
+      to 421 across eight locales as more namespaces landed — the same drift
+      `TODO.md` had already been corrected for, which is why that entry now
+      says to treat the review doc as authoritative and never restate its
+      total. A count duplicated into a second file is the thing that goes
+      stale; the pointer is the fix. Do not reintroduce a number here.
 
 ## Version & Native Config
 
