@@ -350,10 +350,12 @@ const ar: Translations = {
     vibrantColors: "زاهية",
     customColor: "لون مخصص",
     resetToDefault: "إعادة التعيين للافتراضي",
-    // Notifications Section
-    notificationsSection: "الإشعارات",
+    // Permissions Section
+    permissionsSection: "Permissions",
     enableNotifications: "الإشعارات الفورية",
     notificationsHint: "تلقَّ تحديثات حول الاجتماعات ومجتمع التعافي",
+    enableLocation: "Location",
+    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
     notificationsDisabledTitle: "الإشعارات معطّلة",
     notificationsDisabledMessage:
       "إشعارات الدفع معطّلة في إعدادات جهازك. هل ترغب في فتح الإعدادات لتفعيلها؟",
@@ -809,6 +811,17 @@ const ar: Translations = {
     fixFailedTitle: "تعذر تحديد موقعك",
     fixFailedMessage: "تعذر الحصول على موقعك. اخرج إلى الخارج أو حاول مرة أخرى بعد قليل.",
     checking: "جارٍ التحقق…",
+  },
+  location: {
+    gateConfirmTitle: "Use your location?",
+    gateConfirmMessage:
+      "Recovery Sky uses your location to show in-person meetings near you, and to confirm you're there when you log attendance.",
+    gateConfirmAccept: "Turn On",
+    gateDeniedTitle: "Location is off",
+    gateDeniedMessage:
+      "Turn on location for Recovery Sky in your device settings to see in-person meetings near you.",
+    openSettings: "Open Settings",
+    emptyNeedsLocation: "Turn on location to see in-person meetings near you.",
   },
   inPersonTimer: {
     title: "مؤقت الحضور",

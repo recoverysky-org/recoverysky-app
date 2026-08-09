@@ -357,10 +357,12 @@ const de: Translations = {
     vibrantColors: "Kräftig",
     customColor: "Eigene Farbe",
     resetToDefault: "Auf Standard zurücksetzen",
-    // Notifications Section
-    notificationsSection: "Benachrichtigungen",
+    // Permissions Section
+    permissionsSection: "Permissions",
     enableNotifications: "Push-Benachrichtigungen",
     notificationsHint: "Erhalte Updates zu Meetings und der Genesungsgemeinschaft",
+    enableLocation: "Location",
+    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
     notificationsDisabledTitle: "Benachrichtigungen deaktiviert",
     notificationsDisabledMessage:
       "Push-Benachrichtigungen sind in deinen Geräteeinstellungen deaktiviert. Möchtest du die Einstellungen öffnen, um sie zu aktivieren?",
@@ -830,6 +832,17 @@ const de: Translations = {
     fixFailedMessage:
       "Wir konnten deinen Standort nicht ermitteln. Geh nach draußen oder versuch es gleich noch einmal.",
     checking: "Wird geprüft…",
+  },
+  location: {
+    gateConfirmTitle: "Use your location?",
+    gateConfirmMessage:
+      "Recovery Sky uses your location to show in-person meetings near you, and to confirm you're there when you log attendance.",
+    gateConfirmAccept: "Turn On",
+    gateDeniedTitle: "Location is off",
+    gateDeniedMessage:
+      "Turn on location for Recovery Sky in your device settings to see in-person meetings near you.",
+    openSettings: "Open Settings",
+    emptyNeedsLocation: "Turn on location to see in-person meetings near you.",
   },
   inPersonTimer: {
     title: "Teilnahme-Timer",

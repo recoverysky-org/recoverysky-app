@@ -355,10 +355,12 @@ const ru: Translations = {
     vibrantColors: "Яркие",
     customColor: "Свой цвет",
     resetToDefault: "Сбросить по умолчанию",
-    // Notifications Section
-    notificationsSection: "Уведомления",
+    // Permissions Section
+    permissionsSection: "Permissions",
     enableNotifications: "Push-уведомления",
     notificationsHint: "Получай обновления о собраниях и сообществе выздоровления",
+    enableLocation: "Location",
+    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
     notificationsDisabledTitle: "Уведомления отключены",
     notificationsDisabledMessage:
       "Push-уведомления отключены в настройках устройства. Хочешь открыть Настройки, чтобы включить их?",
@@ -820,6 +822,17 @@ const ru: Translations = {
     fixFailedMessage:
       "Не удалось определить ваше местоположение. Выйдите на улицу или попробуйте снова через момент.",
     checking: "Проверка…",
+  },
+  location: {
+    gateConfirmTitle: "Use your location?",
+    gateConfirmMessage:
+      "Recovery Sky uses your location to show in-person meetings near you, and to confirm you're there when you log attendance.",
+    gateConfirmAccept: "Turn On",
+    gateDeniedTitle: "Location is off",
+    gateDeniedMessage:
+      "Turn on location for Recovery Sky in your device settings to see in-person meetings near you.",
+    openSettings: "Open Settings",
+    emptyNeedsLocation: "Turn on location to see in-person meetings near you.",
   },
   inPersonTimer: {
     title: "Таймер посещения",

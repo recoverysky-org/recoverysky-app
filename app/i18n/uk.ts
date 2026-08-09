@@ -354,10 +354,12 @@ const uk: Translations = {
     vibrantColors: "Яскраві",
     customColor: "Свій колір",
     resetToDefault: "Скинути за замовчуванням",
-    // Notifications Section
-    notificationsSection: "Сповіщення",
+    // Permissions Section
+    permissionsSection: "Permissions",
     enableNotifications: "Push-сповіщення",
     notificationsHint: "Отримуй оновлення про зустрічі та спільноту одужання",
+    enableLocation: "Location",
+    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
     notificationsDisabledTitle: "Сповіщення вимкнено",
     notificationsDisabledMessage:
       "Push-сповіщення вимкнено в налаштуваннях пристрою. Бажаєш відкрити Налаштування, щоб увімкнути їх?",
@@ -819,6 +821,17 @@ const uk: Translations = {
     fixFailedMessage:
       "Не вдалося визначити ваше місцезнаходження. Вийдіть на вулицю або спробуйте ще раз за мить.",
     checking: "Перевірка…",
+  },
+  location: {
+    gateConfirmTitle: "Use your location?",
+    gateConfirmMessage:
+      "Recovery Sky uses your location to show in-person meetings near you, and to confirm you're there when you log attendance.",
+    gateConfirmAccept: "Turn On",
+    gateDeniedTitle: "Location is off",
+    gateDeniedMessage:
+      "Turn on location for Recovery Sky in your device settings to see in-person meetings near you.",
+    openSettings: "Open Settings",
+    emptyNeedsLocation: "Turn on location to see in-person meetings near you.",
   },
   inPersonTimer: {
     title: "Таймер відвідування",

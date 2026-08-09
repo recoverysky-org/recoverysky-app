@@ -363,10 +363,12 @@ const en = {
     vibrantColors: "Vibrant",
     customColor: "Custom Color",
     resetToDefault: "Reset to Default",
-    // Notifications Section
-    notificationsSection: "Notifications",
+    // Permissions Section
+    permissionsSection: "Permissions",
     enableNotifications: "Push Notifications",
     notificationsHint: "Receive updates about meetings and recovery community",
+    enableLocation: "Location",
+    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
     notificationsDisabledTitle: "Notifications Disabled",
     notificationsDisabledMessage:
       "Push notifications are turned off in your device settings. Would you like to open Settings to enable them?",
@@ -850,6 +852,17 @@ const en = {
     fixFailedTitle: "Couldn't find you",
     fixFailedMessage: "We couldn't get your location. Step outside or try again in a moment.",
     checking: "Checking…",
+  },
+  location: {
+    gateConfirmTitle: "Use your location?",
+    gateConfirmMessage:
+      "Recovery Sky uses your location to show in-person meetings near you, and to confirm you're there when you log attendance.",
+    gateConfirmAccept: "Turn On",
+    gateDeniedTitle: "Location is off",
+    gateDeniedMessage:
+      "Turn on location for Recovery Sky in your device settings to see in-person meetings near you.",
+    openSettings: "Open Settings",
+    emptyNeedsLocation: "Turn on location to see in-person meetings near you.",
   },
   inPersonTimer: {
     title: "Attendance Timer",

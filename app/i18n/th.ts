@@ -351,10 +351,12 @@ const th: Translations = {
     vibrantColors: "สดใส",
     customColor: "สีกำหนดเอง",
     resetToDefault: "รีเซ็ตเป็นค่าเริ่มต้น",
-    // Notifications Section
-    notificationsSection: "การแจ้งเตือน",
+    // Permissions Section
+    permissionsSection: "Permissions",
     enableNotifications: "การแจ้งเตือนแบบพุช",
     notificationsHint: "รับข่าวสารเกี่ยวกับการประชุมและชุมชนการฟื้นตัว",
+    enableLocation: "Location",
+    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
     notificationsDisabledTitle: "การแจ้งเตือนถูกปิด",
     notificationsDisabledMessage:
       "การแจ้งเตือนแบบพุชถูกปิดในการตั้งค่าอุปกรณ์ของคุณ คุณต้องการเปิดการตั้งค่าเพื่อเปิดใช้งานหรือไม่?",
@@ -811,6 +813,17 @@ const th: Translations = {
     fixFailedTitle: "หาตำแหน่งของคุณไม่พบ",
     fixFailedMessage: "เราไม่สามารถรับตำแหน่งของคุณได้ ออกไปข้างนอกหรือลองอีกครั้งในอีกสักครู่",
     checking: "กำลังตรวจสอบ…",
+  },
+  location: {
+    gateConfirmTitle: "Use your location?",
+    gateConfirmMessage:
+      "Recovery Sky uses your location to show in-person meetings near you, and to confirm you're there when you log attendance.",
+    gateConfirmAccept: "Turn On",
+    gateDeniedTitle: "Location is off",
+    gateDeniedMessage:
+      "Turn on location for Recovery Sky in your device settings to see in-person meetings near you.",
+    openSettings: "Open Settings",
+    emptyNeedsLocation: "Turn on location to see in-person meetings near you.",
   },
   inPersonTimer: {
     title: "ตัวจับเวลาการเข้าร่วม",
