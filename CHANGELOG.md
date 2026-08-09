@@ -207,6 +207,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Settings → Subscription puts Restore Purchases above the Upgrade button.**
+  The plain text rows (Expires, Manage Subscription, Restore Purchases) now sit
+  together and the glowing Upgrade call-to-action closes the section, instead of
+  the button splitting the rows in half.
+
 - **MapLibre's native log stream no longer goes to the console.** The map
   emits one record per failed tile request, and MapLibre routes those to
   `console.error`, so a slow connection stacked dozens of LogBox overlays

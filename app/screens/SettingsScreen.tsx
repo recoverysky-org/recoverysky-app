@@ -1254,19 +1254,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               />
             )}
 
-            {/* Upgrade Button (show for Free and Attendance users) */}
-            {!isPremium && (
-              <TouchableOpacity
-                style={themed($upgradeButton)}
-                onPress={handleUpgrade}
-                accessibilityRole="button"
-                accessibilityLabel={translate("settingsScreen:upgradeToPro")}
-              >
-                <Ionicons name="rocket" size={18} color={theme.colors.tint} />
-                <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
-              </TouchableOpacity>
-            )}
-
             {/* Manage Subscription (show for any paid tier) */}
             {(isPremium || hasAttendance) && (
               <TouchableOpacity
@@ -1280,7 +1267,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               </TouchableOpacity>
             )}
 
-            {/* Restore Purchases */}
+            {/* Restore Purchases.
+                CHANGED 2026-08-09: moved above the Upgrade button so the plain text
+                rows stay grouped and the glowing CTA sits last in the section. */}
             <TouchableOpacity
               style={[themed($settingsRow), themed($lastRow)]}
               onPress={handleRestorePurchases}
@@ -1290,6 +1279,19 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
               <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
             </TouchableOpacity>
+
+            {/* Upgrade Button (show for Free and Attendance users) */}
+            {!isPremium && (
+              <TouchableOpacity
+                style={themed($upgradeButton)}
+                onPress={handleUpgrade}
+                accessibilityRole="button"
+                accessibilityLabel={translate("settingsScreen:upgradeToPro")}
+              >
+                <Ionicons name="rocket" size={18} color={theme.colors.tint} />
+                <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
+              </TouchableOpacity>
+            )}
           </>
         )}
       </View>
