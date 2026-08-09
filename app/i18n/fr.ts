@@ -558,6 +558,7 @@ const fr: Translations = {
   attendanceEdit: {
     title: "Modifier la durée",
     minutes: "minutes",
+    slider: "Duration",
     hint: "Original : {{minutes}} min. Vous ne pouvez que réduire la durée.",
     decrement: "Diminuer d'une minute",
     increment: "Augmenter d'une minute",

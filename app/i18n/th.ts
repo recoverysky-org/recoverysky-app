@@ -539,6 +539,7 @@ const th: Translations = {
   attendanceEdit: {
     title: "แก้ไขระยะเวลา",
     minutes: "นาที",
+    slider: "Duration",
     hint: "เดิม: {{minutes}} นาที คุณสามารถลดระยะเวลาได้เท่านั้น",
     decrement: "ลดลงหนึ่งนาที",
     increment: "เพิ่มขึ้นหนึ่งนาที",

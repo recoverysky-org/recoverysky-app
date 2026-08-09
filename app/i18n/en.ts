@@ -558,6 +558,10 @@ const en = {
   attendanceEdit: {
     title: "Edit Duration",
     minutes: "minutes",
+    // Accessibility label for the drag slider. Screen readers append the
+    // current value themselves from accessibilityValue, so this stays a bare
+    // noun rather than "Duration, 60 minutes".
+    slider: "Duration",
     hint: "Original: {{minutes}} min. You can only reduce the duration.",
     decrement: "Decrease by one minute",
     increment: "Increase by one minute",

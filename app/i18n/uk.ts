@@ -546,6 +546,7 @@ const uk: Translations = {
   attendanceEdit: {
     title: "Редагувати тривалість",
     minutes: "хвилин",
+    slider: "Duration",
     hint: "Початково: {{minutes}} хв. Тривалість можна лише зменшити.",
     decrement: "Зменшити на одну хвилину",
     increment: "Збільшити на одну хвилину",

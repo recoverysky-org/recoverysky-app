@@ -547,6 +547,7 @@ const ru: Translations = {
   attendanceEdit: {
     title: "Изменить длительность",
     minutes: "минут",
+    slider: "Duration",
     hint: "Изначально: {{minutes}} мин. Длительность можно только уменьшить.",
     decrement: "Уменьшить на одну минуту",
     increment: "Увеличить на одну минуту",

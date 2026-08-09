@@ -536,6 +536,7 @@ const ar: Translations = {
   attendanceEdit: {
     title: "تعديل المدة",
     minutes: "دقائق",
+    slider: "Duration",
     hint: "الأصلي: {{minutes}} دقيقة. يمكنك فقط تقليل المدة.",
     decrement: "تقليل بدقيقة واحدة",
     increment: "زيادة بدقيقة واحدة",
