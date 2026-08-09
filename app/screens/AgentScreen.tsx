@@ -699,7 +699,13 @@ const $messageBubble: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $userBubble: ThemedStyle<ViewStyle> = ({ colors }) => ({
   alignSelf: "flex-end",
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: same light-mode black-slab fix as
+  // the Settings CTA buttons (ba05fea) — the bubble sits on the screen background,
+  // so `card` is the step-above surface. It now shares a fill with $assistantBubble,
+  // but the two stay distinct the way chat bubbles normally do: opposite alignment,
+  // opposite tail corner, and this one's tint border and glow against the other's
+  // plain border.
+  backgroundColor: colors.card,
   borderWidth: 1,
   borderColor: colors.tint + "40",
   borderBottomRightRadius: 4,
@@ -829,7 +835,10 @@ const $sendButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
   width: 44,
   height: 44,
   borderRadius: 22,
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: same light-mode black-slab fix as
+  // the Settings CTA buttons (ba05fea). `card` because $inputContainer paints no
+  // background of its own — the button sits on the screen background.
+  backgroundColor: colors.card,
   borderWidth: 1.5,
   borderColor: colors.tint,
   alignItems: "center",

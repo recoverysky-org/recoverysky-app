@@ -655,7 +655,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
             <View style={themed($header)}>
               <View
                 style={[
-                  $fellowshipBadge,
+                  themed($fellowshipBadge),
                   { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
                 ]}
               >
@@ -1018,17 +1018,22 @@ const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
-const $fellowshipBadge: ViewStyle = {
+// Was a plain ViewStyle with a hardcoded "#000". CHANGED 2026-08-09: black
+// against the light-mode sheet (colors.background) read as an unstyled slab.
+// colors.card is the elevated surface in both themes, so it sits a step above
+// the sheet either way. borderColor / shadowColor are still supplied inline at
+// the call site because they track the fellowship tint, not the theme.
+const $fellowshipBadge: ThemedStyle<ViewStyle> = ({ colors }) => ({
   paddingHorizontal: 10,
   paddingVertical: 4,
   borderRadius: 12,
-  backgroundColor: "#000",
+  backgroundColor: colors.card,
   borderWidth: 1.5,
   shadowOffset: { width: 0, height: 0 },
   shadowOpacity: 0.6,
   shadowRadius: 6,
   elevation: 8,
-}
+})
 
 const $fellowshipBadgeText: TextStyle = {
   fontSize: 12,
@@ -1101,7 +1106,10 @@ const $directionsButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: same light-mode black-slab fix as
+  // the Settings CTA buttons (ba05fea). `card` here, not `background`, because this
+  // sheet is `colors.background` — card is the step-above surface in both themes.
+  backgroundColor: colors.card,
   borderWidth: 1.5,
   borderColor: colors.tint,
   paddingVertical: spacing.sm,

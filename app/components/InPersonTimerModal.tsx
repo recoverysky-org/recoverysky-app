@@ -463,7 +463,11 @@ const $saveButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   justifyContent: "center",
   gap: spacing.xs,
   paddingVertical: spacing.sm,
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: that painted a black slab onto the
+  // white light-mode card. `background` rather than the `card` used by the Settings
+  // CTA fix (ba05fea) — this button sits ON a `card` sheet, where `card` would be
+  // fill-on-identical-fill, leaving only the border and glow to carry it.
+  backgroundColor: colors.background,
   borderWidth: 1.5,
   borderColor: colors.tint,
   borderRadius: 10,
