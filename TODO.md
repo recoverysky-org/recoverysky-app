@@ -257,10 +257,12 @@ sweep is about closing the remaining holes, not starting from zero.
       `onPress` hits are `Alert.alert` button configs, not components.
 
       Deliberately skipped as unreachable code, not as accepted debt:
-      `app/components/EmptyState.tsx` and `app/screens/WelcomeScreen.tsx` have
-      **zero references anywhere in the app** — Ignite boilerplate, same
-      status as `DevScreen.tsx`. Give them a11y props if anything ever routes
-      to them; better still, delete all three.
+      `app/screens/DevScreen.tsx` has **zero references anywhere in the app** —
+      Ignite-era boilerplate. Give it a11y props if anything ever routes to it;
+      better still, delete it.
+      UPDATED 2026-08-09: this list used to name three files. `WelcomeScreen.tsx`
+      and `EmptyState.tsx` were both deleted rather than given a11y props, along
+      with their i18n blocks and images; `DevScreen.tsx` is what's left.
 
 - [ ] **Not a11y, found during the sweep: `MeetingResultsCard.tsx` has a
       hardcoded English string.** `` `Showing ${n} of ${m} meetings` `` at the

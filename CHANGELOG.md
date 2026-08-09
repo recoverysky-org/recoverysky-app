@@ -22,6 +22,28 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Removed
+
+- **The leftover Ignite template welcome screen.** `WelcomeScreen` was never
+  registered on any navigator and nothing imported it — a dead "Your app,
+  almost ready for launch!" screen carried since the template was scaffolded.
+  Removed along with everything it was keeping alive: the `Welcome` entry in
+  `AppStackParamList`, the `welcomeScreen` block in all nine locale files, and
+  the Ignite lightning-bolt logo plus the welcome face image (`logo`,
+  `welcome-face`, and their `@2x`/`@3x` variants). `config.base.ts`'s
+  `exitRoutes` pointed exclusively at that phantom route, so it never matched a
+  live screen; it is now empty, which is behavior-identical — the Android back
+  handler already fell through to the system default on a non-match.
+
+- **The unused `EmptyState` component.** Another piece of Ignite boilerplate
+  with zero references anywhere in the app — every empty-state UI the app
+  actually ships was hand-rolled in its own screen instead. Removed with its
+  `emptyStateComponent` block in all nine locale files ("So empty... so sad")
+  and the `sad-face` image it was the only consumer of (plus `@2x`/`@3x`).
+
+- **`zoom-signup-example.png`**, orphaned since the bundled Zoom SDK and its
+  `ZoomSetupScreen` / `ZoomLoginScreen` came out in 4.5.0.
+
 ## [4.8.0] — 2026-08-09
 
 ### Added
