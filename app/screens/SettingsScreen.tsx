@@ -29,6 +29,7 @@ import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
+import { showLocationDeniedAlert } from "@/hooks/useLocationGate"
 import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
 import {
@@ -343,19 +344,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       }
 
       if (action === "open-settings") {
-        Alert.alert(
-          translate("location:gateDeniedTitle"),
-          translate("location:gateDeniedMessage"),
-          [
-            { text: translate("common:cancel"), style: "cancel" },
-            {
-              text: translate("location:openSettings"),
-              onPress: () => {
-                Linking.openSettings().catch(() => {})
-              },
-            },
-          ],
-        )
+        showLocationDeniedAlert()
         return
       }
 

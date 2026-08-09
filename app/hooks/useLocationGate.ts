@@ -26,6 +26,24 @@ import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "useLocationGate" })
 
+/**
+ * Show the location-denied alert when the OS has explicitly denied permission.
+ * Used by both the gate (when the user needs to enable location) and the
+ * Settings toggle (when the user tried to enable location). Both call sites
+ * need the same "permission denied, tap to open settings" dialog.
+ */
+export function showLocationDeniedAlert(): void {
+  Alert.alert(translate("location:gateDeniedTitle"), translate("location:gateDeniedMessage"), [
+    { text: translate("common:cancel"), style: "cancel" },
+    {
+      text: translate("location:openSettings"),
+      onPress: () => {
+        Linking.openSettings().catch(() => {})
+      },
+    },
+  ])
+}
+
 export interface UseLocationGateResult {
   /**
    * Run the gate once. Resolves true if location is enabled by the time it
@@ -95,19 +113,7 @@ export function useLocationGate(): UseLocationGateResult {
           })
 
         case "open-settings":
-          Alert.alert(
-            translate("location:gateDeniedTitle"),
-            translate("location:gateDeniedMessage"),
-            [
-              { text: translate("common:cancel"), style: "cancel" },
-              {
-                text: translate("location:openSettings"),
-                onPress: () => {
-                  Linking.openSettings().catch(() => {})
-                },
-              },
-            ],
-          )
+          showLocationDeniedAlert()
           return false
       }
     } catch (err) {
