@@ -1153,7 +1153,11 @@ const $sendButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: same light-mode black-slab fix as
+  // the Settings CTAs and the SchedulePopup Join button. Both places this style is
+  // used — the Reports header and the resend modal — sit on colors.background, so
+  // colors.card reads as an elevated surface in either theme.
+  backgroundColor: colors.card,
   borderWidth: 1.5,
   borderColor: colors.tint,
   paddingVertical: spacing.sm,
