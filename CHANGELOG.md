@@ -340,7 +340,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 - **Push notifications now require a subscription.** They exist to deliver
   meeting reminders, which have always been a premium feature, so the two now
-  match. Existing notification settings are unchanged.
+  match. Your current on/off setting carries over untouched — but without a
+  subscription the Settings row now opens the subscription options instead of
+  toggling, so if you have push switched on and want it off, use your device's
+  notification settings for Recovery Sky.
 
 ### Build
 
