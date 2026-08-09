@@ -373,6 +373,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Settings' big call-to-action buttons no longer show a black slab in light
+  mode.** Upgrade to Premium / Login to Subscribe, Rate RecoverySky, Support and
+  Check for Updates all shared a hardcoded black background, so on a light
+  theme they read as an unstyled dark block dropped onto a pale screen. They now
+  use the theme's elevated-surface colour — white in light mode, near-black in
+  dark — keeping the orange border and glow in both.
+
 - **Subscribing now always offers to turn on cloud backup, however you got to
   the paywall.** The offer only ever appeared for someone who walked to the
   Settings tab by hand and tapped Subscribe there. Every in-app route to the

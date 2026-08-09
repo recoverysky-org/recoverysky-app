@@ -1685,7 +1685,11 @@ const $upgradeButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: that painted a black slab on the
+  // light-mode screen (Upgrade / Rate / Support / Check for Updates all share this
+  // style). colors.card keeps the elevated-surface look in both themes — near-black
+  // (#1A1A1C) in dark, white in light — against the slightly grey screen background.
+  backgroundColor: colors.card,
   borderWidth: 1.5,
   borderColor: colors.tint,
   paddingVertical: spacing.md,
