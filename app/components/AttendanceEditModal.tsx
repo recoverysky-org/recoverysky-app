@@ -341,7 +341,15 @@ const $saveButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   justifyContent: "center",
   gap: spacing.xs,
   paddingVertical: spacing.sm,
-  backgroundColor: "#000",
+  // Was a hardcoded "#000". CHANGED 2026-08-09: that painted a black slab onto the
+  // white light-mode modal. Note this is `background`, NOT the `card` used by the
+  // matching fix in SettingsScreen ($upgradeButton, ba05fea) — that button sits on
+  // the screen background, where `card` is the elevated surface, but this one sits
+  // ON a `card` modal, so `card` here would be fill-on-identical-fill (white on
+  // white in light, #1A1A1C on #1A1A1C in dark) leaving only the border and glow.
+  // `background` contrasts against the card in both themes and keeps the near-black
+  // look this button originally had in dark mode.
+  backgroundColor: colors.background,
   borderWidth: 1.5,
   borderColor: colors.tint,
   borderRadius: 10,
