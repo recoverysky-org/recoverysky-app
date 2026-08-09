@@ -4,6 +4,12 @@
  * Small editor that lets the user reduce an attendance record's duration
  * (minutes). The original duration acts as the hard ceiling — users can only
  * adjust the time downward. Minimum floor is 1 minute.
+ *
+ * CHANGED 2026-08-09: the ±1-minute stepper pair was the ONLY way to change the
+ * value, so correcting an over-long record cost one tap per minute — 60 taps to
+ * remove an hour. A drag slider now spans the legal range and the ± buttons are
+ * demoted to fine adjustment. The reduce-only ceiling and the 1-minute floor are
+ * unchanged.
  */
 
 import { FC, useEffect, useMemo, useState } from "react"
@@ -11,6 +17,7 @@ import { Modal, Pressable, StyleSheet, TextStyle, View, ViewStyle } from "react-
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
+import { MinuteSlider } from "@/components/MinuteSlider"
 import { Text } from "@/components/Text"
 import type { AttendanceRecord } from "@/db"
 import { useAppTheme } from "@/theme/context"
@@ -88,6 +95,29 @@ export const AttendanceEditModal: FC<AttendanceEditModalProps> = ({
             </Text>
           ) : null}
 
+          <View style={themed($minutesDisplay)}>
+            <Text style={themed($minutesValue)}>{minutes}</Text>
+            <Text style={themed($minutesUnit)} tx="attendanceEdit:minutes" />
+          </View>
+
+          <View style={themed($sliderRow)}>
+            <Text style={themed($endpointLabel)}>{MIN_MINUTES}</Text>
+
+            <MinuteSlider
+              value={minutes}
+              min={MIN_MINUTES}
+              max={originalMinutes}
+              onChange={setMinutes}
+              // `saving` disables it for the same reason the buttons check it:
+              // the save is in flight and the value is already committed.
+              disabled={saving}
+              accessibilityLabel={t("attendanceEdit:slider")}
+              testID="attendance-edit-slider"
+            />
+
+            <Text style={themed($endpointLabel)}>{originalMinutes}</Text>
+          </View>
+
           <View style={themed($stepperRow)}>
             <Pressable
               onPress={() => canDecrement && setMinutes((m) => Math.max(MIN_MINUTES, m - 1))}
@@ -108,11 +138,6 @@ export const AttendanceEditModal: FC<AttendanceEditModalProps> = ({
                 color={canDecrement ? theme.colors.tint : theme.colors.textDim}
               />
             </Pressable>
-
-            <View style={themed($minutesDisplay)}>
-              <Text style={themed($minutesValue)}>{minutes}</Text>
-              <Text style={themed($minutesUnit)} tx="attendanceEdit:minutes" />
-            </View>
 
             <Pressable
               onPress={() => canIncrement && setMinutes((m) => Math.min(originalMinutes, m + 1))}
@@ -218,8 +243,9 @@ const $meetingName: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $stepperRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: spacing.lg,
-  marginVertical: spacing.sm,
+  justifyContent: "center",
+  gap: spacing.xl,
+  marginBottom: spacing.xs,
 })
 
 const $stepperButton: ThemedStyle<ViewStyle> = ({ colors }) => ({
@@ -241,9 +267,27 @@ const $stepperPressed: ThemedStyle<ViewStyle> = () => ({
   opacity: 0.7,
 })
 
-const $minutesDisplay: ThemedStyle<ViewStyle> = () => ({
+const $minutesDisplay: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
-  minWidth: 80,
+  marginTop: spacing.xs,
+})
+
+const $sliderRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  width: "100%",
+  marginBottom: spacing.xs,
+})
+
+const $endpointLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  fontVariant: ["tabular-nums"],
+  // Keeps the slider's travel from shifting as the ceiling label goes from
+  // two digits to three.
+  minWidth: 26,
+  textAlign: "center",
 })
 
 const $minutesValue: ThemedStyle<TextStyle> = ({ colors }) => ({
