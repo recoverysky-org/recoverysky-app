@@ -401,6 +401,16 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const handleImHere = useCallback(async () => {
     if (!meeting || isChecking) return
 
+    // Self-heal, deliberately silent. The only way to reach this with the
+    // toggle off is to turn it off in Settings without leaving the In-Person
+    // tab — the segment gate catches every other route. Tapping "I'm Here" is
+    // an explicit request for GPS-verified attendance and the button does
+    // nothing else, so the tap IS the consent; a confirm dialog here would be
+    // asking the user to repeat themselves.
+    if (!profileStore.locationEnabled) {
+      profileStore.setLocationEnabled(true)
+    }
+
     const outcome = await check({ latitude: meeting.latitude, longitude: meeting.longitude })
 
     switch (outcome.status) {
@@ -486,7 +496,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     }
     // The popup stays open in every rejection case above so the user can
     // retry without re-navigating.
-  }, [meeting, isChecking, check, useMiles])
+  }, [meeting, isChecking, check, useMiles, profileStore])
 
   // Copy wrinkle accepted, not fixed: formatDistance renders the 150 m radius
   // as "0.1 mi" for US users, which reads oddly for a threshold. It's the same

@@ -200,6 +200,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   to provide MapTiler style URLs via /config (absent = feature hidden);
   native release only (new native dependency — runtimeVersion bump required).
 
+- **Settings now has a Permissions section** with a Location switch. Recovery
+  Sky asks before using your location and you can turn it off again at any
+  time — previously the only way to stop the app using your position was your
+  device's own settings, with nothing in the app to tell you it was on.
+
 ### Changed
 
 - **MapLibre's native log stream no longer goes to the console.** The map
@@ -327,6 +332,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 - The in-person and online attendance timers now share one implementation, so
   a fix to either reaches both.
+
+- **The In-Person tab now asks for location up front** instead of quietly
+  falling back to a plain day list when it can't get a fix. Until location is
+  on, the tab explains what it needs and offers to turn it on rather than
+  showing a list that silently lacks distances and nearest-first ordering.
+
+- **Push notifications now require a subscription.** They exist to deliver
+  meeting reminders, which have always been a premium feature, so the two now
+  match. Existing notification settings are unchanged.
 
 ### Build
 
