@@ -401,6 +401,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   use the theme's elevated-surface colour — white in light mode, near-black in
   dark — keeping the orange border and glow in both.
 
+- **The live-meeting popup and the Attendance tab's Send Report button follow
+  the theme too.** The popup's Join Meeting button and fellowship badge, and the
+  Send Report button on the Reports tab (and in the resend modal), all carried
+  the same hardcoded black background, so in light mode they read as dark blocks
+  on an otherwise pale surface. Same fix as the Settings buttons; the fellowship
+  colour on the badge and the orange border and glow throughout are unchanged.
+
 - **Subscribing now always offers to turn on cloud backup, however you got to
   the paywall.** The offer only ever appeared for someone who walked to the
   Settings tab by hand and tapped Subscribe there. Every in-app route to the
