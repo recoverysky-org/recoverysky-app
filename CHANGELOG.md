@@ -207,6 +207,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **New splash screen.** The launch image now reads "find your recovery"
+  instead of "find your pink cloud" — the old tagline is in-programme slang
+  that lands as confusing (or as a drug reference) to anyone outside the
+  rooms, which is the wrong first impression for a store listing's first
+  screenshot. The wordmark also sits lower so it clears the sky rather than
+  crowding the top edge. The file was re-exported at a third of its previous
+  size, trimming the app download.
+
 - **Editing an attendance record's duration is now a drag, not 60 taps.** The
   duration editor had a single ±1-minute stepper, so correcting a record that
   ran an hour long meant tapping sixty times. It now has a slider across the
