@@ -6,8 +6,6 @@ import en from "../app/i18n/en"
 // Use this array for keys that for whatever reason aren't greppable so they
 // don't hold your test suite hostage by always failing.
 const EXCEPTIONS: string[] = [
-  // "welcomeScreen:readyForLaunch",
-
   /**
    * This translation key actually shows up in a comment describing the usage of the translate
    * function in the app/i18n/translate.ts file. Because the grep command in the i18n test below

@@ -19,8 +19,15 @@ const BaseConfig: ConfigBaseProps = {
   /**
    * This is a list of all the route names that will exit the app if the back button
    * is pressed while in that screen. Only affects Android.
+   *
+   * CHANGED 2026-08-09: was `["Welcome"]`, an Ignite-template route that this app
+   * never registered — so the list never matched a live route. Emptying it is
+   * behavior-identical: `useBackButtonHandler` (navigationUtilities.ts) falls
+   * through to `return false` on a non-match, letting Android's default handling
+   * exit at the root. Add a real root route name here only if you want the back
+   * button to hard-exit from a screen that still has navigation history.
    */
-  exitRoutes: ["Welcome"],
+  exitRoutes: [],
 }
 
 export default BaseConfig

@@ -33,12 +33,6 @@ const uk: Translations = {
     delete: "Видалити",
     loading: "Завантаження",
   },
-  welcomeScreen: {
-    postscript: "Мабуть, твій додаток виглядає не так.",
-    readyForLaunch: "Твій додаток майже готовий до запуску!",
-    exciting: "(ооо, як захопливо!)",
-    letsGo: "Поїхали!",
-  },
   errorScreen: {
     title: "Несподівана помилка",
     friendlySubtitle:

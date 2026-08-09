@@ -32,12 +32,6 @@ const th: Translations = {
     delete: "ลบ",
     loading: "กำลังโหลด",
   },
-  welcomeScreen: {
-    postscript: "แอปของคุณอาจไม่ได้หน้าตาแบบนี้นะ",
-    readyForLaunch: "แอปของคุณเกือบพร้อมแล้ว!",
-    exciting: "(ว้าว ตื่นเต้นจัง!)",
-    letsGo: "ไปกันเลย!",
-  },
   errorScreen: {
     title: "เกิดข้อผิดพลาดที่ไม่คาดคิด",
     friendlySubtitle:

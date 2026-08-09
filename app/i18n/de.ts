@@ -34,12 +34,6 @@ const de: Translations = {
     delete: "Löschen",
     loading: "Wird geladen",
   },
-  welcomeScreen: {
-    postscript: "So sieht deine App wahrscheinlich nicht aus.",
-    readyForLaunch: "Deine App, fast startbereit!",
-    exciting: "(ohh, wie aufregend!)",
-    letsGo: "Los geht's!",
-  },
   errorScreen: {
     title: "Unerwarteter Fehler",
     friendlySubtitle:

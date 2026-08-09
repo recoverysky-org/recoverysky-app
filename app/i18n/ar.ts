@@ -33,12 +33,6 @@ const ar: Translations = {
     delete: "حذف",
     loading: "جارٍ التحميل",
   },
-  welcomeScreen: {
-    postscript: "على الأرجح تطبيقك لا يبدو هكذا.",
-    readyForLaunch: "تطبيقك، شبه جاهز للإطلاق!",
-    exciting: "(واو، هذا مثير!)",
-    letsGo: "هيا بنا!",
-  },
   errorScreen: {
     title: "خطأ غير متوقع",
     friendlySubtitle:

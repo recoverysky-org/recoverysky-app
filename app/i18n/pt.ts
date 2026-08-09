@@ -33,12 +33,6 @@ const pt: Translations = {
     delete: "Excluir",
     loading: "Carregando",
   },
-  welcomeScreen: {
-    postscript: "Provavelmente não é assim que seu app vai ficar.",
-    readyForLaunch: "Seu app, quase pronto pra lançar!",
-    exciting: "(uau, que emocionante!)",
-    letsGo: "Vamos lá!",
-  },
   errorScreen: {
     title: "Erro Inesperado",
     friendlySubtitle:

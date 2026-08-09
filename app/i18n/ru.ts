@@ -33,12 +33,6 @@ const ru: Translations = {
     delete: "Удалить",
     loading: "Загрузка",
   },
-  welcomeScreen: {
-    postscript: "Скорее всего, твоё приложение выглядит не так.",
-    readyForLaunch: "Твоё приложение почти готово к запуску!",
-    exciting: "(ооо, как волнительно!)",
-    letsGo: "Поехали!",
-  },
   errorScreen: {
     title: "Непредвиденная ошибка",
     friendlySubtitle:

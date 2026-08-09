@@ -2,7 +2,10 @@
 destinationDir: app/navigators
 ---
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
-import { WelcomeScreen } from "@/screens/WelcomeScreen"
+// CHANGED 2026-08-09: was WelcomeScreen, deleted as unreachable Ignite
+// boilerplate. This is only a placeholder so a freshly generated navigator
+// compiles — swap it for the screen the new navigator actually owns.
+import { HomeScreen } from "@/screens/HomeScreen"
 
 export type <%= props.pascalCaseName %>NavigatorParamList = {
   Demo: undefined
@@ -12,7 +15,7 @@ const Stack = createNativeStackNavigator<<%= props.pascalCaseName %>NavigatorPar
 export const <%= props.pascalCaseName %>Navigator = () => {
   return (
     <Stack.Navigator screenOptions={{ cardStyle: { backgroundColor: "transparent" }, headerShown: false, }}>
-      <Stack.Screen name="Demo" component={WelcomeScreen} />
+      <Stack.Screen name="Demo" component={HomeScreen} />
     </Stack.Navigator>
   )
 }
