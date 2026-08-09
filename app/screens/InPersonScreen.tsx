@@ -51,9 +51,10 @@ import { useToast } from "@/components/Toast"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
+import { useLocationGate } from "@/hooks/useLocationGate"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
-import { useConfigStore, useNetworkStore } from "@/models"
+import { useConfigStore, useNetworkStore, useProfileStore } from "@/models"
 import {
   consumePendingMeetingId,
   navigate,
@@ -313,6 +314,18 @@ interface InPersonListHeaderProps {
   bannerReason: NearbyBannerReason | null
   /** OS still allows a permission prompt — decides re-ask vs deep link to Settings */
   canAskAgain: boolean
+  /**
+   * ADDED 2026-08-08 (Task 7, dead-end-banner fix): true when the Settings →
+   * Permissions location toggle is off. `useNearbySchedules`' short circuit
+   * (see its header comment) means `bannerReason` reports "denied" in this
+   * state too — the OS permission is untouched, only our own app-level gate
+   * is off — so without this the banner would show the OS-denial copy over a
+   * tap that silently does nothing (`requestLocation()` never reaches the OS
+   * while the toggle is off). This is checked FIRST, ahead of every
+   * `bannerReason` branch below, and overrides both the copy and the a11y
+   * hint to match what tapping actually does: run the app-level gate.
+   */
+  locationDisabled: boolean
   showSpinner: boolean
   onOpenFellowship: () => void
   onOpenDay: () => void
@@ -335,6 +348,7 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
   shortTimeLabel,
   bannerReason,
   canAskAgain,
+  locationDisabled,
   showSpinner,
   onOpenFellowship,
   onOpenDay,
@@ -355,8 +369,14 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
   // "location" reason. It means permission is granted and the fix didn't land
   // — telling that user to enable location is both wrong and unactionable, so
   // it gets the retry copy instead.
-  const bannerText =
-    bannerReason === "nearbyFailed"
+  // CHANGED 2026-08-08: `locationDisabled` is now checked first — see its doc
+  // comment on InPersonListHeaderProps. It reuses `location:emptyNeedsLocation`
+  // (the same copy the list's empty state shows) rather than a bannerReason
+  // branch, because "denied" here doesn't mean what it normally means: the OS
+  // never said no, our own toggle did.
+  const bannerText = locationDisabled
+    ? t("location:emptyNeedsLocation")
+    : bannerReason === "nearbyFailed"
       ? t("inPersonScreen:nearbyFailedBanner")
       : bannerReason === "fixFailed"
         ? t("inPersonScreen:locationFixFailedBanner")
@@ -371,8 +391,13 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
   // link to Settings) behind one control, so without a hint a screen-reader
   // user has no way to tell them apart. Branches must stay 1:1 with
   // handleBannerPress in InPersonScreen — if you add a route there, add a hint.
-  const bannerHint =
-    bannerReason === "nearbyFailed"
+  // CHANGED 2026-08-08: added the `locationDisabled` branch alongside
+  // handleBannerPress's matching one — a tap now runs the location gate, which
+  // is the same action `doubleTapToAllowLocation` already describes for the OS
+  // re-ask case, so it's reused rather than adding a new string.
+  const bannerHint = locationDisabled
+    ? t("accessibility:doubleTapToAllowLocation")
+    : bannerReason === "nearbyFailed"
       ? t("accessibility:doubleTapToRetry")
       : bannerReason === "fixFailed"
         ? t("accessibility:doubleTapToRetry")
@@ -499,8 +524,16 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
       </View>
 
       {/* Fallback banner — slim, tappable, and the only place the user is told
-          why the list isn't distance-sorted. Absent in nearby/locating modes. */}
-      {!!bannerReason && (
+          why the list isn't distance-sorted. Absent in nearby/locating modes.
+          CHANGED 2026-08-08: `locationDisabled` is OR'd in here so the banner
+          shows as soon as the toggle goes off, even in the window where
+          `bannerReason` hasn't caught up yet — `useNearbySchedules`' internal
+          `permission` state only flips to "denied" the next time it actually
+          runs `acquireLocation` (a pull-to-refresh, a re-request), so a user
+          who flips the toggle off and returns to an already-loaded segment
+          without refreshing would otherwise see no banner at all over a stale,
+          location-derived list. */}
+      {(locationDisabled || !!bannerReason) && (
         <TouchableOpacity
           style={themed($banner)}
           onPress={onBannerPress}
@@ -509,9 +542,12 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
           accessibilityHint={bannerHint}
         >
           <Ionicons
-            // Only a denial is a location-settings problem; the other two
-            // reasons are "try that again", and the glyph should say which.
-            name={bannerReason === "denied" ? "location-outline" : "refresh-outline"}
+            // Only a denial (OS or app-level toggle) is a location-settings
+            // problem; the other two bannerReasons are "try that again", and
+            // the glyph should say which.
+            name={
+              locationDisabled || bannerReason === "denied" ? "location-outline" : "refresh-outline"
+            }
             size={14}
             color={BANNER_ACCENT}
           />
@@ -592,6 +628,23 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // `observer()` note above: this file's store reads must all live in here.
   const configStore = useConfigStore()
   const networkStore = useNetworkStore()
+  const profileStore = useProfileStore()
+  const { runGate } = useLocationGate()
+
+  /**
+   * The location gate. Keyed on `visible` — the segment being on screen —
+   * NOT on the `active` latch, which fires once per mount and would give a
+   * once-ever prompt instead of the every-visit one the spec requires.
+   *
+   * Re-running on every visit is deliberate: it is also how a user who
+   * granted permission in device settings gets picked up, since returning to
+   * the app re-shows this segment and the gate re-reads the OS state.
+   */
+  useEffect(() => {
+    if (!visible) return
+    if (profileStore.locationEnabled) return
+    void runGate()
+  }, [visible, profileStore.locationEnabled, runGate])
 
   const {
     mode,
@@ -693,8 +746,23 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // `!mapFailedThisSession` is the session-only fallback described at that
   // state's definition above: a failed style load drops us to the list for this
   // session without touching the persisted preference.
+  //
+  // ADDED 2026-08-08 (`profileStore.locationEnabled`): with the Settings →
+  // Permissions toggle off, `useNearbySchedules` never has a fix (see its
+  // short circuit in `acquireLocation`), so a persisted `viewMode` of "map"
+  // would otherwise land the user on a MapLibre surface centered on nothing —
+  // `InPersonMapView`'s `getSearchCenter` returns `coordsRef.current`, which is
+  // forced null the whole time the toggle is off. Forcing "list" here is the
+  // same degrade the style-URL and platform checks already perform for a map
+  // that isn't available; a map with no position to center on is exactly as
+  // unavailable.
   const effectiveViewMode: InPersonViewMode =
-    viewMode === "map" && showMapToggle && active && visible && !mapFailedThisSession
+    viewMode === "map" &&
+    showMapToggle &&
+    active &&
+    visible &&
+    !mapFailedThisSession &&
+    profileStore.locationEnabled
       ? "map"
       : "list"
 
@@ -930,7 +998,15 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const handleOpenFellowshipModal = useCallback(() => setFellowshipModalVisible(true), [])
 
   /**
-   * Banner tap routes four ways:
+   * Banner tap routes five ways:
+   * - location toggle off (app-level, not OS) → run the location gate.
+   *   ADDED 2026-08-08 (Task 7): this must come FIRST. Without it, a user in
+   *   this state falls into the `canAskAgain` branch below (leftover `true`
+   *   from the last real OS call — see `useNearbySchedules`' short circuit in
+   *   `acquireLocation`), which calls `requestLocation()`. That short-circuits
+   *   the same way `acquireLocation` always does while the toggle is off, so
+   *   the tap silently did nothing — the dead end this fix closes. Only
+   *   `runGate()` can turn the toggle back on.
    * - nearby fetch failed → just retry the fetch
    * - fix failed (permission granted) → take another run at the position;
    *   `requestLocation` resolves without a dialog when permission is already
@@ -941,6 +1017,10 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    *   ever showing a dialog, so send the user to the OS Settings page instead.
    */
   const handleBannerPress = useCallback(() => {
+    if (!profileStore.locationEnabled) {
+      void runGate()
+      return
+    }
     if (bannerReason === "nearbyFailed") {
       void refresh()
       return
@@ -959,7 +1039,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // user just sees the banner do nothing, which is the same outcome as a
     // silent failure — matches the guarded Linking calls in InPersonPopup.
     Linking.openSettings().catch(() => {})
-  }, [bannerReason, canAskAgain, refresh, requestLocation])
+  }, [profileStore.locationEnabled, runGate, bannerReason, canAskAgain, refresh, requestLocation])
 
   const handleClosePopup = useCallback(() => setSelectedMeeting(null), [])
 
@@ -1039,6 +1119,22 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
   const ListEmptyComponent = useCallback(() => {
+    // Highest priority: without location there is no list at all, so no other
+    // empty-state copy can be true. Tappable, so the user has a route back in
+    // without hunting through Settings.
+    if (!profileStore.locationEnabled) {
+      return (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={() => {
+            void runGate()
+          }}
+          accessibilityRole="button"
+        >
+          <Text style={themed($emptyText)} tx="location:emptyNeedsLocation" />
+        </Pressable>
+      )
+    }
     // Order matters: "you haven't picked a fellowship" outranks any error or
     // empty copy, because the hook treats no-fellowship as a legitimate state
     // that never even issues a request.
@@ -1154,6 +1250,8 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     handleOpenFellowshipModal,
     bannerReason,
     handleBannerPress,
+    profileStore.locationEnabled,
+    runGate,
   ])
 
   // While we're waiting on a permission dialog / GPS fix, or on the very first
@@ -1172,6 +1270,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // the map is never stranded there with no way back to the list.
   const mapToggleDisabled = effectiveViewMode === "list" && networkStore.isOffline
 
+  // ADDED 2026-08-08: with location off there are no meetings to plot and no
+  // idea where the user is, so a map has nothing to show. This is a separate
+  // condition from `shouldShowMapToggle`'s style-URL kill switch — that one
+  // answers "is a map configured", this one answers "is there anything to
+  // put on it".
+  const showMapToggleNow = showMapToggle && profileStore.locationEnabled
+
   return (
     <View style={$screenContainer}>
       {/* The SAME header renders in both modes — deliberately. The filters,
@@ -1188,13 +1293,20 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
             shortTimeLabel={shortTimeLabel}
             bannerReason={bannerReason}
             canAskAgain={canAskAgain}
+            // See the prop's doc comment on InPersonListHeaderProps: this is
+            // the app-level gate, not the OS permission state `bannerReason`
+            // already encodes, and it overrides the banner copy the same way
+            // in both branches.
+            locationDisabled={!profileStore.locationEnabled}
             showSpinner={showSpinner}
             onOpenFellowship={handleOpenFellowshipModal}
             onOpenDay={handleOpenDayModal}
             onOpenRadius={handleOpenRadiusModal}
             onOpenShortTime={handleOpenShortTimeModal}
             onBannerPress={handleBannerPress}
-            showMapToggle={showMapToggle}
+            // See showMapToggleNow definition above — always true here since
+            // effectiveViewMode can only be "map" when location is on.
+            showMapToggle={showMapToggleNow}
             viewMode={effectiveViewMode}
             // See mapToggleDisabled definition above — always false here
             // since effectiveViewMode is narrowed to "map" in this branch.
@@ -1224,13 +1336,14 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               shortTimeLabel={shortTimeLabel}
               bannerReason={bannerReason}
               canAskAgain={canAskAgain}
+              locationDisabled={!profileStore.locationEnabled}
               showSpinner={showSpinner}
               onOpenFellowship={handleOpenFellowshipModal}
               onOpenDay={handleOpenDayModal}
               onOpenRadius={handleOpenRadiusModal}
               onOpenShortTime={handleOpenShortTimeModal}
               onBannerPress={handleBannerPress}
-              showMapToggle={showMapToggle}
+              showMapToggle={showMapToggleNow}
               viewMode={effectiveViewMode}
               // See mapToggleDisabled definition above.
               mapToggleDisabled={mapToggleDisabled}
