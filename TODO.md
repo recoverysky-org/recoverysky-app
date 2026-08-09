@@ -342,6 +342,73 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
 
 ---
 
+## 📍 Settings → Permissions / location gate: deferred items (JS-only — NOT runtimeVersion-gated)
+
+> Context: surfaced during the 2026-08-08/09 build of the Permissions section
+> (spec `docs/superpowers/specs/2026-08-08-settings-permissions-section-design.md`).
+> Everything below was found by review and deliberately deferred — none of it
+> blocks the feature, and each entry says why.
+
+- [ ] **The Location toggle never self-corrects when the OS grant is revoked.**
+      There is no OS→store sync, unlike `notificationsEnabled` (which has one
+      in `app.tsx:914-936`). With `locationEnabled` true and the OS permission
+      revoked in device settings, the In-Person gate early-returns and Settings
+      keeps showing the switch ON for a permission that is gone — the exact
+      state D4 exists to prevent. **Not stranding anyone:** `useNearbySchedules`
+      does not short-circuit while the toggle is on, so it calls the OS, gets
+      denied with `canAskAgain: false`, and the banner routes to device
+      settings. Only the Settings display is stale. Symptom worth knowing:
+      `decideLocationGate` is never called with `locationEnabled: true` in
+      production (the gate skips that case, and `SettingsScreen` hardcodes
+      `false`), so two of its six vitest cases cover paths production cannot
+      reach. Fix: extend the existing AppState resume listener.
+
+- [ ] **Returning from device settings does not re-run the gate**, and the
+      comment at `app/screens/InPersonScreen.tsx:638-641` claims it does.
+      `visible` is `activeSegment === "inperson"` (`MeetingsScreen.tsx:143`) and
+      does not change on foreground resume, so a user who enables location in
+      iOS/Android settings and comes back must switch segments to be picked up.
+      Spec D5 promised this behaviour. **Same fix as the item above** — one
+      AppState resume hook closes both — so land them together, and correct the
+      comment in the same change.
+
+- [ ] **`app.tsx:923-926` re-opts non-premium users into push on every
+      foreground resume**, unconditionally. Pre-existing, but it now interacts
+      badly with the premium gate on the Permissions row: a non-premium user
+      cannot turn push off in-app (every tap opens the paywall), and this path
+      can re-enable it behind them. Worth its own look.
+
+- [ ] **Native-speaker pass on nine new translation strings.** The a11y fix
+      shipped real (machine) translations for `accessibility:doubleTapToUpgrade`
+      in all nine locales rather than the English placeholders the plan called
+      for. Eight are unverified.
+
+- [ ] **`showLocationDeniedAlert` / `runGate` have no re-entrancy guard.**
+      Rapid repeat taps can stack dialogs. Low impact; noted so it is not
+      rediscovered.
+
+- [ ] **`$lastRow` in `PermissionsSection.tsx:150` is a no-op** — `$settingsRow`
+      carries no bottom border, so the modifier does nothing. Harmless, copied
+      verbatim from `SettingsScreen.tsx`'s section chrome.
+
+- [ ] **Spec defect for the record: D6's premise is stale.** It describes
+      removing the day-browse fallback, but that fallback was already removed
+      on 2026-08-04 (`app/utils/nearbyLogic.ts:24-28`). The consequence is that
+      this feature **inherits** the App Store 5.1.1 exposure (gating in-person
+      listings on a permission they don't strictly need) rather than
+      introducing it. If a 5.1.1 rejection ever lands, the spec's own smallest
+      reversal still applies: D7 → prompt once per app launch instead of every
+      segment entry.
+
+- [ ] **Device-only QA not yet run:** VoiceOver/TalkBack on the non-premium
+      push row (confirm focus lands on the row and reaches the paywall, not on
+      the a11y-hidden switch), plus the full permission matrix in
+      `docs/superpowers/plans/2026-08-08-settings-permissions-section.md`
+      → "Manual verification (device only)". Neither test runner can produce
+      real OS permission states.
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).
