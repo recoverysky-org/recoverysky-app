@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.8.0] — 2026-08-09
+
 ### Added
 
 - **In-person meetings now count your visits, the same way online meetings
