@@ -407,6 +407,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   changed, which coming back from the phone's settings doesn't do. It now runs
   when the app returns to the foreground too.
 
+- **Turning Location off in Settings no longer immediately asks you to turn it
+  back on.** Switching Settings → Permissions → Location off could pop a "use
+  your location?" dialog on top of the switch you'd just turned off, which is a
+  fair definition of annoying. The Meetings tab stays loaded in the background,
+  and if the In-Person segment was the last one you looked at, its arrival check
+  was treating your turning the switch off as a reason to run — so it asked. That
+  check now runs when you actually arrive at the In-Person segment, which is when
+  the question makes sense. A choice made in Settings is left alone.
+
 - **Tapping a reminder for an in-person meeting now opens that meeting.**
   It used to open nothing at all. Reminder pushes carry a segment now (the
   server derives it from the meeting's venue), so an in-person reminder lands

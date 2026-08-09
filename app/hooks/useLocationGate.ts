@@ -76,13 +76,20 @@ export function useLocationGate(): UseLocationGateResult {
 
   /**
    * The in-flight gate run, or null. ADDED 2026-08-08 (TODO M6, promoted from
-   * deferred by the AppState resume work): a single foreground resume can now
+   * deferred by the AppState resume work): a single foreground resume could
    * trigger this hook from two directions at once inside InPersonScreen — the
-   * resume listener calls it directly, and app.tsx's revoke sync writes
-   * `locationEnabled = false`, which re-fires the segment's `visible` effect
+   * resume listener calling it directly, and app.tsx's revoke sync writing
+   * `locationEnabled = false`, which re-fired the segment's `visible` effect
    * through its dependency array. Both land on the same hook instance, and
    * each `Alert.alert` is an independent native dialog, so without this the
-   * user gets two stacked prompts for one trip to device Settings.
+   * user got two stacked prompts for one trip to device Settings.
+   *
+   * CHANGED 2026-08-09: that second path is gone — the `visible` effect no
+   * longer re-fires on `locationEnabled` (it was popping a dialog at users who
+   * switched the toggle off in Settings). The guard stays: InPersonScreen still
+   * has two callers on one hook instance, `handleBannerPress` is a third, and
+   * a user double-tapping the banner is enough to stack dialogs. Do not remove
+   * it on the assumption there is only one caller.
    *
    * Sharing the promise rather than dropping the second call is deliberate:
    * every caller still gets a truthful answer about whether location ended up

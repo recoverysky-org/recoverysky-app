@@ -634,6 +634,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const { runGate } = useLocationGate()
 
   /**
+   * True once the gate has run for the current visit; reset on leaving the
+   * segment. See the effect below for why the visit — not the store value — is
+   * what arms it.
+   */
+  const gateRanForVisitRef = useRef(false)
+
+  /**
    * The location gate. Keyed on `visible` — the segment being on screen —
    * NOT on the `active` latch, which fires once per mount and would give a
    * once-ever prompt instead of the every-visit one the spec requires.
@@ -648,9 +655,29 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * the app backgrounds and resumes — so that trip re-fired nothing and a
    * freshly granted permission went unnoticed. The resume listener below is
    * what actually closes that path.
+   *
+   * CHANGED 2026-08-09: the gate now runs only on the false→true edge of
+   * `visible`, not on every change of `locationEnabled`. The Meetings tab stays
+   * mounted while the user is on the Settings tab, so `visible` was still true
+   * over there — and Settings → Permissions → Location OFF writes
+   * `locationEnabled = false`, which is precisely the write that both re-fired
+   * this effect through its dependency array AND stopped the guard below from
+   * short-circuiting. The result was a "turn location on?" dialog thrown on top
+   * of the switch the user had just deliberately turned off. The gate asks when
+   * you arrive at the segment; it does not argue with a choice made elsewhere.
+   *
+   * `locationEnabled` stays in the deps because the body reads it (and must
+   * read a fresh value on a genuine visit) — the ref is what makes that read
+   * non-triggering.
    */
   useEffect(() => {
-    if (!visible) return
+    if (!visible) {
+      // Leaving the segment arms the next visit.
+      gateRanForVisitRef.current = false
+      return
+    }
+    if (gateRanForVisitRef.current) return
+    gateRanForVisitRef.current = true
     if (profileStore.locationEnabled) return
     void runGate()
   }, [visible, profileStore.locationEnabled, runGate])
@@ -660,18 +687,26 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * foreground while this segment is on screen — the device-Settings round trip
    * the effect above cannot see.
    *
-   * The two directions of that trip are covered by different mechanisms and
-   * both are needed:
-   *   - GRANTED in device Settings → nothing in the store changed, so no
-   *     dependency above re-fires. This effect is the only thing that notices.
-   *   - REVOKED in device Settings → app.tsx's resume sync writes
-   *     `locationEnabled = false`, which re-fires the effect above through its
-   *     dependency array.
+   * GRANTED in device Settings is the case this exists for: nothing in the
+   * store changed, so no dependency above re-fires and this effect is the only
+   * thing that notices.
    *
-   * On a revoke both can fire for one resume, and each gate run can raise its
-   * own native Alert. `runGate` is re-entrancy guarded (see useLocationGate) so
-   * they collapse into a single dialog — do not remove that guard on the
-   * assumption this is the only caller.
+   * CHANGED 2026-08-09: this block used to claim the REVOKED direction was
+   * covered by app.tsx's resume sync writing `locationEnabled = false` and
+   * re-firing the effect above through its dependency array. That re-fire is
+   * gone — it was also what popped a dialog at anyone who switched the toggle
+   * off in Settings (see above). Nothing raises an alert on a revoke now, which
+   * is the better behavior anyway: someone who just turned location off in
+   * device Settings does not need us telling them to go turn it on. The screen
+   * still reflects it — `bannerReason` is observed, so the disabled banner
+   * appears on the next render — and the next genuine visit re-runs the gate.
+   *
+   * The read below races app.tsx's async permission read on a revoke resume, so
+   * it will usually still see `locationEnabled === true` and do nothing. That's
+   * the outcome we want; it just isn't guaranteed by ordering. If it loses the
+   * race it runs the gate, which yields an "open device settings" alert — the
+   * same one the next visit would show. Harmless either way, which is why this
+   * is documented rather than synchronized.
    */
   useEffect(() => {
     if (!visible) return
