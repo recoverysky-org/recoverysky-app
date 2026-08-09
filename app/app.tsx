@@ -26,6 +26,7 @@ import { useEffect, useRef, useState } from "react"
 import { Alert, AppState, AppStateStatus, BackHandler, Platform } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
+import * as Location from "expo-location"
 import * as SplashScreen from "expo-splash-screen"
 import { reaction } from "mobx"
 import { Auth0Provider } from "react-native-auth0"
@@ -906,7 +907,11 @@ export function App() {
     return unsubscribe
   }, [])
 
-  // Sync OS notification permission with profileStore on foreground resume
+  // Sync OS notification permission with profileStore on foreground resume.
+  // CHANGED 2026-08-08 (TODO I3): also syncs the location permission, so
+  // Settings can no longer show Location ON for a grant the user revoked in
+  // device Settings. Web is excluded by the early return below for both:
+  // there is no device-settings round trip to come back from.
   useEffect(() => {
     if (!rootStore || Platform.OS === "web") return
 
@@ -926,6 +931,27 @@ export function App() {
             optInNotifications()
           }
         })
+
+        // Location is deliberately ONE-directional — revoke only, no
+        // auto-enable. Notifications above sync both ways because the OS grant
+        // is the whole of that consent. Location has a second, independent
+        // consent: our own `locationEnabled` toggle, which the In-Person gate
+        // asks for separately (`decideLocationGate`'s "confirm-in-app" branch
+        // exists precisely for OS-granted-but-toggle-off). Auto-enabling here
+        // would answer that question on the user's behalf and quietly start
+        // reading their position because they once allowed it for something
+        // else. getForegroundPermissionsAsync only READS — it never prompts.
+        Location.getForegroundPermissionsAsync()
+          .then(({ granted }) => {
+            if (!granted && rootStore.profileStore.locationEnabled) {
+              rootStore.profileStore.setLocationEnabled(false)
+            }
+          })
+          .catch((err) => {
+            // Never fatal: a failed read just leaves the toggle as-is until the
+            // next resume, and the gate re-reads the OS state on every run.
+            log.warn("Location permission resume sync failed", { error: String(err) })
+          })
       }
       appState = nextState
     })

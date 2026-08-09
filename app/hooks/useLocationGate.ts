@@ -15,7 +15,7 @@
  * Spec: docs/superpowers/specs/2026-08-08-settings-permissions-section-design.md
  */
 
-import { useCallback } from "react"
+import { useCallback, useRef } from "react"
 import { Alert, Linking, Platform } from "react-native"
 import * as Location from "expo-location"
 
@@ -74,7 +74,24 @@ export interface UseLocationGateResult {
 export function useLocationGate(): UseLocationGateResult {
   const profileStore = useProfileStore()
 
-  const runGate = useCallback(async (): Promise<boolean> => {
+  /**
+   * The in-flight gate run, or null. ADDED 2026-08-08 (TODO M6, promoted from
+   * deferred by the AppState resume work): a single foreground resume can now
+   * trigger this hook from two directions at once inside InPersonScreen — the
+   * resume listener calls it directly, and app.tsx's revoke sync writes
+   * `locationEnabled = false`, which re-fires the segment's `visible` effect
+   * through its dependency array. Both land on the same hook instance, and
+   * each `Alert.alert` is an independent native dialog, so without this the
+   * user gets two stacked prompts for one trip to device Settings.
+   *
+   * Sharing the promise rather than dropping the second call is deliberate:
+   * every caller still gets a truthful answer about whether location ended up
+   * enabled, which `void`-ing the extra call would not provide if a caller
+   * later starts awaiting it.
+   */
+  const inFlightRef = useRef<Promise<boolean> | null>(null)
+
+  const executeGate = useCallback(async (): Promise<boolean> => {
     try {
       // getForegroundPermissionsAsync does NOT prompt — it only reads. The
       // prompting call is requestForegroundPermissionsAsync below, reached only
@@ -160,6 +177,19 @@ export function useLocationGate(): UseLocationGateResult {
       return false
     }
   }, [profileStore])
+
+  const runGate = useCallback((): Promise<boolean> => {
+    // `executeGate` never rejects (it catches everything), so `.finally` here
+    // is only clearing the slot — there is no rejection to re-surface. Clearing
+    // it in `finally` rather than `then` still matters: if that invariant is
+    // ever broken, a rejected run must not wedge the gate closed forever.
+    if (inFlightRef.current) return inFlightRef.current
+    const run = executeGate().finally(() => {
+      inFlightRef.current = null
+    })
+    inFlightRef.current = run
+    return run
+  }, [executeGate])
 
   return { runGate }
 }

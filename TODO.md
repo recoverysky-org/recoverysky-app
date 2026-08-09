@@ -349,7 +349,8 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
 > Everything below was found by review and deliberately deferred — none of it
 > blocks the feature, and each entry says why.
 
-- [ ] **The Location toggle never self-corrects when the OS grant is revoked.**
+- [x] **DONE 2026-08-08.** The Location toggle never self-corrects when the OS
+      grant is revoked.
       There is no OS→store sync, unlike `notificationsEnabled` (which has one
       in `app.tsx:914-936`). With `locationEnabled` true and the OS permission
       revoked in device settings, the In-Person gate early-returns and Settings
@@ -362,8 +363,16 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
       production (the gate skips that case, and `SettingsScreen` hardcodes
       `false`), so two of its six vitest cases cover paths production cannot
       reach. Fix: extend the existing AppState resume listener.
+      **Resolved:** `app.tsx`'s resume listener now also reads the location
+      permission and clears `locationEnabled` when the grant is gone. The sync
+      is revoke-only by design — auto-enabling on an OS grant would answer the
+      gate's own in-app consent question on the user's behalf. The stale-vitest
+      symptom noted above is now the opposite: `decideLocationGate` still is not
+      reached with `locationEnabled: true`, because the store follows the OS
+      down before the gate runs.
 
-- [ ] **Returning from device settings does not re-run the gate**, and the
+- [x] **DONE 2026-08-08.** Returning from device settings does not re-run the
+      gate, and the
       comment at `app/screens/InPersonScreen.tsx:638-641` claims it does.
       `visible` is `activeSegment === "inperson"` (`MeetingsScreen.tsx:143`) and
       does not change on foreground resume, so a user who enables location in
@@ -371,6 +380,9 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
       Spec D5 promised this behaviour. **Same fix as the item above** — one
       AppState resume hook closes both — so land them together, and correct the
       comment in the same change.
+      **Resolved:** `InPersonScreen` now carries its own resume listener that
+      re-runs the gate while the segment is visible, and the false comment was
+      replaced with a `CHANGED` note recording why it was wrong.
 
 - [ ] **`app.tsx:923-926` re-opts non-premium users into push on every
       foreground resume**, unconditionally. Pre-existing, but it now interacts
@@ -383,9 +395,18 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
       in all nine locales rather than the English placeholders the plan called
       for. Eight are unverified.
 
-- [ ] **`showLocationDeniedAlert` / `runGate` have no re-entrancy guard.**
-      Rapid repeat taps can stack dialogs. Low impact; noted so it is not
-      rediscovered.
+- [x] **PARTLY DONE 2026-08-08.** `showLocationDeniedAlert` / `runGate` have no
+      re-entrancy guard. Rapid repeat taps can stack dialogs. Low impact; noted
+      so it is not rediscovered.
+      **Resolved for `runGate`:** the AppState resume work made this
+      load-bearing rather than cosmetic — a revoke fires the gate from two
+      directions on one resume — so `useLocationGate` now shares an in-flight
+      promise instead of starting a second run. Guard is per hook instance, so
+      it dedupes within a screen, not across `SettingsScreen` and
+      `InPersonScreen` (which cannot both be mounted and interactive anyway).
+      **Still open for `showLocationDeniedAlert`**, which is a plain function
+      with no instance to hang state off; repeat taps on the Settings toggle can
+      still stack its dialog.
 
 - [ ] **`$lastRow` in `PermissionsSection.tsx:150` is a no-op** — `$settingsRow`
       carries no bottom border, so the modifier does nothing. Harmless, copied

@@ -373,6 +373,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Settings no longer shows Location switched on after you've turned it off in
+  your phone's settings.** The app read the OS permission when you flipped the
+  switch and then never re-checked it, so revoking location outside the app left
+  a switch claiming a permission that was gone — and turning it off and back on
+  was the only way to correct it. The app now re-reads the permission whenever it
+  returns to the foreground and turns the switch off if the grant has gone. The
+  reverse is deliberately not automatic: granting location to the app in your
+  phone's settings does not silently switch the feature on, because that's a
+  separate choice the app asks you for directly.
+
+- **Granting location from the In-Person tab's prompt now works without leaving
+  the tab.** If you tapped through to your phone's settings, allowed location,
+  and came back, the tab kept showing the "enable location" state until you
+  switched to another segment and returned — the check only ran when the segment
+  changed, which coming back from the phone's settings doesn't do. It now runs
+  when the app returns to the foreground too.
+
 - **Tapping a reminder for an in-person meeting now opens that meeting.**
   It used to open nothing at all. Reminder pushes carry a segment now (the
   server derives it from the meeting's venue), so an in-person reminder lands

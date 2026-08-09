@@ -25,6 +25,8 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
   FlatList,
   Linking,
   Modal,
@@ -636,15 +638,60 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * NOT on the `active` latch, which fires once per mount and would give a
    * once-ever prompt instead of the every-visit one the spec requires.
    *
-   * Re-running on every visit is deliberate: it is also how a user who
-   * granted permission in device settings gets picked up, since returning to
-   * the app re-shows this segment and the gate re-reads the OS state.
+   * Re-running on every visit is deliberate: switching away to another segment
+   * and back re-reads the OS state, so a permission changed in the meantime is
+   * picked up without a restart.
+   *
+   * CHANGED 2026-08-08 (TODO M1): this comment used to claim the same applied
+   * to a user returning from device Settings. It did not. `visible` is
+   * `activeSegment === "inperson"` (MeetingsScreen), which does not change when
+   * the app backgrounds and resumes — so that trip re-fired nothing and a
+   * freshly granted permission went unnoticed. The resume listener below is
+   * what actually closes that path.
    */
   useEffect(() => {
     if (!visible) return
     if (profileStore.locationEnabled) return
     void runGate()
   }, [visible, profileStore.locationEnabled, runGate])
+
+  /**
+   * ADDED 2026-08-08 (TODO M1): re-run the gate when the app returns to the
+   * foreground while this segment is on screen — the device-Settings round trip
+   * the effect above cannot see.
+   *
+   * The two directions of that trip are covered by different mechanisms and
+   * both are needed:
+   *   - GRANTED in device Settings → nothing in the store changed, so no
+   *     dependency above re-fires. This effect is the only thing that notices.
+   *   - REVOKED in device Settings → app.tsx's resume sync writes
+   *     `locationEnabled = false`, which re-fires the effect above through its
+   *     dependency array.
+   *
+   * On a revoke both can fire for one resume, and each gate run can raise its
+   * own native Alert. `runGate` is re-entrancy guarded (see useLocationGate) so
+   * they collapse into a single dialog — do not remove that guard on the
+   * assumption this is the only caller.
+   */
+  useEffect(() => {
+    if (!visible) return
+
+    let appState = AppState.currentState
+
+    const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      if (appState.match(/inactive|background/) && nextState === "active") {
+        // Read through the store rather than closing over a rendered value:
+        // this callback outlives the render that created it, and app.tsx's
+        // resume sync may write `locationEnabled` on this very transition.
+        if (!profileStore.locationEnabled) void runGate()
+      }
+      appState = nextState
+    })
+
+    return () => {
+      subscription.remove()
+    }
+  }, [visible, profileStore, runGate])
 
   const {
     mode,
