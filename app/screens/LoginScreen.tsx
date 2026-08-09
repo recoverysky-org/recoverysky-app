@@ -8,7 +8,6 @@ import {
   Pressable,
   Modal,
   ScrollView,
-  Linking,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
@@ -137,6 +136,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     }
   }, [termsAlreadyAccepted, proceedWithLogin])
 
+  // Kept for the commented-out anonymous-login button further down (see the
+  // comment above that block). Disabling the rule rather than renaming to
+  // `_handleAnonymousPress` keeps re-enabling a literal one-block uncomment.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAnonymousPress = useCallback(() => {
     log.info("Login button pressed", { type: "anonymous" })
     if (termsAlreadyAccepted) {
@@ -196,26 +199,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           </View>
         )}
 
-        <View style={themed($noticeBanner)}>
-          <Ionicons
-            name="information-circle"
-            size={22}
-            color={theme.colors.tint}
-            style={$noticeIcon}
-          />
-          <Text style={themed($noticeText)}>
-            This is the updated AA/NA Live app. If you are an existing user, log in with the same
-            credentials you used with AA/NA Live. If you need help, please contact{" "}
-            <Text
-              style={themed($noticeLink)}
-              onPress={() => Linking.openURL("https://www.recoverysky.org/support")}
-              accessibilityRole="link"
-            >
-              support
-            </Text>
-            .
-          </Text>
-        </View>
+        {/* REMOVED 2026-08-09: the "This is the updated AA/NA Live app" notice banner.
+            It announced the AA/NA Live → RecoverySky rename to migrating users and has
+            outlived that transition — same reason the matching HomeScreen card is gone. */}
 
         {/* Auth0 OAuth Login */}
         <Pressable
@@ -324,7 +310,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             showsVerticalScrollIndicator
           >
             {contentLoading ? (
-              <ActivityIndicator size="large" color={theme.colors.tint} style={{ marginTop: 40 }} />
+              <ActivityIndicator size="large" color={theme.colors.tint} style={$contentSpinner} />
             ) : (
               <Text style={themed($agreementText)}>
                 {activeTab === "disclaimer" ? disclaimerContent : eulaContent}
@@ -405,40 +391,6 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
   textAlign: "center",
 })
 
-const $noticeBanner: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
-  flexDirection: "row",
-  alignItems: "flex-start",
-  backgroundColor: colors.card,
-  borderWidth: 1.5,
-  borderColor: colors.tint,
-  borderRadius: 12,
-  padding: spacing.md,
-  shadowColor: colors.tint,
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.3,
-  shadowRadius: 6,
-  elevation: 4,
-})
-
-const $noticeIcon: ViewStyle = {
-  marginRight: 10,
-  marginTop: 2,
-}
-
-const $noticeText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  flex: 1,
-  fontSize: 15,
-  fontWeight: "600",
-  lineHeight: 22,
-  color: colors.text,
-})
-
-const $noticeLink: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontWeight: "700",
-  textDecorationLine: "underline",
-})
-
 const $button: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
   flexDirection: "row",
   alignItems: "center",
@@ -466,6 +418,9 @@ const $buttonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
 })
 
+// Kept for the commented-out anonymous-login button — same reasoning as
+// handleAnonymousPress above.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const $buttonTextSecondary: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 18,
   fontWeight: "600",
@@ -475,6 +430,12 @@ const $buttonTextSecondary: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $spinner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginLeft: spacing.sm,
 })
+
+// Breathing room above the spinner while the disclaimer/EULA text loads. Was an
+// inline `{ marginTop: 40 }`, which trips react-native/no-inline-styles.
+const $contentSpinner: ViewStyle = {
+  marginTop: 40,
+}
 
 const $loadingText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,

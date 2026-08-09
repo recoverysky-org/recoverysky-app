@@ -596,6 +596,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   no code path for. Only the When-In-Use string ships now, matching both the
   app's actual behavior and its stated privacy policy.
 
+### Removed
+
+- **The login screen's "This is the updated AA/NA Live app" notice is gone.** It
+  told migrating users to sign in with their old AA/NA Live credentials and
+  pointed at support. That rename is far enough behind us that the banner now
+  just crowds the sign-in screen for people who never used the old app — the
+  same reason the matching Home screen card was retired.
+
 ---
 
 ## [4.7.0] — 2026-07-13
