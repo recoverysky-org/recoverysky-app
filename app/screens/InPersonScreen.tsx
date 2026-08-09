@@ -668,6 +668,42 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     getCoords,
   } = useNearbySchedules(active)
 
+  /**
+   * ADDED 2026-08-09 (whole-branch review, C2): re-acquire when the location
+   * gate flips the toggle on mid-visit.
+   *
+   * Ordering, deterministic and otherwise silent: the driver effect inside
+   * `useNearbySchedules` calls `acquireLocation()` as soon as the segment
+   * activates, and that function's `profileStore.locationEnabled` short
+   * circuit (see its header comment) fires SYNCHRONOUSLY, before its first
+   * `await` — so on a first visit with the toggle off it latches
+   * `permission: "denied"` and `coordsRef: null` immediately. The gate effect
+   * above then resolves `runGate()` seconds later (an Alert or an OS prompt)
+   * and flips `profileStore.locationEnabled` to true — but nothing re-fires
+   * `acquireLocation`: its only dependency is `[profileStore]`, a stable MST
+   * instance whose identity never changes, and it reads `locationEnabled`
+   * INSIDE the callback rather than during render, so MobX has nothing to
+   * track and the hook's driver effect never re-runs. Without this, granting
+   * location lands the user on an empty list under a banner still telling
+   * them to enable it, and pull-to-refresh can't recover it either —
+   * `refresh()` guards on `permission === "granted"`, which stayed "denied".
+   *
+   * `requestLocation` is the exact re-acquire the banner tap already uses
+   * (see `handleBannerPress` below) — reusing it here means granting the
+   * toggle produces the same result as a manual banner tap would, instead of
+   * a second, parallel re-fetch path. The ref is what turns "locationEnabled
+   * is true" into an edge (false→true): without it this would also fire on
+   * every render where it's already true, including the very first one,
+   * duplicating the driver effect's own initial acquire.
+   */
+  const wasLocationEnabledRef = useRef(profileStore.locationEnabled)
+  useEffect(() => {
+    if (profileStore.locationEnabled && !wasLocationEnabledRef.current) {
+      void requestLocation()
+    }
+    wasLocationEnabledRef.current = profileStore.locationEnabled
+  }, [profileStore.locationEnabled, requestLocation])
+
   const [dayModalVisible, setDayModalVisible] = useState(false)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [shortTimeModalVisible, setShortTimeModalVisible] = useState(false)
