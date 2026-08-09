@@ -65,7 +65,12 @@ export function useLocationGate(): UseLocationGateResult {
           // The OS has already said yes; only our own toggle is off. An Alert is
           // the only thing that can change anything here — a deep-link would
           // land the user on a settings screen with location already enabled.
-          return new Promise<boolean>((resolve) => {
+          //
+          // The `await` is load-bearing: without it, if Alert.alert throws, the
+          // rejection bypasses the outer try/catch and propagates to the caller,
+          // re-introducing the defect round 1 fixed. Only `return await p` routes
+          // p's rejection to the local catch block.
+          return await new Promise<boolean>((resolve) => {
             Alert.alert(
               translate("location:gateConfirmTitle"),
               translate("location:gateConfirmMessage"),
