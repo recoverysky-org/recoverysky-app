@@ -14,12 +14,14 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native"
+import * as Location from "expo-location"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
 import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 
 import { Icon } from "@/components/Icon"
+import { PermissionsSection } from "@/components/PermissionsSection"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
@@ -58,6 +60,7 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
+import { decideLocationGate, toOsStatus } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import { parseReturnTo } from "@/utils/returnToLogic"
 import { clear as clearStorage, saveString } from "@/utils/storage"
@@ -307,6 +310,66 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     },
     [profileStore, authStore],
   )
+
+  /**
+   * Escalate only as far as the OS actually requires. Turning the toggle on
+   * when permission is already granted must NOT re-prompt or deep-link —
+   * there is nothing to ask, and sending the user to device settings would
+   * land them on a screen with nothing to change.
+   *
+   * Same request-then-revert shape as handleNotificationsToggle above: if the
+   * OS refuses, the switch goes back to off rather than lying.
+   */
+  const handleLocationToggle = useCallback(
+    async (value: boolean) => {
+      trackEvent("location_toggle", { enabled: value })
+
+      if (!value) {
+        profileStore.setLocationEnabled(false)
+        return
+      }
+
+      const current = await Location.getForegroundPermissionsAsync()
+      const action = decideLocationGate({
+        locationEnabled: false,
+        osStatus: toOsStatus(current),
+      })
+
+      if (action === "confirm-in-app") {
+        // OS already granted — the boolean is the only thing standing in the
+        // way, and the user just asked for it by flipping the switch.
+        profileStore.setLocationEnabled(true)
+        return
+      }
+
+      if (action === "open-settings") {
+        Alert.alert(
+          translate("location:gateDeniedTitle"),
+          translate("location:gateDeniedMessage"),
+          [
+            { text: translate("common:cancel"), style: "cancel" },
+            {
+              text: translate("location:openSettings"),
+              onPress: () => {
+                Linking.openSettings().catch(() => {})
+              },
+            },
+          ],
+        )
+        return
+      }
+
+      // action === "prompt-os"
+      const granted = await Location.requestForegroundPermissionsAsync()
+      profileStore.setLocationEnabled(granted.granted)
+    },
+    [profileStore],
+  )
+
+  const handleNotificationsPaywall = useCallback(() => {
+    trackEvent("notifications_paywall_tapped")
+    void showPaywall()
+  }, [showPaywall])
 
   const handleSyncToggle = useCallback(
     (value: boolean) => {
@@ -1012,30 +1075,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
       </View>
 
-      {/* Notifications Section */}
-      <View style={themed($section)} onLayout={trackSection("notifications")}>
-        <View style={themed($sectionHeader)}>
-          <Ionicons
-            name="notifications-outline"
-            size={20}
-            color={themed($notificationsIconColor).color}
-          />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:notificationsSection" />
-        </View>
-
-        <View style={themed($settingsRow)}>
-          <View style={$styles.flex1}>
-            <Text style={themed($rowLabel)} tx="settingsScreen:enableNotifications" />
-            <Text style={themed($rowHint)} tx="settingsScreen:notificationsHint" />
-          </View>
-          <Switch
-            value={profileStore.notificationsEnabled}
-            onValueChange={handleNotificationsToggle}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:enableNotifications")}
-          />
-        </View>
+      {/* Permissions Section */}
+      <View onLayout={trackSection("permissions")}>
+        <PermissionsSection
+          isPremium={isPremium}
+          notificationsEnabled={profileStore.notificationsEnabled}
+          locationEnabled={profileStore.locationEnabled}
+          onNotificationsToggle={handleNotificationsToggle}
+          onLocationToggle={handleLocationToggle}
+          onNotificationsPaywall={handleNotificationsPaywall}
+        />
       </View>
 
       {/* Attendance Section */}
@@ -1639,10 +1688,6 @@ const $accountIconColor: ThemedStyle<{ color: string }> = () => ({
 
 const $appSettingsIconColor: ThemedStyle<{ color: string }> = () => ({
   color: "#9C27B0",
-})
-
-const $notificationsIconColor: ThemedStyle<{ color: string }> = () => ({
-  color: "#E91E63",
 })
 
 const $attendanceIconColor: ThemedStyle<{ color: string }> = () => ({
