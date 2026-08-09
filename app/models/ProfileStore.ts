@@ -67,7 +67,19 @@ export const ProfileStoreModel = types
     reportEmail: types.optional(types.string, ""),
 
     // Notifications
-    notificationsEnabled: types.optional(types.boolean, true),
+    // CHANGED 2026-08-08: default flipped true → false. Push is now gated on
+    // the premium entitlement and a non-premium user cannot turn it off from
+    // Settings (every tap routes to the paywall), so defaulting it ON would
+    // trap them receiving notifications. Only affects NEW installs — existing
+    // users have a persisted MMKV value that wins over this default.
+    notificationsEnabled: types.optional(types.boolean, false),
+
+    // Location — default OFF. Nothing in the app may read a position until
+    // the user turns this on, and the In-Person segment gate is what asks
+    // (app/utils/locationGateLogic.ts). Kept separate from the OS permission
+    // on purpose: an app cannot revoke its own OS grant, so this is the only
+    // switch that can actually mean "stop using my location".
+    locationEnabled: types.optional(types.boolean, false),
 
     // Import
     imported: types.optional(types.boolean, false),
@@ -333,6 +345,10 @@ export const ProfileStoreModel = types
         self.notificationsEnabled = value
       },
 
+      setLocationEnabled(value: boolean) {
+        self.locationEnabled = value
+      },
+
       setReportEmail(value: string) {
         self.reportEmail = value
       },
@@ -488,7 +504,11 @@ export const ProfileStoreModel = types
         self.themeColor = ""
         self.onboardingCompleted = false
         self.dontShowShortMeetingWarning = false
-        self.notificationsEnabled = true
+        // CHANGED 2026-08-08: was `true`. A reset that re-enabled push would
+        // hand a non-premium user notifications they cannot switch off, since
+        // the Settings row routes to the paywall instead of toggling.
+        self.notificationsEnabled = false
+        self.locationEnabled = false
         self.attendanceEnabled = true
         self.syncEnabled = false // opt-in resets with the profile — consent doesn't survive a reset
         self.enableMeetingTopic = true
