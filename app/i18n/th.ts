@@ -739,6 +739,7 @@ const th: Translations = {
     doubleTapToChoose: "แตะสองครั้งเพื่อเลือก",
     doubleTapToDismiss: "แตะสองครั้งเพื่อปิด",
     doubleTapToSave: "แตะสองครั้งเพื่อบันทึก",
+    doubleTapToUpgrade: "แตะสองครั้งเพื่อดูตัวเลือกการสมัครสมาชิก",
     favoriteToggle: "สลับรายการโปรด",
     rateStars: "ให้คะแนน {{count}} ดาว",
     expandDescription: "ขยายคำอธิบาย",

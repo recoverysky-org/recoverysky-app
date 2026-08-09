@@ -747,6 +747,7 @@ const ru: Translations = {
     doubleTapToChoose: "Коснитесь дважды, чтобы выбрать",
     doubleTapToDismiss: "Коснитесь дважды, чтобы закрыть",
     doubleTapToSave: "Коснитесь дважды, чтобы сохранить",
+    doubleTapToUpgrade: "Коснитесь дважды, чтобы посмотреть варианты подписки",
     favoriteToggle: "Переключить избранное",
     rateStars: "Оценить {{count}} звёзд",
     expandDescription: "Развернуть описание",

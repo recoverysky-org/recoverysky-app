@@ -757,6 +757,7 @@ const de: Translations = {
     doubleTapToChoose: "Doppeltippen, um auszuwählen",
     doubleTapToDismiss: "Doppeltippen, um zu schließen",
     doubleTapToSave: "Doppeltippen, um zu speichern",
+    doubleTapToUpgrade: "Doppeltippen, um die Abo-Optionen anzuzeigen",
     favoriteToggle: "Favorit umschalten",
     rateStars: "{{count}} Sterne bewerten",
     expandDescription: "Beschreibung ausklappen",

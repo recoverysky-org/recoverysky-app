@@ -735,6 +735,7 @@ const ar: Translations = {
     doubleTapToChoose: "انقر مرتين للاختيار",
     doubleTapToDismiss: "انقر مرتين للإغلاق",
     doubleTapToSave: "انقر مرتين للحفظ",
+    doubleTapToUpgrade: "انقر مرتين لعرض خيارات الاشتراك",
     favoriteToggle: "تبديل المفضلة",
     rateStars: "تقييم {{count}} نجوم",
     expandDescription: "توسيع الوصف",

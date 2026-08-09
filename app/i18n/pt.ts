@@ -749,6 +749,7 @@ const pt: Translations = {
     doubleTapToChoose: "Toque duas vezes para escolher",
     doubleTapToDismiss: "Toque duas vezes para fechar",
     doubleTapToSave: "Toque duas vezes para salvar",
+    doubleTapToUpgrade: "Toque duas vezes para ver as opções de assinatura",
     favoriteToggle: "Alternar favorito",
     rateStars: "Avaliar {{count}} estrelas",
     expandDescription: "Expandir descrição",

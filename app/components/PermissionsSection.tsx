@@ -28,6 +28,12 @@ interface PermissionsSectionProps {
  * rendered `pointerEvents="none"` inside a Pressable so the whole row is a
  * single tap target and the thumb never animates to a value that immediately
  * snaps back to the store's.
+ * CHANGED 2026-08-09: `pointerEvents="none"` blocks touch but not
+ * accessibility focus — a screen-reader user could still land on the inert
+ * Switch and get no route to the paywall. The non-premium Switch wrapper now
+ * also carries `accessibilityElementsHidden` / `importantForAccessibility`
+ * so focus stays on the Pressable row, which announces the upgrade
+ * label/hint instead.
  */
 export const PermissionsSection: FC<PermissionsSectionProps> = ({
   isPremium,
@@ -62,12 +68,35 @@ export const PermissionsSection: FC<PermissionsSectionProps> = ({
         style={themed($settingsRow)}
         onPress={isPremium ? undefined : onNotificationsPaywall}
         accessibilityRole={isPremium ? undefined : "button"}
+        // Non-premium only: the row itself carries the announcement, because
+        // the Switch beneath it is hidden from the accessibility tree (see
+        // below) — without this, VoiceOver/TalkBack would have nothing to
+        // read out for the row at all.
+        accessibilityLabel={isPremium ? undefined : translate("settingsScreen:upgradeToPro")}
+        accessibilityHint={isPremium ? undefined : translate("accessibility:doubleTapToUpgrade")}
       >
         <View style={$styles.flex1}>
           <Text style={themed($rowLabel)} tx="settingsScreen:enableNotifications" />
           <Text style={themed($rowHint)} tx="settingsScreen:notificationsHint" />
         </View>
-        {isPremium ? pushSwitch : <View pointerEvents="none">{pushSwitch}</View>}
+        {isPremium ? (
+          pushSwitch
+        ) : (
+          // pointerEvents="none" only stops touches — it does NOT remove the
+          // Switch from the accessibility tree, so a screen-reader user could
+          // still land directly on it and find it inert (onValueChange is
+          // undefined, so the stored value can't change, but there'd be no
+          // route to the paywall from there). Hide it from both platforms'
+          // accessibility trees so focus stays on the Pressable above, which
+          // already announces the upgrade label/hint set on it.
+          <View
+            pointerEvents="none"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {pushSwitch}
+          </View>
+        )}
       </Pressable>
 
       <View style={[themed($settingsRow), themed($lastRow)]}>

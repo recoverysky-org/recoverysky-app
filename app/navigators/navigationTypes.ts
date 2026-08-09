@@ -16,11 +16,17 @@ export type MeetingsSegment = "live" | "inperson" | "listings"
 export type AttendanceSection = "new" | "archive" | "reports"
 
 // Section options for Settings tab
+// "permissions" replaced "notifications" 2026-08-08 when the Settings
+// Permissions section (location + gated push) took over the
+// trackSection("permissions") key — see SettingsScreen.tsx. Deep-linking
+// with the old "notifications" literal would type-check but silently no-op
+// (sectionOffsets lookup miss), so it can't be left behind alongside the
+// rename.
 export type SettingsSection =
   | "recovery"
   | "profile"
   | "appSettings"
-  | "notifications"
+  | "permissions"
   | "attendance"
   | "subscription"
   | "cloudBackup"

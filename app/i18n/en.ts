@@ -765,6 +765,7 @@ const en = {
     doubleTapToChoose: "Double-tap to choose",
     doubleTapToDismiss: "Double-tap to dismiss",
     doubleTapToSave: "Double-tap to save",
+    doubleTapToUpgrade: "Double-tap to view subscription options",
     favoriteToggle: "Toggle favorite",
     rateStars: "Rate {{count}} stars",
     expandDescription: "Expand description",

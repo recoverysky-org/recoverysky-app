@@ -746,6 +746,7 @@ const uk: Translations = {
     doubleTapToChoose: "Торкніться двічі, щоб обрати",
     doubleTapToDismiss: "Торкніться двічі, щоб закрити",
     doubleTapToSave: "Торкніться двічі, щоб зберегти",
+    doubleTapToUpgrade: "Торкніться двічі, щоб переглянути варіанти підписки",
     favoriteToggle: "Перемкнути обране",
     rateStars: "Оцінити {{count}} зірок",
     expandDescription: "Розгорнути опис",

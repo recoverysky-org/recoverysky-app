@@ -758,6 +758,7 @@ const fr: Translations = {
     doubleTapToChoose: "Touchez deux fois pour choisir",
     doubleTapToDismiss: "Touchez deux fois pour fermer",
     doubleTapToSave: "Touchez deux fois pour enregistrer",
+    doubleTapToUpgrade: "Touchez deux fois pour afficher les options d'abonnement",
     favoriteToggle: "Basculer le favori",
     rateStars: "Noter {{count}} étoiles",
     expandDescription: "Développer la description",
