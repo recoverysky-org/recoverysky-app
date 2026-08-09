@@ -330,27 +330,42 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         return
       }
 
-      const current = await Location.getForegroundPermissionsAsync()
-      const action = decideLocationGate({
-        locationEnabled: false,
-        osStatus: toOsStatus(current),
-      })
+      // ADDED 2026-08-09 (whole-branch review, I2): both `Location.*` calls
+      // below are unguarded, and this handler is passed to
+      // `PermissionsSection` as `(value: boolean) => void` — nothing in that
+      // chain attaches a `.catch`, so a rejection here used to become an
+      // unhandled promise rejection and a bogus Sentry/Loki error. Same
+      // invariant `useLocationGate.runGate` already holds (see its own
+      // try/catch) and `InPersonScreen.handleBannerPress` guards for its
+      // `Linking.openSettings()` call — the Settings copy of this toggle had
+      // just diverged. On failure, leave the switch truthful: never call
+      // `setLocationEnabled(true)` off the back of an OS call that didn't
+      // actually resolve granted.
+      try {
+        const current = await Location.getForegroundPermissionsAsync()
+        const action = decideLocationGate({
+          locationEnabled: false,
+          osStatus: toOsStatus(current),
+        })
 
-      if (action === "confirm-in-app") {
-        // OS already granted — the boolean is the only thing standing in the
-        // way, and the user just asked for it by flipping the switch.
-        profileStore.setLocationEnabled(true)
-        return
+        if (action === "confirm-in-app") {
+          // OS already granted — the boolean is the only thing standing in the
+          // way, and the user just asked for it by flipping the switch.
+          profileStore.setLocationEnabled(true)
+          return
+        }
+
+        if (action === "open-settings") {
+          showLocationDeniedAlert()
+          return
+        }
+
+        // action === "prompt-os"
+        const granted = await Location.requestForegroundPermissionsAsync()
+        profileStore.setLocationEnabled(granted.granted)
+      } catch (err) {
+        logger.warn("Location toggle failed", { error: String(err) })
       }
-
-      if (action === "open-settings") {
-        showLocationDeniedAlert()
-        return
-      }
-
-      // action === "prompt-os"
-      const granted = await Location.requestForegroundPermissionsAsync()
-      profileStore.setLocationEnabled(granted.granted)
     },
     [profileStore],
   )
