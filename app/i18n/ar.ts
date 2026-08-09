@@ -40,13 +40,6 @@ const ar: Translations = {
     reset: "إعادة تشغيل التطبيق",
     traceTitle: "خطأ من مكدس %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "فارغ جداً... محزن جداً",
-      content: "لم يتم العثور على بيانات بعد. حاول الضغط على الزر للتحديث أو إعادة تحميل التطبيق.",
-      button: "لنحاول مرة أخرى",
-    },
-  },
   errors: {
     invalidEmail: "عنوان البريد الإلكتروني غير صالح.",
     attestationFailedTitle: "فشل التحقق من الجهاز",

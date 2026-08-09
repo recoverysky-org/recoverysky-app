@@ -41,14 +41,6 @@ const de: Translations = {
     reset: "APP NEU STARTEN",
     traceTitle: "Fehler vom %{name}-Stack",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "So leer... so traurig",
-      content:
-        "Noch keine Daten gefunden. Tippe auf den Button, um zu aktualisieren oder die App neu zu laden.",
-      button: "Versuchen wir's nochmal",
-    },
-  },
   errors: {
     invalidEmail: "Ungültige E-Mail-Adresse.",
     attestationFailedTitle: "Geräteverifizierung Fehlgeschlagen",

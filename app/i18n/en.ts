@@ -38,13 +38,6 @@ const en = {
     reset: "RESTART APP",
     traceTitle: "Error from %{name} stack",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "So empty... so sad",
-      content: "No data found yet. Try clicking the button to refresh or reload the app.",
-      button: "Let's try this again",
-    },
-  },
   errors: {
     invalidEmail: "Invalid email address.",
     // Generic / network-flavored fallback (also used for transient connectivity issues).

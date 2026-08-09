@@ -40,14 +40,6 @@ const pt: Translations = {
     reset: "REINICIAR APP",
     traceTitle: "Erro da pilha %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "Tão vazio... tão triste",
-      content:
-        "Nenhum dado encontrado ainda. Tente apertar o botão pra atualizar ou recarregar o app.",
-      button: "Vamos tentar de novo",
-    },
-  },
   errors: {
     invalidEmail: "Endereço de e-mail inválido.",
     attestationFailedTitle: "Falha na Verificação do Dispositivo",

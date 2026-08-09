@@ -40,13 +40,6 @@ const es: Translations = {
     reset: "REINICIAR APP",
     traceTitle: "Error de la pila %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "Tan vacío... tan triste",
-      content: "Aún no hay datos. Intenta presionar el botón para refrescar o recargar la app.",
-      button: "Intentemos de nuevo",
-    },
-  },
   errors: {
     invalidEmail: "Dirección de correo inválida.",
     attestationFailedTitle: "Verificación de Dispositivo Fallida",

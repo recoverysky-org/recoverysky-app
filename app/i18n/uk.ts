@@ -40,14 +40,6 @@ const uk: Translations = {
     reset: "ПЕРЕЗАПУСТИТИ",
     traceTitle: "Помилка зі стеку %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "Так порожньо... так сумно",
-      content:
-        "Даних поки не знайдено. Спробуй натиснути кнопку, щоб оновити або перезавантажити додаток.",
-      button: "Спробуймо ще раз",
-    },
-  },
   errors: {
     invalidEmail: "Невірна електронна адреса.",
     attestationFailedTitle: "Помилка Верифікації Пристрою",

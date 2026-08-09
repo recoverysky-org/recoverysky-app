@@ -39,13 +39,6 @@ const th: Translations = {
     reset: "รีสตาร์ทแอป",
     traceTitle: "ข้อผิดพลาดจากสแต็ก %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "ว่างเปล่าจัง... เศร้าเลย",
-      content: "ยังไม่พบข้อมูลนะ ลองกดปุ่มเพื่อรีเฟรชหรือโหลดแอปใหม่ดูนะ",
-      button: "ลองอีกครั้งนะ",
-    },
-  },
   errors: {
     invalidEmail: "ที่อยู่อีเมลไม่ถูกต้องนะ",
     attestationFailedTitle: "การยืนยันอุปกรณ์ล้มเหลว",

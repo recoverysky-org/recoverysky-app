@@ -41,14 +41,6 @@ const fr: Translations = {
     reset: "REDÉMARRER L'APP",
     traceTitle: "Erreur de la pile %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "Tellement vide... tellement triste",
-      content:
-        "Aucune donnée trouvée. Essaie d'appuyer sur le bouton pour rafraîchir ou recharger l'app.",
-      button: "On essaie encore",
-    },
-  },
   errors: {
     invalidEmail: "Adresse courriel invalide.",
     attestationFailedTitle: "Échec de Vérification de l'Appareil",

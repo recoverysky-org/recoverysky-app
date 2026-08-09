@@ -40,14 +40,6 @@ const ru: Translations = {
     reset: "ПЕРЕЗАПУСТИТЬ",
     traceTitle: "Ошибка из стека %{name}",
   },
-  emptyStateComponent: {
-    generic: {
-      heading: "Так пусто... так грустно",
-      content:
-        "Данные пока не найдены. Попробуй нажать кнопку, чтобы обновить или перезагрузить приложение.",
-      button: "Давай попробуем ещё раз",
-    },
-  },
   errors: {
     invalidEmail: "Неверный адрес электронной почты.",
     attestationFailedTitle: "Ошибка Верификации Устройства",
