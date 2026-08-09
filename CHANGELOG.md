@@ -207,6 +207,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Editing an attendance record's duration is now a drag, not 60 taps.** The
+  duration editor had a single ±1-minute stepper, so correcting a record that
+  ran an hour long meant tapping sixty times. It now has a slider across the
+  whole legal range with the ± buttons kept for landing an exact minute. The
+  editor still only lets you reduce a recorded duration, never inflate it, and
+  the slider is fully operable with VoiceOver and TalkBack.
+
 - **Settings → Subscription puts Restore Purchases above the Upgrade button.**
   The plain text rows (Expires, Manage Subscription, Restore Purchases) now sit
   together and the glowing Upgrade call-to-action closes the section, instead of
