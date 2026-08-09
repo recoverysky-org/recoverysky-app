@@ -61,6 +61,8 @@ npm run release:ios        # Native build + submit to App Store (also: release:a
 - Changed `ios/Podfile`, `ios/Podfile.lock`, or CocoaPods configuration
 - Changed `android/build.gradle`, `android/app/build.gradle`, or native Android config
 - Changed or added EAS build plugins
+- Changed `app.config.ts` or anything under `plugins/` (our three local Expo
+  config plugins — see "Expo Config" below)
 - Changed Expo SDK version
 
 **Do NOT bump for:**
@@ -159,6 +161,36 @@ the exclude list to the committed `package.json` instead, that
 would break dev/preview builds where we genuinely need
 `expo-dev-client`.
 
+## Expo Config: `app.json` + `app.config.ts` + `plugins/`
+
+Three layers, resolved in that order.
+
+**`app.json`** is the static config and is **flat** — `version`, `runtimeVersion`,
+`plugins`, `ios`, `android` sit at the top level, NOT nested under an `expo` key.
+Anything reaching for `config.expo.version` gets `undefined`.
+
+**`app.config.ts`** is the dynamic layer. It imports `tsx/cjs` so config plugins
+can be written in TypeScript without a compile step, then spreads the static
+config and appends the iOS privacy manifest plus our three local plugins.
+
+**`plugins/`** holds those three, each solving something Expo doesn't:
+- `withDebugNetworkSecurity` — cleartext HTTP in debug builds so Metro can reach
+  a physical device, plus a defensive `tools:replace` so our attribute wins any
+  future library-manifest merge conflict.
+- `withSplashScreenWindowBackground` — kills the white flash between the Android
+  system splash and JS first paint by pointing `AppTheme`'s `windowBackground` at
+  a layered drawable mirroring the splash.
+- `withUsesFeatures` — declares hardware features `required="false"` so Play
+  doesn't filter cellular-less tablets, Chromebooks, Android Auto, or Android XR.
+  The Zoom SDK's AAR used to contribute these and we lost them ripping it out in
+  4.5.0.
+
+**⚠️ `expo run:ios` / `run:android` reuse an existing `ios/` / `android/`, so a
+plugin edit silently never runs.** You must `npm run prebuild:clean`. The failure
+mode does not look like a plugin problem — it surfaces as a missing SDK header or
+a mysteriously-unchanged native behavior, and costs an hour if you don't know
+this. Plugin edits are native-shape changes: **bump `runtimeVersion`.**
+
 ## Architecture
 
 ### Path Aliases
@@ -193,11 +225,11 @@ MST with MMKV persistence in `app/models/`:
   - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never persisted to MMKV
   - Computed: `isAuthenticated`
 - **ProfileStore**: User profile and preferences with two storage tiers:
-  - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription`, `themeColor`, `onboardingCompleted`, `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`
+  - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription` / `subscriptionExpires`, `themeColor`, `onboardingCompleted`, `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `locationEnabled` (default OFF — see "Permissions & the Location Gate"), `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`, `seenAnnouncementIds`, `dontShowShortMeetingWarning`, the `moneySaved*` family (weekly total + one per weekday + `moneySavedTobacco`), the `ninety*` family (`ninetyStartDate` / `ninetyStartEpoch` / `ninetyStrictMode` / `ninetyCertificatePath`, plus DEV-only `ninetyDebugDay`)
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
-- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `isLoaded` / `isLoading`. NOT persisted to MMKV (security). There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
+- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `mapStyleUrlLight` / `mapStyleUrlDark` (full MapTiler style URLs — the API key rides inside them and is deliberately **never** baked into the binary), `presenceRadiusM` (default 150 m; `devPresenceRadiusM` overrides it in dev builds only), `isLoaded` / `isLoading`. NOT persisted to MMKV (security). There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
 - **ConversationStore**: AI agent conversation state
 
 ```typescript
@@ -233,7 +265,24 @@ React Navigation v7 in `app/navigators/`:
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. Two tabs are built but **hard-disabled behind local `const … = false` flags**, not entitlements: `agentTabVisible` (Agent — hidden until release-ready) and `socialTabVisible` (Community/Social — hidden pending SPA-side fixes; re-enable with `__DEV__ || isPremium`). `useSubscription()`'s `isPremium` is still read and `void`-ed here so the hook stays wired for future gates — don't "clean up" that line.
 
-**Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Live | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). A `meetingId` route param force-routes to the `live` segment regardless of which segment was active (`SettingsScreen.navigateReturn()` always passes `segment: "live"`) — see the "In-Person segment" note under "Smaller Subsystems" for a known gap this causes.
+**Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Live | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). `MeetingsScreen` is the segmented-control shell; each segment's content is a named export from its own screen file — `LiveContent` (`LiveScreen.tsx`), `InPersonContent` (`InPersonScreen.tsx`), `ListingsContent` (`ListingsScreen.tsx`). All three mount from app start; inactive ones are hidden with `display: "none"`, not unmounted.
+
+A `meetingId` route param force-routes to the segment the caller supplied,
+falling back to `live` only when none is given. It used to hardcode `live`
+unconditionally, which sent in-person deep links to a segment that discards
+in-person records; the four-part `returnTo` form (`Meetings:<segment>:meetingId:<id>`,
+parsed by the vitest-covered `app/utils/returnToLogic.ts`) is what carries the
+segment now. Don't hand-assemble those strings — use the builder in that module.
+
+The In-Person segment takes **two** props and they are not interchangeable.
+`active` (`inPersonActivated`) is a one-way latch — false until the user first
+opens the segment, then true forever — so location is requested lazily and never
+at app start. `visible` is true only while In-Person is the on-screen segment.
+Everything that must survive a segment switch keys off `active`; only the map
+subtree keys off `visible` (via `effectiveViewMode`), because a MapLibre GL
+surface and its native location consumer must not sit alive inside a hidden view.
+Collapsing the two either mounts a GL surface for a segment the user never opened
+or tears down fetch state on every tab tap.
 
 **Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms.
 
@@ -507,10 +556,10 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   `MeetingRow`'s list row is deliberately different — a compact
   `venueName • city` line, not the composed address — so don't "fix" it to
   match the popup.
-  Known gap: the premium paywall's post-purchase `returnTo` round-trip
-  (`SettingsScreen.navigateReturn()`) always force-routes to the `live`
-  segment, so it silently drops in-person deep-links. Deferred — see
-  `TODO.md`.
+  The segment also has a list/map toggle — see "In-Person Map" below.
+  RESOLVED 2026-08-06: the premium paywall's post-purchase `returnTo` round-trip
+  used to force-route to the `live` segment and silently drop in-person
+  deep-links. `returnTo` now carries the segment (see "Navigation").
 
 - **`MeetingRow`** (`app/components/MeetingRow.tsx`, jest-covered) — the one
   meeting row, used by all three Meetings segments and the agent's results
@@ -521,6 +570,74 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   glyph each render when their data is present and are absent when it isn't.
   Add new per-venue chrome the same way — a `venueType` branch here is the
   thing the consolidation was undoing.
+
+### Permissions & the Location Gate
+
+Settings → Permissions holds two rows: Push Notifications (premium-gated) and
+Location. Spec: `docs/superpowers/specs/2026-08-08-settings-permissions-section-design.md`.
+
+- **`app/components/PermissionsSection.tsx`** (jest-covered) — presentational
+  only: no store reads, no side effects, everything arrives as a prop. That is
+  what lets its test mount it without navigation, RevenueCat, or the MST tree.
+  The non-premium push row is deliberately **not** a disabled Switch — a greyed
+  control reads as broken and gets ignored, a live-looking one gets tapped, and
+  every tap is an entry into the subscription funnel. The Switch renders
+  `pointerEvents="none"` inside a Pressable, with `accessibilityElementsHidden` /
+  `importantForAccessibility` so screen-reader focus lands on the row (which
+  announces the upgrade hint) rather than the inert Switch.
+- **`app/utils/locationGateLogic.ts`** (pure, vitest-covered) — `decideLocationGate()`
+  maps `denied → "open-settings"`, `undetermined → "prompt-os"`, and
+  `granted → locationEnabled ? "proceed" : "confirm-in-app"`. Its `LocationOsStatus`
+  is deliberately NOT expo-location's `PermissionStatus` enum: importing that
+  would make the module unimportable by vitest.
+- **`app/hooks/useLocationGate.ts`** — the I/O half. Never throws (OS rejections
+  resolve `false`). Holds an `inFlightRef` single-flight guard because
+  `InPersonScreen` has multiple callers on one hook instance and each
+  `Alert.alert` is an independent native dialog. Both dialog branches carry a
+  **web** fallback (`window.alert` / `window.confirm`): react-native-web's
+  `Alert` is literally a no-op, so on web the native path renders nothing and
+  the confirm branch's Promise never settles.
+- **`usePresenceCheck` → `presenceLogic.ts`** — the GPS presence check behind
+  "I'm Here" (see the In-Person segment note above).
+
+**The trap, hit twice:** never make `profileStore.locationEnabled` both an
+effect's dependency and that same effect's early-return guard. The Meetings tab
+stays mounted behind the Settings tab, so `InPersonScreen`'s `visible` prop is
+still true while the user is in Settings — and switching the Location toggle OFF
+writes the one value that re-fires such an effect *and* disarms its guard in a
+single step. That shipped once as a dialog begging users to re-enable the switch
+they'd just turned off. The gate is keyed on the false→true edge of `visible`
+(a per-visit ref), not on the store value.
+
+### In-Person Map
+
+The In-Person segment's list/map toggle, built on
+`@maplibre/maplibre-react-native` with MapTiler tiles. Spec:
+`docs/superpowers/specs/2026-08-07-in-person-map-view-design.md`.
+
+- **`app/utils/inPersonMapLogic.ts`** (pure, vitest-covered) — feature building,
+  camera fit, venue-id parsing. `InPersonMapView` is dumb by design: venues in,
+  taps out. Don't re-derive any decision in the component.
+  Venue feature `ids` is a **comma-joined string, not an array** — GL feature
+  properties round-trip through the native bridge on tap and arrays have
+  deserialized inconsistently across platforms. `parseVenueIds()` is the only
+  sanctioned reader.
+- **`app/components/InPersonMapView.web.tsx` is a required stub, not dead code.**
+  Two of maplibre's modules call `TurboModuleRegistry.getEnforcing(...)` at
+  module scope with no Platform guard, which throws when the native module is
+  absent. The `.web.tsx` extension makes Metro resolve this file for the web
+  bundle so the package never enters the web module graph at all.
+- **Style URLs come from `/config`** (`mapStyleUrlLight` / `mapStyleUrlDark`), so
+  the MapTiler API key is never baked into the binary.
+- **Privacy:** the map reads `useNearbySchedules`' `coordsRef` through
+  `getSearchCenter` — the one sanctioned new consumer — for the camera fit only,
+  converted straight to a bounding box, never stored or logged. The puck is
+  MapLibre's `NativeUserLocation` (native-side subscription, no coordinate ever
+  reaches JS). **Do not swap in the sibling `UserLocation` component**: it puts
+  every fix into React state and keeps its own continuous native subscription
+  alive independent of our foreground-only `expo-location` lifecycle.
+- Tile egress means MapTiler necessarily sees the viewport; that's accepted and
+  documented in the spec.
 
 ### Theming
 Design token system in `app/theme/`:
@@ -566,10 +683,20 @@ enforced by config, not convention, and it is load-bearing:
   of this repo, and without the exclusion every test is discovered twice, making
   one real failure look like two. Don't remove those ignore patterns.
 
-Coverage is thin (≈13 test files) and deliberately concentrated on pure logic:
-sync decisions, rating decisions, announcements, logger, storage, api problems,
-local dates, i18n. `app/services/sync/index.ts` has **zero** automated coverage
-by design — verify it by hand against the checklist in `docs/BACKUP.md`.
+Coverage is deliberately concentrated on pure logic — 31 test files (24 `.test.ts`
+for vitest, 7 `.test.tsx` for jest) covering sync/rating/announcement decisions,
+location gate, presence, nearby, map features, deep links, `returnTo` parsing,
+filters, sliders, logger, storage, api problems, local dates, i18n. Almost every
+`*Logic.ts` module exists because its sibling hook or component couldn't be
+tested; when you add logic worth asserting on, extract it the same way rather
+than reaching for a jest mock. `app/services/sync/index.ts` has **zero**
+automated coverage by design — verify it by hand against the checklist in
+`docs/BACKUP.md`.
+
+**Nothing runs these for you.** `.forgejo/workflows/make.yml` builds Docker
+images to ECR and carries `branches-ignore: [root]` — there is no CI that runs
+`compile` / `lint` / `test` on this app's code, on any branch. Local verification
+before committing is the only gate that exists.
 
 ## Repo Docs Map
 
@@ -583,7 +710,13 @@ its subsystem:
   holds the dashboard JSON)
 - `docs/PRODUCTION_CHECKLIST.md` — pre-release verification
 - `docs/superpowers/specs/` and `docs/superpowers/plans/` — design specs and
-  implementation plans for in-flight work
+  implementation plans for in-flight work. Most subsystem sections above cite
+  the spec that produced them; read it before reopening a settled decision.
+- `docs/2026-08-07-reminder-inperson-deep-link.md` — reminder → in-person deep
+  link routing
+- `docs/translation-review-2026-08-03.md` — native-speaker review queue for the
+  eight non-English locales
+- `docs/STORE_LISTING.*.txt` — App Store / Play listing copy drafts
 - `EVENTS.md` — the app's event/pub-sub catalog
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
   history, backlog, running work log
@@ -750,15 +883,43 @@ log.error("API failed", { endpoint: "/users" })
 - **Physical device**: Must use your Mac's IP address (e.g., `http://192.168.x.x:4000`)
 - After changing `.env`, restart Metro with `npm start -- --clear`
 
-Key variables in `.env`:
+Key variables in `.env`, grouped by what they feed:
 ```bash
+# Endpoints — the three URLs ConfigStore seeds from before /config answers
 EXPO_PUBLIC_API_URL=http://192.168.x.x:4000     # RecoverySky API
 EXPO_PUBLIC_AGENT_URL=http://192.168.x.x:3333   # AI Agent API
-EXPO_PUBLIC_ZOOM_SDK_KEY=...                     # Zoom SDK client ID
-EXPO_PUBLIC_ZOOM_SDK_SECRET=...                  # Zoom SDK secret
+EXPO_PUBLIC_SOCIAL_URL=...                      # Agora-hosted community site
+EXPO_PUBLIC_AUTH_KEY=...                        # X-API-Key device-auth fallback
+
+# Auth0 (see "Auth, Attestation & Encryption Keys")
+EXPO_PUBLIC_AUTH0_DOMAIN / _CLIENT_ID / _AUDIENCE
+
+# Attestation
+EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER         # Play Integrity
+
+# Telemetry
+EXPO_PUBLIC_OTLP_ENDPOINT / _API_KEY            # logger → Loki
+EXPO_PUBLIC_SENTRY_DSN                          # public identifier, safe to embed
+EXPO_PUBLIC_UMAMI_URL / _WEBSITE_ID / _X_API_KEY
+
+# Behavior knobs
+EXPO_PUBLIC_LOG_LEVEL
+EXPO_PUBLIC_FELLOWSHIPS                         # which fellowships the build offers
+EXPO_PUBLIC_CONFIG_POLL_SECONDS / _MAINTENANCE_SECONDS
+EXPO_PUBLIC_MIN_CREDIT_MINUTES                  # attendance credit floor
+EXPO_PUBLIC_RATING_MIN_DAYS / _MIN_EVENTS       # rating engine soft-ask gates
+EXPO_PUBLIC_JOIN_MEETING_ZID / _PW              # dev-only test meeting
+
+# NOT EXPO_PUBLIC_ — deliberately. Build-time only, never bundled.
+SENTRY_AUTH_TOKEN=...                           # source map upload; real secret
 ```
 
-Production values are set in `eas.json` under `build.base.env`.
+**There are no Zoom variables.** `EXPO_PUBLIC_ZOOM_SDK_KEY` / `_SECRET` were
+removed with the bundled SDK in 4.5.0 (see "Zoom Integration") — if you find
+them referenced anywhere, that reference is stale.
+
+Production values are set in `eas.json` under `build.base.env`; `npm run check:env`
+verifies `.env` and `eas.json` haven't drifted apart.
 
 ## AI Agent Integration
 
@@ -837,8 +998,16 @@ by common-lib's Drizzle migrations; trivial to leave empty).
 
 ## Development Tools
 
-- **Reactotron**: Dev-only debugging (auto-configured)
+- **Reactotron**: Dev-only debugging (auto-configured). Lives in `app/devtools/`,
+  with a `.web.ts` variant so the native client never enters the web bundle.
 - **Dependency Cruiser**: Validates imports, prevents circular dependencies
+  (`npm run lint:deps`; `lint:deps:graph` renders an SVG/PNG import graph and
+  needs graphviz `dot` on PATH)
+- **`app/types/`**: ambient declarations only (`polyfills.d.ts`) — not a shared
+  types barrel. App types live beside the code that owns them.
+- **`.superpowers/sdd/`**: git-ignored per-plan workspaces (ledgers, task briefs,
+  review packages) written by subagent-driven development runs. Scratch, not
+  source — safe to delete, and `git clean -fdx` will.
 - **Ionicons**: Vector icons via `@expo/vector-icons` for icons not in asset registry
 - **`app/screens/DevScreen.tsx`**: currently unreferenced — nothing navigates to
   it and it's absent from `navigationTypes.ts`. It's a parking spot for dev
