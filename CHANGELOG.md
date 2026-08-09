@@ -373,6 +373,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Subscribing now always offers to turn on cloud backup, however you got to
+  the paywall.** The offer only ever appeared for someone who walked to the
+  Settings tab by hand and tapped Subscribe there. Every in-app route to the
+  paywall — the Attendance tab's Subscribe button, the live-meeting popup, the
+  in-person popup — asks to be returned to where it interrupted you afterwards,
+  and that return trip deliberately skipped the prompt so as not to put a dialog
+  in front of what you'd just paid for. In practice that meant almost nobody was
+  ever asked, and attendance history that could have been backed up wasn't.
+  Subscribers are now asked before being handed back to what they were doing.
+  Buyers the offer doesn't apply to — no attendance entitlement, or backup
+  already on — still go straight through with no extra tap.
+
+- **Subscribing from the locked Notifications row now confirms the purchase.**
+  That gate ignored the outcome of the paywall entirely, so buying from it fell
+  silently back to Settings with no confirmation and no cloud-backup offer. It
+  now behaves like the Subscribe button.
+
 - **Settings no longer shows Location switched on after you've turned it off in
   your phone's settings.** The app read the OS permission when you flipped the
   switch and then never re-checked it, so revoking location outside the app left

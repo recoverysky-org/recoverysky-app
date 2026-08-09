@@ -370,11 +370,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     [profileStore],
   )
 
-  const handleNotificationsPaywall = useCallback(() => {
-    trackEvent("notifications_paywall_tapped")
-    void showPaywall()
-  }, [showPaywall])
-
   const handleSyncToggle = useCallback(
     (value: boolean) => {
       profileStore.setSyncEnabled(value)
@@ -562,13 +557,20 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   )
 
   /**
-   * Post-purchase success dialog. Folds the cloud-backup opt-in into the same
-   * Alert rather than stacking a second one on top of it, so a user who just
-   * paid taps through one modal, not two.
+   * Post-purchase cloud-backup opt-in prompt. Doubles as the success dialog —
+   * it carries its own "Subscription active" title, so a user who just paid
+   * taps through one modal, not two.
    *
-   * The prompt only replaces the plain success message when the user can
-   * actually act on it: the attendance entitlement is live AND backup is still
-   * off. Otherwise this is exactly the Alert that has always been here.
+   * Returns whether it actually showed, so callers can fall back to the plain
+   * success Alert. It only applies when the user can act on it: the attendance
+   * entitlement is live AND backup is still off.
+   *
+   * AWAITS THE USER'S TAP. The returned promise resolves on dismissal, not on
+   * presentation, because `handleUpgrade` navigates away afterwards on the
+   * `returnTo` path and the destination must not race the dialog — see the
+   * ordering note there. `cancelable: false` plus `onDismiss` guarantee it
+   * always settles; an Android back-press that stranded the promise would
+   * strand that navigation with it.
    *
    * ENTITLEMENT IS RE-READ, NOT TAKEN FROM `hasAttendance`. That context value
    * is React state captured in this closure when the screen last rendered, so
@@ -585,40 +587,83 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
    *
    * `profileStore.syncEnabled` needs no such care: it's read off the MobX store
    * object at call time, so it's always live.
+   *
+   * CHANGED 2026-08-08: split out of `showPurchaseSuccessAlert` and made
+   * awaitable so every purchase path can run it, not just the one that ended on
+   * Settings. See `handleUpgrade`.
    */
-  const showPurchaseSuccessAlert = useCallback(async () => {
+  const promptCloudBackup = useCallback(async (): Promise<boolean> => {
     const canBackUp = await hasEntitlement(ENTITLEMENTS.ATTENDANCE)
+    if (!canBackUp || profileStore.syncEnabled) return false
 
-    if (!canBackUp || profileStore.syncEnabled) {
+    await new Promise<void>((resolve) => {
       Alert.alert(
         translate("settingsScreen:subscriptionSuccess"),
-        translate("settingsScreen:subscriptionSuccessMessage"),
+        translate("settingsScreen:subscriptionSuccessBackupMessage"),
+        [
+          {
+            text: translate("settingsScreen:cloudBackupPromptDecline"),
+            style: "cancel",
+            onPress: () => {
+              trackEvent("cloud_backup_prompt", { accepted: false })
+              resolve()
+            },
+          },
+          {
+            text: translate("settingsScreen:cloudBackupPromptAccept"),
+            onPress: () => {
+              trackEvent("cloud_backup_prompt", { accepted: true })
+              // Reuse the toggle handler rather than setting syncEnabled here —
+              // it owns the analytics event and the initialBackup() kickoff, and
+              // its fire-and-forget semantics are documented at its definition.
+              // Not awaited, so navigating away immediately after is safe.
+              handleSyncToggle(true)
+              resolve()
+            },
+          },
+        ],
+        // Android-only options. Belt and braces: `cancelable: false` blocks the
+        // back-press/outside-tap dismissal, and `onDismiss` settles the promise
+        // anyway if one ever gets through.
+        { cancelable: false, onDismiss: () => resolve() },
       )
-      return
-    }
+    })
+
+    return true
+  }, [profileStore, handleSyncToggle])
+
+  /**
+   * Post-purchase success dialog for a purchase that ends on Settings. The
+   * backup prompt supersedes it when it applies (it carries the same success
+   * title), so this is the plain message users who can't act on backup get.
+   */
+  const showPurchaseSuccessAlert = useCallback(async () => {
+    const prompted = await promptCloudBackup()
+    if (prompted) return
 
     Alert.alert(
       translate("settingsScreen:subscriptionSuccess"),
-      translate("settingsScreen:subscriptionSuccessBackupMessage"),
-      [
-        {
-          text: translate("settingsScreen:cloudBackupPromptDecline"),
-          style: "cancel",
-          onPress: () => trackEvent("cloud_backup_prompt", { accepted: false }),
-        },
-        {
-          text: translate("settingsScreen:cloudBackupPromptAccept"),
-          onPress: () => {
-            trackEvent("cloud_backup_prompt", { accepted: true })
-            // Reuse the toggle handler rather than setting syncEnabled here —
-            // it owns the analytics event and the initialBackup() kickoff, and
-            // its fire-and-forget semantics are documented at its definition.
-            handleSyncToggle(true)
-          },
-        },
-      ],
+      translate("settingsScreen:subscriptionSuccessMessage"),
     )
-  }, [profileStore, handleSyncToggle])
+  }, [promptCloudBackup])
+
+  /**
+   * Premium gate on the Notifications row. Not the Subscribe button — this is a
+   * locked setting the user tapped — but a purchase made here grants the same
+   * entitlements, so it owes the same follow-up.
+   *
+   * CHANGED 2026-08-08: was a bare `void showPaywall()` that ignored the result
+   * entirely, so buying from this gate confirmed nothing and never offered
+   * cloud backup. Moved below `showPurchaseSuccessAlert` (from just above
+   * `handleSyncToggle`) purely so it can depend on it without a TDZ error.
+   */
+  const handleNotificationsPaywall = useCallback(async () => {
+    trackEvent("notifications_paywall_tapped")
+    const purchased = await showPaywall()
+    if (!purchased) return
+    trackEvent("upgrade_purchased")
+    await showPurchaseSuccessAlert()
+  }, [showPaywall, showPurchaseSuccessAlert])
 
   const handleUpgrade = async () => {
     trackEvent("upgrade_tapped")
@@ -629,9 +674,24 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
       // from Settings itself doesn't re-navigate somewhere stale.
       const returnTo = subscriptionReturn.consume()
       if (returnTo) {
-        // Deliberately no backup prompt on this path: the user hit the paywall
-        // from somewhere else (a meeting popup, the Attendance tab) and is
-        // owed the thing they paid for, not a dialog in front of it.
+        // CHANGED 2026-08-08: this path used to skip the backup prompt on the
+        // reasoning that a user who hit the paywall from elsewhere (a meeting
+        // popup, the Attendance tab) is owed the thing they paid for, not a
+        // dialog in front of it. That made the nudge unreachable in practice —
+        // EVERY in-app route to Subscribe (AttendanceScreen, SchedulePopup,
+        // InPersonPopup) sets `returnTo`, so only a user who walked to the
+        // Settings tab by hand ever saw it. Opting into cloud backup is the
+        // one-time decision that decides whether their attendance history
+        // survives losing the phone, so it now always gets asked.
+        //
+        // PROMPT BEFORE NAVIGATING, and await the tap. Alert is a native dialog
+        // and `navigateReturn` may open an RN Modal (the meeting popups); firing
+        // both in the same tick risks iOS refusing to present one over the
+        // other, which would silently drop the prompt again. Asking here — on
+        // the screen that already presents this Alert reliably — then leaving is
+        // the safe order. `promptCloudBackup` no-ops for buyers it doesn't
+        // apply to, so those users still go straight through.
+        await promptCloudBackup()
         navigateReturn(returnTo)
       } else {
         await showPurchaseSuccessAlert()
