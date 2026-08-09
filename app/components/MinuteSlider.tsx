@@ -62,10 +62,11 @@ export const MinuteSlider: FC<MinuteSliderProps> = ({
   const isDisabled = disabled || max <= min
 
   // Travel width, measured once by onLayout. It lives in BOTH a ref and state
-  // on purpose: the PanResponder closure below is memoized for the life of the
-  // component and reads the ref at gesture time (routing it through state would
-  // re-create the responder mid-drag), while the render needs the state copy to
-  // place the thumb.
+  // on purpose: the PanResponder closure below is memoized once (its deps
+  // array is `[]` — see the useMemo below) and would otherwise keep reading
+  // the stale `travel = 0` captured on the first render if it read state
+  // directly, so gesture-time reads go through the ref instead. The render
+  // still needs the state copy, to place the thumb.
   const travelRef = useRef(0)
   const [travel, setTravel] = useState(0)
 
@@ -110,9 +111,12 @@ export const MinuteSlider: FC<MinuteSliderProps> = ({
         onStartShouldSetPanResponder: () => !propsRef.current.isDisabled,
         onMoveShouldSetPanResponder: () => !propsRef.current.isDisabled,
         onPanResponderGrant: (event) => {
-          // Grant fires with the touch still on this view, so locationX is
-          // accurate here. Emitting on grant is what makes a tap anywhere on
-          // the track jump the thumb to that spot.
+          // locationX is row-relative here only because every child below
+          // (track, fill, thumb) is pointerEvents="none" — RN reports
+          // locationX relative to whichever view is actually touched, so any
+          // child left touchable would shift this coordinate by that child's
+          // own offset from the row's origin. Emitting on grant is what makes
+          // a tap anywhere on the track jump the thumb to that spot.
           grantXRef.current = event.nativeEvent.locationX
           emit(grantXRef.current)
         },
@@ -160,7 +164,18 @@ export const MinuteSlider: FC<MinuteSliderProps> = ({
       accessibilityState={{ disabled: isDisabled }}
       testID={testID}
     >
-      <View style={[themed($track), isDisabled && themed($dimmed)]}>
+      <View
+        style={[themed($track), isDisabled && themed($dimmed)]}
+        // Without this, grabbing the visible 6px bar (the natural place to
+        // grab a slider) makes $track — inset by THUMB_SIZE/2 from the row's
+        // origin — the touched view, so onPanResponderGrant's locationX comes
+        // back relative to the track instead of the row. emit() then
+        // subtracts THUMB_SIZE/2 a second time, and because grantXRef anchors
+        // every subsequent onPanResponderMove via gestureState.dx, the whole
+        // drag inherits a ~14px offset from the finger. Falling through to
+        // the row keeps locationX row-relative, matching what emit() expects.
+        pointerEvents="none"
+      >
         <View style={[themed($fill), { width: `${fraction * 100}%` }]} />
       </View>
 
