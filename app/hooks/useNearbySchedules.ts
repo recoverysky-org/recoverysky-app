@@ -323,6 +323,21 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     let seededFromCache = false
 
     try {
+      // ADDED 2026-08-08: the Settings → Permissions toggle is the outer gate.
+      // When it is off the app must not so much as ASK the OS — the In-Person
+      // segment's own gate (useLocationGate) owns every prompt now, and a
+      // second request from here would double-prompt on first launch.
+      //
+      // Mirrors the denial path below exactly: coordinates are dropped, and
+      // the stale nearby-failure is cleared so it can't steal the banner from
+      // the real reason.
+      if (!profileStore.locationEnabled) {
+        setPermission("denied")
+        coordsRef.current = null
+        setNearbyFetchFailed(false)
+        return false
+      }
+
       const perm = await Location.requestForegroundPermissionsAsync()
       if (!isCurrent()) return false
       setCanAskAgain(perm.canAskAgain)
@@ -413,7 +428,7 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // A newer acquire owns the flag once it starts; don't clear it for them.
       if (isCurrent()) acquiringRef.current = false
     }
-  }, [])
+  }, [profileStore])
 
   /**
    * One fetch function; the path is decided by whether we hold coordinates.
