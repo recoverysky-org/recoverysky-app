@@ -385,6 +385,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Every remaining black-slab button now follows the theme in light mode.** The
+  "Heads up" dialog shown when joining an online meeting had a black Continue
+  button, and the same hardcoded black sat behind the Save buttons on the
+  meeting-topic prompt and both attendance timers, the In-Person popup's
+  Directions button and fellowship badge, and the Sky Agent's send button and
+  message bubbles. All of them now use a theme colour picked for the surface
+  behind them, so nothing reads as an unstyled dark block on a pale screen. The
+  orange borders and glow are unchanged.
+
 - **Settings' big call-to-action buttons no longer show a black slab in light
   mode.** Upgrade to Premium / Login to Subscribe, Rate RecoverySky, Support and
   Check for Updates all shared a hardcoded black background, so on a light
