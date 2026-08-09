@@ -949,13 +949,30 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // one pass over an already-fetched list and — unlike day or radius — triggers
   // no refetch. Keep `meetings` (unfiltered) around: the empty state and the
   // paywall-return popup both need to know what the day actually holds.
-  const visibleMeetings = useMemo(
-    () =>
-      shortTime === DEFAULT_SHORT_TIME
-        ? meetings
-        : meetings.filter((m) => matchesShortTime(m.millis, shortTime)),
-    [meetings, shortTime],
-  )
+  //
+  // ADDED 2026-08-09 (fix round 1, D6 "Declining shows no meeting list"):
+  // `!profileStore.locationEnabled` short-circuits to `[]` regardless of what
+  // `meetings` holds. This is a real spec violation, not a nicety — nothing in
+  // `useNearbySchedules` reactively clears `meetings` when the toggle flips
+  // off; its `permission`/`coords` state only updates the next time
+  // `acquireLocation` actually runs (a pull-to-refresh, a re-request). So a
+  // user who turns the toggle off while the segment isn't visible, then
+  // returns without refreshing, would otherwise keep seeing the
+  // previously-fetched, distance-sorted list computed from a position they
+  // just revoked — the app visibly still using a location it was told to
+  // stop using. `visibleMeetings` is the single choke point feeding both the
+  // list's `data` (below) and the map's `meetings` prop, so gating it here
+  // covers both surfaces and makes `ListEmptyComponent` (which FlatList only
+  // renders when `data.length === 0`) show the needs-location copy instead
+  // of stale rows. Enforced at the screen, not threaded into
+  // `useNearbySchedules` or the pure `nearbyLogic` module — same "app-level
+  // gate sits above the data" rule the banner fix above already follows.
+  const visibleMeetings = useMemo(() => {
+    if (!profileStore.locationEnabled) return []
+    return shortTime === DEFAULT_SHORT_TIME
+      ? meetings
+      : meetings.filter((m) => matchesShortTime(m.millis, shortTime))
+  }, [meetings, shortTime, profileStore.locationEnabled])
 
   const handleDaySelect = useCallback(
     (day: number) => {
