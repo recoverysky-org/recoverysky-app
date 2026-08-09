@@ -16,7 +16,7 @@
  */
 
 import { useCallback } from "react"
-import { Alert, Linking } from "react-native"
+import { Alert, Linking, Platform } from "react-native"
 import * as Location from "expo-location"
 
 import { translate } from "@/i18n"
@@ -33,6 +33,23 @@ const log = logger.child({ module: "useLocationGate" })
  * need the same "permission denied, tap to open settings" dialog.
  */
 export function showLocationDeniedAlert(): void {
+  // ADDED 2026-08-09 (whole-branch review, I1): react-native-web's `Alert` is
+  // a no-op (`node_modules/react-native-web/dist/exports/Alert/index.js` is
+  // literally `class Alert { static alert() {} }`), so on web this rendered
+  // nothing at all — no dialog, no route out, an empty tab with a control
+  // that silently did nothing. Web also has no device-settings screen to
+  // deep-link to (there is no `Linking.openSettings()` equivalent), so unlike
+  // the confirm branch below there's no substitute *interaction* to offer —
+  // the honest thing left to do is at least tell the user what's wrong via
+  // `window.alert`, matching the copy the native dialog would have shown.
+  // Native behavior below is unchanged.
+  if (Platform.OS === "web") {
+    window.alert(
+      `${translate("location:gateDeniedTitle")}\n\n${translate("location:gateDeniedMessage")}`,
+    )
+    return
+  }
+
   Alert.alert(translate("location:gateDeniedTitle"), translate("location:gateDeniedMessage"), [
     { text: translate("common:cancel"), style: "cancel" },
     {
@@ -88,6 +105,23 @@ export function useLocationGate(): UseLocationGateResult {
           // rejection bypasses the outer try/catch and propagates to the caller,
           // re-introducing the defect round 1 fixed. Only `return await p` routes
           // p's rejection to the local catch block.
+          //
+          // ADDED 2026-08-09 (whole-branch review, I1): react-native-web's
+          // `Alert` is a no-op (see `showLocationDeniedAlert` above), so the
+          // Promise below never settled on web — the try/catch couldn't help,
+          // because a no-op isn't a throw, it's just silence forever.
+          // `window.confirm` is web's synchronous equivalent of a two-button
+          // Alert: it blocks the calling code until the user answers, so
+          // there's no Promise left dangling. Native behavior below this
+          // branch is unchanged.
+          if (Platform.OS === "web") {
+            const confirmed = window.confirm(
+              `${translate("location:gateConfirmTitle")}\n\n${translate("location:gateConfirmMessage")}`,
+            )
+            if (confirmed) profileStore.setLocationEnabled(true)
+            return confirmed
+          }
+
           return await new Promise<boolean>((resolve) => {
             Alert.alert(
               translate("location:gateConfirmTitle"),
