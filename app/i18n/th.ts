@@ -73,6 +73,8 @@ const th: Translations = {
     euaTitle: "ข้อตกลงทางกฎหมาย",
     euaAgree: "ยอมรับ",
     euaCancel: "ยกเลิก",
+    euaLoadFailed: "ไม่สามารถโหลดข้อตกลงทางกฎหมายได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง",
+    euaRetry: "ลองอีกครั้ง",
   },
   mainNavigator: {
     homeTab: "หน้าหลัก",

@@ -75,6 +75,9 @@ const de: Translations = {
     euaTitle: "Rechtliche Vereinbarungen",
     euaAgree: "Akzeptieren",
     euaCancel: "Abbrechen",
+    euaLoadFailed:
+      "Die rechtlichen Vereinbarungen konnten nicht geladen werden. Bitte prüfe deine Verbindung und versuche es erneut.",
+    euaRetry: "Erneut versuchen",
   },
   mainNavigator: {
     homeTab: "Start",

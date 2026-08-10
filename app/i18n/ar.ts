@@ -74,6 +74,8 @@ const ar: Translations = {
     euaTitle: "الاتفاقيات القانونية",
     euaAgree: "قبول",
     euaCancel: "إلغاء",
+    euaLoadFailed: "تعذّر تحميل الاتفاقيات القانونية. يرجى التحقق من الاتصال والمحاولة مرة أخرى.",
+    euaRetry: "إعادة المحاولة",
   },
   mainNavigator: {
     homeTab: "الرئيسية",

@@ -22,6 +22,22 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+
+- **The legal agreements no longer come up blank at login.** The CMS behind the
+  disclaimer and the EULA occasionally fails a single document while serving
+  its neighbour normally — a user tapping Sign In could land on an agreement
+  screen with an empty EULA tab, no error, no way to retry, and an Accept
+  button that still worked. Content fetches now ride out a transient upstream
+  failure automatically, and if both documents still can't be shown the modal
+  says so and offers a Try Again that reloads the pair together.
+
+- **Accept is now blocked until both agreements are actually on screen.**
+  Acceptance is recorded once and never asked again, so consenting to a
+  document the app failed to display was a consent we had no business
+  recording. The button greys out until the disclaimer and the EULA have both
+  loaded.
+
 ### Removed
 
 - **The leftover Ignite template welcome screen.** `WelcomeScreen` was never

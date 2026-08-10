@@ -12,9 +12,11 @@ import Config from "@/config"
 import type { AttendanceRecord } from "@/db"
 import type { ServerAttendanceRecord, ServerReportRecord } from "@/services/sync/syncLogic"
 import { trackEvent } from "@/services/tracking"
+import { delay } from "@/utils/delay"
 import { logger } from "@/utils/logger"
 
 import { getGeneralApiProblem as classifyApiProblem, type GeneralApiProblem } from "./apiProblem"
+import { fetchWithContentRetry } from "./contentRetryLogic"
 import type { ApiConfig } from "./types"
 
 /**
@@ -263,6 +265,13 @@ export interface ReportDetail {
   id: string
   html: string
   text: string
+}
+
+/** A CMS document fetched from Directus via the API's /content proxy. */
+export interface ContentResult {
+  kind: "ok"
+  content: string
+  updatedAt?: string
 }
 
 // Re-export for convenience
@@ -864,9 +873,7 @@ export class Api {
    * The backend proxies to the Auth0 Management API using its own
    * management token. The app passes the fields it wants persisted.
    */
-  async updateAuth0Profile(
-    fields: { name: string },
-  ): Promise<{ kind: "ok" } | GeneralApiProblem> {
+  async updateAuth0Profile(fields: { name: string }): Promise<{ kind: "ok" } | GeneralApiProblem> {
     log.debug("Updating Auth0 profile", { hasName: !!fields.name })
 
     const response = await this.recoverySkyApi.post("/auth0/profile", fields)
@@ -957,15 +964,12 @@ export class Api {
   }
 
   /**
-   * Get content document from Directus CMS
-   * GET /content/:collection/:document
+   * One attempt at a content document. Retry policy lives in getContent.
    */
-  async getContent(
+  private async fetchContentOnce(
     document: string,
-    collection = "RecoverySky_Content",
-  ): Promise<{ kind: "ok"; content: string; updatedAt?: string } | GeneralApiProblem> {
-    log.debug("Fetching content from API", { collection, document })
-
+    collection: string,
+  ): Promise<ContentResult | GeneralApiProblem> {
     const response = await this.recoverySkyApi.get<{
       data: {
         content: string
@@ -992,6 +996,45 @@ export class Api {
       content: doc.content,
       updatedAt: doc.date_updated,
     }
+  }
+
+  /**
+   * Get content document from Directus CMS
+   * GET /content/:collection/:document
+   *
+   * Retries transient failures on the ladder in ./contentRetryLogic.
+   * ADDED 2026-08-09: Directus intermittently 500s a single document while a
+   * sibling document requested in the same tick succeeds — seen live on the
+   * login screen, where `disclaimer` loaded and `EULA` did not, leaving the
+   * user staring at a blank legal agreement they were still able to accept.
+   * The upstream fault is server-side and did not reproduce under a 112-request
+   * soak, so riding out the blip here is the only reliable mitigation.
+   *
+   * The retry is inside getContent rather than at the call sites so all three
+   * consumers (LoginScreen, TermsScreen, AgentScreen) inherit it.
+   */
+  async getContent(
+    document: string,
+    collection = "RecoverySky_Content",
+  ): Promise<ContentResult | GeneralApiProblem> {
+    log.debug("Fetching content from API", { collection, document })
+
+    const result = await fetchWithContentRetry<ContentResult>(
+      () => this.fetchContentOnce(document, collection),
+      delay,
+      ({ problem, attempt, waitMs }) =>
+        log.debug("Retrying content fetch", { collection, document, problem, attempt, waitMs }),
+    )
+
+    if (result.kind !== "ok") {
+      log.warn("Content unavailable after retries", {
+        collection,
+        document,
+        problem: result.kind,
+      })
+    }
+
+    return result
   }
 
   /**

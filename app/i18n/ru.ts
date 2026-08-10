@@ -74,6 +74,9 @@ const ru: Translations = {
     euaTitle: "Юридические соглашения",
     euaAgree: "Принять",
     euaCancel: "Отмена",
+    euaLoadFailed:
+      "Не удалось загрузить юридические соглашения. Проверьте подключение и повторите попытку.",
+    euaRetry: "Повторить",
   },
   mainNavigator: {
     homeTab: "Главная",

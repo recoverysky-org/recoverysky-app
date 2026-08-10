@@ -74,6 +74,9 @@ const es: Translations = {
     euaTitle: "Acuerdos Legales",
     euaAgree: "Aceptar",
     euaCancel: "Cancelar",
+    euaLoadFailed:
+      "No pudimos cargar los acuerdos legales. Comprueba tu conexión e inténtalo de nuevo.",
+    euaRetry: "Reintentar",
   },
   mainNavigator: {
     homeTab: "Inicio",

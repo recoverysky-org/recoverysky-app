@@ -76,6 +76,9 @@ const en = {
     euaTitle: "Legal Agreements",
     euaAgree: "Accept",
     euaCancel: "Cancel",
+    euaLoadFailed:
+      "We couldn't load the legal agreements. Please check your connection and try again.",
+    euaRetry: "Try Again",
   },
   // Main Navigation
   mainNavigator: {

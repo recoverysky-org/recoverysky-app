@@ -74,6 +74,9 @@ const uk: Translations = {
     euaTitle: "Юридичні угоди",
     euaAgree: "Прийняти",
     euaCancel: "Скасувати",
+    euaLoadFailed:
+      "Не вдалося завантажити юридичні угоди. Перевірте з'єднання та спробуйте ще раз.",
+    euaRetry: "Спробувати ще раз",
   },
   mainNavigator: {
     homeTab: "Головна",

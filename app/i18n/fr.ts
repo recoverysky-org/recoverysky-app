@@ -75,6 +75,9 @@ const fr: Translations = {
     euaTitle: "Accords Juridiques",
     euaAgree: "Accepter",
     euaCancel: "Annuler",
+    euaLoadFailed:
+      "Impossible de charger les accords juridiques. Vérifiez votre connexion et réessayez.",
+    euaRetry: "Réessayer",
   },
   mainNavigator: {
     homeTab: "Accueil",
