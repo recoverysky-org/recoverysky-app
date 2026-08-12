@@ -90,17 +90,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `TODO.md`; this change buys the time to do it properly rather than during a
   release.
 
-### Changed
-
-- **Search results are now ordered chronologically.** The list sorted on
-  minutes-since-local-midnight, which threw the date away: a venue far enough
-  east or west for its weekday slot to land on an adjacent calendar day was
-  interleaved by clock face rather than by when the meeting actually starts,
-  and the Overnight time filter split its results across both ends of the list
-  (1am at the top, 10pm at the bottom). Ordering is on the raw start instant,
-  which is identical to the old behavior for the ordinary same-day case.
-  Favourites still float to the top; they're chronological among themselves.
-
 ### Fixed
 
 - **Search no longer offers an in-person search it can't run.** With Settings →
