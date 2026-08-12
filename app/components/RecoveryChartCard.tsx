@@ -35,6 +35,14 @@ const CHART_HEIGHT = 120
 const BAR_MIN_HEIGHT = 2
 const TRANSPARENT = "transparent"
 
+// Hard-disabled flag for the "Populate 365 Days" seeding button (same pattern as
+// MainNavigator's agentTabVisible/socialTabVisible). The button was already
+// __DEV__-only, but it still cluttered the Home card during everyday dev work.
+// CHANGED 2026-08-12: hidden by default — flip to `true` locally when you need
+// to reseed a year of fake attendance for chart work. Keep the handler wired so
+// the tool is one edit away instead of a rewrite.
+const debugPopulateVisible = false
+
 interface RangeOption {
   value: ChartRange
   labelKey: string
@@ -271,8 +279,8 @@ export const RecoveryChartCard = observer(function RecoveryChartCard() {
         <Text style={themed($noData)}>{t("recoveryChart:noData")}</Text>
       )}
 
-      {/* Debug button — DEV only */}
-      {__DEV__ && (
+      {/* Debug button — DEV only, and hidden behind debugPopulateVisible */}
+      {__DEV__ && debugPopulateVisible && (
         <Button
           text="Debug: Populate 365 Days"
           preset="default"
