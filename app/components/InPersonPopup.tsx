@@ -413,6 +413,29 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
 
     const outcome = await check({ latitude: meeting.latitude, longitude: meeting.longitude })
 
+    // ADDED 2026-08-12: every non-verified outcome, in ONE event with a reason
+    // code. Until now `inperson_attendance_started` fired only on `verified`
+    // and the four rejection arms below each returned after an Alert with no
+    // telemetry at all — so "is 'I'm Here' working?" was unanswerable, while
+    // `presenceRadiusM` stayed a server-tunable knob we could not measure.
+    //
+    // Fired HERE rather than inside the four arms, and that placement is the
+    // point: it is exhaustive by construction. A new PresenceCheckOutcome
+    // status is tracked the moment it exists, no branch can be added without
+    // telemetry, and TypeScript narrows `outcome.status` to the union minus
+    // "verified" so the payload type follows the source of truth on its own.
+    //
+    // PRIVACY: `{ reason }` and nothing else. `outcome.distanceM` is in scope
+    // on the out-of-range arm and must NOT be added — distance is derived from
+    // the user's position, which is exactly what the rule below (and the
+    // InPersonScreen header) forbids putting on an event. `radiusM` is server
+    // config, recoverable from /config history without riding along. No venue
+    // id either: it is a location proxy, and paired with the Umami user id it
+    // reveals where a specific person physically was.
+    if (outcome.status !== "verified") {
+      trackEvent("inperson_presence_failed", { reason: outcome.status })
+    }
+
     switch (outcome.status) {
       // Braced because of the `const now` below — a bare lexical declaration
       // in a case clause is a `no-case-declarations` error.

@@ -52,12 +52,40 @@ POST ${UMAMI_URL}/api/send
 | `meeting_joined` | User joined a Zoom meeting | `{ fellowship }` | `app/components/SchedulePopup.tsx` |
 | `meeting_favorited` | User toggled a meeting favorite | `{ action: "add" \| "remove" }` | `app/components/SchedulePopup.tsx` |
 
+### Group 3a: In-Person (Meetings tab segment)
+
+The In-Person segment's browse/filter layer. All of these were **implemented
+between 2026-08-03 and 2026-08-07 but never documented here** — added to this
+file 2026-08-11 during an analytics-coverage audit. They were live the whole
+time; if a funnel appeared to have no in-person filter data, that was a docs
+gap, not a tracking gap.
+
+**PRIVACY — read before adding any row to this table.** `InPersonScreen.tsx`'s
+header comment and `InPersonPopup.tsx:449` establish a hard rule for this
+segment: no event may carry a coordinate, a `distance_m`, an accuracy figure,
+a venue id, or a directions URL. A venue id is a location proxy — paired with
+the Umami `id` (user id) it reveals where a specific person physically was.
+Every payload below is a *display preference* (a weekday, a radius, a time
+bucket, a fellowship code, a list/map choice) or a reason code. That is the
+whole permitted vocabulary.
+
+| Event | Description | Data | Source |
+|---|---|---|---|
+| `inperson_segment_viewed` | User opened the In-Person segment for the first time in this session | — | `app/screens/InPersonScreen.tsx` (fires off the `active` latch, not `visible` — so it counts first opens, not every tab tap back) |
+| `inperson_day_changed` | User changed the weekday filter | `{ day }` | `app/screens/InPersonScreen.tsx` |
+| `inperson_radius_changed` | User changed the search radius | `{ km }` | `app/screens/InPersonScreen.tsx` |
+| `inperson_shorttime_changed` | User changed the time-bucket filter | `{ shortTime }` | `app/screens/InPersonScreen.tsx` |
+| `inperson_fellowship_changed` | User changed the fellowship filter | `{ fellowship }` | `app/screens/InPersonScreen.tsx` |
+| `inperson_view_toggled` | User switched between the list and map views | `{ view }` | `app/screens/InPersonScreen.tsx` (added 2026-08-07 with the map view) |
+| `inperson_directions_opened` | User tapped Directions on an in-person meeting | — (deliberately no payload) | `app/components/InPersonPopup.tsx` — the destination URL contains the venue position and must never ride along |
+
 ### Group 4: Attendance
 
 | Event | Description | Data | Source |
 |---|---|---|---|
 | `attendance_validated` | Attendance record finished processing and met the credit threshold | `{ source: "sdk" \| "external-timer" \| "in-person" \| "unknown" }` | `app/app.tsx` (subscriber over `attendanceEvents.processed`); `"in-person"` added for the "I'm Here" flow (`app/services/inPerson/timerAttendance.ts` — was `inPerson/attendance.ts` until 2026-08-05, when single-tap logging was replaced by the GPS-verified timer; the event and its payload are unchanged); `"unknown"` is the `?? "unknown"` fallback when `source` is absent, not a value the type itself declares (`AttendanceSource` in `app/db/attendanceEvents.ts`) |
 | `inperson_attendance_started` | User passed the GPS presence check at an in-person meeting and the attendance timer opened | — (deliberately no payload) | `app/components/InPersonPopup.tsx` (added 2026-08-05). **Fires at timer open, not at save** — it mirrors `meeting_joined`, which the online path also fires at launch rather than on a completed record, so neither venue has an event for a *saved* attendance. The empty payload is a privacy requirement, not an oversight: distance and accuracy must never ride along with an analytics event. It replaces `inperson_attendance_logged`, which fired on a successful single-tap write and was removed with that flow — any funnel keyed on the old name reads zero from 2026-08-05 |
+| `inperson_presence_failed` | The GPS presence check behind "I'm Here" did not verify | `{ reason: "out-of-range" \| "no-venue-coords" \| "denied" \| "fix-failed" }` | `app/components/InPersonPopup.tsx` (added 2026-08-12). The counterpart to `inperson_attendance_started` above — together they are the whole outcome space of a presence check, so `started / (started + failed)` is the pass rate. One event with a reason code rather than four events, so the failure total stays a single number and new branches cannot fragment the funnel. Fired **before** the switch that renders the alerts, which makes it exhaustive by construction: reasons map 1:1 to the non-`verified` arms of `PresenceCheckOutcome["status"]` (`app/hooks/usePresenceCheck.ts`), and a new arm is tracked the moment it exists. **`distanceM` and `radiusM` are deliberately excluded** even though both are in scope at the fire site: distance is derived from the user's position and is exactly the value the privacy rule names, and radius is server config recoverable from `/config` history. `canAskAgain` is likewise excluded from the `denied` arm for now — revisit only if `denied` comes to dominate the split |
 | `report_sent` | Attendance report sent to email | `{ type: "initial" \| "resend" \| "replace" \| "forward" }` | `app/hooks/useReportSender.ts` |
 | `report_confirmed` | Report delivery confirmed via polling | — | `app/hooks/useReportSender.ts` |
 
@@ -142,6 +170,26 @@ These events have been identified as valuable but are not included in the initia
 | `firebase_import_started` | Firebase import initiated | — | `app/screens/onboarding/OnboardingImport.tsx` |
 | `firebase_import_failed` | Firebase import failed | `{ error }` | `app/screens/onboarding/OnboardingImport.tsx` |
 | `firebase_import_skipped` | User skipped Firebase import | — | `app/screens/onboarding/OnboardingImport.tsx` |
+
+### In-Person (proposed 2026-08-11 — NOT yet implemented)
+
+Gaps found in the same 2026-08-11 audit. Five in-person files still contain
+**zero** `trackEvent` calls: `InPersonTimerModal.tsx`, `InPersonMapView.tsx`,
+`useLocationGate.ts`, `useNearbySchedules.ts`, `inPerson/timerAttendance.ts`.
+
+**`inperson_presence_failed` shipped on 2026-08-12** and has moved to Group 3a.
+Every reason code below is copied from an existing union, not invented.
+
+All payloads obey the privacy rule stated in Group 3a.
+
+| Event | Description | Data | Source |
+|---|---|---|---|
+| `inperson_popup_viewed` | In-person meeting detail popup shown | `{ fellowship }` | `app/components/InPersonPopup.tsx` — mirrors `schedule_popup_viewed`'s name shape and payload so the two venues' funnels stay comparable. This is the **denominator `inperson_attendance_started` currently lacks**: without it, tap-through from list/map into the popup is not computable |
+| `inperson_location_gate` | The In-Person location gate resolved to an action | `{ action: "proceed" \| "prompt-os" \| "confirm-in-app" \| "open-settings" }` | `app/hooks/useLocationGate.ts` — values are `LocationGateAction` verbatim (`app/utils/locationGateLogic.ts:31`). Distinguishes "user never granted location" from "granted but bounced later", which today look identical |
+| `inperson_nearby_failed` | Nearby fetch or location fix failed; segment fell back to day-browse | `{ reason: "denied" \| "fixFailed" \| "nearbyFailed" }` | `app/hooks/useNearbySchedules.ts` — values are `NearbyBannerReason` verbatim (`app/utils/nearbyLogic.ts:49`), so the event matches the banner the user actually saw |
+| `inperson_nearby_empty` | Nearby search succeeded but returned zero meetings | `{ km }` | `app/hooks/useNearbySchedules.ts` — separates "no meetings near me" from "the feature is broken", which are currently indistinguishable in the data. Radius key matches `inperson_radius_changed`'s `{ km }` |
+| `inperson_map_marker_tapped` | User tapped a venue marker on the map | — (deliberately no payload) | `app/components/InPersonMapView.tsx` — **no venue id**: it is a location proxy (see Group 3a). Pairs with `inperson_view_toggled` to show whether the map is used or merely opened |
+| `inperson_timer_cancelled` | User opened the in-person attendance timer but dismissed it without saving | — | `app/components/InPersonTimerModal.tsx` — the saved case already lands as `attendance_validated { source: "in-person" }`, so only the cancel arm is missing. Explicit cancel is worth separating from silent abandonment, which stays derivable as `inperson_attendance_started` − `attendance_validated` − `inperson_timer_cancelled` |
 
 ### Meeting Engagement
 
