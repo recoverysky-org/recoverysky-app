@@ -9,8 +9,10 @@ import {
   isNearlySamePosition,
   resolveBannerReason,
   resolveMode,
+  pmFirstMinutes,
   sortByDistance,
   sortByLocalTime,
+  sortByLocalTimePmFirst,
 } from "./nearbyLogic"
 
 describe("resolveMode", () => {
@@ -143,6 +145,66 @@ describe("sortByLocalTime", () => {
       new Date(today.getFullYear(), today.getMonth(), today.getDate() + dayOffset, h, m).getTime()
     const out = sortByLocalTime([{ millis: at(0, 23, 30) }, { millis: at(1, 6, 15) }])
     expect(new Date(out[0].millis).getHours()).toBe(6)
+  })
+})
+
+describe("pmFirstMinutes", () => {
+  /**
+   * Local-time builder, same shape as the block above: the multi-arg Date
+   * constructor reads its args in the device zone and the key reads local
+   * parts back out, so every assertion here round-trips in any timezone.
+   */
+  const at = (h: number, m = 0) => {
+    const t = new Date()
+    return new Date(t.getFullYear(), t.getMonth(), t.getDate(), h, m).getTime()
+  }
+
+  it("puts noon at zero and 11:59am at the end of the day", () => {
+    expect(pmFirstMinutes(at(12, 0))).toBe(0)
+    expect(pmFirstMinutes(at(23, 59))).toBe(719)
+    expect(pmFirstMinutes(at(0, 0))).toBe(720)
+    expect(pmFirstMinutes(at(11, 59))).toBe(1439)
+  })
+
+  it("covers every minute of the day exactly once", () => {
+    // No gaps and no collisions — a rotation that dropped or doubled a minute
+    // would silently reorder a slice of the list.
+    const keys = new Set<number>()
+    for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m++) keys.add(pmFirstMinutes(at(h, m)))
+    expect(keys.size).toBe(1440)
+  })
+})
+
+describe("sortByLocalTimePmFirst", () => {
+  const at = (h: number, m = 0) => {
+    const t = new Date()
+    return new Date(t.getFullYear(), t.getMonth(), t.getDate(), h, m).getTime()
+  }
+  const hours = <T extends { millis: number }>(rows: T[]) =>
+    rows.map((r) => new Date(r.millis).getHours())
+
+  it("leads with the evening meetings the midnight anchor buried", () => {
+    // The reported defect in one assertion: 10pm belongs at the top of the
+    // list, not below every morning meeting.
+    const out = sortByLocalTimePmFirst([{ millis: at(6) }, { millis: at(22) }])
+    expect(hours(out)).toEqual([22, 6])
+  })
+
+  it("runs pm ascending, then am ascending", () => {
+    const out = sortByLocalTimePmFirst([
+      { millis: at(9) },
+      { millis: at(23, 30) },
+      { millis: at(0, 15) },
+      { millis: at(12) },
+      { millis: at(18) },
+    ])
+    expect(hours(out)).toEqual([12, 18, 23, 0, 9])
+  })
+
+  it("splits the day at noon, not at midnight", () => {
+    // The two boundary rows: 12:00pm opens the list, 11:59am closes it.
+    const out = sortByLocalTimePmFirst([{ millis: at(11, 59) }, { millis: at(12, 0) }])
+    expect(hours(out)).toEqual([12, 11])
   })
 })
 

@@ -37,7 +37,6 @@ import {
 } from "react-native"
 import { getLocales } from "expo-localization"
 import { Ionicons } from "@expo/vector-icons"
-import { DateTime } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -87,6 +86,7 @@ import {
   distanceMeters,
   formatDistance,
   RADIUS_OPTIONS_KM,
+  sortByLocalTimePmFirst,
 } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "ListingsScreen" })
@@ -574,13 +574,17 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
       // Sort the merged pool once by local time (hour:minute), not UTC millis,
       // so the future in-person UI inherits correct ordering.
-      const byTime = [...merged.items].sort((a, b) => {
-        const aLocal = DateTime.fromMillis(a.millis).toLocal()
-        const bLocal = DateTime.fromMillis(b.millis).toLocal()
-        const aMinutes = aLocal.hour * 60 + aLocal.minute
-        const bMinutes = bLocal.hour * 60 + bLocal.minute
-        return aMinutes - bMinutes
-      })
+      // CHANGED 2026-08-12 (Jenova's call): the day now starts at NOON —
+      // `sortByLocalTimePmFirst` reads pm ascending, then am ascending. The
+      // midnight anchor pushed the 10pm meetings to the bottom of the list,
+      // even though a Monday meeting in Sydney or Bali happens on Sunday
+      // evening here and genuinely precedes this device's Monday mornings.
+      // Read that function's docblock before touching this: the key stays
+      // clock-only on purpose, because `/schedules/daily`'s `millis` carries
+      // hydration vintage rather than the next occurrence, so any date term
+      // sorts by cache age first. The In-Person and Live segments still use
+      // the midnight-anchored `sortByLocalTime`.
+      const byTime = sortByLocalTimePmFirst(merged.items)
 
       // ADDED 2026-08-04: favourites float to the top, the same three tiers the
       // Live segment has always used. Layered OVER the time sort rather than

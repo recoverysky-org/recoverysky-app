@@ -160,6 +160,55 @@ export function sortByLocalTime<T extends { millis: number }>(items: T[]): T[] {
   })
 }
 
+/** Minutes from midnight to noon — the rotation `pmFirstMinutes` applies. */
+const NOON_MINUTES = 12 * 60
+
+/**
+ * Minutes since local NOON rather than local midnight, wrapping at 24h.
+ *
+ * 12:00pm → 0, 11:59pm → 719, 12:00am → 720, 11:59am → 1439. Sorting on this
+ * reads the afternoon and evening first, then the small hours and the morning,
+ * each block ascending.
+ */
+export function pmFirstMinutes(millis: number): number {
+  const d = new Date(millis)
+  return (d.getHours() * 60 + d.getMinutes() + NOON_MINUTES) % (24 * 60)
+}
+
+/**
+ * Sort by local wall-clock time with the day starting at noon: pm ascending,
+ * then am ascending.
+ *
+ * ADDED 2026-08-12 (Jenova's call) for the Search segment, replacing a plain
+ * midnight-based clock sort that buried the 10pm meetings at the bottom of the
+ * list.
+ *
+ * WHY THE ROTATION IS THE RIGHT KEY, not a cosmetic reordering: a weekday is a
+ * ~50-hour window globally, and it opens in the far east. A meeting listed on
+ * Monday in Sydney or Bali happens on *Sunday evening* for a device in the
+ * Americas, so its instant genuinely precedes that device's Monday-morning
+ * rows — it displays as a pm time and belongs at the top of a Monday list.
+ * Anchoring the day at midnight split those rows off to the bottom, which is
+ * the reported defect.
+ *
+ * Deliberately clock-only, with no date term, even though the date is what
+ * makes the argument above true. `/schedules/daily`'s `millis` carries the
+ * date of whenever that row was last hydrated rather than the meeting's next
+ * occurrence — measured live 2026-08-12 (`iso_dow=1&fellowship=AA`, 498 rows):
+ * 155 rows sat on the week of Aug 3 and 338 on the week of Aug 10, zero
+ * meeting overlap, every row ACTIVE, and the payload itself was a two-day-old
+ * precompute. Any date-aware key therefore sorts by hydration vintage before
+ * time of day and walks the clock once per vintage. The rotation delivers the
+ * intended reading order from the one part of `millis` that is trustworthy.
+ *
+ * `millis === 0` (the 24/7 marathon meetings, rendered "24h") lands wherever
+ * the epoch falls in the device's zone — 6pm in Chicago, midnight in London.
+ * That is pre-existing and unchanged here; pin it explicitly if it matters.
+ */
+export function sortByLocalTimePmFirst<T extends { millis: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => pmFirstMinutes(a.millis) - pmFirstMinutes(b.millis))
+}
+
 const EARTH_RADIUS_M = 6_371_008.8
 
 /**
