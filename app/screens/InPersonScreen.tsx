@@ -59,7 +59,6 @@ import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
 import { useConfigStore, useNetworkStore, useProfileStore } from "@/models"
 import {
   consumePendingMeetingId,
-  navigate,
   peekPendingMeetingId,
   usePendingMeetingId,
 } from "@/navigators/navigationUtilities"
@@ -334,6 +333,17 @@ interface InPersonListHeaderProps {
   onOpenRadius: () => void
   onOpenShortTime: () => void
   onBannerPress: () => void
+  /**
+   * How many meetings the current filters actually yield.
+   *
+   * ADDED 2026-08-12: shown as a subtitle under the segment title. It answers
+   * the question the map/list pill next to it raises — "is there anything in
+   * there worth opening?" — without making the user switch views to find out.
+   * It is also the one number that tells an empty-looking screen apart from a
+   * screen that is still loading: `showSpinner` suppresses it, so a `0` here
+   * always means zero results, never "not yet".
+   */
+  resultCount: number
   /** Render the list/map toggle (config kill switch + platform rule) */
   showMapToggle: boolean
   viewMode: InPersonViewMode
@@ -357,6 +367,7 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
   onOpenRadius,
   onOpenShortTime,
   onBannerPress,
+  resultCount,
   showMapToggle,
   viewMode,
   mapToggleDisabled,
@@ -411,13 +422,30 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
 
   return (
     <View>
-      {/* Title + settings gear, matching LiveContent's and ListingsContent's
-          headers so all three segments of the Meetings tab read the same. */}
+      {/* Title row, matching LiveContent's and ListingsContent's headers so all
+          three segments of the Meetings tab read the same.
+
+          CHANGED 2026-08-12: the settings gear that used to close this row is
+          gone from all three segments (it duplicated the Settings tab a
+          thumb-width away). The map/list toggle inherits the slot and is now
+          the only control here — which is the point: it was previously read as
+          the left half of a two-glyph cluster, and users weren't finding it.
+          $headerActions is kept rather than collapsed to a bare child, so
+          adding a second control back doesn't mean re-deriving the row. */}
       <View style={themed($header)}>
-        <Text preset="heading" tx="inPersonScreen:title" />
-        {/* The toggle sits to the LEFT of the gear so the gear stays the
-            right-most control here, as it is in Live's and Search's headers —
-            the three segments share this row and muscle memory for it. */}
+        {/* Title + count stack together so the count reads as a subtitle of
+            the heading rather than as a third control competing with the pill.
+            Suppressed while `showSpinner` is up: a count rendered mid-fetch is
+            a number that is about to be wrong, and "0 meetings" flashing
+            before results land is worse than no count at all. */}
+        <View style={$headerTitleGroup}>
+          <Text preset="heading" tx="inPersonScreen:title" />
+          {!showSpinner && (
+            <Text style={themed($resultCount)}>
+              {t("inPersonScreen:resultCount", { count: resultCount })}
+            </Text>
+          )}
+        </View>
         <View style={$headerActions}>
           {showMapToggle && (
             <MapListToggle
@@ -426,14 +454,6 @@ const InPersonListHeader: FC<InPersonListHeaderProps> = observer(function InPers
               onToggle={onToggleView}
             />
           )}
-          <TouchableOpacity
-            onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t("mainNavigator:settingsTab")}
-          >
-            <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -1439,6 +1459,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
             onOpenRadius={handleOpenRadiusModal}
             onOpenShortTime={handleOpenShortTimeModal}
             onBannerPress={handleBannerPress}
+            // Same array the map plots and the list renders, so the count can
+            // never disagree with what's actually on screen in either mode.
+            resultCount={visibleMeetings.length}
             // See showMapToggleNow definition above — always true here since
             // effectiveViewMode can only be "map" when location is on.
             showMapToggle={showMapToggleNow}
@@ -1478,6 +1501,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               onOpenRadius={handleOpenRadiusModal}
               onOpenShortTime={handleOpenShortTimeModal}
               onBannerPress={handleBannerPress}
+              resultCount={visibleMeetings.length}
               showMapToggle={showMapToggleNow}
               viewMode={effectiveViewMode}
               // See mapToggleDisabled definition above.
@@ -1611,9 +1635,18 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.sm,
 })
 
-// Toggle + settings gear, side by side at the end of the title row. A fixed
-// gap rather than a spacing token: both children are 22px Ionicons and this is
-// the distance that keeps two bare glyphs from reading as one control.
+// Heading + result-count subtitle. `flexShrink` so a long localized count
+// (ru "12 собраний") gives way to the pill rather than pushing it off-screen.
+const $headerTitleGroup: ViewStyle = {
+  flexShrink: 1,
+}
+
+// End of the title row. Was toggle + settings gear side by side, hence the
+// fixed 16px gap that kept two bare 22px glyphs from reading as one control.
+// CHANGED 2026-08-12: the gear is gone and the map/list pill is the only child
+// left, so the gap is inert today. Kept — with the row — because a second
+// control here is a live possibility and rebuilding the row for it is worse
+// than carrying four lines of style.
 const $headerActions: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
@@ -1639,6 +1672,14 @@ const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.card,
   borderWidth: 1,
   borderColor: colors.border,
+})
+
+const $resultCount: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.textDim,
+  // `preset="heading"` above carries its own generous lineHeight; without this
+  // the count floats away from the title instead of sitting under it.
+  lineHeight: 16,
 })
 
 const $selectorLabel: ThemedStyle<TextStyle> = ({ colors }) => ({

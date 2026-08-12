@@ -59,7 +59,6 @@ import { useLocationGate } from "@/hooks/useLocationGate"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useConfigStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
-import { navigate } from "@/navigators/navigationUtilities"
 import { api, LiveSchedule } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
@@ -760,18 +759,14 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     () => (
       <View>
         {/* Header */}
+        {/* CHANGED 2026-08-12: settings gear removed here and in the other two
+            Meetings segments — it duplicated the Settings tab a thumb-width
+            away and occupied the end of the title row, the one slot a
+            segment-specific control can use. See LiveScreen's header comment. */}
         <View style={themed($header)}>
           <Text preset="heading" style={themed($title)}>
             {t("listingsScreen:title")}
           </Text>
-          <TouchableOpacity
-            onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t("mainNavigator:settingsTab")}
-          >
-            <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
-          </TouchableOpacity>
         </View>
 
         {/* Six filters in a 2×3 grid (Jenova, 2026-08-04), matching the

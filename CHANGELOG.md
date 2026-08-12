@@ -22,6 +22,27 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+
+- **The In-Person map is findable now.** The switch between the meeting list and
+  the map was a single unlabeled icon sharing a row with an equally-sized
+  settings gear, so it read as decoration and people never learned the map
+  existed. It is now a labelled two-part switch showing **List** and **Map**
+  side by side with the current view filled in — the word "Map" is on screen
+  before you touch anything, which is the whole difference between a feature
+  you can reach and one you can find.
+
+  The segment title also carries a count of how many meetings your filters
+  actually return, so it's clear whether the map is worth opening, and an empty
+  screen reads as "nothing matches" rather than "still loading" (the count is
+  hidden while results are on their way).
+
+- **The settings shortcut is gone from all three Meetings segments.** It sat at
+  the end of every title row and went to the same place as the Settings tab a
+  thumb-width below it. Removing it frees the one slot on those screens where a
+  control specific to that segment can live — which is where the new list/map
+  switch went.
+
 ### Fixed
 
 - **Settings could show Location switched ON for a permission the app no longer

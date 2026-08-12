@@ -885,6 +885,16 @@ const en = {
     selectFellowship: "Tap to pick a fellowship and see in-person meetings",
     showMap: "Show map",
     showList: "Show list",
+    // Nouns for the two halves of the list/map pill, distinct from the verb
+    // phrases above (which stay as the a11y announcement for the whole switch).
+    viewList: "List",
+    viewMap: "Map",
+    // Result count beside the segment title. Only `_one`/`_other` exist because
+    // `Translations = typeof en` forbids a locale from carrying extra keys, so
+    // ru/uk/ar cannot add their own `_few`/`_many` forms — the same two-form
+    // limitation every other plural in this file already lives with.
+    resultCount_one: "{{count}} meeting",
+    resultCount_other: "{{count}} meetings",
     mapOffline: "Map is unavailable offline",
     mapUnavailable: "Couldn't load the map — showing the list instead",
     venueMeetings: "Meetings at this location",

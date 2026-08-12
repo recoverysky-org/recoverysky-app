@@ -39,7 +39,26 @@ review obligation.
 | location-failure copy (both namespaces) | 5 | 8 | 40 | Android location fix, 2026-08-04 |
 | `liveScreen` (retitle) | 1 | 8 | 8 | Live Online retitle, 2026-08-04 |
 | `presence` + `inPersonTimer` | 12 | 8 | 96 | GPS in-person attendance, Task 7, 2026-08-05 |
-| **Total** | | | **421** | |
+| `inPersonScreen` (list/map pill + count) | 4 | 8 | 32 | List/map pill redesign, 2026-08-12 |
+| **Total** | | | **453** | |
+
+The 2026-08-12 batch is `viewList` / `viewMap` / `resultCount_one` /
+`resultCount_other`. Two specific things for a reviewer to check, beyond the
+usual register question:
+
+- **`viewList` / `viewMap` must be short.** They render inside a two-part pill
+  in the segment header, next to a 15px icon, with the heading competing for
+  the same row. A noun of roughly "List"/"Map" length fits; a descriptive
+  phrase will truncate. If your language has no short noun for either, say so
+  rather than picking a long one — the layout can change, the truncation
+  can't be styled around.
+- **`resultCount` has only two plural forms.** `Translations = typeof en`
+  forbids a locale from carrying keys English lacks, so ru/uk/ar cannot add
+  their own `_few` / `_many` forms and `_other` has to cover every non-singular
+  count. Pick the form that reads least wrong across the range — this is a
+  pre-existing constraint on every plural in the file, not new here, but the
+  Slavic and Arabic reviewers should know it is deliberate and not a gap they
+  can fill.
 
 Structural integrity is already machine-verified for both namespaces: key
 sets are identical across all nine locales with no extras, and every

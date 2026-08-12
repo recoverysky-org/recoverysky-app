@@ -25,7 +25,6 @@ import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import {
-  navigate,
   peekPendingMeetingId,
   consumePendingMeetingId,
   usePendingMeetingId,
@@ -280,16 +279,16 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   return (
     <View style={$screenContainer}>
       {/* Header - outside FlatList to match Listings layout */}
+      {/* CHANGED 2026-08-12: the settings gear that used to sit at the end of
+          this row is gone from all three Meetings segments. It duplicated the
+          Settings tab one thumb-width away in the tab bar, and it was spending
+          the most valuable real estate on the screen — the end of the title
+          row, the only place a segment-specific control can live — on a
+          shortcut nobody needed. $header keeps `space-between` so a segment
+          that does put a control there (In-Person's map/list toggle) still
+          pins it to the right edge. */}
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
-        <TouchableOpacity
-          onPress={() => navigate("Settings" as never, { section: "profile" } as never)}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t("mainNavigator:settingsTab")}
-        >
-          <Ionicons name="settings-outline" size={22} color={theme.colors.textDim} />
-        </TouchableOpacity>
       </View>
 
       {/* Fellowship Selector - single line */}
