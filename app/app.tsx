@@ -96,6 +96,7 @@ import { checkForUpdates } from "./utils/checkForUpdates"
 import { parseDeepLinkSegment, pendingTargetForSegment } from "./utils/deepLinkLogic"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
+import { shouldRevokeLocationFlag } from "./utils/locationGateLogic"
 import { logger } from "./utils/logger"
 import { reloadApp } from "./utils/reloadApp"
 import * as storage from "./utils/storage"
@@ -941,9 +942,21 @@ export function App() {
         // would answer that question on the user's behalf and quietly start
         // reading their position because they once allowed it for something
         // else. getForegroundPermissionsAsync only READS — it never prompts.
+        // CHANGED 2026-08-12: the comparison moved into the shared
+        // `shouldRevokeLocationFlag` predicate. This resume listener used to be
+        // the ONLY place the flag was ever cleared, and it only fires on
+        // `background → active` — so a one-time grant that died with the
+        // process left the flag stranded on. Three more sites reconcile now
+        // (useNearbySchedules, usePresenceCheck, SettingsScreen focus); they
+        // all share the predicate so the rule cannot drift between them.
         Location.getForegroundPermissionsAsync()
           .then(({ granted }) => {
-            if (!granted && rootStore.profileStore.locationEnabled) {
+            if (
+              shouldRevokeLocationFlag({
+                osGranted: granted,
+                locationEnabled: rootStore.profileStore.locationEnabled,
+              })
+            ) {
               rootStore.profileStore.setLocationEnabled(false)
             }
           })

@@ -61,7 +61,7 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
-import { decideLocationGate, toOsStatus } from "@/utils/locationGateLogic"
+import { decideLocationGate, shouldRevokeLocationFlag, toOsStatus } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import { parseReturnTo } from "@/utils/returnToLogic"
 import { clear as clearStorage, saveString } from "@/utils/storage"
@@ -178,6 +178,55 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const authStore = useAuthenticationStore()
   const conversationStore = useConversationStore()
   const configStore = useConfigStore()
+
+  /**
+   * Reconcile the Location switch with the OS every time this tab is focused.
+   *
+   * ADDED 2026-08-12. The switch renders `profileStore.locationEnabled`
+   * directly (PermissionsSection), and that flag could outlive the grant it
+   * was written from: an "Allow Once" / "Only this time" grant usually dies
+   * with the *process*, which produces no `background → active` transition, so
+   * app.tsx's resume sync never ran and this screen showed Location ON for a
+   * permission we no longer held.
+   *
+   * On FOCUS, not on mount: Settings is a tab screen, so it mounts once and
+   * stays mounted behind the other tabs — a `useEffect(…, [])` would fire once
+   * per launch, most likely before the user ever visited Settings, and never
+   * again. Same `addListener("focus")` shape AttendanceScreen uses for section
+   * routing.
+   *
+   * `getForegroundPermissionsAsync` READS ONLY — it never prompts. That is
+   * what makes it safe to run on focus, and it is deliberately the whole of
+   * the location work this screen does unprompted: nothing may touch the
+   * location subsystem before the app is running and the user has navigated.
+   * Do not "improve" this into a startup sync.
+   *
+   * Revoke-only (see `shouldRevokeLocationFlag`): an OS grant is only half the
+   * consent, so this can never switch the toggle ON.
+   */
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (Platform.OS === "web") return
+      Location.getForegroundPermissionsAsync()
+        .then(({ granted }) => {
+          if (
+            shouldRevokeLocationFlag({
+              osGranted: granted,
+              locationEnabled: profileStore.locationEnabled,
+            })
+          ) {
+            profileStore.setLocationEnabled(false)
+          }
+        })
+        .catch((err) => {
+          // Never fatal: a failed read just leaves the switch as-is until the
+          // next focus. Swallowing it here also keeps this off the unhandled
+          // rejection path the toggle handler below was already fixed for.
+          logger.warn("Location focus sync failed", { error: String(err) })
+        })
+    })
+    return unsubscribe
+  }, [navigation, profileStore])
 
   // Local buffer for shortName — decouples TextInput from MobX re-renders
   // to prevent React Native's controlled TextInput from firing stale onChangeText events

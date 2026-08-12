@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { decideLocationGate, toOsStatus } from "./locationGateLogic"
+import { decideLocationGate, shouldRevokeLocationFlag, toOsStatus } from "./locationGateLogic"
 
 describe("toOsStatus", () => {
   it("maps a granted permission to granted", () => {
@@ -16,13 +16,39 @@ describe("toOsStatus", () => {
   })
 })
 
+describe("shouldRevokeLocationFlag", () => {
+  it("revokes when we claim a grant the OS does not give us", () => {
+    // The whole point: an "Allow Once" grant that lapsed while our toggle
+    // stayed on.
+    expect(shouldRevokeLocationFlag({ osGranted: false, locationEnabled: true })).toBe(true)
+  })
+
+  it("leaves an agreeing pair alone", () => {
+    expect(shouldRevokeLocationFlag({ osGranted: true, locationEnabled: true })).toBe(false)
+  })
+
+  it("does nothing when both already say no", () => {
+    expect(shouldRevokeLocationFlag({ osGranted: false, locationEnabled: false })).toBe(false)
+  })
+
+  it("never enables the toggle off the back of an OS grant", () => {
+    // Load-bearing. This is the `confirm-in-app` state — the OS has said yes
+    // and only the user's own in-app consent is outstanding. A predicate that
+    // acted here would silently delete the second consent layer and answer
+    // that question on the user's behalf.
+    expect(shouldRevokeLocationFlag({ osGranted: true, locationEnabled: false })).toBe(false)
+  })
+})
+
 describe("decideLocationGate", () => {
   it("proceeds when the toggle is on and the OS agrees", () => {
     expect(decideLocationGate({ locationEnabled: true, osStatus: "granted" })).toBe("proceed")
   })
 
   it("prompts the OS when the toggle is on but permission was never asked", () => {
-    expect(decideLocationGate({ locationEnabled: true, osStatus: "undetermined" })).toBe("prompt-os")
+    expect(decideLocationGate({ locationEnabled: true, osStatus: "undetermined" })).toBe(
+      "prompt-os",
+    )
   })
 
   it("sends the user to settings when the OS revoked an enabled toggle", () => {

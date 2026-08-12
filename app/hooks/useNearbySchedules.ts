@@ -101,6 +101,7 @@ import { feedbackCache } from "@/db"
 import { useConfigStore, useProfileStore } from "@/models"
 import { api, LiveSchedule } from "@/services/api"
 import { sortByFeedback } from "@/utils/feedbackSort"
+import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import {
   buildNearbyParams,
@@ -344,6 +345,29 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
 
       if (!perm.granted) {
         setPermission("denied")
+        // ADDED 2026-08-12: reconcile the in-app toggle with the refusal we
+        // just received. We only reach this line when `locationEnabled` was
+        // true (the short circuit above returns otherwise), so a denial here
+        // means the flag is claiming a grant we do not have — the "Allow Once"
+        // / "Only this time" case, whose grant usually dies with the process
+        // and so never reaches app.tsx's `background → active` resume sync.
+        //
+        // Costs no extra OS call: `perm` is a response we already have and
+        // used to throw away. Doing it here also fixes `effectiveViewMode`
+        // (InPersonScreen), which gates the map on the flag and would
+        // otherwise mount a MapLibre surface with nothing to centre on.
+        //
+        // Cannot loop: `acquireLocation` early-returns while the flag is
+        // false, the segment's `visible` effect is keyed on a per-visit ref,
+        // and `wasLocationEnabledRef` fires only on the false→true edge.
+        if (
+          shouldRevokeLocationFlag({
+            osGranted: perm.granted,
+            locationEnabled: profileStore.locationEnabled,
+          })
+        ) {
+          profileStore.setLocationEnabled(false)
+        }
         // Drop coordinates from any earlier grant. Two reasons: privacy (we
         // hold no position we're not allowed to use), and consistency — the
         // fetch path is chosen by `coordsRef`, so stale coords would produce a

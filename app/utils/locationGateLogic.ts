@@ -44,6 +44,33 @@ export function toOsStatus(perm: { granted: boolean; canAskAgain: boolean }): Lo
 }
 
 /**
+ * Should the in-app Location toggle be forced off to match the OS?
+ *
+ * ADDED 2026-08-12: `profileStore.locationEnabled` could outlive the grant it
+ * was written from. Six sites write it `true` (both `useLocationGate` confirm
+ * branches, both `SettingsScreen` toggle branches, and `InPersonPopup`'s
+ * tap-is-consent self-heal) against one that wrote it `false` — app.tsx's
+ * resume sync, which only fires on `background → active`. An "Allow Once" /
+ * "Only this time" grant usually dies with the *process*, which produces no
+ * such transition, so Settings showed Location ON for a permission we no
+ * longer held. Callers now share this predicate rather than each re-deriving
+ * the comparison: the bug being fixed IS a reconciliation that existed on one
+ * path and not another, and two hand-written copies invite it straight back.
+ *
+ * ONE-DIRECTIONAL BY DESIGN. True only when we claim a grant the OS does not
+ * give us. The false→true direction is deliberately not expressible here: an
+ * OS grant is only half the consent, and answering the other half on the
+ * user's behalf is exactly what `decideLocationGate`'s "confirm-in-app" branch
+ * exists to avoid. Do not add a `shouldGrant` twin.
+ */
+export function shouldRevokeLocationFlag(input: {
+  osGranted: boolean
+  locationEnabled: boolean
+}): boolean {
+  return !input.osGranted && input.locationEnabled
+}
+
+/**
  * Decide what opening the In-Person segment should do.
  *
  * The `locationEnabled: false, osStatus: "granted"` case is the load-bearing

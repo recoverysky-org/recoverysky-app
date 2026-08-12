@@ -19,7 +19,8 @@ import { useCallback, useRef, useState } from "react"
 import { Platform } from "react-native"
 import * as Location from "expo-location"
 
-import { useConfigStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
+import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import { verifyPresence, type PresenceFix, type PresenceVenue } from "@/utils/presenceLogic"
 
@@ -47,6 +48,10 @@ export interface UsePresenceCheckResult {
 
 export function usePresenceCheck(): UsePresenceCheckResult {
   const configStore = useConfigStore()
+  // Read only to reconcile the in-app toggle when the OS refuses (see the
+  // denial path in `check`). This hook does not gate itself on
+  // `locationEnabled` — InPersonPopup sets it true on the tap that reaches us.
+  const profileStore = useProfileStore()
   const [isChecking, setIsChecking] = useState(false)
 
   /**
@@ -80,6 +85,22 @@ export function usePresenceCheck(): UsePresenceCheckResult {
         const perm = await Location.requestForegroundPermissionsAsync()
         if (!perm.granted) {
           log.info("Presence check denied", { canAskAgain: perm.canAskAgain })
+          // ADDED 2026-08-12: reconcile the in-app toggle with this refusal.
+          // InPersonPopup.handlePresence writes `locationEnabled = true`
+          // OPTIMISTICALLY before calling us (its tap-is-consent self-heal —
+          // D8 of the permissions spec, deliberately unchanged). That write is
+          // right when the OS agrees and wrong the instant it doesn't, and
+          // nothing used to undo it: the flag was left claiming a grant we had
+          // just been refused, until some later background round-trip happened
+          // to notice. Costs no extra OS call — `perm` is already in hand.
+          if (
+            shouldRevokeLocationFlag({
+              osGranted: perm.granted,
+              locationEnabled: profileStore.locationEnabled,
+            })
+          ) {
+            profileStore.setLocationEnabled(false)
+          }
           return { status: "denied", canAskAgain: perm.canAskAgain }
         }
 
@@ -145,7 +166,9 @@ export function usePresenceCheck(): UsePresenceCheckResult {
         setIsChecking(false)
       }
     },
-    [radiusM],
+    // `profileStore` is the MST node itself — a stable identity, so this does
+    // not re-create `check` on every profile change.
+    [radiusM, profileStore],
   )
 
   return { check, isChecking }
