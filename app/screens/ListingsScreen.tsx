@@ -37,7 +37,6 @@ import {
 } from "react-native"
 import { getLocales } from "expo-localization"
 import { Ionicons } from "@expo/vector-icons"
-import { DateTime } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -574,13 +573,16 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
       // Sort the merged pool once by local time (hour:minute), not UTC millis,
       // so the future in-person UI inherits correct ordering.
-      const byTime = [...merged.items].sort((a, b) => {
-        const aLocal = DateTime.fromMillis(a.millis).toLocal()
-        const bLocal = DateTime.fromMillis(b.millis).toLocal()
-        const aMinutes = aLocal.hour * 60 + aLocal.minute
-        const bMinutes = bLocal.hour * 60 + bLocal.minute
-        return aMinutes - bMinutes
-      })
+      // CHANGED 2026-08-12 (Jenova): sort on `millis` ascending instead. The
+      // minutes-since-local-midnight key discarded the date, so any row whose
+      // instant landed on an adjacent calendar day — a venue far enough east or
+      // west of the device for the same weekday slot to fall outside the
+      // device's day — was interleaved by clock face rather than by when it
+      // actually happens. It also split the Overnight bucket across both ends
+      // of the list (01:00 keyed 60, 22:00 keyed 1320) when that filter was
+      // applied. Raw millis is the true chronological order and collapses to
+      // the same result as the old key for the ordinary same-day case.
+      const byTime = [...merged.items].sort((a, b) => a.millis - b.millis)
 
       // ADDED 2026-08-04: favourites float to the top, the same three tiers the
       // Live segment has always used. Layered OVER the time sort rather than
