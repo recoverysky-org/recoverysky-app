@@ -24,6 +24,85 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Settings could show Location switched ON for a permission the app no longer
+  held.** Choosing "Allow Once" (iOS) or "Only this time" (Android) grants
+  location for a single session, and neither platform tells an app the grant is
+  temporary — it reports the same status as "While Using the App". The app
+  recorded that as durable consent, and the one place that ever undid it ran
+  only when the app returned from the background. A one-time grant usually dies
+  with the *process* instead, which produces no such moment, so the switch could
+  keep claiming a permission that was gone. It now reconciles whenever the user
+  opens Settings, and at the two points where the system has just refused
+  location, so the switch tells the truth.
+
+  Position was never at risk: every part of the app that reads location asks the
+  system again first, so the stale switch could not have produced a location fix
+  it wasn't allowed to take. The visible symptoms were the misleading switch and
+  the In-Person tab opening onto an empty map instead of falling back to the
+  meeting list.
+
+  Deliberately **not** fixed by checking location at startup: nothing in this app
+  may touch the location system before it is running and the user has navigated,
+  and a cosmetic fix is no reason to become the exception.
+
+### Added
+
+- **The "I'm Here" GPS check now reports why it failed.** Only the successful
+  case was ever recorded, so the four ways a presence check can fail —
+  out of range, missing venue coordinates, permission refused, no GPS fix — were
+  invisible, which meant there was no way to tell whether the feature was working
+  or how the 150 m radius was performing in the real world. No position, distance,
+  or venue is included in what is recorded.
+
+### Build
+
+- **Android now targets API 36 (Android 16), satisfying Google Play's Aug 30,
+  2026 deadline.** Play requires every app's target API level to stay within one
+  year of the latest Android release; ours was still on 35 and would have been
+  blocked from further updates. `compileSdkVersion` was already 36, so this is
+  the `targetSdkVersion` flag catching up to Expo SDK 54's own default.
+
+  The one API 36 behavior change that would have been user-visible is Android's
+  new "adaptive apps" rule: on any display 600dp or wider — tablets, unfolded
+  foldables, Chromebooks — the platform stops honoring an app's orientation and
+  resizability restrictions entirely. Left alone, every tablet user would have
+  been dropped into landscape and freeform-resizable windows that no screen in
+  this app has ever been designed or tested for. A new config plugin
+  (`plugins/withRestrictedResizability.ts`) declares Google's sanctioned opt-out
+  property so tablet users keep the portrait-locked app they have today, with no
+  behavior change for anyone.
+
+  Verified on hardware rather than assumed: a Pixel 7 running Android 17 was
+  forced to a 617dp width (`wm density 280`, above the 600dp threshold) and
+  rotated to landscape. The app stayed portrait and was letterboxed, which is
+  the intended outcome. Note this held on an API 37 *device* — the opt-out is
+  keyed to the app's target SDK (36), not the OS it runs on, so it expires when
+  we target 37, not when users get Android 17.
+
+  Edge-to-edge (the other headline API 36 change) needed no work — it has been
+  enabled since `react-native-edge-to-edge` was adopted. Predictive back stays
+  off via the existing `enableOnBackInvokedCallback="false"`, which remains a
+  supported opt-out at 36.
+
+  ⚠️ **The resizability opt-out expires.** Google states the property has no
+  effect once an app targets API 37, which Play's rolling one-year rule makes
+  mandatory around Aug 2027. Real adaptive-layout support is queued in
+  `TODO.md`; this change buys the time to do it properly rather than during a
+  release.
+
+### Changed
+
+- **Search results are now ordered chronologically.** The list sorted on
+  minutes-since-local-midnight, which threw the date away: a venue far enough
+  east or west for its weekday slot to land on an adjacent calendar day was
+  interleaved by clock face rather than by when the meeting actually starts,
+  and the Overnight time filter split its results across both ends of the list
+  (1am at the top, 10pm at the bottom). Ordering is on the raw start instant,
+  which is identical to the old behavior for the ordinary same-day case.
+  Favourites still float to the top; they're chronological among themselves.
+
+### Fixed
+
 - **Search no longer offers an in-person search it can't run.** With Settings →
   Permissions → Location off, picking the In-Person venue on the Meetings tab's
   Search segment returned an empty list explained only by a dimmed "Location
