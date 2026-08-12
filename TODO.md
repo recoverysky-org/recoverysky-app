@@ -18,6 +18,51 @@ Items queued for the **next native build** (each requires a fresh
 
 ---
 
+## ⏳ Adaptive layouts for large screens (HARD DEADLINE ~Aug 2027)
+
+Queued 2026-08-10, when `targetSdkVersion` went 35 → 36 to meet Play's
+Aug 30, 2026 API-36 deadline.
+
+Android 16 (API 36) ignores `android:screenOrientation`,
+`android:resizableActivity`, `android:minAspectRatio` / `maxAspectRatio`, and
+runtime `setRequestedOrientation()` on any display measuring `sw600dp` or
+larger. We currently suppress that with Google's temporary opt-out property,
+declared by `plugins/withRestrictedResizability.ts`.
+
+**That property has no effect once we target API 37.** Play's rolling
+"within one year of the latest release" rule means targeting 37 becomes
+mandatory around **Aug 2027**. At that point tablets, unfolded foldables, and
+Chromebooks get landscape and freeform-resizable windows whether we are ready
+or not — there is no further escape hatch. We have confirmed tablet users, and
+`plugins/withUsesFeatures.ts` exists specifically to keep the app visible to
+cellular-less tablets and Chromebooks, so this is not a population we can
+write off.
+
+Starting position: there is **no** responsive logic anywhere in `app/` today —
+no `useWindowDimensions` consumers, no breakpoint helpers, no tablet branches.
+`app.json` sets `"orientation": "portrait"` and every screen assumes it.
+
+- [ ] **Spec the adaptive work before writing any of it.** This is a
+      design problem (what does a 1024dp-wide Meetings tab even look like?),
+      not a config change. Produce a spec in `docs/superpowers/specs/` the way
+      the in-person map and permissions-section work was specced.
+- [ ] **Audit every screen at ≥600dp width.** Highest risk by inspection:
+      `SchedulePopup` and `InPersonPopup` (modal sizing), `InPersonMapView`
+      (GL surface + camera fit), `AttendanceScreen` (Reports tab tables), the
+      onboarding flow (fixed vertical rhythm), and the paywall.
+- [ ] **Decide the breakpoint strategy** — a shared hook + theme tokens, so
+      screens don't each invent their own `width > 600` check.
+- [ ] **Verify rotation mid-flow doesn't lose state**, especially the
+      attendance timer (`useAttendanceTimer`) and the in-person presence check.
+      `MainActivity` already declares `configChanges` for `orientation` /
+      `screenSize` / `screenLayout`, so the activity is not recreated — but
+      that has never actually been exercised, because the portrait lock meant
+      the config change never fired.
+- [ ] **Delete `plugins/withRestrictedResizability.ts`** once the above lands.
+      Do not attempt to carry it forward to target 37 — it is inert there.
+
+---
+
 ## 🔴 Real crashes (chase these first)
 
 A genuine crash with app frames in the stack — unlike the ANR, worth

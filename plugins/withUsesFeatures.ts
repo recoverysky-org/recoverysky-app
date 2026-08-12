@@ -94,7 +94,7 @@ const PERMISSIONS_TO_REMOVE = [
   // Sensitive permission ("draw over other apps") that Play Console flags.
   // We don't render any overlay outside our own activities.
   "android.permission.SYSTEM_ALERT_WINDOW",
-  // Deprecated storage permissions on target SDK 29+ (we target 35). They
+  // Deprecated storage permissions on target SDK 29+ (we target 36). They
   // do nothing functionally and just bloat the permission list.
   "android.permission.READ_EXTERNAL_STORAGE",
   "android.permission.WRITE_EXTERNAL_STORAGE",

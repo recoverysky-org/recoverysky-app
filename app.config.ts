@@ -53,6 +53,12 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
       // SDK's AAR used to contribute these declarations and we lost them
       // when we ripped the SDK out in 4.5.0.
       "./plugins/withUsesFeatures",
+      // Target SDK 36 makes Android ignore `screenOrientation="portrait"` on
+      // any sw600dp+ display (tablets, foldables, Chromebooks). This declares
+      // Google's temporary opt-out property so our tablet users keep the
+      // portrait-locked app they have today. The property STOPS WORKING at
+      // targetSdk 37 (~Aug 2027) — see the plugin source and TODO.md.
+      "./plugins/withRestrictedResizability",
     ],
   }
 }
