@@ -56,6 +56,7 @@ import {
 } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useDeviceLocation } from "@/hooks/useDeviceLocation"
+import { useLocationGate } from "@/hooks/useLocationGate"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useConfigStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -67,6 +68,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { sortByFeedback } from "@/utils/feedbackSort"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
+  coerceVenue,
   DEFAULT_SEARCH_TIME,
   DEFAULT_VENUE,
   matchesSearchTime,
@@ -75,7 +77,7 @@ import {
   radiusAppliesTo,
   SEARCH_TIME_OPTIONS,
   type SearchTime,
-  VENUE_OPTIONS,
+  venueOptionsFor,
   type VenueChoice,
 } from "@/utils/filterLogic"
 import { logger } from "@/utils/logger"
@@ -121,6 +123,10 @@ const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
 }
 
 const getLanguageDisplayName = (code: string): string => LANGUAGE_DISPLAY_NAMES[code] ?? code
+
+/** Amber accent — the same literal InPersonScreen uses for its banner, so the
+ *  two segments' location banners are visually one thing. */
+const BANNER_ACCENT = "#f59e0b"
 
 /** Translation key per venue choice. A Record so a new choice without a label
  *  is a compile error rather than a `[missing key]` rendered on screen. */
@@ -208,6 +214,47 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   const [searchTimeModalVisible, setSearchTimeModalVisible] = useState(false)
 
   const location = useDeviceLocation()
+  // The app-level Location toggle's gate — the ONLY thing that can turn the
+  // toggle back on. `location.acquire()` cannot: it short-circuits before any
+  // `Location.*` call while the toggle is off (see useDeviceLocation's header).
+  const { runGate } = useLocationGate()
+
+  /**
+   * Settings → Permissions → Location is off.
+   *
+   * ADDED 2026-08-12: in-person search is a distance search, so this kills it
+   * outright — `useDeviceLocation` refuses to produce a fix, the in-person leg
+   * is skipped, and the list comes back empty. Search used to offer the venue
+   * choice anyway and explain itself only through a dimmed "Location off"
+   * radius cell; the In-Person segment, on the same toggle, removes the
+   * ambiguity with a banner. This is that banner's condition, and the reason
+   * `venueOptionsFor` drops the In-Person option below.
+   */
+  const locationDisabled = !profileStore.locationEnabled
+
+  /** Venue picker contents. In-Person is absent while location is off. */
+  const venueOptions = useMemo(
+    () => venueOptionsFor(profileStore.locationEnabled),
+    [profileStore.locationEnabled],
+  )
+
+  /**
+   * Snap the venue back to something the picker still offers.
+   *
+   * This is a live transition, not a cold-start case: all three Meetings
+   * segments stay mounted behind the Settings tab, so a user can be sitting on
+   * an In-Person search when the switch goes off. Without this the selector
+   * would read "In-Person" over a list that can only be empty, and the picker
+   * would no longer contain the value it claims is selected.
+   *
+   * Safe against the trap documented in CLAUDE.md ("Permissions & the Location
+   * Gate"): this effect touches no location API and pops no dialog — it only
+   * rewrites local filter state — so re-firing it on a `locationEnabled` change
+   * is exactly what we want, unlike the In-Person gate.
+   */
+  useEffect(() => {
+    setVenue((current) => coerceVenue(current, profileStore.locationEnabled))
+  }, [profileStore.locationEnabled])
 
   // Pick up a location fix if — and only if — the user has already granted
   // permission somewhere else in the app (the In-Person segment is the usual
@@ -609,6 +656,21 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     [location.getCoords, location.fixVersion],
   )
 
+  /**
+   * Banner tap — one route only, unlike In-Person's five.
+   *
+   * The banner shows for exactly one reason here (the app-level toggle is
+   * off), because every other location failure on this tab is reachable only
+   * with the toggle ON, and those states already have their own copy: the
+   * radius cell reads "Location off" and the empty state is tappable. Only
+   * `runGate()` can flip the toggle back — `location.acquire()` short-circuits
+   * while it's off, which is the silent-dead-end shape the In-Person banner
+   * fix (2026-08-08) closed on that segment.
+   */
+  const handleBannerPress = useCallback(() => {
+    void runGate()
+  }, [runGate])
+
   // Meeting popup handlers
   const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
     setSelectedMeeting(meeting)
@@ -882,6 +944,28 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           </View>
         )}
 
+        {/* Location banner — same slim, tappable strip the In-Person segment
+            uses, in the same place (below the filters, above the count) and
+            with the same copy, because it reports the same fact about the same
+            toggle. ADDED 2026-08-12: without it, turning location off silently
+            dropped the In-Person venue option and left the user with no
+            explanation and no route back — the option just wasn't there any
+            more. Shown whenever the toggle is off, not only right after the
+            coercion above: by then the venue reads "Online" and nothing else
+            on screen says why in-person is unavailable. */}
+        {locationDisabled && (
+          <TouchableOpacity
+            style={themed($banner)}
+            onPress={handleBannerPress}
+            accessibilityRole="button"
+            accessibilityLabel={t("location:emptyNeedsLocation")}
+            accessibilityHint={t("accessibility:doubleTapToAllowLocation")}
+          >
+            <Ionicons name="location-outline" size={14} color={BANNER_ACCENT} />
+            <Text style={themed($bannerText)}>{t("location:emptyNeedsLocation")}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Meeting Count */}
         {filteredMeetings.length > 0 && (
           <View style={themed($countContainer)}>
@@ -925,6 +1009,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       needsLocation,
       radiusLabel,
       handleOpenRadiusModal,
+      // Load-bearing for the same reason as `needsLocation` above: the banner
+      // has to appear and disappear as the Settings toggle changes, and the
+      // header is memoized.
+      locationDisabled,
+      handleBannerPress,
     ],
   )
 
@@ -1079,7 +1168,9 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         <Pressable style={themed($modalOverlay)} onPress={() => setVenueModalVisible(false)}>
           <View style={themed($modalContent)} accessibilityViewIsModal>
             <Text style={themed($modalTitle)}>{t("listingsScreen:venueLabel")}</Text>
-            {VENUE_OPTIONS.map((option) => {
+            {/* `venueOptions`, not VENUE_OPTIONS: In-Person is off the menu
+                while the Location toggle is off — see `locationDisabled`. */}
+            {venueOptions.map((option) => {
               const isSelected = option === venue
               return (
                 <TouchableOpacity
@@ -1473,6 +1564,31 @@ const $modalOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
   fontWeight: "600",
+})
+
+/* Location banner — deliberately a copy of the In-Person segment's $banner /
+   $bannerText (same accent, same metrics, same marginHorizontal as
+   $selectorRow above so it lines up with the filter cells). Not imported:
+   InPersonScreen doesn't export its styles, and the two screens' style blocks
+   are independent by convention. If you restyle one banner, restyle both. */
+const $banner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  gap: spacing.xs,
+  marginHorizontal: spacing.md,
+  marginBottom: spacing.sm,
+  paddingHorizontal: spacing.sm,
+  paddingVertical: spacing.xs,
+  borderRadius: 8,
+  backgroundColor: colors.card,
+  borderWidth: 1,
+  borderColor: BANNER_ACCENT,
+})
+
+const $bannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  flex: 1,
+  fontSize: 12,
+  color: colors.textDim,
 })
 
 const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

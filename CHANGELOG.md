@@ -24,6 +24,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Search no longer offers an in-person search it can't run.** With Settings →
+  Permissions → Location off, picking the In-Person venue on the Meetings tab's
+  Search segment returned an empty list explained only by a dimmed "Location
+  off" radius cell — the In-Person segment, driven by the same toggle, has said
+  so plainly in a banner since 4.8.0. The venue picker now drops the In-Person
+  option while location is off (snapping an in-person search already on screen
+  back to Online, since the toggle can be flipped from Settings while the
+  Meetings tab stays mounted), and the same amber banner appears above the
+  results. Tapping it runs the in-app location gate, which is the only thing
+  that can turn the toggle back on.
+
 - **The legal agreements no longer come up blank at login.** The CMS behind the
   disclaimer and the EULA occasionally fails a single document while serving
   its neighbour normally — a user tapping Sign In could land on an agreement

@@ -119,6 +119,35 @@ export const VENUE_OPTIONS: readonly VenueChoice[] = ["online", "in_person"]
 export const DEFAULT_VENUE: VenueChoice = "online"
 
 /**
+ * Which venue choices the picker may offer, given the Settings → Permissions
+ * Location toggle.
+ *
+ * ADDED 2026-08-12: an in-person search is a distance search — it exists only
+ * as `/schedules/nearby` around a fix — so with the toggle off it can never
+ * return anything. Search used to offer the choice anyway and answer with an
+ * empty list plus a dimmed "Location off" radius cell, while the In-Person
+ * segment (same data, same toggle) explains itself with a banner. Offering a
+ * control that cannot work is the part that reads as broken, so the option is
+ * removed and `venueLocationBlocked` below puts the explanation on screen.
+ */
+export function venueOptionsFor(locationEnabled: boolean): readonly VenueChoice[] {
+  return locationEnabled ? VENUE_OPTIONS : VENUE_OPTIONS.filter((v) => !radiusAppliesTo(v))
+}
+
+/**
+ * The venue choice that survives the current location state.
+ *
+ * Load-bearing for the toggle-flipped-while-you-were-here case: the Meetings
+ * tab stays mounted behind Settings, so a user can be sitting on an In-Person
+ * search when the switch goes off. Without this coercion the selector's value
+ * column would name an option the picker no longer lists, over a list that can
+ * only ever be empty.
+ */
+export function coerceVenue(choice: VenueChoice, locationEnabled: boolean): VenueChoice {
+  return venueOptionsFor(locationEnabled).includes(choice) ? choice : DEFAULT_VENUE
+}
+
+/**
  * Does a meeting's `venueType` satisfy the chosen venue filter?
  *
  * Venue semantics are the common lib's: `""` (legacy online rows scraped

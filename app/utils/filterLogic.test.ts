@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  coerceVenue,
   DEFAULT_SEARCH_TIME,
   DEFAULT_SHORT_TIME,
   DEFAULT_VENUE,
@@ -15,6 +16,7 @@ import {
   SHORT_TIME_RANGES,
   type ShortTime,
   VENUE_OPTIONS,
+  venueOptionsFor,
 } from "./filterLogic"
 
 /**
@@ -155,6 +157,51 @@ describe("poolsForVenue", () => {
     // pool that would prompt for GPS. Changing DEFAULT_VENUE to "in_person"
     // would do exactly that, so this test is the guard.
     expect(poolsForVenue(DEFAULT_VENUE)).toEqual({ online: true, inPerson: false })
+  })
+})
+
+describe("venueOptionsFor", () => {
+  it("offers everything when location is on", () => {
+    expect(venueOptionsFor(true)).toEqual(VENUE_OPTIONS)
+  })
+
+  it("drops every choice that needs a location fix when location is off", () => {
+    const options = venueOptionsFor(false)
+    expect(options).toEqual(["online"])
+    // Stated as a rule rather than a literal so a future third venue can't
+    // slip into the picker without deciding whether it needs a fix.
+    for (const choice of options) {
+      expect(poolsForVenue(choice).inPerson, `${choice} needs a fix`).toBe(false)
+    }
+  })
+
+  it("never empties the picker", () => {
+    // A filter cell with no options is a dead control — the whole point of
+    // removing in-person is that the user still has a working search.
+    expect(venueOptionsFor(false).length).toBeGreaterThan(0)
+  })
+})
+
+describe("coerceVenue", () => {
+  it("leaves a valid choice alone", () => {
+    expect(coerceVenue("in_person", true)).toBe("in_person")
+    expect(coerceVenue("online", true)).toBe("online")
+    expect(coerceVenue("online", false)).toBe("online")
+  })
+
+  it("falls back when the toggle goes off under an in-person search", () => {
+    // The Meetings tab stays mounted behind Settings, so this is a live
+    // transition, not a cold-start case.
+    expect(coerceVenue("in_person", false)).toBe(DEFAULT_VENUE)
+  })
+
+  it("only ever returns something the picker offers", () => {
+    for (const locationEnabled of [true, false]) {
+      for (const choice of VENUE_OPTIONS) {
+        const coerced = coerceVenue(choice, locationEnabled)
+        expect(venueOptionsFor(locationEnabled), `${choice}/${locationEnabled}`).toContain(coerced)
+      }
+    }
   })
 })
 
