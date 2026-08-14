@@ -3,6 +3,10 @@
  *
  * Handles: initial send, resend, error-replace, and forward.
  * All operations produce consistent toast-only notifications (no Alert.alert).
+ *
+ * CHANGED 2026-08-13: one exception to "toast-only" — the empty-short-name
+ * gate below raises an Alert, because it has to offer a trip to Settings and a
+ * toast can't carry an action. See useShortNameGate.
  */
 
 import { useCallback, useState } from "react"
@@ -16,6 +20,7 @@ import {
   type AttendanceReportRecord,
   type AttendanceReportUpdateInput,
 } from "@/db"
+import { useShortNameGate } from "@/hooks/useShortNameGate"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
 import { pollForConfirmation } from "@/services/polling"
@@ -330,6 +335,7 @@ export function useReportSender() {
   const profileStore = useProfileStore()
   const configStore = useConfigStore()
   const toast = useToast()
+  const shortNameGate = useShortNameGate()
   const [isSending, setIsSending] = useState(false)
 
   const send = useCallback(
@@ -342,6 +348,13 @@ export function useReportSender() {
         toast.showToast({ tx: "common:maintenanceBanner", type: "info" })
         return null
       }
+
+      // A report is stamped with the user's short name, which can now be empty
+      // (the "Anon M." default was removed 2026-08-13). Gated HERE rather than
+      // at the AttendanceScreen buttons because all four operations —
+      // initial, resend, replace, forward — funnel through this call, and a
+      // resend of a nameless report is just as wrong as the first send.
+      if (!shortNameGate.requireShortName()) return null
 
       setIsSending(true)
       try {
@@ -368,7 +381,7 @@ export function useReportSender() {
         setIsSending(false)
       }
     },
-    [authStore.userId, configStore, toast],
+    [authStore.userId, configStore, toast, shortNameGate],
   )
 
   return { send, isSending }

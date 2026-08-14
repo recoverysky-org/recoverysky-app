@@ -115,7 +115,14 @@ export const ProfileStoreModel = types
   })
   .volatile(() => ({
     // === SENSITIVE (stored in encrypted SQLite, NOT in snapshots) ===
-    shortName: "Anon M.",
+    // CHANGED 2026-08-13: was "Anon M.". A pre-filled placeholder-looking value
+    // reads as a name the user already chose, so it survived onboarding and
+    // ended up printed on attendance reports. Empty lets the input show its
+    // real placeholder ("e.g., Jane D.") and makes "unset" detectable.
+    // NOTE: "Anon M." is still persisted in existing installs' SQLite — any
+    // "has the user set a name?" check must treat BOTH values as unset. See
+    // OnboardingImport's Firebase import guard.
+    shortName: "",
     pronouns: null as Pronouns,
     // Device-LOCAL today, NOT `toISOString()` (UTC) — a user behind UTC in the
     // evening would otherwise default to *tomorrow*. See todayLocalISODate.
@@ -486,7 +493,9 @@ export const ProfileStoreModel = types
        */
       reset() {
         // Reset volatile (sensitive) data
-        self.shortName = "Anon M."
+        // Keep in sync with the volatile default above so a reset profile
+        // matches a fresh install (CHANGED 2026-08-13: was "Anon M.").
+        self.shortName = ""
         self.pronouns = null
         // Device-LOCAL today (not UTC) — keep in sync with the volatile default
         // above so a freshly reset profile matches a fresh install.

@@ -18,6 +18,7 @@ import { Text } from "@/components/Text"
 import { useToast } from "@/components/Toast"
 import { attendanceRepo } from "@/db"
 import { useNinetyInNinety, type DailyMinutes } from "@/hooks/useNinetyInNinety"
+import { useShortNameGate } from "@/hooks/useShortNameGate"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import {
   generateAndStoreCertificate,
@@ -94,6 +95,7 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
   const authStore = useAuthenticationStore()
   const stats = useNinetyInNinety()
   const toast = useToast()
+  const shortNameGate = useShortNameGate()
   const [isGenerating, setIsGenerating] = useState(false)
 
   const isStarted = profileStore.ninetyStartDate !== ""
@@ -203,6 +205,12 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
   }, [profileStore, stats, toast])
 
   const handleGetCertificate = useCallback(async () => {
+    // The certificate prints the user's short name, which can now be empty
+    // (the "Anon M." default was removed 2026-08-13). Gate BEFORE
+    // setIsGenerating — the dialog is a hand-off to Settings, not work in
+    // progress, and leaving the button spinning behind it would be a lie.
+    if (!shortNameGate.requireShortName()) return
+
     setIsGenerating(true)
     try {
       const path = await generateAndStoreCertificate({
@@ -222,7 +230,7 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
     } finally {
       setIsGenerating(false)
     }
-  }, [profileStore, stats.meetingsAttended, stats.totalCreditMs, toast])
+  }, [profileStore, stats.meetingsAttended, stats.totalCreditMs, toast, shortNameGate])
 
   const handleViewCertificate = useCallback(async () => {
     if (!profileStore.ninetyCertificatePath) return
