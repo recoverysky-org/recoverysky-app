@@ -819,6 +819,10 @@ const en = {
     cloudBackupBody:
       "Your attendance records can now back up securely to the cloud and sync across all your devices. Turn it on anytime in Settings under Cloud Backup.",
     cloudBackupCta: "Open Cloud Backup",
+    inPersonTitle: "In-Person Meetings Are Here",
+    inPersonBody:
+      "The Meetings tab now has an In-Person segment. Find meetings near you as a list or on a map, get directions, and tap “I'm Here” when you arrive to log your attendance. You'll be asked for location the first time you open it.",
+    inPersonCta: "Find a Meeting Near Me",
     dismiss: "Got it",
   },
   inPersonPopup: {

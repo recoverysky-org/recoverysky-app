@@ -787,6 +787,10 @@ const es: Translations = {
     cloudBackupBody:
       "Tus registros de asistencia ahora pueden respaldarse de forma segura en la nube y sincronizarse en todos tus dispositivos. Actívalo cuando quieras en Ajustes, en Copia de seguridad en la nube.",
     cloudBackupCta: "Abrir Copia de seguridad en la nube",
+    inPersonTitle: "Ya están las reuniones en persona",
+    inPersonBody:
+      "La pestaña Reuniones ahora tiene una sección En persona. Encuentra reuniones cerca de ti en una lista o en el mapa, obtén indicaciones para llegar y toca «Estoy aquí» al llegar para registrar tu asistencia. Se te pedirá la ubicación la primera vez que la abras.",
+    inPersonCta: "Buscar una reunión cerca",
     dismiss: "Entendido",
   },
   inPersonPopup: {

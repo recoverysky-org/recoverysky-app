@@ -796,6 +796,10 @@ const fr: Translations = {
     cloudBackupBody:
       "Vos enregistrements de présence peuvent désormais être sauvegardés en toute sécurité dans le cloud et synchronisés sur tous vos appareils. Activez cette option à tout moment dans Réglages, sous Sauvegarde cloud.",
     cloudBackupCta: "Ouvrir la sauvegarde cloud",
+    inPersonTitle: "Les réunions en personne sont là",
+    inPersonBody:
+      "L'onglet Réunions comporte désormais une section En personne. Trouvez des réunions près de chez vous sous forme de liste ou sur la carte, obtenez l'itinéraire et appuyez sur « Je suis ici » à votre arrivée pour enregistrer votre présence. La localisation vous sera demandée à la première ouverture.",
+    inPersonCta: "Trouver une réunion près de moi",
     dismiss: "Compris",
   },
   inPersonPopup: {

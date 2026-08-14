@@ -28,8 +28,13 @@ export interface AnnouncementCta {
   /**
    * Named destination, resolved to a concrete navigation call by the gate.
    * Keeping it a string keeps this file free of navigation imports.
+   *
+   * CHANGED 2026-08-13: widened from the lone "cloudBackupSettings" to a union
+   * when the In-Person announcement needed a second destination. Every value
+   * here needs a matching branch in AnnouncementGate.handleCta — a target with
+   * no branch silently marks the announcement seen and navigates nowhere.
    */
-  target: "cloudBackupSettings"
+  target: "cloudBackupSettings" | "inPersonMeetings"
 }
 
 export interface Announcement {
@@ -52,6 +57,20 @@ export const ANNOUNCEMENTS: readonly Announcement[] = [
       labelTx: "announcements:cloudBackupCta",
       requiresAttendance: true,
       target: "cloudBackupSettings",
+    },
+  },
+  {
+    id: "in-person-meetings-2026-08",
+    titleTx: "announcements:inPersonTitle",
+    bodyTx: "announcements:inPersonBody",
+    icon: "location-outline",
+    cta: {
+      labelTx: "announcements:inPersonCta",
+      // Browsing in-person meetings, the map, directions and "I'm Here" are all
+      // free — nothing in InPersonScreen reads an entitlement. (Only reminders
+      // from InPersonPopup are premium.) So every viewer gets the button.
+      requiresAttendance: false,
+      target: "inPersonMeetings",
     },
   },
 ] as const

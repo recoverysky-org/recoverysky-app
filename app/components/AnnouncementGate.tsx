@@ -73,6 +73,11 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       // "Settings" tab route past the root-stack param types AND queues the
       // navigation if the container isn't ready yet.
       navigate("Settings", { section: "cloudBackup" })
+    } else if (active.cta.target === "inPersonMeetings") {
+      // The `segment` param is required, not optional flavour: MeetingsScreen
+      // defaults to "live" when none is supplied, so omitting it would land the
+      // user on Live and show them nothing the announcement just described.
+      navigate("Meetings", { segment: "inperson" })
     }
     setActive(null)
   }, [active, profileStore])

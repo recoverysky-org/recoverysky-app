@@ -795,6 +795,10 @@ const de: Translations = {
     cloudBackupBody:
       "Deine Anwesenheitsnachweise können jetzt sicher in der Cloud gesichert und auf all deinen Geräten synchronisiert werden. Aktiviere die Funktion jederzeit in den Einstellungen unter Cloud-Backup.",
     cloudBackupCta: "Cloud-Backup öffnen",
+    inPersonTitle: "Meetings vor Ort sind da",
+    inPersonBody:
+      "Der Tab „Meetings“ hat jetzt den Bereich „Vor Ort“. Finde Meetings in deiner Nähe als Liste oder auf der Karte, lass dir den Weg anzeigen und tippe bei der Ankunft auf „Ich bin hier“, um deine Teilnahme zu erfassen. Beim ersten Öffnen wirst du nach dem Standort gefragt.",
+    inPersonCta: "Meeting in der Nähe finden",
     dismiss: "Verstanden",
   },
   inPersonPopup: {

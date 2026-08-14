@@ -787,6 +787,10 @@ const pt: Translations = {
     cloudBackupBody:
       "Seus registros de presença agora podem ser salvos com segurança na nuvem e sincronizados em todos os seus dispositivos. Ative quando quiser em Configurações, em Backup na nuvem.",
     cloudBackupCta: "Abrir Backup na nuvem",
+    inPersonTitle: "As reuniões presenciais chegaram",
+    inPersonBody:
+      "A aba Reuniões agora tem a seção Presencial. Encontre reuniões perto de você em lista ou no mapa, veja como chegar e toque em “Estou aqui” ao chegar para registrar sua presença. A localização será solicitada na primeira vez que você abrir.",
+    inPersonCta: "Encontrar uma reunião perto",
     dismiss: "Entendi",
   },
   inPersonPopup: {

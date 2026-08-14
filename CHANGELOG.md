@@ -68,6 +68,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **Existing users get a one-time popup announcing in-person meetings.** The
+  In-Person segment shipped without ever being pointed at, so anyone who already
+  had the app had no reason to look for it — the announcement explains the list
+  and map views, directions, and "I'm Here", with a button that opens the segment
+  directly. It appears once, on the next launch or app resume, and never again
+  after either button is pressed. Fresh installs are deliberately excluded:
+  `completeOnboarding()` marks every bundled announcement as seen, so nobody is
+  told a feature is "new" that shipped with their install.
+
 - **The "I'm Here" GPS check now reports why it failed.** Only the successful
   case was ever recorded, so the four ways a presence check can fail —
   out of range, missing venue coordinates, permission refused, no GPS fix — were
