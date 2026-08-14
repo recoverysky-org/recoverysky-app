@@ -530,3 +530,46 @@ plan-authored** — it carries the same review obligation as the other seven.
     ubicación"). Straightforward but this is the first `es` string in this
     doc's queue — flagging it because unlike the plan-authored `es` baseline,
     nothing here has had *any* prior review pass.
+
+---
+
+## `announcements` in-person popup — 24 strings (8 locales × 3 keys), 2026-08-13
+
+The one-time announcement pointing existing users at the In-Person segment
+(`app/config/announcements.ts`, id `in-person-meetings-2026-08`). Written by an
+implementer in all nine locales, so `es` carries the same review obligation as
+the other seven per the 2026-08-04 ruling above.
+
+**This copy is unusually exposed:** it is a full-screen blocking modal that
+every pre-4.8.0 user sees exactly once, with no way to re-read it. A clumsy
+sentence here is the single impression a user forms of the feature.
+
+| Key | English | Notes for the reviewer |
+|---|---|---|
+| `announcements:inPersonTitle` | In-Person Meetings Are Here | Modal heading at 17px/700. Short and announcement-flavoured — it must read as *new thing available*, not as a section label. Use the same term your locale already uses for `meetingsScreen:inPersonSegment` so the popup and the segment the button opens agree. |
+| `announcements:inPersonBody` | The Meetings tab now has an In-Person segment. Find meetings near you as a list or on a map, get directions, and tap "I'm Here" when you arrive to log your attendance. You'll be asked for location the first time you open it. | Three sentences, and each is load-bearing: *where the feature is*, *what it does*, *the permission prompt is expected, not an error*. **Reuse the existing translations verbatim** for the tab (`meetingsTab`), the segment (`meetingsScreen:inPersonSegment`) and the button (`inPersonScreen:imHere`) — the quoted string in particular must match the button the user will actually tap. The third sentence exists because `locationEnabled` defaults OFF; don't drop it for brevity. |
+| `announcements:inPersonCta` | Find a Meeting Near Me | Primary button, opens the In-Person segment directly. Imperative, matching the register your locale uses for `common` button labels. |
+
+### Reviewer notes worth acting on first
+
+- **All locales** — the quoted "I'm Here" inside the body was copied from each
+  file's own `inPersonScreen:imHere`. Verify it still matches after any review
+  pass on *that* key, or the popup will quote a button label that no longer
+  exists on screen.
+- **Quotation marks** — locale-appropriate marks were used rather than English
+  ones (`«»` for es/ru/uk/ar, `„“` for de, `« »` for fr, `“”` for pt/th). Worth
+  a glance that each matches house style in the rest of the file.
+- `ar` — the body is the longest RTL string in the announcements namespace and
+  wraps inside a fixed 85%-width card; check it reads well broken across lines,
+  not just as a single sentence.
+- `de` — "Beim ersten Öffnen wirst du nach dem Standort gefragt" is passive by
+  design (the OS asks, not the app). Confirm that reads as neutral rather than
+  evasive.
+- `ru` / `uk` — formal register was matched to the existing file (`вы` / `Ви`),
+  but the middle sentence chains three imperatives; check it doesn't read as a
+  list of commands.
+- `th` — no quotation-mark convention was inherited from this file for a
+  *button label* being quoted mid-sentence; the `“”` choice is
+  first-principles and most worth a native check.
+- `es` — informal `tú` matches the existing `announcements` block. First `es`
+  string in this doc since the 2026-08-05 batch.
