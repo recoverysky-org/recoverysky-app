@@ -23,6 +23,21 @@ npm run compile
 echo "Preflight: unit tests..."
 npx vitest run
 
+# Config gate. `release:ota` below publishes with `--environment production`,
+# which means the bundle's EXPO_PUBLIC_* values come from the EAS server-side
+# environment — NOT eas.json, NOT .env. Those three drift silently: on
+# 2026-08-04 EXPO_PUBLIC_FELLOWSHIPS gained RD in .env and eas.json but not on
+# EAS, so for nine days every OTA shipped an app missing Recovery Dharma from
+# all five fellowship pickers, while the store binary built from the same commit
+# had it. Nothing failed; nothing warned. This is that warning.
+#
+# `--eas-only` on purpose: the script's other half (.env vs eas.json) reports
+# drift on any dev machine pointed at localhost, and a gate that always fails is
+# a gate everyone learns to skip. Exit 2 (EAS unreadable — offline, logged out)
+# blocks too: "couldn't verify" must not read as "verified".
+echo "Preflight: OTA config (eas.json vs EAS production env)..."
+node scripts/check-env-sync.js --eas-only
+
 echo "Preflight passed."
 echo ""
 

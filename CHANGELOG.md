@@ -22,7 +22,39 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Recovery Dharma is selectable again.** RD was added back to the fellowship
+  list on 2026-08-04, but only in `.env` and `eas.json` — not in the EAS
+  server-side `production` environment, which is the only place `eas update`
+  reads `EXPO_PUBLIC_*` values from. Every OTA published since then shipped an
+  app with RD missing from all five fellowship pickers (Settings, onboarding,
+  Live, Search, In-Person), while the 4.8.0 store binary — built from the same
+  commit, but from `eas.json` — had it. Anyone who installed 4.8.0 and then
+  took the 4.8.0-1 OTA watched RD disappear. The server variable is corrected
+  and this release re-publishes the bundle with it; no new build is needed.
+
+### Build
+
+- **`npm run check:env` now checks the config source that OTAs actually read.**
+  It compared `.env` against `eas.json` — the two sources `eas update` ignores —
+  and so reported "IN SYNC" for nine days while the values reaching users were
+  wrong (see above). It now also diffs `eas.json` against the EAS server-side
+  environment named by the build profile's `environment` field, reporting
+  mismatched, missing and extra keys. Sensitive/secret variables are listed as
+  not comparable rather than false-flagged, since their values can't be read.
+  If EAS can't be reached at all (offline, logged out) it exits non-zero instead
+  of implying a clean result. `--no-eas` skips the new half, `--eas-only` runs
+  only it.
+
+- **`npm run update` blocks on that check before publishing.** The OTA preflight
+  (type-check, unit tests) gained a config gate running
+  `check-env-sync.js --eas-only`, so a stale EAS variable stops the release
+  instead of silently shipping. Like the rest of the preflight it runs before
+  the counter bump, so a failure leaves `package.json`, the tag and the remote
+  untouched. `--eas-only` is deliberate: the `.env`-vs-`eas.json` half reports
+  expected drift on any dev machine pointed at localhost, and a gate that always
+  fails is a gate everyone learns to skip.
 
 ## [4.8.0-1] — 2026-08-13 (OTA)
 
