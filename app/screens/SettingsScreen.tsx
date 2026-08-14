@@ -114,15 +114,44 @@ const SyncStatusLine = observer(function SyncStatusLine() {
 })
 
 /**
+ * Profile section visibility.
+ *
+ * The section (Display Name, Short Name, clean-date/clean-days toggles,
+ * pronouns) exists purely to compose profileStore.displayName, which we used
+ * to hand the bundled Zoom SDK. We join through the external Zoom app now and
+ * it won't reliably take a display name, so the whole section is hidden rather
+ * than deleted — profile comes back with the community features.
+ *
+ * Same idiom as MainNavigator's agentTabVisible / socialTabVisible. The JSX
+ * stays referenced on purpose: it keeps getPronounsLabel and the pronouns
+ * modal state from tripping unused-var lint, and flipping this to true is the
+ * whole of re-enabling the section.
+ *
+ * Short Name is NOT part of this — it's the one field with live consumers
+ * (attendance reports, the 90-in-90 certificate), so it moved to the
+ * Attendance section below and renders unconditionally there.
+ */
+const profileSectionVisible = false
+
+/**
  * SettingsScreen - User profile, account, and app settings
  *
  * Sections:
  * 1. Recovery: Fellowship, recovery date
- * 2. Profile: Display name, pronouns
- * 3. App Settings: Language, dark mode, theme color
- * 4. Attendance: Enable tracking, export email
- * 5. Subscription: Status, upgrade, restore purchases
- * 6. Account: User ID, delete data, logout
+ * 2. Attendance: Enable tracking, meeting topic, short name, ID number
+ * 3. Profile: Display name, pronouns — HIDDEN, see profileSectionVisible above
+ * 4. App Settings: Language, dark mode, theme color
+ * 5. Permissions: Push notifications, location
+ * 6. Subscription: Status, upgrade, restore purchases
+ * 7. Cloud Backup: gated on the attendance entitlement
+ * 8. Account: User ID, delete data, logout
+ *
+ * CHANGED 2026-08-13: Attendance moved up to sit directly under Recovery. The
+ * two now read as one block about the user's own recovery record, which is
+ * what Short Name joining Attendance made true — it used to sit below App
+ * Settings, three scrolls from anything related. Cloud Backup deliberately
+ * did NOT move with it: it stays under Subscription because it's gated on the
+ * attendance entitlement you buy there.
  */
 export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(function SettingsScreen({
   navigation,
@@ -908,90 +937,166 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
         </TouchableOpacity>
       </View>
 
-      {/* Profile Section */}
-      <View style={themed($section)} onLayout={trackSection("profile")}>
+      {/* Attendance Section */}
+      <View style={themed($section)} onLayout={trackSection("attendance")}>
         <View style={themed($sectionHeader)}>
-          <Icon icon="community" size={20} color={themed($iconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:profileSection" />
+          <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
+          <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
         </View>
 
-        {/* Generated Display Name (read-only) - computed from MST store */}
-        <SettingsRow
-          label={translate("settingsScreen:displayName")}
-          value={profileStore.displayName}
-        />
-
-        {/* Editable Short Name */}
+        {/* Enable Attendance Toggle */}
         <View style={themed($settingsRow)}>
+          <Text style={themed($rowLabel)} tx="settingsScreen:enableAttendance" />
+          <Switch
+            value={profileStore.attendanceEnabled}
+            onValueChange={profileStore.setAttendanceEnabled}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+            thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:enableAttendance")}
+          />
+        </View>
+
+        {/* Enable Meeting Topic Toggle */}
+        <View style={themed($settingsRow)}>
+          <Text style={themed($rowLabel)} tx="settingsScreen:enableMeetingTopic" />
+          <Switch
+            value={profileStore.enableMeetingTopic}
+            onValueChange={profileStore.setEnableMeetingTopic}
+            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+            thumbColor="#FFFFFF"
+            accessibilityLabel={translate("settingsScreen:enableMeetingTopic")}
+          />
+        </View>
+
+        {/* Short Name — MOVED HERE 2026-08-13 from the now-hidden Profile
+            section. Attendance is the only thing that still reads it (reports
+            print it, and it's the name on the 90-in-90 certificate), so it
+            belongs with the feature that consumes it. Keeps its local buffer +
+            blur-persist handlers: the store write is a SQLite round trip, and
+            a controlled TextInput bound straight to MobX fires stale
+            onChangeText events. */}
+        <View style={themed($emailSection)}>
           <Text style={themed($rowLabel)} tx="settingsScreen:shortName" />
           <TextField
             value={localShortName}
             onChangeText={handleShortNameChange}
             onBlur={handleShortNameBlur}
-            autoCorrect={false}
-            autoCapitalize="words"
-            spellCheck={false}
             placeholder={translate("settingsScreen:shortNamePlaceholder")}
-            style={themed($shortNameInput)}
-            inputWrapperStyle={themed($shortNameInputWrapper)}
+            autoCapitalize="words"
+            autoCorrect={false}
+            spellCheck={false}
+            inputWrapperStyle={themed($emailInputWrapper)}
+            containerStyle={$emailInputFlex}
+          />
+          <Text style={themed($rowHint)} tx="settingsScreen:shortNameHint" />
+        </View>
+
+        {/* ID Number */}
+        <View style={[themed($emailSection), themed($lastRow)]}>
+          <Text style={themed($rowLabel)} tx="settingsScreen:userIdNum" />
+          <TextField
+            value={profileStore.userIdNum}
+            onChangeText={profileStore.setUserIdNum}
+            placeholder={translate("settingsScreen:userIdNumPlaceholder")}
+            autoCapitalize="none"
+            autoCorrect={false}
+            inputWrapperStyle={themed($emailInputWrapper)}
+            containerStyle={$emailInputFlex}
           />
         </View>
 
-        {/* Clean Date Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDate" />
-          <Switch
-            value={profileStore.showCleanDate}
-            onValueChange={profileStore.setShowCleanDate}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:showCleanDate")}
-          />
-        </View>
-
-        {/* Clean Days Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDays" />
-          <Switch
-            value={profileStore.showCleanDays}
-            onValueChange={profileStore.setShowCleanDays}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:showCleanDays")}
-          />
-        </View>
-
-        {/* Pronouns Toggle + Picker */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:showPronouns" />
-          <View style={$styles.row}>
-            {profileStore.showPronouns && (
-              <TouchableOpacity
-                onPress={() => setPronounsModalVisible(true)}
-                style={themed($pronounsButton)}
-                accessibilityRole="button"
-                accessibilityLabel={getPronounsLabel(profileStore.pronouns)}
-              >
-                <Text style={themed($pronounsButtonText)}>
-                  {getPronounsLabel(profileStore.pronouns)}
-                </Text>
-                <Icon icon="caretRight" size={14} color={themed($dimColor).color} />
-              </TouchableOpacity>
-            )}
-            <Switch
-              value={profileStore.showPronouns}
-              onValueChange={profileStore.setShowPronouns}
-              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-              thumbColor="#FFFFFF"
-              accessibilityLabel={translate("settingsScreen:showPronouns")}
-            />
-          </View>
-        </View>
+        {/* TODO: Export Email */}
+        {/* TODO: Export Button */}
       </View>
 
-      {/* Pronouns Modal */}
+      {/* Profile Section — HIDDEN, see profileSectionVisible above. Short Name
+          lives in the Attendance section now; the copy below is the parked
+          original, kept intact for when profile returns. */}
+      {profileSectionVisible && (
+        <View style={themed($section)} onLayout={trackSection("profile")}>
+          <View style={themed($sectionHeader)}>
+            <Icon icon="community" size={20} color={themed($iconColor).color} />
+            <Text style={themed($sectionTitle)} tx="settingsScreen:profileSection" />
+          </View>
+
+          {/* Generated Display Name (read-only) - computed from MST store */}
+          <SettingsRow
+            label={translate("settingsScreen:displayName")}
+            value={profileStore.displayName}
+          />
+
+          {/* Editable Short Name */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:shortName" />
+            <TextField
+              value={localShortName}
+              onChangeText={handleShortNameChange}
+              onBlur={handleShortNameBlur}
+              autoCorrect={false}
+              autoCapitalize="words"
+              spellCheck={false}
+              placeholder={translate("settingsScreen:shortNamePlaceholder")}
+              style={themed($shortNameInput)}
+              inputWrapperStyle={themed($shortNameInputWrapper)}
+            />
+          </View>
+
+          {/* Clean Date Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDate" />
+            <Switch
+              value={profileStore.showCleanDate}
+              onValueChange={profileStore.setShowCleanDate}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel={translate("settingsScreen:showCleanDate")}
+            />
+          </View>
+
+          {/* Clean Days Toggle */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:showCleanDays" />
+            <Switch
+              value={profileStore.showCleanDays}
+              onValueChange={profileStore.setShowCleanDays}
+              trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel={translate("settingsScreen:showCleanDays")}
+            />
+          </View>
+
+          {/* Pronouns Toggle + Picker */}
+          <View style={themed($settingsRow)}>
+            <Text style={themed($rowLabel)} tx="settingsScreen:showPronouns" />
+            <View style={$styles.row}>
+              {profileStore.showPronouns && (
+                <TouchableOpacity
+                  onPress={() => setPronounsModalVisible(true)}
+                  style={themed($pronounsButton)}
+                  accessibilityRole="button"
+                  accessibilityLabel={getPronounsLabel(profileStore.pronouns)}
+                >
+                  <Text style={themed($pronounsButtonText)}>
+                    {getPronounsLabel(profileStore.pronouns)}
+                  </Text>
+                  <Icon icon="caretRight" size={14} color={themed($dimColor).color} />
+                </TouchableOpacity>
+              )}
+              <Switch
+                value={profileStore.showPronouns}
+                onValueChange={profileStore.setShowPronouns}
+                trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
+                thumbColor="#FFFFFF"
+                accessibilityLabel={translate("settingsScreen:showPronouns")}
+              />
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Pronouns Modal — only reachable from the hidden Profile section. */}
       <Modal
-        visible={pronounsModalVisible}
+        visible={profileSectionVisible && pronounsModalVisible}
         transparent
         animationType="fade"
         onRequestClose={() => setPronounsModalVisible(false)}
@@ -1198,55 +1303,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           onLocationToggle={handleLocationToggle}
           onNotificationsPaywall={handleNotificationsPaywall}
         />
-      </View>
-
-      {/* Attendance Section */}
-      <View style={themed($section)} onLayout={trackSection("attendance")}>
-        <View style={themed($sectionHeader)}>
-          <Ionicons name="clipboard-outline" size={20} color={themed($attendanceIconColor).color} />
-          <Text style={themed($sectionTitle)} tx="settingsScreen:attendanceSection" />
-        </View>
-
-        {/* Enable Attendance Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:enableAttendance" />
-          <Switch
-            value={profileStore.attendanceEnabled}
-            onValueChange={profileStore.setAttendanceEnabled}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:enableAttendance")}
-          />
-        </View>
-
-        {/* Enable Meeting Topic Toggle */}
-        <View style={themed($settingsRow)}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:enableMeetingTopic" />
-          <Switch
-            value={profileStore.enableMeetingTopic}
-            onValueChange={profileStore.setEnableMeetingTopic}
-            trackColor={{ false: "#E5E5E5", true: themeColor || theme.colors.tint }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel={translate("settingsScreen:enableMeetingTopic")}
-          />
-        </View>
-
-        {/* ID Number */}
-        <View style={[themed($emailSection), themed($lastRow)]}>
-          <Text style={themed($rowLabel)} tx="settingsScreen:userIdNum" />
-          <TextField
-            value={profileStore.userIdNum}
-            onChangeText={profileStore.setUserIdNum}
-            placeholder={translate("settingsScreen:userIdNumPlaceholder")}
-            autoCapitalize="none"
-            autoCorrect={false}
-            inputWrapperStyle={themed($emailInputWrapper)}
-            containerStyle={$emailInputFlex}
-          />
-        </View>
-
-        {/* TODO: Export Email */}
-        {/* TODO: Export Button */}
       </View>
 
       {/* Subscription Section */}
