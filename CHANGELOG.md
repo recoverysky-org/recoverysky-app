@@ -24,6 +24,63 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **The profile is gone from onboarding and Settings.** Everything the old
+  Profile surfaces collected — pronouns, "Show Recovery Date", "Show Recovery
+  Days", the generated Display Name — existed to build the name we handed the
+  bundled Zoom SDK. We join through the installed Zoom app now, which won't
+  reliably take a display name, so the settings were collecting preferences
+  that changed nothing a user could see. They are hidden rather than deleted:
+  profile returns with the community features, and anyone who already set
+  pronouns or a display option keeps that value.
+
+  Onboarding is **six steps instead of seven** — the "Tell us about yourself"
+  screen merged into "Your Recovery", which took over its title. Short Name is
+  the one field that survived the cull, because attendance reports and the
+  90-in-90 certificate print it, so it sits at the top of that merged screen.
+
+  In Settings, Short Name **moved to the Attendance section**, above ID Number,
+  with a line of hint text explaining that it appears on reports and
+  certificates. That is the only place it can be edited now. Nothing about
+  joining a meeting changed: the app still passes what it can to Zoom exactly
+  as before.
+
+  **Attendance also moved up to sit directly under Recovery**, so the two
+  sections about your own recovery record read as one block instead of being
+  separated by App Settings. Cloud Backup stayed where it was, under
+  Subscription — it's gated on the entitlement you buy there.
+
+- **Short Name starts empty instead of "Anon M."** The old default looked like
+  a name the user had already chosen, so most people walked past it in
+  onboarding and it ended up printed on their attendance reports. The field now
+  starts blank and shows its placeholder ("e.g., Jane D."), which makes it read
+  as something to fill in. Existing users keep whatever name they already have,
+  including "Anon M." if they never changed it, and the Firebase importer still
+  recognizes both an empty name and the old default as "not set yet" so it can
+  fill in the name from the old app.
+
+- **Spanish: the Settings tab is now "Ajustes", was "Perfil".** Every other
+  language called that tab some form of "Settings"; Spanish called it
+  "Profile", which was already confusing and became simply wrong once the
+  Profile section was hidden. The screen's own heading and the seven other
+  places that pointed users at it were saying "Configuración", so the Spanish
+  app was using two different names for one screen and neither matched the tab
+  — all of them now say Ajustes. Text that refers to the **device's** settings
+  (opening iOS/Android settings to re-enable notifications or location) still
+  says "Configuración", because that genuinely is somewhere else.
+
+### Added
+
+- **Sending a report or generating a 90-in-90 certificate without a name now
+  asks for one.** Both documents print your short name, and with the field no
+  longer pre-filled it's possible to reach them without having set it. Instead
+  of producing a nameless PDF, either action now offers a trip to
+  Settings → Attendance. The gate covers all four report operations — first
+  send, resend, replace, and forward — because a resend of a nameless report is
+  just as wrong as the first one. It does not bounce you back automatically
+  afterwards; set the name and return when you're ready. Users who still have
+  the old "Anon M." default are not prompted: that name has always been on
+  their reports and nothing about it changed.
+
 - **The In-Person map is findable now.** The switch between the meeting list and
   the map was a single unlabeled icon sharing a row with an equally-sized
   settings gear, so it read as decoration and people never learned the map

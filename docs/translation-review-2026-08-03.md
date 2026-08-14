@@ -573,3 +573,106 @@ sentence here is the single impression a user forms of the feature.
   first-principles and most worth a native check.
 - `es` — informal `tú` matches the existing `announcements` block. First `es`
   string in this doc since the 2026-08-05 batch.
+
+---
+
+## Profile deprecation — 16 strings (8 locales × 2 keys), 2026-08-13
+
+Two strings changed when the profile concept left the UI (see `CHANGELOG.md`,
+2026-08-13): the onboarding "Tell us about yourself" subtitle was **rewritten**
+because its old text advertised display options that no longer exist, and a new
+hint sits under Short Name in Settings → Attendance explaining why a name field
+lives there. Written by an implementer in all nine locales, so `es` carries the
+same review obligation as the other seven per the 2026-08-04 ruling above.
+
+| Key | English | Notes for the reviewer |
+|---|---|---|
+| `onboarding:recoverySubtitle` | Used to filter meetings to your fellowship and to personalize your attendance records. | **Replaces existing text** — the old string promised "clean date/day display", which described the display-name toggles that are now hidden. Do not restore that clause; there is nothing behind it. The screen it subtitles now holds three fields (Short Name, Fellowship, Recovery Date), so the sentence covers filtering *and* personalization deliberately. Use the same fellowship term the file already uses for `onboarding:fellowship`. |
+| `settingsScreen:shortNameHint` | Appears on your attendance reports and certificates. | Small dim text under the Short Name field in the Attendance section. Its job is to answer "why is a name field here?" in one glance — the two nouns are load-bearing and neither should be dropped for brevity. "Certificates" means the 90-in-90 certificate; match `ninetyInNinety` terminology in your locale rather than inventing a new word. |
+
+### Reviewer notes worth acting on first
+
+- **All locales** — the subtitle's fellowship noun was taken from each file's
+  own `onboarding:fellowship`, which differs from `settingsScreen:recoveryFellowship`
+  in several locales (`es` Grupo/Grupo de Recuperación, `de` Gemeinschaft/
+  Genesungsgemeinschaft, `pt` Irmandade/Irmandade de Recuperação). The short
+  form is intentional here; confirm it still reads naturally in a full sentence.
+- `ar` — the subtitle is a single clause with two coordinated purposes; check
+  the conjunction doesn't make it read as one action rather than two.
+- `de` — informal `deine` matches the surrounding onboarding block; verify
+  against the file's own register rather than the Settings block, which is
+  mixed.
+- `ru` / `uk` — "attendance records" was rendered as отчётах о посещении /
+  звітах про відвідування, borrowing the *reports* noun. If your locale
+  distinguishes a stored record from a sent report, the stored sense is meant.
+- `th` — no article/plural marking, so "reports and certificates" reads as two
+  bare nouns; check it doesn't collapse into a single compound.
+- `es` — informal `tú` matches the existing onboarding and settings blocks.
+
+---
+
+## Short-name required dialog — 24 strings (8 locales × 3 keys), 2026-08-13
+
+The dialog shown when a user sends an attendance report or generates a 90-in-90
+certificate while Short Name is empty (`app/hooks/useShortNameGate.ts`). Written
+by an implementer in all nine locales, so `es` carries the same review
+obligation as the other seven per the 2026-08-04 ruling above.
+
+**This copy blocks a paid feature.** It is the only thing standing between the
+user and a report they are trying to send, so it has to explain *why* in one
+read — a vague message here reads as the app refusing to work.
+
+| Key | English | Notes for the reviewer |
+|---|---|---|
+| `settingsScreen:shortNameRequiredTitle` | Add Your Name First | Alert title. Imperative and specific — not "Missing information" or an error-flavoured phrase; nothing has gone wrong, there's just a step outstanding. |
+| `settingsScreen:shortNameRequiredMessage` | Your short name is printed on attendance reports and certificates. Add one in Settings → Attendance, then try again. | Two sentences, both load-bearing: *why we're asking* and *exactly where to go*. **Reuse the existing translations verbatim** for the Settings tab (`mainNavigator:settingsTab`) and the section (`settingsScreen:attendanceSection`) — the path must name the two things the user will actually see on screen. The `→` arrow is used literally in all locales; RTL locales use `←` instead. |
+| `settingsScreen:shortNameRequiredAction` | Go to Settings | Confirm button, navigates to Settings → Attendance. The other button is the shared `common:cancel`. Match the register your locale uses for other `common` button labels. |
+
+### Reviewer notes worth acting on first
+
+- **All locales** — the tab and section names in the message were checked
+  against each file's own `mainNavigator:settingsTab` and
+  `settingsScreen:attendanceSection` and corrected to match. **Five did not
+  match on the first pass** (`es` Ajustes→Perfil, `de` Anwesenheit→Teilnahme,
+  `pt` Configurações→Ajustes, `ru` Посещение→Посещения, `th`
+  การตั้งค่า→ตั้งค่า). Re-verify after any review pass on *those* keys, or the
+  dialog will name a screen the user can't find.
+- **`es` — RESOLVED 2026-08-13 (Jenova), but leaves a loose end.**
+  `mainNavigator:settingsTab` was "Perfil" where every other locale says some
+  form of "Settings" — and with the Profile section hidden that tab was the
+  last thing in the app still called "Profile". It is now **"Ajustes"**, which
+  also matches the three strings in this file that already said Ajustes
+  (`accessibility:doubleTapToOpenSettings`, the cloud-backup announcement,
+  `inPersonScreen`'s location hint) and follows Apple's own Spanish convention
+  for a short tab label.
+
+  **The rest of the file was aligned the same day.** Eight strings that meant
+  *our* Settings became Ajustes: `settingsScreen:title`,
+  `settingsScreen:appSettingsSection`, `homeScreen:goToSettings`,
+  `attendanceScreen:goToSettings`, `listingsScreen:selectFellowship`,
+  `onboarding:enableAttendanceHint`, `loginScreen:enterDetailsAndroid`, and
+  `accessibility:settings`.
+
+  **Six were deliberately left as "Configuración"** and a reviewer should NOT
+  sweep them up — they don't mean our screen:
+
+  | Key | Why it stays |
+  |---|---|
+  | `settingsScreen:openSettings` | Opens the **device** settings; paired with `notificationsDisabledMessage`, which says "en la configuración de tu dispositivo". |
+  | `presence:openSettings` | Calls `Linking.openSettings()` — the OS, not us (`InPersonPopup.tsx`). |
+  | `settingsScreen:notificationsDisabledMessage` | Refers to the device's own notification settings. |
+  | `common:configErrorMessage` | "su configuración" = the app's config payload from `/config`, not a screen. |
+  | `accessibility:onboardingProgress` | "configuración inicial" = initial setup / onboarding. |
+  | `inPersonScreen` distance comment | Locale/regional settings, in a code comment. |
+
+  The two `openSettings` keys carry inline comments in `es.ts` saying so,
+  because they read identically to the ones that were changed.
+- `ar` — the path arrow was flipped to `←` for RTL. Confirm it renders pointing
+  the way a reader expects inside the bidi run, which is not always what the
+  source order suggests.
+- `de` — informal `dein`/`trage` matches the surrounding settings block.
+- `fr` — "Réglages" was used for the tab; confirm against this file's own
+  `mainNavigator:settingsTab` if that key is ever revised.
+- `ru` / `uk` — formal register (`вы` / `Ви`) matched to the existing file.
+- `th` — no sentence-final punctuation, matching the rest of this file's
+  message strings.
