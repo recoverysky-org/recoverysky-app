@@ -22,6 +22,32 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [4.8.0-1] — 2026-08-13 (OTA)
+
+### Added
+
+- **Sending a report or generating a 90-in-90 certificate without a name now
+  asks for one.** Both documents print your short name, and with the field no
+  longer pre-filled it's possible to reach them without having set it. Instead
+  of producing a nameless PDF, either action now offers a trip to
+  Settings → Attendance. The gate covers all four report operations — first
+  send, resend, replace, and forward — because a resend of a nameless report is
+  just as wrong as the first one. It does not bounce you back automatically
+  afterwards; set the name and return when you're ready. Users who still have
+  the old "Anon M." default are not prompted: that name has always been on
+  their reports and nothing about it changed.
+
+- **Existing users get a one-time popup announcing in-person meetings.** The
+  In-Person segment shipped without ever being pointed at, so anyone who already
+  had the app had no reason to look for it — the announcement explains the list
+  and map views, directions, and "I'm Here", with a button that opens the segment
+  directly. It appears once, on the next launch or app resume, and never again
+  after either button is pressed. Fresh installs are deliberately excluded:
+  `completeOnboarding()` marks every bundled announcement as seen, so nobody is
+  told a feature is "new" that shipped with their install.
+
 ### Changed
 
 - **The profile is gone from onboarding and Settings.** Everything the old
@@ -68,165 +94,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   (opening iOS/Android settings to re-enable notifications or location) still
   says "Configuración", because that genuinely is somewhere else.
 
-### Added
-
-- **Sending a report or generating a 90-in-90 certificate without a name now
-  asks for one.** Both documents print your short name, and with the field no
-  longer pre-filled it's possible to reach them without having set it. Instead
-  of producing a nameless PDF, either action now offers a trip to
-  Settings → Attendance. The gate covers all four report operations — first
-  send, resend, replace, and forward — because a resend of a nameless report is
-  just as wrong as the first one. It does not bounce you back automatically
-  afterwards; set the name and return when you're ready. Users who still have
-  the old "Anon M." default are not prompted: that name has always been on
-  their reports and nothing about it changed.
-
-- **The In-Person map is findable now.** The switch between the meeting list and
-  the map was a single unlabeled icon sharing a row with an equally-sized
-  settings gear, so it read as decoration and people never learned the map
-  existed. It is now a labelled two-part switch showing **List** and **Map**
-  side by side with the current view filled in — the word "Map" is on screen
-  before you touch anything, which is the whole difference between a feature
-  you can reach and one you can find.
-
-  The segment title also carries a count of how many meetings your filters
-  actually return, so it's clear whether the map is worth opening, and an empty
-  screen reads as "nothing matches" rather than "still loading" (the count is
-  hidden while results are on their way).
-
-- **The settings shortcut is gone from all three Meetings segments.** It sat at
-  the end of every title row and went to the same place as the Settings tab a
-  thumb-width below it. Removing it frees the one slot on those screens where a
-  control specific to that segment can live — which is where the new list/map
-  switch went.
-
-### Fixed
-
-- **Settings could show Location switched ON for a permission the app no longer
-  held.** Choosing "Allow Once" (iOS) or "Only this time" (Android) grants
-  location for a single session, and neither platform tells an app the grant is
-  temporary — it reports the same status as "While Using the App". The app
-  recorded that as durable consent, and the one place that ever undid it ran
-  only when the app returned from the background. A one-time grant usually dies
-  with the *process* instead, which produces no such moment, so the switch could
-  keep claiming a permission that was gone. It now reconciles whenever the user
-  opens Settings, and at the two points where the system has just refused
-  location, so the switch tells the truth.
-
-  Position was never at risk: every part of the app that reads location asks the
-  system again first, so the stale switch could not have produced a location fix
-  it wasn't allowed to take. The visible symptoms were the misleading switch and
-  the In-Person tab opening onto an empty map instead of falling back to the
-  meeting list.
-
-  Deliberately **not** fixed by checking location at startup: nothing in this app
-  may touch the location system before it is running and the user has navigated,
-  and a cosmetic fix is no reason to become the exception.
-
-### Added
-
-- **Existing users get a one-time popup announcing in-person meetings.** The
-  In-Person segment shipped without ever being pointed at, so anyone who already
-  had the app had no reason to look for it — the announcement explains the list
-  and map views, directions, and "I'm Here", with a button that opens the segment
-  directly. It appears once, on the next launch or app resume, and never again
-  after either button is pressed. Fresh installs are deliberately excluded:
-  `completeOnboarding()` marks every bundled announcement as seen, so nobody is
-  told a feature is "new" that shipped with their install.
-
-- **The "I'm Here" GPS check now reports why it failed.** Only the successful
-  case was ever recorded, so the four ways a presence check can fail —
-  out of range, missing venue coordinates, permission refused, no GPS fix — were
-  invisible, which meant there was no way to tell whether the feature was working
-  or how the 150 m radius was performing in the real world. No position, distance,
-  or venue is included in what is recorded.
-
-### Build
-
-- **Android now targets API 36 (Android 16), satisfying Google Play's Aug 30,
-  2026 deadline.** Play requires every app's target API level to stay within one
-  year of the latest Android release; ours was still on 35 and would have been
-  blocked from further updates. `compileSdkVersion` was already 36, so this is
-  the `targetSdkVersion` flag catching up to Expo SDK 54's own default.
-
-  The one API 36 behavior change that would have been user-visible is Android's
-  new "adaptive apps" rule: on any display 600dp or wider — tablets, unfolded
-  foldables, Chromebooks — the platform stops honoring an app's orientation and
-  resizability restrictions entirely. Left alone, every tablet user would have
-  been dropped into landscape and freeform-resizable windows that no screen in
-  this app has ever been designed or tested for. A new config plugin
-  (`plugins/withRestrictedResizability.ts`) declares Google's sanctioned opt-out
-  property so tablet users keep the portrait-locked app they have today, with no
-  behavior change for anyone.
-
-  Verified on hardware rather than assumed: a Pixel 7 running Android 17 was
-  forced to a 617dp width (`wm density 280`, above the 600dp threshold) and
-  rotated to landscape. The app stayed portrait and was letterboxed, which is
-  the intended outcome. Note this held on an API 37 *device* — the opt-out is
-  keyed to the app's target SDK (36), not the OS it runs on, so it expires when
-  we target 37, not when users get Android 17.
-
-  Edge-to-edge (the other headline API 36 change) needed no work — it has been
-  enabled since `react-native-edge-to-edge` was adopted. Predictive back stays
-  off via the existing `enableOnBackInvokedCallback="false"`, which remains a
-  supported opt-out at 36.
-
-  ⚠️ **The resizability opt-out expires.** Google states the property has no
-  effect once an app targets API 37, which Play's rolling one-year rule makes
-  mandatory around Aug 2027. Real adaptive-layout support is queued in
-  `TODO.md`; this change buys the time to do it properly rather than during a
-  release.
-
-### Fixed
-
-- **Search no longer offers an in-person search it can't run.** With Settings →
-  Permissions → Location off, picking the In-Person venue on the Meetings tab's
-  Search segment returned an empty list explained only by a dimmed "Location
-  off" radius cell — the In-Person segment, driven by the same toggle, has said
-  so plainly in a banner since 4.8.0. The venue picker now drops the In-Person
-  option while location is off (snapping an in-person search already on screen
-  back to Online, since the toggle can be flipped from Settings while the
-  Meetings tab stays mounted), and the same amber banner appears above the
-  results. Tapping it runs the in-app location gate, which is the only thing
-  that can turn the toggle back on.
-
-- **The legal agreements no longer come up blank at login.** The CMS behind the
-  disclaimer and the EULA occasionally fails a single document while serving
-  its neighbour normally — a user tapping Sign In could land on an agreement
-  screen with an empty EULA tab, no error, no way to retry, and an Accept
-  button that still worked. Content fetches now ride out a transient upstream
-  failure automatically, and if both documents still can't be shown the modal
-  says so and offers a Try Again that reloads the pair together.
-
-- **Accept is now blocked until both agreements are actually on screen.**
-  Acceptance is recorded once and never asked again, so consenting to a
-  document the app failed to display was a consent we had no business
-  recording. The button greys out until the disclaimer and the EULA have both
-  loaded.
-
-### Removed
-
-- **The leftover Ignite template welcome screen.** `WelcomeScreen` was never
-  registered on any navigator and nothing imported it — a dead "Your app,
-  almost ready for launch!" screen carried since the template was scaffolded.
-  Removed along with everything it was keeping alive: the `Welcome` entry in
-  `AppStackParamList`, the `welcomeScreen` block in all nine locale files, and
-  the Ignite lightning-bolt logo plus the welcome face image (`logo`,
-  `welcome-face`, and their `@2x`/`@3x` variants). `config.base.ts`'s
-  `exitRoutes` pointed exclusively at that phantom route, so it never matched a
-  live screen; it is now empty, which is behavior-identical — the Android back
-  handler already fell through to the system default on a non-match.
-
-- **The unused `EmptyState` component.** Another piece of Ignite boilerplate
-  with zero references anywhere in the app — every empty-state UI the app
-  actually ships was hand-rolled in its own screen instead. Removed with its
-  `emptyStateComponent` block in all nine locale files ("So empty... so sad")
-  and the `sad-face` image it was the only consumer of (plus `@2x`/`@3x`).
-
-- **`zoom-signup-example.png`**, orphaned since the bundled Zoom SDK and its
-  `ZoomSetupScreen` / `ZoomLoginScreen` came out in 4.5.0.
-
-## [4.8.0] — 2026-08-09
+## [4.8.0] — 2026-08-12
 
 ### Added
 
@@ -410,6 +278,32 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Sky asks before using your location and you can turn it off again at any
   time — previously the only way to stop the app using your position was your
   device's own settings, with nothing in the app to tell you it was on.
+
+- **The In-Person map is findable now.** The switch between the meeting list and
+  the map was a single unlabeled icon sharing a row with an equally-sized
+  settings gear, so it read as decoration and people never learned the map
+  existed. It is now a labelled two-part switch showing **List** and **Map**
+  side by side with the current view filled in — the word "Map" is on screen
+  before you touch anything, which is the whole difference between a feature
+  you can reach and one you can find.
+
+  The segment title also carries a count of how many meetings your filters
+  actually return, so it's clear whether the map is worth opening, and an empty
+  screen reads as "nothing matches" rather than "still loading" (the count is
+  hidden while results are on their way).
+
+- **The settings shortcut is gone from all three Meetings segments.** It sat at
+  the end of every title row and went to the same place as the Settings tab a
+  thumb-width below it. Removing it frees the one slot on those screens where a
+  control specific to that segment can live — which is where the new list/map
+  switch went.
+
+- **The "I'm Here" GPS check now reports why it failed.** Only the successful
+  case was ever recorded, so the four ways a presence check can fail —
+  out of range, missing venue coordinates, permission refused, no GPS fix — were
+  invisible, which meant there was no way to tell whether the feature was working
+  or how the 150 m radius was performing in the real world. No position, distance,
+  or venue is included in what is recorded.
 
 ### Changed
 
@@ -596,6 +490,40 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   installing `@maplibre/maplibre-react-native` for the In-Person map view;
   `npm install` re-resolved the `^2.4.1` caret range to the newest matching
   minor at the same time. No schema or code change in this repo depends on it.
+
+- **Android now targets API 36 (Android 16), satisfying Google Play's Aug 30,
+  2026 deadline.** Play requires every app's target API level to stay within one
+  year of the latest Android release; ours was still on 35 and would have been
+  blocked from further updates. `compileSdkVersion` was already 36, so this is
+  the `targetSdkVersion` flag catching up to Expo SDK 54's own default.
+
+  The one API 36 behavior change that would have been user-visible is Android's
+  new "adaptive apps" rule: on any display 600dp or wider — tablets, unfolded
+  foldables, Chromebooks — the platform stops honoring an app's orientation and
+  resizability restrictions entirely. Left alone, every tablet user would have
+  been dropped into landscape and freeform-resizable windows that no screen in
+  this app has ever been designed or tested for. A new config plugin
+  (`plugins/withRestrictedResizability.ts`) declares Google's sanctioned opt-out
+  property so tablet users keep the portrait-locked app they have today, with no
+  behavior change for anyone.
+
+  Verified on hardware rather than assumed: a Pixel 7 running Android 17 was
+  forced to a 617dp width (`wm density 280`, above the 600dp threshold) and
+  rotated to landscape. The app stayed portrait and was letterboxed, which is
+  the intended outcome. Note this held on an API 37 *device* — the opt-out is
+  keyed to the app's target SDK (36), not the OS it runs on, so it expires when
+  we target 37, not when users get Android 17.
+
+  Edge-to-edge (the other headline API 36 change) needed no work — it has been
+  enabled since `react-native-edge-to-edge` was adopted. Predictive back stays
+  off via the existing `enableOnBackInvokedCallback="false"`, which remains a
+  supported opt-out at 36.
+
+  ⚠️ **The resizability opt-out expires.** Google states the property has no
+  effect once an app targets API 37, which Play's rolling one-year rule makes
+  mandatory around Aug 2027. Real adaptive-layout support is queued in
+  `TODO.md`; this change buys the time to do it properly rather than during a
+  release.
 
 ### Fixed
 
@@ -786,6 +714,52 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   the app returns to the sign-in screen — but never while an attendance timer
   is running, so an in-progress meeting is never lost to it.
 
+- **Settings could show Location switched ON for a permission the app no longer
+  held.** Choosing "Allow Once" (iOS) or "Only this time" (Android) grants
+  location for a single session, and neither platform tells an app the grant is
+  temporary — it reports the same status as "While Using the App". The app
+  recorded that as durable consent, and the one place that ever undid it ran
+  only when the app returned from the background. A one-time grant usually dies
+  with the *process* instead, which produces no such moment, so the switch could
+  keep claiming a permission that was gone. It now reconciles whenever the user
+  opens Settings, and at the two points where the system has just refused
+  location, so the switch tells the truth.
+
+  Position was never at risk: every part of the app that reads location asks the
+  system again first, so the stale switch could not have produced a location fix
+  it wasn't allowed to take. The visible symptoms were the misleading switch and
+  the In-Person tab opening onto an empty map instead of falling back to the
+  meeting list.
+
+  Deliberately **not** fixed by checking location at startup: nothing in this app
+  may touch the location system before it is running and the user has navigated,
+  and a cosmetic fix is no reason to become the exception.
+
+- **Search no longer offers an in-person search it can't run.** With Settings →
+  Permissions → Location off, picking the In-Person venue on the Meetings tab's
+  Search segment returned an empty list explained only by a dimmed "Location
+  off" radius cell — the In-Person segment, driven by the same toggle, has said
+  so plainly in a banner since 4.8.0. The venue picker now drops the In-Person
+  option while location is off (snapping an in-person search already on screen
+  back to Online, since the toggle can be flipped from Settings while the
+  Meetings tab stays mounted), and the same amber banner appears above the
+  results. Tapping it runs the in-app location gate, which is the only thing
+  that can turn the toggle back on.
+
+- **The legal agreements no longer come up blank at login.** The CMS behind the
+  disclaimer and the EULA occasionally fails a single document while serving
+  its neighbour normally — a user tapping Sign In could land on an agreement
+  screen with an empty EULA tab, no error, no way to retry, and an Accept
+  button that still worked. Content fetches now ride out a transient upstream
+  failure automatically, and if both documents still can't be shown the modal
+  says so and offers a Try Again that reloads the pair together.
+
+- **Accept is now blocked until both agreements are actually on screen.**
+  Acceptance is recorded once and never asked again, so consenting to a
+  document the app failed to display was a consent we had no business
+  recording. The button greys out until the disclaimer and the EULA have both
+  loaded.
+
 ### Security
 
 - **Hardened the crash-report URL scrubber so it no longer depends on which
@@ -826,6 +800,26 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   same reason the matching Home screen card was retired.
 
 ---
+
+- **The leftover Ignite template welcome screen.** `WelcomeScreen` was never
+  registered on any navigator and nothing imported it — a dead "Your app,
+  almost ready for launch!" screen carried since the template was scaffolded.
+  Removed along with everything it was keeping alive: the `Welcome` entry in
+  `AppStackParamList`, the `welcomeScreen` block in all nine locale files, and
+  the Ignite lightning-bolt logo plus the welcome face image (`logo`,
+  `welcome-face`, and their `@2x`/`@3x` variants). `config.base.ts`'s
+  `exitRoutes` pointed exclusively at that phantom route, so it never matched a
+  live screen; it is now empty, which is behavior-identical — the Android back
+  handler already fell through to the system default on a non-match.
+
+- **The unused `EmptyState` component.** Another piece of Ignite boilerplate
+  with zero references anywhere in the app — every empty-state UI the app
+  actually ships was hand-rolled in its own screen instead. Removed with its
+  `emptyStateComponent` block in all nine locale files ("So empty... so sad")
+  and the `sad-face` image it was the only consumer of (plus `@2x`/`@3x`).
+
+- **`zoom-signup-example.png`**, orphaned since the bundled Zoom SDK and its
+  `ZoomSetupScreen` / `ZoomLoginScreen` came out in 4.5.0.
 
 ## [4.7.0] — 2026-07-13
 
