@@ -1,5 +1,5 @@
 /**
- * OnboardingZoom - Screen 3
+ * OnboardingZoom - Screen 2
  *
  * Tells the user the Zoom Workplace app is required to attend meetings and
  * provides a platform-aware install link (App Store on iOS, Play Store on
@@ -33,8 +33,7 @@ const log = logger.child({ module: "OnboardingZoom" })
 
 // Store URLs for the official Zoom Workplace app.
 const ZOOM_APP_STORE_URL = "https://apps.apple.com/us/app/zoom-workplace/id546505307"
-const ZOOM_PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=us.zoom.videomeetings"
+const ZOOM_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=us.zoom.videomeetings"
 
 const ZOOM_BENEFITS = [
   { icon: "cloud-download-outline", txKey: "zoomBenefitFree" },
@@ -70,7 +69,7 @@ export const OnboardingZoom: FC<OnboardingScreenProps<"OnboardingZoom">> = obser
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={themed($container)}
       >
-        <ProgressDots currentIndex={3} />
+        <ProgressDots currentIndex={2} />
 
         <View style={$content}>
           <Text style={themed($title)} tx="onboarding:zoomTitle" />

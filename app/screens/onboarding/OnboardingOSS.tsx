@@ -1,5 +1,5 @@
 /**
- * OnboardingOSS - Screen 6 (Final)
+ * OnboardingOSS - Screen 5 (Final)
  *
  * Open Source Software explanation and AGPLv3 license info
  */
@@ -54,7 +54,7 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={6} />
+        <ProgressDots currentIndex={5} />
 
         {/* Content */}
         <View style={$content}>
@@ -233,4 +233,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
 })
-

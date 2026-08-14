@@ -42,9 +42,11 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
       trackEvent("onboarding_step", { step: "welcome" })
       log.info("handleGetStarted", { imported: profileStore.imported })
 
+      // CHANGED 2026-08-13: was OnboardingProfile, which merged into
+      // OnboardingRecovery when the profile concept left the UI.
       if (profileStore.imported) {
-        log.info("imported=true, skipping to Profile")
-        navigation.navigate("OnboardingProfile")
+        log.info("imported=true, skipping to Recovery")
+        navigation.navigate("OnboardingRecovery")
         return
       }
 
@@ -58,9 +60,9 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
         log.info("Firebase data found, navigating to Import")
         navigation.navigate("OnboardingImport")
       } else {
-        log.info("No Firebase data, navigating to Profile")
+        log.info("No Firebase data, navigating to Recovery")
         // profileStore.setImported(true) // TODO: re-enable after dev
-        navigation.navigate("OnboardingProfile")
+        navigation.navigate("OnboardingRecovery")
       }
     }
 
@@ -106,7 +108,6 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
               />
             )}
           </Pressable>
-
         </View>
       </Screen>
     )
@@ -174,4 +175,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
 })
-

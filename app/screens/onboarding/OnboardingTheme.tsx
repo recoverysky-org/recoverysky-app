@@ -41,7 +41,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={4} />
+        <ProgressDots currentIndex={3} />
 
         {/* Content */}
         <View style={$content}>
@@ -179,4 +179,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
 })
-

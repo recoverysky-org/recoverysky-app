@@ -1,7 +1,22 @@
 /**
- * OnboardingProfile - Screen 1
+ * OnboardingProfile - Short Name and Pronouns selection
  *
- * Short Name and Pronouns selection
+ * ⚠️ PARKED 2026-08-13 — NOT REACHABLE. This screen is not registered in
+ * OnboardingNavigator and not listed in ProgressDots' SCREENS, so nothing can
+ * navigate to it. It is kept on disk (and still exported from the barrel and
+ * typed in OnboardingParamList) because profile comes back with the community
+ * features.
+ *
+ * Why it went away: the app joins meetings through the external Zoom app now,
+ * which won't reliably accept the display name this screen fed, so pronouns
+ * and the display-name toggles left the UI entirely — see the hidden Profile
+ * section in SettingsScreen. Short Name survived and moved to the top of
+ * OnboardingRecovery, which also inherited this screen's
+ * "Tell us about yourself" title.
+ *
+ * To bring it back: register it in OnboardingNavigator, add it to
+ * ProgressDots' SCREENS, shift every screen's currentIndex up by one, and
+ * point OnboardingWelcome / OnboardingImport at it again.
  */
 import { FC, useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Modal, TouchableOpacity } from "react-native"
@@ -276,4 +291,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
 })
-

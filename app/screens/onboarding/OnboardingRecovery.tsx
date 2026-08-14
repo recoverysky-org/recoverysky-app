@@ -1,7 +1,17 @@
 /**
- * OnboardingRecovery - Screen 2
+ * OnboardingRecovery - Screen 1
  *
- * Fellowship and Recovery Date selection
+ * Short Name, Fellowship and Recovery Date selection.
+ *
+ * CHANGED 2026-08-13: absorbed the old OnboardingProfile screen ("Tell us
+ * about yourself"). The app joins meetings through the external Zoom app now,
+ * which won't reliably accept the display name we used to build here, so
+ * pronouns and the display-name toggles left the UI entirely (see
+ * SettingsScreen's hidden Profile section). Short Name survived the cull
+ * because attendance reports and the 90-in-90 certificate print it, so it
+ * moved to the top of this screen rather than disappearing with the rest.
+ * OnboardingProfile.tsx is parked, not deleted — profile comes back with the
+ * community features.
  */
 import { FC, useState } from "react"
 import {
@@ -19,6 +29,7 @@ import { observer } from "mobx-react-lite"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { TextField } from "@/components/TextField"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import type { OnboardingScreenProps } from "@/navigators/navigationTypes"
@@ -90,12 +101,29 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={2} />
+        <ProgressDots currentIndex={1} />
 
         {/* Content */}
         <View style={$content}>
-          <Text style={themed($title)} tx="onboarding:recoveryTitle" />
+          {/* Title is the old profileTitle ("Tell us about yourself") — this
+              screen now covers identity + recovery, not recovery alone. */}
+          <Text style={themed($title)} tx="onboarding:profileTitle" />
           <Text style={themed($subtitle)} tx="onboarding:recoverySubtitle" />
+
+          {/* Short Name Input — first, because it's the one field that names
+              the person on their reports and certificate. */}
+          <View style={themed($inputSection)}>
+            <Text style={themed($label)} tx="onboarding:shortName" />
+            <TextField
+              value={profileStore.shortName}
+              onChangeText={profileStore.setShortName}
+              placeholderTx="onboarding:shortNamePlaceholder"
+              autoCapitalize="words"
+              autoCorrect={false}
+              spellCheck={false}
+              inputWrapperStyle={themed($inputWrapper)}
+            />
+          </View>
 
           {/* Fellowship Picker */}
           <View style={themed($inputSection)}>
@@ -254,6 +282,15 @@ const $label: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontWeight: "500",
   color: colors.textDim,
   marginBottom: spacing.xs,
+})
+
+// Matches $pickerButton's card/border/radius so the Short Name field and the
+// two pickers below it read as one stack of controls.
+const $inputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.card,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 10,
 })
 
 const $pickerButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

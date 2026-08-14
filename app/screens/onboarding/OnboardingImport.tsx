@@ -2,7 +2,7 @@
  * OnboardingImport - Import data from old app
  *
  * Used in two contexts:
- * 1. Onboarding flow — navigates to OnboardingProfile after import/skip
+ * 1. Onboarding flow — navigates to OnboardingRecovery after import/skip
  * 2. Settings modal — dismisses itself when done
  */
 import { FC, useState } from "react"
@@ -82,7 +82,13 @@ async function importUserProfile(
   // value and allows the Firebase import to populate it.
   const today = todayLocalISODate()
 
-  if (profile.shortName && profileStore.shortName === "Anon M.") {
+  // CHANGED 2026-08-13: the default shortName became "" (was "Anon M."), so
+  // "still at default" now has TWO shapes — fresh installs hold "", but every
+  // install predating this change has "Anon M." persisted in encrypted SQLite.
+  // Checking only one of them silently stops importing the Firebase name for
+  // half the users this screen exists for. Don't collapse this back to a
+  // single comparison.
+  if (profile.shortName && (!profileStore.shortName || profileStore.shortName === "Anon M.")) {
     secureData.shortName = profile.shortName
   }
   if (profile.pronouns && profileStore.pronouns === null) {
@@ -209,7 +215,9 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
     if (isModal) {
       navigation.goBack()
     } else {
-      navigation.replace("OnboardingProfile")
+      // CHANGED 2026-08-13: was OnboardingProfile, which merged into
+      // OnboardingRecovery when the profile concept left the UI.
+      navigation.replace("OnboardingRecovery")
     }
   }
 
@@ -387,16 +395,9 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
             <ActivityIndicator color={theme.colors.tint} />
           ) : (
             <>
-              <Ionicons
-                name="cloud-download-outline"
-                size={20}
-                color={theme.colors.tint}
-              />
+              <Ionicons name="cloud-download-outline" size={20} color={theme.colors.tint} />
               <Text
-                style={[
-                  themed($buttonText),
-                  { color: theme.colors.tint },
-                ]}
+                style={[themed($buttonText), { color: theme.colors.tint }]}
                 tx="onboarding:importCloudData"
               />
             </>

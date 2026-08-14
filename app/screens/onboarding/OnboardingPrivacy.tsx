@@ -37,7 +37,6 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
       navigation.navigate("OnboardingOSS")
     }
 
-
     const openPrivacyPolicy = () => {
       Linking.openURL("https://www.recoverysky.app/content/RecoverySky_Content/privacy")
     }
@@ -53,7 +52,7 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={5} />
+        <ProgressDots currentIndex={4} />
 
         {/* Content */}
         <View style={$content}>
@@ -120,7 +119,6 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
               tx="onboarding:next"
             />
           </Pressable>
-
         </View>
       </Screen>
     )
@@ -219,4 +217,3 @@ const $buttonText: ThemedStyle<TextStyle> = () => ({
   fontSize: 18,
   fontWeight: "600",
 })
-

@@ -13,10 +13,17 @@ import { useTranslation } from "react-i18next"
 import type { OnboardingParamList } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 
-/** Onboarding screen names in order */
+/**
+ * Onboarding screen names in order.
+ *
+ * CHANGED 2026-08-13: OnboardingProfile dropped — it merged into
+ * OnboardingRecovery when the profile concept left the UI, taking the flow
+ * from seven steps to six. Every screen's currentIndex shifted down by one.
+ * Re-adding the entry here is one half of re-enabling the screen (the other
+ * is its Stack.Screen registration in OnboardingNavigator).
+ */
 const SCREENS: (keyof OnboardingParamList)[] = [
   "OnboardingWelcome",
-  "OnboardingProfile",
   "OnboardingRecovery",
   "OnboardingZoom",
   "OnboardingTheme",
@@ -25,7 +32,7 @@ const SCREENS: (keyof OnboardingParamList)[] = [
 ]
 
 interface ProgressDotsProps {
-  /** Current screen index (0-6) */
+  /** Current screen index (0-5) */
   currentIndex: number
 }
 
@@ -45,7 +52,7 @@ export const ProgressDots: FC<ProgressDotsProps> = ({ currentIndex }) => {
 
   return (
     // tablist/tab rather than button: the dots are a set of peers with exactly
-    // one selected, which is what lets VoiceOver announce "2 of 7" positionally
+    // one selected, which is what lets VoiceOver announce "2 of 6" positionally
     // and matches how SegmentedControl models the same relationship.
     <View style={$progress} accessibilityRole="tablist">
       {SCREENS.map((_, index) => (
