@@ -48,17 +48,17 @@ export interface Announcement {
 }
 
 export const ANNOUNCEMENTS: readonly Announcement[] = [
-  {
-    id: "cloud-backup-sync-2026-07",
-    titleTx: "announcements:cloudBackupTitle",
-    bodyTx: "announcements:cloudBackupBody",
-    icon: "cloud-outline",
-    cta: {
-      labelTx: "announcements:cloudBackupCta",
-      requiresAttendance: true,
-      target: "cloudBackupSettings",
-    },
-  },
+  // {
+  //   id: "cloud-backup-sync-2026-07",
+  //   titleTx: "announcements:cloudBackupTitle",
+  //   bodyTx: "announcements:cloudBackupBody",
+  //   icon: "cloud-outline",
+  //   cta: {
+  //     labelTx: "announcements:cloudBackupCta",
+  //     requiresAttendance: true,
+  //     target: "cloudBackupSettings",
+  //   },
+  // },
   {
     id: "in-person-meetings-2026-08",
     titleTx: "announcements:inPersonTitle",
