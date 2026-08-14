@@ -66,7 +66,7 @@ const es: Translations = {
     enterDetails:
       "Inicia sesión para acceder a las suscripciones y funciones premium. Apple requiere una cuenta para apps con servicios interactivos como videoconferencias.",
     enterDetailsAndroid:
-      "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Configuración.",
+      "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Ajustes.",
     loginButton: "Iniciar sesión",
     signupButton: "Registrarse",
     continueAnonymously: "",
@@ -87,7 +87,7 @@ const es: Translations = {
     scheduleTab: "Horario",
     agentTab: "Agente",
     socialTab: "Comunidad",
-    settingsTab: "Perfil",
+    settingsTab: "Ajustes",
   },
   homeScreen: {
     title: "Inicio",
@@ -110,7 +110,7 @@ const es: Translations = {
     goToAttendance: "Ver Asistencia",
     settingsTitle: "Personaliza Tu App",
     settingsDescription: "Configura tu fecha de recuperación, tema y preferencias personales.",
-    goToSettings: "Abrir Configuración",
+    goToSettings: "Abrir Ajustes",
     // Informational cards
     favoritesTitle: "Reuniones Favoritas",
     favoritesDescription:
@@ -173,7 +173,7 @@ const es: Translations = {
     title: "Buscar",
     emptyState: "No se encontraron reuniones",
     emptyStateFiltered: "No hay reuniones para {{fellowship}}",
-    selectFellowship: "Selecciona un grupo en Configuración",
+    selectFellowship: "Selecciona un grupo en Ajustes",
     meetingCount: "{{count}} reuniones",
     // Filter labels
     dayLabel: "Día",
@@ -213,7 +213,7 @@ const es: Translations = {
     credit: "crédito",
     minutes: "min",
     subscribeRequired: "Para producir informes de asistencia, debes suscribirte.",
-    goToSettings: "Ir a Suscripciones en Configuración",
+    goToSettings: "Ir a Suscripciones en Ajustes",
     // Sections
     sectionNew: "Nuevos",
     sectionArchive: "Archivo",
@@ -261,13 +261,18 @@ const es: Translations = {
     deliverySuccess: "Informe entregado exitosamente",
   },
   settingsScreen: {
-    title: "Configuración",
+    title: "Ajustes",
     subtitle: "Administra tu cuenta y preferencias",
     // Profile Section
     profileSection: "Perfil",
     displayName: "Nombre para Mostrar",
     shortName: "Nombre Corto",
     shortNamePlaceholder: "ej., Juan P.",
+    shortNameHint: "Aparece en tus informes de asistencia y certificados.",
+    shortNameRequiredTitle: "Primero Añade Tu Nombre",
+    shortNameRequiredMessage:
+      "Tu nombre corto aparece impreso en los informes de asistencia y los certificados. Añádelo en Ajustes → Asistencia y vuelve a intentarlo.",
+    shortNameRequiredAction: "Ir a Ajustes",
     showCleanDate: "Mostrar Fecha de Recuperación",
     showCleanDays: "Mostrar Días de Recuperación",
     showPronouns: "Mostrar Pronombres",
@@ -332,7 +337,7 @@ const es: Translations = {
     deleteUserData: "Eliminar Datos de Usuario",
     deleteUserDataConfirm:
       "¿Estás seguro de que deseas eliminar todos los datos de usuario? Esta acción no se puede deshacer.",
-    appSettingsSection: "Configuración de la App",
+    appSettingsSection: "Ajustes de la App",
     language: "Idioma",
     selectLanguage: "Seleccionar Idioma",
     translationHint:
@@ -353,6 +358,9 @@ const es: Translations = {
     notificationsDisabledTitle: "Notificaciones Desactivadas",
     notificationsDisabledMessage:
       "Las notificaciones push están desactivadas en la configuración de tu dispositivo. ¿Deseas abrir Configuración para activarlas?",
+    // "Configuración" NOT "Ajustes" on purpose: this opens the DEVICE
+    // settings via Linking.openSettings(), not our Settings tab (renamed
+    // to "Ajustes" 2026-08-13). Don't align it with the others.
     openSettings: "Abrir Configuración",
     // Attendance Section
     attendanceSection: "Asistencia",
@@ -433,7 +441,7 @@ const es: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Tu Recuperación",
     recoverySubtitle:
-      "Filtra reuniones por Grupo seleccionado. Muestra fecha/días de recuperación.",
+      "Se usa para filtrar reuniones según tu Grupo y personalizar tus registros de asistencia.",
     fellowship: "Grupo",
     selectFellowship: "Selecciona tu grupo",
     recoveryDate: "Fecha de Recuperación",
@@ -460,7 +468,7 @@ const es: Translations = {
     attendancePaidFeature:
       "Suscripción: Informes firmados digitalmente para padrinos, tribunales o servicios familiares",
     enableAttendance: "Habilitar Registro de Asistencia",
-    enableAttendanceHint: "Puedes cambiar esto después en Configuración",
+    enableAttendanceHint: "Puedes cambiar esto después en Ajustes",
     // Screen 5: Privacy
     privacyTitle: "Tu Privacidad Importa",
     privacySubtitle: "Nos tomamos tu privacidad en serio",
@@ -747,7 +755,7 @@ const es: Translations = {
     joinMeeting: "Unirse a la reunión",
     closeMeeting: "Cerrar detalles de la reunión",
     selectForReport: "Seleccionar para informe",
-    settings: "Configuración",
+    settings: "Ajustes",
     selectFellowship: "Seleccionar grupo, actual: {{value}}",
     selectDay: "Seleccionar día",
     selectLanguage: "Seleccionar idioma",
@@ -814,6 +822,9 @@ const es: Translations = {
     deniedTitle: "Se necesita tu ubicación",
     deniedMessage:
       "Registrar la asistencia en persona necesita tu ubicación para confirmar que estás en la reunión.",
+    // "Configuración" NOT "Ajustes" on purpose: this opens the DEVICE
+    // settings via Linking.openSettings(), not our Settings tab (renamed
+    // to "Ajustes" 2026-08-13). Don't align it with the others.
     openSettings: "Abrir Configuración",
     fixFailedTitle: "No pudimos encontrarte",
     fixFailedMessage:

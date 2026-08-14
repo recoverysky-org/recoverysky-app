@@ -277,6 +277,11 @@ const uk: Translations = {
     displayName: "Ім'я для відображення",
     shortName: "Коротке ім'я",
     shortNamePlaceholder: "напр., Олена К.",
+    shortNameHint: "З'являється у ваших звітах про відвідування та сертифікатах.",
+    shortNameRequiredTitle: "Спочатку вкажіть ім’я",
+    shortNameRequiredMessage:
+      "Ваше коротке ім’я друкується у звітах про відвідування та сертифікатах. Додайте його в Налаштуваннях → Відвідування та спробуйте ще раз.",
+    shortNameRequiredAction: "Перейти до налаштувань",
     showCleanDate: "Показати дату одужання",
     showCleanDays: "Показати дні одужання",
     showPronouns: "Показати займенники",
@@ -430,7 +435,8 @@ const uk: Translations = {
     selectPronouns: "Обрати займенники",
     // Screen 2: Recovery
     recoveryTitle: "Твоє одужання",
-    recoverySubtitle: "Фільтрує зустрічі за обраною спільнотою. Показує дату та дні тверезості.",
+    recoverySubtitle:
+      "Використовується для фільтрації зустрічей за вашою спільнотою та персоналізації звітів про відвідування.",
     fellowship: "Спільнота",
     selectFellowship: "Обери свою спільноту",
     recoveryDate: "Дата одужання",

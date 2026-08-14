@@ -274,6 +274,11 @@ const th: Translations = {
     displayName: "ชื่อที่แสดง",
     shortName: "ชื่อย่อ",
     shortNamePlaceholder: "เช่น สมชาย ก.",
+    shortNameHint: "ปรากฏในรายงานการเข้าร่วมและใบรับรองของคุณ",
+    shortNameRequiredTitle: "กรุณาเพิ่มชื่อก่อน",
+    shortNameRequiredMessage:
+      "ชื่อย่อของคุณจะถูกพิมพ์ลงในรายงานการเข้าร่วมและใบรับรอง กรุณาเพิ่มที่ ตั้งค่า → การเข้าร่วม แล้วลองอีกครั้ง",
+    shortNameRequiredAction: "ไปที่ตั้งค่า",
     showCleanDate: "แสดงวันที่เริ่มฟื้นตัว",
     showCleanDays: "แสดงจำนวนวันฟื้นตัว",
     showPronouns: "แสดงสรรพนาม",
@@ -427,7 +432,7 @@ const th: Translations = {
     selectPronouns: "เลือกสรรพนาม",
     // Screen 2: Recovery
     recoveryTitle: "การฟื้นตัวของคุณ",
-    recoverySubtitle: "กรองประชุมตามกลุ่มที่เลือก แสดงวันที่และจำนวนวันฟื้นตัว",
+    recoverySubtitle: "ใช้เพื่อกรองการประชุมตามกลุ่มของคุณ และปรับแต่งบันทึกการเข้าร่วมของคุณ",
     fellowship: "กลุ่ม",
     selectFellowship: "เลือกกลุ่มของคุณ",
     recoveryDate: "วันที่เริ่มฟื้นตัว",

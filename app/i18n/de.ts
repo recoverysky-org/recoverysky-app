@@ -279,6 +279,11 @@ const de: Translations = {
     displayName: "Anzeigename",
     shortName: "Kurzname",
     shortNamePlaceholder: "z.B. Max M.",
+    shortNameHint: "Erscheint auf deinen Anwesenheitsnachweisen und Zertifikaten.",
+    shortNameRequiredTitle: "Zuerst Namen Eintragen",
+    shortNameRequiredMessage:
+      "Dein Kurzname wird auf Anwesenheitsnachweisen und Zertifikaten gedruckt. Trage ihn unter Einstellungen → Teilnahme ein und versuche es erneut.",
+    shortNameRequiredAction: "Zu den Einstellungen",
     showCleanDate: "Genesungsdatum anzeigen",
     showCleanDays: "Genesungstage anzeigen",
     showPronouns: "Pronomen anzeigen",
@@ -435,7 +440,7 @@ const de: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Deine Genesung",
     recoverySubtitle:
-      "Filtert Meetings nach ausgewählter Gemeinschaft. Zeigt Genesungsdatum und -tage an.",
+      "Filtert Meetings nach deiner Gemeinschaft und personalisiert deine Anwesenheitsnachweise.",
     fellowship: "Gemeinschaft",
     selectFellowship: "Wähle deine Gemeinschaft",
     recoveryDate: "Genesungsdatum",

@@ -284,6 +284,11 @@ const fr: Translations = {
     displayName: "Nom affiché",
     shortName: "Nom court",
     shortNamePlaceholder: "ex., Marie D.",
+    shortNameHint: "Apparaît sur vos relevés de présence et vos certificats.",
+    shortNameRequiredTitle: "Ajoutez D’abord Votre Nom",
+    shortNameRequiredMessage:
+      "Votre nom court est imprimé sur les relevés de présence et les certificats. Ajoutez-le dans Réglages → Présence, puis réessayez.",
+    shortNameRequiredAction: "Aller aux Réglages",
     showCleanDate: "Afficher la date de rétablissement",
     showCleanDays: "Afficher les jours de rétablissement",
     showPronouns: "Afficher les pronoms",
@@ -441,7 +446,7 @@ const fr: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Ton rétablissement",
     recoverySubtitle:
-      "Filtre les réunions par fraternité sélectionnée. Affiche la date et les jours de rétablissement.",
+      "Sert à filtrer les réunions selon votre fraternité et à personnaliser vos relevés de présence.",
     fellowship: "Fraternité",
     selectFellowship: "Choisis ta fraternité",
     recoveryDate: "Date de rétablissement",

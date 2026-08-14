@@ -278,6 +278,11 @@ const pt: Translations = {
     displayName: "Nome de Exibição",
     shortName: "Nome Curto",
     shortNamePlaceholder: "ex., Maria S.",
+    shortNameHint: "Aparece nos seus registros de presença e certificados.",
+    shortNameRequiredTitle: "Adicione Seu Nome Primeiro",
+    shortNameRequiredMessage:
+      "Seu nome curto é impresso nos registros de presença e nos certificados. Adicione um em Ajustes → Presença e tente novamente.",
+    shortNameRequiredAction: "Ir para Ajustes",
     showCleanDate: "Mostrar Data de Recuperação",
     showCleanDays: "Mostrar Dias de Recuperação",
     showPronouns: "Mostrar Pronomes",
@@ -433,7 +438,7 @@ const pt: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Sua Recuperação",
     recoverySubtitle:
-      "Filtra reuniões pela irmandade selecionada. Mostra a data e os dias de recuperação.",
+      "Usado para filtrar reuniões pela sua irmandade e personalizar seus registros de presença.",
     fellowship: "Irmandade",
     selectFellowship: "Selecione sua irmandade",
     recoveryDate: "Data de Recuperação",

@@ -276,6 +276,11 @@ const en = {
     displayName: "Display Name",
     shortName: "Short Name",
     shortNamePlaceholder: "e.g., Jane D.",
+    shortNameHint: "Appears on your attendance reports and certificates.",
+    shortNameRequiredTitle: "Add Your Name First",
+    shortNameRequiredMessage:
+      "Your short name is printed on attendance reports and certificates. Add one in Settings → Attendance, then try again.",
+    shortNameRequiredAction: "Go to Settings",
     showCleanDate: "Show Recovery Date",
     showCleanDays: "Show Recovery Days",
     showPronouns: "Show Pronouns",
@@ -441,7 +446,8 @@ const en = {
     selectPronouns: "Select pronouns",
     // Screen 2: Recovery
     recoveryTitle: "Your Recovery",
-    recoverySubtitle: "Filters meetings to selected Fellowship. Provides clean date/day display.",
+    recoverySubtitle:
+      "Used to filter meetings to your fellowship and to personalize your attendance records.",
     fellowship: "Fellowship",
     selectFellowship: "Select your fellowship",
     recoveryDate: "Recovery Date",

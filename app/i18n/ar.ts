@@ -274,6 +274,11 @@ const ar: Translations = {
     displayName: "الاسم المعروض",
     shortName: "الاسم المختصر",
     shortNamePlaceholder: "مثلاً، أحمد م.",
+    shortNameHint: "يظهر في تقارير حضورك وشهاداتك.",
+    shortNameRequiredTitle: "أضف اسمك أولاً",
+    shortNameRequiredMessage:
+      "يُطبع اسمك المختصر على تقارير الحضور والشهادات. أضفه من الإعدادات ← الحضور، ثم حاول مرة أخرى.",
+    shortNameRequiredAction: "الذهاب إلى الإعدادات",
     showCleanDate: "إظهار تاريخ التعافي",
     showCleanDays: "إظهار أيام التعافي",
     showPronouns: "إظهار الضمائر",
@@ -426,7 +431,7 @@ const ar: Translations = {
     selectPronouns: "اختر الضمائر",
     // Screen 2: Recovery
     recoveryTitle: "تعافيك",
-    recoverySubtitle: "يفلتر الاجتماعات حسب الزمالة المختارة. يعرض تاريخ وأيام التعافي.",
+    recoverySubtitle: "يُستخدم لتصفية الاجتماعات حسب زمالتك وتخصيص سجلات حضورك.",
     fellowship: "الزمالة",
     selectFellowship: "اختر زمالتك",
     recoveryDate: "تاريخ التعافي",

@@ -278,6 +278,11 @@ const ru: Translations = {
     displayName: "Отображаемое имя",
     shortName: "Краткое имя",
     shortNamePlaceholder: "напр., Иван К.",
+    shortNameHint: "Отображается в ваших отчётах о посещении и сертификатах.",
+    shortNameRequiredTitle: "Сначала укажите имя",
+    shortNameRequiredMessage:
+      "Ваше краткое имя печатается в отчётах о посещении и сертификатах. Укажите его в Настройках → Посещения и попробуйте снова.",
+    shortNameRequiredAction: "Перейти в настройки",
     showCleanDate: "Показать дату выздоровления",
     showCleanDays: "Показать дни выздоровления",
     showPronouns: "Показать местоимения",
@@ -432,7 +437,7 @@ const ru: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Твоё выздоровление",
     recoverySubtitle:
-      "Фильтрует собрания по выбранному сообществу. Показывает дату и дни трезвости.",
+      "Используется для фильтрации собраний по вашему сообществу и персонализации отчётов о посещении.",
     fellowship: "Сообщество",
     selectFellowship: "Выбери своё сообщество",
     recoveryDate: "Дата выздоровления",
