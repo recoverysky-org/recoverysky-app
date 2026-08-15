@@ -316,6 +316,36 @@ export interface TokenRefreshers {
 }
 
 /**
+ * Raw /config response shape. Exported (rather than left inline in
+ * getConfig's signature) because the startup config cache stores this
+ * payload verbatim — ConfigStore.applyServerConfig and
+ * utils/configCacheLogic.ts both consume the same type.
+ * Spec: docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md
+ */
+export interface ServerConfig {
+  AGENT_URL: string
+  SOCIAL_URL?: string
+  REVENUE_CAT_API_TEST_KEY: string
+  REVENUE_CAT_API_APPLE_KEY: string
+  REVENUE_CAT_API_GOOGLE_KEY: string
+  OTLP_API_KEY: string
+  UMAMI_URL: string
+  UMAMI_WEBSITE_ID: string
+  UMAMI_X_API_KEY: string
+  REVIEW_ENABLED?: boolean
+  MAINTENANCE_MODE?: boolean
+  MAINTENANCE_MESSAGE?: string
+  MAINTENANCE_UNTIL?: string
+  LATEST_VERSION?: string
+  PRESENCE_RADIUS_M?: number
+  /** Dev-build-only presence radius; ignored entirely in production. */
+  DEV_PRESENCE_RADIUS_M?: number
+  /** In-Person map style URLs (keyed MapTiler URLs); absent = map off */
+  MAP_STYLE_URL_LIGHT?: string
+  MAP_STYLE_URL_DARK?: string
+}
+
+/**
  * Manages all requests to the API. You can use this class to build out
  * various requests that you need to call from your backend API.
  */
@@ -893,55 +923,10 @@ export class Api {
    *
    * Returns URLs and keys that may be updated server-side.
    */
-  async getConfig(): Promise<
-    | {
-        kind: "ok"
-        config: {
-          AGENT_URL: string
-          SOCIAL_URL?: string
-          REVENUE_CAT_API_TEST_KEY: string
-          REVENUE_CAT_API_APPLE_KEY: string
-          REVENUE_CAT_API_GOOGLE_KEY: string
-          OTLP_API_KEY: string
-          UMAMI_URL: string
-          UMAMI_WEBSITE_ID: string
-          UMAMI_X_API_KEY: string
-          REVIEW_ENABLED?: boolean
-          MAINTENANCE_MODE?: boolean
-          MAINTENANCE_MESSAGE?: string
-          MAINTENANCE_UNTIL?: string
-          LATEST_VERSION?: string
-          PRESENCE_RADIUS_M?: number
-          /** Dev-build-only presence radius; ignored entirely in production. */
-          DEV_PRESENCE_RADIUS_M?: number
-          /** In-Person map style URLs (keyed MapTiler URLs); absent = map off */
-          MAP_STYLE_URL_LIGHT?: string
-          MAP_STYLE_URL_DARK?: string
-        }
-      }
-    | GeneralApiProblem
-  > {
+  async getConfig(): Promise<{ kind: "ok"; config: ServerConfig } | GeneralApiProblem> {
     log.debug("Fetching config from API")
 
-    const response = await this.recoverySkyApi.get<{
-      AGENT_URL: string
-      REVENUE_CAT_API_TEST_KEY: string
-      REVENUE_CAT_API_APPLE_KEY: string
-      REVENUE_CAT_API_GOOGLE_KEY: string
-      OTLP_API_KEY: string
-      UMAMI_URL: string
-      UMAMI_WEBSITE_ID: string
-      UMAMI_X_API_KEY: string
-      REVIEW_ENABLED?: boolean
-      MAINTENANCE_MODE?: boolean
-      MAINTENANCE_MESSAGE?: string
-      MAINTENANCE_UNTIL?: string
-      LATEST_VERSION?: string
-      PRESENCE_RADIUS_M?: number
-      DEV_PRESENCE_RADIUS_M?: number
-      MAP_STYLE_URL_LIGHT?: string
-      MAP_STYLE_URL_DARK?: string
-    }>("/config")
+    const response = await this.recoverySkyApi.get<ServerConfig>("/config")
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)

@@ -1,7 +1,7 @@
 import { Platform } from "react-native"
 import { flow, Instance, SnapshotOut, types } from "mobx-state-tree"
 
-import { api } from "@/services/api"
+import { api, type ServerConfig } from "@/services/api"
 import { logger } from "@/utils/logger"
 import { DEFAULT_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
 
@@ -159,145 +159,184 @@ export const ConfigStoreModel = types
       return store.presenceRadiusM
     },
   }))
-  .actions((store) => ({
+  .volatile(() => ({
     /**
-     * Fetch config from server
+     * The raw payload of the last successful /config fetch (and its
+     * timestamp). Volatile on purpose: the app.tsx persistence reaction
+     * watches this and writes it to the encrypted SQLite cache — models/
+     * must not import db/ (same direction as ProfileHydrator). Never in
+     * MMKV snapshots.
      */
-    fetchConfig: flow(function* fetchConfig() {
-      if (store.isLoading) return
+    lastConfigPayload: null as ServerConfig | null,
+    lastConfigFetchedAt: 0,
+  }))
+  .actions((store) => {
+    /**
+     * Apply a /config payload to the store. Shared by the live fetch and
+     * the startup cache path. `fromCache` skips the maintenance fields and
+     * the outage clear: cached maintenance state is point-in-time and must
+     * not be replayed at a later launch, and outage is only ever set on
+     * the cold-cache path where this function runs with fromCache=false.
+     * Spec: docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md
+     */
+    function applyServerConfig(config: ServerConfig, opts: { fromCache: boolean }) {
+      if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
+      if (config.SOCIAL_URL) store.socialUrl = config.SOCIAL_URL
+      if (config.REVENUE_CAT_API_TEST_KEY)
+        store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
+      if (config.REVENUE_CAT_API_APPLE_KEY)
+        store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
+      if (config.REVENUE_CAT_API_GOOGLE_KEY)
+        store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
+      if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
+      if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
+      if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
+      if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
+      if (config.REVIEW_ENABLED !== undefined)
+        store.reviewEnabled = config.REVIEW_ENABLED
+      if (!opts.fromCache) {
+        store.maintenanceMode = config.MAINTENANCE_MODE ?? false
+        store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
+        store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
+      }
+      if (config.LATEST_VERSION) store.latestVersion = config.LATEST_VERSION
+      if (config.MAP_STYLE_URL_LIGHT) store.mapStyleUrlLight = config.MAP_STYLE_URL_LIGHT
+      if (config.MAP_STYLE_URL_DARK) store.mapStyleUrlDark = config.MAP_STYLE_URL_DARK
+      // Guarded on > 0: a server sending 0 (or a malformed value that
+      // coerces to it) would make every check fail with "you are 3 m
+      // away, you must be within 0 m" — an unfixable-from-the-client
+      // outage of the whole feature. Falling back to the default is
+      // the safe failure.
+      if (config.PRESENCE_RADIUS_M && config.PRESENCE_RADIUS_M > 0)
+        store.presenceRadiusM = config.PRESENCE_RADIUS_M
+      // Same > 0 guard, same reason. Stored unconditionally rather
+      // than behind `__DEV__` — the field is inert in production
+      // because `effectivePresenceRadiusM` is what gates its use.
+      // CHANGED 2026-08-08: this guard is now load-bearing in a second
+      // way — 0 is the "server sent no dev radius" sentinel, so letting
+      // a non-positive value through would be indistinguishable from
+      // absence rather than merely being a bad radius.
+      if (config.DEV_PRESENCE_RADIUS_M && config.DEV_PRESENCE_RADIUS_M > 0)
+        store.devPresenceRadiusM = config.DEV_PRESENCE_RADIUS_M
+      // Clear any cold-start outage gate ONLY when the service
+      // reports itself as healthy. While maintenance is active we
+      // keep the gate up so the user-facing state (full-screen vs
+      // banner) is decided at app startup and doesn't flip mid-poll.
+      // CHANGED 2026-08-14: guarded on !fromCache — cached
+      // maintenance/outage state is point-in-time and must not be
+      // replayed at a later launch.
+      if (!opts.fromCache && !store.maintenanceMode) {
+        store.outageMode = false
+      }
+      store.isLoaded = true
+    }
 
-      store.isLoading = true
-      log.info("Fetching config from server")
+    return {
+      applyServerConfig,
+      /**
+       * Fetch config from server
+       */
+      fetchConfig: flow(function* fetchConfig() {
+        if (store.isLoading) return
 
-      const MAX_RETRIES = 3
-      const RETRY_DELAYS = [2000, 4000, 8000]
+        store.isLoading = true
+        log.info("Fetching config from server")
 
-      try {
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const result = yield api.getConfig()
+        const MAX_RETRIES = 3
+        const RETRY_DELAYS = [2000, 4000, 8000]
 
-            if (result.kind === "ok") {
-              const { config } = result
-              if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
-              if (config.SOCIAL_URL) store.socialUrl = config.SOCIAL_URL
-              if (config.REVENUE_CAT_API_TEST_KEY)
-                store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
-              if (config.REVENUE_CAT_API_APPLE_KEY)
-                store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
-              if (config.REVENUE_CAT_API_GOOGLE_KEY)
-                store.revenueCatGoogleKey = config.REVENUE_CAT_API_GOOGLE_KEY
-              if (config.OTLP_API_KEY) store.otlpApiKey = config.OTLP_API_KEY
-              if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
-              if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
-              if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
-              if (config.REVIEW_ENABLED !== undefined)
-                store.reviewEnabled = config.REVIEW_ENABLED
-              store.maintenanceMode = config.MAINTENANCE_MODE ?? false
-              store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
-              store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
-              if (config.LATEST_VERSION) store.latestVersion = config.LATEST_VERSION
-              if (config.MAP_STYLE_URL_LIGHT) store.mapStyleUrlLight = config.MAP_STYLE_URL_LIGHT
-              if (config.MAP_STYLE_URL_DARK) store.mapStyleUrlDark = config.MAP_STYLE_URL_DARK
-              // Guarded on > 0: a server sending 0 (or a malformed value that
-              // coerces to it) would make every check fail with "you are 3 m
-              // away, you must be within 0 m" — an unfixable-from-the-client
-              // outage of the whole feature. Falling back to the default is
-              // the safe failure.
-              if (config.PRESENCE_RADIUS_M && config.PRESENCE_RADIUS_M > 0)
-                store.presenceRadiusM = config.PRESENCE_RADIUS_M
-              // Same > 0 guard, same reason. Stored unconditionally rather
-              // than behind `__DEV__` — the field is inert in production
-              // because `effectivePresenceRadiusM` is what gates its use.
-              // CHANGED 2026-08-08: this guard is now load-bearing in a second
-              // way — 0 is the "server sent no dev radius" sentinel, so letting
-              // a non-positive value through would be indistinguishable from
-              // absence rather than merely being a bad radius.
-              if (config.DEV_PRESENCE_RADIUS_M && config.DEV_PRESENCE_RADIUS_M > 0)
-                store.devPresenceRadiusM = config.DEV_PRESENCE_RADIUS_M
-              // Clear any cold-start outage gate ONLY when the service
-              // reports itself as healthy. While maintenance is active we
-              // keep the gate up so the user-facing state (full-screen vs
-              // banner) is decided at app startup and doesn't flip mid-poll.
-              if (!store.maintenanceMode) {
-                store.outageMode = false
+        try {
+          for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+              const result = yield api.getConfig()
+
+              if (result.kind === "ok") {
+                const { config } = result
+                applyServerConfig(config, { fromCache: false })
+                // Stash the raw payload for the app.tsx persistence reaction
+                // (writes it to the encrypted SQLite config cache).
+                store.lastConfigPayload = config
+                store.lastConfigFetchedAt = Date.now()
+
+                log.info("Config loaded from server", { attempt })
+                return // success
               }
-              store.isLoaded = true
 
-              log.info("Config loaded from server", { attempt })
-              return // success
+              log.warn("Config fetch failed", { attempt, kind: result.kind })
+            } catch (error) {
+              log.error("Config fetch error", {
+                attempt,
+                error: error instanceof Error ? error.message : String(error),
+              })
             }
 
-            log.warn("Config fetch failed", { attempt, kind: result.kind })
-          } catch (error) {
-            log.error("Config fetch error", {
-              attempt,
-              error: error instanceof Error ? error.message : String(error),
-            })
+            // Wait before retrying (unless this was the last attempt)
+            if (attempt < MAX_RETRIES) {
+              log.info("Retrying config fetch", {
+                nextAttempt: attempt + 1,
+                delay: RETRY_DELAYS[attempt - 1],
+              })
+              yield new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
+            }
           }
 
-          // Wait before retrying (unless this was the last attempt)
-          if (attempt < MAX_RETRIES) {
-            log.info("Retrying config fetch", {
-              nextAttempt: attempt + 1,
-              delay: RETRY_DELAYS[attempt - 1],
-            })
-            yield new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt - 1]))
+          // All retries exhausted
+          if (store.isLoaded) {
+            // Config was previously loaded (polling failure) — enter maintenance mode
+            // so the user sees the maintenance screen instead of stale data.
+            log.warn(
+              "Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode",
+            )
+            store.maintenanceMode = true
+            store.maintenanceMessage = ""
+            store.maintenanceUntil = ""
+          } else {
+            // Initial startup failure — caller (app.tsx) handles via setOutageMode()
+            log.warn(
+              "Config fetch failed after " + MAX_RETRIES + " attempts, using env var defaults",
+            )
           }
+        } finally {
+          store.isLoading = false
         }
+      }),
 
-        // All retries exhausted
-        if (store.isLoaded) {
-          // Config was previously loaded (polling failure) — enter maintenance mode
-          // so the user sees the maintenance screen instead of stale data.
-          log.warn("Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode")
-          store.maintenanceMode = true
-          store.maintenanceMessage = ""
-          store.maintenanceUntil = ""
-        } else {
-          // Initial startup failure — caller (app.tsx) handles via setOutageMode()
-          log.warn("Config fetch failed after " + MAX_RETRIES + " attempts, using env var defaults")
-        }
-      } finally {
-        store.isLoading = false
-      }
-    }),
+      /**
+       * Enter cold-start outage mode. Called when all fetchConfig retries are
+       * exhausted at startup with nothing cached. AppNavigator uses this — and
+       * only this — to route to the full-screen MaintenanceScreen. Runtime
+       * maintenance flips `maintenanceMode` instead and shows a banner.
+       */
+      setOutageMode() {
+        store.outageMode = true
+      },
 
-    /**
-     * Enter cold-start outage mode. Called when all fetchConfig retries are
-     * exhausted at startup with nothing cached. AppNavigator uses this — and
-     * only this — to route to the full-screen MaintenanceScreen. Runtime
-     * maintenance flips `maintenanceMode` instead and shows a banner.
-     */
-    setOutageMode() {
-      store.outageMode = true
-    },
-
-    /**
-     * Reset config to defaults (env vars)
-     */
-    reset() {
-      store.apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app"
-      store.agentUrl = process.env.EXPO_PUBLIC_AGENT_URL || "https://agent.recoverysky.app"
-      store.socialUrl = process.env.EXPO_PUBLIC_SOCIAL_URL || "https://social.recoverysky.app"
-      store.authKey = process.env.EXPO_PUBLIC_AUTH_KEY || ""
-      store.revenueCatTestKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_TEST_KEY || ""
-      store.revenueCatAppleKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_APPLE_KEY || ""
-      store.revenueCatGoogleKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_GOOGLE_KEY || ""
-      store.otlpApiKey = process.env.EXPO_PUBLIC_OTLP_API_KEY || ""
-      store.umamiUrl = process.env.EXPO_PUBLIC_UMAMI_URL || ""
-      store.umamiWebsiteId = process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || ""
-      store.umamiApiKey = process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""
-      store.reviewEnabled = process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
-      store.maintenanceMode = false
-      store.maintenanceMessage = ""
-      store.maintenanceUntil = ""
-      store.mapStyleUrlLight = ""
-      store.mapStyleUrlDark = ""
-      store.outageMode = false
-      store.isLoaded = false
-    },
-  }))
+      /**
+       * Reset config to defaults (env vars)
+       */
+      reset() {
+        store.apiUrl = process.env.EXPO_PUBLIC_API_URL || "https://api.recoverysky.app"
+        store.agentUrl = process.env.EXPO_PUBLIC_AGENT_URL || "https://agent.recoverysky.app"
+        store.socialUrl = process.env.EXPO_PUBLIC_SOCIAL_URL || "https://social.recoverysky.app"
+        store.authKey = process.env.EXPO_PUBLIC_AUTH_KEY || ""
+        store.revenueCatTestKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_TEST_KEY || ""
+        store.revenueCatAppleKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_APPLE_KEY || ""
+        store.revenueCatGoogleKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_GOOGLE_KEY || ""
+        store.otlpApiKey = process.env.EXPO_PUBLIC_OTLP_API_KEY || ""
+        store.umamiUrl = process.env.EXPO_PUBLIC_UMAMI_URL || ""
+        store.umamiWebsiteId = process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || ""
+        store.umamiApiKey = process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""
+        store.reviewEnabled = process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"
+        store.maintenanceMode = false
+        store.maintenanceMessage = ""
+        store.maintenanceUntil = ""
+        store.mapStyleUrlLight = ""
+        store.mapStyleUrlDark = ""
+        store.outageMode = false
+        store.isLoaded = false
+      },
+    }
+  })
 
 export interface ConfigStore extends Instance<typeof ConfigStoreModel> {}
 export interface ConfigStoreSnapshot extends SnapshotOut<typeof ConfigStoreModel> {}
