@@ -7,9 +7,11 @@ import {
   distanceMeters,
   formatDistance,
   isNearlySamePosition,
+  localIsoDow,
   resolveBannerReason,
   resolveMode,
   pmFirstMinutes,
+  sortByDayThenLocalTime,
   sortByDistance,
   sortByLocalTime,
   sortByLocalTimePmFirst,
@@ -376,5 +378,148 @@ describe("distanceMeters", () => {
     // one can't silently produce a badge reading "544000 m".
     const slc = { latitude: 40.7608, longitude: -111.891 }
     expect(formatDistance(distanceMeters(here, slc), true)).toMatch(/^\d+ mi$/)
+  })
+})
+
+/**
+ * An instant on a known LOCAL weekday and local hour.
+ *
+ * 2026-08-03 is a Monday, so `isoDow` 1..7 maps onto Aug 3..9. Built with the
+ * multi-arg Date constructor for the same reason `filterLogic.test.ts` does:
+ * it interprets its arguments in the device's zone and `localIsoDow` reads the
+ * local day back out, so these assertions hold in any CI region. A UTC millis
+ * literal would make the whole suite timezone-dependent.
+ */
+function atLocalDayHour(isoDow: number, hour: number, minute = 0): number {
+  return new Date(2026, 7, 2 + isoDow, hour, minute, 0).getTime()
+}
+
+describe("localIsoDow", () => {
+  it("maps each local weekday onto its ISO number", () => {
+    for (let iso = 1; iso <= 7; iso++) {
+      expect(localIsoDow(atLocalDayHour(iso, 12)), `iso ${iso}`).toBe(iso)
+    }
+  })
+
+  it("returns 7 for Sunday, not 0", () => {
+    // JS `getDay()` puts Sunday at 0, which is also our ANY_DAY sentinel. If
+    // this conversion is ever dropped, every Sunday meeting silently becomes
+    // "any day" — the single worst failure this module can have.
+    expect(localIsoDow(atLocalDayHour(7, 9))).toBe(7)
+  })
+
+  it("gives the 24/7 rooms no day at all", () => {
+    // millis === 0 renders as "24h". A continuous meeting has no weekday, and
+    // labelling it with whichever day the epoch lands on locally would be a
+    // fabrication rather than a rounding.
+    expect(localIsoDow(0)).toBeNull()
+  })
+
+  it("degrades to null on a non-finite millis rather than throwing", () => {
+    // An API regression must not crash a list row.
+    expect(localIsoDow(NaN)).toBeNull()
+    expect(localIsoDow(Infinity)).toBeNull()
+  })
+
+  it("reports the DEVICE's weekday, which is the point", () => {
+    // The tz-shift case this function exists for: an instant just after local
+    // midnight belongs to the new day, and one just before it to the old one.
+    // That is what makes a meeting the server calls Monday display as Sunday
+    // for a device far enough west — matching the time on the same row.
+    expect(localIsoDow(atLocalDayHour(1, 0, 5))).toBe(1)
+    expect(localIsoDow(atLocalDayHour(1, 23, 55))).toBe(1)
+    // One minute earlier is the previous local day.
+    expect(localIsoDow(atLocalDayHour(1, 0, 5) - 10 * 60_000)).toBe(7)
+  })
+})
+
+describe("sortByDayThenLocalTime", () => {
+  const TODAY = 3 // Wednesday
+
+  it("orders days from today forward, wrapping the week", () => {
+    const items = [
+      { id: "mon", millis: atLocalDayHour(1, 13) },
+      { id: "wed", millis: atLocalDayHour(3, 13) },
+      { id: "sun", millis: atLocalDayHour(7, 13) },
+      { id: "thu", millis: atLocalDayHour(4, 13) },
+    ]
+    // Wednesday is today, so Thu/Sun follow and Monday — five days out — lands
+    // last. A Monday-first sort would have put it at the top.
+    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual([
+      "wed",
+      "thu",
+      "sun",
+      "mon",
+    ])
+  })
+
+  it("keeps the pm-first clock order within a single day", () => {
+    const items = [
+      { id: "9am", millis: atLocalDayHour(3, 9) },
+      { id: "10pm", millis: atLocalDayHour(3, 22) },
+      { id: "1pm", millis: atLocalDayHour(3, 13) },
+    ]
+    // Same rule Search already uses: the day starts at noon, so the evening
+    // meetings read first and the morning ones follow.
+    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["1pm", "10pm", "9am"])
+  })
+
+  it("sorts by day BEFORE time, not the other way round", () => {
+    // The defect this function exists to prevent: a plain clock sort
+    // interleaves the week, so a Thursday 7pm sits between two Wednesday
+    // meetings and the day badge becomes mandatory reading on every row.
+    const items = [
+      { id: "thu-1pm", millis: atLocalDayHour(4, 13) },
+      { id: "wed-11pm", millis: atLocalDayHour(3, 23) },
+    ]
+    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["wed-11pm", "thu-1pm"])
+    // ...whereas the clock-only sort really would invert them, which is the
+    // whole reason Search can't just keep using it under "Any".
+    expect(sortByLocalTimePmFirst(items).map((i) => i.id)).toEqual(["thu-1pm", "wed-11pm"])
+  })
+
+  it("floats the dayless 24/7 rooms above today", () => {
+    // They are available right now, which makes them the most actionable
+    // answer to "when is the next meeting I can get to".
+    const items = [
+      { id: "wed", millis: atLocalDayHour(3, 13) },
+      { id: "24h", millis: 0 },
+    ]
+    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["24h", "wed"])
+  })
+
+  it("does not mutate its input", () => {
+    // Callers layer sortByFeedback over this; an in-place sort would reorder
+    // the array a previous stage still holds a reference to.
+    const items = [
+      { id: "sun", millis: atLocalDayHour(7, 13) },
+      { id: "wed", millis: atLocalDayHour(3, 13) },
+    ]
+    sortByDayThenLocalTime(items, TODAY)
+    expect(items.map((i) => i.id)).toEqual(["sun", "wed"])
+  })
+
+  it("is stable, so a favourites pass can layer over it", () => {
+    // sortByFeedback relies on this: equal keys must keep their relative
+    // order or untouched meetings would reshuffle between renders.
+    const items = [
+      { id: "a", millis: atLocalDayHour(3, 13) },
+      { id: "b", millis: atLocalDayHour(3, 13) },
+      { id: "c", millis: atLocalDayHour(3, 13) },
+    ]
+    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["a", "b", "c"])
+  })
+
+  it("handles every possible 'today' without dropping a row", () => {
+    const items = Array.from({ length: 7 }, (_, i) => ({
+      id: String(i + 1),
+      millis: atLocalDayHour(i + 1, 12),
+    }))
+    for (let today = 1; today <= 7; today++) {
+      const sorted = sortByDayThenLocalTime(items, today)
+      expect(sorted, `today ${today}`).toHaveLength(7)
+      // Today always leads, and the sequence walks forward from it.
+      expect(sorted[0].id, `today ${today}`).toBe(String(today))
+    }
   })
 })

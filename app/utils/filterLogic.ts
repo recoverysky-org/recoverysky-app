@@ -8,9 +8,11 @@
  * not.
  *
  * Holds the `shortTime` bucket definitions and their predicate (In-Person's
- * Time filter), plus the Search segment's venue / radius / extended-time
- * choices.
+ * Time filter), the day-of-week vocabulary shared by both day pickers, plus the
+ * Search segment's venue / radius / extended-time choices.
  */
+
+import type { TxKeyPath } from "@/i18n"
 
 // ============================================================================
 // shortTime buckets
@@ -182,6 +184,88 @@ export function poolsForVenue(choice: VenueChoice): {
     online: choice === "online",
     inPerson: choice === "in_person",
   }
+}
+
+// ============================================================================
+// Day of week — shared by BOTH day pickers (In-Person and Search)
+// ============================================================================
+
+/**
+ * ISO day of week: 1=Monday..7=Sunday, in picker order.
+ *
+ * MOVED HERE 2026-08-14 from `app/components/DaySelectorModal.tsx`. It had
+ * lived in the modal since the In-Person segment started sharing that picker,
+ * which was fine while the modal was the only thing that needed to name a
+ * weekday. `MeetingRow` now needs the same labels for its "Any" day badge, and
+ * a row component reaching into a modal for its vocabulary is backwards — so
+ * the list sits with `ANY_DAY` and `coerceDay` instead, and the modal imports
+ * it like everyone else.
+ *
+ * Keys stay in the `listingsScreen` namespace even though three surfaces now
+ * use them — renaming i18n keys would churn all nine translation files for zero
+ * user value. The strings are abbreviated ("Mon"), which is what lets
+ * `MeetingRow` prefix a time with one without wrapping the row.
+ */
+export const ISO_DAYS: { iso: number; tx: TxKeyPath }[] = [
+  { iso: 1, tx: "listingsScreen:monday" },
+  { iso: 2, tx: "listingsScreen:tuesday" },
+  { iso: 3, tx: "listingsScreen:wednesday" },
+  { iso: 4, tx: "listingsScreen:thursday" },
+  { iso: 5, tx: "listingsScreen:friday" },
+  { iso: 6, tx: "listingsScreen:saturday" },
+  { iso: 7, tx: "listingsScreen:sunday" },
+]
+
+/**
+ * Sentinel day meaning "every day of the week".
+ *
+ * Zero is safe because ISO 8601 numbers weekdays 1 (Monday) through 7 (Sunday)
+ * and never uses 0, so this can never collide with a real selection. It is also
+ * the wire value: `/schedules/daily` and `/schedules/nearby` both accept
+ * `iso_dow=0` as "all seven days" (API change 2026-08-14).
+ *
+ * Sent EXPLICITLY rather than by omitting the param. Both endpoints silently
+ * strip params they don't recognise, so an omitted `iso_dow` is
+ * indistinguishable from a client bug that dropped it — and such a bug would
+ * then quietly *succeed*, answering with a whole week the user never asked for.
+ * An explicit sentinel also greps cleanly across both codebases.
+ */
+export const ANY_DAY = 0
+
+/**
+ * May the Day picker offer "Any" for this venue choice?
+ *
+ * In-person only, and the reason is the size of the answer rather than anything
+ * technical. An in-person search is bounded by a radius, so "Any day" in a
+ * sparse region collapses a week of manual paging into one short list — which
+ * is the entire point of the feature. An online search has no such bound: one
+ * day is already ~500 rows, so seven days is a wall nobody scrolls, and the
+ * feature would be pure noise for exactly the users who have the most results.
+ *
+ * NOTE the deliberate asymmetry with `venueOptionsFor`, which *removes* the
+ * In-Person venue outright when location is off. Any is disabled-but-visible
+ * instead. The two cases differ: a location-less in-person search is a control
+ * that cannot work at all and reads as broken, whereas a hidden Any is a
+ * feature nobody in a sparse area ever discovers — and they're the ones it's
+ * for. Visible-with-a-reason is the right trade only in the second case.
+ */
+export function anyDayAllowedFor(choice: VenueChoice): boolean {
+  return choice === "in_person"
+}
+
+/**
+ * The day selection that survives the current venue choice.
+ *
+ * Mirrors `coerceVenue` exactly, for the same class of bug: without it,
+ * switching Search to Online while "Any" is selected leaves a seven-day list on
+ * screen under a picker whose Any row is now greyed out, and the next fetch
+ * would send `iso_dow=0` for a pool we've just decided must never receive it.
+ *
+ * `todayIsoDow` is injected rather than read from the clock so this stays pure
+ * and testable — the same reason the sort functions in `nearbyLogic` take it.
+ */
+export function coerceDay(day: number, choice: VenueChoice, todayIsoDow: number): number {
+  return day === ANY_DAY && !anyDayAllowedFor(choice) ? todayIsoDow : day
 }
 
 // ============================================================================

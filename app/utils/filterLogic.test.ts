@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  ANY_DAY,
+  anyDayAllowedFor,
+  coerceDay,
   coerceVenue,
   DEFAULT_SEARCH_TIME,
   DEFAULT_SHORT_TIME,
   DEFAULT_VENUE,
+  ISO_DAYS,
   matchesHourRange,
   matchesSearchTime,
   matchesShortTime,
@@ -280,5 +284,78 @@ describe("matchesSearchTime", () => {
     expect(SEARCH_TIME_OPTIONS).toContain("custom")
     expect(SHORT_TIME_OPTIONS).not.toContain("custom")
     expect(SEARCH_TIME_OPTIONS).toHaveLength(SHORT_TIME_OPTIONS.length + 1)
+  })
+})
+
+describe("ANY_DAY", () => {
+  it("cannot collide with a real ISO weekday", () => {
+    // The entire safety of the sentinel rests on this. ISO 8601 numbers
+    // weekdays 1..7 and never uses 0, so a `day === ANY_DAY` check can never
+    // swallow a genuine selection.
+    expect(ISO_DAYS.map((d) => d.iso)).not.toContain(ANY_DAY)
+    expect(ANY_DAY).toBe(0)
+  })
+
+  it("covers all seven weekdays exactly once", () => {
+    // Guards the picker against a duplicated or dropped day after an edit —
+    // a missing entry silently renders six options.
+    expect(ISO_DAYS.map((d) => d.iso)).toEqual([1, 2, 3, 4, 5, 6, 7])
+  })
+})
+
+describe("anyDayAllowedFor", () => {
+  it("allows Any for in-person searches, which are radius-bounded", () => {
+    expect(anyDayAllowedFor("in_person")).toBe(true)
+  })
+
+  it("refuses Any for online searches", () => {
+    // Not a technical limit — an online day is already ~500 rows, so seven of
+    // them is a wall of noise for exactly the users with the most results.
+    expect(anyDayAllowedFor("online")).toBe(false)
+  })
+
+  it("agrees with radiusAppliesTo about which venue is bounded", () => {
+    // Both answer "is this venue choice constrained by distance?". If they
+    // ever disagree, one of them is wrong — Any is only safe *because* the
+    // radius bounds the result set.
+    for (const choice of VENUE_OPTIONS) {
+      expect(anyDayAllowedFor(choice), choice).toBe(radiusAppliesTo(choice))
+    }
+  })
+})
+
+describe("coerceDay", () => {
+  const TODAY = 3 // Wednesday
+
+  it("snaps Any back to today when the venue cannot have it", () => {
+    // The toggle-flipped-while-you-were-here case, same as coerceVenue: a
+    // seven-day list must not survive a switch to Online.
+    expect(coerceDay(ANY_DAY, "online", TODAY)).toBe(TODAY)
+  })
+
+  it("leaves Any alone for in-person", () => {
+    expect(coerceDay(ANY_DAY, "in_person", TODAY)).toBe(ANY_DAY)
+  })
+
+  it("never touches a real weekday, whatever the venue", () => {
+    // Coercion is only ever about the sentinel. Rewriting a real selection
+    // would silently move the user off the day they picked.
+    for (const { iso } of ISO_DAYS) {
+      for (const choice of VENUE_OPTIONS) {
+        expect(coerceDay(iso, choice, TODAY), `${iso}/${choice}`).toBe(iso)
+      }
+    }
+  })
+
+  it("always returns a day the picker would accept", () => {
+    // The invariant the callers rely on: whatever comes out is either a real
+    // weekday or an Any that this venue is allowed to have.
+    for (const day of [ANY_DAY, ...ISO_DAYS.map((d) => d.iso)]) {
+      for (const choice of VENUE_OPTIONS) {
+        const coerced = coerceDay(day, choice, TODAY)
+        const valid = coerced === ANY_DAY ? anyDayAllowedFor(choice) : coerced >= 1 && coerced <= 7
+        expect(valid, `${day}/${choice} → ${coerced}`).toBe(true)
+      }
+    }
   })
 })

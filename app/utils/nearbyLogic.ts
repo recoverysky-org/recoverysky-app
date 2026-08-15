@@ -120,6 +120,11 @@ export interface NearbyParams {
  * silently strips unknown params (a sent `limit` would "work" while doing
  * nothing; it was removed from the API 2026-08-03), and `venueType` /
  * `tz` must not be sent (in_person is the default; tz isn't accepted).
+ *
+ * `isoDow` accepts `ANY_DAY` (0) for "all seven days" — see that constant in
+ * `filterLogic.ts` for why the sentinel is sent explicitly instead of omitting
+ * the param. It passes straight through with no special-casing here; the
+ * server owns the meaning.
  */
 export function buildNearbyParams(
   lat: number,
@@ -207,6 +212,89 @@ export function pmFirstMinutes(millis: number): number {
  */
 export function sortByLocalTimePmFirst<T extends { millis: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => pmFirstMinutes(a.millis) - pmFirstMinutes(b.millis))
+}
+
+/**
+ * The device-local ISO weekday (1=Mon..7=Sun) a meeting's start instant falls
+ * on, or null when the meeting has no meaningful day.
+ *
+ * ADDED 2026-08-14 for the "Any" day option: once a list can hold all seven
+ * days, every row has to say which one it is.
+ *
+ * WHY THE WEEKDAY IS READ FROM `millis` AND NOT FROM A SERVER `iso_dow` — this
+ * looks like the wrong source and is the right one. `sortByLocalTimePmFirst`
+ * above establishes that `millis`'s *date* is untrustworthy: it carries the
+ * vintage of whenever the row was last hydrated, so rows from one query
+ * straddle multiple calendar weeks. Its *weekday* is a different matter and is
+ * sound — every row of an `iso_dow=1` query is a Monday, whichever week it was
+ * hydrated in, so the weekday survives the thing that ruins the date.
+ *
+ * Reading it locally is also the only version that agrees with the rest of the
+ * row. A meeting the server lists as Monday in Sydney happens on *Sunday
+ * evening* for a device in the Americas, and `formatMillisToLocalTime` already
+ * renders it as a Sunday-evening time. Printing a server-supplied "Mon" beside
+ * that would put a weekday and a time that contradict each other on one line.
+ * The tz shift has to be applied to both or neither.
+ *
+ * `millis === 0` is the 24/7 marathon meetings, which `MeetingRow` renders as
+ * "24h". They return null: they run continuously, so labelling one with the
+ * weekday the epoch happens to land on in the device's zone would be a
+ * fabrication, not a rounding.
+ */
+export function localIsoDow(millis: number): number | null {
+  if (!Number.isFinite(millis) || millis === 0) return null
+  const jsDay = new Date(millis).getDay()
+  return jsDay === 0 ? 7 : jsDay
+}
+
+/**
+ * Sort an all-days result set by weekday first — starting from TODAY and
+ * rolling forward through the week — then by pm-first local clock within each
+ * day.
+ *
+ * ADDED 2026-08-14 for the "Any" day option on the Search segment.
+ *
+ * Day-primary is the whole point. Applying `sortByLocalTimePmFirst` alone to a
+ * seven-day set interleaves the days into one clock order, so a Tuesday 7pm
+ * meeting sits between two Saturday 7pm ones and the list stops being
+ * scannable — the reader has to check the day badge on every single row to
+ * make sense of the ordering.
+ *
+ * Rolling from today rather than from Monday because the question behind "Any
+ * day" is "when is the next one I can get to", not "show me the calendar".
+ * Today's remaining meetings lead; the day the user has already missed most of
+ * ends up last, six days out, which is where it belongs.
+ *
+ * The In-Person segment deliberately does NOT use this — it stays nearest-first
+ * (`sortByDistance`), because that segment's promise is proximity and the day
+ * is a label there, not the axis.
+ *
+ * Meetings with no weekday (`millis === 0` — the 24/7 rooms) rank ahead of
+ * today. They are available right now, which makes them the most actionable
+ * answer to the question above, and there are only ever a handful of them.
+ *
+ * @param todayIsoDow - the device's current ISO weekday, injected rather than
+ *   read from the clock so this stays pure (see `localIsoDow`'s siblings).
+ */
+export function sortByDayThenLocalTime<T extends { millis: number }>(
+  items: T[],
+  todayIsoDow: number,
+): T[] {
+  // -1 for the dayless 24/7 rooms, then 0 for today through 6 for "this day
+  // last week", i.e. the furthest away the user could be from it.
+  const dayRank = (millis: number): number => {
+    const dow = localIsoDow(millis)
+    if (dow === null) return -1
+    return (dow - todayIsoDow + 7) % 7
+  }
+
+  return [...items].sort((a, b) => {
+    const byDay = dayRank(a.millis) - dayRank(b.millis)
+    if (byDay !== 0) return byDay
+    // Same day: the established Search ordering, unchanged. See
+    // `sortByLocalTimePmFirst` for why the day starts at noon.
+    return pmFirstMinutes(a.millis) - pmFirstMinutes(b.millis)
+  })
 }
 
 const EARTH_RADIUS_M = 6_371_008.8
