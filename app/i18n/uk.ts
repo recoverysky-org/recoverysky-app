@@ -197,6 +197,8 @@ const uk: Translations = {
     startTime: "Час початку",
     endTime: "Час завершення",
     // Day names
+    anyDay: "Будь-який",
+    anyDayOnlineHint: "Лише для очного пошуку",
     monday: "Пн",
     tuesday: "Вт",
     wednesday: "Ср",
@@ -851,13 +853,18 @@ const uk: Translations = {
     shortTimeOvernight: "Ніч",
     emptyShortTime:
       "Немає зустрічей у {{day}}, що відповідають «{{time}}». Натисніть, щоб обрати інший час.",
+    emptyShortTimeAnyDay:
+      "Немає зустрічей у жоден день, що відповідають «{{time}}». Натисніть, щоб обрати інший час.",
     locationBanner: "Увімкніть геолокацію, щоб бачити зустрічі поруч із вами",
     locationBannerDenied:
       "Геолокацію вимкнено — відкрийте Налаштування, щоб увімкнути пошук поблизу",
     nearbyFailedBanner: "Не вдалося завантажити результати поблизу — торкніться, щоб повторити",
     emptyNearby:
       "Немає очних зустрічей у радіусі {{distance}} ({{day}}) — спробуйте більший радіус",
+    emptyNearbyAnyDay:
+      "Немає очних зустрічей у радіусі {{distance}} у жоден день — спробуйте більший радіус",
     emptyFallback: "Немає очних зустрічей {{fellowship}} ({{day}})",
+    emptyFallbackAnyDay: "Немає очних зустрічей {{fellowship}} у жоден день",
     locationFixFailedBanner: "Не вдалося визначити місцезнаходження — торкніться, щоб повторити",
     emptyNoLocation: "Увімкніть геолокацію, щоб знайти очні зустрічі поруч із вами",
     emptyFixFailed: "Не вдалося визначити місцезнаходження — торкніться, щоб повторити",

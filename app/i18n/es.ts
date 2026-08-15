@@ -197,6 +197,8 @@ const es: Translations = {
     startTime: "Hora de Inicio",
     endTime: "Hora de Fin",
     // Day names
+    anyDay: "Cualquiera",
+    anyDayOnlineHint: "Solo para búsquedas en persona",
     monday: "Lun",
     tuesday: "Mar",
     wednesday: "Mié",
@@ -859,13 +861,18 @@ const es: Translations = {
     shortTimeOvernight: "Madrugada",
     emptyShortTime:
       "Ninguna reunión del {{day}} coincide con {{time}}. Toca para elegir otra hora.",
+    emptyShortTimeAnyDay:
+      "Ninguna reunión de ningún día coincide con {{time}}. Toca para elegir otra hora.",
     locationBanner: "Activa la ubicación para ver reuniones cerca de ti",
     locationBannerDenied:
       "La ubicación está desactivada — ábrela en Ajustes para ver resultados cercanos",
     nearbyFailedBanner: "No se pudieron cargar los resultados cercanos — toca para reintentar",
     emptyNearby:
       "No hay reuniones en persona en un radio de {{distance}} el {{day}} — prueba un radio mayor",
+    emptyNearbyAnyDay:
+      "No hay reuniones en persona en un radio de {{distance}} ningún día — prueba un radio mayor",
     emptyFallback: "No hay reuniones en persona de {{fellowship}} el {{day}}",
+    emptyFallbackAnyDay: "No hay reuniones en persona de {{fellowship}} ningún día",
     locationFixFailedBanner: "No se pudo obtener tu ubicación — toca para reintentar",
     emptyNoLocation: "Activa la ubicación para encontrar reuniones presenciales cerca de ti",
     emptyFixFailed: "No se pudo obtener tu ubicación — toca para reintentar",

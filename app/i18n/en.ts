@@ -204,6 +204,18 @@ const en = {
     selectLanguage: "Select Language",
     startTime: "Start Time",
     endTime: "End Time",
+    // "Any day" option on both day pickers (In-Person + Search). `anyDay` is
+    // the picker row AND the selector's value column, so it has to stay short
+    // enough for that narrow cell.
+    //
+    // There is deliberately no "any day" *phrase* key to interpolate into the
+    // empty states as `{{day}}`. Every one of those sentences bakes in a
+    // preposition and article around the slot — "el {{day}}", "am {{day}}",
+    // "le {{day}}" — which a weekday satisfies and a quantifier does not
+    // ("el cualquier día"). The `…AnyDay` variants below are whole sentences
+    // per locale for that reason; don't collapse them back into one key.
+    anyDay: "Any",
+    anyDayOnlineHint: "In-person searches only",
     // Day names
     monday: "Mon",
     tuesday: "Tue",
@@ -884,11 +896,17 @@ const en = {
     shortTimeEvening: "Evening",
     shortTimeOvernight: "Overnight",
     emptyShortTime: "No {{day}} meetings match {{time}}. Tap to pick another time.",
+    // Whole-sentence variants for the "Any" day option rather than a phrase
+    // substituted into the strings above — see the note on `anyDay` in
+    // `listingsScreen` for why the {{day}} slot can't take a quantifier.
+    emptyShortTimeAnyDay: "No meetings on any day match {{time}}. Tap to pick another time.",
     locationBanner: "Enable location to see meetings near you",
     locationBannerDenied: "Location is off — open Settings to enable nearby results",
     nearbyFailedBanner: "Couldn't load nearby results — tap to retry",
     emptyNearby: "No in-person meetings within {{distance}} on {{day}} — try a wider radius",
+    emptyNearbyAnyDay: "No in-person meetings within {{distance}} on any day — try a wider radius",
     emptyFallback: "No in-person {{fellowship}} meetings on {{day}}",
+    emptyFallbackAnyDay: "No in-person {{fellowship}} meetings on any day",
     locationFixFailedBanner: "Couldn't get your location — tap to retry",
     emptyNoLocation: "Turn on location to find in-person meetings near you",
     emptyFixFailed: "We couldn't get your location — tap to try again",

@@ -198,6 +198,8 @@ const ru: Translations = {
     startTime: "Время начала",
     endTime: "Время окончания",
     // Day names
+    anyDay: "Любой",
+    anyDayOnlineHint: "Только для очного поиска",
     monday: "Пн",
     tuesday: "Вт",
     wednesday: "Ср",
@@ -851,12 +853,17 @@ const ru: Translations = {
     shortTimeOvernight: "Ночь",
     emptyShortTime:
       "Нет встреч в {{day}}, соответствующих «{{time}}». Нажмите, чтобы выбрать другое время.",
+    emptyShortTimeAnyDay:
+      "Нет встреч ни в один день, соответствующих «{{time}}». Нажмите, чтобы выбрать другое время.",
     locationBanner: "Включите геолокацию, чтобы видеть встречи рядом с вами",
     locationBannerDenied:
       "Геолокация выключена — откройте Настройки, чтобы включить поиск поблизости",
     nearbyFailedBanner: "Не удалось загрузить результаты поблизости — нажмите, чтобы повторить",
     emptyNearby: "Нет очных встреч в радиусе {{distance}} ({{day}}) — попробуйте больший радиус",
+    emptyNearbyAnyDay:
+      "Нет очных встреч в радиусе {{distance}} ни в один день — попробуйте больший радиус",
     emptyFallback: "Нет очных встреч {{fellowship}} ({{day}})",
+    emptyFallbackAnyDay: "Нет очных встреч {{fellowship}} ни в один день",
     locationFixFailedBanner: "Не удалось определить местоположение — нажмите, чтобы повторить",
     emptyNoLocation: "Включите геолокацию, чтобы найти очные встречи рядом с вами",
     emptyFixFailed: "Не удалось определить местоположение — нажмите, чтобы повторить",

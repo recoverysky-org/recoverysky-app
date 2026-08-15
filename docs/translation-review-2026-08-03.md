@@ -676,3 +676,52 @@ read — a vague message here reads as the app refusing to work.
 - `ru` / `uk` — formal register (`вы` / `Ви`) matched to the existing file.
 - `th` — no sentence-final punctuation, matching the rest of this file's
   message strings.
+
+---
+
+## 2026-08-14 — "Any" day option (five new keys × eight locales)
+
+Added with the In-Person / Search "Any" day selector. Translations were written
+by the implementing session, not by native speakers — **all forty strings want a
+review**, and the notes below flag where the risk actually is.
+
+| Key | Namespace | English |
+|---|---|---|
+| `anyDay` | `listingsScreen` | "Any" |
+| `anyDayOnlineHint` | `listingsScreen` | "In-person searches only" |
+| `emptyShortTimeAnyDay` | `inPersonScreen` | "No meetings on any day match {{time}}. Tap to pick another time." |
+| `emptyNearbyAnyDay` | `inPersonScreen` | "No in-person meetings within {{distance}} on any day — try a wider radius" |
+| `emptyFallbackAnyDay` | `inPersonScreen` | "No in-person {{fellowship}} meetings on any day" |
+
+**Why the three empty states are whole new sentences and not a substitution.**
+The existing `emptyShortTime` / `emptyNearby` / `emptyFallback` strings bake a
+preposition and article around the `{{day}}` slot — `el {{day}}`, `am {{day}}`,
+`le {{day}}`, `em {{day}}` — which a weekday satisfies and a quantifier does
+not ("el cualquier día"). Interpolating an "any day" phrase would have produced
+broken grammar in every Romance and Germanic locale. Do not collapse these back
+into one key with a shared phrase; `en.ts` carries the same warning inline.
+
+Specific things to check:
+
+- **`anyDay` is the narrow selector value column**, not just a modal row — it
+  renders inside the same cell that otherwise shows "Mon"/"Tue". `uk`
+  ("Будь-який") and `fr`/`es` are the longest; confirm none of them truncate or
+  wrap the filter grid.
+- **`de` — "Beliebig"** was chosen over "Alle" to mean *any one of*, not *all
+  of*. Confirm that reads right for a day filter rather than a multi-select.
+- **`fr` — "Tous"** is the opposite choice (literally "all"), because
+  "N'importe quel" doesn't fit the cell. Worth a second opinion on whether the
+  two locales should agree in spirit.
+- **`ar` — "أي يوم"** is two words ("any day") where the other locales use one,
+  because a bare "أي" reads as an incomplete question word. Check it fits the
+  cell in RTL.
+- **`th` — "ทุกวัน"** is literally "every day". Thai has no comfortable short
+  "any"; confirm this doesn't read as a recurring-daily meeting filter.
+- **`de` `emptyShortTimeAnyDay`** was restructured ("An keinem Tag passen
+  Meetings zu …") rather than tracking the English word order, which would have
+  needed an awkward "an irgendeinem Tag" mid-sentence. Verify the emphasis is
+  still on the time filter being the problem — that string's job is to send the
+  user to the time picker, not the day picker.
+- **`ru` / `uk`** use "ни в один день" / "у жоден день". Both are double
+  negatives agreeing with the leading "Нет"/"Немає", which is correct Slavic
+  negative concord but worth confirming it doesn't read as emphatic.

@@ -199,6 +199,8 @@ const de: Translations = {
     startTime: "Startzeit",
     endTime: "Endzeit",
     // Day names
+    anyDay: "Beliebig",
+    anyDayOnlineHint: "Nur bei Präsenz-Suche",
     monday: "Mo",
     tuesday: "Di",
     wednesday: "Mi",
@@ -861,13 +863,18 @@ const de: Translations = {
     shortTimeOvernight: "Nachts",
     emptyShortTime:
       "Keine Meetings am {{day}} passen zu {{time}}. Tippen, um eine andere Zeit zu wählen.",
+    emptyShortTimeAnyDay:
+      "An keinem Tag passen Meetings zu {{time}}. Tippen, um eine andere Zeit zu wählen.",
     locationBanner: "Aktiviere den Standort, um Meetings in deiner Nähe zu sehen",
     locationBannerDenied: "Standort ist aus — öffne die Einstellungen für Ergebnisse in der Nähe",
     nearbyFailedBanner:
       "Ergebnisse in der Nähe konnten nicht geladen werden — zum Wiederholen tippen",
     emptyNearby:
       "Keine Präsenz-Meetings im Umkreis von {{distance}} am {{day}} — versuche einen größeren Radius",
+    emptyNearbyAnyDay:
+      "Keine Präsenz-Meetings im Umkreis von {{distance}} an irgendeinem Tag — versuche einen größeren Radius",
     emptyFallback: "Keine {{fellowship}}-Präsenz-Meetings am {{day}}",
+    emptyFallbackAnyDay: "Keine {{fellowship}}-Präsenz-Meetings an irgendeinem Tag",
     locationFixFailedBanner: "Standort konnte nicht ermittelt werden — zum Wiederholen tippen",
     emptyNoLocation: "Aktiviere den Standort, um Präsenz-Meetings in deiner Nähe zu finden",
     emptyFixFailed: "Standort konnte nicht ermittelt werden — zum Wiederholen tippen",
