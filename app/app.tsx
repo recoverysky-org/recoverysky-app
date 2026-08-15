@@ -46,8 +46,10 @@ import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import {
   attendanceEvents,
+  configCacheRepository,
   DatabaseProvider,
   DatabaseLoadingOverlay,
+  openDbEarly,
   ProfileHydrator,
   ChatHydrator,
   ReportPollingResumer,
@@ -58,7 +60,7 @@ import { initI18n, translate } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
-import { api } from "./services/api"
+import { api, type ServerConfig } from "./services/api"
 import { isTimerSessionActive } from "./services/attendance"
 import { type AttestationError, isSimulator, preparePlayIntegrity } from "./services/attestation"
 import {
@@ -93,6 +95,7 @@ import { initializeUmami, setTrackingUserId, trackEvent } from "./services/track
 import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { checkForUpdates } from "./utils/checkForUpdates"
+import { decideStartupConfigPath } from "./utils/configCacheLogic"
 import { parseDeepLinkSegment, pendingTargetForSegment } from "./utils/deepLinkLogic"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
@@ -445,6 +448,41 @@ export function App() {
         _rootStore.authenticationStore.setDeviceId(deviceId)
         logger.setContext({ deviceId })
 
+        // Startup config cache — read BEFORE the /status precheck so a warm
+        // cache is in hand when we decide the config path below. Opening the
+        // DB here is safe/idempotent (see openDbEarly). Any failure lands on
+        // cachedConfig = null, which is byte-for-byte the pre-cache startup.
+        // Spec: docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md
+        let cachedConfig: ServerConfig | null = null
+        if (await openDbEarly()) {
+          const row = await configCacheRepository.load()
+          const decision = decideStartupConfigPath(row)
+          if (decision.mode === "warm") {
+            cachedConfig = decision.config
+            log.info("Config cache warm", { fetchedAt: row?.fetchedAt })
+          } else {
+            log.info("Config cache cold (first launch or unreadable cache)")
+          }
+        }
+
+        // Persist every successful /config payload to the encrypted SQLite
+        // cache. A reaction (not a ConfigStore side effect) so models/ stays
+        // free of db/ imports — same direction as ProfileHydrator. Registered
+        // BEFORE the fetch below so the very first launch's payload is
+        // captured too (a save before the DB opens just logs and no-ops;
+        // the 60s config poll self-heals). Never disposed: config polling
+        // runs for the app's lifetime.
+        reaction(
+          () => _rootStore.configStore.lastConfigPayload,
+          (payload) => {
+            if (!payload) return
+            void configCacheRepository.save(
+              JSON.stringify(payload),
+              _rootStore.configStore.lastConfigFetchedAt,
+            )
+          },
+        )
+
         // /status precheck — runs BEFORE attestation. If the API is
         // unreachable, /attest will fail with a misleading "Device
         // Verification Failed" alert. /status is unauthenticated and
@@ -504,13 +542,25 @@ export function App() {
         //      meeting list with a banner; the full screen is the more
         //      honest UX. The gate clears on the next poll where
         //      maintenance is off (see ConfigStore.fetchConfig).
-        await _rootStore.configStore.fetchConfig()
-        if (!_rootStore.configStore.isLoaded) {
-          log.warn("Config fetch exhausted all retries — entering outage mode")
-          _rootStore.configStore.setOutageMode()
-        } else if (_rootStore.configStore.maintenanceMode) {
-          log.info("Cold start with maintenance active — entering outage mode")
-          _rootStore.configStore.setOutageMode()
+        // CHANGED 2026-08-14: both gates now apply ONLY when the config
+        // cache is cold (first launch / unreadable cache). A warm cache
+        // seeds the store and the fetch runs un-awaited in the background;
+        // maintenance then arrives as the banner (spec decision: banner-only
+        // on warm starts). outageMode is never set on the warm path.
+        // Spec: docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md
+        if (cachedConfig) {
+          _rootStore.configStore.applyServerConfig(cachedConfig, { fromCache: true })
+          // Deliberately un-awaited: refreshes store + cache when it lands.
+          void _rootStore.configStore.fetchConfig()
+        } else {
+          await _rootStore.configStore.fetchConfig()
+          if (!_rootStore.configStore.isLoaded) {
+            log.warn("Config fetch exhausted all retries — entering outage mode")
+            _rootStore.configStore.setOutageMode()
+          } else if (_rootStore.configStore.maintenanceMode) {
+            log.info("Cold start with maintenance active — entering outage mode")
+            _rootStore.configStore.setOutageMode()
+          }
         }
 
         // Update logger with server-provided OTLP key

@@ -23,6 +23,7 @@
  */
 
 export { getDb, openDb } from "./provider"
+export { openDbEarly } from "./earlyOpen"
 export { DatabaseProvider, useDatabase, useDatabaseReady } from "./DatabaseProvider"
 export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
 export { ProfileHydrator } from "./ProfileHydrator"
