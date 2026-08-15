@@ -43,7 +43,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
-import { DaySelectorModal, ISO_DAYS } from "@/components/DaySelectorModal"
+import { DaySelectorModal } from "@/components/DaySelectorModal"
 import { InPersonMapView } from "@/components/InPersonMapView"
 import { InPersonPopup } from "@/components/InPersonPopup"
 import { MapListToggle, type InPersonViewMode } from "@/components/MapListToggle"
@@ -68,7 +68,9 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
+  ANY_DAY,
   DEFAULT_SHORT_TIME,
+  ISO_DAYS,
   matchesShortTime,
   SHORT_TIME_OPTIONS,
   type ShortTime,
@@ -1070,8 +1072,16 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // ISO_DAYS always covers 1..7 and selectedDay is derived from a Date, so the
   // lookup can't miss — the ternary just avoids a non-null assertion on the
   // find() result rather than guarding a case that can actually happen.
+  // CHANGED 2026-08-14: `selectedDay` can now also be ANY_DAY (0), which is
+  // deliberately absent from ISO_DAYS, so that case is answered before the
+  // lookup rather than falling through to the "" the ternary yields.
+  const isAnyDay = selectedDay === ANY_DAY
   const selectedDayEntry = ISO_DAYS.find((d) => d.iso === selectedDay)
-  const selectedDayLabel = selectedDayEntry ? t(selectedDayEntry.tx) : ""
+  const selectedDayLabel = isAnyDay
+    ? t("listingsScreen:anyDay")
+    : selectedDayEntry
+      ? t(selectedDayEntry.tx)
+      : ""
   const radiusDistance = formatDistance(radiusKm * 1000, useMiles)
   // Visible value is the bare distance; the "Within …" phrasing is kept for the
   // screen reader only (see the grid comment in InPersonListHeader).
@@ -1255,6 +1265,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         distanceLabel={
           mode === "nearby" ? formatDistance(item.distance_m, useMiles) || undefined : undefined
         }
+        // Only under "Any" — on a list already filtered to one weekday, the
+        // same badge on every row says nothing. See MeetingRow's `showDay`.
+        showDay={isAnyDay}
         // ADDED 2026-08-04 alongside the favourites-first ordering. Without the
         // glyphs, a favourite sitting above a nearer meeting looks like the
         // distance sort is broken — the heart is what explains the position.
@@ -1266,7 +1279,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         onPress={setSelectedMeeting}
       />
     ),
-    [mode, useMiles, reminderLookup, displayFeedback],
+    [mode, useMiles, reminderLookup, displayFeedback, isAnyDay],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -1329,10 +1342,12 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           accessibilityRole="button"
         >
           <Text style={themed($emptyText)}>
-            {t("inPersonScreen:emptyShortTime", {
-              day: selectedDayLabel,
-              time: shortTimeLabel,
-            })}
+            {isAnyDay
+              ? t("inPersonScreen:emptyShortTimeAnyDay", { time: shortTimeLabel })
+              : t("inPersonScreen:emptyShortTime", {
+                  day: selectedDayLabel,
+                  time: shortTimeLabel,
+                })}
           </Text>
         </Pressable>
       )
@@ -1371,10 +1386,12 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           accessibilityRole="button"
         >
           <Text style={themed($emptyText)}>
-            {t("inPersonScreen:emptyNearby", {
-              distance: radiusDistance,
-              day: selectedDayLabel,
-            })}
+            {isAnyDay
+              ? t("inPersonScreen:emptyNearbyAnyDay", { distance: radiusDistance })
+              : t("inPersonScreen:emptyNearby", {
+                  distance: radiusDistance,
+                  day: selectedDayLabel,
+                })}
           </Text>
         </Pressable>
       )
@@ -1382,10 +1399,12 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     return (
       <View style={themed($emptyContainer)}>
         <Text style={themed($emptyText)}>
-          {t("inPersonScreen:emptyFallback", {
-            fellowship,
-            day: selectedDayLabel,
-          })}
+          {isAnyDay
+            ? t("inPersonScreen:emptyFallbackAnyDay", { fellowship })
+            : t("inPersonScreen:emptyFallback", {
+                fellowship,
+                day: selectedDayLabel,
+              })}
         </Text>
       </View>
     )
@@ -1397,6 +1416,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     mode,
     radiusDistance,
     selectedDayLabel,
+    isAnyDay,
     handleOpenRadiusModal,
     shortTime,
     shortTimeLabel,
@@ -1528,6 +1548,11 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         selectedDay={selectedDay}
         onSelect={handleDaySelect}
         onClose={() => setDayModalVisible(false)}
+        // Always offered here, and never disabled: this segment is in-person by
+        // definition and every one of its queries is bounded by the radius, so
+        // there is no venue choice that could make "Any" unaffordable. Search
+        // needs the `anyDisabled` half; this screen never does.
+        allowAny
       />
 
       <RadiusSelectorModal
@@ -1600,6 +1625,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
                       ? formatDistance(m.distance_m, useMiles) || undefined
                       : undefined
                   }
+                  // Same rule as the list rows above — the venue chooser can
+                  // hold meetings from different days once "Any" is selected.
+                  showDay={isAnyDay}
                   rating={displayFeedback.get(m.id)?.rates ?? 0}
                   isFavorite={displayFeedback.get(m.id)?.loves ?? false}
                   hasReminder={meetingHasReminder(m, reminderLookup)}

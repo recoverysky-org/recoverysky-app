@@ -161,3 +161,61 @@ describe("MeetingRow", () => {
     })
   })
 })
+
+/**
+ * "Any day" lists — the weekday badge added 2026-08-14.
+ *
+ * `inPersonMeeting` starts 2026-08-04 07:00 LOCAL (a Tuesday) and
+ * `onlineMeeting` 2026-08-04 17:00, both built with the multi-arg Date
+ * constructor so the local weekday is Tuesday in any CI timezone.
+ */
+describe("MeetingRow — weekday badge", () => {
+  it("shows the weekday when the list spans days", () => {
+    render(<MeetingRow meeting={inPersonMeeting} showDay />)
+    expect(screen.getByTestId("day-label")).toBeTruthy()
+    // The i18n mock echoes keys rather than translating, so this asserts on
+    // the KEY the component picked — which is the logic actually under test
+    // (Aug 4 2026 is a Tuesday locally). A rendered "Tue" would only prove the
+    // translation table, which en.ts already pins.
+    expect(screen.getByText(/listingsScreen:tuesday/)).toBeTruthy()
+  })
+
+  it("omits it by default, so single-day lists are untouched", () => {
+    // The prop is opt-in for a reason: stamping "Tue" on every row of a list
+    // already filtered to Tuesday is noise that says nothing.
+    render(<MeetingRow meeting={inPersonMeeting} />)
+    expect(screen.queryByTestId("day-label")).toBeNull()
+  })
+
+  it("omits it explicitly when showDay is false", () => {
+    render(<MeetingRow meeting={inPersonMeeting} showDay={false} />)
+    expect(screen.queryByTestId("day-label")).toBeNull()
+  })
+
+  it("gives the 24/7 rooms no weekday", () => {
+    // millis === 0 renders as "24h". A continuously-running meeting has no
+    // weekday, and labelling it with whichever day the epoch lands on in the
+    // device's zone would be a fabrication — see localIsoDow.
+    const marathon = { ...inPersonMeeting, millis: 0 } as MeetingWithTrex
+    render(<MeetingRow meeting={marathon} showDay />)
+    expect(screen.getByText("24h")).toBeTruthy()
+    expect(screen.queryByTestId("day-label")).toBeNull()
+  })
+
+  it("works on online rows too", () => {
+    // Search's Any-day list is in-person-only today, but the row must not
+    // depend on venue — MeetingRow branches on data, never on venueType.
+    render(<MeetingRow meeting={onlineMeeting} showDay />)
+    expect(screen.getByTestId("day-label")).toBeTruthy()
+  })
+
+  it("announces the bare weekday, without the visual separator", () => {
+    // The middot is punctuation for the eye. "Tue dot 7:00a" helps nobody.
+    render(<MeetingRow meeting={inPersonMeeting} showDay distanceLabel="0.8 mi" />)
+    const label = screen.getByLabelText(/Sunrise Serenity/).props.accessibilityLabel
+    expect(label).toContain("listingsScreen:tuesday")
+    expect(label).not.toContain("·")
+    // Reading order matches the screen: name, day, time, distance.
+    expect(label.indexOf("listingsScreen:tuesday")).toBeLessThan(label.indexOf("0.8 mi"))
+  })
+})

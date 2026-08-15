@@ -38,7 +38,9 @@ import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ISO_DAYS } from "@/utils/filterLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
+import { localIsoDow } from "@/utils/nearbyLogic"
 
 const REMINDER_COLOR = "#f59e0b"
 const FAVORITE_COLOR = "#ef4444"
@@ -72,6 +74,18 @@ interface MeetingRowProps {
    * next mixed list will want it back — not because something is using it.
    */
   venueTag?: string
+  /**
+   * Prefix the start time with the meeting's weekday ("Tue · 7:00p").
+   *
+   * ADDED 2026-08-14 for the "Any" day option. Only for lists that actually
+   * span more than one day — on a list already filtered to Tuesday, stamping
+   * "Tue" on all fifty rows is noise that says nothing, the same reasoning
+   * `venueTag` above carries for single-venue lists.
+   *
+   * The 24/7 rooms (`millis === 0`, rendered "24h") never get one; see
+   * `localIsoDow`.
+   */
+  showDay?: boolean
   /** Callback when row is pressed */
   onPress?: (meeting: MeetingWithTrex) => void
 }
@@ -93,6 +107,7 @@ export const MeetingRow: FC<MeetingRowProps> = ({
   hasReminder = false,
   distanceLabel,
   venueTag,
+  showDay = false,
   onPress,
 }) => {
   const { themed, theme } = useAppTheme()
@@ -101,6 +116,24 @@ export const MeetingRow: FC<MeetingRowProps> = ({
     () => (meeting.millis === 0 ? "24h" : formatMillisToLocalTime(meeting.millis)),
     [meeting.millis],
   )
+
+  /**
+   * Abbreviated weekday ("Tue"), or "" when there is none to show.
+   *
+   * Derived from the SAME `millis` that produced `startTime` above, via
+   * `localIsoDow` — that is deliberate and load-bearing. A server-supplied
+   * `iso_dow` would name the day in the meeting's own timezone while the time
+   * beside it is already shifted into the device's, so a Sydney Monday meeting
+   * would render "Mon · 5:00p" on a Sunday evening in Chicago. Both halves
+   * come from one instant or they contradict each other.
+   */
+  const dayLabel = useMemo(() => {
+    if (!showDay) return ""
+    const iso = localIsoDow(meeting.millis)
+    if (iso === null) return ""
+    const entry = ISO_DAYS.find((d) => d.iso === iso)
+    return entry ? translate(entry.tx) : ""
+  }, [showDay, meeting.millis])
 
   const fellowshipColor = useMemo(() => {
     return FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
@@ -125,6 +158,10 @@ export const MeetingRow: FC<MeetingRowProps> = ({
       // rather than a bare template.
       accessibilityLabel={[
         `${meeting.fellowship || ""} ${meeting.name}`.trim(),
+        // Before the time, matching the reading order on screen. The bare
+        // weekday, without the middot the visual label carries — a screen
+        // reader announcing "Tue dot" helps nobody.
+        dayLabel,
         startTime,
         // Mirrors the badge slot's precedence so the spoken row matches the
         // seen one — never both, never the wrong one.
@@ -194,6 +231,14 @@ export const MeetingRow: FC<MeetingRowProps> = ({
               color={FAVORITE_COLOR}
               style={$heartIcon}
             />
+          )}
+          {/* Only on lists that span more than one day (the "Any" option) —
+              see the `showDay` prop. Sits left of the time so the pair reads
+              as one phrase, and is absent rather than empty otherwise. */}
+          {!!dayLabel && (
+            <Text testID="day-label" style={themed($dayText)}>
+              {`${dayLabel} ·`}
+            </Text>
           )}
           <Text style={themed($timeText)}>{startTime}</Text>
           {!!meeting.language && (
@@ -324,6 +369,16 @@ const $heartIcon: ViewStyle = {
 const $timeText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   color: colors.textDim,
+})
+
+// Same size and colour as the time it prefixes — they're one phrase, and a
+// second colour in the right section would compete with the distance badge for
+// attention. The weight is what separates the two halves.
+const $dayText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  fontWeight: "600",
+  color: colors.textDim,
+  marginRight: 4,
 })
 
 const $languageText: ThemedStyle<TextStyle> = ({ colors }) => ({

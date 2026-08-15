@@ -101,6 +101,7 @@ import { feedbackCache } from "@/db"
 import { useConfigStore, useProfileStore } from "@/models"
 import { api, LiveSchedule } from "@/services/api"
 import { sortByFeedback } from "@/utils/feedbackSort"
+import { ANY_DAY } from "@/utils/filterLogic"
 import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import {
@@ -110,6 +111,7 @@ import {
   NearbyMode,
   resolveBannerReason,
   resolveMode,
+  sortByDayThenLocalTime,
   sortByDistance,
   sortByLocalTime,
 } from "@/utils/nearbyLogic"
@@ -557,7 +559,19 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
         const pool = inPersonPoolOf(true, toMeetings(fallback.schedules))
         // Same tiering as the nearby path above; the day-browse fallback's
         // primary key is local start time instead of distance.
-        setMeetings(sortByFeedback(sortByLocalTime(pool.items)))
+        // CHANGED 2026-08-14: under ANY_DAY this list spans all seven days, and
+        // a clock-only key interleaves them into an unreadable order. The
+        // nearby path above doesn't need this — it stays distance-primary, so
+        // its ordering is unaffected by how many days are in the set — but this
+        // degraded path sorts by time and does. Single-day fetches are
+        // untouched.
+        setMeetings(
+          sortByFeedback(
+            selectedDay === ANY_DAY
+              ? sortByDayThenLocalTime(pool.items, getCurrentIsoDow())
+              : sortByLocalTime(pool.items),
+          ),
+        )
         log.debug("Loaded in-person day-browse schedules", {
           count: pool.items.length,
           iso_dow: selectedDay,

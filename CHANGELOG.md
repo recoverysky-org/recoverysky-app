@@ -22,6 +22,31 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+
+- **"Any" day option on the In-Person and Search day selectors.** Finding a
+  meeting in a sparse area used to mean opening the day picker seven times and
+  reading seven lists. Picking "Any" searches the whole week at once, and each
+  result row gains a weekday beside its start time so the list stays readable.
+  In-Person offers it unconditionally — every one of its queries is already
+  bounded by the search radius, which is what keeps the result set sane. Search
+  offers it only for In-Person venues: an online day is ~500 meetings, so seven
+  days would bury the feature's own audience in noise. On an Online search the
+  option stays visible but greyed with the reason, rather than disappearing —
+  the users it exists for are the least likely to go hunting for a hidden
+  control. Switching a Search from In-Person to Online while "Any" is selected
+  snaps the day back to today.
+
+  Under "Any" the Search list groups by weekday starting from today and rolling
+  forward, then keeps its usual pm-first ordering within each day; In-Person
+  stays nearest-first, since proximity is that segment's promise and the day is
+  a label there rather than the axis. The 24/7 marathon meetings get no weekday
+  badge — they run continuously, so there is no day to name.
+
+  Requires the API's `iso_dow=0` ("all seven days") support on
+  `/schedules/daily` and `/schedules/nearby`; until that ships, choosing "Any"
+  returns whatever the server makes of the sentinel.
+
 ### Fixed
 
 - **Recovery Dharma is selectable again.** RD was added back to the fellowship

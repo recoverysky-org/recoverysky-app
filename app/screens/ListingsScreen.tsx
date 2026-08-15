@@ -40,7 +40,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
-import { DaySelectorModal, ISO_DAYS } from "@/components/DaySelectorModal"
+import { DaySelectorModal } from "@/components/DaySelectorModal"
 import { InPersonPopup } from "@/components/InPersonPopup"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
@@ -66,9 +66,13 @@ import type { ThemedStyle } from "@/theme/types"
 import { sortByFeedback } from "@/utils/feedbackSort"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
+  ANY_DAY,
+  anyDayAllowedFor,
+  coerceDay,
   coerceVenue,
   DEFAULT_SEARCH_TIME,
   DEFAULT_VENUE,
+  ISO_DAYS,
   matchesSearchTime,
   matchesVenue,
   poolsForVenue,
@@ -85,6 +89,7 @@ import {
   distanceMeters,
   formatDistance,
   RADIUS_OPTIONS_KM,
+  sortByDayThenLocalTime,
   sortByLocalTimePmFirst,
 } from "@/utils/nearbyLogic"
 
@@ -306,10 +311,42 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     return unsubscribe
   }, [])
 
-  // Get label for selected day (translated)
-  const selectedDayLabel = ISO_DAYS.find((d) => d.iso === selectedDay)?.tx
-    ? t(ISO_DAYS.find((d) => d.iso === selectedDay)!.tx)
-    : ""
+  /**
+   * The day this search actually runs on.
+   *
+   * ADDED 2026-08-14. "Any" is in-person-only (see `anyDayAllowedFor`), so a
+   * user sitting on an Any search who switches the Venue to Online has to be
+   * moved back to a real weekday — otherwise the list stays seven days deep
+   * under a picker whose Any row is now greyed out, and the fetch below sends
+   * `iso_dow=0` to the one pool we've decided must never receive it.
+   *
+   * DERIVED, not corrected by an effect, and that distinction is the whole
+   * point. The effect version (written first) raced: a venue switch commits
+   * with the old day still in state, so the fetch effect fires once for
+   * (Online, Any) before the coercion's setState lands and fires a second
+   * fetch for (Online, today). `fetchDailySchedules` has no stale-response
+   * guard, so those two land in arrival order and the wrong one can win.
+   * Deriving means there is never a render where the pair is inconsistent.
+   *
+   * The raw `selectedDay` deliberately keeps holding ANY_DAY through all of
+   * this, so switching back to In-Person restores the user's choice rather
+   * than silently forgetting it.
+   *
+   * Everything downstream — fetch, label, row badges, the picker's own
+   * checkmark — reads THIS, never `selectedDay`. The only thing that touches
+   * the raw value is the picker's onSelect.
+   */
+  const effectiveDay = coerceDay(selectedDay, venue, getCurrentIsoDow())
+
+  // Get label for selected day (translated).
+  // CHANGED 2026-08-14: ANY_DAY (0) is deliberately not in ISO_DAYS, so it is
+  // answered before the lookup rather than falling through to "".
+  const isAnyDay = effectiveDay === ANY_DAY
+  const selectedDayLabel = isAnyDay
+    ? t("listingsScreen:anyDay")
+    : ISO_DAYS.find((d) => d.iso === effectiveDay)?.tx
+      ? t(ISO_DAYS.find((d) => d.iso === effectiveDay)!.tx)
+      : ""
 
   // Device locale measurement system is fixed for the process lifetime.
   const useMiles = useMemo(() => getLocales()[0]?.measurementSystem === "us", [])
@@ -487,11 +524,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // is the wrong tool anywhere near the coordinate path.
       const nearbyParams =
         coords && radiusKm !== null
-          ? buildNearbyParams(coords.lat, coords.lon, radiusKm, selectedDay, fellowship)
+          ? buildNearbyParams(coords.lat, coords.lon, radiusKm, effectiveDay, fellowship)
           : null
 
       const [onlineResult, inPersonResult] = await Promise.all([
-        pools.online ? api.getDailySchedules(selectedDay, fellowship, "online") : null,
+        pools.online ? api.getDailySchedules(effectiveDay, fellowship, "online") : null,
         pools.inPerson && nearbyParams ? api.getNearbySchedules(nearbyParams) : null,
       ])
 
@@ -583,7 +620,16 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // hydration vintage rather than the next occurrence, so any date term
       // sorts by cache age first. The In-Person and Live segments still use
       // the midnight-anchored `sortByLocalTime`.
-      const byTime = sortByLocalTimePmFirst(merged.items)
+      // CHANGED 2026-08-14: under "Any" the set spans all seven days, and the
+      // clock-only key above interleaves them — a Thursday 7pm lands between
+      // two Saturday 7pm rows and the list stops being scannable without
+      // reading the day badge on every row. `sortByDayThenLocalTime` keeps the
+      // identical within-day ordering and just groups by day first, rolling
+      // forward from today. Single-day searches are untouched.
+      const byTime =
+        effectiveDay === ANY_DAY
+          ? sortByDayThenLocalTime(merged.items, getCurrentIsoDow())
+          : sortByLocalTimePmFirst(merged.items)
 
       // ADDED 2026-08-04: favourites float to the top, the same three tiers the
       // Live segment has always used. Layered OVER the time sort rather than
@@ -599,7 +645,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // anything about where the device is.
       log.debug("Loaded schedules", {
         total: sorted.length,
-        day: selectedDay,
+        day: effectiveDay,
         venue,
         usedNearby: coords !== null,
         radiusKm: radiusKm ?? undefined,
@@ -616,7 +662,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     // so that primitive is the honest dependency. Depending on `location`
     // itself would refetch on every unrelated status flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDay, profileStore.fellowship, configStore, venue, radiusKm, location.fixVersion])
+  }, [effectiveDay, profileStore.fellowship, configStore, venue, radiusKm, location.fixVersion])
 
   // Fetch when day, fellowship, venue, radius or the location fix changes
   useEffect(() => {
@@ -712,11 +758,15 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           distanceLabel={
             formatDistance(item.distance_m ?? measureDistance(item), useMiles) || undefined
           }
+          // Only under "Any", where the list genuinely spans days. On a
+          // single-day search the same badge on all fifty rows says nothing —
+          // the same reasoning `venueTag` carries for single-venue lists.
+          showDay={isAnyDay}
           onPress={handleMeetingPress}
         />
       )
     },
-    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance],
+    [handleMeetingPress, displayFeedback, reminderLookup, useMiles, measureDistance, isAnyDay],
   )
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
@@ -1041,11 +1091,20 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       {/* Day Selector Modal */}
       <DaySelectorModal
         visible={dayModalVisible}
-        selectedDay={selectedDay}
+        selectedDay={effectiveDay}
         onSelect={(day) => {
           setSelectedDay(day)
           trackEvent("listings_day_changed", { day })
         }}
+        // Offered on both venues but only selectable for in-person: an online
+        // day is already ~500 rows, so seven of them is a wall nobody scrolls.
+        // Shown greyed rather than hidden so the option is discoverable — the
+        // sparse-area users it exists for would never find it otherwise. See
+        // `anyDayAllowedFor`, and `coerceDay` for what happens to a selected
+        // Any when the venue flips underneath it.
+        allowAny
+        anyDisabled={!anyDayAllowedFor(venue)}
+        anyDisabledTx="listingsScreen:anyDayOnlineHint"
         onClose={() => setDayModalVisible(false)}
       />
 
