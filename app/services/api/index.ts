@@ -571,6 +571,10 @@ export class Api {
     // per attempt × retries stretched startup to 25-47s — long enough that
     // users backgrounded the app mid-init and tripped Background ANRs. A 2.5s
     // ceiling fails fast so we route to MaintenanceScreen quickly instead.
+    // CHANGED 2026-08-14: the cold-start precheck in app.tsx now passes an
+    // escalating ladder (2.5s → 4s → 6s) per attempt so slow-but-alive
+    // networks aren't misread as outages; the 2500 default still serves the
+    // outage-recovery poll, which runs every 15s and wants to stay cheap.
     const response = await this.recoverySkyApi.get<{ status: string }>("/status", undefined, {
       timeout: timeoutMs,
       headers: { [SKIP_AUTH_GATE_HEADER]: "1" },

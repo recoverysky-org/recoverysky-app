@@ -32,6 +32,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   warm cache now shows the maintenance banner instead of the full-screen
   takeover (full screen remains for true first launches). Spec:
   `docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md`.
+- The cold-start `/status` precheck now escalates its per-attempt timeout
+  (2.5s → 4s → 6s) instead of retrying four times at a flat 2.5s. A network
+  that needed 3–5s to answer used to fail every attempt identically and show a
+  healthy user the "The system is offline" screen; the ladder gives slow
+  connections a real chance while keeping the worst-case outage-detection
+  budget slightly tighter than before (~15.5s vs ~17s).
 
 ### Added
 

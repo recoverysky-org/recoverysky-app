@@ -490,19 +490,26 @@ export function App() {
         // the right way to detect "API is down at startup" cleanly.
         //
         // Fail fast so users on a real outage see the MaintenanceScreen
-        // quickly instead of staring at the splash. Worst-case budget is
-        // ~4×2.5s request timeout + (1+2+4)s delays ≈ 17s — but only when
-        // every attempt times out; a fast cannot-connect (status 0) returns
-        // well under 2.5s. getPublicStatus() passes a 2.5s per-request timeout
-        // explicitly because the client default is 10s, which previously
-        // stretched this gate to 25-47s on flaky networks and contributed to
-        // Background ANRs (heavy native init colliding with the user
-        // backgrounding the app mid-precheck). See getPublicStatus in
-        // services/api.
-        const STATUS_RETRY_DELAYS = [1000, 2000, 4000]
+        // quickly instead of staring at the splash — but give slow networks
+        // an honest chance first. Per-request timeouts ESCALATE across
+        // attempts (2.5s → 4s → 6s) rather than staying flat: a network
+        // that needs 3-5s to answer used to fail every flat-2.5s attempt
+        // identically and land a healthy user on the outage screen. The
+        // client default is 10s, which previously stretched this gate to
+        // 25-47s on flaky networks and contributed to Background ANRs
+        // (heavy native init colliding with the user backgrounding the app
+        // mid-precheck); a fast cannot-connect (status 0) still returns
+        // well under the first ceiling. See getPublicStatus in services/api.
+        // CHANGED 2026-08-14: was 4 attempts × flat 2.5s + (1+2+4)s delays
+        // (≈17s worst case). Now 3 attempts on the 2.5/4/6s ladder +
+        // (1+2)s delays ≈ 15.5s worst case — slightly tighter budget, far
+        // fewer false positives on slow-but-alive networks (the
+        // false-outage reports investigated 2026-08-14).
+        const STATUS_TIMEOUT_LADDER_MS = [2500, 4000, 6000]
+        const STATUS_RETRY_DELAYS = [1000, 2000]
         let statusOk = false
-        for (let attempt = 1; attempt <= STATUS_RETRY_DELAYS.length + 1; attempt++) {
-          const result = await api.getPublicStatus()
+        for (let attempt = 1; attempt <= STATUS_TIMEOUT_LADDER_MS.length; attempt++) {
+          const result = await api.getPublicStatus(STATUS_TIMEOUT_LADDER_MS[attempt - 1])
           if (result.kind === "ok") {
             statusOk = true
             if (attempt > 1) log.info("/status precheck recovered", { attempt })
