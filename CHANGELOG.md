@@ -22,6 +22,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+
+- Cold start no longer gates on a live `/config` fetch after first launch: the
+  raw payload is cached in the encrypted SQLite database (`config_caches`) and
+  refreshed in the background. Fixes the false-positive "The system is offline"
+  full screen for users on slow or flaky networks at launch, and removes up to
+  ~14s of retry stall from startup. Launching during server maintenance with a
+  warm cache now shows the maintenance banner instead of the full-screen
+  takeover (full screen remains for true first launches). Spec:
+  `docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md`.
+
+### Build
+
+- `@recoverysky-org/common` 2.7.1 → 2.8.0 (adds the `config_caches` table).
+
 ### Added
 
 - **"Any" day option on the In-Person and Search day selectors.** Finding a

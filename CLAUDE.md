@@ -229,7 +229,7 @@ MST with MMKV persistence in `app/models/`:
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
-- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `mapStyleUrlLight` / `mapStyleUrlDark` (full MapTiler style URLs — the API key rides inside them and is deliberately **never** baked into the binary), `presenceRadiusM` (default 150 m; `devPresenceRadiusM` overrides it in dev builds only), `isLoaded` / `isLoading`. NOT persisted to MMKV (security). There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
+- **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `mapStyleUrlLight` / `mapStyleUrlDark` (full MapTiler style URLs — the API key rides inside them and is deliberately **never** baked into the binary), `presenceRadiusM` (default 150 m; `devPresenceRadiusM` overrides it in dev builds only), `isLoaded` / `isLoading`. NOT persisted to MMKV (security). The raw /config payload IS cached in the encrypted SQLite `config_caches` table so warm cold-starts skip the fetch gate — maintenance fields are never applied from cache. See `applyServerConfig` and docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md. There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
 - **ConversationStore**: AI agent conversation state
 
 ```typescript
@@ -394,6 +394,11 @@ the wrong gate has historically killed in-meeting Zoom timers.
      (transient half-up state).
   3. `/config` fetch succeeded but reported `MAINTENANCE_MODE=true`
      at startup.
+
+  CHANGED 2026-08-14: triggers 2 and 3 now fire only when the config cache
+  is cold (first launch / unreadable cache). Warm-cache starts seed
+  ConfigStore from SQLite, fetch in the background, and surface maintenance
+  as the banner instead — see the config-cache spec.
 
   AppNavigator routes to `MaintenanceScreen` only when this is true. A
   recovery `useEffect` polls `/status` every 15 s while we're in outage
