@@ -45,6 +45,7 @@ import { logger } from "@/utils/logger"
 
 import { getDb } from "./provider"
 import { UserProfileSqliteRepository } from "./UserProfileSqliteRepository"
+import { ConfigCacheSqliteRepository, type ConfigCacheRecord } from "./ConfigCacheSqliteRepository"
 
 const log = logger.child({ module: "Repositories" })
 
@@ -849,6 +850,48 @@ export const profileRepository = {
       log.debug("Profile saved successfully")
     } catch (error) {
       log.error("profileRepository save error", { error: String(error) })
+    }
+  },
+}
+
+export type { ConfigCacheRecord }
+
+// ============================================================================
+// Config Cache Repository (encrypted SQLite — startup config cache)
+// ============================================================================
+
+let _configCacheRepo: ConfigCacheSqliteRepository | null = null
+
+function getConfigCacheRepo(): ConfigCacheSqliteRepository {
+  const { db } = getDb()
+  if (!db) throw new Error("Database not opened")
+  if (!_configCacheRepo) _configCacheRepo = new ConfigCacheSqliteRepository(db as any)
+  return _configCacheRepo
+}
+
+/**
+ * Startup config cache — raw /config payload persisted so warm cold-starts
+ * skip the live fetch. NOT part of the attendance sync outbox: config is
+ * server-issued app data, not a user mutation, so nothing here enqueues.
+ * Spec: docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md
+ */
+export const configCacheRepository = {
+  /** null on any failure (db not open, row absent) — callers treat as cache miss */
+  load: async (): Promise<ConfigCacheRecord | null> => {
+    try {
+      return await getConfigCacheRepo().load()
+    } catch (error) {
+      log.error("configCacheRepository load error", { error: String(error) })
+      return null
+    }
+  },
+
+  /** Fire-and-forget safe: swallows "Database not opened" (pre-open reaction fire) */
+  save: async (payload: string, fetchedAt: number): Promise<void> => {
+    try {
+      await getConfigCacheRepo().save(payload, fetchedAt)
+    } catch (error) {
+      log.error("configCacheRepository save error", { error: String(error) })
     }
   },
 }

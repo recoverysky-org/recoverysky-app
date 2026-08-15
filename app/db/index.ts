@@ -39,6 +39,7 @@ export {
   feedbackRepo,
   chatMessageRepo,
   profileRepository,
+  configCacheRepository,
   reminderRepo,
   findAllTrexes,
   findTrexById,
@@ -58,6 +59,7 @@ export {
   type ReminderRecord,
   type ReminderCreateInput,
   type ReminderUpdateInput,
+  type ConfigCacheRecord,
 } from "./repositories"
 export { feedbackCache } from "./feedbackCache"
 export { attendanceEvents } from "./attendanceEvents"
