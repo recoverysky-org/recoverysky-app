@@ -1,0 +1,254 @@
+========================================================
+RECOVERYSKY — APP STORE LISTINGS (plain text, paste-ready)
+"IN-PERSON" EDITION — friendly-technical voice — es-US LOCALIZATION
+========================================================
+
+Voice: friendly but technical — say what the app does and how, name real
+numbers, describe the mechanism when it builds trust (GPS verification,
+encryption, foreground-only location). Two exceptions carry over from the
+warm listing: the link-verification bot stays invisible (promise "the link
+works", never the method), and we do NOT advertise unreleased features
+(Sky AI, Social).
+
+ASO pivot: position as a general AA / NA / CMA / RD **meeting finder** —
+online AND in person — rather than an online-only live-meeting app.
+This listing is for the release that ships the In-Person tab; do not
+publish it before that build/OTA is live.
+
+Locale: es-US (Latin American Spanish, tú form). All paste-ready copy is
+Spanish; labels, instructions, and rationale stay English. In-app terms
+match the shipped es.ts strings: the segment is "En persona", the join
+button is "Unirse", and the check-in button is «Estoy aquí» — do not
+paraphrase those in store copy or users won't find the button.
+
+
+========================================================
+GOOGLE PLAY
+========================================================
+
+--- TITLE (28 / 30) ---
+
+RecoverySky Juntas AA NA CMA
+
+(Localized: "Juntas" is the everyday word for AA/NA meetings among
+Mexican-American speakers — the largest es-US cohort — and it gives us a
+second meeting synonym: "juntas" here, "reuniones" in the short/full
+description, so both search tokens are covered.)
+
+
+--- SHORT DESCRIPTION (80 / 80) ---
+
+Busca reuniones AA, NA, CMA y Recovery Dharma en línea o en persona cerca de ti.
+
+
+--- FULL DESCRIPTION (paste everything between the lines) ---
+
+Encuentra una reunión. En línea, en persona, en vivo en este momento o cualquier día de esta semana. Y después demuestra que estuviste ahí, con reportes de asistencia verificados.
+
+RecoverySky es un buscador de reuniones de AA, NA, CMA y Recovery Dharma. Sigue las reuniones en línea que están en vivo para que te unas con un solo toque, y más de 55,000 reuniones en persona a las que puedes llegar — con búsqueda por confraternidad, día, hora del día y distancia.
+
+ENCUENTRA UNA REUNIÓN EN LÍNEA
+• Ve las reuniones de AA, NA, CMA y Recovery Dharma que están en vivo en este momento
+• Un toque desde la lista y estás en la reunión (se abre en Zoom Workplace — es gratis, solo tenlo instalado)
+• El horario semanal completo de cada reunión, para que siempre sepas cuándo hay
+• Filtra por confraternidad, día y hora
+
+Mantenemos las listas honestas: los datos de cada reunión se mantienen al día, y cada reunión en vivo está verificada. Cuando tocas Unirse, llegas a una sala con gente — no a un enlace roto ni a una contraseña equivocada.
+
+ENCUENTRA UNA REUNIÓN CERCA DE TI
+• Más de 55,000 reuniones en persona de AA, NA, CMA y Recovery Dharma
+• Ordenadas de la más cercana a la más lejana, con la distancia en cada fila — tú eliges el radio de búsqueda
+• Explora cualquier día de la semana, o filtra por mañana, tarde, noche o madrugada
+• Cada lugar tiene su página de detalle: dirección, indicaciones con un toque en tu app de mapas, contactos publicados y el horario semanal completo
+• Tu ubicación se lee solo mientras buscas o registras asistencia en persona — nunca al iniciar la app — y las coordenadas de búsqueda nunca se guardan ni se registran
+
+ASISTENCIA QUE PUEDES COMPROBAR
+Si alguien necesita prueba de que estás asistiendo — corte de drogas, DFS, probatoria, libertad condicional, tu padrino o madrina, o tu equipo de tratamiento — RecoverySky documenta los dos tipos de reunión:
+• La asistencia en línea registra el tiempo real que pasaste en la reunión
+• La asistencia en persona se verifica por GPS: toca «Estoy aquí» en el lugar, la app confirma que de verdad estás ahí, y cronometra tu visita
+• Tu asistencia se convierte en un PDF limpio y verificable digitalmente, enviado por correo directamente a quien lo pida — o a ti
+
+Los reportes ilimitados vienen con RecoverySky Premium ($6.99 al mes), que también desbloquea recordatorios de reuniones, respaldo cifrado en la nube y sincronización entre tus dispositivos — y mantiene a RecoverySky vivo y creciendo.
+
+TU RECUPERACIÓN, EN UN SOLO LUGAR
+• Contador de tiempo limpio y de logros
+• Contador de dinero ahorrado
+• El reto 90 en 90, con certificado al terminarlo
+• Historial de reuniones y una imagen sencilla de tu progreso
+
+PRIVADO POR DISEÑO
+Tus datos de recuperación se guardan cifrados en tu dispositivo. No te rastreamos y no vendemos tus datos — lo único que venderemos jamás es la suscripción que mantiene la app funcionando. Eso nunca va a cambiar. RecoverySky es una organización sin fines de lucro 501(c)(3), y nuestra plataforma está construida y operada sobre infraestructura de AWS que cumple con HIPAA.
+
+Hay una reunión en vivo en este momento, y otra a la vuelta de la esquina esta semana. Abre la app y encuéntrala — aquí estaremos.
+
+Conoce más en recoverysky.app
+
+RecoverySky Premium cuesta $6.99 al mes. El pago se carga a tu cuenta de Google Play al confirmar la compra. Tu suscripción se renueva automáticamente a menos que la canceles al menos 24 horas antes del final del período actual. Adminístrala o cancélala cuando quieras en los ajustes de tu cuenta de Google Play.
+
+
+--- KEYWORDS ---
+
+Google Play has no keyword field. It reads the title + short + full
+description — which is why "juntas", "reuniones", "en persona", "cerca de
+ti", "Recovery Dharma", "verifica por GPS", and "corte de drogas" all
+appear in the text above.
+
+
+========================================================
+APPLE APP STORE
+========================================================
+
+--- APP NAME (28 / 30) ---
+
+RecoverySky Juntas AA NA CMA
+
+(Same localization logic as the Google Play title above.)
+
+
+--- SUBTITLE (26 / 30) ---
+
+Reuniones en línea y cerca
+
+(Carries the second meeting synonym — "juntas" lives in the name,
+"reuniones" here — plus the online/near-you pivot in one line.)
+
+
+--- PROMOTIONAL TEXT (168 / 170 — updatable without review) ---
+
+Nuevo: reuniones en persona. Busca 55,000+ reuniones de AA, NA, CMA y Recovery Dharma cerca de ti, con indicaciones y asistencia verificada por GPS — más salas en vivo.
+
+
+--- KEYWORDS (100-char field, comma-separated, NO spaces) ---
+
+Optimized (100 / 100) — drops words already in the name/subtitle (juntas,
+reuniones, en línea, AA/NA/CMA); keywords are unaccented on purpose —
+App Store search normalizes accents and users rarely type them:
+recuperacion,cerca,mi,dharma,adiccion,asistencia,corte,sobrio,alcohol,narcoticos,drogas,cristal,zoom
+
+Alternate (97 / 100) — trades "sobrio,drogas,zoom" for the
+competitor-capture token if we'd rather keep chasing Pink Cloud's
+searchers:
+recuperacion,cerca,mi,dharma,adiccion,asistencia,corte,alcohol,narcoticos,cristal,rd,pinkcloud
+
+
+--- DESCRIPTION ---
+
+Same as the Google Play FULL DESCRIPTION above, through "Conoce más en
+recoverysky.app", then replace the final subscription block with:
+
+RecoverySky Premium cuesta $6.99 al mes. El pago se carga a tu Cuenta de Apple al confirmar la compra. La suscripción se renueva automáticamente a menos que se cancele al menos 24 horas antes del final del período actual. Adminístrala o cancélala cuando quieras en los ajustes de tu Cuenta de Apple.
+Términos de uso: https://www.recoverysky.app/terms
+Política de privacidad: https://www.recoverysky.app/privacy
+
+(^ VERIFY these two URLs are live before submitting — Apple rejects dead
+links. The pages behind them are English; that's acceptable to Apple, but
+note it if a Spanish terms/privacy page ever ships.)
+
+
+========================================================
+WHAT'S NEW / RELEASE NOTES
+========================================================
+
+Covers the in-person release (In-Person tab, searchable in-person listings,
+GPS-verified attendance, RD's return, unified meeting card, accessibility).
+Google Play limit: 500 chars.
+
+--- FULL (bulleted, 497 / 500) ---
+
+RecoverySky ahora encuentra reuniones en el mundo real:
+
+• Nueva pestaña En persona: 55,000+ reuniones de AA, NA, CMA y Recovery Dharma, ordenadas por cercanía, con distancia, indicaciones, contactos y horarios.
+• La búsqueda ahora cubre en línea Y en persona, con filtros de confraternidad, día, hora y radio.
+• Asistencia en persona verificada por GPS: toca «Estoy aquí» en el lugar y tu visita cronometrada y verificada va a tu reporte PDF.
+• Recovery Dharma está de vuelta.
+
+Sigue viniendo. 🌤️
+
+--- SHORT (256 / 500) ---
+
+Nuevo en RecoverySky:
+• Pestaña En persona: 55,000+ reuniones cerca de ti, con indicaciones y horarios
+• Busca reuniones en línea y en persona
+• Asistencia en persona verificada por GPS para tus reportes
+• Recovery Dharma está de vuelta
+
+Sigue viniendo. 🌤️
+
+
+========================================================
+DECISIONS & RATIONALE
+========================================================
+
+- VOICE: friendly-technical replaces warm. We now name mechanisms when they
+  build trust (GPS verification, encryption at rest, foreground-only
+  location, real meeting counts) — the supervision/court audience and
+  privacy-conscious users both respond to specifics. The two warm-era
+  guardrails that are about SAFETY, not tone, still apply:
+  - Hugo (the verification bot) stays invisible. Outcome, not method.
+    That also rules out monitoring-flavored phrasing like "continuously
+    checked while they're on" — it implies a presence inside the room and
+    spooks meeting hosts and attendees. Say listings are "verified" (state,
+    not activity) and stop there.
+  - Sky AI + Social are NOT advertised — built but hidden pending content.
+- TITLE/NAME localized (28/30): the English title's "Meetings" becomes
+  "Juntas", the everyday Mexican-Spanish word for 12-step meetings, giving
+  the listing two meeting synonyms across indexed fields ("juntas" in the
+  name, "reuniones" in subtitle/short description). The ASO pivot to
+  "meeting finder" lives in the Apple subtitle, Google short description,
+  and keywords, same as the English listing.
+- "55,000+" is a real number: 55,617 active in-person meetings measured live
+  across all sources (2026-08, see CLAUDE.md "In-Person segment" note).
+  Re-verify the count is still ≥ 55,000 before each store submission; round
+  DOWN to whatever the data supports. Numbers keep the US-style comma
+  separator (55,000) — this is es-US, not es-ES.
+- RD (Recovery Dharma) claims are live as of 2026-08-04 — RD is a selectable
+  fellowship in Settings/onboarding and the Live / Search / In-Person
+  filters (`EXPO_PUBLIC_FELLOWSHIPS="AA,NA,CMA,RD"` in .env + eas.json).
+  Do not publish this listing against a build made before that config.
+- LOCATION CLAIMS are worded to match actual behavior, and must stay that
+  way: browsing coordinates are foreground-only, never stored/logged/in
+  analytics — but the VERIFIED check-in fix IS saved to the attendance
+  record (that's what makes the report verifiable) and syncs if Cloud
+  Backup is on. So we say "las coordenadas de búsqueda nunca se guardan",
+  never a blanket "your location never leaves your device." The copy also
+  discloses BOTH reads up front ("mientras buscas o registras asistencia
+  en persona") — keep that pairing; listing only the search read would
+  make the claim incomplete.
+- "verificada por GPS" chosen over a looser "verificada por ubicación" —
+  same reasoning as the English "GPS-verified": it's the phrase the
+  court/supervision audience actually searches, and it's accurate
+  (usePresenceCheck verifies a GPS fix against the venue).
+- "corte" kept in keywords (high-intent supervision audience); "cerca,mi"
+  covers the "cerca de mi" in-person search intent. "cristal" added for
+  the CMA audience (the common es-US word for meth). Keywords are
+  unaccented deliberately — search normalizes accents, and unaccented is
+  what users type.
+- "pinkcloud" demoted to the alternate keyword list — the general-finder
+  tokens now outrank competitor capture. Swap lists if Pink Cloud referral
+  volume says otherwise.
+- Data Safety / privacy framing unchanged from the warm listing: "no te
+  rastreamos / no vendemos tus datos", never "we collect nothing" (the app
+  requires an account and offers cloud backup + location features, all
+  disclosed on Google's Data Safety form).
+- NO emoji or exotic Unicode in the Apple Description field — App Store
+  Connect rejects them. Emoji is fine in Google Play's description and in
+  "What's New" on both stores. The «guillemets» in the description are
+  plain Latin-1 punctuation and safe on both stores.
+- ES-US LOCALIZATION NOTES:
+  - Tú form throughout — standard for es-US app-store marketing copy.
+  - In-app UI terms are quoted verbatim from the shipped `app/i18n/es.ts`:
+    «Estoy aquí» (imHere), "Unirse" (joinMeeting), "En persona"
+    (inPersonSegment). If those i18n strings ever change, this listing
+    changes with them.
+  - "confraternidad" for fellowship (the term NA/AA Spanish literature
+    uses), "tiempo limpio" for clean time, "padrino o madrina" for
+    sponsor, "Sigue viniendo" for "Keep coming back" — all established
+    12-step Spanish, not invented translations.
+  - "probatoria, libertad condicional" for probation/parole — the terms
+    used in US Spanish-language court contexts.
+  - Fellowship names stay as their English initials (AA, NA, CMA) and
+    "Recovery Dharma" stays untranslated — that's how the fellowships
+    brand themselves to Spanish speakers in the US.
+- This file coexists with STORE_LISTING.warm.txt (the warm-voice English
+  alternative) and the English STORE_LISTING.in-person source it was
+  localized from. Whichever ships, keep the others for reference.
