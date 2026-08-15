@@ -33,10 +33,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   takeover (full screen remains for true first launches). Spec:
   `docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md`.
 
-### Build
-
-- `@recoverysky-org/common` 2.7.1 → 2.8.0 (adds the `config_caches` table).
-
 ### Added
 
 - **"Any" day option on the In-Person and Search day selectors.** Finding a
@@ -75,6 +71,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   and this release re-publishes the bundle with it; no new build is needed.
 
 ### Build
+
+- `@recoverysky-org/common` 2.7.1 → 2.8.0 (adds the `config_caches` table).
 
 - **`npm run check:env` now checks the config source that OTAs actually read.**
   It compared `.env` against `eas.json` — the two sources `eas update` ignores —
