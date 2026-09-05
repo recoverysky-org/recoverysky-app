@@ -103,6 +103,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   commit, but from `eas.json` — had it. Anyone who installed 4.8.0 and then
   took the 4.8.0-1 OTA watched RD disappear. The server variable is corrected
   and this release re-publishes the bundle with it; no new build is needed.
+- **In-Person shows a loading indicator when you change the day, radius or
+  fellowship.** Changing a filter over an already-loaded list refetched
+  silently: the old rows and the old "N meetings" count stayed on screen with
+  nothing moving until the new results replaced them, so a slow reload looked
+  like the tap did nothing. The header's count now swaps to a small spinner
+  for the duration of the reload, in both list and map view (map view had no
+  indicator at all, and neither did web). Pull-to-refresh keeps its own native
+  spinner and is unchanged. The header was extracted to `InPersonListHeader`
+  (jest-covered) to make this testable.
 
 ### Build
 
@@ -120,15 +129,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   only it.
 
 - **`npm run update` blocks on that check before publishing.** The OTA preflight
-- **In-Person shows a loading indicator when you change the day, radius or
-  fellowship.** Changing a filter over an already-loaded list refetched
-  silently: the old rows and the old "N meetings" count stayed on screen with
-  nothing moving until the new results replaced them, so a slow reload looked
-  like the tap did nothing. The header's count now swaps to a small spinner
-  for the duration of the reload, in both list and map view (map view had no
-  indicator at all, and neither did web). Pull-to-refresh keeps its own native
-  spinner and is unchanged. The header was extracted to `InPersonListHeader`
-  (jest-covered) to make this testable.
   (type-check, unit tests) gained a config gate running
   `check-env-sync.js --eas-only`, so a stale EAS variable stops the release
   instead of silently shipping. Like the rest of the preflight it runs before
