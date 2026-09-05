@@ -880,6 +880,12 @@ const log = useLogger("ScreenName")
 log.error("API failed", { endpoint: "/users" })
 ```
 
+Every record carries `sessionId` / `appVersion` / `deviceId` and, when signed
+in, `userId` — which is **always the `hashUserId()` form, never the raw Auth0
+`sub`** (it embeds the identity provider's account id). Never log `user.sub`,
+`authEmail`, `shortName`, or coordinates directly; see `docs/DIAGNOSTICS.md`
+"Identifiers in logs" for the table and the support lookup recipe.
+
 ## Environment Variables
 
 `EXPO_PUBLIC_*` variables are baked in at build time. For local development:

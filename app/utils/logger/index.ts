@@ -36,6 +36,7 @@ import type { LogLevel } from "./types"
 
 export { createLogger } from "./logger"
 export { useLogger, useSimpleLogger } from "./useLogger"
+export { hashUserId } from "./hashUserId"
 export type { Logger, LoggerConfig, LoggerContext, LogLevel, LogAttributes } from "./types"
 
 /**

@@ -12,7 +12,7 @@ import { useAuth0, WebAuthError, WebAuthErrorCodes } from "react-native-auth0"
 
 import { useAuthenticationStore, useConfigStore } from "@/models"
 import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encryption/sqliteKey"
-import { logger } from "@/utils/logger"
+import { hashUserId, logger } from "@/utils/logger"
 
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
 import { decodeJwtPayload, extractSqliteKeyFromClaims, type IdTokenClaims } from "./jwtUtils"
@@ -94,7 +94,11 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     const syncUserToStore = async () => {
       if (isLoggingOut.current) return
       if (user) {
-        log.info("Syncing Auth0 user to MST store", { sub: user.sub })
+        // Hashed, not raw: these two lines were the only place the unhashed
+        // Auth0 sub reached Loki. CHANGED 2026-09-04: every record now carries
+        // the same hash via logger context (see hashUserId.ts), so logging it
+        // here is belt-and-braces for the sign-in moment itself.
+        log.info("Syncing Auth0 user to MST store", { userId: hashUserId(user.sub) })
 
         try {
           // Get credentials (tokens) from Auth0
@@ -141,7 +145,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               await handleSqliteKeyFromJwt(credentials.idToken)
             }
 
-            log.info("Auth state synced to MST store", { userId: user.sub })
+            log.info("Auth state synced to MST store", { userId: hashUserId(user.sub) })
           }
         } catch (err) {
           log.error("Failed to sync credentials to store", { error: String(err) })

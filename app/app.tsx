@@ -100,7 +100,7 @@ import { parseDeepLinkSegment, pendingTargetForSegment } from "./utils/deepLinkL
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
 import { shouldRevokeLocationFlag } from "./utils/locationGateLogic"
-import { logger } from "./utils/logger"
+import { hashUserId, logger } from "./utils/logger"
 import { reloadApp } from "./utils/reloadApp"
 import * as storage from "./utils/storage"
 
@@ -706,6 +706,20 @@ export function App() {
         reaction(
           () => authStore.userIdentifier,
           (id) => setSentryUser(id || null),
+        )
+
+        // Logger user identity. Keyed on `userId` (Auth0 sub), NOT
+        // `userIdentifier` — anonymous users already ride on `deviceId`,
+        // which every record carries. The value is HASHED before it touches
+        // the logger (see hashUserId.ts): the raw sub embeds the identity
+        // provider and its account id, and this attribute lands on every
+        // Loki line next to meeting/attendance context. `undefined` on
+        // sign-out clears the attribute (setContext merges, so we must write
+        // the key explicitly rather than omit it).
+        logger.setContext({ userId: hashUserId(authStore.userId) })
+        reaction(
+          () => authStore.userId,
+          (id) => logger.setContext({ userId: hashUserId(id) }),
         )
 
         initRatingEngine(_rootStore.configStore)

@@ -220,6 +220,20 @@ describeIfEndpoint("OTLP Integration Tests", () => {
       expect(keys).toContain("device.id")
       expect(keys).not.toContain("session.id")
     })
+
+    it("should emit userId as the OTel `user.id` Resource attribute", () => {
+      const records: LogRecord[] = [
+        { timestamp: 1704067200000, level: "info", message: "x", attributes: {} },
+      ]
+
+      const payload = toOtlpPayload(records, testConfig, { userId: "0123456789abcdef" })
+      const resourceAttrs = payload.resourceLogs[0].resource.attributes
+
+      expect(resourceAttrs).toContainEqual({
+        key: "user.id",
+        value: { stringValue: "0123456789abcdef" },
+      })
+    })
   })
 
   describe("Logger end-to-end", () => {

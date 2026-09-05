@@ -78,6 +78,8 @@ class LoggerImpl implements Logger {
     if (this.context.sessionId) contextAttrs.sessionId = this.context.sessionId
     if (this.context.appVersion) contextAttrs.appVersion = this.context.appVersion
     if (this.context.deviceId) contextAttrs.deviceId = this.context.deviceId
+    // Hashed, never raw — see hashUserId.ts and the LoggerContext doc comment.
+    if (this.context.userId) contextAttrs.userId = this.context.userId
 
     const record: LogRecord = {
       timestamp: Date.now(),

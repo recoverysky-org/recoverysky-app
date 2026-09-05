@@ -17,6 +17,13 @@
  * What we DO NOT capture:
  *   - User email or short name. `Sentry.setUser` only ever receives the
  *     opaque deviceId / userId (stable but non-personal).
+ *     NOTE 2026-09-04: "non-personal" is the operational framing, not the
+ *     legal one — a stable identifier is pseudonymous personal data under
+ *     GDPR. Sentry still receives the raw Auth0 sub here (it needs it to
+ *     group by user in the UI); the OTLP logger, by contrast, only ever
+ *     carries the HASHED form (`app/utils/logger/hashUserId.ts`) because
+ *     Loki lines sit next to meeting/attendance context. See
+ *     docs/DIAGNOSTICS.md "Identifiers in logs".
  *   - `?pwd=` query params on Zoom URLs. Stripped from breadcrumbs and
  *     event request URLs in beforeBreadcrumb / beforeSend.
  *   - `?lat=` / `?lon=` on /schedules/nearby. Same mechanism — this is the

@@ -22,6 +22,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Security
+
+- Diagnostic logs (OTLP → Loki) now carry a per-user identifier on every
+  record so support can find a signed-in user's logs, but only as a
+  **truncated SHA-512 hash** of the Auth0 sub — never the raw value. The two
+  sign-in log lines that previously shipped the raw sub (which embeds the
+  identity provider and its account id) are hashed the same way, so the
+  unhashed sub no longer reaches Loki at all. Anonymous users are unchanged
+  (`deviceId` already identifies them). Sentry and Umami still receive the raw
+  identifier, as before, because their UIs group by it. Lookup recipe and the
+  full identifier table are in `docs/DIAGNOSTICS.md`. The privacy policy
+  (outside this repo) should list a diagnostic identifier and Loki retention.
+
 ### Changed
 
 - Cold start no longer gates on a live `/config` fetch after first launch: the

@@ -385,6 +385,45 @@ describe("Logger", () => {
       logger.destroy()
     })
 
+    it("should stamp userId from context onto every record", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.setContext({ userId: "0123456789abcdef" })
+      logger.info("With user")
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ userId: "0123456789abcdef" })
+
+      logger.destroy()
+    })
+
+    it("should drop userId from records once context clears it", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.setContext({ userId: "0123456789abcdef" })
+      logger.setContext({ userId: undefined }) // sign-out
+      logger.info("After sign-out")
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({})
+
+      logger.destroy()
+    })
+
     it("should merge partial context updates", async () => {
       const logger = createLogger({
         minLevel: "info",

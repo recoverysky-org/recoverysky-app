@@ -61,6 +61,8 @@ interface OtlpLogsPayload {
  * Mapping:
  *   deviceId   → `device.id`        (OTel "device" namespace)
  *   sessionId  → `session.id`       (OTel "session" namespace)
+ *   userId     → `user.id`          (OTel "user" namespace; hashed — see
+ *                                    hashUserId.ts)
  *   appVersion → `service.version`  (already present below; context value
  *                                    overrides the static config value)
  *
@@ -86,6 +88,9 @@ function buildResourceAttributes(
   }
   if (context?.sessionId) {
     attrs.push({ key: "session.id", value: { stringValue: context.sessionId } })
+  }
+  if (context?.userId) {
+    attrs.push({ key: "user.id", value: { stringValue: context.userId } })
   }
   return attrs
 }
