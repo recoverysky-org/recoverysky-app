@@ -38,9 +38,10 @@ review obligation.
 | `listingsScreen` (venue/radius/time) | 7 | 8 | 56 | Search filters, 2026-08-04 |
 | location-failure copy (both namespaces) | 5 | 8 | 40 | Android location fix, 2026-08-04 |
 | `liveScreen` (retitle) | 1 | 8 | 8 | Live Online retitle, 2026-08-04 |
+| `listingsScreen` (search box + tag chips: `searchPlaceholder` / `tagsLabel` / `clearSearch` / `emptyNoMatches`) | 4 | 8 | 32 | Free-text + tag search, 2026-09-05 |
 | `presence` + `inPersonTimer` | 12 | 8 | 96 | GPS in-person attendance, Task 7, 2026-08-05 |
 | `inPersonScreen` (list/map pill + count) | 4 | 8 | 32 | List/map pill redesign, 2026-08-12 |
-| **Total** | | | **453** | |
+| **Total** | | | **485** | |
 
 The 2026-08-12 batch is `viewList` / `viewMap` / `resultCount_one` /
 `resultCount_other`. Two specific things for a reviewer to check, beyond the

@@ -6,6 +6,9 @@
  * pools are fetched at all; radius (when set, and only for in-person) swaps
  * the in-person leg onto `/schedules/nearby`; language and time are pure
  * client-side passes over what came back.
+ * CHANGED 2026-09-05: plus a free-text box and a tag chip row above the grid,
+ * both also pure client-side passes — see the "Free text + tag search" block
+ * in filterLogic.ts.
  *
  * This is the only surface that can show either venue type, so rows and popups
  * are chosen per meeting rather than per screen — see `renderItem`.
@@ -45,7 +48,9 @@ import { InPersonPopup } from "@/components/InPersonPopup"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
+import { TagChipRow } from "@/components/TagChipRow"
 import { Text } from "@/components/Text"
+import { TextField, type TextFieldAccessoryProps } from "@/components/TextField"
 import { MeetingWithTrex } from "@/context/MeetingContext"
 import {
   inPersonPoolOf,
@@ -73,12 +78,17 @@ import {
   DEFAULT_SEARCH_TIME,
   DEFAULT_VENUE,
   ISO_DAYS,
+  availableTags,
+  buildSearchHaystack,
+  matchesFreeText,
   matchesSearchTime,
+  matchesTags,
   matchesVenue,
   poolsForVenue,
   radiusAppliesTo,
   SEARCH_TIME_OPTIONS,
   type SearchTime,
+  tokenizeQuery,
   venueOptionsFor,
   type VenueChoice,
 } from "@/utils/filterLogic"
@@ -216,6 +226,12 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [searchTime, setSearchTime] = useState<SearchTime>(DEFAULT_SEARCH_TIME)
   const [searchTimeModalVisible, setSearchTimeModalVisible] = useState(false)
+  // Free text + tag search (2026-09-05). Session-only like every other filter
+  // here; neither is persisted. Both apply client-side over the fetched pool —
+  // see the "Free text + tag search" block in filterLogic.ts for why there is
+  // no server leg.
+  const [query, setQuery] = useState("")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   const location = useDeviceLocation()
   // The app-level Location toggle's gate — the ONLY thing that can turn the
@@ -669,16 +685,100 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     fetchDailySchedules()
   }, [fetchDailySchedules])
 
+  // One normalized haystack per meeting, rebuilt only when the pool changes —
+  // NOT per keystroke. `filteredMeetings` below runs on every character typed,
+  // and normalizing ~500 rows × 10 fields inside it would be the difference
+  // between a responsive box and a laggy one. Keyed by object identity because
+  // the pool is replaced wholesale on fetch, never mutated in place.
+  const haystacks = useMemo(() => {
+    const map = new WeakMap<MeetingWithTrex, string>()
+    for (const m of meetings) map.set(m, buildSearchHaystack(m))
+    return map
+  }, [meetings])
+
+  const queryTokens = useMemo(() => tokenizeQuery(query), [query])
+
+  // Chip vocabulary comes from the venue-filtered pool, not the text-filtered
+  // result, so typing never hides the chips (a chip that disappears while you
+  // are looking at it reads as a glitch). Selected tags the pool no longer
+  // carries stay in the row — see `availableTags`.
+  const tagOptions = useMemo(() => availableTags(meetings, selectedTags), [meetings, selectedTags])
+
+  // Accessory components are memoized so TextField sees a stable component
+  // TYPE across renders. An inline `(props) => <Ionicons …/>` is a new type
+  // every keystroke, which makes React unmount and remount the accessory each
+  // time — harmless for an icon, but the clear button is a Pressable and a
+  // remount mid-press eats the tap.
+  const SearchIconAccessory = useMemo(
+    () =>
+      function SearchIconAccessory(props: TextFieldAccessoryProps) {
+        // `props.style` is a View style (fixed height + justifyContent) that
+        // centres CHILDREN; applied straight to the glyph, a Text, it would
+        // pin the icon to the top of a 40dp box instead.
+        return (
+          <View style={[props.style, $searchIcon]}>
+            <Ionicons name="search" size={18} color={theme.colors.textDim} />
+          </View>
+        )
+      },
+    [theme.colors.textDim],
+  )
+
+  const ClearAccessory = useMemo(
+    () =>
+      function ClearAccessory(props: TextFieldAccessoryProps) {
+        return (
+          <Pressable
+            onPress={() => setQuery("")}
+            style={[props.style, $clearButton]}
+            accessibilityRole="button"
+            accessibilityLabel={t("listingsScreen:clearSearch")}
+            hitSlop={8}
+          >
+            <Ionicons name="close-circle" size={18} color={theme.colors.textDim} />
+          </Pressable>
+        )
+      },
+    [t, theme.colors.textDim],
+  )
+
+  const handleToggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+    trackEvent("listings_tag_toggled", { tag })
+  }, [])
+
   // Filter by language and time. Venue is applied upstream (in `meetings`),
   // and radius is applied server-side by the nearby endpoint — neither belongs
   // here.
+  // CHANGED 2026-09-05: free text and selected tags join the chain. Cheapest
+  // predicates first so the substring scan only runs on rows that survived the
+  // time/language/tag checks.
   const filteredMeetings = useMemo(() => {
     return meetings.filter((m) => {
       const inTimeRange = matchesSearchTime(m.millis, searchTime, startHour, endHour)
       const matchesLanguage = !selectedLanguage || m.language?.toUpperCase() === selectedLanguage
-      return inTimeRange && matchesLanguage
+      if (!inTimeRange || !matchesLanguage) return false
+      if (!matchesTags(m.tags, selectedTags)) return false
+      // The WeakMap is an optimization only: a miss (a row object the memo
+      // above never saw) rebuilds inline rather than silently failing the row.
+      return matchesFreeText(haystacks.get(m) ?? buildSearchHaystack(m), queryTokens)
     })
-  }, [meetings, searchTime, startHour, endHour, selectedLanguage])
+  }, [
+    meetings,
+    searchTime,
+    startHour,
+    endHour,
+    selectedLanguage,
+    selectedTags,
+    haystacks,
+    queryTokens,
+  ])
+
+  // Feeds the empty state: true only when text/tags are active AND the pool
+  // they emptied was non-empty. Time/language can also empty a pool, but they
+  // predate this and keep the fellowship-worded fallback.
+  const searchNarrowedToNothing =
+    (queryTokens.length > 0 || selectedTags.length > 0) && meetings.length > 0
 
   /**
    * Distance from the device to a meeting's venue, measured on-device.
@@ -795,6 +895,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
           ) : error ? (
             <Text style={themed($errorText)}>{error}</Text>
+          ) : searchNarrowedToNothing ? (
+            // Added 2026-09-05: the day/venue fetch DID return meetings; the
+            // text/tag filters emptied the list. "No meetings for AA" would
+            // blame the fellowship for something the user typed.
+            <Text style={themed($emptyText)}>{t("listingsScreen:emptyNoMatches")}</Text>
           ) : (
             <Text style={themed($emptyText)}>
               {t("listingsScreen:emptyStateFiltered", { fellowship: profileStore.fellowship })}
@@ -802,22 +907,28 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           )}
         </View>
       ),
-    [themed, t, profileStore.fellowship, error, needsLocation, handleOpenRadiusModal],
+    [
+      themed,
+      t,
+      profileStore.fellowship,
+      error,
+      needsLocation,
+      handleOpenRadiusModal,
+      searchNarrowedToNothing,
+    ],
   )
 
   const ListHeaderComponent = useCallback(
     () => (
       <View>
-        {/* Header */}
-        {/* CHANGED 2026-08-12: settings gear removed here and in the other two
-            Meetings segments — it duplicated the Settings tab a thumb-width
-            away and occupied the end of the title row, the one slot a
-            segment-specific control can use. See LiveScreen's header comment. */}
-        <View style={themed($header)}>
-          <Text preset="heading" style={themed($title)}>
-            {t("listingsScreen:title")}
-          </Text>
-        </View>
+        {/* REMOVED 2026-09-05 (Jenova): the "Search" heading. With the search
+            box pinned directly above, the word was on screen twice a few dp
+            apart. The 2026-08-12 note about the settings gear that used to sit
+            at the end of this title row now lives in LiveScreen's header
+            comment only. `listingsScreen:title` is now unreferenced (the
+            segment label is `meetingsScreen`'s own key); it stays in i18n
+            because deleting it is a nine-locale edit for no user-visible
+            gain. */}
 
         {/* Six filters in a 2×3 grid (Jenova, 2026-08-04), matching the
             In-Person segment's grid so the two tabs read the same. Fellowship
@@ -1068,6 +1179,36 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
   return (
     <View style={$screenContainer}>
+      {/* Search box + tag chips live OUTSIDE the FlatList on purpose. The
+          list header below is an inline useCallback that re-renders whenever
+          `filteredMeetings.length` changes — i.e. on every keystroke — and a
+          TextInput inside a remounting header loses keyboard focus after each
+          character (the FlatList trap in CLAUDE.md). As siblings they also stay
+          pinned while the filter grid and results scroll underneath. */}
+      <View style={themed($searchArea)}>
+        <TextField
+          value={query}
+          onChangeText={setQuery}
+          placeholderTx="listingsScreen:searchPlaceholder"
+          containerStyle={themed($searchField)}
+          inputWrapperStyle={themed($searchInputWrapper)}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="never"
+          LeftAccessory={SearchIconAccessory}
+          // Only offered while there is something to clear; an always-present
+          // × on an empty box is a tap target that does nothing.
+          RightAccessory={query.length > 0 ? ClearAccessory : undefined}
+        />
+        <TagChipRow
+          tags={tagOptions}
+          selected={selectedTags}
+          onToggle={handleToggleTag}
+          accessibilityLabel={t("listingsScreen:tagsLabel")}
+        />
+      </View>
+
       {/* Meetings List - full page scroll with filters in header */}
       <FlatList
         ref={listRef}
@@ -1078,6 +1219,10 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         ItemSeparatorComponent={ItemSeparatorComponent}
         ListEmptyComponent={!isLoading ? ListEmptyComponent : null}
         contentContainerStyle={themed($listContent)}
+        // With the search box focused, a row tap must open the meeting on the
+        // first touch rather than only dismissing the keyboard.
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl
             refreshing={isLoading && filteredMeetings.length > 0}
@@ -1443,18 +1588,38 @@ const $screenContainer: ViewStyle = {
   flex: 1,
 }
 
-const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  paddingHorizontal: spacing.md,
-  paddingTop: spacing.md,
-  paddingBottom: spacing.sm,
+// Free text + tag search strip (2026-09-05). Matches the filter cells below
+// (same card fill, border, radius, horizontal margin) so the box reads as the
+// first filter rather than a foreign control.
+const $searchArea: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingTop: spacing.sm,
+  gap: spacing.xs,
 })
 
-const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.text,
+const $searchField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginHorizontal: spacing.md,
 })
+
+const $searchInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.card,
+  borderColor: colors.border,
+  borderRadius: 8,
+  alignItems: "center",
+})
+
+// TextField's accessory style already carries spacing.xs of outer margin;
+// these top it up to spacing.md so the glyphs align with the text inset.
+const $searchIcon: ViewStyle = {
+  marginStart: 8,
+}
+
+const $clearButton: ViewStyle = {
+  marginEnd: 8,
+}
+
+// REMOVED 2026-09-05: $header / $title. The heading they styled is gone (see
+// the ListHeaderComponent comment); the search strip above the list owns the
+// top spacing now.
 
 // REMOVED 2026-08-04: $fellowshipSelector / $fellowshipLabel. Fellowship had
 // its own full-width row; it's a half-width grid cell now and reuses

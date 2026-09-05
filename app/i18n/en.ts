@@ -183,6 +183,12 @@ const en = {
     emptyStateFiltered: "No meetings for {{fellowship}}",
     selectFellowship: "Select a fellowship in Settings",
     meetingCount: "{{count}} meetings",
+    // Free text + tag search (2026-09-05). `searchPlaceholder` is the box's
+    // placeholder AND its screen-reader name; `tagsLabel` names the chip row.
+    searchPlaceholder: "Search meetings",
+    tagsLabel: "Tags",
+    clearSearch: "Clear search",
+    emptyNoMatches: "No meetings match your search",
     // Filter labels
     dayLabel: "Day",
     languageLabel: "Language",

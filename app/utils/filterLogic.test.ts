@@ -21,6 +21,12 @@ import {
   type ShortTime,
   VENUE_OPTIONS,
   venueOptionsFor,
+  availableTags,
+  buildSearchHaystack,
+  matchesFreeText,
+  matchesTags,
+  normalizeSearchText,
+  tokenizeQuery,
 } from "./filterLogic"
 
 /**
@@ -357,5 +363,161 @@ describe("coerceDay", () => {
         expect(valid, `${day}/${choice} → ${coerced}`).toBe(true)
       }
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Free text + tag search (Search segment, 2026-09-05)
+// ---------------------------------------------------------------------------
+
+describe("normalizeSearchText", () => {
+  it("lowercases", () => {
+    expect(normalizeSearchText("Big Book")).toBe("big book")
+  })
+
+  it("strips diacritics so accented and plain spellings match", () => {
+    expect(normalizeSearchText("Café Réunion")).toBe("cafe reunion")
+  })
+
+  it("collapses runs of whitespace and trims", () => {
+    expect(normalizeSearchText("  step   work \n")).toBe("step work")
+  })
+})
+
+describe("tokenizeQuery", () => {
+  it("splits on whitespace into normalized tokens", () => {
+    expect(tokenizeQuery("Step  Work")).toEqual(["step", "work"])
+  })
+
+  it("returns no tokens for blank input", () => {
+    expect(tokenizeQuery("   ")).toEqual([])
+    expect(tokenizeQuery("")).toEqual([])
+  })
+})
+
+describe("buildSearchHaystack", () => {
+  it("joins every searchable text field, normalized", () => {
+    const hay = buildSearchHaystack({
+      name: "Sunrise Serenity",
+      description: "Open discussion",
+      venueName: "St. Mark's",
+      city: "Austin",
+      state: "TX",
+      region: "Central",
+      locationInfo: "Basement, use side door",
+      restrictedDescription: "LGBTQ+ Focus",
+      tags: ["beginner-friendly"],
+      meetingTypes: ["O", "BB"],
+    })
+    for (const needle of [
+      "sunrise serenity",
+      "open discussion",
+      "st. mark's",
+      "austin",
+      "tx",
+      "central",
+      "basement, use side door",
+      "lgbtq+ focus",
+      "beginner-friendly",
+      "bb",
+    ]) {
+      expect(hay).toContain(needle)
+    }
+  })
+
+  it("tolerates missing and null fields", () => {
+    expect(buildSearchHaystack({ name: "Only Name", tags: null, description: undefined })).toBe(
+      "only name",
+    )
+  })
+
+  it("separates fields so a token cannot span two of them", () => {
+    // "bookopen" must not match name "Big Book" + description "Open".
+    const hay = buildSearchHaystack({ name: "Big Book", description: "Open" })
+    expect(matchesFreeText(hay, ["bookopen"])).toBe(false)
+  })
+})
+
+describe("matchesFreeText", () => {
+  const hay = buildSearchHaystack({
+    name: "Sunrise Serenity",
+    description: "Open discussion, step work welcome",
+    tags: ["beginner-friendly"],
+    meetingTypes: ["BB"],
+  })
+
+  it("matches every meeting when there are no tokens", () => {
+    expect(matchesFreeText(hay, [])).toBe(true)
+  })
+
+  it("matches a substring of any field", () => {
+    expect(matchesFreeText(hay, ["seren"])).toBe(true)
+  })
+
+  it("requires every token to match (AND)", () => {
+    expect(matchesFreeText(hay, ["sunrise", "step"])).toBe(true)
+    expect(matchesFreeText(hay, ["sunrise", "zumba"])).toBe(false)
+  })
+
+  it("matches a tag as plain text", () => {
+    expect(matchesFreeText(hay, ["beginner"])).toBe(true)
+  })
+
+  it("matches a meeting type code as plain text", () => {
+    expect(matchesFreeText(hay, ["bb"])).toBe(true)
+  })
+})
+
+describe("matchesTags", () => {
+  it("matches every meeting when nothing is selected", () => {
+    expect(matchesTags(["x"], [])).toBe(true)
+    expect(matchesTags(undefined, [])).toBe(true)
+  })
+
+  it("requires every selected tag to be present (AND)", () => {
+    expect(matchesTags(["a", "b"], ["a"])).toBe(true)
+    expect(matchesTags(["a", "b"], ["a", "b"])).toBe(true)
+    expect(matchesTags(["a"], ["a", "b"])).toBe(false)
+  })
+
+  it("rejects a meeting with no tags when something is selected", () => {
+    expect(matchesTags(undefined, ["a"])).toBe(false)
+    expect(matchesTags(null, ["a"])).toBe(false)
+    expect(matchesTags([], ["a"])).toBe(false)
+  })
+})
+
+describe("availableTags", () => {
+  const pool = [
+    { tags: ["step-work", "beginner-friendly"] },
+    { tags: ["step-work"] },
+    { tags: ["literature-study"] },
+    { tags: null },
+    {},
+  ]
+
+  it("lists each distinct tag in the pool, most frequent first, then alphabetical", () => {
+    expect(availableTags(pool, [])).toEqual(["step-work", "beginner-friendly", "literature-study"])
+  })
+
+  it("keeps a selected tag visible even when the pool no longer carries it", () => {
+    expect(availableTags(pool, ["women-only"])).toEqual([
+      "step-work",
+      "beginner-friendly",
+      "literature-study",
+      "women-only",
+    ])
+  })
+
+  it("does not duplicate a selected tag that is also in the pool", () => {
+    expect(availableTags(pool, ["step-work"])).toEqual([
+      "step-work",
+      "beginner-friendly",
+      "literature-study",
+    ])
+  })
+
+  it("returns an empty list for an empty pool with nothing selected", () => {
+    expect(availableTags([], [])).toEqual([])
   })
 })

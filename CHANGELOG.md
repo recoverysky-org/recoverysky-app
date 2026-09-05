@@ -22,6 +22,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+
+- **Free-text and tag search on the Meetings → Search segment.** A search box
+  now sits above the filter grid and matches every word you type against a
+  meeting's name, description, venue, city, region, location notes, tags and
+  type codes (accent- and case-insensitive, all words must match). Beneath it,
+  a scrolling row of tag chips is built from the tags present in the current
+  day/venue results; tap chips to narrow further (selected chips combine).
+  Both filters work entirely on the already-fetched results — there is no new
+  API call and no server search endpoint — and combine with the existing
+  day / venue / language / radius / time filters. A selected chip stays on
+  screen even when a day or venue change drops it from the results, so the
+  thing filtering the list to zero is always visible and deselectable.
+  Pure predicates live in `filterLogic.ts` (vitest-covered); the chip row is
+  `TagChipRow` (jest-covered, screen-reader labelled). Live and In-Person are
+  unchanged.
+
+### Removed
+
+- The "Search" heading at the top of the Meetings → Search segment. The new
+  search box sits directly above the filter grid, so the word appeared twice a
+  few dp apart; the box is now the segment's visual title.
+
 ### Security
 
 - Diagnostic logs (OTLP → Loki) now carry a per-user identifier on every

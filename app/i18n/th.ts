@@ -172,6 +172,10 @@ const th: Translations = {
     emptyStateFiltered: "ไม่มีประชุมสำหรับ {{fellowship}}",
     selectFellowship: "เลือกกลุ่มในการตั้งค่า",
     meetingCount: "{{count}} ประชุม",
+    searchPlaceholder: "ค้นหาการประชุม",
+    tagsLabel: "แท็ก",
+    clearSearch: "ล้างการค้นหา",
+    emptyNoMatches: "ไม่มีการประชุมที่ตรงกับการค้นหาของคุณ",
     // Filter labels
     dayLabel: "วัน",
     languageLabel: "ภาษา",

@@ -176,6 +176,10 @@ const ru: Translations = {
     emptyStateFiltered: "Нет собраний для {{fellowship}}",
     selectFellowship: "Выбери сообщество в Настройках",
     meetingCount: "{{count}} собраний",
+    searchPlaceholder: "Поиск встреч",
+    tagsLabel: "Теги",
+    clearSearch: "Очистить поиск",
+    emptyNoMatches: "Нет встреч, соответствующих вашему запросу",
     // Filter labels
     dayLabel: "День",
     languageLabel: "Язык",

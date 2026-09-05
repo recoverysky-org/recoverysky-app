@@ -332,3 +332,112 @@ export function matchesSearchTime(
   if (choice === "custom") return matchesHourRange(millis, startHour, endHour)
   return matchesShortTime(millis, choice)
 }
+
+// ---------------------------------------------------------------------------
+// Free text + tag search (Search segment, 2026-09-05)
+//
+// Both predicates run client-side over the already-fetched day/venue pool.
+// There is no server search endpoint and `/schedules/nearby` silently strips
+// unknown params, so a `q=` added to a fetch would fail invisibly — matching
+// here is the only path that actually works today. The pool is ~500 rows for a
+// day, so per-keystroke filtering is cheap as long as the haystack is built
+// once per pool (see `buildSearchHaystack`) rather than per predicate call.
+// ---------------------------------------------------------------------------
+
+/** The text fields a free-text query can hit. Every one is optional because
+ *  the wire shape is loose — TSML sources leave most of them empty. */
+export interface SearchableMeeting {
+  name?: string | null
+  description?: string | null
+  venueName?: string | null
+  city?: string | null
+  state?: string | null
+  region?: string | null
+  locationInfo?: string | null
+  restrictedDescription?: string | null
+  tags?: string[] | null
+  meetingTypes?: string[] | null
+}
+
+/**
+ * Lowercase, strip diacritics, collapse whitespace. Applied to BOTH the query
+ * and the haystack so "Café" finds "cafe" and vice versa. NFD splits an
+ * accented letter into base + combining mark; the range strips the marks.
+ */
+export function normalizeSearchText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/** Whitespace-separated query tokens, normalized. Blank input → no tokens. */
+export function tokenizeQuery(query: string): string[] {
+  const normalized = normalizeSearchText(query)
+  return normalized ? normalized.split(" ") : []
+}
+
+/**
+ * Fields are joined with a separator no query can contain (a newline — the
+ * tokenizer splits on whitespace) so a token can't accidentally span the end
+ * of one field and the start of the next. Type codes ride along so "BB" is
+ * still findable by text even though the chip row deliberately omits them.
+ */
+export function buildSearchHaystack(m: SearchableMeeting): string {
+  const parts: string[] = [
+    m.name,
+    m.description,
+    m.venueName,
+    m.city,
+    m.state,
+    m.region,
+    m.locationInfo,
+    m.restrictedDescription,
+    ...(m.tags ?? []),
+    ...(m.meetingTypes ?? []),
+  ]
+    .filter((p): p is string => typeof p === "string" && p.length > 0)
+    .map(normalizeSearchText)
+    .filter((p) => p.length > 0)
+  return parts.join("\n")
+}
+
+/** Every token must appear somewhere in the haystack (AND). No tokens → match. */
+export function matchesFreeText(haystack: string, tokens: readonly string[]): boolean {
+  return tokens.every((tok) => haystack.includes(tok))
+}
+
+/** Every selected tag must be on the meeting (AND). Nothing selected → match. */
+export function matchesTags(
+  tags: readonly string[] | null | undefined,
+  selected: readonly string[],
+): boolean {
+  if (selected.length === 0) return true
+  if (!tags || tags.length === 0) return false
+  return selected.every((s) => tags.includes(s))
+}
+
+/**
+ * The chip row's vocabulary: every distinct tag in the pool, most frequent
+ * first so the useful ones are reachable without scrolling, alphabetical
+ * within a count. Selected tags the pool no longer carries (the user changed
+ * day or venue) are appended so the chip that is filtering the list down to
+ * nothing stays on screen and can be deselected — hiding it would leave an
+ * empty list with no visible cause.
+ */
+export function availableTags(
+  meetings: readonly SearchableMeeting[],
+  selected: readonly string[],
+): string[] {
+  const counts = new Map<string, number>()
+  for (const m of meetings) {
+    for (const tag of m.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  }
+  const fromPool = [...counts.entries()]
+    .sort(([a, ca], [b, cb]) => cb - ca || a.localeCompare(b))
+    .map(([tag]) => tag)
+  const orphans = selected.filter((s) => !counts.has(s))
+  return [...fromPool, ...orphans]
+}

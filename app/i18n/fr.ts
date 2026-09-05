@@ -179,6 +179,10 @@ const fr: Translations = {
     emptyStateFiltered: "Aucune réunion pour {{fellowship}}",
     selectFellowship: "Choisis une fraternité dans les Réglages",
     meetingCount: "{{count}} réunions",
+    searchPlaceholder: "Rechercher des réunions",
+    tagsLabel: "Tags",
+    clearSearch: "Effacer la recherche",
+    emptyNoMatches: "Aucune réunion ne correspond à votre recherche",
     // Filter labels
     dayLabel: "Jour",
     languageLabel: "Langue",

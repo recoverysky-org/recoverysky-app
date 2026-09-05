@@ -173,6 +173,10 @@ const ar: Translations = {
     emptyStateFiltered: "لا توجد اجتماعات لـ {{fellowship}}",
     selectFellowship: "اختر زمالة في الإعدادات",
     meetingCount: "{{count}} اجتماعات",
+    searchPlaceholder: "البحث عن اجتماعات",
+    tagsLabel: "الوسوم",
+    clearSearch: "مسح البحث",
+    emptyNoMatches: "لا توجد اجتماعات تطابق بحثك",
     // Filter labels
     dayLabel: "اليوم",
     languageLabel: "اللغة",

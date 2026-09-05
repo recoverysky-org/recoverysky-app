@@ -175,6 +175,10 @@ const pt: Translations = {
     emptyStateFiltered: "Nenhuma reunião para {{fellowship}}",
     selectFellowship: "Selecione uma irmandade em Ajustes",
     meetingCount: "{{count}} reuniões",
+    searchPlaceholder: "Buscar reuniões",
+    tagsLabel: "Tags",
+    clearSearch: "Limpar busca",
+    emptyNoMatches: "Nenhuma reunião corresponde à sua busca",
     // Filter labels
     dayLabel: "Dia",
     languageLabel: "Idioma",
