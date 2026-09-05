@@ -50,6 +50,7 @@ import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { decideScheduleLove } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
@@ -308,17 +309,28 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const lastJoin = feedback?.lastJoin ?? 0
 
   // Toggle love/favorite
+  // CHANGED 2026-09-04: favoriting is schedule-wide — the tap's new value is
+  // SET on every meeting in `scheduleData` (decideScheduleLove picks the mids
+  // and the value), so a Monday favorite favorites the whole schedule. Current
+  // state is read from the cache, not the local mirror, and local state is
+  // read back afterwards rather than hand-built — that way a persist
+  // failure's revert inside setLoveForMids shows here too.
   const handleToggleLove = useCallback(async () => {
     if (!meeting?.id) return
-    const newLoves = await feedbackCache.toggleLove(meeting.id)
-    setFeedback((prev: FeedbackRecord | null) =>
-      prev
-        ? { ...prev, loves: newLoves }
-        : { mid: meeting.id, loves: newLoves, rates: 0, joins: 0, lastJoin: 0 },
-    )
-    trackEvent("meeting_favorited", { action: newLoves ? "add" : "remove" })
-    log.debug("Toggled love", { mid: meeting.id, loves: newLoves })
-  }, [meeting?.id])
+    const { mids, loves } = decideScheduleLove({
+      tappedMid: meeting.id,
+      currentLoves: feedbackCache.get(meeting.id)?.loves ?? false,
+      scheduleData: meeting.scheduleData,
+    })
+    await feedbackCache.setLoveForMids(mids, loves)
+    setFeedback(feedbackCache.get(meeting.id))
+    // One event per gesture, not one per sibling meeting.
+    trackEvent("meeting_favorited", {
+      action: loves ? "add" : "remove",
+      scheduleSize: mids.length,
+    })
+    log.debug("Toggled love", { mid: meeting.id, loves, scheduleSize: mids.length })
+  }, [meeting?.id, meeting?.scheduleData])
 
   // Set rating
   const handleSetRating = useCallback(

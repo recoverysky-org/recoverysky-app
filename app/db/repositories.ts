@@ -578,6 +578,16 @@ export const feedbackRepo = {
     return getFeedbackRepo().toggleLove(mid)
   },
 
+  /**
+   * Set love status for a meeting to an explicit value (upsert).
+   * ADDED 2026-09-04 for schedule-wide favorite propagation — siblings get the
+   * tapped meeting's new value SET on them, not toggled, so a mixed schedule
+   * converges instead of flipping each row independently.
+   */
+  setLove: async (mid: string, loves: boolean) => {
+    return getFeedbackRepo().upsert({ mid, loves })
+  },
+
   /** Set rating for a meeting (0-5) */
   setRating: async (mid: string, rating: number) => {
     return getFeedbackRepo().setRating(mid, rating)

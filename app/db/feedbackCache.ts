@@ -147,6 +147,54 @@ export const feedbackCache = {
   },
 
   /**
+   * Set love status for a set of meetings to one explicit value.
+   *
+   * ADDED 2026-09-04 for schedule-wide favorite propagation: the popups hand
+   * this every mid in the tapped meeting's schedule (via
+   * `decideScheduleLove` in utils/favoriteLogic.ts) so one heart tap
+   * favorites/unfavorites the whole schedule. SET semantics, not per-mid
+   * toggle — that is what lets a legacy mixed schedule converge on one tap.
+   *
+   * Per-mid optimistic update + persist, so one failed row doesn't hold the
+   * rest hostage. Unlike toggleLove's older revert path, a revert here DOES
+   * notify listeners — subscribed screens (`displayFeedback` maps) would
+   * otherwise keep the optimistic value the popup no longer shows.
+   *
+   * Returns true when every write persisted. The popups ignore this (the
+   * cache read-back already reflects any revert); the favorites migration
+   * uses it to avoid setting its done-flag over failed SQLite writes.
+   */
+  async setLoveForMids(mids: string[], loves: boolean): Promise<boolean> {
+    let allPersisted = true
+    for (const mid of mids) {
+      const current = cache.get(mid) ?? null
+      if ((current?.loves ?? false) === loves) continue // already there; skip the write
+
+      // Update cache immediately (optimistic)
+      const updated: FeedbackRecord = { ...(current ?? defaultFeedback(mid)), loves }
+      cache.set(mid, updated)
+      notifyListeners(mid, updated)
+
+      const result = await feedbackRepo.setLove(mid, loves)
+      if (!result.ok) {
+        allPersisted = false
+        log.error("Failed to persist setLoveForMids", { mid, loves, error: String(result.error) })
+        // Revert cache on failure — and notify, so rows already painted with
+        // the optimistic value fall back in step with the store.
+        if (current === null) {
+          cache.delete(mid) // was new and empty; remove rather than keep a phantom row
+          notifyListeners(mid, defaultFeedback(mid))
+        } else {
+          cache.set(mid, current)
+          notifyListeners(mid, current)
+        }
+      }
+    }
+    log.debug("Set love for schedule", { count: mids.length, loves, allPersisted })
+    return allPersisted
+  },
+
+  /**
    * Set rating for a meeting (0-5)
    * Updates cache immediately, then persists to SQLite
    */

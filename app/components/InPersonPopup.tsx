@@ -91,6 +91,7 @@ import type { PersistedPresence } from "@/services/attendance"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { decideScheduleLove } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { buildDirectionsUrl, composeAddress, formatDistance } from "@/utils/nearbyLogic"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
@@ -267,16 +268,27 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const joinCount = feedback?.joins ?? 0
   const lastJoin = feedback?.lastJoin ?? 0
 
+  // CHANGED 2026-09-04: favoriting is schedule-wide — the tap's new value is
+  // SET on every meeting in `scheduleData` (decideScheduleLove picks the mids
+  // and the value), so favoriting one occurrence favorites the whole
+  // schedule. Local state is read back from the cache afterwards rather than
+  // hand-built, so a persist failure's revert inside setLoveForMids shows
+  // here too. Mirrors SchedulePopup.handleToggleLove.
   const handleToggleLove = useCallback(async () => {
     if (!meeting?.id) return
-    const newLoves = await feedbackCache.toggleLove(meeting.id)
-    setFeedback((prev) =>
-      prev
-        ? { ...prev, loves: newLoves }
-        : { mid: meeting.id, loves: newLoves, rates: 0, joins: 0, lastJoin: 0 },
-    )
-    trackEvent("meeting_favorited", { action: newLoves ? "add" : "remove" })
-  }, [meeting?.id])
+    const { mids, loves } = decideScheduleLove({
+      tappedMid: meeting.id,
+      currentLoves: feedbackCache.get(meeting.id)?.loves ?? false,
+      scheduleData: meeting.scheduleData,
+    })
+    await feedbackCache.setLoveForMids(mids, loves)
+    setFeedback(feedbackCache.get(meeting.id))
+    // One event per gesture, not one per sibling meeting.
+    trackEvent("meeting_favorited", {
+      action: loves ? "add" : "remove",
+      scheduleSize: mids.length,
+    })
+  }, [meeting?.id, meeting?.scheduleData])
 
   const handleSetRating = useCallback(
     async (star: number) => {

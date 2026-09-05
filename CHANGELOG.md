@@ -37,6 +37,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- Favoriting a meeting now favorites its whole schedule. Tapping the heart in
+  either meeting popup sets the loved state on every meeting in that schedule
+  (a Monday favorite now also favorites the Tuesday, Wednesday, … occurrences),
+  and un-favoriting clears them all the same way. Previously only the single
+  tapped occurrence was marked, so the rest of the week's occurrences of the
+  same meeting sorted as if the user had never touched them. A schedule left
+  mixed by old per-meeting favorites converges to the tapped meeting's new
+  state on the next tap. Ratings and join counts remain per-meeting.
+- Existing favorites are upgraded once, automatically: on first launch after
+  this update the app looks up each currently-loved meeting's schedule from
+  the API and favorites every meeting in it, so pre-existing hearts behave
+  like new ones without re-tapping. The pass is retried on the next launch if
+  the device is offline or the API is unreachable (guarded by a persistent
+  once-only flag that is set only after a fully successful run); favorites on
+  meetings that no longer exist upstream are left as-is and don't block it.
 - Cold start no longer gates on a live `/config` fetch after first launch: the
   raw payload is cached in the encrypted SQLite database (`config_caches`) and
   refreshed in the background. Fixes the false-positive "The system is offline"
