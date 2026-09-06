@@ -99,6 +99,7 @@ import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { checkForUpdates } from "./utils/checkForUpdates"
 import { decideStartupConfigPath } from "./utils/configCacheLogic"
+import { shouldSkipConfigPoll } from "./utils/connectivityLogic"
 import { parseDeepLinkSegment, pendingTargetForSegment } from "./utils/deepLinkLogic"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
@@ -802,6 +803,14 @@ export function App() {
     const startPolling = (ms: number) => {
       clearInterval(interval)
       interval = setInterval(() => {
+        // CHANGED 2026-09-06: offline ticks are skipped entirely — a poll
+        // that cannot succeed must not run, or its failure gets counted as
+        // maintenance evidence (the false-banner complaint). The reconnect
+        // reaction below resyncs the moment the device is back.
+        if (shouldSkipConfigPoll({ isOffline: rootStore.networkStore.isOffline })) {
+          log.debug("Config poll skipped — device offline")
+          return
+        }
         log.debug("Config poll triggered", {
           maintenanceMode: rootStore.configStore.maintenanceMode,
         })
@@ -821,9 +830,23 @@ export function App() {
       },
     )
 
+    // ADDED 2026-09-06: immediate refetch on the offline→online edge, so a
+    // reconnecting user doesn't wait out the poll interval — and if server
+    // maintenance ended while we were offline, the banner clears promptly.
+    const disposeReconnect = reaction(
+      () => rootStore.networkStore.isOffline,
+      (isOffline, prevOffline) => {
+        if (prevOffline === true && isOffline === false) {
+          log.info("Network reconnected — immediate config refetch")
+          rootStore.configStore.fetchConfig()
+        }
+      },
+    )
+
     return () => {
       clearInterval(interval)
       dispose()
+      disposeReconnect()
     }
   }, [rootStore])
 
@@ -833,10 +856,31 @@ export function App() {
   // scratch. Reload is the safe option here: the bootstrap registers MobX
   // reactions that would duplicate if we re-ran init in place. The user
   // sees a brief splash flash but no manual intervention is needed.
+  // CHANGED 2026-09-06: interval ticks early-return while the device is
+  // offline (they cannot succeed and just burn radio), and a reconnect
+  // reaction fires one immediate check so a returning connection doesn't
+  // wait out the 15s interval.
   useEffect(() => {
     if (!rootStore) return
 
     let interval: ReturnType<typeof setInterval> | undefined
+
+    const checkStatusAndReload = async () => {
+      const result = await api.getPublicStatus()
+      if (result.kind === "ok") {
+        log.info("/status recovered — reloading app to resume init")
+        if (interval) {
+          clearInterval(interval)
+          interval = undefined
+        }
+        // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
+        // SharedObject before teardown — avoids the SharedObjectRegistry
+        // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
+        reloadApp((e) => {
+          log.warn("reloadAsync failed during outage recovery", { error: String(e) })
+        })
+      }
+    }
 
     const dispose = reaction(
       () => rootStore.configStore.outageMode,
@@ -848,29 +892,30 @@ export function App() {
         if (!inOutage) return
 
         log.info("Outage detected — starting /status recovery polling")
-        interval = setInterval(async () => {
-          const result = await api.getPublicStatus()
-          if (result.kind === "ok") {
-            log.info("/status recovered — reloading app to resume init")
-            if (interval) {
-              clearInterval(interval)
-              interval = undefined
-            }
-            // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
-            // SharedObject before teardown — avoids the SharedObjectRegistry
-            // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
-            reloadApp((e) => {
-              log.warn("reloadAsync failed during outage recovery", { error: String(e) })
-            })
-          }
+        interval = setInterval(() => {
+          if (rootStore.networkStore.isOffline) return // wait for the reconnect reaction
+          void checkStatusAndReload()
         }, 15_000)
       },
       { fireImmediately: true },
     )
 
+    // ADDED 2026-09-06: one immediate check on the offline→online edge while
+    // in outage — the common case is "user launched in airplane mode, then
+    // turned it off"; they should recover in seconds, not at the next tick.
+    const disposeReconnect = reaction(
+      () => rootStore.networkStore.isOffline,
+      (isOffline, prevOffline) => {
+        if (rootStore.configStore.outageMode && prevOffline === true && isOffline === false) {
+          void checkStatusAndReload()
+        }
+      },
+    )
+
     return () => {
       if (interval) clearInterval(interval)
       dispose()
+      disposeReconnect()
     }
   }, [rootStore])
 
