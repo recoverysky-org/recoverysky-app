@@ -725,3 +725,52 @@ Specific things to check:
 - **`ru` / `uk`** use "ни в один день" / "у жоден день". Both are double
   negatives agreeing with the leading "Нет"/"Немає", which is correct Slavic
   negative concord but worth confirming it doesn't read as emphatic.
+
+---
+
+## Network-aware maintenance — 24 strings (8 locales × 3 keys), 2026-09-06
+
+Three keys added for the offline/maintenance distinction (see `CHANGELOG.md`
+and `CLAUDE.md` → "Maintenance Mode"): `common:offlineBanner` is the
+blue-grey sticky-banner copy shown when `NetworkStore` reports the device
+itself has no connection; `maintenance:offlineTitle` / `offlineSubtitle` are
+the cold-start "Device Offline" full-screen pair, sibling to the existing
+maintenance-mode full screen. Written by an implementer in all nine locales,
+so `es` carries the same review obligation as the other seven per the
+2026-08-04 ruling above.
+
+**These strings must not be confused with the existing maintenance-mode
+copy.** A user reading `offlineTitle`/`offlineSubtitle` has a dead network
+connection on their own device; a user reading the maintenance-mode strings
+has a working connection but an unreachable RecoverySky API. Machine
+translation has no way to know which failure a locale's existing "service
+unavailable" vocabulary implies — a reviewer should confirm the new strings
+read as *your device*, not *our servers*.
+
+| Key | English | Notes for the reviewer |
+|---|---|---|
+| `common:offlineBanner` | You're offline. Showing saved data. | Sticky top banner, replaces the amber maintenance strip when the device has no network (offline wins over maintenance — see CLAUDE.md). Short — it shares the strip's single line with no wrap room. |
+| `maintenance:offlineTitle` | You're offline | Cold-start full-screen heading, sibling to the existing maintenance-mode title. Must read as *this device*, not *the service*. |
+| `maintenance:offlineSubtitle` | Check your internet connection. The app will reconnect automatically. | Two clauses: an instruction, then a reassurance that no action beyond fixing the connection is needed. Don't drop the second clause — it's what stops a user from force-quitting while waiting for the 15s recovery poll. |
+
+### Reviewer notes worth acting on first
+
+- **All locales** — check `common:offlineBanner` against
+  `maintenance:offlineTitle` side by side. Several locales (ar, de, fr, pt,
+  ru, th, uk) render both with the same "you are offline" verb but the
+  banner is a fragment while the title is a short independent sentence;
+  confirm neither reads as a truncation of the other.
+- `ar` — "أنت غير متصل بالإنترنت" (title) vs "أنت غير متصل" (banner) differ
+  only by the trailing "بالإنترنت" ("with the internet"); confirm the
+  shorter banner form doesn't read as ambiguous (offline from what?) without
+  it.
+- `de` — "Du bist offline" matches the informal register used elsewhere in
+  this file's onboarding/settings blocks; confirm that's still the intended
+  register for a full-screen error state, not just a settings hint.
+- `th` — no sentence-final punctuation, matching the rest of this file's
+  message strings; `offlineSubtitle`'s two clauses are joined without an
+  explicit conjunction, native to Thai but worth a native check that the
+  "automatic reconnect" clause doesn't read as a separate, disconnected
+  sentence.
+- `es` — informal register matches the existing file. First `es` string in
+  this doc's queue since the 2026-08-14 "Any" day batch.

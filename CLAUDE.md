@@ -228,7 +228,7 @@ MST with MMKV persistence in `app/models/`:
   - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription` / `subscriptionExpires`, `themeColor`, `onboardingCompleted`, `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `locationEnabled` (default OFF — see "Permissions & the Location Gate"), `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`, `seenAnnouncementIds`, `dontShowShortMeetingWarning`, the `moneySaved*` family (weekly total + one per weekday + `moneySavedTobacco`), the `ninety*` family (`ninetyStartDate` / `ninetyStartEpoch` / `ninetyStrictMode` / `ninetyCertificatePath`, plus DEV-only `ninetyDebugDay`)
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
-- **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed
+- **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed. Fed by the NetInfo listener in `app/services/network/` (registered once in `app.tsx`; sole writer). `isOffline` keys off the interface state, not the reachability probe.
 - **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `mapStyleUrlLight` / `mapStyleUrlDark` (full MapTiler style URLs — the API key rides inside them and is deliberately **never** baked into the binary), `presenceRadiusM` (default 150 m; `devPresenceRadiusM` overrides it in dev builds only), `isLoaded` / `isLoading`. NOT persisted to MMKV (security). The raw /config payload IS cached in the encrypted SQLite `config_caches` table so warm cold-starts skip the fetch gate — maintenance fields are never applied from cache. See `applyServerConfig` and docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md. There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
 - **ConversationStore**: AI agent conversation state
 
@@ -382,6 +382,13 @@ the wrong gate has historically killed in-meeting Zoom timers.
   Zoom timer (`ExternalZoomTimerModal` inside `SchedulePopup`) must
   survive maintenance flipping on; gating navigation here would unmount
   it.
+
+  CHANGED 2026-09-06: the polling-failure trigger fires ONLY while the
+  device is online (`networkStore.isOffline` false). Offline poll failures
+  never flip this flag — the banner shows its "Device Offline" variant
+  instead, and polling pauses until reconnect. Decision logic in
+  `app/utils/connectivityLogic.ts` (vitest-covered); spec:
+  docs/superpowers/specs/2026-09-06-network-aware-maintenance-design.md.
 - **`configStore.outageMode`** (cold-start gate): the app launched into
   an unusable state. Three triggers, all set by `setOutageMode()` in
   `app.tsx`'s init path:
@@ -415,6 +422,12 @@ sibling to `<AppNavigator />` in `app.tsx`'s provider tree, with absolute
 positioning + high `zIndex`, so it draws above every screen and modal.
 It observes `maintenanceMode` only — outage doesn't double-render
 because the full-screen takes over.
+
+  The banner is two-variant: a muted blue-grey "You're offline" strip
+  (which WINS over maintenance — offline is the more accurate diagnosis)
+  and the amber maintenance strip. `MaintenanceScreen` mirrors the split
+  for cold-start outage ("Device Offline" vs "System Maintenance", live-
+  switching since it observes NetworkStore).
 
 **API-dependent features that self-disable when `maintenanceMode` is
 true:**

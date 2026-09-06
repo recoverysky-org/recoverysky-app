@@ -87,3 +87,19 @@ Step-by-step checklist for preparing and publishing a **native store release**.
 - [ ] Verify the tag appears on the remote
 - [ ] Smoke test the production build (TestFlight / internal track)
 - [ ] Confirm store review submissions
+
+### Network-aware maintenance (2026-09-06)
+
+- [ ] Airplane mode → cold start: "Device Offline" full screen; disabling
+      airplane mode recovers into a normal session within ~15s (reload).
+- [ ] Airplane mode mid-session: blue-grey offline banner appears; logs show
+      "Config poll skipped — device offline" and NO maintenance flip;
+      disabling airplane mode clears the banner and logs
+      "Network reconnected — immediate config refetch".
+- [ ] API down while online (block api host / stop local API): amber
+      maintenance banner after one failed poll cycle; cold start in the same
+      state shows the "System Maintenance" full screen.
+- [ ] Server MAINTENANCE_MODE=true: banner on warm start, full screen on
+      cold start — unchanged from before.
+- [ ] External-Zoom timer running while toggling airplane mode: timer modal
+      survives both banner variants.

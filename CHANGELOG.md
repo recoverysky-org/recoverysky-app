@@ -91,6 +91,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Requires the API's `iso_dow=0` ("all seven days") support on
   `/schedules/daily` and `/schedules/nearby`; until that ships, choosing "Any"
   returns whatever the server makes of the sentinel.
+- Device network detection (NetInfo → NetworkStore): the app now knows when
+  the device itself is offline. Activates the previously-inert offline
+  consumers — cloud-backup sync pauses while offline, the In-Person map
+  toggle disables, Settings shows its offline state.
+- "Device Offline" variants of the maintenance UX: the cold-start outage
+  screen and the sticky top banner now say "you're offline — check your
+  connection" when the device has no network, reserving the maintenance
+  copy for when the device is online but the RecoverySky API isn't
+  answering.
 
 ### Fixed
 
@@ -112,6 +121,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   indicator at all, and neither did web). Pull-to-refresh keeps its own native
   spinner and is unchanged. The header was extracted to `InPersonListHeader`
   (jest-covered) to make this testable.
+- Users without connectivity (subway, airplane mode, dead zones) no longer
+  see the "Maintenance in progress" banner: config-poll failures while the
+  device is offline are no longer treated as evidence of service
+  maintenance, and polling pauses entirely until the connection returns
+  (with an immediate resync on reconnect).
 
 ### Build
 
@@ -136,6 +150,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   untouched. `--eas-only` is deliberate: the `.env`-vs-`eas.json` half reports
   expected drift on any dev machine pointed at localhost, and a gate that always
   fails is a gate everyone learns to skip.
+- ⚠️ NATIVE RELEASE REQUIRED: adds `@react-native-community/netinfo`
+  (native module). Bump `runtimeVersion` with the next native version bump;
+  this must not ship as an OTA on the current runtime. Dev clients must be
+  rebuilt.
 
 ## [4.8.0-1] — 2026-08-13 (OTA)
 
