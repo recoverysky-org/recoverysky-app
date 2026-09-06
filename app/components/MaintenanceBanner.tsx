@@ -38,7 +38,7 @@ import { decideBanner } from "@/utils/connectivityLogic"
 const MAINT_BG = "#FFC107" // amber 500 — high-contrast attention without being garish
 const MAINT_FG = "#1C1C1E" // neutral 800 — dark text on amber for AA contrast
 const OFFLINE_BG = "#546E7A" // blue-grey 600 — calm/informational, not alarm-amber
-const OFFLINE_FG = "#FFFFFF" // white on blue-grey 600 ≈ 4.7:1, AA for this size/weight
+const OFFLINE_FG = "#FFFFFF" // white on blue-grey 600 ≈ 5.4:1, AA for this size/weight
 
 export const MaintenanceBanner: FC = observer(function MaintenanceBanner() {
   const configStore = useConfigStore()

@@ -238,6 +238,27 @@ export const ConfigStoreModel = types
         const MAX_RETRIES = 3
         const RETRY_DELAYS = [2000, 4000, 8000]
 
+        // Reads the live NetworkStore value at the moment it's called. getRoot
+        // reaches the sibling NetworkStore; on a detached/test store it
+        // returns this node and the optional chain lands on false ("online"),
+        // preserving the old behavior — fail toward the maintenance path,
+        // never toward silently blaming the user's device.
+        const readIsOffline = () =>
+          (getRoot(store) as { networkStore?: { isOffline?: boolean } })?.networkStore?.isOffline ??
+          false
+
+        // Latches true the moment ANY attempt observes the device offline.
+        // The retry ladder spans ~14s (2s/4s/8s delays) — a device that drops
+        // connection mid-poll and reconnects before the ladder exhausts would
+        // fail every attempt for device reasons, yet a single END-of-ladder
+        // read of isOffline would see "online" and wrongly flip the
+        // maintenance banner this whole gate exists to prevent. Latching on
+        // every failed attempt closes that window. (The reconnect itself can
+        // also be swallowed by fetchConfig's own isLoading early-return at
+        // the top of this flow, so this latch is the backstop, not the only
+        // defense.)
+        let sawOffline = false
+
         try {
           for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
@@ -255,8 +276,10 @@ export const ConfigStoreModel = types
                 return // success
               }
 
+              sawOffline = sawOffline || readIsOffline()
               log.warn("Config fetch failed", { attempt, kind: result.kind })
             } catch (error) {
+              sawOffline = sawOffline || readIsOffline()
               log.error("Config fetch error", {
                 attempt,
                 error: error instanceof Error ? error.message : String(error),
@@ -278,14 +301,13 @@ export const ConfigStoreModel = types
           // actually being ONLINE — an offline device's failed polls are its
           // own connectivity, already surfaced by the offline banner, and
           // flipping maintenanceMode here was how subway riders got a
-          // "Maintenance in progress" banner. getRoot reaches the sibling
-          // NetworkStore; on a detached/test store it returns this node and
-          // the optional chain lands on false ("online"), preserving the old
-          // behavior — fail toward the maintenance path, never toward
-          // silently blaming the user's device.
-          const isOffline =
-            (getRoot(store) as { networkStore?: { isOffline?: boolean } })?.networkStore
-              ?.isOffline ?? false
+          // "Maintenance in progress" banner.
+          // CHANGED 2026-09-06 (later): OR in `sawOffline` alongside the final
+          // live read — a device offline mid-ladder that reconnects right
+          // before the last attempt would otherwise read "online" at this
+          // point and flip maintenance for what was actually its own dropped
+          // connection.
+          const isOffline = readIsOffline() || sawOffline
           if (shouldFlipMaintenanceOnPollFailure({ isOffline, isLoaded: store.isLoaded })) {
             // Config was previously loaded (polling failure) — enter maintenance mode
             // so the user sees the maintenance banner instead of stale data.

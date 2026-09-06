@@ -864,21 +864,32 @@ export function App() {
     if (!rootStore) return
 
     let interval: ReturnType<typeof setInterval> | undefined
+    // In-flight guard: the 15s interval tick and the reconnect reaction below
+    // both call checkStatusAndReload, and a reconnect landing right on a tick
+    // would otherwise run two concurrent /status checks that could both
+    // resolve "ok" and both call reloadApp(). One reload is enough.
+    let checking = false
 
     const checkStatusAndReload = async () => {
-      const result = await api.getPublicStatus()
-      if (result.kind === "ok") {
-        log.info("/status recovered — reloading app to resume init")
-        if (interval) {
-          clearInterval(interval)
-          interval = undefined
+      if (checking) return
+      checking = true
+      try {
+        const result = await api.getPublicStatus()
+        if (result.kind === "ok") {
+          log.info("/status recovered — reloading app to resume init")
+          if (interval) {
+            clearInterval(interval)
+            interval = undefined
+          }
+          // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
+          // SharedObject before teardown — avoids the SharedObjectRegistry
+          // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
+          reloadApp((e) => {
+            log.warn("reloadAsync failed during outage recovery", { error: String(e) })
+          })
         }
-        // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
-        // SharedObject before teardown — avoids the SharedObjectRegistry
-        // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
-        reloadApp((e) => {
-          log.warn("reloadAsync failed during outage recovery", { error: String(e) })
-        })
+      } finally {
+        checking = false
       }
     }
 

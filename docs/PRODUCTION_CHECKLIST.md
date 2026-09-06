@@ -103,3 +103,8 @@ Step-by-step checklist for preparing and publishing a **native store release**.
       cold start — unchanged from before.
 - [ ] External-Zoom timer running while toggling airplane mode: timer modal
       survives both banner variants.
+- [ ] While the offline banner is up, content underneath (screen headers, top
+      list rows) stays readable and tappable — the banner overlays
+      `insets.top + ~39pt` for the ENTIRE offline session, not just a
+      transient moment, so a partially-hidden header is a real usability
+      problem, not a one-frame glitch.
