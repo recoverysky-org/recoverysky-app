@@ -26,6 +26,7 @@ const en = {
     ratingFeedbackMessage: "Would you tell us what went wrong? We'd love to make it right.",
     ratingContactUs: "Contact us",
     maintenanceBanner: "Maintenance in progress. Some features disabled.",
+    offlineBanner: "You're offline. Showing saved data.",
     select: "Select",
     archive: "Archive",
     delete: "Delete",
@@ -756,6 +757,8 @@ const en = {
   maintenance: {
     title: "The system is offline",
     subtitle: "We'll be back shortly. The app will resume automatically.",
+    offlineTitle: "You're offline",
+    offlineSubtitle: "Check your internet connection. The app will reconnect automatically.",
     checking: "Checking system status...",
     support: "Get Support",
   },

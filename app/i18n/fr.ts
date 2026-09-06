@@ -29,6 +29,7 @@ const fr: Translations = {
     ratingFeedbackMessage: "Tu peux nous dire ce qui n'a pas marché ? On aimerait corriger ça.",
     ratingContactUs: "Contacte-nous",
     maintenanceBanner: "Maintenance en cours. Certaines fonctionnalités sont désactivées.",
+    offlineBanner: "Vous êtes hors ligne. Affichage des données enregistrées.",
     select: "Sélectionner",
     archive: "Archiver",
     delete: "Supprimer",
@@ -735,6 +736,8 @@ const fr: Translations = {
   maintenance: {
     title: "Le système est hors ligne",
     subtitle: "Nous revenons bientôt. L'app reprendra automatiquement.",
+    offlineTitle: "Vous êtes hors ligne",
+    offlineSubtitle: "Vérifiez votre connexion Internet. L'application se reconnectera automatiquement.",
     checking: "Vérification de l'état du système...",
     support: "Obtenir de l'aide",
   },

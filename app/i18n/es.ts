@@ -28,6 +28,7 @@ const es: Translations = {
     ratingFeedbackMessage: "¿Nos cuentas qué salió mal? Nos encantaría solucionarlo.",
     ratingContactUs: "Contáctanos",
     maintenanceBanner: "Mantenimiento en curso. Algunas funciones están deshabilitadas.",
+    offlineBanner: "Sin conexión. Mostrando datos guardados.",
     select: "Seleccionar",
     archive: "Archivar",
     delete: "Eliminar",
@@ -729,6 +730,8 @@ const es: Translations = {
   maintenance: {
     title: "El sistema está fuera de línea",
     subtitle: "Volveremos pronto. La app se reanudará automáticamente.",
+    offlineTitle: "Sin conexión",
+    offlineSubtitle: "Comprueba tu conexión a internet. La aplicación se reconectará automáticamente.",
     checking: "Verificando estado del sistema...",
     support: "Obtener Soporte",
   },
