@@ -80,6 +80,7 @@ import {
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { clearAuthCredentials } from "./services/auth/secureStorage"
 import { setSentryUser } from "./services/crashReporting/sentry"
+import { initNetworkMonitoring } from "./services/network"
 import {
   initializeNotifications,
   loginNotificationUser,
@@ -449,6 +450,15 @@ export function App() {
         deviceIdRef.current = deviceId
         _rootStore.authenticationStore.setDeviceId(deviceId)
         logger.setContext({ deviceId })
+
+        // Live device network state → NetworkStore. Registered BEFORE the
+        // /status precheck below so the outage screen's Device Offline vs
+        // System Maintenance variant has a real value from its first frame
+        // (NetInfo fires the listener immediately with the current state).
+        // Also finally activates NetworkStore's existing consumers — the
+        // sync gate, the In-Person map toggle, Settings' offline row.
+        // ADDED 2026-09-06: network-aware maintenance spec.
+        initNetworkMonitoring(_rootStore)
 
         // Startup config cache — read BEFORE the /status precheck so a warm
         // cache is in hand when we decide the config path below. Opening the
