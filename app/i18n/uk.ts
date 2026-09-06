@@ -176,7 +176,6 @@ const uk: Translations = {
     selectFellowship: "Обери спільноту в Налаштуваннях",
     meetingCount: "{{count}} зустрічей",
     searchPlaceholder: "Пошук зустрічей",
-    tagsLabel: "Теги",
     clearSearch: "Очистити пошук",
     emptyNoMatches: "Немає зустрічей, що відповідають вашому запиту",
     // Filter labels

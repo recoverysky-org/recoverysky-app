@@ -6,9 +6,8 @@
  * pools are fetched at all; radius (when set, and only for in-person) swaps
  * the in-person leg onto `/schedules/nearby`; language and time are pure
  * client-side passes over what came back.
- * CHANGED 2026-09-05: plus a free-text box and a tag chip row above the grid,
- * both also pure client-side passes — see the "Free text + tag search" block
- * in filterLogic.ts.
+ * CHANGED 2026-09-05: plus a free-text box above the grid, also a pure
+ * client-side pass — see the "Free text + tag search" block in filterLogic.ts.
  *
  * This is the only surface that can show either venue type, so rows and popups
  * are chosen per meeting rather than per screen — see `renderItem`.
@@ -48,7 +47,6 @@ import { InPersonPopup } from "@/components/InPersonPopup"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
-import { TagChipRow } from "@/components/TagChipRow"
 import { Text } from "@/components/Text"
 import { TextField, type TextFieldAccessoryProps } from "@/components/TextField"
 import { MeetingWithTrex } from "@/context/MeetingContext"
@@ -78,11 +76,9 @@ import {
   DEFAULT_SEARCH_TIME,
   DEFAULT_VENUE,
   ISO_DAYS,
-  availableTags,
   buildSearchHaystack,
   matchesFreeText,
   matchesSearchTime,
-  matchesTags,
   matchesVenue,
   poolsForVenue,
   radiusAppliesTo,
@@ -226,12 +222,12 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [searchTime, setSearchTime] = useState<SearchTime>(DEFAULT_SEARCH_TIME)
   const [searchTimeModalVisible, setSearchTimeModalVisible] = useState(false)
-  // Free text + tag search (2026-09-05). Session-only like every other filter
-  // here; neither is persisted. Both apply client-side over the fetched pool —
-  // see the "Free text + tag search" block in filterLogic.ts for why there is
-  // no server leg.
+  // Free text search (2026-09-05). Session-only like every other filter here;
+  // not persisted. Applies client-side over the fetched pool — see the "Free
+  // text + tag search" block in filterLogic.ts for why there is no server leg.
+  // CHANGED 2026-09-06: a tag chip row that sat under the box was removed;
+  // typed words are the whole interface (tags still match as text).
   const [query, setQuery] = useState("")
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   const location = useDeviceLocation()
   // The app-level Location toggle's gate — the ONLY thing that can turn the
@@ -698,12 +694,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
   const queryTokens = useMemo(() => tokenizeQuery(query), [query])
 
-  // Chip vocabulary comes from the venue-filtered pool, not the text-filtered
-  // result, so typing never hides the chips (a chip that disappears while you
-  // are looking at it reads as a glitch). Selected tags the pool no longer
-  // carries stay in the row — see `availableTags`.
-  const tagOptions = useMemo(() => availableTags(meetings, selectedTags), [meetings, selectedTags])
-
   // Accessory components are memoized so TextField sees a stable component
   // TYPE across renders. An inline `(props) => <Ionicons …/>` is a new type
   // every keystroke, which makes React unmount and remount the accessory each
@@ -742,43 +732,27 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     [t, theme.colors.textDim],
   )
 
-  const handleToggleTag = useCallback((tag: string) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
-    trackEvent("listings_tag_toggled", { tag })
-  }, [])
-
   // Filter by language and time. Venue is applied upstream (in `meetings`),
   // and radius is applied server-side by the nearby endpoint — neither belongs
   // here.
-  // CHANGED 2026-09-05: free text and selected tags join the chain. Cheapest
-  // predicates first so the substring scan only runs on rows that survived the
-  // time/language/tag checks.
+  // CHANGED 2026-09-05: free text joins the chain. Cheapest predicates first
+  // so the substring scan only runs on rows that survived the time/language
+  // checks.
   const filteredMeetings = useMemo(() => {
     return meetings.filter((m) => {
       const inTimeRange = matchesSearchTime(m.millis, searchTime, startHour, endHour)
       const matchesLanguage = !selectedLanguage || m.language?.toUpperCase() === selectedLanguage
       if (!inTimeRange || !matchesLanguage) return false
-      if (!matchesTags(m.tags, selectedTags)) return false
       // The WeakMap is an optimization only: a miss (a row object the memo
       // above never saw) rebuilds inline rather than silently failing the row.
       return matchesFreeText(haystacks.get(m) ?? buildSearchHaystack(m), queryTokens)
     })
-  }, [
-    meetings,
-    searchTime,
-    startHour,
-    endHour,
-    selectedLanguage,
-    selectedTags,
-    haystacks,
-    queryTokens,
-  ])
+  }, [meetings, searchTime, startHour, endHour, selectedLanguage, haystacks, queryTokens])
 
-  // Feeds the empty state: true only when text/tags are active AND the pool
-  // they emptied was non-empty. Time/language can also empty a pool, but they
+  // Feeds the empty state: true only when a query is active AND the pool it
+  // emptied was non-empty. Time/language can also empty a pool, but they
   // predate this and keep the fellowship-worded fallback.
-  const searchNarrowedToNothing =
-    (queryTokens.length > 0 || selectedTags.length > 0) && meetings.length > 0
+  const searchNarrowedToNothing = queryTokens.length > 0 && meetings.length > 0
 
   /**
    * Distance from the device to a meeting's venue, measured on-device.
@@ -897,8 +871,8 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             <Text style={themed($errorText)}>{error}</Text>
           ) : searchNarrowedToNothing ? (
             // Added 2026-09-05: the day/venue fetch DID return meetings; the
-            // text/tag filters emptied the list. "No meetings for AA" would
-            // blame the fellowship for something the user typed.
+            // text filter emptied the list. "No meetings for AA" would blame
+            // the fellowship for something the user typed.
             <Text style={themed($emptyText)}>{t("listingsScreen:emptyNoMatches")}</Text>
           ) : (
             <Text style={themed($emptyText)}>
@@ -1179,12 +1153,12 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
   return (
     <View style={$screenContainer}>
-      {/* Search box + tag chips live OUTSIDE the FlatList on purpose. The
-          list header below is an inline useCallback that re-renders whenever
+      {/* The search box lives OUTSIDE the FlatList on purpose. The list
+          header below is an inline useCallback that re-renders whenever
           `filteredMeetings.length` changes — i.e. on every keystroke — and a
           TextInput inside a remounting header loses keyboard focus after each
-          character (the FlatList trap in CLAUDE.md). As siblings they also stay
-          pinned while the filter grid and results scroll underneath. */}
+          character (the FlatList trap in CLAUDE.md). As a sibling it also
+          stays pinned while the filter grid and results scroll underneath. */}
       <View style={themed($searchArea)}>
         <TextField
           value={query}
@@ -1200,12 +1174,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           // Only offered while there is something to clear; an always-present
           // × on an empty box is a tap target that does nothing.
           RightAccessory={query.length > 0 ? ClearAccessory : undefined}
-        />
-        <TagChipRow
-          tags={tagOptions}
-          selected={selectedTags}
-          onToggle={handleToggleTag}
-          accessibilityLabel={t("listingsScreen:tagsLabel")}
         />
       </View>
 
@@ -1588,12 +1556,11 @@ const $screenContainer: ViewStyle = {
   flex: 1,
 }
 
-// Free text + tag search strip (2026-09-05). Matches the filter cells below
-// (same card fill, border, radius, horizontal margin) so the box reads as the
-// first filter rather than a foreign control.
+// Free text search strip (2026-09-05). Matches the filter cells below (same
+// card fill, border, radius, horizontal margin) so the box reads as the first
+// filter rather than a foreign control.
 const $searchArea: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingTop: spacing.sm,
-  gap: spacing.xs,
 })
 
 const $searchField: ThemedStyle<ViewStyle> = ({ spacing }) => ({

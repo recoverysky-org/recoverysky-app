@@ -349,6 +349,7 @@ export function matchesSearchTime(
 export interface SearchableMeeting {
   name?: string | null
   description?: string | null
+  fellowship?: string | null
   venueName?: string | null
   city?: string | null
   state?: string | null
@@ -382,13 +383,16 @@ export function tokenizeQuery(query: string): string[] {
 /**
  * Fields are joined with a separator no query can contain (a newline — the
  * tokenizer splits on whitespace) so a token can't accidentally span the end
- * of one field and the start of the next. Type codes ride along so "BB" is
- * still findable by text even though the chip row deliberately omits them.
+ * of one field and the start of the next. Tags and type codes ride along so
+ * "newcomers" and "BB" are findable by text — there is no separate tag UI
+ * (a chip row was built and dropped 2026-09-06; typed words are the whole
+ * interface).
  */
 export function buildSearchHaystack(m: SearchableMeeting): string {
   const parts: string[] = [
     m.name,
     m.description,
+    m.fellowship,
     m.venueName,
     m.city,
     m.state,
@@ -407,37 +411,4 @@ export function buildSearchHaystack(m: SearchableMeeting): string {
 /** Every token must appear somewhere in the haystack (AND). No tokens → match. */
 export function matchesFreeText(haystack: string, tokens: readonly string[]): boolean {
   return tokens.every((tok) => haystack.includes(tok))
-}
-
-/** Every selected tag must be on the meeting (AND). Nothing selected → match. */
-export function matchesTags(
-  tags: readonly string[] | null | undefined,
-  selected: readonly string[],
-): boolean {
-  if (selected.length === 0) return true
-  if (!tags || tags.length === 0) return false
-  return selected.every((s) => tags.includes(s))
-}
-
-/**
- * The chip row's vocabulary: every distinct tag in the pool, most frequent
- * first so the useful ones are reachable without scrolling, alphabetical
- * within a count. Selected tags the pool no longer carries (the user changed
- * day or venue) are appended so the chip that is filtering the list down to
- * nothing stays on screen and can be deselected — hiding it would leave an
- * empty list with no visible cause.
- */
-export function availableTags(
-  meetings: readonly SearchableMeeting[],
-  selected: readonly string[],
-): string[] {
-  const counts = new Map<string, number>()
-  for (const m of meetings) {
-    for (const tag of m.tags ?? []) counts.set(tag, (counts.get(tag) ?? 0) + 1)
-  }
-  const fromPool = [...counts.entries()]
-    .sort(([a, ca], [b, cb]) => cb - ca || a.localeCompare(b))
-    .map(([tag]) => tag)
-  const orphans = selected.filter((s) => !counts.has(s))
-  return [...fromPool, ...orphans]
 }

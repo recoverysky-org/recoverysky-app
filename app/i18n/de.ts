@@ -178,7 +178,6 @@ const de: Translations = {
     selectFellowship: "Wähle eine Gemeinschaft in den Einstellungen",
     meetingCount: "{{count}} Meetings",
     searchPlaceholder: "Meetings suchen",
-    tagsLabel: "Tags",
     clearSearch: "Suche löschen",
     emptyNoMatches: "Keine Meetings entsprechen deiner Suche",
     // Filter labels

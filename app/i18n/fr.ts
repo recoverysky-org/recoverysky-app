@@ -180,7 +180,6 @@ const fr: Translations = {
     selectFellowship: "Choisis une fraternité dans les Réglages",
     meetingCount: "{{count}} réunions",
     searchPlaceholder: "Rechercher des réunions",
-    tagsLabel: "Tags",
     clearSearch: "Effacer la recherche",
     emptyNoMatches: "Aucune réunion ne correspond à votre recherche",
     // Filter labels

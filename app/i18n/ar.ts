@@ -174,7 +174,6 @@ const ar: Translations = {
     selectFellowship: "اختر زمالة في الإعدادات",
     meetingCount: "{{count}} اجتماعات",
     searchPlaceholder: "البحث عن اجتماعات",
-    tagsLabel: "الوسوم",
     clearSearch: "مسح البحث",
     emptyNoMatches: "لا توجد اجتماعات تطابق بحثك",
     // Filter labels
