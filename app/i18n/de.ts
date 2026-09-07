@@ -29,6 +29,7 @@ const de: Translations = {
       "Magst du uns sagen, was schiefgelaufen ist? Wir möchten es gern in Ordnung bringen.",
     ratingContactUs: "Kontaktiere uns",
     maintenanceBanner: "Wartung läuft. Einige Funktionen sind deaktiviert.",
+    offlineBanner: "Du bist offline. Gespeicherte Daten werden angezeigt.",
     select: "Auswählen",
     archive: "Archivieren",
     delete: "Löschen",
@@ -737,6 +738,8 @@ const de: Translations = {
   maintenance: {
     title: "Das System ist offline",
     subtitle: "Wir sind bald zurück. Die App wird automatisch fortgesetzt.",
+    offlineTitle: "Du bist offline",
+    offlineSubtitle: "Überprüfe deine Internetverbindung. Die App verbindet sich automatisch neu.",
     checking: "Systemstatus wird geprüft...",
     support: "Support erhalten",
   },

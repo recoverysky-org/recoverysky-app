@@ -1,7 +1,8 @@
 import { Platform } from "react-native"
-import { flow, Instance, SnapshotOut, types } from "mobx-state-tree"
+import { flow, getRoot, Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { api, type ServerConfig } from "@/services/api"
+import { shouldFlipMaintenanceOnPollFailure } from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
 import { DEFAULT_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
 
@@ -53,17 +54,11 @@ export const ConfigStoreModel = types
     /** Umami analytics URL */
     umamiUrl: types.optional(types.string, process.env.EXPO_PUBLIC_UMAMI_URL || ""),
     /** Umami website ID */
-    umamiWebsiteId: types.optional(
-      types.string,
-      process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || "",
-    ),
+    umamiWebsiteId: types.optional(types.string, process.env.EXPO_PUBLIC_UMAMI_WEBSITE_ID || ""),
     /** Umami X-API-Key */
     umamiApiKey: types.optional(types.string, process.env.EXPO_PUBLIC_UMAMI_X_API_KEY || ""),
     /** Whether app review prompts are enabled */
-    reviewEnabled: types.optional(
-      types.boolean,
-      process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true",
-    ),
+    reviewEnabled: types.optional(types.boolean, process.env.EXPO_PUBLIC_REVIEW_ENABLED === "true"),
     /** Server-controlled maintenance mode */
     maintenanceMode: types.optional(types.boolean, false),
     /** Custom maintenance message from server */
@@ -182,8 +177,7 @@ export const ConfigStoreModel = types
     function applyServerConfig(config: ServerConfig, opts: { fromCache: boolean }) {
       if (config.AGENT_URL) store.agentUrl = config.AGENT_URL
       if (config.SOCIAL_URL) store.socialUrl = config.SOCIAL_URL
-      if (config.REVENUE_CAT_API_TEST_KEY)
-        store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
+      if (config.REVENUE_CAT_API_TEST_KEY) store.revenueCatTestKey = config.REVENUE_CAT_API_TEST_KEY
       if (config.REVENUE_CAT_API_APPLE_KEY)
         store.revenueCatAppleKey = config.REVENUE_CAT_API_APPLE_KEY
       if (config.REVENUE_CAT_API_GOOGLE_KEY)
@@ -192,8 +186,7 @@ export const ConfigStoreModel = types
       if (config.UMAMI_URL) store.umamiUrl = config.UMAMI_URL
       if (config.UMAMI_WEBSITE_ID) store.umamiWebsiteId = config.UMAMI_WEBSITE_ID
       if (config.UMAMI_X_API_KEY) store.umamiApiKey = config.UMAMI_X_API_KEY
-      if (config.REVIEW_ENABLED !== undefined)
-        store.reviewEnabled = config.REVIEW_ENABLED
+      if (config.REVIEW_ENABLED !== undefined) store.reviewEnabled = config.REVIEW_ENABLED
       if (!opts.fromCache) {
         store.maintenanceMode = config.MAINTENANCE_MODE ?? false
         store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
@@ -245,6 +238,27 @@ export const ConfigStoreModel = types
         const MAX_RETRIES = 3
         const RETRY_DELAYS = [2000, 4000, 8000]
 
+        // Reads the live NetworkStore value at the moment it's called. getRoot
+        // reaches the sibling NetworkStore; on a detached/test store it
+        // returns this node and the optional chain lands on false ("online"),
+        // preserving the old behavior — fail toward the maintenance path,
+        // never toward silently blaming the user's device.
+        const readIsOffline = () =>
+          (getRoot(store) as { networkStore?: { isOffline?: boolean } })?.networkStore?.isOffline ??
+          false
+
+        // Latches true the moment ANY attempt observes the device offline.
+        // The retry ladder spans ~14s (2s/4s/8s delays) — a device that drops
+        // connection mid-poll and reconnects before the ladder exhausts would
+        // fail every attempt for device reasons, yet a single END-of-ladder
+        // read of isOffline would see "online" and wrongly flip the
+        // maintenance banner this whole gate exists to prevent. Latching on
+        // every failed attempt closes that window. (The reconnect itself can
+        // also be swallowed by fetchConfig's own isLoading early-return at
+        // the top of this flow, so this latch is the backstop, not the only
+        // defense.)
+        let sawOffline = false
+
         try {
           for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
@@ -262,8 +276,10 @@ export const ConfigStoreModel = types
                 return // success
               }
 
+              sawOffline = sawOffline || readIsOffline()
               log.warn("Config fetch failed", { attempt, kind: result.kind })
             } catch (error) {
+              sawOffline = sawOffline || readIsOffline()
               log.error("Config fetch error", {
                 attempt,
                 error: error instanceof Error ? error.message : String(error),
@@ -280,16 +296,29 @@ export const ConfigStoreModel = types
             }
           }
 
-          // All retries exhausted
-          if (store.isLoaded) {
+          // All retries exhausted.
+          // CHANGED 2026-09-06: the runtime flip is gated on the device
+          // actually being ONLINE — an offline device's failed polls are its
+          // own connectivity, already surfaced by the offline banner, and
+          // flipping maintenanceMode here was how subway riders got a
+          // "Maintenance in progress" banner.
+          // CHANGED 2026-09-06 (later): OR in `sawOffline` alongside the final
+          // live read — a device offline mid-ladder that reconnects right
+          // before the last attempt would otherwise read "online" at this
+          // point and flip maintenance for what was actually its own dropped
+          // connection.
+          const isOffline = readIsOffline() || sawOffline
+          if (shouldFlipMaintenanceOnPollFailure({ isOffline, isLoaded: store.isLoaded })) {
             // Config was previously loaded (polling failure) — enter maintenance mode
-            // so the user sees the maintenance screen instead of stale data.
+            // so the user sees the maintenance banner instead of stale data.
             log.warn(
               "Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode",
             )
             store.maintenanceMode = true
             store.maintenanceMessage = ""
             store.maintenanceUntil = ""
+          } else if (store.isLoaded) {
+            log.warn("Config poll failed while device offline — not flipping maintenance mode")
           } else {
             // Initial startup failure — caller (app.tsx) handles via setOutageMode()
             log.warn(

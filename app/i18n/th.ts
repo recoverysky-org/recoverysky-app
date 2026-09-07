@@ -27,6 +27,7 @@ const th: Translations = {
     ratingFeedbackMessage: "ช่วยบอกเราหน่อยได้ไหมว่ามีอะไรผิดพลาด เรายินดีที่จะแก้ไขให้",
     ratingContactUs: "ติดต่อเรา",
     maintenanceBanner: "กำลังบำรุงรักษา บางคุณสมบัติถูกปิดใช้งาน",
+    offlineBanner: "คุณออฟไลน์อยู่ กำลังแสดงข้อมูลที่บันทึกไว้",
     select: "เลือก",
     archive: "เก็บถาวร",
     delete: "ลบ",
@@ -719,6 +720,8 @@ const th: Translations = {
   maintenance: {
     title: "ระบบออฟไลน์",
     subtitle: "เราจะกลับมาเร็ว ๆ นี้ แอปจะกลับมาทำงานโดยอัตโนมัติ",
+    offlineTitle: "คุณออฟไลน์อยู่",
+    offlineSubtitle: "โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แอปจะเชื่อมต่อใหม่โดยอัตโนมัติ",
     checking: "กำลังตรวจสอบสถานะระบบ...",
     support: "รับการสนับสนุน",
   },

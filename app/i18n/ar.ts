@@ -28,6 +28,7 @@ const ar: Translations = {
     ratingFeedbackMessage: "هل تخبرنا بما حدث؟ يسعدنا أن نصحح الأمر.",
     ratingContactUs: "تواصل معنا",
     maintenanceBanner: "جارٍ إجراء الصيانة. بعض الميزات معطّلة.",
+    offlineBanner: "أنت غير متصل. يتم عرض البيانات المحفوظة.",
     select: "تحديد",
     archive: "أرشفة",
     delete: "حذف",
@@ -715,6 +716,8 @@ const ar: Translations = {
   maintenance: {
     title: "النظام غير متصل",
     subtitle: "سنعود قريباً. سيتم استئناف التطبيق تلقائياً.",
+    offlineTitle: "أنت غير متصل بالإنترنت",
+    offlineSubtitle: "تحقق من اتصالك بالإنترنت. سيُعاد الاتصال تلقائيًا.",
     checking: "جارٍ التحقق من حالة النظام...",
     support: "الحصول على الدعم",
   },

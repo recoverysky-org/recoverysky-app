@@ -28,6 +28,7 @@ const pt: Translations = {
     ratingFeedbackMessage: "Pode nos contar o que deu errado? Adoraríamos resolver.",
     ratingContactUs: "Fale conosco",
     maintenanceBanner: "Manutenção em andamento. Alguns recursos estão desativados.",
+    offlineBanner: "Você está offline. Mostrando dados salvos.",
     select: "Selecionar",
     archive: "Arquivar",
     delete: "Excluir",
@@ -729,6 +730,8 @@ const pt: Translations = {
   maintenance: {
     title: "O sistema está offline",
     subtitle: "Voltaremos em breve. O app será retomado automaticamente.",
+    offlineTitle: "Você está offline",
+    offlineSubtitle: "Verifique sua conexão com a internet. O aplicativo se reconectará automaticamente.",
     checking: "Verificando status do sistema...",
     support: "Obter Suporte",
   },
