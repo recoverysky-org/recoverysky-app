@@ -925,6 +925,11 @@ const en = {
     // phrases above (which stay as the a11y announcement for the whole switch).
     viewList: "List",
     viewMap: "Map",
+    // Sort pill under the In-Person filter grid (2026-09-06). Two short nouns
+    // only — SegmentedPill shows both halves at once beside the label.
+    sortBy: "Sort by",
+    sortDistance: "Distance",
+    sortStart: "Start",
     // Result count beside the segment title. Only `_one`/`_other` exist because
     // `Translations = typeof en` forbids a locale from carrying extra keys, so
     // ru/uk/ar cannot add their own `_few`/`_many` forms — the same two-form

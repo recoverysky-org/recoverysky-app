@@ -16,10 +16,11 @@ import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
 import { MapListToggle, type InPersonViewMode } from "@/components/MapListToggle"
+import { SegmentedPill } from "@/components/SegmentedPill"
 import { Text } from "@/components/Text"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import type { NearbyBannerReason } from "@/utils/nearbyLogic"
+import type { InPersonSortOrder, NearbyBannerReason } from "@/utils/nearbyLogic"
 
 // ============================================================================
 // List header
@@ -97,6 +98,15 @@ export interface InPersonListHeaderProps {
   /** Offline → disabled (spec Error handling #3) */
   mapToggleDisabled: boolean
   onToggleView: () => void
+  /**
+   * ADDED 2026-09-06: the Distance / Start sort pill under the filter grid.
+   * The screen shows it only in list mode AND nearby mode — the map has no
+   * order, and the day-browse fallback's rows carry no `distance_m`, so a
+   * "Distance" half there would promise an order it cannot deliver.
+   */
+  showSortToggle: boolean
+  sortOrder: InPersonSortOrder
+  onSelectSort: (order: InPersonSortOrder) => void
 }
 
 export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
@@ -121,6 +131,9 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
     viewMode,
     mapToggleDisabled,
     onToggleView,
+    showSortToggle,
+    sortOrder,
+    onSelectSort,
   }) {
     const { t } = useTranslation()
     const { themed, theme } = useAppTheme()
@@ -309,6 +322,31 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           </TouchableOpacity>
         </View>
 
+        {/* Sort row (Jenova, 2026-09-06): the same pill as list/map, so the two
+          controls read as one family. It sits UNDER the grid rather than in
+          the title row because the title row is full — "In-Person" plus the
+          list/map pill already spans a small phone, and two pills up there
+          would wrap. Right-aligned so it lines up under the Radius/Time cells
+          and leaves the label reading like the grid's own "Label  Value". */}
+        {showSortToggle && (
+          <View style={themed($sortRow)}>
+            <Text style={themed($selectorLabel)} tx="inPersonScreen:sortBy" />
+            <SegmentedPill<InPersonSortOrder>
+              value={sortOrder}
+              accessibilityLabel={t("inPersonScreen:sortBy")}
+              options={[
+                {
+                  value: "distance",
+                  label: t("inPersonScreen:sortDistance"),
+                  icon: "navigate-outline",
+                },
+                { value: "start", label: t("inPersonScreen:sortStart"), icon: "time-outline" },
+              ]}
+              onSelect={onSelectSort}
+            />
+          </View>
+        )}
+
         {/* Fallback banner — slim, tappable, and the only place the user is told
           why the list isn't distance-sorted. Absent in nearby/locating modes.
           CHANGED 2026-08-08: `locationDisabled` is OR'd in here so the banner
@@ -386,6 +424,17 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginHorizontal: spacing.md,
   marginVertical: spacing.sm,
   gap: spacing.sm,
+})
+
+// Same horizontal inset as `$selectorRow` so the pill's right edge sits flush
+// under the grid's right column. No top margin: the grid row above already
+// carries `marginVertical: spacing.sm`, which is the gap we want.
+const $sortRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginHorizontal: spacing.md,
+  marginBottom: spacing.sm,
 })
 
 const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

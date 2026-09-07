@@ -6,6 +6,9 @@
  * "Test Runner Split"). I/O lives in useNearbySchedules.
  */
 
+// Relative, not `@/` — vitest has no alias (CLAUDE.md "Test Runner Split").
+import { sortByFeedback, type FeedbackSortable } from "./feedbackSort"
+
 export type NearbyMode = "locating" | "nearby" | "fallback"
 
 export interface NearbyModeInput {
@@ -295,6 +298,57 @@ export function sortByDayThenLocalTime<T extends { millis: number }>(
     // `sortByLocalTimePmFirst` for why the day starts at noon.
     return pmFirstMinutes(a.millis) - pmFirstMinutes(b.millis)
   })
+}
+
+/**
+ * The In-Person list's two sort orders. `"distance"` is nearest-first, the
+ * segment's default and its whole promise; `"start"` is by local start time.
+ *
+ * ADDED 2026-09-06 (Jenova): a second pill beside the list/map one, so a user
+ * planning their day can read the list as a timetable instead of a radius.
+ * Kept to exactly two values on purpose — the pill design that carries it
+ * (`SegmentedPill`) shows every option at once, and a third would not fit
+ * beside its label on a small phone.
+ */
+export type InPersonSortOrder = "distance" | "start"
+
+export const IN_PERSON_SORT_ORDERS: InPersonSortOrder[] = ["distance", "start"]
+
+/** MMKV round-trip guard: anything that isn't a known order is the default. */
+export function parseInPersonSortOrder(raw: string | undefined | null): InPersonSortOrder {
+  return raw === "start" ? "start" : "distance"
+}
+
+/**
+ * Apply the user's chosen sort to the In-Person list, favourites-first within
+ * it (`sortByFeedback` is stable, so it layers over the primary key exactly
+ * as `useNearbySchedules` does for the default order — see the comment there).
+ *
+ * `"start"` keys on the same pm-first clock the Search segment uses
+ * (`sortByLocalTimePmFirst`), and under "Any" day rolls day-first from today
+ * (`sortByDayThenLocalTime`) so seven days don't interleave into one clock
+ * order. Deliberately NOT `sortByLocalTime`, the midnight-based key the
+ * day-browse fallback still uses: that one buries 10pm meetings at the bottom,
+ * which is the defect the pm-first rotation exists to fix. Callers only offer
+ * this sort in nearby mode, where every row carries a `distance_m`, so the
+ * fallback's ordering is a separate question.
+ *
+ * `"distance"` re-sorts rather than trusting the incoming order, so the result
+ * is correct no matter what the caller hands in (idempotent over an
+ * already-sorted list, and the lists are small).
+ *
+ * @param todayIsoDow - injected, not read from the clock, so this stays pure.
+ */
+export function sortInPerson<T extends { millis: number; distance_m?: number } & FeedbackSortable>(
+  items: T[],
+  order: InPersonSortOrder,
+  isAnyDay: boolean,
+  todayIsoDow: number,
+): T[] {
+  if (order === "distance") return sortByFeedback(sortByDistance(items))
+  return sortByFeedback(
+    isAnyDay ? sortByDayThenLocalTime(items, todayIsoDow) : sortByLocalTimePmFirst(items),
+  )
 }
 
 const EARTH_RADIUS_M = 6_371_008.8

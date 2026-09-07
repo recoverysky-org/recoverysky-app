@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react-native"
+import { fireEvent, render, screen } from "@testing-library/react-native"
 
 import { InPersonListHeader, type InPersonListHeaderProps } from "./InPersonListHeader"
 
@@ -39,6 +39,9 @@ const baseProps: InPersonListHeaderProps = {
   viewMode: "list",
   mapToggleDisabled: false,
   onToggleView: jest.fn(),
+  showSortToggle: false,
+  sortOrder: "distance",
+  onSelectSort: jest.fn(),
 }
 
 describe("InPersonListHeader result-count slot", () => {
@@ -72,5 +75,29 @@ describe("InPersonListHeader result-count slot", () => {
     render(<InPersonListHeader {...baseProps} showSpinner />)
     expect(screen.queryByTestId("result-count")).toBeNull()
     expect(screen.queryByTestId("result-count-loading")).toBeNull()
+  })
+})
+
+describe("InPersonListHeader sort pill", () => {
+  it("is absent unless the screen asks for it", () => {
+    // Map mode and the day-browse fallback both hide it — see the prop comment.
+    render(<InPersonListHeader {...baseProps} />)
+    expect(screen.queryByLabelText("Distance")).toBeNull()
+    expect(screen.queryByLabelText("Start")).toBeNull()
+  })
+
+  it("shows both orders with the active one selected", () => {
+    render(<InPersonListHeader {...baseProps} showSortToggle sortOrder="start" />)
+    expect(screen.getByLabelText("Distance").props.accessibilityState?.selected).toBe(false)
+    expect(screen.getByLabelText("Start").props.accessibilityState?.selected).toBe(true)
+  })
+
+  it("reports the picked order, and only for the inactive half", () => {
+    const onSelectSort = jest.fn()
+    render(<InPersonListHeader {...baseProps} showSortToggle onSelectSort={onSelectSort} />)
+    fireEvent.press(screen.getByLabelText("Distance"))
+    expect(onSelectSort).not.toHaveBeenCalled()
+    fireEvent.press(screen.getByLabelText("Start"))
+    expect(onSelectSort).toHaveBeenCalledWith("start")
   })
 })

@@ -8,6 +8,7 @@ import {
   formatDistance,
   isNearlySamePosition,
   localIsoDow,
+  parseInPersonSortOrder,
   resolveBannerReason,
   resolveMode,
   pmFirstMinutes,
@@ -15,6 +16,7 @@ import {
   sortByDistance,
   sortByLocalTime,
   sortByLocalTimePmFirst,
+  sortInPerson,
 } from "./nearbyLogic"
 
 describe("resolveMode", () => {
@@ -521,5 +523,85 @@ describe("sortByDayThenLocalTime", () => {
       // Today always leads, and the sequence walks forward from it.
       expect(sorted[0].id, `today ${today}`).toBe(String(today))
     }
+  })
+})
+
+describe("parseInPersonSortOrder", () => {
+  it("round-trips the two known orders", () => {
+    expect(parseInPersonSortOrder("distance")).toBe("distance")
+    expect(parseInPersonSortOrder("start")).toBe("start")
+  })
+
+  it("falls back to distance for anything else, including nothing stored", () => {
+    expect(parseInPersonSortOrder(undefined)).toBe("distance")
+    expect(parseInPersonSortOrder(null)).toBe("distance")
+    expect(parseInPersonSortOrder("time")).toBe("distance")
+  })
+})
+
+describe("sortInPerson", () => {
+  // Local-clock helper: `sortInPerson`'s time keys read wall-clock hours, so
+  // build the instants from local components rather than ISO strings.
+  const at = (dow: number, h: number, m = 0): number => {
+    // 2026-08-10 is a Monday; dow 1..7 → Mon..Sun of that week.
+    const d = new Date(2026, 7, 10 + (dow - 1), h, m)
+    return d.getTime()
+  }
+  const noFb = { feedback: null }
+  const fave = { feedback: { loves: true, rates: 0, joins: 0 } }
+
+  const rows = [
+    { id: "far-early", millis: at(1, 9), distance_m: 5000, ...noFb },
+    { id: "near-late", millis: at(1, 22), distance_m: 100, ...noFb },
+    { id: "mid-noon", millis: at(1, 12), distance_m: 2000, ...noFb },
+  ]
+
+  it("distance: nearest first", () => {
+    expect(sortInPerson(rows, "distance", false, 1).map((r) => r.id)).toEqual([
+      "near-late",
+      "mid-noon",
+      "far-early",
+    ])
+  })
+
+  it("start: pm-first clock order on a single day", () => {
+    // Noon leads, 10pm follows, 9am is last — the Search segment's rotation,
+    // not a midnight clock (which would put 9am first).
+    expect(sortInPerson(rows, "start", false, 1).map((r) => r.id)).toEqual([
+      "mid-noon",
+      "near-late",
+      "far-early",
+    ])
+  })
+
+  it("start + any day: rolls day-first from today, then pm-first within a day", () => {
+    const week = [
+      { id: "wed-9am", millis: at(3, 9), distance_m: 1, ...noFb },
+      { id: "tue-9pm", millis: at(2, 21), distance_m: 2, ...noFb },
+      { id: "tue-1pm", millis: at(2, 13), distance_m: 3, ...noFb },
+      { id: "mon-8pm", millis: at(1, 20), distance_m: 4, ...noFb },
+    ]
+    // Today is Tuesday: Tuesday leads, Monday is six days out.
+    expect(sortInPerson(week, "start", true, 2).map((r) => r.id)).toEqual([
+      "tue-1pm",
+      "tue-9pm",
+      "wed-9am",
+      "mon-8pm",
+    ])
+  })
+
+  it("keeps favourites on top under either order", () => {
+    const withFave = [
+      ...rows,
+      { id: "fave-far-early", millis: at(1, 8), distance_m: 9000, ...fave },
+    ]
+    expect(sortInPerson(withFave, "distance", false, 1)[0].id).toBe("fave-far-early")
+    expect(sortInPerson(withFave, "start", false, 1)[0].id).toBe("fave-far-early")
+  })
+
+  it("does not mutate its input", () => {
+    const copy = [...rows]
+    sortInPerson(rows, "start", false, 1)
+    expect(rows).toEqual(copy)
   })
 })

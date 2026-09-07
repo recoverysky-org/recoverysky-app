@@ -77,7 +77,14 @@ import {
 } from "@/utils/filterLogic"
 import { shouldShowMapToggle } from "@/utils/inPersonMapLogic"
 import { logger } from "@/utils/logger"
-import { formatDistance, RADIUS_OPTIONS_KM } from "@/utils/nearbyLogic"
+import {
+  formatDistance,
+  localIsoDow,
+  parseInPersonSortOrder,
+  RADIUS_OPTIONS_KM,
+  sortInPerson,
+  type InPersonSortOrder,
+} from "@/utils/nearbyLogic"
 import { loadString, saveString } from "@/utils/storage"
 
 const log = logger.child({ module: "InPersonScreen" })
@@ -101,6 +108,13 @@ const VIEW_MODE_STORAGE_KEY = "inperson.viewMode"
 
 const loadViewMode = (): InPersonViewMode =>
   loadString(VIEW_MODE_STORAGE_KEY) === "map" ? "map" : "list"
+
+/** MMKV key for the persisted Distance / Start list order — same class of
+ * display preference as the view mode above, and equally NOT location data. */
+const SORT_ORDER_STORAGE_KEY = "inperson.sortOrder"
+
+const loadSortOrder = (): InPersonSortOrder =>
+  parseInPersonSortOrder(loadString(SORT_ORDER_STORAGE_KEY))
 
 // ============================================================================
 // Radius selector modal
@@ -525,12 +539,20 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
   const [viewMode, setViewModeState] = useState<InPersonViewMode>(loadViewMode)
+  const [sortOrder, setSortOrderState] = useState<InPersonSortOrder>(loadSortOrder)
   /** Meetings at a multi-meeting venue pin awaiting a chooser pick */
   const [venueMeetings, setVenueMeetings] = useState<MeetingWithTrex[]>([])
 
   const setViewMode = useCallback((next: InPersonViewMode) => {
     setViewModeState(next)
     saveString(VIEW_MODE_STORAGE_KEY, next)
+  }, [])
+
+  const handleSelectSort = useCallback((next: InPersonSortOrder) => {
+    setSortOrderState(next)
+    saveString(SORT_ORDER_STORAGE_KEY, next)
+    // PRIVACY: a sort choice is a display preference, not a position.
+    trackEvent("inperson_sort_changed", { sort: next })
   }, [])
 
   /**
@@ -825,12 +847,24 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // of stale rows. Enforced at the screen, not threaded into
   // `useNearbySchedules` or the pure `nearbyLogic` module — same "app-level
   // gate sits above the data" rule the banner fix above already follows.
+  //
+  // CHANGED 2026-09-06: the user's Distance / Start pick is applied here too.
+  // `useNearbySchedules` hands over a nearest-first list; re-sorting at this
+  // choke point (rather than inside the hook) keeps the hook's ordering the
+  // single documented default and means a sort change never triggers a fetch.
+  // Only the nearby list is re-sorted — the day-browse fallback has no
+  // `distance_m`, so its time order stands and the pill is hidden for it.
   const visibleMeetings = useMemo(() => {
     if (!profileStore.locationEnabled) return []
-    return shortTime === DEFAULT_SHORT_TIME
-      ? meetings
-      : meetings.filter((m) => matchesShortTime(m.millis, shortTime))
-  }, [meetings, shortTime, profileStore.locationEnabled])
+    const filtered =
+      shortTime === DEFAULT_SHORT_TIME
+        ? meetings
+        : meetings.filter((m) => matchesShortTime(m.millis, shortTime))
+    if (mode !== "nearby") return filtered
+    // `localIsoDow` is the weekday reader the rest of this segment uses; Date.now()
+    // is never 0, so the null branch is unreachable and the fallback is inert.
+    return sortInPerson(filtered, sortOrder, isAnyDay, localIsoDow(Date.now()) ?? 1)
+  }, [meetings, shortTime, profileStore.locationEnabled, mode, sortOrder, isAnyDay])
 
   const handleDaySelect = useCallback(
     (day: number) => {
@@ -1181,6 +1215,10 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // put on it".
   const showMapToggleNow = showMapToggle && profileStore.locationEnabled
 
+  // The map has no order and the day-browse fallback has no distances (see
+  // the prop comment on InPersonListHeaderProps.showSortToggle).
+  const showSortToggle = effectiveViewMode === "list" && mode === "nearby"
+
   return (
     <View style={$screenContainer}>
       {/* The SAME header renders in both modes — deliberately. The filters,
@@ -1220,6 +1258,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
             // since effectiveViewMode is narrowed to "map" in this branch.
             mapToggleDisabled={mapToggleDisabled}
             onToggleView={handleToggleView}
+            showSortToggle={showSortToggle}
+            sortOrder={sortOrder}
+            onSelectSort={handleSelectSort}
           />
           <InPersonMapView
             meetings={visibleMeetings}
@@ -1258,6 +1299,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               // See mapToggleDisabled definition above.
               mapToggleDisabled={mapToggleDisabled}
               onToggleView={handleToggleView}
+              showSortToggle={showSortToggle}
+              sortOrder={sortOrder}
+              onSelectSort={handleSelectSort}
             />
           }
           ItemSeparatorComponent={ItemSeparatorComponent}

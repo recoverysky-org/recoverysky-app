@@ -24,6 +24,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **Distance / Start sort pill on the Meetings → In-Person list.** A second
+  segmented control, styled like the List / Map one, sits under the filter
+  grid and switches the nearby list between nearest-first (the default) and
+  start-time order — pm-first on a single day, day-by-day from today under
+  "Any" day, favourites still on top in both. The choice persists across
+  launches. Hidden on the map (no order to apply) and in the day-browse
+  fallback (no distances to sort by). The list/map pill now shares its
+  chrome with the new one via `SegmentedPill`.
 - **Free-text search on the Meetings → Search segment.** A search box now
   sits above the filter grid and matches every word you type against a
   meeting's name, description, fellowship, venue, city, region, location
