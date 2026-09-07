@@ -92,14 +92,16 @@ export interface InPersonListHeaderProps {
    * always means zero results, never "not yet".
    */
   resultCount: number
-  /** Render the list/map toggle (config kill switch + platform rule) */
+  /** Render the list/map toggle (config kill switch + platform rule). Sits in
+   * the controls row under the filter grid, left of the sort pill. */
   showMapToggle: boolean
   viewMode: InPersonViewMode
   /** Offline → disabled (spec Error handling #3) */
   mapToggleDisabled: boolean
   onToggleView: () => void
   /**
-   * ADDED 2026-09-06: the Distance / Start sort pill under the filter grid.
+   * ADDED 2026-09-06: the Distance / Start sort pill, right half of the
+   * controls row under the filter grid.
    * The screen shows it only in list mode AND nearby mode — the map has no
    * order, and the day-browse fallback's rows carry no `distance_m`, so a
    * "Distance" half there would promise an order it cannot deliver.
@@ -189,11 +191,11 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
 
           CHANGED 2026-08-12: the settings gear that used to close this row is
           gone from all three segments (it duplicated the Settings tab a
-          thumb-width away). The map/list toggle inherits the slot and is now
-          the only control here — which is the point: it was previously read as
-          the left half of a two-glyph cluster, and users weren't finding it.
-          $headerActions is kept rather than collapsed to a bare child, so
-          adding a second control back doesn't mean re-deriving the row. */}
+          thumb-width away). The map/list toggle inherited the slot.
+          CHANGED 2026-09-07 (Jenova): the map/list toggle moved down to the
+          controls row under the filter grid, beside the new sort pill, so the
+          two pills sit as one family on one line. This row is now title + count
+          only, which is the same shape as the Live and Search headers. */}
         <View style={themed($header)}>
           {/* Title + count stack together so the count reads as a subtitle of
             the heading rather than as a third control competing with the pill.
@@ -221,15 +223,6 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
                   {t("inPersonScreen:resultCount", { count: resultCount })}
                 </Text>
               )
-            )}
-          </View>
-          <View style={$headerActions}>
-            {showMapToggle && (
-              <MapListToggle
-                viewMode={viewMode}
-                disabled={mapToggleDisabled}
-                onToggle={onToggleView}
-              />
             )}
           </View>
         </View>
@@ -322,28 +315,48 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           </TouchableOpacity>
         </View>
 
-        {/* Sort row (Jenova, 2026-09-06): the same pill as list/map, so the two
-          controls read as one family. It sits UNDER the grid rather than in
-          the title row because the title row is full — "In-Person" plus the
-          list/map pill already spans a small phone, and two pills up there
-          would wrap. Right-aligned so it lines up under the Radius/Time cells
-          and leaves the label reading like the grid's own "Label  Value". */}
-        {showSortToggle && (
-          <View style={themed($sortRow)}>
-            <Text style={themed($selectorLabel)} tx="inPersonScreen:sortBy" />
-            <SegmentedPill<InPersonSortOrder>
-              value={sortOrder}
-              accessibilityLabel={t("inPersonScreen:sortBy")}
-              options={[
-                {
-                  value: "distance",
-                  label: t("inPersonScreen:sortDistance"),
-                  icon: "navigate-outline",
-                },
-                { value: "start", label: t("inPersonScreen:sortStart"), icon: "time-outline" },
-              ]}
-              onSelect={onSelectSort}
-            />
+        {/* Controls row: list/map pill on the left, Distance/Start sort pill on
+          the right. Both are SegmentedPill, so they read as one family.
+
+          ADDED 2026-09-06 as the sort row, with a "Sort by" label on the left.
+          CHANGED 2026-09-07 (Jenova): the list/map pill replaced that label.
+          It used to close the title row, but "In-Person" plus a pill already
+          spanned a small phone, and a second pill up there would have wrapped;
+          two pills on their own line under the grid fit and sit flush with the
+          grid's two columns. Rendered whenever EITHER pill has something to
+          show — on the map the sort half is empty but the way back to the list
+          must still be here, and in the day-browse fallback the sort pill is
+          hidden but the map one may not be. The map slot is a plain spacer when
+          hidden so the sort pill still lands under the right column. */}
+        {(showMapToggle || showSortToggle) && (
+          <View style={themed($controlsRow)}>
+            <View>
+              {showMapToggle && (
+                <MapListToggle
+                  viewMode={viewMode}
+                  disabled={mapToggleDisabled}
+                  onToggle={onToggleView}
+                />
+              )}
+            </View>
+            {showSortToggle && (
+              <SegmentedPill<InPersonSortOrder>
+                value={sortOrder}
+                // The visible "Sort by" label is gone, so this is the only
+                // place a screen-reader user hears what the halves choose
+                // between. Keep it.
+                accessibilityLabel={t("inPersonScreen:sortBy")}
+                options={[
+                  {
+                    value: "distance",
+                    label: t("inPersonScreen:sortDistance"),
+                    icon: "navigate-outline",
+                  },
+                  { value: "start", label: t("inPersonScreen:sortStart"), icon: "time-outline" },
+                ]}
+                onSelect={onSelectSort}
+              />
+            )}
           </View>
         )}
 
@@ -406,18 +419,6 @@ const $headerTitleGroup: ViewStyle = {
   flexShrink: 1,
 }
 
-// End of the title row. Was toggle + settings gear side by side, hence the
-// fixed 16px gap that kept two bare 22px glyphs from reading as one control.
-// CHANGED 2026-08-12: the gear is gone and the map/list pill is the only child
-// left, so the gap is inert today. Kept — with the row — because a second
-// control here is a live possibility and rebuilding the row for it is worse
-// than carrying four lines of style.
-const $headerActions: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 16,
-}
-
 const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "stretch",
@@ -426,10 +427,10 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
 })
 
-// Same horizontal inset as `$selectorRow` so the pill's right edge sits flush
-// under the grid's right column. No top margin: the grid row above already
-// carries `marginVertical: spacing.sm`, which is the gap we want.
-const $sortRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+// Same horizontal inset as `$selectorRow` so the two pills sit flush under the
+// grid's two columns. No top margin: the grid row above already carries
+// `marginVertical: spacing.sm`, which is the gap we want.
+const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",

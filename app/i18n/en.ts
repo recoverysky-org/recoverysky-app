@@ -926,7 +926,9 @@ const en = {
     viewList: "List",
     viewMap: "Map",
     // Sort pill under the In-Person filter grid (2026-09-06). Two short nouns
-    // only — SegmentedPill shows both halves at once beside the label.
+    // only — SegmentedPill shows both halves at once beside the list/map pill.
+    // `sortBy` is no longer drawn (the list/map pill took its slot 2026-09-07)
+    // but is still the pill's a11y label, so keep it.
     sortBy: "Sort by",
     sortDistance: "Distance",
     sortStart: "Start",

@@ -13,8 +13,9 @@ interface MapListToggleProps {
 }
 
 /**
- * The In-Person segment's list/map switch. Lives at the end of the segment
- * header's title row. Standalone (not inlined in the header) so jest can
+ * The In-Person segment's list/map switch. Lives in the controls row under
+ * the header's filter grid, left of the sort pill (it closed the title row
+ * until 2026-09-07). Standalone (not inlined in the header) so jest can
  * exercise it without mocking the MapLibre native module the map side of the
  * toggle implies.
  *

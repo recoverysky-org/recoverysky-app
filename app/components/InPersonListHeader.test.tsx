@@ -78,6 +78,31 @@ describe("InPersonListHeader result-count slot", () => {
   })
 })
 
+describe("InPersonListHeader controls row", () => {
+  it("renders the list/map pill when asked, even with the sort pill hidden", () => {
+    // Map mode: the sort half is empty, but the way back to the list must
+    // still be here.
+    render(<InPersonListHeader {...baseProps} showMapToggle viewMode="map" />)
+    expect(screen.getByLabelText("Map").props.accessibilityState?.selected).toBe(true)
+    expect(screen.getByLabelText("List").props.accessibilityState?.selected).toBe(false)
+    expect(screen.queryByLabelText("Distance")).toBeNull()
+  })
+
+  it("renders the sort pill alone when the map is switched off", () => {
+    // Config kill switch / location off: no map, but the list still sorts.
+    render(<InPersonListHeader {...baseProps} showSortToggle />)
+    expect(screen.queryByLabelText("Map")).toBeNull()
+    expect(screen.getByLabelText("Distance")).toBeTruthy()
+  })
+
+  it("flips the view when the inactive list/map half is pressed", () => {
+    const onToggleView = jest.fn()
+    render(<InPersonListHeader {...baseProps} showMapToggle onToggleView={onToggleView} />)
+    fireEvent.press(screen.getByLabelText("Map"))
+    expect(onToggleView).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe("InPersonListHeader sort pill", () => {
   it("is absent unless the screen asks for it", () => {
     // Map mode and the day-browse fallback both hide it — see the prop comment.
