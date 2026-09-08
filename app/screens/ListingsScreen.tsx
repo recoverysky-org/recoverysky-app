@@ -6,8 +6,9 @@
  * pools are fetched at all; radius (when set, and only for in-person) swaps
  * the in-person leg onto `/schedules/nearby`; language and time are pure
  * client-side passes over what came back.
- * CHANGED 2026-09-05: plus a free-text box above the grid, also a pure
- * client-side pass — see the "Free text + tag search" block in filterLogic.ts.
+ * CHANGED 2026-09-05: plus a free-text box, also a pure client-side pass —
+ * see the "Free text + tag search" block in filterLogic.ts. It sits below the
+ * grid inside the list header (moved 2026-09-07).
  *
  * This is the only surface that can show either venue type, so rows and popups
  * are chosen per meeting rather than per screen — see `renderItem`.
@@ -96,7 +97,7 @@ import {
   formatDistance,
   RADIUS_OPTIONS_KM,
   sortByDayThenLocalTime,
-  sortByLocalTimePmFirst,
+  sortByLocalTime,
 } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "ListingsScreen" })
@@ -638,10 +639,16 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // reading the day badge on every row. `sortByDayThenLocalTime` keeps the
       // identical within-day ordering and just groups by day first, rolling
       // forward from today. Single-day searches are untouched.
+      // CHANGED 2026-09-08 (Jenova): the noon rotation is retired. The app
+      // takes a purely local view — which day a meeting belongs to is the
+      // API's job — so a single day is device-local start time from midnight
+      // (`sortByLocalTime`, AM first) and "Any" day is device-local weekday
+      // rolling from today, then that same clock within each day. Favourites
+      // still float over both. Policy note lives on `sortByLocalTime`.
       const byTime =
         effectiveDay === ANY_DAY
           ? sortByDayThenLocalTime(merged.items, getCurrentIsoDow())
-          : sortByLocalTimePmFirst(merged.items)
+          : sortByLocalTime(merged.items)
 
       // ADDED 2026-08-04: favourites float to the top, the same three tiers the
       // Live segment has always used. Layered OVER the time sort rather than
@@ -892,12 +899,18 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     ],
   )
 
-  const ListHeaderComponent = useCallback(
+  // A memoized ELEMENT, not a useCallback component. FlatList accepts either;
+  // the difference is that a component whose identity changes (every time a
+  // dep changes — i.e. every keystroke, via filteredMeetings.length) is a new
+  // React type and remounts the whole header, which is what drops the search
+  // box's focus. An element re-renders in place. CHANGED 2026-09-07 for the
+  // search box move; before that the header held no focusable input.
+  const listHeader = useMemo(
     () => (
       <View>
         {/* REMOVED 2026-09-05 (Jenova): the "Search" heading. With the search
-            box pinned directly above, the word was on screen twice a few dp
-            apart. The 2026-08-12 note about the settings gear that used to sit
+            box on the same screen (then pinned directly above; below the grid
+            since 2026-09-07), the word was on screen twice a few dp apart. The 2026-08-12 note about the settings gear that used to sit
             at the end of this title row now lives in LiveScreen's header
             comment only. `listingsScreen:title` is now unreferenced (the
             segment label is `meetingsScreen`'s own key); it stays in i18n
@@ -1100,6 +1113,31 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           </TouchableOpacity>
         )}
 
+        {/* Search box — below the filter grid (Jenova, 2026-09-07; it started
+            out pinned above the grid). It is INSIDE the list header, which
+            CLAUDE.md warns loses TextInput focus on every keystroke — but only
+            when the header is handed to FlatList as a *component* recreated by
+            useCallback (new type → remount). `listHeader` below is a memoized
+            *element*, so React reconciles the same tree and the input keeps
+            focus. Do not convert it back to a component. */}
+        <View style={themed($searchArea)}>
+          <TextField
+            value={query}
+            onChangeText={setQuery}
+            placeholderTx="listingsScreen:searchPlaceholder"
+            containerStyle={themed($searchField)}
+            inputWrapperStyle={themed($searchInputWrapper)}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="never"
+            LeftAccessory={SearchIconAccessory}
+            // Only offered while there is something to clear; an always-present
+            // × on an empty box is a tap target that does nothing.
+            RightAccessory={query.length > 0 ? ClearAccessory : undefined}
+          />
+        </View>
+
         {/* Meeting Count */}
         {filteredMeetings.length > 0 && (
           <View style={themed($countContainer)}>
@@ -1123,6 +1161,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       theme.colors.tint,
       theme.colors.textDim,
       profileStore.fellowship,
+      // Search box (2026-09-07): its value, and the two accessory components
+      // it renders (memoized on theme/t, so these rarely change).
+      query,
+      SearchIconAccessory,
+      ClearAccessory,
       selectedDayLabel,
       selectedLanguage,
       startHour,
@@ -1153,37 +1196,13 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
 
   return (
     <View style={$screenContainer}>
-      {/* The search box lives OUTSIDE the FlatList on purpose. The list
-          header below is an inline useCallback that re-renders whenever
-          `filteredMeetings.length` changes — i.e. on every keystroke — and a
-          TextInput inside a remounting header loses keyboard focus after each
-          character (the FlatList trap in CLAUDE.md). As a sibling it also
-          stays pinned while the filter grid and results scroll underneath. */}
-      <View style={themed($searchArea)}>
-        <TextField
-          value={query}
-          onChangeText={setQuery}
-          placeholderTx="listingsScreen:searchPlaceholder"
-          containerStyle={themed($searchField)}
-          inputWrapperStyle={themed($searchInputWrapper)}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="never"
-          LeftAccessory={SearchIconAccessory}
-          // Only offered while there is something to clear; an always-present
-          // × on an empty box is a tap target that does nothing.
-          RightAccessory={query.length > 0 ? ClearAccessory : undefined}
-        />
-      </View>
-
       {/* Meetings List - full page scroll with filters in header */}
       <FlatList
         ref={listRef}
         data={filteredMeetings}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        ListHeaderComponent={ListHeaderComponent}
+        ListHeaderComponent={listHeader}
         ItemSeparatorComponent={ItemSeparatorComponent}
         ListEmptyComponent={!isLoading ? ListEmptyComponent : null}
         contentContainerStyle={themed($listContent)}
@@ -1556,11 +1575,13 @@ const $screenContainer: ViewStyle = {
   flex: 1,
 }
 
-// Free text search strip (2026-09-05). Matches the filter cells below (same
-// card fill, border, radius, horizontal margin) so the box reads as the first
-// filter rather than a foreign control.
+// Free text search strip (2026-09-05). Matches the filter cells (same card
+// fill, border, radius, horizontal margin) so the box reads as one of them.
+// CHANGED 2026-09-07: sits below the grid now, so the top padding is the
+// gap from the last filter row rather than from the segment control.
 const $searchArea: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingTop: spacing.sm,
+  paddingTop: spacing.xs,
+  paddingBottom: spacing.xs,
 })
 
 const $searchField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -1585,8 +1606,8 @@ const $clearButton: ViewStyle = {
 }
 
 // REMOVED 2026-09-05: $header / $title. The heading they styled is gone (see
-// the ListHeaderComponent comment); the search strip above the list owns the
-// top spacing now.
+// the list header comment); the segment control's own bottom spacing and the
+// first filter row carry the top of the header now.
 
 // REMOVED 2026-08-04: $fellowshipSelector / $fellowshipLabel. Fellowship had
 // its own full-width row; it's a half-width grid cell now and reuses

@@ -22,6 +22,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+
+- **Meeting lists sort by device-local start time from midnight, AM first.**
+  The Search segment (and the In-Person "start" order) had led with the
+  afternoon and evening rows since 2026-08-12, so a list read noon → 11:59pm
+  → 12:00am → 11:59am and looked out of order at the seam. It now reads
+  12:00am → 11:59pm. Under "Any" day, rows group by device-local weekday
+  rolling forward from today, then by that same clock within each day;
+  favourites still float to the top of both. Which calendar day a meeting
+  belongs to is the API's concern, not the app's.
+- **The Search box now sits below the filter grid**, above the meeting count,
+  and scrolls with the header instead of staying pinned above the segment's
+  filters. It keeps keyboard focus while you type.
+
 ### Added
 
 - **Distance / Start sort pill on the Meetings → In-Person list.** A second

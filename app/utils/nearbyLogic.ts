@@ -155,67 +155,35 @@ export function sortByDistance<T extends { distance_m?: number }>(items: T[]): T
   )
 }
 
+/** Device-local minutes since midnight: 12:00am → 0, 11:59pm → 1439. */
+export function localMinutes(millis: number): number {
+  const d = new Date(millis)
+  return d.getHours() * 60 + d.getMinutes()
+}
+
 /**
  * Sort by local wall-clock time (hour:minute), not raw UTC millis —
  * mirrors the merged-pool ordering ListingsScreen established in the
  * 2026-08-02 data-layer piece.
+ *
+ * THE ONE CLOCK KEY (Jenova, 2026-09-08). Every time-ordered list — Search,
+ * the In-Person "start" order, and the within-day order under "Any" day —
+ * uses this midnight-anchored, AM-first key. A noon-rotated variant
+ * (`sortByLocalTimePmFirst`, 2026-08-12 → 2026-09-08) used to lead Search
+ * with the evening rows on the argument that a far-east "Monday" meeting
+ * lands on Sunday evening here; that reasoning is retired. The app takes a
+ * purely local view: which day a meeting belongs to is the API's job, and the
+ * app only orders by when each row happens on this device's clock. Don't
+ * reintroduce a rotation here — change the server's day assignment instead.
  */
 export function sortByLocalTime<T extends { millis: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => {
-    const da = new Date(a.millis)
-    const dbb = new Date(b.millis)
-    return da.getHours() * 60 + da.getMinutes() - (dbb.getHours() * 60 + dbb.getMinutes())
+    return localMinutes(a.millis) - localMinutes(b.millis)
   })
 }
 
-/** Minutes from midnight to noon — the rotation `pmFirstMinutes` applies. */
-const NOON_MINUTES = 12 * 60
-
-/**
- * Minutes since local NOON rather than local midnight, wrapping at 24h.
- *
- * 12:00pm → 0, 11:59pm → 719, 12:00am → 720, 11:59am → 1439. Sorting on this
- * reads the afternoon and evening first, then the small hours and the morning,
- * each block ascending.
- */
-export function pmFirstMinutes(millis: number): number {
-  const d = new Date(millis)
-  return (d.getHours() * 60 + d.getMinutes() + NOON_MINUTES) % (24 * 60)
-}
-
-/**
- * Sort by local wall-clock time with the day starting at noon: pm ascending,
- * then am ascending.
- *
- * ADDED 2026-08-12 (Jenova's call) for the Search segment, replacing a plain
- * midnight-based clock sort that buried the 10pm meetings at the bottom of the
- * list.
- *
- * WHY THE ROTATION IS THE RIGHT KEY, not a cosmetic reordering: a weekday is a
- * ~50-hour window globally, and it opens in the far east. A meeting listed on
- * Monday in Sydney or Bali happens on *Sunday evening* for a device in the
- * Americas, so its instant genuinely precedes that device's Monday-morning
- * rows — it displays as a pm time and belongs at the top of a Monday list.
- * Anchoring the day at midnight split those rows off to the bottom, which is
- * the reported defect.
- *
- * Deliberately clock-only, with no date term, even though the date is what
- * makes the argument above true. `/schedules/daily`'s `millis` carries the
- * date of whenever that row was last hydrated rather than the meeting's next
- * occurrence — measured live 2026-08-12 (`iso_dow=1&fellowship=AA`, 498 rows):
- * 155 rows sat on the week of Aug 3 and 338 on the week of Aug 10, zero
- * meeting overlap, every row ACTIVE, and the payload itself was a two-day-old
- * precompute. Any date-aware key therefore sorts by hydration vintage before
- * time of day and walks the clock once per vintage. The rotation delivers the
- * intended reading order from the one part of `millis` that is trustworthy.
- *
- * `millis === 0` (the 24/7 marathon meetings, rendered "24h") lands wherever
- * the epoch falls in the device's zone — 6pm in Chicago, midnight in London.
- * That is pre-existing and unchanged here; pin it explicitly if it matters.
- */
-export function sortByLocalTimePmFirst<T extends { millis: number }>(items: T[]): T[] {
-  return [...items].sort((a, b) => pmFirstMinutes(a.millis) - pmFirstMinutes(b.millis))
-}
+// REMOVED 2026-09-08: NOON_MINUTES / pmFirstMinutes / sortByLocalTimePmFirst.
+// See the note on `sortByLocalTime` for why the noon rotation is gone.
 
 /**
  * The device-local ISO weekday (1=Mon..7=Sun) a meeting's start instant falls
@@ -225,8 +193,9 @@ export function sortByLocalTimePmFirst<T extends { millis: number }>(items: T[])
  * days, every row has to say which one it is.
  *
  * WHY THE WEEKDAY IS READ FROM `millis` AND NOT FROM A SERVER `iso_dow` — this
- * looks like the wrong source and is the right one. `sortByLocalTimePmFirst`
- * above establishes that `millis`'s *date* is untrustworthy: it carries the
+ * looks like the wrong source and is the right one. The retired
+ * `sortByLocalTimePmFirst` docblock established that `millis`'s *date* is
+ * untrustworthy: it carries the
  * vintage of whenever the row was last hydrated, so rows from one query
  * straddle multiple calendar weeks. Its *weekday* is a different matter and is
  * sound — every row of an `iso_dow=1` query is a Monday, whichever week it was
@@ -257,7 +226,7 @@ export function localIsoDow(millis: number): number | null {
  *
  * ADDED 2026-08-14 for the "Any" day option on the Search segment.
  *
- * Day-primary is the whole point. Applying `sortByLocalTimePmFirst` alone to a
+ * Day-primary is the whole point. Applying `sortByLocalTime` alone to a
  * seven-day set interleaves the days into one clock order, so a Tuesday 7pm
  * meeting sits between two Saturday 7pm ones and the list stops being
  * scannable — the reader has to check the day badge on every single row to
@@ -294,9 +263,10 @@ export function sortByDayThenLocalTime<T extends { millis: number }>(
   return [...items].sort((a, b) => {
     const byDay = dayRank(a.millis) - dayRank(b.millis)
     if (byDay !== 0) return byDay
-    // Same day: the established Search ordering, unchanged. See
-    // `sortByLocalTimePmFirst` for why the day starts at noon.
-    return pmFirstMinutes(a.millis) - pmFirstMinutes(b.millis)
+    // Same day: device-local start time from midnight, AM first.
+    // CHANGED 2026-09-08 (Jenova): was the noon rotation Search used to
+    // share; see `sortByLocalTime` for why that is retired.
+    return localMinutes(a.millis) - localMinutes(b.millis)
   })
 }
 
@@ -324,14 +294,13 @@ export function parseInPersonSortOrder(raw: string | undefined | null): InPerson
  * it (`sortByFeedback` is stable, so it layers over the primary key exactly
  * as `useNearbySchedules` does for the default order — see the comment there).
  *
- * `"start"` keys on the same pm-first clock the Search segment uses
- * (`sortByLocalTimePmFirst`), and under "Any" day rolls day-first from today
- * (`sortByDayThenLocalTime`) so seven days don't interleave into one clock
- * order. Deliberately NOT `sortByLocalTime`, the midnight-based key the
- * day-browse fallback still uses: that one buries 10pm meetings at the bottom,
- * which is the defect the pm-first rotation exists to fix. Callers only offer
- * this sort in nearby mode, where every row carries a `distance_m`, so the
- * fallback's ordering is a separate question.
+ * `"start"` keys on the same clock the Search segment uses, and under "Any"
+ * day rolls day-first from today (`sortByDayThenLocalTime`) so seven days
+ * don't interleave into one clock order.
+ * CHANGED 2026-09-08 (Jenova): that clock is now the midnight-anchored
+ * `sortByLocalTime` — the same key the day-browse fallback uses — not the
+ * noon rotation; see `sortByLocalTime` for the policy. Callers only offer this
+ * sort in nearby mode, where every row carries a `distance_m`.
  *
  * `"distance"` re-sorts rather than trusting the incoming order, so the result
  * is correct no matter what the caller hands in (idempotent over an
@@ -347,7 +316,7 @@ export function sortInPerson<T extends { millis: number; distance_m?: number } &
 ): T[] {
   if (order === "distance") return sortByFeedback(sortByDistance(items))
   return sortByFeedback(
-    isAnyDay ? sortByDayThenLocalTime(items, todayIsoDow) : sortByLocalTimePmFirst(items),
+    isAnyDay ? sortByDayThenLocalTime(items, todayIsoDow) : sortByLocalTime(items),
   )
 }
 

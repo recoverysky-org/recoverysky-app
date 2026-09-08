@@ -11,11 +11,9 @@ import {
   parseInPersonSortOrder,
   resolveBannerReason,
   resolveMode,
-  pmFirstMinutes,
   sortByDayThenLocalTime,
   sortByDistance,
   sortByLocalTime,
-  sortByLocalTimePmFirst,
   sortInPerson,
 } from "./nearbyLogic"
 
@@ -149,66 +147,6 @@ describe("sortByLocalTime", () => {
       new Date(today.getFullYear(), today.getMonth(), today.getDate() + dayOffset, h, m).getTime()
     const out = sortByLocalTime([{ millis: at(0, 23, 30) }, { millis: at(1, 6, 15) }])
     expect(new Date(out[0].millis).getHours()).toBe(6)
-  })
-})
-
-describe("pmFirstMinutes", () => {
-  /**
-   * Local-time builder, same shape as the block above: the multi-arg Date
-   * constructor reads its args in the device zone and the key reads local
-   * parts back out, so every assertion here round-trips in any timezone.
-   */
-  const at = (h: number, m = 0) => {
-    const t = new Date()
-    return new Date(t.getFullYear(), t.getMonth(), t.getDate(), h, m).getTime()
-  }
-
-  it("puts noon at zero and 11:59am at the end of the day", () => {
-    expect(pmFirstMinutes(at(12, 0))).toBe(0)
-    expect(pmFirstMinutes(at(23, 59))).toBe(719)
-    expect(pmFirstMinutes(at(0, 0))).toBe(720)
-    expect(pmFirstMinutes(at(11, 59))).toBe(1439)
-  })
-
-  it("covers every minute of the day exactly once", () => {
-    // No gaps and no collisions — a rotation that dropped or doubled a minute
-    // would silently reorder a slice of the list.
-    const keys = new Set<number>()
-    for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m++) keys.add(pmFirstMinutes(at(h, m)))
-    expect(keys.size).toBe(1440)
-  })
-})
-
-describe("sortByLocalTimePmFirst", () => {
-  const at = (h: number, m = 0) => {
-    const t = new Date()
-    return new Date(t.getFullYear(), t.getMonth(), t.getDate(), h, m).getTime()
-  }
-  const hours = <T extends { millis: number }>(rows: T[]) =>
-    rows.map((r) => new Date(r.millis).getHours())
-
-  it("leads with the evening meetings the midnight anchor buried", () => {
-    // The reported defect in one assertion: 10pm belongs at the top of the
-    // list, not below every morning meeting.
-    const out = sortByLocalTimePmFirst([{ millis: at(6) }, { millis: at(22) }])
-    expect(hours(out)).toEqual([22, 6])
-  })
-
-  it("runs pm ascending, then am ascending", () => {
-    const out = sortByLocalTimePmFirst([
-      { millis: at(9) },
-      { millis: at(23, 30) },
-      { millis: at(0, 15) },
-      { millis: at(12) },
-      { millis: at(18) },
-    ])
-    expect(hours(out)).toEqual([12, 18, 23, 0, 9])
-  })
-
-  it("splits the day at noon, not at midnight", () => {
-    // The two boundary rows: 12:00pm opens the list, 11:59am closes it.
-    const out = sortByLocalTimePmFirst([{ millis: at(11, 59) }, { millis: at(12, 0) }])
-    expect(hours(out)).toEqual([12, 11])
   })
 })
 
@@ -455,15 +393,15 @@ describe("sortByDayThenLocalTime", () => {
     ])
   })
 
-  it("keeps the pm-first clock order within a single day", () => {
+  it("keeps plain midnight clock order within a single day", () => {
     const items = [
       { id: "9am", millis: atLocalDayHour(3, 9) },
       { id: "10pm", millis: atLocalDayHour(3, 22) },
       { id: "1pm", millis: atLocalDayHour(3, 13) },
     ]
-    // Same rule Search already uses: the day starts at noon, so the evening
-    // meetings read first and the morning ones follow.
-    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["1pm", "10pm", "9am"])
+    // CHANGED 2026-09-08 (Jenova): device-local start time from midnight,
+    // AM first. The noon rotation this used to share with Search is gone.
+    expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["9am", "1pm", "10pm"])
   })
 
   it("sorts by day BEFORE time, not the other way round", () => {
@@ -477,7 +415,7 @@ describe("sortByDayThenLocalTime", () => {
     expect(sortByDayThenLocalTime(items, TODAY).map((i) => i.id)).toEqual(["wed-11pm", "thu-1pm"])
     // ...whereas the clock-only sort really would invert them, which is the
     // whole reason Search can't just keep using it under "Any".
-    expect(sortByLocalTimePmFirst(items).map((i) => i.id)).toEqual(["thu-1pm", "wed-11pm"])
+    expect(sortByLocalTime(items).map((i) => i.id)).toEqual(["thu-1pm", "wed-11pm"])
   })
 
   it("floats the dayless 24/7 rooms above today", () => {
@@ -564,17 +502,17 @@ describe("sortInPerson", () => {
     ])
   })
 
-  it("start: pm-first clock order on a single day", () => {
-    // Noon leads, 10pm follows, 9am is last — the Search segment's rotation,
-    // not a midnight clock (which would put 9am first).
+  it("start: midnight clock order on a single day", () => {
+    // CHANGED 2026-09-08 (Jenova): 9am leads, noon follows, 10pm is last —
+    // device-local start time from midnight, the same key Search uses now.
     expect(sortInPerson(rows, "start", false, 1).map((r) => r.id)).toEqual([
+      "far-early",
       "mid-noon",
       "near-late",
-      "far-early",
     ])
   })
 
-  it("start + any day: rolls day-first from today, then pm-first within a day", () => {
+  it("start + any day: rolls day-first from today, then midnight clock within a day", () => {
     const week = [
       { id: "wed-9am", millis: at(3, 9), distance_m: 1, ...noFb },
       { id: "tue-9pm", millis: at(2, 21), distance_m: 2, ...noFb },
