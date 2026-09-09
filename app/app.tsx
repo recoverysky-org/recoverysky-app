@@ -214,6 +214,43 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<"ok" | "
   })
 }
 
+/**
+ * One-shot recovery for a cold start that opened on env-var defaults because
+ * the config cache was cold AND the device lane was degraded (see the branch
+ * in the init effect below).
+ *
+ * ADDED 2026-09-09 (final review): that start is deliberately NOT outage mode,
+ * so nothing polls /status and nothing reloads on its own — but several
+ * subsystems are one-shot on mount and read ConfigStore at that moment
+ * (RevenueCat in SubscriptionContext, Umami, the OTLP api key). They never
+ * re-run in-session, so a device that recovers mid-session would sit on
+ * placeholder keys until the user killed the app. A reload re-runs the whole
+ * bootstrap, which is the same reason the outage-recovery effect reloads
+ * rather than re-initialising in place: init registers MobX reactions that
+ * would duplicate.
+ *
+ * Fires at most once, and never while an attendance timer is live — the
+ * reload would take the timer's tree with it. Reacting over both values (the
+ * pendingLogout idiom above) makes the release of the timer the trigger.
+ */
+function armDegradedStartConfigRecovery(_rootStore: RootStore) {
+  let fired = false
+  const dispose = reaction(
+    () => ({ loaded: _rootStore.configStore.isLoaded, live: isTimerSessionActive() }),
+    ({ loaded, live }) => {
+      if (fired || !loaded || live) return
+      fired = true
+      dispose()
+      log.info("Config loaded after a degraded cold start — reloading to complete init")
+      // Via reloadApp() for the expo-sqlite SharedObject teardown reason
+      // documented on the other two call sites.
+      reloadApp((e) => {
+        log.warn("reloadAsync failed during degraded-start recovery", { error: String(e) })
+      })
+    },
+  )
+}
+
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
 
 // Web linking configuration - matches AppStackParamList with nested Main navigator
@@ -519,6 +556,14 @@ export function App() {
         // Only `unsupported` / server-rejected still block via the fatal alert.
         const deviceAuth = await initializeDeviceAuthorization(deviceId)
         _rootStore.configStore.setDeviceAuthDegraded(deviceAuth === "degraded")
+        if (deviceAuth === "degraded") {
+          // ADDED 2026-09-09 (final review): the cold-start ladder just failed,
+          // but it ran outside the refresher, whose backoff therefore has
+          // recorded nothing — the very first API request below would re-run
+          // the full ladder immediately (and on iOS generate a second Apple key
+          // seconds after the first). Seed the ladder with that failure.
+          deviceRefresher.noteColdStartFailure()
+        }
 
         // Fetch server config (keys, secrets, URLs from /config endpoint).
         // Cold-start outage gate fires for two cases — both route to the
@@ -542,8 +587,26 @@ export function App() {
         } else {
           await _rootStore.configStore.fetchConfig()
           if (!_rootStore.configStore.isLoaded) {
-            log.warn("Config fetch exhausted all retries — entering outage mode")
-            _rootStore.configStore.setOutageMode()
+            // CHANGED 2026-09-09 (final review): a degraded device lane is the
+            // one cold-cache failure that must NOT enter outage mode. With no
+            // device token the API answers /config with a 401, so the fetch
+            // fails — but the PUBLIC /status the MaintenanceScreen recovery
+            // effect polls is healthy in an attest-only outage. It would call
+            // reloadApp() at once, the whole init would run again (87 s ladder,
+            // degrade, 401, outage), and on iOS every cycle burns one Secure
+            // Enclave key generation: an unbounded loop against the exact Apple
+            // rate limit this branch exists to protect. Render on the env-var
+            // ConfigStore defaults with the "Connecting…" banner instead, and
+            // arm the one-shot reload for when config finally lands.
+            if (deviceAuth === "degraded") {
+              log.warn(
+                "Config fetch failed on a degraded device lane — opening on env defaults, no outage mode",
+              )
+              armDegradedStartConfigRecovery(_rootStore)
+            } else {
+              log.warn("Config fetch exhausted all retries — entering outage mode")
+              _rootStore.configStore.setOutageMode()
+            }
           } else if (_rootStore.configStore.maintenanceMode) {
             log.info("Cold start with maintenance active — entering outage mode")
             _rootStore.configStore.setOutageMode()

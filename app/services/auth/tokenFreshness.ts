@@ -49,8 +49,11 @@ export const DEVICE_REFRESH_TIMEOUT_MS = 15 * 1000
  * failure modes these exist to stop). ADDED 2026-08-07: without them, refresh
  * was retried at REQUEST rate — the gate runs on every API call, so a backend
  * hiccup drove attestation (Apple-rate-limited Secure Enclave key generation
- * on every attempt, since the App Attest key is deliberately never persisted)
- * as fast as requests went out.
+ * on every attempt) as fast as requests went out. CHANGED 2026-09-09: the App
+ * Attest key IS persisted now and a re-attestation asserts against it, so the
+ * ordinary failure no longer generates a key — but the assert fall-through
+ * still can, and each attempt is a real Apple/Play round trip, so the ladder
+ * stays.
  *
  * Device starts higher because each attempt is a multi-second Apple/Play
  * round trip and Apple throttles key generation; user attempts are one cheap
@@ -237,11 +240,17 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
  * Deliberately NOT symmetric with the user lane: a permanent failure here logs
  * fatal and returns the stale token rather than ejecting anyone. Interrupting
  * someone mid-meeting because Apple's attestation service is having a bad day
- * is a worse outcome than a few failed background fetches. Cold-start failure
- * is still fatal — that alert lives in app.tsx.
+ * is a worse outcome than a few failed background fetches.
+ *
+ * CHANGED 2026-09-09: cold-start failure is no longer fatal either. A
+ * temporary failure now degrades (app opens on the "Connecting…" banner and
+ * this refresher keeps trying); only a `blocked` outcome — unsupported
+ * hardware, or a 401/403 on `POST /attest` — still raises the alert in
+ * app.tsx.
  */
 export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
   getToken: () => Promise<string | null>
+  noteColdStartFailure: (now?: number) => void
 } {
   const { getDeviceId, onOutcome } = deps
 
@@ -299,6 +308,17 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
   })
 
   return {
+    /**
+     * ADDED 2026-09-09 (final review): seed the ladder from a cold start that
+     * already failed. `initializeDeviceAuthorization()` runs its own
+     * establishDeviceToken() outside this refresher, so after a degraded cold
+     * start the backoff has recorded nothing and the very first API request
+     * re-runs the whole ~87 s ladder seconds later — on iOS generating a
+     * second Secure Enclave key right behind the first, which is exactly the
+     * Apple rate-limit exposure this branch exists to remove.
+     */
+    noteColdStartFailure: (now: number = Date.now()) => backoff.recordFailure(now),
+
     getToken: async () => {
       // ADDED 2026-08-07: never drive attestation before cold-start init has
       // chosen a lane. Until then `isUsingApiKeyFallback()` is false and
