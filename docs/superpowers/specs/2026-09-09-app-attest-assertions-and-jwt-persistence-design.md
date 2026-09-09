@@ -217,8 +217,12 @@ gains typed `getAttestChallenge()` and `assertAttestation()` methods; no test, s
 
 ## Rollout order
 
-1. **common** release with the two columns and repository methods; migration applied by the API on
-   deploy as usual.
+1. **common** release with the two columns and repository methods. CHANGED 2026-09-09: this step
+   originally read "migration applied by the API on deploy as usual", which is wrong — the API runs
+   none of common's migrations. Before deploying API 1.6.0, push the schema from the **common** repo
+   with `pnpm drizzle:migrate:prod` (drizzle-kit push against production) and confirm
+   `device_attestations` has `public_key` and `assert_counter`. Until that lands, every
+   `POST /attest` 500s for every client, old and new.
 2. **api** tag and deploy. Accepts both legacy and new clients from this point.
 3. **app** OTA. JS-only (SecureStore and `@expo/app-integrity` are already native dependencies) — do
    **not** bump `runtimeVersion`.
