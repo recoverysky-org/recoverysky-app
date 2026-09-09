@@ -12,6 +12,8 @@
  *   failed past the retry budget WHILE THE DEVICE WAS ONLINE (offline poll
  *   failures no longer flip maintenanceMode — see ConfigStore.fetchConfig).
  *   The original amber strip.
+ * - "connecting" — cold-start attestation degraded; app is up on local
+ *   data, refresher retrying. Same calm palette as offline. ADDED 2026-09-09.
  *
  * Renders above every navigator including modals because it's mounted as an
  * absolutely-positioned overlay outside the navigation tree. Still
@@ -48,30 +50,38 @@ export const MaintenanceBanner: FC = observer(function MaintenanceBanner() {
   const banner = decideBanner({
     isOffline: networkStore.isOffline,
     maintenanceMode: configStore.maintenanceMode,
+    deviceAuthDegraded: configStore.deviceAuthDegraded,
   })
   if (banner === "none") return null
 
-  const offline = banner === "offline"
+  // "connecting" borrows the offline palette on purpose: it is informational
+  // (we are working on it), not alarm-amber (something is wrong with us).
+  const calm = banner === "offline" || banner === "connecting"
+  const icon =
+    banner === "offline"
+      ? "cloud-offline-outline"
+      : banner === "connecting"
+        ? "sync-outline"
+        : "warning-outline"
+  const tx =
+    banner === "offline"
+      ? "common:offlineBanner"
+      : banner === "connecting"
+        ? "common:connectingBanner"
+        : "common:maintenanceBanner"
 
   return (
     <View
       style={[
         styles.container,
-        { backgroundColor: offline ? OFFLINE_BG : MAINT_BG, paddingTop: insets.top + 8 },
+        { backgroundColor: calm ? OFFLINE_BG : MAINT_BG, paddingTop: insets.top + 8 },
       ]}
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
     >
       <View style={styles.row}>
-        <Ionicons
-          name={offline ? "cloud-offline-outline" : "warning-outline"}
-          size={18}
-          color={offline ? OFFLINE_FG : MAINT_FG}
-        />
-        <Text
-          style={[styles.text, { color: offline ? OFFLINE_FG : MAINT_FG }]}
-          tx={offline ? "common:offlineBanner" : "common:maintenanceBanner"}
-        />
+        <Ionicons name={icon} size={18} color={calm ? OFFLINE_FG : MAINT_FG} />
+        <Text style={[styles.text, { color: calm ? OFFLINE_FG : MAINT_FG }]} tx={tx} />
       </View>
     </View>
   )

@@ -9,21 +9,47 @@ import {
 
 describe("decideBanner", () => {
   it("shows nothing when online and healthy", () => {
-    expect(decideBanner({ isOffline: false, maintenanceMode: false })).toBe("none")
+    expect(
+      decideBanner({ isOffline: false, maintenanceMode: false, deviceAuthDegraded: false }),
+    ).toBe("none")
   })
 
   it("shows maintenance when online and maintenance is flagged", () => {
-    expect(decideBanner({ isOffline: false, maintenanceMode: true })).toBe("maintenance")
+    expect(
+      decideBanner({ isOffline: false, maintenanceMode: true, deviceAuthDegraded: false }),
+    ).toBe("maintenance")
   })
 
   it("shows offline when the device is offline", () => {
-    expect(decideBanner({ isOffline: true, maintenanceMode: false })).toBe("offline")
+    expect(
+      decideBanner({ isOffline: true, maintenanceMode: false, deviceAuthDegraded: false }),
+    ).toBe("offline")
   })
 
   it("offline wins over maintenance — it is the more accurate diagnosis", () => {
     // Load-bearing precedence: an offline device cannot verify a maintenance
     // claim, and "you're offline" is true regardless of our service state.
-    expect(decideBanner({ isOffline: true, maintenanceMode: true })).toBe("offline")
+    expect(
+      decideBanner({ isOffline: true, maintenanceMode: true, deviceAuthDegraded: false }),
+    ).toBe("offline")
+  })
+
+  it("shows connecting when device auth is degraded and the device is online", () => {
+    expect(
+      decideBanner({ isOffline: false, maintenanceMode: false, deviceAuthDegraded: true }),
+    ).toBe("connecting")
+  })
+
+  it("offline wins over connecting", () => {
+    expect(
+      decideBanner({ isOffline: true, maintenanceMode: false, deviceAuthDegraded: true }),
+    ).toBe("offline")
+  })
+
+  it("connecting wins over maintenance", () => {
+    expect(
+      decideBanner({ isOffline: false, maintenanceMode: true, deviceAuthDegraded: true }),
+    ).toBe("connecting")
   })
 })
 

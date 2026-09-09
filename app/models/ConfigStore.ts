@@ -123,6 +123,13 @@ export const ConfigStoreModel = types
     isLoaded: types.optional(types.boolean, false),
     /** Whether config fetch is in progress */
     isLoading: types.optional(types.boolean, false),
+    /**
+     * ADDED 2026-09-09: cold-start attestation degraded (temporary failure
+     * after the retry ladder) and the app is running without a device token
+     * while the refresher keeps trying. Drives the "Connecting…" banner.
+     * Volatile by nature — ConfigStore is never persisted.
+     */
+    deviceAuthDegraded: types.optional(types.boolean, false),
   })
   .views((store) => ({
     /** Whether we have valid config (either from server or defaults) */
@@ -340,6 +347,11 @@ export const ConfigStoreModel = types
         store.outageMode = true
       },
 
+      /** See `deviceAuthDegraded`. Set by app.tsx from establishDeviceToken outcomes. */
+      setDeviceAuthDegraded(value: boolean) {
+        store.deviceAuthDegraded = value
+      },
+
       /**
        * Reset config to defaults (env vars)
        */
@@ -362,6 +374,7 @@ export const ConfigStoreModel = types
         store.mapStyleUrlLight = ""
         store.mapStyleUrlDark = ""
         store.outageMode = false
+        store.deviceAuthDegraded = false
         store.isLoaded = false
       },
     }

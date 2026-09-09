@@ -15,18 +15,27 @@
  */
 
 /** What the sticky top banner should show. */
-export type BannerState = "none" | "offline" | "maintenance"
+export type BannerState = "none" | "offline" | "connecting" | "maintenance"
 
 /** Which copy the full-screen cold-start outage screen shows. */
 export type OutageVariant = "offline" | "maintenance"
 
 /**
- * Pick the runtime banner. Offline wins over maintenance: an offline device
- * cannot verify a maintenance claim, and "you're offline" is true and
+ * Pick the runtime banner. Offline wins over everything: an offline device
+ * cannot verify any server claim, and "you're offline" is true and
  * actionable regardless of our service state.
+ * ADDED 2026-09-09 "connecting": cold-start attestation hit a temporary
+ * failure, the app opened on local data, and the refresher is retrying.
+ * Ranks above maintenance because it is the more specific diagnosis — the
+ * device-token-less requests are what make features look "in maintenance".
  */
-export function decideBanner(i: { isOffline: boolean; maintenanceMode: boolean }): BannerState {
+export function decideBanner(i: {
+  isOffline: boolean
+  maintenanceMode: boolean
+  deviceAuthDegraded: boolean
+}): BannerState {
   if (i.isOffline) return "offline"
+  if (i.deviceAuthDegraded) return "connecting"
   if (i.maintenanceMode) return "maintenance"
   return "none"
 }
