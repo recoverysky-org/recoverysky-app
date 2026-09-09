@@ -36,6 +36,12 @@ export function decideColdStartStep(i: {
  * key generation is Apple-rate-limited and every attempt used to burn one.
  * ~37 s worst case, which covers a container swap or a Postgres restart
  * (the 2026-09-08 outage would have cleared for most users on this ladder).
+ *
+ * INVARIANT: the worst-case ladder (attempts × the 10 s api timeout + these
+ * sleeps ≈ 87 s) must stay well under the server's 5-minute nonce TTL (api
+ * `CHALLENGE_TTL_MS`); an expired nonce comes back as a 4xx, which the attest
+ * exchange classifies as `blocked`. Widen this ladder or the api timeout
+ * only together with the TTL.
  */
 export const EXCHANGE_RETRY_DELAYS_MS: readonly number[] = [2000, 5000, 10000, 20000]
 

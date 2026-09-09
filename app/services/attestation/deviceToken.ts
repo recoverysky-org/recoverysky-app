@@ -212,6 +212,13 @@ type ExchangeResult<T> =
  * EXCHANGE_RETRY_DELAYS_MS. The native step that produced the payload is
  * never re-run: the same attestation object / assertion is re-sent, so a
  * backend blip costs zero Apple/Play calls.
+ *
+ * The ladder's worst-case duration is bounded well under the challenge
+ * nonce's TTL — see the invariant on EXCHANGE_RETRY_DELAYS_MS in
+ * deviceTokenLogic.ts. `challenge.data.expiresAt` is deliberately never
+ * compared against the device clock to decide anything here: per the spec
+ * (Section 4, clock skew), the client clock is not trusted for that call —
+ * the server is the sole judge of nonce freshness, via its 4xx response.
  */
 async function exchange<T>(
   name: Exchange,
@@ -323,6 +330,10 @@ export async function establishDeviceToken(deviceId: string): Promise<EstablishO
   }
 
   // ---- Step 3: full attestation ------------------------------------------
+  // A fresh nonce, on purpose: if step 2 ran, its nonce was already consumed
+  // by the assertion attempt (spent whether the assert exchange accepted or
+  // rejected it), and the attestation object below must be generated over
+  // the exact nonce it will later be exchanged for a JWT with.
   const challenge = await exchange("challenge", () => api.getAttestChallenge(deviceId))
   if (challenge.status !== "ok") return degraded(`challenge:${challenge.kind}`)
 
