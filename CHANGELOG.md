@@ -59,6 +59,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   predicates live in `filterLogic.ts` (vitest-covered). Live and In-Person
   are unchanged.
 
+### Fixed
+
+- **"I'm Here" could sit on "Checking…" forever until the app was killed.** The
+  GPS presence check's location-permission request was its one unbounded
+  await, and iOS never answers it when Location Services are off system-wide
+  (no dialog is shown, so the OS callback never fires), when a second requester
+  overwrites the pending one, or after a reload mid-prompt. The request now
+  shares the same timeout guard as the GPS fix and reports the ordinary
+  "couldn't get your location" alert instead of a dead button.
+
 ### Removed
 
 - The "Search" heading at the top of the Meetings → Search segment. The new

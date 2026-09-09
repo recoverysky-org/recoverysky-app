@@ -20,6 +20,7 @@ import { Platform } from "react-native"
 import * as Location from "expo-location"
 
 import { useConfigStore, useProfileStore } from "@/models"
+import { withTimeout } from "@/services/auth/tokenFreshnessLogic"
 import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import { verifyPresence, type PresenceFix, type PresenceVenue } from "@/utils/presenceLogic"
@@ -33,6 +34,21 @@ const log = logger.child({ module: "usePresenceCheck" })
  * every in-person meeting is indoors.
  */
 const PRESENCE_FIX_TIMEOUT_MS = Platform.OS === "android" ? 20_000 : 10_000
+
+/**
+ * Budget for the permission request itself. ADDED 2026-09-09: this used to be
+ * the one unbounded await in `check`, and it can genuinely never settle.
+ * expo-location's iOS requester resolves only from the
+ * `locationManagerDidChangeAuthorization` callback, and only once the status
+ * leaves NotDetermined — so with Location Services off system-wide (iOS
+ * silently drops the request, no dialog), a second concurrent requester
+ * overwriting the singleton's resolver, or a Fast Refresh / backgrounding
+ * mid-prompt, the promise is orphaned for the life of the process and the
+ * button sat on "Checking…" until the app was killed. Generous, because on the
+ * happy path this covers the time the user spends reading the system dialog;
+ * a legitimately slow decision must not be turned into a failure.
+ */
+const PERMISSION_TIMEOUT_MS = 30_000
 
 export type PresenceCheckOutcome =
   | { status: "verified"; fix: PresenceFix; distanceM: number; radiusM: number }
@@ -77,12 +93,25 @@ export function usePresenceCheck(): UsePresenceCheckResult {
       checkingRef.current = true
       setIsChecking(true)
 
-      let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-
       try {
         // Lazy permission: this runs on the "I'm Here" tap and nowhere else.
         // A user who never marks themselves present is never asked.
-        const perm = await Location.requestForegroundPermissionsAsync()
+        //
+        // CHANGED 2026-09-09: bounded by PERMISSION_TIMEOUT_MS (see its
+        // comment for the ways this call hangs forever). `withTimeout`
+        // resolves the `null` fallback on slowness only; a real rejection still
+        // reaches the catch below. A stranded request is reported as
+        // `fix-failed`, not `denied`: the user did not refuse anything, and
+        // "denied" would also revoke the in-app Location toggle.
+        const perm = await withTimeout(
+          Location.requestForegroundPermissionsAsync(),
+          PERMISSION_TIMEOUT_MS,
+          null,
+        )
+        if (!perm) {
+          log.warn("Presence permission request timed out")
+          return { status: "fix-failed" }
+        }
         if (!perm.granted) {
           log.info("Presence check denied", { canAskAgain: perm.canAskAgain })
           // ADDED 2026-08-12: reconcile the in-app toggle with this refusal.
@@ -114,15 +143,17 @@ export function usePresenceCheck(): UsePresenceCheckResult {
         // Accuracy.Highest, not Balanced: Balanced was chosen in
         // useNearbySchedules for a 10 km filter. 150 m is two orders of
         // magnitude tighter and needs the better fix.
-        const position = await Promise.race([
+        //
+        // CHANGED 2026-09-09: the inline Promise.race moved to the shared
+        // `withTimeout` so both awaits in this function are bounded the same
+        // way. Behavior is unchanged: a timeout still lands in the catch below
+        // as "presence fix timeout" and reports `fix-failed`.
+        const position = await withTimeout(
           Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest }),
-          new Promise<never>((_, reject) => {
-            timeoutHandle = setTimeout(
-              () => reject(new Error("presence fix timeout")),
-              PRESENCE_FIX_TIMEOUT_MS,
-            )
-          }),
-        ])
+          PRESENCE_FIX_TIMEOUT_MS,
+          null,
+        )
+        if (!position) throw new Error("presence fix timeout")
 
         const fix: PresenceFix = {
           lat: position.coords.latitude,
@@ -158,10 +189,8 @@ export function usePresenceCheck(): UsePresenceCheckResult {
         log.warn("Presence fix failed", { error: String(err) })
         return { status: "fix-failed" }
       } finally {
-        // Cleared on BOTH outcomes of the race. A dangling handle keeps a
-        // timer (and this closure) alive after a fast fix and later fires a
-        // rejection nobody is listening to.
-        if (timeoutHandle) clearTimeout(timeoutHandle)
+        // Timer cleanup now lives inside `withTimeout` (cleared on both
+        // outcomes of its race), so nothing dangles here.
         checkingRef.current = false
         setIsChecking(false)
       }
