@@ -30,6 +30,7 @@ const fr: Translations = {
     ratingContactUs: "Contacte-nous",
     maintenanceBanner: "Maintenance en cours. Certaines fonctionnalités sont désactivées.",
     offlineBanner: "Vous êtes hors ligne. Affichage des données enregistrées.",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Sélectionner",
     archive: "Archiver",
     delete: "Supprimer",
@@ -44,18 +45,12 @@ const fr: Translations = {
   },
   errors: {
     invalidEmail: "Adresse courriel invalide.",
-    attestationFailedTitle: "Échec de Vérification de l'Appareil",
-    attestationFailedMessage:
-      "RecoverySky n'a pas pu vérifier cet appareil. Veuillez vérifier votre connexion internet et réessayer.\n\nSi le problème persiste, réinstallez l'application ou contactez support@recoverysky.app",
     attestationUnsupportedTitle: "Appareil Non Pris en Charge",
     attestationUnsupportedMessage:
-      "Cet appareil ne prend pas en charge la vérification de sécurité requise par RecoverySky.\n\nSi vous pensez qu'il s'agit d'une erreur, contactez support@recoverysky.app",
-    attestationAppleFailedTitle: "Vérification Indisponible",
-    attestationAppleFailedMessage:
-      "RecoverySky n'a pas pu terminer la vérification avec le système de sécurité de votre appareil. Veuillez réessayer dans un instant.\n\nSi le problème persiste, réinstallez l'application ou contactez support@recoverysky.app",
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
     attestationServerFailedTitle: "Vérification Rejetée",
     attestationServerFailedMessage:
-      "RecoverySky n'a pas pu vérifier cet appareil auprès de nos serveurs. Veuillez réinstaller l'application et réessayer.\n\nSi le problème persiste, contactez support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "Initialisation de la base de données...",
@@ -740,7 +735,8 @@ const fr: Translations = {
     title: "Le système est hors ligne",
     subtitle: "Nous revenons bientôt. L'app reprendra automatiquement.",
     offlineTitle: "Vous êtes hors ligne",
-    offlineSubtitle: "Vérifiez votre connexion Internet. L'application se reconnectera automatiquement.",
+    offlineSubtitle:
+      "Vérifiez votre connexion Internet. L'application se reconnectera automatiquement.",
     checking: "Vérification de l'état du système...",
     support: "Obtenir de l'aide",
   },

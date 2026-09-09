@@ -28,6 +28,7 @@ const th: Translations = {
     ratingContactUs: "ติดต่อเรา",
     maintenanceBanner: "กำลังบำรุงรักษา บางคุณสมบัติถูกปิดใช้งาน",
     offlineBanner: "คุณออฟไลน์อยู่ กำลังแสดงข้อมูลที่บันทึกไว้",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "เลือก",
     archive: "เก็บถาวร",
     delete: "ลบ",
@@ -42,18 +43,12 @@ const th: Translations = {
   },
   errors: {
     invalidEmail: "ที่อยู่อีเมลไม่ถูกต้องนะ",
-    attestationFailedTitle: "การยืนยันอุปกรณ์ล้มเหลว",
-    attestationFailedMessage:
-      "RecoverySky ไม่สามารถยืนยันอุปกรณ์นี้ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง\n\nหากปัญหายังคงอยู่ กรุณาติดตั้งแอปใหม่หรือติดต่อ support@recoverysky.app",
     attestationUnsupportedTitle: "อุปกรณ์ไม่รองรับ",
     attestationUnsupportedMessage:
-      "อุปกรณ์นี้ไม่รองรับการยืนยันความปลอดภัยที่ RecoverySky ต้องการ\n\nหากคุณคิดว่านี่เป็นข้อผิดพลาด กรุณาติดต่อ support@recoverysky.app",
-    attestationAppleFailedTitle: "ไม่สามารถยืนยันได้ในขณะนี้",
-    attestationAppleFailedMessage:
-      "RecoverySky ไม่สามารถยืนยันกับระบบความปลอดภัยของอุปกรณ์ของคุณได้ กรุณาลองใหม่อีกครั้งในอีกสักครู่\n\nหากปัญหายังคงอยู่ กรุณาติดตั้งแอปใหม่หรือติดต่อ support@recoverysky.app",
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
     attestationServerFailedTitle: "การยืนยันถูกปฏิเสธ",
     attestationServerFailedMessage:
-      "RecoverySky ไม่สามารถยืนยันอุปกรณ์นี้กับเซิร์ฟเวอร์ของเราได้ กรุณาติดตั้งแอปใหม่แล้วลองอีกครั้ง\n\nหากปัญหายังคงอยู่ กรุณาติดต่อ support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "กำลังเตรียมฐานข้อมูล...",

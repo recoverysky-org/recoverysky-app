@@ -775,3 +775,7 @@ read as *your device*, not *our servers*.
   sentence.
 - `es` — informal register matches the existing file. First `es` string in
   this doc's queue since the 2026-08-14 "Any" day batch.
+
+## 2026-09-09
+
+- common.connectingBanner, errors.attestationUnsupportedMessage, errors.attestationServerFailedMessage — English placeholder in all eight locales.

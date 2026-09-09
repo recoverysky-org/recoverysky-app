@@ -29,6 +29,7 @@ const uk: Translations = {
     ratingContactUs: "Звʼязатися з нами",
     maintenanceBanner: "Тривають технічні роботи. Деякі функції вимкнено.",
     offlineBanner: "Ви офлайн. Показано збережені дані.",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Вибрати",
     archive: "Архівувати",
     delete: "Видалити",
@@ -43,18 +44,12 @@ const uk: Translations = {
   },
   errors: {
     invalidEmail: "Невірна електронна адреса.",
-    attestationFailedTitle: "Помилка Верифікації Пристрою",
-    attestationFailedMessage:
-      "RecoverySky не вдалося верифікувати цей пристрій. Перевірте підключення до інтернету та спробуйте знову.\n\nЯкщо проблема не зникне, перевстановіть додаток або зверніться за адресою support@recoverysky.app",
     attestationUnsupportedTitle: "Пристрій Не Підтримується",
     attestationUnsupportedMessage:
-      "Цей пристрій не підтримує перевірку безпеки, необхідну для RecoverySky.\n\nЯкщо ви вважаєте, що це помилка, зверніться за адресою support@recoverysky.app",
-    attestationAppleFailedTitle: "Верифікація Недоступна",
-    attestationAppleFailedMessage:
-      "RecoverySky не вдалося завершити перевірку в системі безпеки вашого пристрою. Спробуйте знову за мить.\n\nЯкщо проблема не зникне, перевстановіть додаток або зверніться за адресою support@recoverysky.app",
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
     attestationServerFailedTitle: "Верифікацію Відхилено",
     attestationServerFailedMessage:
-      "RecoverySky не вдалося підтвердити цей пристрій на наших серверах. Перевстановіть додаток і спробуйте знову.\n\nЯкщо проблема не зникне, зверніться за адресою support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "Ініціалізація бази даних...",
@@ -729,7 +724,8 @@ const uk: Translations = {
     title: "Система офлайн",
     subtitle: "Ми скоро повернемося. Додаток відновить роботу автоматично.",
     offlineTitle: "Ви офлайн",
-    offlineSubtitle: "Перевірте з'єднання з інтернетом. Застосунок автоматично відновить з'єднання.",
+    offlineSubtitle:
+      "Перевірте з'єднання з інтернетом. Застосунок автоматично відновить з'єднання.",
     checking: "Перевіряємо стан системи...",
     support: "Отримати підтримку",
   },

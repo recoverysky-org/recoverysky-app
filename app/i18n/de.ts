@@ -30,6 +30,7 @@ const de: Translations = {
     ratingContactUs: "Kontaktiere uns",
     maintenanceBanner: "Wartung läuft. Einige Funktionen sind deaktiviert.",
     offlineBanner: "Du bist offline. Gespeicherte Daten werden angezeigt.",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Auswählen",
     archive: "Archivieren",
     delete: "Löschen",
@@ -44,18 +45,12 @@ const de: Translations = {
   },
   errors: {
     invalidEmail: "Ungültige E-Mail-Adresse.",
-    attestationFailedTitle: "Geräteverifizierung Fehlgeschlagen",
-    attestationFailedMessage:
-      "RecoverySky konnte dieses Gerät nicht verifizieren. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.\n\nWenn das Problem weiterhin besteht, installieren Sie die App neu oder kontaktieren Sie support@recoverysky.app",
     attestationUnsupportedTitle: "Gerät Nicht Unterstützt",
     attestationUnsupportedMessage:
-      "Dieses Gerät unterstützt die von RecoverySky geforderte Sicherheitsverifizierung nicht.\n\nWenn Sie glauben, dass dies ein Fehler ist, kontaktieren Sie support@recoverysky.app",
-    attestationAppleFailedTitle: "Verifizierung Nicht Verfügbar",
-    attestationAppleFailedMessage:
-      "RecoverySky konnte die Verifizierung mit dem Sicherheitssystem Ihres Geräts nicht abschließen. Bitte versuchen Sie es in Kürze erneut.\n\nWenn das Problem weiterhin besteht, installieren Sie die App neu oder kontaktieren Sie support@recoverysky.app",
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
     attestationServerFailedTitle: "Verifizierung Abgelehnt",
     attestationServerFailedMessage:
-      "RecoverySky konnte dieses Gerät nicht mit unseren Servern verifizieren. Bitte installieren Sie die App neu und versuchen Sie es erneut.\n\nWenn das Problem weiterhin besteht, kontaktieren Sie support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "Datenbank wird initialisiert...",

@@ -29,6 +29,7 @@ const ru: Translations = {
     ratingContactUs: "Связаться с нами",
     maintenanceBanner: "Идут технические работы. Некоторые функции отключены.",
     offlineBanner: "Вы не в сети. Показаны сохранённые данные.",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Выбрать",
     archive: "Архивировать",
     delete: "Удалить",
@@ -43,18 +44,12 @@ const ru: Translations = {
   },
   errors: {
     invalidEmail: "Неверный адрес электронной почты.",
-    attestationFailedTitle: "Ошибка Верификации Устройства",
-    attestationFailedMessage:
-      "RecoverySky не удалось верифицировать это устройство. Проверьте подключение к интернету и попробуйте снова.\n\nЕсли проблема не исчезнет, переустановите приложение или обратитесь по адресу support@recoverysky.app",
     attestationUnsupportedTitle: "Устройство Не Поддерживается",
     attestationUnsupportedMessage:
-      "Это устройство не поддерживает проверку безопасности, необходимую для RecoverySky.\n\nЕсли вы считаете, что это ошибка, обратитесь по адресу support@recoverysky.app",
-    attestationAppleFailedTitle: "Верификация Недоступна",
-    attestationAppleFailedMessage:
-      "RecoverySky не удалось завершить проверку в системе безопасности вашего устройства. Повторите попытку через мгновение.\n\nЕсли проблема не исчезнет, переустановите приложение или обратитесь по адресу support@recoverysky.app",
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
     attestationServerFailedTitle: "Верификация Отклонена",
     attestationServerFailedMessage:
-      "RecoverySky не удалось подтвердить это устройство на наших серверах. Переустановите приложение и попробуйте снова.\n\nЕсли проблема не исчезнет, обратитесь по адресу support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "Инициализация базы данных...",

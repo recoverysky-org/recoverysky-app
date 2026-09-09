@@ -27,6 +27,7 @@ const en = {
     ratingContactUs: "Contact us",
     maintenanceBanner: "Maintenance in progress. Some features disabled.",
     offlineBanner: "You're offline. Showing saved data.",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Select",
     archive: "Archive",
     delete: "Delete",
@@ -41,22 +42,18 @@ const en = {
   },
   errors: {
     invalidEmail: "Invalid email address.",
-    // Generic / network-flavored fallback (also used for transient connectivity issues).
-    attestationFailedTitle: "Device Verification Failed",
-    attestationFailedMessage:
-      "RecoverySky could not verify this device. Please check your internet connection and try again.\n\nIf this problem persists, please reinstall the app or contact support@recoverysky.app",
     // Shown when the device / OS can't participate in App Attest or Play Integrity at all.
     attestationUnsupportedTitle: "Device Not Supported",
     attestationUnsupportedMessage:
-      "This device does not support the security verification required by RecoverySky.\n\nIf you believe this is a mistake, please contact support@recoverysky.app",
-    // Shown when the Apple/Google framework itself failed (keygen, signing, Play Integrity API).
-    attestationAppleFailedTitle: "Verification Unavailable",
-    attestationAppleFailedMessage:
-      "RecoverySky could not complete verification with your device's security system. Please try again in a moment.\n\nIf this problem persists, please reinstall the app or contact support@recoverysky.app",
-    // Shown when our backend rejected a valid-looking attestation (401/403/400/bad-data).
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
+    // Shown when our backend refused a full attestation (403/400): bundle/team
+    // mismatch, tampered app, or a failed Play verdict. Temporary failures never
+    // reach an alert any more — they show the Connecting… banner instead.
+    // CHANGED 2026-09-09: dropped "please reinstall the app" — attendance is
+    // local SQLite and a reinstall destroys it (support ticket, 2026-09-07).
     attestationServerFailedTitle: "Verification Rejected",
     attestationServerFailedMessage:
-      "RecoverySky could not verify this device with our servers. Please reinstall the app and try again.\n\nIf this problem persists, please contact support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "Initializing database...",

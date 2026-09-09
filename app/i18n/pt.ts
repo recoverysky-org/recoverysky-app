@@ -29,6 +29,7 @@ const pt: Translations = {
     ratingContactUs: "Fale conosco",
     maintenanceBanner: "Manutenção em andamento. Alguns recursos estão desativados.",
     offlineBanner: "Você está offline. Mostrando dados salvos.",
+    connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Selecionar",
     archive: "Arquivar",
     delete: "Excluir",
@@ -43,18 +44,12 @@ const pt: Translations = {
   },
   errors: {
     invalidEmail: "Endereço de e-mail inválido.",
-    attestationFailedTitle: "Falha na Verificação do Dispositivo",
-    attestationFailedMessage:
-      "O RecoverySky não conseguiu verificar este dispositivo. Verifique sua conexão com a internet e tente novamente.\n\nSe o problema persistir, reinstale o aplicativo ou entre em contato com support@recoverysky.app",
     attestationUnsupportedTitle: "Dispositivo Não Compatível",
     attestationUnsupportedMessage:
-      "Este dispositivo não oferece suporte à verificação de segurança exigida pelo RecoverySky.\n\nSe você acredita que isso é um engano, entre em contato com support@recoverysky.app",
-    attestationAppleFailedTitle: "Verificação Indisponível",
-    attestationAppleFailedMessage:
-      "O RecoverySky não conseguiu concluir a verificação com o sistema de segurança do seu dispositivo. Tente novamente em alguns instantes.\n\nSe o problema persistir, reinstale o aplicativo ou entre em contato com support@recoverysky.app",
+      "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
     attestationServerFailedTitle: "Verificação Rejeitada",
     attestationServerFailedMessage:
-      "O RecoverySky não conseguiu verificar este dispositivo com nossos servidores. Reinstale o aplicativo e tente novamente.\n\nSe o problema persistir, entre em contato com support@recoverysky.app",
+      "RecoverySky could not verify this app on this device.\n\nYour attendance records stay on this device. Please contact support@recoverysky.app and we will help.",
   },
   database: {
     initializing: "Inicializando banco de dados...",
@@ -731,7 +726,8 @@ const pt: Translations = {
     title: "O sistema está offline",
     subtitle: "Voltaremos em breve. O app será retomado automaticamente.",
     offlineTitle: "Você está offline",
-    offlineSubtitle: "Verifique sua conexão com a internet. O aplicativo se reconectará automaticamente.",
+    offlineSubtitle:
+      "Verifique sua conexão com a internet. O aplicativo se reconectará automaticamente.",
     checking: "Verificando status do sistema...",
     support: "Obter Suporte",
   },
