@@ -117,8 +117,11 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   // touching location. All three views are mounted from app start, so without
   // this a location fix would be taken at launch for a segment the user may
   // never open — the exact thing the In-Person latch above exists to prevent.
-  // Search's meeting *fetch* is deliberately not gated on this; it has always
-  // loaded on mount and that costs nothing but a request.
+  // Search's meeting *fetch* used to be deliberately not gated on this ("it has
+  // always loaded on mount and that costs nothing but a request").
+  // CHANGED 2026-09-09: it is gated now. The launch-time request was the only
+  // fetch either static segment made without the user asking, and it re-fired
+  // on every fellowship/day change while the tab was hidden.
   const [listingsActivated, setListingsActivated] = useState(false)
   useEffect(() => {
     if (activeSegment === "listings") setListingsActivated(true)

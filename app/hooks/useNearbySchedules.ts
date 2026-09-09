@@ -233,9 +233,10 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
 
   // Read both observables during render so MobX tracks them for the consuming
   // `observer()` component — that is what makes the maintenance-exit refetch
-  // and the fellowship-change refetch fire at all. (ListingsScreen instead
-  // deps its fetch callback on the `configStore` object, whose identity never
-  // changes; depending on the primitive here is the honest version.)
+  // and the fellowship-change refetch fire at all. (ListingsScreen used to
+  // dep its fetch callback on the `configStore` object, whose identity never
+  // changes, so its maintenance-exit refetch never fired; since 2026-09-09 it
+  // reads the primitive the same way.)
   // INTEGRATION REQUIREMENT: the component calling this hook MUST be wrapped
   // in `observer()`, or neither reaction happens.
   const maintenanceMode = configStore.maintenanceMode

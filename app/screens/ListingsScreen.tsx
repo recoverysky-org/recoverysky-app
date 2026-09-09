@@ -493,13 +493,24 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     return Array.from({ length: 24 }, (_, i) => i + 1) // 1-24
   }
 
+  // Read the maintenance flag during render so MobX tracks it for this
+  // `observer()` component — the same pattern `useNearbySchedules` uses.
+  // CHANGED 2026-09-09: `fetchDailySchedules` used to read
+  // `configStore.maintenanceMode` inside the callback and depend on the
+  // `configStore` object, whose identity never changes. That meant the fetch
+  // skipped during maintenance was never retried when maintenance ended: a
+  // user who opened Search mid-maintenance kept an empty list until they
+  // changed a filter or pulled. Depending on the primitive re-creates the
+  // callback on the flip, and the driver effect below refetches.
+  const maintenanceMode = configStore.maintenanceMode
+
   // Fetch daily schedules
   const fetchDailySchedules = useCallback(async () => {
     // Skip the API call entirely while server-side maintenance is on.
     // Pull-to-refresh from the Listings tab still hits this code path
     // directly (bypassing MeetingContext), so the gate has to live here
     // too. We just stop the spinner and leave the list as-is.
-    if (configStore.maintenanceMode) {
+    if (maintenanceMode) {
       log.debug("Skipping daily schedules fetch — maintenance mode")
       setIsLoading(false)
       return
@@ -681,12 +692,20 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     // so that primitive is the honest dependency. Depending on `location`
     // itself would refetch on every unrelated status flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveDay, profileStore.fellowship, configStore, venue, radiusKm, location.fixVersion])
+  }, [effectiveDay, profileStore.fellowship, maintenanceMode, venue, radiusKm, location.fixVersion])
 
-  // Fetch when day, fellowship, venue, radius or the location fix changes
+  // Fetch when day, fellowship, venue, radius, maintenance or the location fix
+  // changes.
+  // CHANGED 2026-09-09: gated on `active`, matching the location probe above
+  // and In-Person's driver effect. MeetingsScreen mounts all three segments at
+  // app start, so an ungated version fired a schedules request at every launch
+  // — and again on every fellowship or day change — for a tab the user may
+  // never open. The latch never reverts, so once opened this behaves exactly
+  // as before; the first activation just runs the fetch that mount used to.
   useEffect(() => {
+    if (!active) return
     fetchDailySchedules()
-  }, [fetchDailySchedules])
+  }, [active, fetchDailySchedules])
 
   // One normalized haystack per meeting, rebuilt only when the pool changes —
   // NOT per keystroke. `filteredMeetings` below runs on every character typed,
@@ -1561,7 +1580,9 @@ export const ListingsScreen: FC<MainTabScreenProps<"Listings">> = observer(
   function ListingsScreen(_props) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$screenContainer}>
-        <ListingsContent />
+        {/* A standalone screen is opened by definition, and the fetch is now
+            gated on `active` (2026-09-09) — without this it would never load. */}
+        <ListingsContent active />
       </Screen>
     )
   },

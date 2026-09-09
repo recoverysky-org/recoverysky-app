@@ -45,6 +45,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - **The Search box now sits below the filter grid**, above the meeting count,
   and scrolls with the header instead of staying pinned above the segment's
   filters. It keeps keyboard focus while you type.
+- **Meetings → Search no longer fetches at app launch.** The segment's schedule
+  request now waits until the user first opens Search (the same latch In-Person
+  has always used) instead of firing on every cold start — and again on every
+  fellowship or day change — for a tab that may never be opened. Once opened,
+  behavior is unchanged: filter changes and pull-to-refresh refetch as before.
 
 ### Added
 
@@ -101,6 +106,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   overwrites the pending one, or after a reload mid-prompt. The request now
   shares the same timeout guard as the GPS fix and reports the ordinary
   "couldn't get your location" alert instead of a dead button.
+- **Meetings → Search now reloads when maintenance ends.** Its fetch was
+  skipped during server maintenance but never retried when the banner cleared,
+  so a user who opened Search mid-maintenance stayed on an empty list until they
+  changed a filter or pulled to refresh. In-Person already handled this; Search
+  now observes the maintenance flag the same way.
 
 ### Removed
 
