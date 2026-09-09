@@ -162,12 +162,20 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<"ok" | "
     return "ok"
   }
 
-  // Fast path: a persisted JWT with more than the skew left needs no network.
-  if (await hydratePersistedDeviceJwt()) return "ok"
-
+  // Prepared on EVERY Android cold start, before the persisted-JWT fast path
+  // below — `playIntegrityPrepared` is per-process state in
+  // services/attestation/index.ts, and a later re-attestation in this same
+  // session (the device refresher at JWT skew, or a foreground warm-up)
+  // depends on it having already run. A warm start that took the fast path
+  // and skipped this would degrade on its first mid-session re-attestation
+  // with no way back to "ok" for the rest of the process. This matches what
+  // the pre-2026-09-09 flow did.
   if (Platform.OS === "android" && GOOGLE_CLOUD_PROJECT_NUMBER) {
     await preparePlayIntegrity(GOOGLE_CLOUD_PROJECT_NUMBER)
   }
+
+  // Fast path: a persisted JWT with more than the skew left needs no network.
+  if (await hydratePersistedDeviceJwt()) return "ok"
 
   const outcome = await establishDeviceToken(deviceId)
   if (outcome.status === "ok") return "ok"
