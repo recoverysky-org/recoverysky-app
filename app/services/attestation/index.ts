@@ -9,15 +9,14 @@
  * - Android: Google Play Integrity
  *
  * Flow:
- * 1. Generate attestation token on device
- * 2. Send to backend for verification
- * 3. Receive JWT for subsequent API calls
+ * 1. deviceToken.ts asks the server for a challenge
+ * 2. this module produces an attestation object or an assertion for it
+ * 3. deviceToken.ts exchanges it for a device JWT
  */
 import { Platform } from "react-native"
 import * as Device from "expo-device"
 import * as AppIntegrity from "@expo/app-integrity"
 
-import { api } from "@/services/api"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "attestation" })
@@ -26,42 +25,25 @@ const log = logger.child({ module: "attestation" })
 // Types
 // =============================================================================
 
-export interface AttestationResult {
-  deviceJwt: string
-  expiresAt: number // Unix timestamp (ms)
-}
-
-export interface AttestationError {
-  code: "UNSUPPORTED" | "SIMULATOR" | "ATTESTATION_FAILED" | "VERIFICATION_FAILED"
+/**
+ * Why the OS framework refused. `nativeCode` is the expo-modules error code
+ * (ERR_APP_INTEGRITY_*, see @expo/app-integrity ios/IntegrityErrorCodes.swift);
+ * undefined when the throw was not a CodedError. deviceTokenLogic's
+ * classifyNativeFailure() decides what it means.
+ */
+export interface NativeFailure {
+  nativeCode: string | undefined
   message: string
-  /**
-   * For VERIFICATION_FAILED only: the underlying GeneralApiProblem.kind
-   * (e.g. "timeout", "unauthorized", "server"). Lets callers distinguish
-   * a 401 from a 5xx from a network drop without reverse-engineering
-   * the error message.
-   */
-  kind?: string
-  /**
-   * Whether another retry could plausibly succeed. UNSUPPORTED and
-   * SIMULATOR are always false; ATTESTATION_FAILED defaults to true
-   * (Apple/Play framework calls can have transient hiccups);
-   * VERIFICATION_FAILED follows the underlying GeneralApiProblem —
-   * timeouts/5xx/connection drops are temporary, 4xx/bad-data are not.
-   */
-  temporary: boolean
 }
 
-/** Map an api-layer GeneralApiProblem kind to attestation retry semantics. */
-const TEMPORARY_API_KINDS: ReadonlySet<string> = new Set([
-  "timeout",
-  "cannot-connect",
-  "server",
-  "unknown",
-])
-
-export type AttestationResponse =
-  | { ok: true; data: AttestationResult }
-  | { ok: false; error: AttestationError }
+function toNativeFailure(err: unknown): NativeFailure {
+  const code =
+    typeof err === "object" && err !== null ? (err as { code?: unknown }).code : undefined
+  return {
+    nativeCode: typeof code === "string" ? code : undefined,
+    message: err instanceof Error ? err.message : String(err),
+  }
+}
 
 // =============================================================================
 // Platform Detection
@@ -80,70 +62,24 @@ export function isSimulator(): boolean {
  * Must be iOS/Android AND physical device (not simulator)
  */
 export function isAttestationSupported(): boolean {
-  // Web and other platforms not supported
-  if (Platform.OS !== "ios" && Platform.OS !== "android") {
-    return false
-  }
-
-  // Must be physical device
-  if (!Device.isDevice) {
-    return false
-  }
-
-  // iOS: Check if App Attest is available (requires iOS 14+)
-  if (Platform.OS === "ios") {
-    return AppIntegrity.isSupported ?? false
-  }
-
-  // Android: Play Integrity is generally available
+  if (Platform.OS !== "ios" && Platform.OS !== "android") return false
+  if (!Device.isDevice) return false
+  if (Platform.OS === "ios") return AppIntegrity.isSupported ?? false
   return true
-}
-
-// =============================================================================
-// iOS App Attest
-// =============================================================================
-
-// In-memory storage for iOS attestation key ID
-// This is intentionally NOT persisted - we generate a new key on each cold start
-let iosKeyId: string | null = null
-
-/**
- * Generate and attest an iOS key pair
- *
- * iOS App Attest flow:
- * 1. Generate a hardware-backed key pair (key stored in Secure Enclave)
- * 2. Attest the key with Apple's servers
- * 3. Send attestation object to our backend for verification
- */
-async function generateiOSAttestation(challenge: string): Promise<string> {
-  // Step 1: Generate a new key pair
-  log.info("Generating iOS App Attest key pair")
-  iosKeyId = await AppIntegrity.generateKeyAsync()
-  log.debug("Key pair generated", { keyId: iosKeyId.slice(0, 8) + "..." })
-
-  // Step 2: Attest the key with Apple
-  log.info("Attesting key with Apple servers")
-  const attestationObject = await AppIntegrity.attestKeyAsync(iosKeyId, challenge)
-
-  return attestationObject
 }
 
 // =============================================================================
 // Android Play Integrity
 // =============================================================================
 
-// Track if Play Integrity provider is prepared
 let playIntegrityPrepared = false
 
 /**
- * Prepare Android Play Integrity token provider
- * This should be called early in app lifecycle (e.g., app.tsx init)
+ * Prepare Android Play Integrity token provider. Called once per process
+ * from app.tsx; the standard-API provider is the cheap, un-throttled path.
  */
 export async function preparePlayIntegrity(cloudProjectNumber: string): Promise<boolean> {
-  if (Platform.OS !== "android" || !Device.isDevice) {
-    return false
-  }
-
+  if (Platform.OS !== "android" || !Device.isDevice) return false
   try {
     log.info("Preparing Play Integrity token provider")
     await AppIntegrity.prepareIntegrityTokenProviderAsync(cloudProjectNumber)
@@ -151,163 +87,76 @@ export async function preparePlayIntegrity(cloudProjectNumber: string): Promise<
     log.info("Play Integrity provider ready")
     return true
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    log.error("Failed to prepare Play Integrity provider", { error: message })
+    log.error("Failed to prepare Play Integrity provider", { error: toNativeFailure(err).message })
     playIntegrityPrepared = false
     return false
   }
 }
 
-/**
- * Request Android Play Integrity token
- */
-async function generateAndroidAttestation(challenge: string): Promise<string> {
-  if (!playIntegrityPrepared) {
-    throw new Error("Play Integrity provider not prepared. Call preparePlayIntegrity() first.")
-  }
-
-  log.info("Requesting Play Integrity token")
-  const result = await AppIntegrity.requestIntegrityCheckAsync(challenge)
-  return result
-}
-
 // =============================================================================
-// Main Attestation Function
+// Attestation (full) and assertion
 // =============================================================================
 
 /**
- * Generate attestation token and exchange for device JWT
+ * Produce a platform attestation for `challenge`.
  *
- * @param deviceId - Unique device identifier (used as challenge)
- * @param challenge - Optional server-provided challenge (defaults to deviceId)
- * @returns AttestationResponse with device JWT or error
+ * iOS: generates a NEW Secure Enclave key and attests it with Apple. This is
+ * the expensive, Apple-rate-limited step — callers run it at most once per
+ * establishDeviceToken() and persist the returned keyId so later launches
+ * use generateAssertion() instead.
+ * CHANGED 2026-09-09: was attestDevice(), which also POSTed to /attest and
+ * retried the whole thing (new key each time). The exchange now lives in
+ * deviceToken.ts so only the network half retries.
+ *
+ * Android: requests a Play Integrity token with `challenge` as the request
+ * hash; the server checks it against the nonce it issued.
  */
-export async function attestDevice(
-  deviceId: string,
-  challenge?: string,
-): Promise<AttestationResponse> {
-  const attestChallenge = challenge ?? deviceId
-
-  // 1. Check platform support
-  if (Platform.OS !== "ios" && Platform.OS !== "android") {
-    log.info("Web platform - attestation not supported")
-    return {
-      ok: false,
-      error: {
-        code: "UNSUPPORTED",
-        message: "Web platform not supported",
-        temporary: false,
-      },
-    }
-  }
-
-  // 2. Check for simulator - use X-API-Key fallback
-  if (isSimulator()) {
-    log.info("Running on simulator, skipping attestation (using X-API-Key)")
-    return {
-      ok: false,
-      error: {
-        code: "SIMULATOR",
-        message: "Simulator detected, using API key fallback",
-        temporary: false,
-      },
-    }
-  }
-
-  // 3. Check if attestation is supported
-  if (!isAttestationSupported()) {
-    log.warn("Attestation not supported on this device")
-    return {
-      ok: false,
-      error: {
-        code: "UNSUPPORTED",
-        message: "Device attestation not supported",
-        temporary: false,
-      },
-    }
-  }
-
+export async function generateAttestation(
+  challenge: string,
+): Promise<{ ok: true; token: string; keyId?: string } | { ok: false; failure: NativeFailure }> {
   try {
-    // 4. Generate platform-specific attestation token
-    log.info("Generating attestation token", { platform: Platform.OS })
-    let token: string
-    let keyId: string | undefined
-
     if (Platform.OS === "ios") {
-      token = await generateiOSAttestation(attestChallenge)
-      // iosKeyId is set by generateiOSAttestation
-      keyId = iosKeyId ?? undefined
-    } else {
-      token = await generateAndroidAttestation(attestChallenge)
+      log.info("Generating iOS App Attest key pair")
+      const keyId = await AppIntegrity.generateKeyAsync()
+      log.debug("Key pair generated", { keyId: keyId.slice(0, 8) + "..." })
+      log.info("Attesting key with Apple servers")
+      const token = await AppIntegrity.attestKeyAsync(keyId, challenge)
+      return { ok: true, token, keyId }
     }
-
-    log.info("Attestation token generated", {
-      platform: Platform.OS,
-      tokenLength: token.length,
-      hasKeyId: !!keyId,
-    })
-
-    // 5. Send to backend for verification and JWT exchange
-    const response = await api.verifyAttestation({
-      token,
-      platform: Platform.OS,
-      deviceId,
-      keyId, // iOS only - required for App Attest verification
-    })
-
-    if (response.kind !== "ok") {
-      const temporary = TEMPORARY_API_KINDS.has(response.kind)
-      log.error("Backend verification failed", { kind: response.kind, temporary })
-      return {
-        ok: false,
-        error: {
-          code: "VERIFICATION_FAILED",
-          message: `API error: ${response.kind}`,
-          kind: response.kind,
-          temporary,
-        },
-      }
+    if (!playIntegrityPrepared) {
+      throw new Error("Play Integrity provider not prepared. Call preparePlayIntegrity() first.")
     }
-
-    log.info("Device attestation successful", {
-      expiresAt: new Date(response.data.expiresAt).toISOString(),
-    })
-
-    return { ok: true, data: response.data }
+    log.info("Requesting Play Integrity token")
+    const token = await AppIntegrity.requestIntegrityCheckAsync(challenge)
+    return { ok: true, token }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    log.error("Attestation failed", { error: message, platform: Platform.OS })
-
-    // Apple App Attest / Play Integrity calls can have transient failures
-    // (service unavailable, network glitch while talking to Apple), so we
-    // treat framework-level errors as retryable by default.
-    return {
-      ok: false,
-      error: { code: "ATTESTATION_FAILED", message, temporary: true },
-    }
+    const failure = toNativeFailure(err)
+    log.error("Native attestation failed", { platform: Platform.OS, ...failure })
+    return { ok: false, failure }
   }
 }
 
 /**
- * Generate an assertion for a sensitive request (iOS only)
+ * Sign `challenge` with the stored App Attest key (iOS only).
  *
- * After initial attestation, assertions can be generated for
- * individual sensitive requests to prove they come from the same device.
- *
- * @param requestData - Data to include in the assertion (usually stringified JSON)
- * @returns Assertion string or null if not available
+ * The native module SHA-256s the challenge string itself before calling
+ * DCAppAttestService.generateAssertion, which is exactly what
+ * node-app-attest's verifyAssertion recomputes from the nonce on the server.
  */
-export async function generateAssertion(requestData: string): Promise<string | null> {
-  if (Platform.OS !== "ios" || !iosKeyId) {
-    return null
-  }
-
+export async function generateAssertion(
+  keyId: string,
+  challenge: string,
+): Promise<{ ok: true; assertion: string } | { ok: false; failure: NativeFailure }> {
   try {
-    const assertion = await AppIntegrity.generateAssertionAsync(iosKeyId, requestData)
-    return assertion
+    const assertion = await AppIntegrity.generateAssertionAsync(keyId, challenge)
+    return { ok: true, assertion }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    log.error("Failed to generate assertion", { error: message })
-    return null
+    const failure = toNativeFailure(err)
+    // info, not error: a dropped key is expected after a Keychain wipe and
+    // the caller silently falls back to a full attestation. Spread into a
+    // literal — LogAttributes has a string index signature that a
+    // NativeFailure-typed variable doesn't structurally satisfy on its own.
+    log.info("Native assertion failed — key will be regenerated", { ...failure })
+    return { ok: false, failure }
   }
 }
