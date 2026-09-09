@@ -107,10 +107,18 @@ describe("classifyExchangeFailure", () => {
     )
   })
 
-  it("a rejected full attestation blocks", () => {
+  it("only a 401/403 on a full attestation blocks", () => {
     expect(classifyExchangeFailure({ exchange: "attest", kind: "forbidden" })).toBe("blocked")
-    expect(classifyExchangeFailure({ exchange: "attest", kind: "rejected" })).toBe("blocked")
     expect(classifyExchangeFailure({ exchange: "attest", kind: "unauthorized" })).toBe("blocked")
+  })
+
+  // CHANGED 2026-09-09 (final review): `rejected` covers 400 and 429 in
+  // apiProblem.ts — a rate-limiter hit on the IP-limited attest routes, or a
+  // `bad_nonce`. Neither is a verdict about the device, so neither may show
+  // the "Verification Rejected" alert.
+  it("every other non-temporary attest failure degrades", () => {
+    expect(classifyExchangeFailure({ exchange: "attest", kind: "rejected" })).toBe("degrade")
+    expect(classifyExchangeFailure({ exchange: "attest", kind: "not-found" })).toBe("degrade")
   })
 
   it("a non-temporary challenge failure degrades rather than blocks", () => {

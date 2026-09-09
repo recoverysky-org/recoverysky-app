@@ -39,9 +39,11 @@ export function decideColdStartStep(i: {
  *
  * INVARIANT: the worst-case ladder (attempts × the 10 s api timeout + these
  * sleeps ≈ 87 s) must stay well under the server's 5-minute nonce TTL (api
- * `CHALLENGE_TTL_MS`); an expired nonce comes back as a 4xx, which the attest
- * exchange classifies as `blocked`. Widen this ladder or the api timeout
- * only together with the TTL.
+ * `CHALLENGE_TTL_MS`); an expired nonce comes back as a 400 and the whole
+ * cold start is wasted. CHANGED 2026-09-09 (final review): that 400 now
+ * degrades rather than blocking (see classifyExchangeFailure), so blowing the
+ * TTL costs a retry cycle instead of a full-screen alert — but keep the
+ * invariant: widen this ladder or the api timeout only together with the TTL.
  */
 export const EXCHANGE_RETRY_DELAYS_MS: readonly number[] = [2000, 5000, 10000, 20000]
 
@@ -64,9 +66,17 @@ export type ExchangeFailureAction = "retry" | "fallback-to-attest" | "degrade" |
  * - A non-temporary `assert` failure means "the server does not know this
  *   key" (wiped Keychain, restored backup, pre-2.9.0 row): fall back to a
  *   full attestation. Never user-visible.
- * - A 4xx on `attest` is the server refusing this app on this device:
+ * - A 401 or 403 on `attest` is the server refusing this app on this device:
  *   bundle/team mismatch, tampered binary, failed Play verdict. That blocks.
- *   `bad-data` is our own parsing, not a refusal, so it degrades.
+ *   CHANGED 2026-09-09 (final review): every OTHER non-temporary kind on
+ *   `attest` degrades. The attest routes are rate-limited by IP, so a
+ *   carrier-NAT or campus population retrying on the ladder can trip a
+ *   per-IP bucket — and `apiProblem.ts` maps both 429 and 400 to `rejected`.
+ *   A limiter hit and a `bad_nonce` (400, e.g. Apple's attestKeyAsync stalled
+ *   past the 5-minute nonce TTL) are protocol outcomes, not verdicts about
+ *   the device; telling those users the app was refused is wrong and, unlike
+ *   a real refusal, retrying clears it. `bad-data` is our own parsing, not a
+ *   refusal, and degrades for the same reason.
  * - A non-temporary `challenge` failure is a server-side problem, not a
  *   verdict about the device: degrade and let the refresher keep trying.
  */
@@ -76,7 +86,9 @@ export function classifyExchangeFailure(i: {
 }): ExchangeFailureAction {
   if (TEMPORARY_API_KINDS.has(i.kind)) return "retry"
   if (i.exchange === "assert") return "fallback-to-attest"
-  if (i.exchange === "attest" && i.kind !== "bad-data") return "blocked"
+  if (i.exchange === "attest" && (i.kind === "forbidden" || i.kind === "unauthorized")) {
+    return "blocked"
+  }
   return "degrade"
 }
 

@@ -46,7 +46,7 @@ const en = {
     attestationUnsupportedTitle: "Device Not Supported",
     attestationUnsupportedMessage:
       "This device does not support the security verification required by RecoverySky.\n\nYour attendance records stay on this device. If you believe this is a mistake, please contact support@recoverysky.app",
-    // Shown when our backend refused a full attestation (403/400): bundle/team
+    // Shown when our backend refused a full attestation (403/401): bundle/team
     // mismatch, tampered app, or a failed Play verdict. Temporary failures never
     // reach an alert any more — they show the Connecting… banner instead.
     // CHANGED 2026-09-09: dropped "please reinstall the app" — attendance is
