@@ -53,6 +53,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **Star ratings are now schedule-wide, like favorites.** Rating a meeting in
+  either meeting popup sets that star on every meeting in its schedule, so a
+  Monday five-star also shows on Tuesday and Thursday. Clearing the stars clears
+  the whole schedule too. Existing per-meeting ratings are upgraded once at
+  startup by the same one-time pass that upgraded favorites (its own done-flag,
+  retried on a later launch if the API or a write fails); where a schedule
+  already held mixed ratings, the highest one wins. Join counts stay
+  per-meeting.
 - **Distance / Start sort pill on the Meetings → In-Person list.** A second
   segmented control, styled like the List / Map one, switches the nearby list
   between nearest-first (the default) and
@@ -76,6 +84,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Hearts and stars now respond on the tap.** Favoriting or rating a meeting
+  used to wait for every sibling in the schedule to be written to the database,
+  one round trip at a time, while all three Meetings lists re-rendered between
+  each write — a visibly delayed, sluggish icon. The popup now shows the new
+  value immediately and the writes finish in the background; a write that fails
+  still reverts on screen.
+- **Stars and the heart are easier to hit.** Each was tappable only on its
+  20–26 pt glyph, well under the 44 pt platform minimum, so taps often landed
+  between stars and did nothing. Both meeting popups now give every star and the
+  heart a 44 pt touch target, with a slightly larger star glyph to match, and
+  the heart + stars sit on their own line above the Join / Get Directions
+  button instead of squeezed beside it.
 - Verification retries no longer regenerate the Apple key on every attempt; only
   the network exchange retries, on a longer 2/5/10/20 s ladder.
 - A first launch that could not verify the device no longer lands on the

@@ -50,7 +50,7 @@ import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { decideScheduleLove } from "@/utils/favoriteLogic"
+import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
@@ -291,6 +291,21 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     }
   }, [visible, meeting?.id])
 
+  // ADDED 2026-09-09: mirror the cache for this meeting while the popup is
+  // open. The heart/star handlers below no longer await their schedule-wide
+  // write — `feedbackCache.applyToMids` notifies synchronously on the tap and
+  // persists in the background — so this subscription is what paints the
+  // optimistic value immediately AND what pulls it back if a write fails.
+  // Filtered to our own mid: sibling notifications would otherwise re-render
+  // the popup once per meeting in the schedule.
+  useEffect(() => {
+    if (!visible || !meeting?.id) return
+    const mid = meeting.id
+    return feedbackCache.subscribe((changedMid, record) => {
+      if (changedMid === mid) setFeedback(record)
+    })
+  }, [visible, meeting?.id])
+
   // Load feedback from cache when popup opens (synchronous read)
   useEffect(() => {
     if (visible && meeting?.id) {
@@ -312,9 +327,10 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // CHANGED 2026-09-04: favoriting is schedule-wide — the tap's new value is
   // SET on every meeting in `scheduleData` (decideScheduleLove picks the mids
   // and the value), so a Monday favorite favorites the whole schedule. Current
-  // state is read from the cache, not the local mirror, and local state is
-  // read back afterwards rather than hand-built — that way a persist
-  // failure's revert inside setLoveForMids shows here too.
+  // state is read from the cache, not the local mirror.
+  // CHANGED 2026-09-09: no longer awaits the write or reads local state back —
+  // the subscription above mirrors the cache, so the optimistic value paints
+  // on the tap and a persist failure's revert still shows here.
   const handleToggleLove = useCallback(async () => {
     if (!meeting?.id) return
     const { mids, loves } = decideScheduleLove({
@@ -322,8 +338,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
       currentLoves: feedbackCache.get(meeting.id)?.loves ?? false,
       scheduleData: meeting.scheduleData,
     })
-    await feedbackCache.setLoveForMids(mids, loves)
-    setFeedback(feedbackCache.get(meeting.id))
+    // Not awaited: the optimistic value is already in the cache (and painted
+    // via the subscription above) when this returns; the write is background.
+    void feedbackCache.setLoveForMids(mids, loves)
     // One event per gesture, not one per sibling meeting.
     trackEvent("meeting_favorited", {
       action: loves ? "add" : "remove",
@@ -333,18 +350,24 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   }, [meeting?.id, meeting?.scheduleData])
 
   // Set rating
+  // CHANGED 2026-09-09: rating is schedule-wide, the star twin of
+  // handleToggleLove above — the tapped star is SET on every meeting in
+  // `scheduleData` (decideScheduleRating picks the mids and clamps the value),
+  // so rating one occurrence rates the whole schedule. Not awaited and no
+  // read-back: the subscription above mirrors the cache (see handleToggleLove).
   const handleSetRating = useCallback(
     async (star: number) => {
       if (!meeting?.id) return
-      await feedbackCache.setRating(meeting.id, star)
-      setFeedback((prev: FeedbackRecord | null) =>
-        prev
-          ? { ...prev, rates: star }
-          : { mid: meeting.id, loves: false, rates: star, joins: 0, lastJoin: 0 },
-      )
-      log.debug("Set rating", { mid: meeting.id, rating: star })
+      const { mids, rates } = decideScheduleRating({
+        tappedMid: meeting.id,
+        rating: star,
+        scheduleData: meeting.scheduleData,
+      })
+      // Not awaited — same contract as handleToggleLove.
+      void feedbackCache.setRatingForMids(mids, rates)
+      log.debug("Set rating", { mid: meeting.id, rating: rates, scheduleSize: mids.length })
     },
-    [meeting?.id],
+    [meeting?.id, meeting?.scheduleData],
   )
 
   // Schedule grid data comes directly from API
@@ -630,28 +653,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             ))}
           </View>
 
-          {/* Join button and Feedback row */}
+          {/* Heart + stars on their own line, then the Join button (see $actionRow) */}
           <View style={themed($actionRow)}>
-            {/* Join button (left) */}
-            {meeting.url && (
-              <Pressable
-                onPress={handleJoin}
-                style={[themed($joinButton), isJoining && themed($joinButtonDisabled)]}
-                disabled={isJoining}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")
-                }
-                accessibilityState={{ disabled: isJoining }}
-              >
-                <Text style={themed($joinButtonText)}>
-                  {isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
-                </Text>
-                <Ionicons name="open-outline" size={16} color={theme.colors.tint} />
-              </Pressable>
-            )}
-
-            {/* Feedback section (right) */}
+            {/* Feedback section (own line) */}
             <View style={themed($feedbackSection)}>
               {/* Heart and Stars row */}
               <View style={themed($heartStarsRow)}>
@@ -674,6 +678,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                     <Pressable
                       key={star}
                       onPress={() => handleSetRating(star)}
+                      style={themed($starButton)}
                       accessibilityRole="button"
                       accessibilityLabel={t("accessibility:rateStars", { count: star })}
                       accessibilityState={{ selected: star <= rating }}
@@ -681,7 +686,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                     >
                       <Ionicons
                         name={star <= rating ? "star" : "star-outline"}
-                        size={20}
+                        size={24}
                         color={star <= rating ? "#fbbf24" : theme.colors.textDim}
                       />
                     </Pressable>
@@ -700,6 +705,25 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
                 </View>
               )}
             </View>
+
+            {/* Join button */}
+            {meeting.url && (
+              <Pressable
+                onPress={handleJoin}
+                style={[themed($joinButton), isJoining && themed($joinButtonDisabled)]}
+                disabled={isJoining}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")
+                }
+                accessibilityState={{ disabled: isJoining }}
+              >
+                <Text style={themed($joinButtonText)}>
+                  {isJoining ? t("liveScreen:joining") : t("liveScreen:joinMeeting")}
+                </Text>
+                <Ionicons name="open-outline" size={16} color={theme.colors.tint} />
+              </Pressable>
+            )}
           </View>
 
           {/* Description - tap to expand */}
@@ -909,22 +933,26 @@ const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.text,
 })
 
+// CHANGED 2026-09-09: was a single row — button on the left, heart + stars
+// right-aligned in a flex:1 slot beside it. Once each star and the heart grew
+// to a 44 pt touch target (see $starButton) the 264 pt feedback row no longer
+// fit beside the button and overflowed straight across it. The two now stack:
+// the heart + stars (and joins count) on their own line, the button beneath.
 const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
+  flexDirection: "column",
   alignItems: "flex-start",
-  gap: spacing.md,
+  gap: spacing.xs,
   marginBottom: spacing.md,
 })
 
 const $feedbackSection: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  alignItems: "flex-end",
+  alignItems: "flex-start",
 })
 
-const $heartStarsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $heartStarsRow: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: spacing.xs,
+  // No gap (was spacing.xs): the 44 pt heart/star boxes carry their own.
 })
 
 const $joinsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -939,8 +967,23 @@ const $joinsText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
+// CHANGED 2026-09-09: the heart and each star used to be bare Pressables
+// around a 20–26 pt glyph, so the tappable area WAS the glyph — well under
+// Apple's 44 pt / Material's 48 dp minimum, and users reported stars that
+// "wouldn't take". Each control is now a fixed 44×44 box with the glyph
+// centred. Padding, not `hitSlop`, so adjacent star targets never overlap and
+// steal each other's taps. `MeetingRow` enforces the same 44 pt floor.
 const $heartButton: ThemedStyle<ViewStyle> = () => ({
-  paddingHorizontal: 4,
+  width: 44,
+  height: 44,
+  alignItems: "center",
+  justifyContent: "center",
+})
+const $starButton: ThemedStyle<ViewStyle> = () => ({
+  width: 44,
+  height: 44,
+  alignItems: "center",
+  justifyContent: "center",
 })
 
 const $joinButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
@@ -974,7 +1017,7 @@ const $joinButtonText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $ratingContainer: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
-  gap: 4,
+  // No gap: each 44 pt star box carries its own spacing (see $starButton).
 })
 
 const $attendanceBanner: ViewStyle = {

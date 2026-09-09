@@ -1,5 +1,5 @@
 /**
- * One-time migration: existing per-meeting favorites → schedule-wide favorites.
+ * One-time migrations: per-meeting feedback → schedule-wide feedback.
  *
  * ADDED 2026-09-04, alongside the schedule-wide favorite change: hearts set
  * before that update marked only the single tapped meeting, so a user's
@@ -9,14 +9,22 @@
  * schedule — after which the popups' schedule-wide toggle keeps everything
  * consistent on its own.
  *
- * Flag semantics: the MMKV done-flag is written ONLY after a fully
+ * CHANGED 2026-09-09: star ratings went schedule-wide too, and get the same
+ * treatment under their own flag. The walk is shared (`runSchedulePass`);
+ * each migration supplies its seeds and its writer. Ratings walk highest star
+ * first so a schedule holding mixed legacy ratings ends on its best one — see
+ * `orderRatedForMigration` — and, like favorites, the pass only ever sets a
+ * value, it never clears one.
+ *
+ * Flag semantics: an MMKV done-flag is written ONLY after a fully
  * successful pass. Any transient failure (offline launch, API timeout,
  * failed SQLite write) aborts the pass with the flag unset, and the next
  * cold start retries the whole thing — safe because the operation is
- * idempotent (`setLoveForMids` skips mids already loved). `not-found` /
- * `bad-data` lookups are counted as handled instead: a favorite on a
- * meeting delisted upstream must not block the flag forever. The
- * per-outcome rule lives in `classifyMigrationLookup` (vitest-covered).
+ * idempotent (`setLoveForMids` / `setRatingForMids` skip mids already at
+ * the value). `not-found` / `bad-data` lookups are counted as handled
+ * instead: a favorite or rating on a meeting delisted upstream must not
+ * block the flag forever. The per-outcome rule lives in
+ * `classifyMigrationLookup` (vitest-covered).
  *
  * Runs once per install, fired by `FavoritesMigrator` (app/db/) after the
  * database is seeded. Like services/sync, this imports the specific `@/db/*`
@@ -26,14 +34,19 @@
  */
 import { feedbackCache } from "@/db/feedbackCache"
 import { api } from "@/services/api"
-import { classifyMigrationLookup, decideScheduleLove } from "@/utils/favoriteLogic"
+import {
+  classifyMigrationLookup,
+  collectScheduleMids,
+  orderRatedForMigration,
+} from "@/utils/favoriteLogic"
 import { logger } from "@/utils/logger"
 import { loadString, saveString } from "@/utils/storage"
 
 const log = logger.child({ module: "migrateFavorites" })
 
-/** MMKV done-flag. Bump the suffix if the migration ever needs to re-run. */
+/** MMKV done-flags. Bump a suffix if that migration ever needs to re-run. */
 export const FAVORITES_MIGRATION_KEY = "favorites.scheduleMigration.v1"
+export const RATINGS_MIGRATION_KEY = "ratings.scheduleMigration.v1"
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -54,38 +67,56 @@ async function waitForFeedbackCache(timeoutMs = 10_000): Promise<boolean> {
   return true
 }
 
-export async function migrateFavoritesToSchedules(): Promise<void> {
-  if (loadString(FAVORITES_MIGRATION_KEY) === "done") return
+/** One schedule-wide propagation pass: what to walk, and how to write it. */
+interface SchedulePass<V> {
+  /** MMKV done-flag for this pass. */
+  flagKey: string
+  /** Short name for logs. */
+  name: string
+  /**
+   * Seeds to walk, in order. Each is a meeting whose value should be SET on
+   * its whole schedule. Order matters when two seeds share a schedule: the
+   * first one to reach it wins, and its siblings are then skipped.
+   */
+  seeds: () => { mid: string; value: V }[]
+  /** Writer with `setLoveForMids` semantics: returns true when every row persisted. */
+  write: (mids: string[], value: V) => Promise<boolean>
+}
+
+async function runSchedulePass<V>(pass: SchedulePass<V>): Promise<void> {
+  if (loadString(pass.flagKey) === "done") return
 
   if (!(await waitForFeedbackCache())) {
-    log.warn("Feedback cache never loaded; deferring favorites migration to next launch")
+    log.warn("Feedback cache never loaded; deferring migration to next launch", {
+      pass: pass.name,
+    })
     return
   }
 
-  const lovedMids = [...feedbackCache.getAll().values()]
-    .filter((fb) => fb.loves)
-    .map((fb) => fb.mid)
+  const seeds = pass.seeds()
 
-  if (lovedMids.length === 0) {
-    saveString(FAVORITES_MIGRATION_KEY, "done")
-    log.info("No pre-existing favorites; migration trivially complete")
+  if (seeds.length === 0) {
+    saveString(pass.flagKey, "done")
+    log.info("No pre-existing rows; migration trivially complete", { pass: pass.name })
     return
   }
 
-  log.info("Migrating favorites to schedule-wide", { count: lovedMids.length })
+  log.info("Migrating to schedule-wide", { pass: pass.name, count: seeds.length })
 
-  // Mids already written by an earlier schedule in this pass — two loved
-  // meetings often share one schedule, and the second lookup would be a
-  // wasted round trip.
+  // Mids already written by an earlier schedule in this pass — two seeds
+  // often share one schedule, and the second lookup would be a wasted round
+  // trip (and, for ratings, would overwrite the higher star that got there
+  // first).
   const covered = new Set<string>()
 
-  for (const mid of lovedMids) {
+  for (const { mid, value } of seeds) {
     if (covered.has(mid)) continue
 
     const outcome = await api.getScheduleByMeetingIdAnyVenue(mid)
     if (outcome.kind !== "ok") {
       if (classifyMigrationLookup(outcome.kind) === "abort") {
-        log.info("Favorites migration aborted; will retry next launch", {
+        log.info("Migration aborted; will retry next launch", {
+          pass: pass.name,
           mid,
           kind: outcome.kind,
         })
@@ -96,21 +127,52 @@ export async function migrateFavoritesToSchedules(): Promise<void> {
       continue
     }
 
-    // currentLoves: false makes decideScheduleLove yield loves: true — the
-    // migration only ever favorites, it never clears.
-    const { mids, loves } = decideScheduleLove({
-      tappedMid: mid,
-      currentLoves: false,
-      scheduleData: outcome.schedule.data,
-    })
-    const allPersisted = await feedbackCache.setLoveForMids(mids, loves)
+    const mids = collectScheduleMids(mid, outcome.schedule.data)
+    const allPersisted = await pass.write(mids, value)
     if (!allPersisted) {
-      log.info("Favorites migration aborted on failed write; will retry next launch", { mid })
+      log.info("Migration aborted on failed write; will retry next launch", {
+        pass: pass.name,
+        mid,
+      })
       return
     }
     mids.forEach((m) => covered.add(m))
   }
 
-  saveString(FAVORITES_MIGRATION_KEY, "done")
-  log.info("Favorites migration complete", { favorites: lovedMids.length, written: covered.size })
+  saveString(pass.flagKey, "done")
+  log.info("Migration complete", { pass: pass.name, seeds: seeds.length, written: covered.size })
+}
+
+export async function migrateFavoritesToSchedules(): Promise<void> {
+  await runSchedulePass<boolean>({
+    flagKey: FAVORITES_MIGRATION_KEY,
+    name: "favorites",
+    // The migration only ever favorites, it never clears.
+    seeds: () =>
+      [...feedbackCache.getAll().values()]
+        .filter((fb) => fb.loves)
+        .map((fb) => ({ mid: fb.mid, value: true })),
+    write: (mids, loves) => feedbackCache.setLoveForMids(mids, loves),
+  })
+}
+
+export async function migrateRatingsToSchedules(): Promise<void> {
+  await runSchedulePass<number>({
+    flagKey: RATINGS_MIGRATION_KEY,
+    name: "ratings",
+    // Highest star first: the first seed to reach a schedule sets it and
+    // covers its siblings, so a mixed legacy schedule lands on its best rating.
+    seeds: () =>
+      orderRatedForMigration([...feedbackCache.getAll().values()]).map((fb) => ({
+        mid: fb.mid,
+        value: fb.rates,
+      })),
+    write: (mids, rates) => feedbackCache.setRatingForMids(mids, rates),
+  })
+}
+
+/** Both passes, in order. Each guards on its own flag, so re-running is free. */
+export async function migrateFeedbackToSchedules(): Promise<void> {
+  await migrateFavoritesToSchedules()
+  await migrateRatingsToSchedules()
 }

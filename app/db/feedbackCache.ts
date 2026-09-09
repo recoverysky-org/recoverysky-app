@@ -52,6 +52,83 @@ function defaultFeedback(mid: string): FeedbackRecord {
 }
 
 /**
+ * Shared body of `setLoveForMids` / `setRatingForMids`: SET one field on a set
+ * of meetings, in two phases.
+ *
+ * 1. **Synchronous optimistic apply.** Every mid's cache entry is updated and
+ *    its listeners notified BEFORE the first `await`, i.e. within the tap's own
+ *    JS tick. React 18 batches the resulting setState calls, so the three
+ *    subscribed Meetings segments re-render once each instead of once per
+ *    sibling, and a popup subscribed to its own mid paints the new heart/star
+ *    on the tap itself.
+ * 2. **Background persist.** The SQLite writes run in parallel (the driver
+ *    serialises them anyway; this just stops N bridge round-trip latencies
+ *    from adding up) and any failed row is reverted and re-notified.
+ *
+ * ADDED 2026-09-09. The previous shape interleaved the two phases: one
+ * optimistic update, one await on SQLite, one notification, repeat — for a
+ * week-long schedule that was ~14 bridge calls with three list re-renders
+ * between each, all on the JS thread the popup was awaiting before it would
+ * flip its icon. Users read that as a sluggish, delayed heart.
+ *
+ * The revert only fires when the cache still holds *our* optimistic record.
+ * With writes now running in the background a second tap can land before the
+ * first one's write settles, and blindly restoring `previous` would clobber
+ * the newer value with an older one.
+ *
+ * Returns true when every write persisted.
+ */
+async function applyToMids(args: {
+  mids: string[]
+  /** Skip the write when the record is already at the target value. */
+  alreadyAt: (record: FeedbackRecord | null) => boolean
+  patch: Partial<FeedbackRecord>
+  persist: (mid: string) => Promise<{ ok: boolean; error?: unknown }>
+  label: string
+}): Promise<boolean> {
+  const { mids, alreadyAt, patch, persist, label } = args
+
+  // Phase 1 — synchronous. No await may appear in this loop.
+  const pending: { mid: string; previous: FeedbackRecord | null; updated: FeedbackRecord }[] = []
+  for (const mid of mids) {
+    const previous = cache.get(mid) ?? null
+    if (alreadyAt(previous)) continue // already there; skip the write
+    const updated: FeedbackRecord = { ...(previous ?? defaultFeedback(mid)), ...patch }
+    cache.set(mid, updated)
+    notifyListeners(mid, updated)
+    pending.push({ mid, previous, updated })
+  }
+
+  // Phase 2 — background.
+  const outcomes = await Promise.all(
+    pending.map(async ({ mid, previous, updated }) => {
+      const result = await persist(mid)
+      if (result.ok) return true
+      log.error(`Failed to persist ${label}`, {
+        mid,
+        patch: JSON.stringify(patch),
+        error: String(result.error),
+      })
+      if (cache.get(mid) !== updated) return false // a newer write owns this row now
+      // Revert cache on failure — and notify, so rows already painted with
+      // the optimistic value fall back in step with the store.
+      if (previous === null) {
+        cache.delete(mid) // was new and empty; remove rather than keep a phantom row
+        notifyListeners(mid, defaultFeedback(mid))
+      } else {
+        cache.set(mid, previous)
+        notifyListeners(mid, previous)
+      }
+      return false
+    }),
+  )
+
+  const allPersisted = outcomes.every(Boolean)
+  log.debug(`${label} for schedule`, { count: mids.length, written: pending.length, allPersisted })
+  return allPersisted
+}
+
+/**
  * Feedback cache service
  */
 export const feedbackCache = {
@@ -160,43 +237,55 @@ export const feedbackCache = {
    * notify listeners — subscribed screens (`displayFeedback` maps) would
    * otherwise keep the optimistic value the popup no longer shows.
    *
-   * Returns true when every write persisted. The popups ignore this (the
-   * cache read-back already reflects any revert); the favorites migration
-   * uses it to avoid setting its done-flag over failed SQLite writes.
+   * CHANGED 2026-09-09: two-phase via `applyToMids` — every optimistic
+   * update lands synchronously before the first await, and the writes run in
+   * the background. The popups no longer await this; they subscribe. See
+   * `applyToMids` for the sluggish-tap failure this fixes.
+   *
+   * Returns true when every write persisted. The popups ignore this (their
+   * subscription already reflects any revert); the favorites migration uses
+   * it to avoid setting its done-flag over failed SQLite writes.
    */
   async setLoveForMids(mids: string[], loves: boolean): Promise<boolean> {
-    let allPersisted = true
-    for (const mid of mids) {
-      const current = cache.get(mid) ?? null
-      if ((current?.loves ?? false) === loves) continue // already there; skip the write
+    return applyToMids({
+      mids,
+      alreadyAt: (record) => (record?.loves ?? false) === loves,
+      patch: { loves },
+      persist: (mid) => feedbackRepo.setLove(mid, loves),
+      label: "setLoveForMids",
+    })
+  },
 
-      // Update cache immediately (optimistic)
-      const updated: FeedbackRecord = { ...(current ?? defaultFeedback(mid)), loves }
-      cache.set(mid, updated)
-      notifyListeners(mid, updated)
-
-      const result = await feedbackRepo.setLove(mid, loves)
-      if (!result.ok) {
-        allPersisted = false
-        log.error("Failed to persist setLoveForMids", { mid, loves, error: String(result.error) })
-        // Revert cache on failure — and notify, so rows already painted with
-        // the optimistic value fall back in step with the store.
-        if (current === null) {
-          cache.delete(mid) // was new and empty; remove rather than keep a phantom row
-          notifyListeners(mid, defaultFeedback(mid))
-        } else {
-          cache.set(mid, current)
-          notifyListeners(mid, current)
-        }
-      }
-    }
-    log.debug("Set love for schedule", { count: mids.length, loves, allPersisted })
-    return allPersisted
+  /**
+   * Set the star rating for a set of meetings to one explicit value (0–5).
+   *
+   * ADDED 2026-09-09 for schedule-wide ratings, the star twin of
+   * `setLoveForMids`: the popups hand this every mid in the tapped meeting's
+   * schedule (via `decideScheduleRating` in utils/favoriteLogic.ts) so one
+   * star tap rates the whole schedule. SET semantics — a legacy mixed
+   * schedule converges on the tapped value.
+   *
+   * Same two-phase optimistic-then-persist contract as `setLoveForMids` (see
+   * `applyToMids`). Returns true when every write persisted (the ratings
+   * migration keys its done-flag on it).
+   */
+  async setRatingForMids(mids: string[], rating: number): Promise<boolean> {
+    const clampedRating = Math.max(0, Math.min(5, rating))
+    return applyToMids({
+      mids,
+      alreadyAt: (record) => (record?.rates ?? 0) === clampedRating,
+      patch: { rates: clampedRating },
+      persist: (mid) => feedbackRepo.setRating(mid, clampedRating),
+      label: "setRatingForMids",
+    })
   },
 
   /**
    * Set rating for a meeting (0-5)
    * Updates cache immediately, then persists to SQLite
+   * NOTE 2026-09-09: no longer called by the popups, which rate schedule-wide
+   * through `setRatingForMids` above. Kept as the single-meeting primitive,
+   * like `toggleLove` beside `setLoveForMids`.
    */
   async setRating(mid: string, rating: number): Promise<void> {
     const clampedRating = Math.max(0, Math.min(5, rating))

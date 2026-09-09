@@ -91,7 +91,7 @@ import type { PersistedPresence } from "@/services/attendance"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { decideScheduleLove } from "@/utils/favoriteLogic"
+import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { buildDirectionsUrl, composeAddress, formatDistance } from "@/utils/nearbyLogic"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
@@ -263,6 +263,21 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     }
   }, [visible, meeting?.id])
 
+  // ADDED 2026-09-09: mirror the cache for this meeting while the popup is
+  // open. The heart/star handlers below no longer await their schedule-wide
+  // write — `feedbackCache.applyToMids` notifies synchronously on the tap and
+  // persists in the background — so this subscription is what paints the
+  // optimistic value immediately AND what pulls it back if a write fails.
+  // Filtered to our own mid: sibling notifications would otherwise re-render
+  // the popup once per meeting in the schedule.
+  useEffect(() => {
+    if (!visible || !meeting?.id) return
+    const mid = meeting.id
+    return feedbackCache.subscribe((changedMid, record) => {
+      if (changedMid === mid) setFeedback(record)
+    })
+  }, [visible, meeting?.id])
+
   const isFavorite = feedback?.loves ?? false
   const rating = feedback?.rates ?? 0
   const joinCount = feedback?.joins ?? 0
@@ -271,9 +286,10 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // CHANGED 2026-09-04: favoriting is schedule-wide — the tap's new value is
   // SET on every meeting in `scheduleData` (decideScheduleLove picks the mids
   // and the value), so favoriting one occurrence favorites the whole
-  // schedule. Local state is read back from the cache afterwards rather than
-  // hand-built, so a persist failure's revert inside setLoveForMids shows
-  // here too. Mirrors SchedulePopup.handleToggleLove.
+  // schedule. Mirrors SchedulePopup.handleToggleLove.
+  // CHANGED 2026-09-09: no longer awaits the write or reads local state back —
+  // the subscription above mirrors the cache, so the optimistic value paints
+  // on the tap and a persist failure's revert still shows here.
   const handleToggleLove = useCallback(async () => {
     if (!meeting?.id) return
     const { mids, loves } = decideScheduleLove({
@@ -281,8 +297,9 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
       currentLoves: feedbackCache.get(meeting.id)?.loves ?? false,
       scheduleData: meeting.scheduleData,
     })
-    await feedbackCache.setLoveForMids(mids, loves)
-    setFeedback(feedbackCache.get(meeting.id))
+    // Not awaited: the optimistic value is already in the cache (and painted
+    // via the subscription above) when this returns; the write is background.
+    void feedbackCache.setLoveForMids(mids, loves)
     // One event per gesture, not one per sibling meeting.
     trackEvent("meeting_favorited", {
       action: loves ? "add" : "remove",
@@ -290,17 +307,23 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     })
   }, [meeting?.id, meeting?.scheduleData])
 
+  // CHANGED 2026-09-09: rating is schedule-wide, the star twin of
+  // handleToggleLove above — the tapped star is SET on every meeting in
+  // `scheduleData` (decideScheduleRating picks the mids and clamps the value),
+  // so rating one occurrence rates the whole schedule. Not awaited and no
+  // read-back: the subscription above mirrors the cache (see handleToggleLove).
   const handleSetRating = useCallback(
     async (star: number) => {
       if (!meeting?.id) return
-      await feedbackCache.setRating(meeting.id, star)
-      setFeedback((prev) =>
-        prev
-          ? { ...prev, rates: star }
-          : { mid: meeting.id, loves: false, rates: star, joins: 0, lastJoin: 0 },
-      )
+      const { mids, rates } = decideScheduleRating({
+        tappedMid: meeting.id,
+        rating: star,
+        scheduleData: meeting.scheduleData,
+      })
+      // Not awaited — same contract as handleToggleLove.
+      void feedbackCache.setRatingForMids(mids, rates)
     },
-    [meeting?.id],
+    [meeting?.id, meeting?.scheduleData],
   )
 
   // ==========================================================================
@@ -799,25 +822,14 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
               )}
             </View>
 
-            {/* Action row: Get Directions (left) + feedback (right) — the same
-                shape as SchedulePopup's Join + feedback row, with directions
-                standing in for the join. The feedback block keeps flex:1 and
-                right-alignment so the heart and stars stay pinned to the edge
-                whether or not there's a directions button beside them (there
-                isn't when the meeting has no coordinates AND no address — see
+            {/* Action block: feedback on its own line, then Get Directions —
+                the same shape as SchedulePopup's feedback + Join block, with
+                directions standing in for the join. Stacked (see $actionRow),
+                so the heart and stars sit in the same place whether or not
+                there's a directions button below them (there isn't when the
+                meeting has no coordinates AND no address — see
                 buildDirectionsUrl). */}
             <View style={themed($actionRow)}>
-              {!!directionsUrl && (
-                <Pressable
-                  onPress={handleDirections}
-                  style={themed($directionsButton)}
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="navigate-outline" size={16} color={theme.colors.tint} />
-                  <Text style={themed($directionsButtonText)} tx="inPersonPopup:getDirections" />
-                </Pressable>
-              )}
-
               <View style={themed($feedbackSection)}>
                 <View style={themed($heartStarsRow)}>
                   <Pressable
@@ -839,6 +851,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                       <Pressable
                         key={star}
                         onPress={() => handleSetRating(star)}
+                        style={themed($starButton)}
                         accessibilityRole="button"
                         accessibilityLabel={t("accessibility:rateStars", { count: star })}
                         accessibilityState={{ selected: star <= rating }}
@@ -846,7 +859,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                       >
                         <Ionicons
                           name={star <= rating ? "star" : "star-outline"}
-                          size={20}
+                          size={24}
                           color={star <= rating ? STAR_COLOR : theme.colors.textDim}
                         />
                       </Pressable>
@@ -855,8 +868,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                 </View>
 
                 {/* Visit count + how long ago — same markup, glyph and copy as
-                    SchedulePopup's joins row, right-aligned under the stars by
-                    $feedbackSection. Hidden entirely at zero rather than
+                    SchedulePopup's joins row, under the stars. Hidden entirely at zero rather than
                     showing "0 joins", so a meeting the user has never been to
                     reads the same as it always did. */}
                 {joinCount > 0 && (
@@ -869,6 +881,17 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                   </View>
                 )}
               </View>
+
+              {!!directionsUrl && (
+                <Pressable
+                  onPress={handleDirections}
+                  style={themed($directionsButton)}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="navigate-outline" size={16} color={theme.colors.tint} />
+                  <Text style={themed($directionsButtonText)} tx="inPersonPopup:getDirections" />
+                </Pressable>
+              )}
             </View>
 
             {/* Contacts */}
@@ -1189,26 +1212,45 @@ const $tagText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 // `alignItems: "flex-start"` keeps the directions button its natural height
 // instead of stretching to match the stars column.
+// CHANGED 2026-09-09: was a single row — button on the left, heart + stars
+// right-aligned in a flex:1 slot beside it. Once each star and the heart grew
+// to a 44 pt touch target (see $starButton) the 264 pt feedback row no longer
+// fit beside the button and overflowed straight across it. The two now stack:
+// the heart + stars (and joins count) on their own line, the button beneath.
 const $actionRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
+  flexDirection: "column",
   alignItems: "flex-start",
-  gap: spacing.md,
+  gap: spacing.xs,
   marginBottom: spacing.md,
 })
 
 const $feedbackSection: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  alignItems: "flex-end",
+  alignItems: "flex-start",
 })
 
-const $heartStarsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $heartStarsRow: ThemedStyle<ViewStyle> = () => ({
   flexDirection: "row",
   alignItems: "center",
-  gap: spacing.xs,
+  // No gap (was spacing.xs): the 44 pt heart/star boxes carry their own.
 })
 
+// CHANGED 2026-09-09: the heart and each star used to be bare Pressables
+// around a 20–26 pt glyph, so the tappable area WAS the glyph — well under
+// Apple's 44 pt / Material's 48 dp minimum, and users reported stars that
+// "wouldn't take". Each control is now a fixed 44×44 box with the glyph
+// centred. Padding, not `hitSlop`, so adjacent star targets never overlap and
+// steal each other's taps. `MeetingRow` enforces the same 44 pt floor.
 const $heartButton: ThemedStyle<ViewStyle> = () => ({
-  paddingHorizontal: 4,
+  width: 44,
+  height: 44,
+  alignItems: "center",
+  justifyContent: "center",
+})
+const $starButton: ThemedStyle<ViewStyle> = () => ({
+  width: 44,
+  height: 44,
+  alignItems: "center",
+  justifyContent: "center",
 })
 
 /* Copied verbatim from SchedulePopup's joins styles — the two popups render
@@ -1227,7 +1269,7 @@ const $joinsText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $ratingContainer: ViewStyle = {
   flexDirection: "row",
-  gap: 4,
+  // No gap: each 44 pt star box carries its own spacing (see $starButton).
 }
 
 const $contactsSection: ThemedStyle<ViewStyle> = ({ spacing }) => ({
