@@ -19,16 +19,10 @@ import { reaction } from "mobx"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
-import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
+import { api, type ScheduleDataRow } from "@/services/api"
 import { logger } from "@/utils/logger"
 
-import {
-  mergePools,
-  projectOnline,
-  isInPersonVenue,
-  inPersonPoolOf,
-  type PoolOutcome,
-} from "./meetingPools"
+import { projectOnline } from "./meetingPools"
 
 const log = logger.child({ module: "MeetingContext" })
 
@@ -43,14 +37,6 @@ const RETRY_CONFIG = {
 }
 
 /**
- * Retry budget for the in-person pool only. It's fetched but unrendered by
- * every surface today (hold-back), so it must never make the visible online
- * pool wait on it — see the `retryWithBackoff` JSDoc. 1 attempt, no backoff
- * sleeps: a flaky in-person endpoint costs one extra round-trip, not ~7s.
- */
-const IN_PERSON_MAX_ATTEMPTS = 1
-
-/**
  * Sleep for specified milliseconds
  */
 function sleep(ms: number): Promise<void> {
@@ -61,24 +47,20 @@ function sleep(ms: number): Promise<void> {
  * Execute an async function with exponential backoff retry
  * Only logs error after all retries exhausted
  *
- * @param maxAttemptsOverride - Caller-supplied retry budget, defaulting to
- *   `RETRY_CONFIG.maxAttempts`. Added for the in-person pool (2026-08-02
- *   in-person data-layer fix wave): its data is unrendered by any surface
- *   today (hold-back), so burning the full 4-attempt/~7s budget when that
- *   endpoint is unavailable only delays the visible online pool for no
- *   user-facing benefit. Don't remove this parameter to "simplify" the
- *   signature — the asymmetry between pools is intentional.
+ * CHANGED 2026-09-09: the `maxAttempts` parameter is gone with the
+ * in-person live pool it existed for (see the refresh effect below). Every
+ * caller now gets the full `RETRY_CONFIG` budget.
  */
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   isSuccess: (result: T) => boolean,
   label: string,
-  maxAttemptsOverride: number = RETRY_CONFIG.maxAttempts,
 ): Promise<{ result: T; attempts: number } | { error: string; attempts: number }> {
+  const maxAttempts = RETRY_CONFIG.maxAttempts
   let lastResult: T | undefined
   let lastError: string | undefined
 
-  for (let attempt = 1; attempt <= maxAttemptsOverride; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const result = await fn()
 
@@ -93,7 +75,7 @@ async function retryWithBackoff<T>(
       lastResult = result
       const errorKind = (result as { kind?: string })?.kind ?? "unknown"
 
-      if (attempt < maxAttemptsOverride) {
+      if (attempt < maxAttempts) {
         const delay = Math.min(
           RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
           RETRY_CONFIG.maxDelayMs,
@@ -106,7 +88,7 @@ async function retryWithBackoff<T>(
     } catch (err) {
       lastError = String(err)
 
-      if (attempt < maxAttemptsOverride) {
+      if (attempt < maxAttempts) {
         const delay = Math.min(
           RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
           RETRY_CONFIG.maxDelayMs,
@@ -118,15 +100,15 @@ async function retryWithBackoff<T>(
   }
 
   // All retries exhausted
-  log.error(`${label} failed after ${maxAttemptsOverride} attempts`, {
+  log.error(`${label} failed after ${maxAttempts} attempts`, {
     error: lastError,
   })
 
   if (lastResult !== undefined) {
-    return { result: lastResult, attempts: maxAttemptsOverride }
+    return { result: lastResult, attempts: maxAttempts }
   }
 
-  return { error: lastError ?? "Unknown error", attempts: maxAttemptsOverride }
+  return { error: lastError ?? "Unknown error", attempts: maxAttempts }
 }
 
 // ============================================================================
@@ -159,12 +141,12 @@ export type ApiStatus = "connected" | "disconnected" | "unknown"
 
 export interface MeetingContextType {
   /**
-   * Both venue pools merged (online + in_person). In-person UI reads this.
-   * Populated since the in-person data-layer piece (2026-08-02 spec);
-   * existing surfaces keep reading `liveMeetings` (online-only hold-back).
+   * Meetings currently live — the online pool only. In-person meetings are
+   * served by `useNearbySchedules` (location-scoped, user-initiated), never
+   * by this context. The merged `allLiveMeetings` pool was removed
+   * 2026-09-09: nothing ever read it, and its `/schedules/live?venueType=in_person`
+   * fetch (~1.4 MB, every quarter-hour) timed out at every cache boundary.
    */
-  allLiveMeetings: MeetingWithTrex[]
-  /** Meetings currently live */
   liveMeetings: MeetingWithTrex[]
   /** Loading state */
   isLoading: boolean
@@ -207,14 +189,8 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   log.debug("MeetingProvider initializing")
   const configStore = useConfigStore()
 
-  // Live meetings data — the merged pool (both venues). What existing UI
-  // consumes is the derived online-only projection below (hold-back).
-  const [allLiveMeetings, setAllLiveMeetings] = useState<MeetingWithTrex[]>([])
-
-  // Hold-back projection: pre-in-person surfaces (LiveScreen, MainNavigator
-  // badge) render online-only until the in-person UI/UX design lands. Do NOT
-  // switch consumers to allLiveMeetings without that design.
-  const liveMeetings = useMemo(() => projectOnline(allLiveMeetings), [allLiveMeetings])
+  // Live meetings data — online pool only (see MeetingContextType.liveMeetings).
+  const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
 
   // Status
   const [isLoading, setIsLoading] = useState(false)
@@ -280,102 +256,56 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       setIsLoading(true)
       setError(null)
 
-      // Dual-fetch: one call per venue pool, in parallel, each with its own
-      // retry budget. retryWithBackoff never rejects, so Promise.all is safe.
-      // (2026-08-02 in-person data-layer spec: dual-fetch & merge.)
-      // CHANGED 2026-08-02 (fix wave): the in-person pool gets a reduced
-      // budget (IN_PERSON_MAX_ATTEMPTS) — see that constant's comment. The
-      // online pool keeps the full budget since it's what every surface
-      // renders.
-      const [onlineOutcome, inPersonOutcome] = await Promise.all([
-        retryWithBackoff(
-          () => api.getLiveSchedules("online"),
-          (result) => result.kind === "ok",
-          "getLiveSchedules(online)",
-        ),
-        retryWithBackoff(
-          () => api.getLiveSchedules("in_person"),
-          (result) => result.kind === "ok",
-          "getLiveSchedules(in_person)",
-          IN_PERSON_MAX_ATTEMPTS,
-        ),
-      ])
+      // Online pool only.
+      // CHANGED 2026-09-09: this used to dual-fetch online + in_person in
+      // parallel and merge the pools (2026-08-02 in-person data-layer spec).
+      // The in-person half was never rendered — every consumer read the
+      // online-only projection — and it failed on schedule: the API's
+      // schedule cache expires at :00/:15/:30/:45, exactly when
+      // useLivePolling fires, and the uncached in-person pipeline takes
+      // 8–30 s against our 10 s client timeout. Result: a guaranteed
+      // `getLiveSchedules(in_person) failed` error log every quarter-hour for
+      // a 1.4 MB payload nobody used. In-person data is fetched on demand by
+      // useNearbySchedules instead. Do not re-add the in-person fetch here.
+      const outcome = await retryWithBackoff(
+        () => api.getLiveSchedules("online"),
+        (result) => result.kind === "ok",
+        "getLiveSchedules(online)",
+      )
 
-      // Convert API schedules to MeetingWithTrex (same mapping both pools).
-      const toMeetings = (schedules: LiveSchedule[]): MeetingWithTrex[] =>
-        schedules.map((s) => ({
-          ...s.meeting,
-          // Prefer schedule-level password over meeting-level (API provides it per-schedule)
-          password: s.password || s.meeting.password || "",
-          passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
-          feedback: feedbackCache.get(s.meeting.id),
-          sid: s.sid,
-          millis: s.millis,
-          duration_ms: s.duration_ms ?? 0,
-          scheduleData: s.data,
-        }))
-
-      type Outcome =
-        | { result: Awaited<ReturnType<typeof api.getLiveSchedules>>; attempts: number }
-        | { error: string; attempts: number }
-
-      const toPool = (outcome: Outcome): PoolOutcome<MeetingWithTrex> => {
-        if ("result" in outcome && outcome.result.kind === "ok") {
-          return { ok: true, items: toMeetings(outcome.result.schedules) }
-        }
-        return { ok: false, items: [] }
-      }
-
-      // The failure kind behind an outcome, for logging — "kind" from an API
-      // problem (e.g. "not-found", "timeout") or the transport-level error
-      // string retryWithBackoff carries when every attempt threw.
-      const outcomeKind = (outcome: Outcome): string =>
-        "result" in outcome ? outcome.result.kind : outcome.error
-
-      const onlinePool = toPool(onlineOutcome)
-      // In-person pool is self-verified, not trusted — a server that ignores
-      // venueType (production, as of this fix wave) answers with the same
-      // rows as the online call. inPersonPoolOf filters toPool()'s items down
-      // to genuine in_person rows so an unaware server yields an empty pool
-      // instead of duplicating every online meeting. See meetingPools.ts.
-      const inPersonRaw = toPool(inPersonOutcome)
-      const inPersonPool = inPersonPoolOf(inPersonRaw.ok, inPersonRaw.items)
-
-      const merged = mergePools(onlinePool, inPersonPool)
-
-      // Only a total failure surfaces as an error — one pool failing
-      // degrades gracefully to the other (spec decision 4).
-      if (merged.bothFailed) {
-        // Interpolate both kinds — no consumer reads `error` today, but the
-        // field should carry the actual failure, not a generic string.
-        setError(
-          `Network error: live schedules unavailable (online: ${outcomeKind(onlineOutcome)}, in_person: ${outcomeKind(inPersonOutcome)})`,
-        )
-        setAllLiveMeetings([])
+      if (!("result" in outcome) || outcome.result.kind !== "ok") {
+        // "kind" from an API problem (e.g. "not-found", "timeout") or the
+        // transport-level error string retryWithBackoff carries when every
+        // attempt threw. No consumer reads `error` today, but the field
+        // should carry the actual failure, not a generic string.
+        const kind = "result" in outcome ? outcome.result.kind : outcome.error
+        setError(`Network error: live schedules unavailable (${kind})`)
+        setLiveMeetings([])
         setIsLoading(false)
         return
       }
-      if (merged.onlineFailed || merged.inPersonFailed) {
-        // Include the failed pool's kind — this log is the primary
-        // production signal for whether the in-person pool actually works
-        // (booleans alone can't distinguish "server rejects/strips the
-        // param" from "flaky network").
-        log.warn("One venue pool failed; serving partial live data", {
-          onlineFailed: merged.onlineFailed,
-          inPersonFailed: merged.inPersonFailed,
-          onlineKind: merged.onlineFailed ? outcomeKind(onlineOutcome) : undefined,
-          inPersonKind: merged.inPersonFailed ? outcomeKind(inPersonOutcome) : undefined,
-        })
-      }
 
-      setAllLiveMeetings(merged.items)
+      // Convert API schedules to MeetingWithTrex.
+      const meetings: MeetingWithTrex[] = outcome.result.schedules.map((s) => ({
+        ...s.meeting,
+        // Prefer schedule-level password over meeting-level (API provides it per-schedule)
+        password: s.password || s.meeting.password || "",
+        passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
+        feedback: feedbackCache.get(s.meeting.id),
+        sid: s.sid,
+        millis: s.millis,
+        duration_ms: s.duration_ms ?? 0,
+        scheduleData: s.data,
+      }))
+
+      // projectOnline stays as a belt-and-braces filter: the server defaults
+      // to online and we ask for it explicitly, but a row with a physical
+      // venueType must never reach the Live list.
+      setLiveMeetings(projectOnline(meetings))
       setLastRefresh(new Date())
       setIsLoading(false)
 
-      log.info("✓ Live meetings ready", {
-        total: merged.items.length,
-        inPerson: merged.items.filter((m) => isInPersonVenue(m.venueType)).length,
-      })
+      log.info("✓ Live meetings ready", { total: meetings.length })
     }
 
     refreshLiveMeetings()
@@ -393,7 +323,6 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo<MeetingContextType>(
     () => ({
-      allLiveMeetings,
       liveMeetings,
       isLoading,
       lastRefresh,
@@ -401,12 +330,11 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       apiStatus,
       error,
     }),
-    [allLiveMeetings, liveMeetings, isLoading, lastRefresh, refresh, apiStatus, error],
+    [liveMeetings, isLoading, lastRefresh, refresh, apiStatus, error],
   )
 
   log.debug("MeetingProvider rendering", {
     liveCount: liveMeetings.length,
-    allCount: allLiveMeetings.length,
     isLoading,
   })
 

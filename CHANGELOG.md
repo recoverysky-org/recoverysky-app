@@ -24,6 +24,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Live tab no longer fetches in-person meetings on every refresh.** The
+  quarter-hour live refresh used to pull both venue pools from
+  `/schedules/live` even though nothing rendered the in-person half (the
+  In-Person segment loads its own nearby data on demand). That fetch was
+  ~1.4 MB per refresh and failed on schedule: the API's schedule cache expires
+  at the same :00/:15/:30/:45 marks the app refreshes on, and the uncached
+  in-person pipeline outlasted the 10 s client timeout, logging a
+  `getLiveSchedules(in_person) failed` error every quarter-hour (a red toast in
+  dev builds). MeetingContext now fetches the online pool only.
+- **Live refresh is jittered off the quarter-hour mark.** Every install used to
+  re-fetch live meetings at exactly :00/:15/:30/:45, the same second the API's
+  schedule cache expires, so the whole fleet arrived while the server was
+  rebuilding and the slowest requests timed out. Each refresh now lands a random
+  5–90 s after the mark; the Live list is at most a minute and a half staler
+  than before, and the boundary stops being a thundering herd.
 - **Device verification no longer blocks the app on temporary failures.** A server
   blip, timeout, or Apple/Play hiccup at launch now opens the app on local data
   with a calm "Connecting to RecoverySky…" banner while verification retries in the

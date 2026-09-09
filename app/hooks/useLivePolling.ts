@@ -3,12 +3,20 @@
  *
  * Polls for live meeting updates at 15-minute clock marks (:00, :15, :30, :45).
  * Pauses when app is backgrounded to save resources.
+ *
+ * CHANGED 2026-09-09: each refresh now lands a random 5–90 s *after* the
+ * mark instead of exactly on it. The whole fleet firing in the same second
+ * the API's schedule cache expires caused a pipeline stampede and 10 s
+ * client timeouts at every boundary — see livePollingLogic.ts for the
+ * numbers. Do not "fix" the delay back to the exact mark.
  */
 
 import { useEffect, useRef } from "react"
 import { AppState, type AppStateStatus } from "react-native"
 
 import { logger } from "@/utils/logger"
+
+import { msUntilNextRefresh, pickRefreshJitterMs } from "./livePollingLogic"
 
 const log = logger.child({ module: "LivePolling" })
 
@@ -20,26 +28,9 @@ interface UseLivePollingOptions {
 }
 
 /**
- * Calculate milliseconds until next 15-minute mark
- */
-function msUntilNext15MinMark(): number {
-  const now = new Date()
-  const minutes = now.getMinutes()
-  const seconds = now.getSeconds()
-  const ms = now.getMilliseconds()
-
-  // Find next 15-minute mark (0, 15, 30, 45)
-  const nextMark = Math.ceil((minutes + 1) / 15) * 15
-  const minutesUntil = (nextMark - minutes) % 60 || 15 // If exactly on mark, wait 15 min
-
-  // Convert to milliseconds, subtracting current seconds/ms
-  return minutesUntil * 60 * 1000 - seconds * 1000 - ms
-}
-
-/**
  * Hook that polls for updates at 15-minute clock marks
  *
- * Refreshes at :00, :15, :30, :45 of each hour.
+ * Refreshes shortly after :00, :15, :30, :45 of each hour (jittered).
  * Also refreshes immediately when app comes to foreground.
  *
  * @example
@@ -61,14 +52,19 @@ export function useLivePolling({ enabled = true, onRefresh }: UseLivePollingOpti
       return
     }
 
-    // Schedule next refresh at 15-minute mark
+    // Schedule next refresh just after the 15-minute mark. The jitter is
+    // drawn fresh per firing so no install is pinned to the boundary.
     const scheduleNextRefresh = () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
 
-      const msUntilNext = msUntilNext15MinMark()
-      log.debug("Scheduled next refresh", { minutesUntil: Math.round(msUntilNext / 1000 / 60) })
+      const jitterMs = pickRefreshJitterMs()
+      const msUntilNext = msUntilNextRefresh(new Date(), jitterMs)
+      log.debug("Scheduled next refresh", {
+        minutesUntil: Math.round(msUntilNext / 1000 / 60),
+        jitterSeconds: Math.round(jitterMs / 1000),
+      })
 
       timeoutRef.current = setTimeout(() => {
         onRefresh()
