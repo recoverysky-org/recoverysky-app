@@ -13,12 +13,13 @@
  */
 
 import {
+  establishDeviceToken,
   getDeviceJwt,
   isDeviceAuthInitialized,
   isJwtExpiredOrNearExpiry,
   isUsingApiKeyFallback,
-  performAttestation,
 } from "@/services/attestation/deviceToken"
+import type { EstablishOutcome } from "@/services/attestation/deviceTokenLogic"
 import { logger } from "@/utils/logger"
 
 import { getFreshCredentials } from "./auth0Client"
@@ -79,6 +80,12 @@ export interface UserRefresherDeps {
 export interface DeviceRefresherDeps {
   /** Device id, or null before cold-start init has resolved one. */
   getDeviceId: () => string | null
+  /**
+   * ADDED 2026-09-09: told the result of every background attempt so the
+   * caller can flip ConfigStore.deviceAuthDegraded on/off (the "Connecting…"
+   * banner). Optional: tests and the API-key lanes never care.
+   */
+  onOutcome?: (outcome: EstablishOutcome) => void
 }
 
 /**
@@ -236,21 +243,21 @@ export function createUserTokenRefresher(deps: UserRefresherDeps): {
 export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
   getToken: () => Promise<string | null>
 } {
-  const { getDeviceId } = deps
+  const { getDeviceId, onOutcome } = deps
 
   /**
    * ADDED 2026-08-07: hold-off between failed re-attestations. Without it a
    * failed attestation recorded NOTHING — jwtExpiresAt stayed stale, so
    * isJwtExpiredOrNearExpiry() stayed true and the very next request started a
-   * fresh cycle. performAttestation retries up to 4×, and on iOS every attempt
-   * is a NEW Secure Enclave key generation (the App Attest key is deliberately
-   * never persisted) — so the 60 s /config poll alone (4 fetchConfig retries
-   * per cycle) drove up to 16 key generations a minute for the length of any
-   * backend failure. Apple rate-limits key generation; a throttled device then
-   * fails INITIAL attestation on the next cold start and hits the fatal
-   * blocking alert in app.tsx — a transient backend hiccup turned into a
-   * bricked launch. Same failure family as the pre-init storm the
-   * deviceAuthInitialized flag closed; this closes the post-init half.
+   * fresh cycle. CHANGED 2026-09-09: establishDeviceToken() asserts against
+   * the persisted key and never re-runs the native step inside one call, so
+   * the storm this ladder was built for is now impossible by construction;
+   * the ladder stays as defense in depth. Apple rate-limits key generation;
+   * a throttled device then fails INITIAL attestation on the next cold start
+   * and hits the fatal blocking alert in app.tsx — a transient backend
+   * hiccup turned into a bricked launch. Same failure family as the pre-init
+   * storm the deviceAuthInitialized flag closed; this closes the post-init
+   * half.
    */
   const backoff = createFailureBackoff(DEVICE_REFRESH_BACKOFF_MS)
 
@@ -264,19 +271,26 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
     // attestation round trip is still running, and this is the only code that
     // observes how it eventually settled.
     try {
-      const result = await performAttestation(deviceId)
-      if (!result.ok) {
-        backoff.recordFailure(Date.now())
-        log.error("Re-attestation failed — continuing with existing device token", {
-          code: result.error.code,
-          kind: result.error.kind,
-          temporary: result.error.temporary,
-        })
-      } else {
+      const outcome = await establishDeviceToken(deviceId)
+      onOutcome?.(outcome)
+      if (outcome.status === "ok") {
         backoff.recordSuccess()
+      } else {
+        backoff.recordFailure(Date.now())
+        // Documented lane policy: never eject anyone because attestation had
+        // a bad day. `blocked` here (post-init) is treated like degraded —
+        // keep the stale token, keep retrying; the cold-start path in app.tsx
+        // is the only place a blocked outcome shows an alert.
+        log.error(
+          "Re-attestation did not produce a token — continuing with existing device token",
+          {
+            status: outcome.status,
+            detail: outcome.status === "degraded" ? outcome.detail : outcome.reason,
+          },
+        )
       }
     } catch (err) {
-      // performAttestation returns result objects rather than throwing, but
+      // establishDeviceToken returns outcome objects rather than throwing, but
       // (per the getToken catch below) that is not a guarantee we depend on.
       backoff.recordFailure(Date.now())
       throw err
@@ -290,7 +304,7 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
       // chosen a lane. Until then `isUsingApiKeyFallback()` is false and
       // `isJwtExpiredOrNearExpiry()` is true (no expiry recorded yet), which
       // looks exactly like "attested device, token expired" and sends us
-      // straight into performAttestation. Outage mode is the live case: app.tsx
+      // straight into establishDeviceToken. Outage mode is the live case: app.tsx
       // returns early before initializeDeviceAuthorization() but still mounts
       // the provider tree and starts the /config poll, so those requests were
       // burning ~4 Apple App Attest key generations a minute for the length of
@@ -316,10 +330,10 @@ export function createDeviceTokenRefresher(deps: DeviceRefresherDeps): {
         // an app-wide blast radius from one bad attestation round trip.
         //
         // withTimeout only resolves its fallback on TIMEOUT; it deliberately
-        // propagates rejections, and performAttestation() returning a result
-        // object rather than throwing is not a guarantee we should depend on
-        // from here. The user lane is already fully try/caught — this makes the
-        // two symmetric.
+        // propagates rejections, and establishDeviceToken() returning an
+        // outcome object rather than throwing is not a guarantee we should
+        // depend on from here. The user lane is already fully try/caught —
+        // this makes the two symmetric.
         //
         // Falling back to the stale token matches this lane's documented
         // policy: never eject anyone mid-meeting because attestation had a bad
