@@ -57,8 +57,8 @@ export interface FeedbackSortable {
  * `Array.prototype.sort` is stable (guaranteed by spec since ES2019, and Hermes
  * complies), so rows that tie on this ordering stay exactly as the caller left
  * them. Every caller sorts first by its own primary key — distance on
- * In-Person's nearby mode, local start time on Search and the day-browse
- * fallback — and then hands the result here. So the real behaviour is
+ * In-Person's nearby mode, local start time on Search — and then hands the
+ * result here. So the real behaviour is
  * "favourites first, then most-attended, then nearest/soonest within each
  * tier". Do not replace the `return 0` with a fallback comparator; that would
  * discard the caller's ordering rather than preserve it.

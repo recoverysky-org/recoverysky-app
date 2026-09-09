@@ -103,8 +103,9 @@ export interface InPersonListHeaderProps {
    * ADDED 2026-09-06: the Distance / Start sort pill, right half of the
    * controls row under the filter grid.
    * The screen shows it only in list mode AND nearby mode — the map has no
-   * order, and the day-browse fallback's rows carry no `distance_m`, so a
-   * "Distance" half there would promise an order it cannot deliver.
+   * order, and fallback mode has nothing to order (since 2026-09-09 it is an
+   * empty list; before that a distance-less day list), so a "Distance" half
+   * there would promise an order it cannot deliver.
    */
   showSortToggle: boolean
   sortOrder: InPersonSortOrder
@@ -325,8 +326,8 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           two pills on their own line under the grid fit and sit flush with the
           grid's two columns. Rendered whenever EITHER pill has something to
           show — on the map the sort half is empty but the way back to the list
-          must still be here, and in the day-browse fallback the sort pill is
-          hidden but the map one may not be. The map slot is a plain spacer when
+          must still be here, and in fallback mode the sort pill is hidden but
+          the map one may not be. The map slot is a plain spacer when
           hidden so the sort pill still lands under the right column. */}
         {(showMapToggle || showSortToggle) && (
           <View style={themed($controlsRow)}>

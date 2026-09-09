@@ -29,6 +29,11 @@ export interface NearbyModeInput {
  * meeting on the server (see useNearbySchedules.fetchMeetings) — a worldwide
  * list of places you can't drive to was never "something useful". The mode
  * values are unchanged; only what fallback renders is.
+ * CHANGED 2026-09-09: the last day-browse path — the `nearbyFetchFailed`
+ * degrade — is gone too (it was OOM-killing the API; see
+ * useNearbySchedules.fetchMeetings). "fallback" now always renders an empty
+ * list under a tappable banner/empty state; the reason decides the copy and
+ * the tap action (resolveBannerReason). Again, mode values unchanged.
  */
 export function resolveMode(input: NearbyModeInput): NearbyMode {
   if (!input.active) return "locating"
@@ -298,7 +303,7 @@ export function parseInPersonSortOrder(raw: string | undefined | null): InPerson
  * day rolls day-first from today (`sortByDayThenLocalTime`) so seven days
  * don't interleave into one clock order.
  * CHANGED 2026-09-08 (Jenova): that clock is now the midnight-anchored
- * `sortByLocalTime` — the same key the day-browse fallback uses — not the
+ * `sortByLocalTime` — the same key the Search segment uses — not the
  * noon rotation; see `sortByLocalTime` for the policy. Callers only offer this
  * sort in nearby mode, where every row carries a `distance_m`.
  *
@@ -327,8 +332,9 @@ const EARTH_RADIUS_M = 6_371_008.8
  * venue has no usable coordinates.
  *
  * WHY THIS EXISTS: `distance_m` is only ever populated by `/schedules/nearby`.
- * Every other path — the In-Person segment's day-browse fallback, and Search
- * whenever its radius is "Any" — returns venues with no distance at all, so
+ * Every other path — Search whenever its radius is "Any" (and, until
+ * 2026-09-09, the In-Person day-browse fallback) — returns venues with no
+ * distance at all, so
  * the badge silently disappeared on lists that were otherwise identical. The
  * meeting already carries its own `latitude`/`longitude`, so once we hold a
  * fix there is nothing to ask the server for.

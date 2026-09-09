@@ -61,6 +61,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **In-Person no longer falls back to downloading the whole country's day
+  when nearby search fails.** When `/schedules/nearby` failed after its one
+  retry, the segment quietly re-requested every in-person meeting for the
+  selected day (~28 MB) to show an unsorted list. That single request was
+  what kept OOM-killing the API: a brownout slowed nearby past the app's
+  timeout, the fallback fired, the container died, its restart browned out
+  nearby for the next user, and around it went — one user paging through days
+  fired it five times in 12 seconds. The fallback is gone. A failed nearby
+  search now shows the existing "Couldn't load nearby results — tap to retry"
+  banner and a matching tappable empty state; both retry the nearby search
+  only. (`useNearbySchedules`, `InPersonScreen`)
 - **"I'm Here" could sit on "Checking…" forever until the app was killed.** The
   GPS presence check's location-permission request was its one unbounded
   await, and iOS never answers it when Location Services are off system-wide

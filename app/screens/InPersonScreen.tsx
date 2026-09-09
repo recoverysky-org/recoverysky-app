@@ -1,8 +1,10 @@
 /**
  * InPersonScreen — the In-Person segment of the Meetings tab.
  *
- * Nearest-first list via /schedules/nearby when we have a location fix, plain
- * day-browse (plus an explanatory banner) when we don't. All of the mode /
+ * Nearest-first list via /schedules/nearby when we have a location fix, an
+ * empty state plus an explanatory, tappable banner when we don't (or when the
+ * nearby endpoint failed — there is no day-browse fallback since 2026-09-09;
+ * see `useNearbySchedules.fetchMeetings`). All of the mode /
  * fetch / permission machinery lives in `useNearbySchedules`; this file is the
  * presentation layer and the analytics call sites.
  *
@@ -326,7 +328,7 @@ interface InPersonContentProps {
 
 /**
  * InPersonContent - In-person meetings: nearest-first via /schedules/nearby,
- * day-browse fallback without location. Composed into MeetingsScreen as the
+ * tappable empty state without location. Composed into MeetingsScreen as the
  * middle segment (2026-08-03 in-person UI spec).
  *
  * `active` flips true the first time the user opens the segment — location
@@ -825,7 +827,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const fellowshipLabel = fellowship || "—"
 
   // Client-side only: the time bucket never reaches the API. `/schedules/nearby`
-  // and the day-browse fallback both return a whole day, so narrowing here costs
+  // returns a whole day (radius-bounded), so narrowing here costs
   // one pass over an already-fetched list and — unlike day or radius — triggers
   // no refetch. Keep `meetings` (unfiltered) around: the empty state and the
   // paywall-return popup both need to know what the day actually holds.
@@ -852,8 +854,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // `useNearbySchedules` hands over a nearest-first list; re-sorting at this
   // choke point (rather than inside the hook) keeps the hook's ordering the
   // single documented default and means a sort change never triggers a fetch.
-  // Only the nearby list is re-sorted — the day-browse fallback has no
-  // `distance_m`, so its time order stands and the pill is hidden for it.
+  // Only the nearby list is re-sorted — fallback mode has no rows at all
+  // since 2026-09-09 (it used to carry a distance-less day list), and the
+  // pill is hidden for it.
   const visibleMeetings = useMemo(() => {
     if (!profileStore.locationEnabled) return []
     const filtered =
@@ -1003,9 +1006,10 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     ({ item }: { item: MeetingWithTrex }) => (
       <MeetingRow
         meeting={item}
-        // Distance badge only in nearby mode: the day-browse fallback's rows
-        // carry no `distance_m`, and formatDistance returns "" for undefined —
-        // `|| undefined` keeps the row from rendering an empty badge.
+        // Distance badge only in nearby mode: a row without `distance_m` (an
+        // older server, or the pre-2026-09-09 day-browse fallback) gets
+        // formatDistance's "" for undefined — `|| undefined` keeps the row
+        // from rendering an empty badge.
         distanceLabel={
           mode === "nearby" ? formatDistance(item.distance_m, useMiles) || undefined : undefined
         }
@@ -1103,7 +1107,18 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // absence that is really about location. Tappable, and it runs the exact
     // same routing as the banner above it — the two are saying the same thing,
     // so they must do the same thing.
-    if (bannerReason === "denied" || bannerReason === "fixFailed") {
+    // CHANGED 2026-09-09: "nearbyFailed" joins this branch. The nearby-failed
+    // case used to be rescued by a whole-country day-browse fetch that was
+    // OOM-killing the API (see `useNearbySchedules.fetchMeetings`); it now
+    // ends in an empty list, and without this branch that list fell through to
+    // `emptyFallback` below, which blames the fellowship and the day for what
+    // is really a failed request. Reuses the banner's copy so the two surfaces
+    // agree, and `handleBannerPress` already routes it to `refresh()`.
+    if (
+      bannerReason === "denied" ||
+      bannerReason === "fixFailed" ||
+      bannerReason === "nearbyFailed"
+    ) {
       return (
         <Pressable
           style={themed($emptyContainer)}
@@ -1112,9 +1127,11 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         >
           <Text style={themed($emptyText)}>
             {t(
-              bannerReason === "fixFailed"
-                ? "inPersonScreen:emptyFixFailed"
-                : "inPersonScreen:emptyNoLocation",
+              bannerReason === "nearbyFailed"
+                ? "inPersonScreen:nearbyFailedBanner"
+                : bannerReason === "fixFailed"
+                  ? "inPersonScreen:emptyFixFailed"
+                  : "inPersonScreen:emptyNoLocation",
             )}
           </Text>
         </Pressable>
@@ -1215,8 +1232,8 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // put on it".
   const showMapToggleNow = showMapToggle && profileStore.locationEnabled
 
-  // The map has no order and the day-browse fallback has no distances (see
-  // the prop comment on InPersonListHeaderProps.showSortToggle).
+  // The map has no order and fallback mode has no rows to order (see the
+  // prop comment on InPersonListHeaderProps.showSortToggle).
   const showSortToggle = effectiveViewMode === "list" && mode === "nearby"
 
   return (

@@ -3,9 +3,12 @@
  *
  * Three modes (resolved by the pure `resolveMode` in `@/utils/nearbyLogic`):
  * `locating` while permission/fix is in flight, `nearby` once we have coords,
- * `fallback` (plain day-browse + banner) whenever location is unavailable or
- * the nearby endpoint failed after its retry. The segment always renders
- * something useful — there is no dead-end state.
+ * `fallback` (empty list + explanatory banner) whenever location is unavailable
+ * or the nearby endpoint failed after its retry. The segment always renders
+ * something actionable — every fallback state names its remedy and is tappable.
+ * CHANGED 2026-09-09: `fallback` used to mean "plain day-browse + banner" for
+ * the nearby-failed case. That day-browse request is gone — see the note in
+ * `fetchMeetings` for the production incident that removed it.
  *
  * PRIVACY (non-negotiable, see the 2026-08-03 in-person-ui design doc):
  * - Raw coordinates live in `coordsRef` and nowhere else. Not React state
@@ -101,7 +104,6 @@ import { feedbackCache } from "@/db"
 import { useConfigStore, useProfileStore } from "@/models"
 import { api, LiveSchedule } from "@/services/api"
 import { sortByFeedback } from "@/utils/feedbackSort"
-import { ANY_DAY } from "@/utils/filterLogic"
 import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import {
@@ -111,9 +113,7 @@ import {
   NearbyMode,
   resolveBannerReason,
   resolveMode,
-  sortByDayThenLocalTime,
   sortByDistance,
-  sortByLocalTime,
 } from "@/utils/nearbyLogic"
 import { loadString, saveString } from "@/utils/storage"
 
@@ -185,7 +185,14 @@ export interface UseNearbySchedulesResult {
   mode: NearbyMode
   meetings: MeetingWithTrex[]
   isLoading: boolean
-  /** Set only when the ACTIVE path's fetch failed (fallback fetch failing, or total dead-end) */
+  /**
+   * Set only when the fetch THREW (network exception, not an API problem). A
+   * non-ok `/schedules/nearby` result is reported through `bannerReason ===
+   * "nearbyFailed"` instead, which is tappable and retries; `error` renders a
+   * dead, untranslated string and is the path of last resort.
+   * CHANGED 2026-09-09: used to also cover "the day-browse fallback failed";
+   * there is no fallback fetch any more.
+   */
   error: string | null
   /** Why the fallback banner is showing (null in nearby/locating modes) */
   bannerReason: NearbyBannerReason | null
@@ -503,10 +510,11 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // every in-person meeting on the server for the day — a list of rooms
       // the user cannot get to, presented underneath a banner blaming their
       // permissions. The empty state in InPersonScreen names the real problem
-      // and offers the action that fixes it. Note this is NOT symmetric with
-      // the `nearbyFetchFailed` path below: there we know where the user is
-      // and only the nearby endpoint is broken, so an unsorted day list is a
-      // genuine degrade rather than noise.
+      // and offers the action that fixes it.
+      // CHANGED 2026-09-09: this used to be documented as asymmetric with the
+      // `nearbyFetchFailed` path below, which still fell back to a day list.
+      // It no longer does (see there) — both "no position" and "nearby
+      // failed" now end in an empty list with a tappable remedy.
       if (!coords) {
         setMeetings([])
         log.debug("No position — skipping in-person fetch", { iso_dow: selectedDay })
@@ -514,9 +522,9 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       }
 
       const params = buildNearbyParams(coords.lat, coords.lon, radiusKm, selectedDay, fellowship)
-      // Spec §4: degrade only "after the standard retry" — one immediate
-      // retry on a non-ok result before falling back to day-browse, so a
-      // single dropped packet doesn't demote a user with a good GPS fix.
+      // Spec §4: report failure only "after the standard retry" — one
+      // immediate retry on a non-ok result before giving up, so a single
+      // dropped packet doesn't demote a user with a good GPS fix.
       let result = await api.getNearbySchedules(params)
       if (result.kind !== "ok") {
         // PRIVACY: log the scalars individually — never spread `params`,
@@ -549,40 +557,29 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
         return
       }
 
-      log.warn("Nearby fetch failed after retry; degrading to day-browse", { kind: result.kind })
+      // CHANGED 2026-09-09: there is NO day-browse fallback any more. Until
+      // today this branch degraded to `getDailySchedules(day, fellowship,
+      // "in_person")` — every in-person meeting in the country for that day,
+      // a ~28 MB response — and that request was what kept OOM-killing the
+      // 384 MB API container. Loki showed the loop: an API brownout (a
+      // restart's 4-minute prefetch, or one in-person day being built) pushes
+      // nearby from ~1 s to 15–30 s, the client timeout trips, the retry above
+      // trips too, this branch fired the 28 MB request, the container died,
+      // and its restart's prefetch browned out nearby for the next client.
+      // One user paging through days fired it five times in 12 s. The
+      // fallback was the amplifier; the nearby route is fine. A failed nearby
+      // now leaves an EMPTY list under the "Couldn't load nearby results — tap
+      // to retry" banner (plus the matching tappable empty state in
+      // InPersonScreen), and `refresh()` re-runs this same path only. Do not
+      // reintroduce any bulk fetch here — a bounded client must never request
+      // a whole-country day.
+      //
+      // Deliberately not `setError`: `error` renders a dead, untranslated
+      // string, whereas `nearbyFetchFailed` drives a banner and an empty state
+      // that both name the remedy and retry on tap.
+      log.warn("Nearby fetch failed after retry; showing retry state", { kind: result.kind })
       setNearbyFetchFailed(true)
-
-      const fallback = await api.getDailySchedules(selectedDay, fellowship, "in_person")
-      if (!isCurrent()) return
-
-      if (fallback.kind === "ok") {
-        const pool = inPersonPoolOf(true, toMeetings(fallback.schedules))
-        // Same tiering as the nearby path above; the day-browse fallback's
-        // primary key is local start time instead of distance.
-        // CHANGED 2026-08-14: under ANY_DAY this list spans all seven days, and
-        // a clock-only key interleaves them into an unreadable order. The
-        // nearby path above doesn't need this — it stays distance-primary, so
-        // its ordering is unaffected by how many days are in the set — but this
-        // degraded path sorts by time and does. Single-day fetches are
-        // untouched.
-        setMeetings(
-          sortByFeedback(
-            selectedDay === ANY_DAY
-              ? sortByDayThenLocalTime(pool.items, getCurrentIsoDow())
-              : sortByLocalTime(pool.items),
-          ),
-        )
-        log.debug("Loaded in-person day-browse schedules", {
-          count: pool.items.length,
-          iso_dow: selectedDay,
-        })
-      } else {
-        // Only the ACTIVE path failing is an error: a failed nearby fetch that
-        // the day-browse fallback rescued shows a banner, not an error state.
-        log.error("In-person fallback fetch failed", { kind: fallback.kind })
-        setError(`Error: ${fallback.kind}`)
-        setMeetings([])
-      }
+      setMeetings([])
     } catch (err) {
       if (!isCurrent()) return
       // PRIVACY: see the note in acquireLocation — `String(err)` is name +
@@ -643,9 +640,9 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     }
 
     // An acquire in flight will fetch itself when it settles, using the latest
-    // inputs via fetchLatestRef. Firing here too would spend a request on the
-    // day-browse path (coords aren't in yet) that the stale-guard then throws
-    // away, while the UI shows a "locating" spinner either way. This skip is
+    // inputs via fetchLatestRef. Firing here too would run a no-position fetch
+    // (coords aren't in yet) that the stale-guard then throws away, while the
+    // UI shows a "locating" spinner either way. This skip is
     // only safe because every acquire caller goes through `fetchIfMounted` —
     // an acquire that returned without fetching would strand these inputs.
     if (acquiringRef.current) return
