@@ -460,10 +460,12 @@ export class Api {
       const headers = (request.headers ?? {}) as Record<string, string>
       request.headers = headers as typeof request.headers
 
-      // Bypass. /attest is called while we are still obtaining device
-      // credentials, and getPublicStatus() runs before any credential exists.
-      // This is ALSO the recursion guard: the device refresher calls
-      // verifyAttestation(), which comes straight back through this transform.
+      // Bypass. The three attest exchanges — getAttestChallenge(),
+      // verifyAttestation(), assertAttestation() — are called while we are
+      // still obtaining device credentials, and getPublicStatus() runs before
+      // any credential exists. This is ALSO the recursion guard: the device
+      // refresher drives those three exchanges, and each comes straight back
+      // through this transform.
       //
       // CHANGED 2026-08-07: presence check, not truthiness. A sentinel value of
       // "" or "0" previously failed to bypass AND leaked the header onward,

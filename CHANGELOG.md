@@ -73,6 +73,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 - Verification retries no longer regenerate the Apple key on every attempt; only
   the network exchange retries, on a longer 2/5/10/20 s ladder.
+- A first launch that could not verify the device no longer lands on the
+  maintenance screen and restart itself in a loop. Verification failing while
+  the service itself is healthy left the app unable to load its server config on
+  a fresh install, which looked like an outage; the recovery poll then found the
+  service healthy and reloaded, forever, regenerating an Apple key each time.
+  Such a launch now opens on the "Connecting to RecoverySky…" banner and reloads
+  exactly once, when verification recovers.
+- A rate-limited or expired verification attempt is no longer reported to the
+  user as "Verification Rejected". Only an actual refusal of the app on the
+  device (401/403) shows that alert; everything else retries behind the banner.
 - **In-Person no longer falls back to downloading the whole country's day
   when nearby search fails.** When `/schedules/nearby` failed after its one
   retry, the segment quietly re-requested every in-person meeting for the

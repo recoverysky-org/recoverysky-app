@@ -336,7 +336,10 @@ Three separate trust layers, easy to confuse:
    `deviceTokenLogic.ts`; the native calls in `index.ts`; the I/O in
    `deviceToken.ts`. Temporary failures **degrade** (app opens,
    `configStore.deviceAuthDegraded`, "Connecting…" banner, refresher retries)
-   rather than block; only `unsupported` and a 4xx on `POST /attest` block.
+   rather than block; only `unsupported` and a 401/403 on `POST /attest`
+   block (CHANGED 2026-09-09 after final review: a 400 `bad_nonce` and a 429
+   from the routes' per-IP limiter degrade — they are protocol outcomes, not
+   verdicts about the device).
    Simulators, web, and Android dev builds call `setApiKeyFallback()` to take
    the `X-API-Key` path instead. Spec:
    `docs/superpowers/specs/2026-09-09-app-attest-assertions-and-jwt-persistence-design.md`.
@@ -408,7 +411,13 @@ the wrong gate has historically killed in-meeting Zoom timers.
      `api.getPublicStatus()` which bypasses the token freshness gate via
      `X-Skip-Auth-Gate` since no JWT exists yet.
   2. `/config` fetch failed after the `/status` precheck passed
-     (transient half-up state).
+     (transient half-up state). EXCEPTION (2026-09-09): not when the device
+     lane came back `degraded` — a degraded device gets 401s from `/config`
+     while the public `/status` stays healthy, so outage mode's recovery
+     poll would reload instantly and loop the cold start forever (burning
+     an Apple key generation per cycle). That start renders on env-var
+     defaults with the "Connecting…" banner and arms a one-shot reload for
+     when `/config` finally loads.
   3. `/config` fetch succeeded but reported `MAINTENANCE_MODE=true`
      at startup.
 
@@ -433,11 +442,14 @@ positioning + high `zIndex`, so it draws above every screen and modal.
 It observes `maintenanceMode` only — outage doesn't double-render
 because the full-screen takes over.
 
-  The banner is two-variant: a muted blue-grey "You're offline" strip
-  (which WINS over maintenance — offline is the more accurate diagnosis)
-  and the amber maintenance strip. `MaintenanceScreen` mirrors the split
-  for cold-start outage ("Device Offline" vs "System Maintenance", live-
-  switching since it observes NetworkStore).
+  The banner is three-variant, in priority order: a muted blue-grey
+  "You're offline" strip (which WINS over the other two — offline is the
+  more accurate diagnosis), a calm "Connecting to RecoverySky…" strip
+  driven by `configStore.deviceAuthDegraded` (ADDED 2026-09-09 with the
+  attestation degrade path — see "Auth, Attestation & Encryption Keys"),
+  and the amber maintenance strip. `MaintenanceScreen` mirrors the
+  offline/maintenance split for cold-start outage ("Device Offline" vs
+  "System Maintenance", live-switching since it observes NetworkStore).
 
 **API-dependent features that self-disable when `maintenanceMode` is
 true:**

@@ -156,7 +156,12 @@ work throughout.
 Two cases keep the full-screen alert with Retry (full reload) and Close:
 
 - `UNSUPPORTED` — the device cannot attest at all.
-- A 403 or 400 from `POST /attest` — bundle/team mismatch, tampered app, or a failed Play verdict.
+- A 403 or 401 from `POST /attest` — bundle/team mismatch, tampered app, or a failed Play verdict.
+
+CHANGED 2026-09-09 (final review): every other non-temporary response to `POST /attest` degrades
+instead — a 400 (`bad_nonce`, e.g. Apple's `attestKeyAsync` stalling past the nonce TTL) and a 429
+from the routes' per-IP rate limiter are protocol outcomes, not verdicts about the device, and a
+carrier-NAT or campus population can trip the limiter through no fault of its own.
 
 Both messages drop the "reinstall the app" sentence and gain: "Your attendance records stay on this
 device." This is a nine-locale change; the eight non-English files ship the English text as a
@@ -167,8 +172,16 @@ placeholder and go on the translation review queue.
 - **Counter regression** (backup restored onto another device sharing a Keychain): assert is
   rejected, client drops the key id, full attestation rebinds with counter 0. One extra round trip.
 - **Nonce clock skew**: server time only; the client never compares `expiresAt` to its own clock.
-- **Stored JWT from a rotated server secret**: requests 401, the refresher's next attempt mints a new
-  one via assertion. Same non-self-healing window as today for the Auth0 lane, bounded by the skew.
+- **Stored JWT from a rotated server secret** (CHANGED 2026-09-09, final review — the original
+  "bounded by the skew" claim was wrong): the JWT is now persisted, and there is no reactive 401 path
+  (CLAUDE.md, "Auth, Attestation & Encryption Keys"), so nothing tells the client its token is dead.
+  Every device 401s until the JWT's own expiry — up to 7 days — and relaunching re-hydrates the same
+  dead JWT rather than re-minting, which is the escape hatch that existed before this branch. The
+  remedy for a rotated `DEVICE_JWT_SECRET` or a server-side device revocation is therefore an app OTA
+  that bumps the SecureStore key `device_jwt_v1` → `device_jwt_v2`, which makes every client miss the
+  fast path and re-attest; the API runbook for secret rotation must say so. A narrow reactive path
+  (on a 401 while holding a device JWT, mark it near-expiry so the refresher asserts) is the proper
+  fix and is a follow-up, not part of this OTA.
 - **iOS reinstall**: SecureStore normally survives, so the key id is still present and the assertion
   works. If the Keychain was wiped, step 2 is rejected and step 3 rebinds. Invisible to the user.
 - **Android**: JWT persistence and the nonce as request hash only. Token provider still warmed once per
