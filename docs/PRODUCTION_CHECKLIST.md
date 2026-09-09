@@ -108,3 +108,14 @@ Step-by-step checklist for preparing and publishing a **native store release**.
       `insets.top + ~39pt` for the ENTIRE offline session, not just a
       transient moment, so a partially-hidden header is a real usability
       problem, not a one-frame glitch.
+
+## Device Verification (after any change under `app/services/attestation/`)
+
+Physical devices only; watch Loki `{service_name="recoverysky-app", module=~"attestation|deviceToken"}`.
+
+- [ ] Fresh install (iPhone): logs show `Establishing device token {step: attest}` → `Device token established via full attestation`. API logs `Attestation successful`.
+- [ ] Kill and relaunch within 7 days: `Device JWT hydrated from SecureStore`, no other attestation lines.
+- [ ] Force expiry: in a local production-profile build (`npm run build:ios:device` with the production profile — `__DEV__` builds skip attestation entirely) temporarily set `DEVICE_JWT_SKEW_MS` to 8 days so the stored JWT reads as expired. Relaunch shows `{step: assert}` → `established via assertion`; no `Generating iOS App Attest key pair` line. Revert the constant before committing anything.
+- [ ] Wiped key: in the same local build temporarily add `await clearAppAttestKeyId()` as the first line of `establishDeviceToken()` (so the assert path runs with a key the server knows but the device has forgotten — mirror of a Keychain wipe is to instead save a bogus key id via `saveAppAttestKeyId("bogus")`, which exercises `assert_rejected`). Relaunch shows `Server rejected the stored key — attesting fresh` → full attestation; API logs `device rebound`. Revert before committing.
+- [ ] Point a release build at a dead API URL with an expired JWT: app opens, "Connecting to RecoverySky…" banner, Attendance tab works; restore the URL — banner clears within the refresher backoff (≤ 15 min).
+- [ ] Android physical device: fresh install, relaunch, and the dead-URL case.

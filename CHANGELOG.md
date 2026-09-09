@@ -24,6 +24,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 
+- **Device verification no longer blocks the app on temporary failures.** A server
+  blip, timeout, or Apple/Play hiccup at launch now opens the app on local data
+  with a calm "Connecting to RecoverySky…" banner while verification retries in the
+  background. Only an unsupported device or an outright server refusal still shows
+  an alert, and that alert no longer tells anyone to reinstall (attendance is local
+  and a reinstall destroys it). Motivated by the 2026-09-08 `/attest` outage.
+- **Launch is faster.** The device credential is persisted for its seven-day life,
+  so most cold starts skip verification entirely; when it does expire, iOS
+  re-verifies with a cheap App Attest assertion instead of generating a new
+  Secure Enclave key (which Apple rate-limits). Requires API 1.6.0.
 - **Meeting lists sort by device-local start time from midnight, AM first.**
   The Search segment (and the In-Person "start" order) had led with the
   afternoon and evening rows since 2026-08-12, so a list read noon → 11:59pm
@@ -61,6 +71,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- Verification retries no longer regenerate the Apple key on every attempt; only
+  the network exchange retries, on a longer 2/5/10/20 s ladder.
 - **In-Person no longer falls back to downloading the whole country's day
   when nearby search fails.** When `/schedules/nearby` failed after its one
   retry, the segment quietly re-requested every in-person meeting for the

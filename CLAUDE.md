@@ -327,10 +327,19 @@ Three separate trust layers, easy to confuse:
 2. **Device trust — attestation** (`app/services/attestation/`). Apple App
    Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
    exchanged with the backend for a device JWT that becomes
-   `X-Device-Token`. Simulators, web, and Android dev builds call
-   `setApiKeyFallback()` (`app/services/attestation/deviceToken.ts`) to take
-   the `X-API-Key` path instead. Every API call except `getPublicStatus()`
-   goes through the token freshness gate described below.
+   `X-Device-Token`. CHANGED 2026-09-09: the JWT and the iOS App Attest key
+   id are **persisted in SecureStore** (`device_jwt_v1`,
+   `app_attest_key_id_v1`, per install, untouched by sign-out). Cold start
+   is `hydratePersistedDeviceJwt()` → `establishDeviceToken()`, which asserts
+   against the stored key (`POST /attest/assert`) and only generates a new
+   key when the server rejects it. Decisions live in the pure, vitest-covered
+   `deviceTokenLogic.ts`; the native calls in `index.ts`; the I/O in
+   `deviceToken.ts`. Temporary failures **degrade** (app opens,
+   `configStore.deviceAuthDegraded`, "Connecting…" banner, refresher retries)
+   rather than block; only `unsupported` and a 4xx on `POST /attest` block.
+   Simulators, web, and Android dev builds call `setApiKeyFallback()` to take
+   the `X-API-Key` path instead. Spec:
+   `docs/superpowers/specs/2026-09-09-app-attest-assertions-and-jwt-persistence-design.md`.
 3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
    Anonymous users get a locally generated 256-bit key in SecureStore
    (`sqlite_encryption_key_v1`); authenticated users get the key from JWT
@@ -353,8 +362,9 @@ sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
   path. It is also the recursion guard for the device refresher's own
   `/attest` call.
 - Skews are asymmetric on purpose: 60 s for the Auth0 token (one cheap hop,
-  handed to the SDK as `minTtl`), 5 min for the device token (a multi-second
-  Apple/Play round trip that must start early).
+  handed to the SDK as `minTtl`), 5 min for the device token (a server round
+  trip, plus a multi-second Apple/Play round trip only when the stored key
+  was rejected).
 - A refresh failure classified `permanent` (see `tokenFreshnessLogic.ts`)
   forces a logout — **deferred while `isTimerSessionActive()`**, because the
   eject swaps the tree above `MainNavigator`'s timer tab-lock and
