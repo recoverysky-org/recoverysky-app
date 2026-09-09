@@ -60,6 +60,26 @@ export interface AttestationVerifyRequest {
   deviceId: string
   /** iOS only: Key ID from DCAppAttestService.generateKey() */
   keyId?: string
+  /**
+   * Nonce from GET /attest/challenge. ADDED 2026-09-09. Always sent by this
+   * build; the server keeps a legacy branch for older clients that omit it.
+   */
+  nonce?: string
+}
+
+/** Response from GET /attest/challenge */
+export interface AttestChallengeResult {
+  nonce: string
+  expiresAt: number
+}
+
+/** Request body for POST /attest/assert (iOS only) */
+export interface AttestationAssertRequest {
+  deviceId: string
+  keyId: string
+  nonce: string
+  /** Base64 CBOR from AppIntegrity.generateAssertionAsync */
+  assertion: string
 }
 
 /**
@@ -517,6 +537,59 @@ export class Api {
     }
 
     log.debug("Attestation verified successfully")
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * GET /attest/challenge — a nonce for the next attestation or assertion.
+   * Bypasses the auth gate: it runs before any device JWT exists.
+   */
+  async getAttestChallenge(
+    deviceId: string,
+  ): Promise<{ kind: "ok"; data: AttestChallengeResult } | GeneralApiProblem> {
+    const response = await this.recoverySkyApi.get<AttestChallengeResult>(
+      "/attest/challenge",
+      { deviceId },
+      { headers: { [SKIP_AUTH_GATE_HEADER]: "1" } },
+    )
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Attestation challenge failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+    if (!response.data || typeof response.data.nonce !== "string") {
+      log.warn("Invalid attestation challenge response format")
+      return { kind: "bad-data" }
+    }
+    return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * POST /attest/assert — exchange an App Attest assertion for a device JWT.
+   * Any 4xx here means "the server does not know this key"; the caller falls
+   * back to a full attestation rather than surfacing it.
+   */
+  async assertAttestation(
+    params: AttestationAssertRequest,
+  ): Promise<{ kind: "ok"; data: AttestationVerifyResult } | GeneralApiProblem> {
+    const response = await this.recoverySkyApi.post<AttestationVerifyResult>(
+      "/attest/assert",
+      params,
+      { headers: { [SKIP_AUTH_GATE_HEADER]: "1" } },
+    )
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Attestation assert failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+    if (!response.data || typeof response.data.deviceJwt !== "string") {
+      log.warn("Invalid attestation assert response format")
+      return { kind: "bad-data" }
+    }
     return { kind: "ok", data: response.data }
   }
 
