@@ -64,14 +64,19 @@ import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api, type ServerConfig } from "./services/api"
 import { isTimerSessionActive } from "./services/attendance"
-import { type AttestationError, isSimulator, preparePlayIntegrity } from "./services/attestation"
+import { isSimulator, preparePlayIntegrity } from "./services/attestation"
 import {
   GOOGLE_CLOUD_PROJECT_NUMBER,
+  establishDeviceToken,
+  hydratePersistedDeviceJwt,
   isJwtExpiredOrNearExpiry,
-  performAttestation,
   setApiKeyFallback,
   isUsingApiKeyFallback,
 } from "./services/attestation/deviceToken"
+import {
+  type EstablishOutcome,
+  pickAttestationAlert,
+} from "./services/attestation/deviceTokenLogic"
 import {
   clearStoredCredentials,
   createDeviceTokenRefresher,
@@ -128,134 +133,77 @@ log.info("App module loaded")
 
 /**
  * Initialize device authorization (called once on cold start)
- * - Physical devices: Perform attestation to get device JWT
- * - Simulators: Use X-API-Key fallback
+ * - Physical devices: stored JWT → assertion → full attestation
+ * - Simulators / web / dev builds: X-API-Key fallback
+ *
+ * CHANGED 2026-09-09: returns "degraded" instead of blocking on temporary
+ * failures. The app then renders on local data with the "Connecting…"
+ * banner while the device refresher keeps trying. Only `unsupported` and a
+ * server refusal still block — and the copy no longer tells anyone to
+ * reinstall (attendance is local; a reinstall destroys it).
  */
-async function initializeDeviceAuthorization(deviceId: string): Promise<void> {
-  // Web platform - no attestation
+async function initializeDeviceAuthorization(deviceId: string): Promise<"ok" | "degraded"> {
   if (Platform.OS === "web") {
     log.info("Web platform, skipping attestation")
     setApiKeyFallback()
-    return
+    return "ok"
   }
-
-  // Simulator/emulator - use X-API-Key fallback
   if (isSimulator()) {
     log.info("Simulator detected, using X-API-Key fallback")
     setApiKeyFallback()
-    return
+    return "ok"
   }
-
   // Dev builds on physical devices — skip attestation entirely.
   // Play Integrity can't validate the debug signing key (not registered with
   // Play Console), so every attempt fails, burns retries, and delays startup.
-  // Use X-API-Key fallback up front for a snappy dev loop.
   if (__DEV__) {
-    log.info("Android dev build, skipping attestation and using X-API-Key")
+    log.info("Dev build on device, skipping attestation and using X-API-Key")
     setApiKeyFallback()
-    return
+    return "ok"
   }
 
-  // Physical device - prepare Play Integrity for Android, then attest
+  // Fast path: a persisted JWT with more than the skew left needs no network.
+  if (await hydratePersistedDeviceJwt()) return "ok"
+
   if (Platform.OS === "android" && GOOGLE_CLOUD_PROJECT_NUMBER) {
     await preparePlayIntegrity(GOOGLE_CLOUD_PROJECT_NUMBER)
   }
 
-  // Perform initial attestation
-  const attestResult = await performAttestation(deviceId)
-  if (!attestResult.ok) {
-    log.fatal("Initial attestation failed, blocking app", {
-      code: attestResult.error.code,
-      kind: attestResult.error.kind,
-      temporary: attestResult.error.temporary,
+  const outcome = await establishDeviceToken(deviceId)
+  if (outcome.status === "ok") return "ok"
+  if (outcome.status === "degraded") {
+    log.warn("Device attestation degraded — running without a device token", {
+      detail: outcome.detail,
     })
-    const { titleKey, messageKey } = pickAttestationAlertStrings(attestResult.error)
-    // Show fatal alert — user must close or retry. No API key fallback on physical devices.
-    return new Promise<void>(() => {
-      Alert.alert(
-        translate(titleKey),
-        translate(messageKey),
-        [
-          {
-            text: translate("common:retry"),
-            onPress: () => {
-              // Full app reload to retry from scratch.
-              // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
-              // SharedObject before teardown — avoids the SharedObjectRegistry
-              // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
-              reloadApp(() => BackHandler.exitApp())
-            },
-          },
-          {
-            text: translate("common:close"),
-            style: "destructive",
-            onPress: () => BackHandler.exitApp(),
-          },
-        ],
-        { cancelable: false },
-      )
-    })
+    return "degraded"
   }
-}
 
-/**
- * Pick the title + message i18n keys that best match an AttestationError.
- *
- * Mapping:
- * - UNSUPPORTED (device/OS can't participate) → "Device Not Supported"
- * - ATTESTATION_FAILED (Apple App Attest / Play Integrity API threw) →
- *     "Verification Unavailable" (their service, not ours)
- * - VERIFICATION_FAILED with transient kind (timeout / cannot-connect /
- *     server / unknown) → generic "Device Verification Failed" with network
- *     framing — fits the "check your internet" copy already in the string
- * - VERIFICATION_FAILED with non-transient kind (401 / 403 / rejected /
- *     bad-data) → "Verification Rejected" — our backend said no, retrying
- *     won't help, user likely needs a reinstall
- * - Fallback → generic
- */
-function pickAttestationAlertStrings(error: AttestationError): {
-  titleKey:
-    | "errors:attestationFailedTitle"
-    | "errors:attestationUnsupportedTitle"
-    | "errors:attestationAppleFailedTitle"
-    | "errors:attestationServerFailedTitle"
-  messageKey:
-    | "errors:attestationFailedMessage"
-    | "errors:attestationUnsupportedMessage"
-    | "errors:attestationAppleFailedMessage"
-    | "errors:attestationServerFailedMessage"
-} {
-  switch (error.code) {
-    case "UNSUPPORTED":
-      return {
-        titleKey: "errors:attestationUnsupportedTitle",
-        messageKey: "errors:attestationUnsupportedMessage",
-      }
-    case "ATTESTATION_FAILED":
-      return {
-        titleKey: "errors:attestationAppleFailedTitle",
-        messageKey: "errors:attestationAppleFailedMessage",
-      }
-    case "VERIFICATION_FAILED":
-      // Network-flavored failures keep the existing "check your internet"
-      // copy; everything else goes to the server-rejected variant.
-      if (error.temporary) {
-        return {
-          titleKey: "errors:attestationFailedTitle",
-          messageKey: "errors:attestationFailedMessage",
-        }
-      }
-      return {
-        titleKey: "errors:attestationServerFailedTitle",
-        messageKey: "errors:attestationServerFailedMessage",
-      }
-    case "SIMULATOR":
-    default:
-      return {
-        titleKey: "errors:attestationFailedTitle",
-        messageKey: "errors:attestationFailedMessage",
-      }
-  }
+  log.fatal("Initial attestation blocked", { reason: outcome.reason })
+  const { titleKey, messageKey } = pickAttestationAlert(outcome.reason)
+  return new Promise<"ok" | "degraded">(() => {
+    Alert.alert(
+      translate(titleKey),
+      translate(messageKey),
+      [
+        {
+          text: translate("common:retry"),
+          onPress: () => {
+            // Full app reload to retry from scratch.
+            // CHANGED 2026-05-21: via reloadApp() to close the expo-sqlite
+            // SharedObject before teardown — avoids the SharedObjectRegistry
+            // .clear / ~WeakObject EXC_BAD_ACCESS crash seen on OTA reloads.
+            reloadApp(() => BackHandler.exitApp())
+          },
+        },
+        {
+          text: translate("common:close"),
+          style: "destructive",
+          onPress: () => BackHandler.exitApp(),
+        },
+      ],
+      { cancelable: false },
+    )
+  })
 }
 
 export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
@@ -375,6 +323,12 @@ export function App() {
         // see a cycle otherwise (the existing direction is attestation → api).
         const deviceRefresher = createDeviceTokenRefresher({
           getDeviceId: () => deviceIdRef.current,
+          // Background attempts clear or set the "Connecting…" banner. Safe
+          // to reference _rootStore here: the closure runs long after the
+          // node exists, and setupRootStore() applies a snapshot to this
+          // same node rather than replacing it (see the ORDERING note below).
+          onOutcome: (outcome: EstablishOutcome) =>
+            _rootStore.configStore.setDeviceAuthDegraded(outcome.status !== "ok"),
         })
         deviceRefresherRef.current = deviceRefresher
 
@@ -551,7 +505,12 @@ export function App() {
 
         // Initialize device authorization (attestation or API key fallback)
         // This blocks until we have valid device credentials
-        await initializeDeviceAuthorization(deviceId)
+        // CHANGED 2026-09-09: no longer strictly true — a temporary
+        // attestation failure now resolves "degraded" instead of blocking
+        // forever, so the app can proceed on local data with the banner.
+        // Only `unsupported` / server-rejected still block via the fatal alert.
+        const deviceAuth = await initializeDeviceAuthorization(deviceId)
+        _rootStore.configStore.setDeviceAuthDegraded(deviceAuth === "degraded")
 
         // Fetch server config (keys, secrets, URLs from /config endpoint).
         // Cold-start outage gate fires for two cases — both route to the
