@@ -15,8 +15,14 @@ import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encrypti
 import { hashUserId, logger } from "@/utils/logger"
 
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
-import { decodeJwtPayload, extractSqliteKeyFromClaims, type IdTokenClaims } from "./jwtUtils"
+import {
+  decodeJwtPayload,
+  extractSqliteKeyFromClaims,
+  isUsableAccessToken,
+  type IdTokenClaims,
+} from "./jwtUtils"
 import { saveAuthCredentials, clearAuthCredentials } from "./secureStorage"
+import { reportUnusableToken } from "./unusableTokenHandler"
 
 const log = logger.child({ module: "useAuth0Wrapper" })
 
@@ -105,6 +111,30 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
           const credentials = await getCredentials()
 
           if (credentials) {
+            // ADDED 2026-09-10: the SDK renews with the stored refresh token,
+            // and a refresh token from an audience-less login (TestFlight
+            // builds 3.12.1–4.1.6 shipped without EXPO_PUBLIC_AUTH0_AUDIENCE)
+            // renews into an opaque token the API can never accept. Do not
+            // store it; eject through the same path as a dead refresh token.
+            // setAuthReady() still runs so the splash never waits on a session
+            // that is being torn down — forced logout flips isAuthenticated
+            // and routes to Login on its own.
+            const check = isUsableAccessToken(credentials.accessToken, {
+              audience: AUTH0_CONFIG.audience,
+            })
+            if (!check.ok) {
+              const handled = reportUnusableToken(check.reason)
+              log.error("Auth0 SDK returned unusable access token — signing out", {
+                source: "sdk-sync",
+                reason: check.reason,
+                tokenLength: credentials.accessToken.length,
+                tokenSegments: credentials.accessToken.split(".").length,
+                handled,
+              })
+              authStore.setAuthReady()
+              return
+            }
+
             // Auth0 SDK returns expiresAt as UNIX timestamp (seconds)
             // Convert to milliseconds for JavaScript Date compatibility
             const expiresAt = credentials.expiresAt * 1000

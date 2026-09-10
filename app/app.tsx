@@ -84,6 +84,7 @@ import {
 } from "./services/auth"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { clearAuthCredentials } from "./services/auth/secureStorage"
+import { registerUnusableTokenHandler } from "./services/auth/unusableTokenHandler"
 import { setSentryUser } from "./services/crashReporting/sentry"
 import { initNetworkMonitoring } from "./services/network"
 import {
@@ -361,6 +362,14 @@ export function App() {
             }
           },
         })
+
+        // ADDED 2026-09-10: the Auth0 SDK sync effect (useAuth0Wrapper) can
+        // hand us a token that is not a JWT for our audience. It reports
+        // here; markRejected() latches the refresher so no bearer goes out
+        // and ejects through the same timer-aware onPermanentFailure above.
+        // The hook has several mount sites and each may report the same
+        // token — the latch and performForcedLogout() both tolerate repeats.
+        registerUnusableTokenHandler(() => userRefresher.markRejected())
 
         // Wire both refreshers into the API's per-request auth gate. This is
         // the injection point that keeps app/services/api free of any import
