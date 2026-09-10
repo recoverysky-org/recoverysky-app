@@ -6,6 +6,9 @@
  * decision it makes is delegated to tokenFreshnessLogic.ts, which IS covered.
  * Same split as syncLogic.ts vs services/sync/index.ts. Verify changes here
  * against the manual checklist in the design spec.
+ * CHANGED 2026-09-10: the user lane itself is now covered too — see
+ * userTokenRefresher.ts, which takes its I/O by injection. Only the device
+ * lane below remains orchestrator-only.
  *
  * Dependencies arrive by injection rather than import so this module never
  * reaches into MST or app.tsx, and so app/services/api/ can consume the result
@@ -22,26 +25,19 @@ import {
 import type { EstablishOutcome } from "@/services/attestation/deviceTokenLogic"
 import { logger } from "@/utils/logger"
 
+import { AUTH0_CONFIG } from "./auth0"
 import { getFreshCredentials } from "./auth0Client"
 import { saveAuthCredentials } from "./secureStorage"
+import { createFailureBackoff, createSingleFlight, withTimeout } from "./tokenFreshnessLogic"
 import {
-  classifyRefreshError,
-  createFailureBackoff,
-  createSingleFlight,
-  shouldRefresh,
-  withTimeout,
-} from "./tokenFreshnessLogic"
+  buildUserTokenRefresher,
+  type UserRefresherDeps,
+  type UserTokenRefresher,
+} from "./userTokenRefresher"
 
 const log = logger.child({ module: "tokenFreshness" })
 
-/**
- * Refresh the access token when it has under a minute left. Cheap — one
- * network hop — so the margin can be tight, unlike the device lane.
- */
-export const USER_TOKEN_SKEW_MS = 60 * 1000
-
 /** Caps so one hung refresh can't stall every request behind it. */
-export const USER_REFRESH_TIMEOUT_MS = 10 * 1000
 export const DEVICE_REFRESH_TIMEOUT_MS = 15 * 1000
 
 /**
@@ -61,24 +57,7 @@ export const DEVICE_REFRESH_TIMEOUT_MS = 15 * 1000
  * next successful attempt are the recovery paths, and a stale token in the
  * meantime yields clean 401s, not thrown requests.
  */
-export const USER_REFRESH_BACKOFF_MS: readonly number[] = [15_000, 60_000, 300_000, 900_000]
 export const DEVICE_REFRESH_BACKOFF_MS: readonly number[] = [30_000, 60_000, 300_000, 900_000]
-
-/** The slice of AuthenticationStore the user refresher touches. */
-export interface UserRefresherStore {
-  accessToken?: string
-  refreshToken?: string
-  idToken?: string
-  expiresAt?: number
-  isAnonymous: boolean
-  setTokens(accessToken: string, refreshToken?: string, idToken?: string, expiresAt?: number): void
-}
-
-export interface UserRefresherDeps {
-  authStore: UserRefresherStore
-  /** Called once when the refresh token is proven dead. Drives forced logout. */
-  onPermanentFailure: () => void
-}
 
 export interface DeviceRefresherDeps {
   /** Device id, or null before cold-start init has resolved one. */
@@ -91,144 +70,31 @@ export interface DeviceRefresherDeps {
   onOutcome?: (outcome: EstablishOutcome) => void
 }
 
+export {
+  USER_REFRESH_BACKOFF_MS,
+  USER_REFRESH_TIMEOUT_MS,
+  USER_TOKEN_SKEW_MS,
+  type UserRefresherDeps,
+  type UserRefresherStore,
+  type UserTokenRefresher,
+} from "./userTokenRefresher"
+
 /**
  * Refresher for the Auth0 access token (`Authorization: Bearer`).
  *
- * Returns the token to stamp on the outgoing request, or null when there
- * should be no Authorization header at all (anonymous, signed out, or the
- * refresh token is dead).
+ * CHANGED 2026-09-10: the body lives in userTokenRefresher.ts with its I/O
+ * injected so it can be unit-tested; this binds the real SDK call, the
+ * SecureStore write, the logger and the configured audience. The public
+ * shape is unchanged apart from the new markRejected().
  */
-export function createUserTokenRefresher(deps: UserRefresherDeps): {
-  getToken: () => Promise<string | null>
-  reset: () => void
-} {
-  const { authStore, onPermanentFailure } = deps
-
-  /**
-   * Latched once a refresh fails permanently. Without it every subsequent
-   * request would retry a refresh we already know is dead — and during the
-   * deferred-logout window (timer running) that could be a request every few
-   * seconds for the length of a meeting.
-   */
-  let permanentlyFailed = false
-
-  /**
-   * ADDED 2026-08-07: hold-off between failed renewals. RENEW_FAILED — the
-   * SDK's bucket for invalid_grant, i.e. the ORDINARY revoked/expired refresh
-   * token — is classified transient on purpose, which used to mean a dead
-   * session re-attempted a full renewal on every single request, forever. The
-   * backoff absorbs that cost so the classification can stay conservative.
-   */
-  const backoff = createFailureBackoff(USER_REFRESH_BACKOFF_MS)
-
-  const refresh = createSingleFlight(async () => {
-    // Outcome recording lives INSIDE the single-flight fn, not in getToken's
-    // catch: when withTimeout resolves the stale fallback, the underlying
-    // refresh keeps running and settles after the caller has moved on — this
-    // is the only place that observes that late outcome.
-    try {
-      const creds = await getFreshCredentials(USER_TOKEN_SKEW_MS / 1000)
-
-      // Auth0 returns expiresAt in SECONDS; the rest of the app uses ms.
-      const expiresAt = creds.expiresAt * 1000
-
-      // CHANGED 2026-08-07: keep the stored refresh token when the response does
-      // not carry a new one. Auth0 only returns a refresh token when it actually
-      // rotates one, and passing undefined through blanked BOTH copies —
-      // setTokens() assigns unconditionally and saveAuthCredentials() rewrites
-      // the whole record. The session still refreshed fine (the SDK's own
-      // keychain is the real source of truth) but AuthenticationStore.canRefresh
-      // then reported false for a session that could refresh perfectly well.
-      // Read before setTokens(), which is what would overwrite it.
-      const refreshToken = creds.refreshToken ?? authStore.refreshToken
-
-      authStore.setTokens(creds.accessToken, refreshToken, creds.idToken ?? undefined, expiresAt)
-
-      // Write-back matters: without it the same refresh repeats on every cold
-      // start, because setupRootStore hydrates from SecureStore and would keep
-      // reading the old expiry.
-      saveAuthCredentials({
-        accessToken: creds.accessToken,
-        refreshToken,
-        idToken: creds.idToken ?? undefined,
-        expiresAt,
-      }).catch((err) =>
-        log.error("Failed to persist refreshed credentials", { error: String(err) }),
-      )
-
-      log.info("Access token refreshed", {
-        expiresIn: Math.round((expiresAt - Date.now()) / 1000 / 60) + " min",
-      })
-
-      backoff.recordSuccess()
-      return creds.accessToken
-    } catch (err) {
-      backoff.recordFailure(Date.now())
-      throw err
-    }
+export function createUserTokenRefresher(deps: UserRefresherDeps): UserTokenRefresher {
+  return buildUserTokenRefresher({
+    ...deps,
+    getFreshCredentials,
+    persistCredentials: saveAuthCredentials,
+    log,
+    audience: AUTH0_CONFIG.audience,
   })
-
-  return {
-    getToken: async () => {
-      if (permanentlyFailed) return null
-      if (authStore.isAnonymous) return null
-      // Load-bearing, not defensive. A user who has never signed in has no
-      // tokens at all, so without this the very first request would call
-      // getFreshCredentials(), the SDK would throw NO_CREDENTIALS, and
-      // classifyRefreshError() treats that as PERMANENT — which fires
-      // onPermanentFailure() and force-logs-out someone who was never logged
-      // in. Bail before the refresh, not inside it.
-      if (!authStore.accessToken && !authStore.refreshToken) return null
-
-      const current = authStore.accessToken ?? null
-      if (!shouldRefresh(authStore.expiresAt, Date.now(), USER_TOKEN_SKEW_MS)) {
-        return current
-      }
-
-      // Backing off after recent failures — go out with what we have. A stale
-      // Bearer yields a clean 401; hammering the renewal endpoint on every
-      // request yields nothing but load.
-      if (!backoff.shouldAttempt(Date.now())) {
-        return current
-      }
-
-      try {
-        // On timeout we fall back to the current token and let the request go
-        // out and fail on its own. Blocking would hang every call in the app.
-        return await withTimeout(refresh(), USER_REFRESH_TIMEOUT_MS, current)
-      } catch (err) {
-        // Concurrent callers share one in-flight refresh (createSingleFlight),
-        // so a permanent rejection lands in EVERY waiting caller's catch. Only
-        // the first one may latch and eject: performForcedLogout() ends with
-        // reset(), so a second pass would log the user out twice AND leave the
-        // latch cleared, re-enabling the dead-refresh retries this latch exists
-        // to stop.
-        if (permanentlyFailed) return null
-
-        if (classifyRefreshError(err) === "permanent") {
-          log.error("Access token refresh failed permanently — forcing logout", {
-            error: String(err),
-          })
-          permanentlyFailed = true
-          onPermanentFailure()
-          return null
-        }
-
-        log.warn("Access token refresh failed transiently — proceeding with current token", {
-          error: String(err),
-        })
-        return current
-      }
-    },
-
-    /** Clear the latch after a completed forced logout, so a re-login works. */
-    reset: () => {
-      permanentlyFailed = false
-      // The dead session's failure ladder must not throttle the NEW session's
-      // first refreshes after re-login.
-      backoff.recordSuccess()
-    },
-  }
 }
 
 /**
