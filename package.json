@@ -1,6 +1,6 @@
 {
   "name": "recoverysky-app",
-  "version": "4.9.0",
+  "version": "4.10.0",
   "update": "0",
   "private": true,
   "main": "index.tsx",

@@ -2,11 +2,11 @@
   "name": "RecoverySky",
   "slug": "recoverysky-app",
   "scheme": "recoverysky-app",
-  "version": "4.9.0",
+  "version": "4.10.0",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
   "icon": "./assets/images/app-icon-all.png",
-  "runtimeVersion": "4.8.0",
+  "runtimeVersion": "4.10.0",
   "updates": {
     "enabled": true,
     "checkAutomatically": "ON_LOAD",
@@ -30,7 +30,7 @@
       "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
-    "versionCode": 40800000,
+    "versionCode": 41000000,
     "allowBackup": false,
     "edgeToEdgeEnabled": true,
     "permissions": [
