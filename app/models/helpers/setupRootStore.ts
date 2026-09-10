@@ -1,7 +1,9 @@
 import { applySnapshot, onSnapshot } from "mobx-state-tree"
 
 import { profileRepository } from "@/db/repositories"
-import { loadAuthCredentials } from "@/services/auth/secureStorage"
+import { AUTH0_CONFIG } from "@/services/auth/auth0"
+import { isUsableAccessToken } from "@/services/auth/jwtUtils"
+import { clearAuthCredentials, loadAuthCredentials } from "@/services/auth/secureStorage"
 import { logger } from "@/utils/logger"
 import * as storage from "@/utils/storage"
 
@@ -66,20 +68,39 @@ export async function setupRootStore(rootStore: RootStore) {
   try {
     const creds = await loadAuthCredentials()
     if (creds) {
-      rootStore.authenticationStore.setTokens(
-        creds.accessToken,
-        creds.refreshToken,
-        creds.idToken,
-        creds.expiresAt,
-      )
-      if (creds.expiresAt > Date.now()) {
-        log.info("Auth credentials restored from SecureStore", {
-          expiresIn: Math.round((creds.expiresAt - Date.now()) / 1000 / 60) + " min",
+      // ADDED 2026-09-10: refuse to hydrate a token that can never be accepted
+      // by the API (an opaque Auth0 token from an audience-less session — see
+      // isUsableAccessToken). Discard it and let the Auth0Provider's [user]
+      // effect produce a good one or eject; a corrupt blob must not punish a
+      // user whose SDK session is fine. An EXPIRED JWT still hydrates — the
+      // gate-driven refresh below needs the refresh token beside it.
+      const check = isUsableAccessToken(creds.accessToken, { audience: AUTH0_CONFIG.audience })
+      if (!check.ok) {
+        log.warn("Stored access token unusable — discarding", {
+          source: "hydration",
+          reason: check.reason,
+          tokenLength: creds.accessToken.length,
+          tokenSegments: creds.accessToken.split(".").length,
         })
+        clearAuthCredentials().catch((e) =>
+          log.error("Failed to clear unusable auth credentials", { error: String(e) }),
+        )
       } else {
-        log.info("Stored access token expired — hydrated for gate-driven refresh", {
-          hasRefreshToken: !!creds.refreshToken,
-        })
+        rootStore.authenticationStore.setTokens(
+          creds.accessToken,
+          creds.refreshToken,
+          creds.idToken,
+          creds.expiresAt,
+        )
+        if (creds.expiresAt > Date.now()) {
+          log.info("Auth credentials restored from SecureStore", {
+            expiresIn: Math.round((creds.expiresAt - Date.now()) / 1000 / 60) + " min",
+          })
+        } else {
+          log.info("Stored access token expired — hydrated for gate-driven refresh", {
+            hasRefreshToken: !!creds.refreshToken,
+          })
+        }
       }
     }
   } catch (e) {
