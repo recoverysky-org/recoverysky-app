@@ -22,6 +22,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.0] — 2026-09-09
+
+### Build
+
+- **Version 4.9.0 was tagged but never shipped.** `npm run minor` cut the
+  `v4.9.0` tag with `android.versionCode` still at `40800000` (the value Play
+  already had from 4.8.0) and `runtimeVersion` still `4.8.0`, so the Android
+  AAB was rejected and the OTA series would have pointed at the old runtime.
+  Rather than rewrite the pushed tag, this release moves straight to 4.10.0
+  with `versionCode 41000000` and `runtimeVersion 4.10.0` set **before** the
+  bump script runs, as `docs/PRODUCTION_CHECKLIST.md` steps 4–6 prescribe.
+
 ### Changed
 
 - **Live tab no longer fetches in-person meetings on every refresh.** The
