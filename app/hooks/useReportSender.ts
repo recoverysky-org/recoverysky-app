@@ -21,6 +21,7 @@ import {
   type AttendanceReportUpdateInput,
 } from "@/db"
 import { useShortNameGate } from "@/hooks/useShortNameGate"
+import type { TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
 import { pollForConfirmation } from "@/services/polling"
@@ -85,11 +86,18 @@ const TOAST_LABELS: Record<SendOperation["type"], string> = {
 
 type ApiResult = { kind: "ok"; data: SendReportResponse } | GeneralApiProblem
 
+type ShowToast = (config: {
+  message?: string
+  tx?: TxKeyPath
+  type: "success" | "error"
+  duration?: number
+}) => void
+
 async function processApiResult(
   reportId: string,
   apiResult: ApiResult,
   operationType: SendOperation["type"],
-  showToast: (config: { message: string; type: "success" | "error"; duration?: number }) => void,
+  showToast: ShowToast,
   preserveReset = false,
 ): Promise<boolean> {
   if (apiResult.kind === "ok") {
@@ -102,7 +110,7 @@ async function processApiResult(
         retry: data.retry,
       } as UpdateInput)
       attendanceEvents.emit({ type: "produced", id: reportId, reportId })
-      showToast({ message: "Failed to send report", type: "error" })
+      showToast({ tx: "attendanceScreen:sendFailed", type: "error" })
       return false
     }
 
@@ -142,15 +150,20 @@ async function processApiResult(
   logger.warn("Report API failed", { reportId, kind: apiResult.kind })
   await attendanceReportRepo.update(reportId, { error: true })
   attendanceEvents.emit({ type: "produced", id: reportId, reportId })
-  showToast({ message: "Failed to send report", type: "error" })
+  // CHANGED 2026-09-10: a 401 means the bearer was rejected. The API-client
+  // monitor is ejecting the session beside this; tell the user why the
+  // screen is about to change instead of a generic failure.
+  const tx: TxKeyPath =
+    apiResult.kind === "unauthorized"
+      ? "attendanceScreen:sendFailedSignIn"
+      : "attendanceScreen:sendFailed"
+  showToast({ tx, type: "error" })
   return false
 }
 
 // ============================================================================
 // Operation handlers
 // ============================================================================
-
-type ShowToast = (config: { message: string; type: "success" | "error"; duration?: number }) => void
 
 /**
  * Roll back a failed initial send: un-produce attendance records and delete the report.
@@ -375,7 +388,7 @@ export function useReportSender() {
         }
       } catch (error) {
         logger.error("Report send exception", { type: op.type, error: String(error) })
-        toast.showToast({ message: "Failed to send report", type: "error" })
+        toast.showToast({ tx: "attendanceScreen:sendFailed", type: "error" })
         return null
       } finally {
         setIsSending(false)

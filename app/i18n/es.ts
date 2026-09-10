@@ -215,6 +215,9 @@ const es: Translations = {
     minutes: "min",
     subscribeRequired: "Para producir informes de asistencia, debes suscribirte.",
     goToSettings: "Ir a Suscripciones en Ajustes",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "Nuevos",
     sectionArchive: "Archivo",

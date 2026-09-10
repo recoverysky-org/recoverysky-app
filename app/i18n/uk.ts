@@ -215,6 +215,9 @@ const uk: Translations = {
     minutes: "хв",
     subscribeRequired: "Для створення звітів про відвідування потрібна підписка.",
     goToSettings: "Перейти до підписок у Налаштуваннях",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "Нові",
     sectionArchive: "Архів",

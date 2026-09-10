@@ -217,6 +217,9 @@ const de: Translations = {
     minutes: "Min",
     subscribeRequired: "Um Teilnahmeberichte zu erstellen, ist ein Abonnement erforderlich.",
     goToSettings: "Zu Abonnements in den Einstellungen",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "Neu",
     sectionArchive: "Archiv",

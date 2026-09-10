@@ -216,6 +216,9 @@ const ru: Translations = {
     minutes: "мин",
     subscribeRequired: "Для создания отчётов о посещении необходимо оформить подписку.",
     goToSettings: "Перейти к подпискам в Настройках",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "Новые",
     sectionArchive: "Архив",

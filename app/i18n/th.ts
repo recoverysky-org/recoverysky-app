@@ -212,6 +212,9 @@ const th: Translations = {
     minutes: "นาที",
     subscribeRequired: "ต้องสมัครสมาชิกก่อนถึงจะสร้างรายงานการเข้าร่วมได้นะ",
     goToSettings: "ไปที่สมัครสมาชิกในการตั้งค่า",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "ใหม่",
     sectionArchive: "เก็บถาวร",

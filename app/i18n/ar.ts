@@ -213,6 +213,9 @@ const ar: Translations = {
     minutes: "د",
     subscribeRequired: "لإنشاء تقارير الحضور، يجب أن تشترك.",
     goToSettings: "الذهاب للاشتراكات في الإعدادات",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "جديد",
     sectionArchive: "الأرشيف",

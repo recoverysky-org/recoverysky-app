@@ -237,6 +237,12 @@ const en = {
     minutes: "min",
     subscribeRequired: "To produce attendance reports, you must subscribe.",
     goToSettings: "Go to Subscriptions in Settings",
+    // Report-send toasts. ADDED 2026-09-10 — these were hardcoded English in
+    // useReportSender. sendFailedSignIn is shown when the API answered 401;
+    // the forced logout usually swaps to Login in the same tick, so it is a
+    // one-line explanation of why the screen changed.
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "New",
     sectionArchive: "Archive",

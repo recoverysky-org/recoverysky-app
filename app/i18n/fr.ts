@@ -220,6 +220,9 @@ const fr: Translations = {
     minutes: "min",
     subscribeRequired: "Pour produire des rapports de présence, tu dois t'abonner.",
     goToSettings: "Aller aux abonnements dans les Réglages",
+    // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+    sendFailed: "Failed to send report",
+    sendFailedSignIn: "Please sign in again to send this report",
     // Sections
     sectionNew: "Nouveaux",
     sectionArchive: "Archive",
