@@ -429,6 +429,11 @@ export function App() {
         api.registerTokenRefreshers({
           device: deviceRefresher.getToken,
           user: userRefresher.getToken,
+          // ADDED 2026-09-10: a 401 with token_malformed / token_claims /
+          // token_signature latches the user lane and ejects (timer-aware,
+          // via onPermanentFailure above). token_expired, token_invalid, a
+          // code-less 401 and the 503 auth_unavailable never reach this.
+          onBearerRejected: userRefresher.markRejected,
         })
 
         // Fire the deferred eject the moment the timer releases. Reads the

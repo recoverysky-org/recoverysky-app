@@ -16,6 +16,7 @@ import { delay } from "@/utils/delay"
 import { logger } from "@/utils/logger"
 
 import { getGeneralApiProblem as classifyApiProblem, type GeneralApiProblem } from "./apiProblem"
+import { bearerRejectionCode } from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
 import type { ApiConfig } from "./types"
 
@@ -333,6 +334,13 @@ export interface TokenRefreshers {
   device: () => Promise<string | null>
   /** Fresh access token, or null when anonymous / signed out. */
   user: () => Promise<string | null>
+  /**
+   * ADDED 2026-09-10: the server answered a bearer with a code meaning it can
+   * never work (see bearerRejectionLogic.ts). Wired to the user refresher's
+   * markRejected() so the session is ejected exactly like a dead refresh
+   * token. Optional: tests and early cold start have no refresher yet.
+   */
+  onBearerRejected?: () => void
 }
 
 /**
@@ -421,6 +429,7 @@ export class Api {
     })
 
     this.installAuthGate()
+    this.installBearerRejectionMonitor()
   }
 
   // ===========================================================================
@@ -503,6 +512,30 @@ export class Api {
       if (accessToken) {
         headers["Authorization"] = `Bearer ${accessToken}`
       }
+    })
+  }
+
+  /**
+   * Watch every RecoverySky response for a bearer the server says can never
+   * work and hand the verdict to the user refresher.
+   *
+   * ADDED 2026-09-10. A monitor rather than a response transform because it
+   * must not alter the response — the call site still gets its
+   * `{ kind: "unauthorized" }` and shows the sign-in-again toast; the eject
+   * happens beside it. The decision is in bearerRejectionLogic.ts (pure,
+   * vitest-covered); this only logs and forwards. Dedupe is the refresher's
+   * latch, not ours.
+   */
+  private installBearerRejectionMonitor() {
+    this.recoverySkyApi.addMonitor((response) => {
+      const code = bearerRejectionCode(response.status, response.config?.headers, response.data)
+      if (!code) return
+      log.error("Server rejected the bearer as unusable", {
+        source: "server-401",
+        code,
+        url: response.config?.url,
+      })
+      this.refreshers.onBearerRejected?.()
     })
   }
 
