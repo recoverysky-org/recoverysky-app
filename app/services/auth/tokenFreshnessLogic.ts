@@ -8,8 +8,26 @@
  * split as syncLogic.ts vs services/sync/index.ts.
  */
 
+import type { UnusableTokenReason } from "./jwtUtils"
+
 /** Whether a failed credential renewal can plausibly succeed later. */
 export type RefreshFailureKind = "transient" | "permanent"
+
+/**
+ * Thrown by the user refresher when Auth0 renews the session into a token
+ * that isUsableAccessToken() rejects. Classified PERMANENT: the refresh
+ * token is bound to the audience of the login that made it, so renewing
+ * again yields the same kind of token. ADDED 2026-09-10.
+ */
+export class UnusableTokenError extends Error {
+  readonly reason: UnusableTokenReason
+
+  constructor(reason: UnusableTokenReason) {
+    super(`Refreshed access token unusable: ${reason}`)
+    this.name = "UnusableTokenError"
+    this.reason = reason
+  }
+}
 
 /**
  * Auth0 `CredentialsManagerError.type` codes meaning the stored refresh token
@@ -46,6 +64,9 @@ export function shouldRefresh(expiresAt: number | undefined, now: number, skewMs
 
 /** Map an unknown throw from the Auth0 credentials manager to a retry verdict. */
 export function classifyRefreshError(error: unknown): RefreshFailureKind {
+  // ADDED 2026-09-10: our own verdict on the renewed token, not an SDK code.
+  if (error instanceof UnusableTokenError) return "permanent"
+
   const code =
     typeof error === "object" && error !== null && "type" in error
       ? (error as { type: unknown }).type

@@ -6,6 +6,7 @@ import {
   createSingleFlight,
   shouldRefresh,
   withTimeout,
+  UnusableTokenError,
 } from "./tokenFreshnessLogic"
 
 describe("shouldRefresh", () => {
@@ -84,6 +85,21 @@ describe("classifyRefreshError", () => {
 
   it("defaults a non-string type field to transient", () => {
     expect(classifyRefreshError({ type: 42 })).toBe("transient")
+  })
+
+  // A refreshed token that is not a JWT for our audience cannot be fixed by
+  // refreshing again — the refresh token itself is bound to the wrong
+  // audience. Only a new login helps, so this must eject.
+  it("classifies UnusableTokenError as permanent", () => {
+    expect(classifyRefreshError(new UnusableTokenError("not-jwt"))).toBe("permanent")
+    expect(classifyRefreshError(new UnusableTokenError("wrong-audience"))).toBe("permanent")
+  })
+
+  it("carries the reason on the error", () => {
+    const err = new UnusableTokenError("no-expiry")
+    expect(err.reason).toBe("no-expiry")
+    expect(err.name).toBe("UnusableTokenError")
+    expect(err).toBeInstanceOf(Error)
   })
 })
 
