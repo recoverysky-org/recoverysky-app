@@ -22,6 +22,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+
+- **A stale sign-in could silently break report sending.** A refresh token from
+  a login made without the API audience (every TestFlight build from 3.12.1
+  through 4.1.6 shipped that way) renews into an opaque Auth0 token the API can
+  never accept. The app stored it like a real one, so meeting lists worked but
+  every report send and push-token registration answered 401 and the user only
+  saw "Failed to send report". The app now checks the shape of every access
+  token where one enters the store (cold-start hydration, the Auth0 SDK sync,
+  the request-gate refresher) and, when the API rejects a bearer with one of
+  its new `token_malformed` / `token_claims` / `token_signature` codes, signs
+  the user out through the existing forced-logout path so the next login mints
+  a proper token. Expired tokens and the API's 503 `auth_unavailable` never
+  trigger this. The report toast on a 401 now reads "Please sign in again to
+  send this report" (new `attendanceScreen:sendFailed*` keys, English
+  placeholder in the other eight locales).
+
 ## [4.10.0] — 2026-09-09
 
 ### Build

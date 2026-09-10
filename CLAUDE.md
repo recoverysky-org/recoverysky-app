@@ -324,6 +324,15 @@ Three separate trust layers, easy to confuse:
    `accessToken` / `idToken` / `expiresAt` are volatile by design.
    `secureStorage.ts` wraps expo-secure-store; `vault.ts` is a **web-only**
    tweetnacl-obscured storage shim (native uses Keychain/Keystore instead).
+   ADDED 2026-09-10: every access token is shape-checked by the pure
+   `isUsableAccessToken()` (`jwtUtils.ts`) before it enters the store —
+   cold-start hydration, the SDK sync effect, and the refresher all apply
+   it — because an audience-less refresh token renews into an opaque
+   userinfo-only token forever. The user-lane refresher now lives in
+   `userTokenRefresher.ts` with injected I/O (vitest-covered); the API's
+   bearer-rejection codes reach its `markRejected()` through an apisauce
+   monitor (`bearerRejectionLogic.ts`). Spec:
+   `docs/superpowers/specs/2026-09-10-opaque-access-token-after-idle-renewal-design.md`.
 2. **Device trust — attestation** (`app/services/attestation/`). Apple App
    Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
    exchanged with the backend for a device JWT that becomes
@@ -373,6 +382,11 @@ sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
   eject swaps the tree above `MainNavigator`'s timer tab-lock and
   `TimerSessionResumer` would not re-fire after re-login. Unknown error codes
   default to `transient` deliberately; do not "tidy" that default.
+- Two more things latch the user lane the same way (2026-09-10): a renewed
+  token that fails `isUsableAccessToken()` (thrown as `UnusableTokenError`,
+  classified permanent) and a 401 carrying `token_malformed` /
+  `token_claims` / `token_signature` from the API. `token_expired`,
+  `token_invalid`, a code-less 401 and a 503 `auth_unavailable` never do.
 - There is **no reactive 401 path**. Both server middlewares return an
   identical 401 body, so the client cannot tell which token failed. Accepted
   consequence: server-side revocation and large clock skew are not
