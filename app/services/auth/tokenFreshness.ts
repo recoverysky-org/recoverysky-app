@@ -37,6 +37,9 @@ import {
 
 const log = logger.child({ module: "tokenFreshness" })
 
+/** Emit the empty-audience notice once per process, not once per refresher. */
+let warnedEmptyAudience = false
+
 /** Caps so one hung refresh can't stall every request behind it. */
 export const DEVICE_REFRESH_TIMEOUT_MS = 15 * 1000
 
@@ -88,6 +91,14 @@ export {
  * shape is unchanged apart from the new markRejected().
  */
 export function createUserTokenRefresher(deps: UserRefresherDeps): UserTokenRefresher {
+  // Spec Section 1: with no EXPO_PUBLIC_AUTH0_AUDIENCE (dev builds) the
+  // audience rule is skipped and any three-segment JWT passes. Say so once,
+  // so a dev-build log explains why an opaque token was NOT caught by aud.
+  if (!AUTH0_CONFIG.audience && !warnedEmptyAudience) {
+    warnedEmptyAudience = true
+    log.debug("No Auth0 audience configured — access-token audience rule skipped")
+  }
+
   return buildUserTokenRefresher({
     ...deps,
     getFreshCredentials,

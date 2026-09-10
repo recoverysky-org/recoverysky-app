@@ -161,6 +161,23 @@ describe("buildUserTokenRefresher — unusable token from the SDK", () => {
   })
 })
 
+describe("buildUserTokenRefresher — refresh landing after an eject", () => {
+  it("discards a usable token that arrives after the store was cleared", async () => {
+    // Simulate performForcedLogout() running while the SDK call is in flight:
+    // the store is emptied between the request and the response.
+    const h = harness(async () => {
+      h.authStore.accessToken = undefined
+      h.authStore.refreshToken = undefined
+      return { accessToken: GOOD_JWT, refreshToken: null, idToken: null, expiresAt: 1_800_000_000 }
+    })
+    await expect(h.refresher.getToken()).resolves.toBeNull()
+    expect(h.authStore.setTokens).not.toHaveBeenCalled()
+    expect(h.persistCredentials).not.toHaveBeenCalled()
+    expect(h.onPermanentFailure).not.toHaveBeenCalled()
+    expect(JSON.stringify(h.log.warn.mock.calls)).toContain("after the session was cleared")
+  })
+})
+
 describe("buildUserTokenRefresher — markRejected()", () => {
   it("ejects once and is a no-op on repeat", () => {
     const h = harness({

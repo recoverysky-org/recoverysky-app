@@ -87,7 +87,12 @@ export interface UserTokenRefresher {
   /**
    * The API answered a bearer with a code meaning "this token can never
    * work" (token_malformed / token_claims / token_signature). Latches exactly
-   * like a permanent refresh failure and ejects once. ADDED 2026-09-10.
+   * like a permanent refresh failure and ejects. The latch holds only until
+   * performForcedLogout() calls reset() — so it is load-bearing during the
+   * timer-deferred window (pendingLogout, no reset) and best-effort
+   * otherwise; several concurrent 401s can each eject once. Documented, not
+   * fixed: moving reset() to re-login is a bigger change than an OTA hotfix
+   * warrants. ADDED 2026-09-10.
    */
   markRejected: () => void
 }
@@ -115,7 +120,12 @@ export function buildUserTokenRefresher(
    */
   const backoff = createFailureBackoff(USER_REFRESH_BACKOFF_MS)
 
-  /** Shared by the refresh path and markRejected(). Ejects at most once per latch. */
+  /**
+   * Shared by the refresh path and markRejected(). Ejects at most once per
+   * latch — but see markRejected(): performForcedLogout() resets the latch
+   * synchronously, so in the immediate-logout path the guard is inert and
+   * concurrent callers can each eject.
+   */
   const latchAndEject = (message: string, attributes: Record<string, unknown>) => {
     if (permanentlyFailed) return
     log.error(message, attributes)
@@ -146,6 +156,22 @@ export function buildUserTokenRefresher(
         throw new UnusableTokenError(check.reason)
       }
 
+      // ADDED 2026-09-10 (final review): the session may have been ejected
+      // while this refresh was in flight — a concurrent 401 tripping
+      // markRejected(), or a deferred logout landing. Do not write a token
+      // back into a store that was just cleared: it would flip
+      // isAuthenticated true again and re-persist credentials the forced
+      // logout deleted. Deliberately NOT keyed on `permanentlyFailed` —
+      // performForcedLogout() ends with reset(), which clears that flag
+      // synchronously, so it cannot be relied on here.
+      if (!authStore.accessToken && !authStore.refreshToken) {
+        log.warn("Refresh landed after the session was cleared — discarding", {
+          source: "refresh",
+        })
+        backoff.recordSuccess()
+        return null
+      }
+
       // Auth0 returns expiresAt in SECONDS; the rest of the app uses ms.
       const expiresAt = creds.expiresAt * 1000
 
@@ -153,7 +179,10 @@ export function buildUserTokenRefresher(
       // not carry a new one. Auth0 only returns a refresh token when it actually
       // rotates one, and passing undefined through blanked BOTH copies —
       // setTokens() assigns unconditionally and persistCredentials() rewrites
-      // the whole record. Read before setTokens(), which is what would overwrite it.
+      // the whole record. The session still refreshed fine (the SDK's own
+      // keychain is the real source of truth) but AuthenticationStore.canRefresh
+      // then reported false for a session that could refresh perfectly well.
+      // Read before setTokens(), which is what would overwrite it.
       const refreshToken = creds.refreshToken ?? authStore.refreshToken
 
       authStore.setTokens(creds.accessToken, refreshToken, creds.idToken ?? undefined, expiresAt)
@@ -216,7 +245,12 @@ export function buildUserTokenRefresher(
         // the first one may latch and eject: performForcedLogout() ends with
         // reset(), so a second pass would log the user out twice AND leave the
         // latch cleared, re-enabling the dead-refresh retries this latch exists
-        // to stop.
+        // to stop. CHANGED 2026-09-10 (final review): this guard only holds
+        // while the latch survives, i.e. the timer-deferred path; in the
+        // immediate-logout path reset() has already cleared it and each
+        // waiting caller ejects again. Harmless (logout() empties the store
+        // so the never-signed-in guard above bails next time) but noisy —
+        // expect duplicate ERROR lines in Loki.
         if (permanentlyFailed) return null
 
         if (classifyRefreshError(err) === "permanent") {

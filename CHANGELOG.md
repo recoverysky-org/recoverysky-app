@@ -34,9 +34,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   the request-gate refresher) and, when the API rejects a bearer with one of
   its new `token_malformed` / `token_claims` / `token_signature` codes, signs
   the user out through the existing forced-logout path so the next login mints
-  a proper token. Expired tokens and the API's 503 `auth_unavailable` never
-  trigger this. The report toast on a 401 now reads "Please sign in again to
-  send this report" (new `attendanceScreen:sendFailed*` keys, English
+  a proper token. Expired tokens, the API's `token_invalid` code, and its 503
+  `auth_unavailable` never trigger this. The report toast on a 401 now reads
+  "Please sign in again to send this report" (new `attendanceScreen:sendFailed*` keys, English
   placeholder in the other eight locales).
 
 ## [4.10.0] — 2026-09-09

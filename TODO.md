@@ -391,6 +391,11 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
       it must be routed through the gate (or handed the user refresher) before
       that tab ships.
 
+- [ ] Report-send SUCCESS toasts in `app/hooks/useReportSender.ts`
+      (`TOAST_LABELS`: "Report sent", "Report resent", "Report forwarded") are
+      still hardcoded English; the failure toasts became tx keys on
+      2026-09-10. Convert the rest the same way (nine-locale change).
+
 ---
 
 ## 📍 Settings → Permissions / location gate: deferred items (JS-only — NOT runtimeVersion-gated)

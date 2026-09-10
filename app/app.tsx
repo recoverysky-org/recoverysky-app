@@ -369,6 +369,8 @@ export function App() {
         // and ejects through the same timer-aware onPermanentFailure above.
         // The hook has several mount sites and each may report the same
         // token — the latch and performForcedLogout() both tolerate repeats.
+        // (The latch is reset by performForcedLogout() itself, so "tolerate"
+        // means idempotent, not deduplicated.)
         registerUnusableTokenHandler(() => userRefresher.markRejected())
 
         // Wire both refreshers into the API's per-request auth gate. This is

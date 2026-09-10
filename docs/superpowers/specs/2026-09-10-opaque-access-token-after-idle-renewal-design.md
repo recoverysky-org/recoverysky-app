@@ -375,12 +375,19 @@ Manual, on a dev build:
    and with a 503 `auth_unavailable`, and expect no eject in any of the three. No proxy is needed
    for the malformed case against the real API: send any opaque string as the bearer to a
    signed-in-only route and v1.7.0 answers `token_malformed` (see the change-request doc, §5).
+4b. **Stays ejected.** After step 4's malformed-token case, watch the screen for ten seconds. The
+   app must stay on Login and never bounce back to the tabs. This is the observation that covers a
+   late-landing refresh (final review I1) and the SDK-credential-clear race (final review M3).
+4c. **Concurrent 401s.** Repeat step 4's malformed-token case with two report sends fired back to
+   back and count the app-side `source=server-401` lines. More than one is the documented double
+   eject (final review I2 — the latch is reset by the logout itself), not a regression.
 5. Tap Login after the eject in step 3 and confirm the SSO cookie path completes without a password
    prompt (Section 3, last bullet).
 
 Confirmation in production: after the app OTA, `{service_name="app_api"} |= "token_malformed"`
 should show no repeats from the same device, and the app-side `source=server-401` line should
-appear at most once per device. `JWKSTimeout` lines already sit next to 503s as of v1.7.0.
+appear once per incident, occasionally more when requests 401 concurrently. `JWKSTimeout` lines
+already sit next to 503s as of v1.7.0.
 
 ## Out of scope
 
