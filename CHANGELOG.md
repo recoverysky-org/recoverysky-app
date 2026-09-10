@@ -22,6 +22,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.1] — 2026-09-10
+
+### Build
+
+- **Native store release for a JS-only change.** Nothing native moved between
+  4.10.0 and 4.10.1; `runtimeVersion` is bumped to `4.10.1` only so the OTA
+  series stays aligned with the store build, per the convention in CLAUDE.md.
+  Android `versionCode` is `41001000`.
+
 ### Fixed
 
 - **A stale sign-in could silently break report sending.** A refresh token from
