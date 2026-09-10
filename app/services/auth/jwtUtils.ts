@@ -28,6 +28,70 @@ export function decodeJwtPayload<T = Record<string, unknown>>(token: string): T 
   }
 }
 
+/** Why an access token cannot be sent to the RecoverySky API. */
+export type UnusableTokenReason = "not-jwt" | "wrong-audience" | "no-expiry"
+
+export interface AccessTokenCheckConfig {
+  /** AUTH0_CONFIG.audience. Empty (dev builds without the env var) skips the audience rule. */
+  audience: string
+}
+
+export type AccessTokenCheck = { ok: true } | { ok: false; reason: UnusableTokenReason }
+
+/** Decode one base64url JSON segment; null when it is not JSON. */
+function decodeSegment(segment: string): Record<string, unknown> | null {
+  try {
+    const base64 = segment.replace(/-/g, "+").replace(/_/g, "/")
+    const parsed: unknown = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"))
+    return parsed !== null && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Can this access token possibly be accepted by the RecoverySky API?
+ *
+ * ADDED 2026-09-10. Auth0 hands out two kinds of access token: a signed JWT
+ * for an API audience, and an opaque string valid for /userinfo only. Which
+ * kind a refresh token mints is fixed by the login that created it, and the
+ * SDK never adds an audience on renewal — so a session that started on a
+ * build without EXPO_PUBLIC_AUTH0_AUDIENCE (every TestFlight build from
+ * 3.12.1 through 4.1.6) renews into opaque tokens forever. The app used to
+ * store those with a healthy expiry and every signed-in call 401'd.
+ *
+ * This checks a STRICT SUBSET of what the API's verifyToken checks — shape,
+ * audience, expiry present — never the signature and deliberately never the
+ * issuer (the API's issuer is env-configured; a client-side guess could eject
+ * a user the server accepts). A token that fails here is guaranteed to fail
+ * on the server; a token that passes may still fail there, and that case is
+ * covered by the bearer-rejection monitor in services/api. Never logs the
+ * token. Spec: docs/superpowers/specs/2026-09-10-opaque-access-token-after-idle-renewal-design.md
+ */
+export function isUsableAccessToken(
+  token: string,
+  config: AccessTokenCheckConfig,
+): AccessTokenCheck {
+  const parts = token.split(".")
+  if (parts.length !== 3) return { ok: false, reason: "not-jwt" }
+
+  const header = decodeSegment(parts[0])
+  const payload = decodeSegment(parts[1])
+  if (!header || !payload) return { ok: false, reason: "not-jwt" }
+
+  if (config.audience) {
+    const aud = payload.aud
+    const audiences = Array.isArray(aud) ? aud : typeof aud === "string" ? [aud] : []
+    if (!audiences.includes(config.audience)) return { ok: false, reason: "wrong-audience" }
+  }
+
+  if (typeof payload.exp !== "number") return { ok: false, reason: "no-expiry" }
+
+  return { ok: true }
+}
+
 /**
  * Standard OIDC ID token claims with Auth0 custom metadata.
  *
