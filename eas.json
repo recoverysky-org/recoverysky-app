@@ -93,7 +93,8 @@
   "submit": {
     "production": {
       "android": {
-        "track": "production"
+        "track": "production",
+        "serviceAccountKeyPath": "./credentials/android/play-submit-service-key.json"
       }
     }
   }

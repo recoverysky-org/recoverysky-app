@@ -22,6 +22,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Build
+
+- **Play Store submission uses a dedicated service account.** `eas submit
+  --platform android` had been authenticating with the Firebase Admin SDK
+  default service account stored on Expo's servers, which has no Play Console
+  standing, so every submission failed with "missing the necessary
+  permissions". A purpose-made `eas-play-submit` account (GCP project
+  `meetingmakerapp`, invited in Play Console with app-level release rights) is
+  now read locally from `credentials/android/play-submit-service-key.json` via
+  `submit.production.android.serviceAccountKeyPath` in `eas.json`. The key file
+  is git-ignored; a fresh clone needs it dropped in place before submitting.
+
 ## [4.10.1] — 2026-09-10
 
 ### Build
