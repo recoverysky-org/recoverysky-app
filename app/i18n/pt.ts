@@ -73,6 +73,10 @@ const pt: Translations = {
     euaLoadFailed:
       "Não foi possível carregar os acordos legais. Verifique a sua ligação e tente novamente.",
     euaRetry: "Tentar novamente",
+    errorBrowserTerminated:
+      "A janela de login fechou antes de você terminar. Toque no botão novamente e permaneça no navegador até ele trazer você de volta ao app.",
+    errorNetwork:
+      "Não foi possível acessar o serviço de login. Verifique sua conexão e tente novamente.",
   },
   mainNavigator: {
     homeTab: "Início",

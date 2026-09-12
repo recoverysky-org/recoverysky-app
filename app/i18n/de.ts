@@ -74,6 +74,10 @@ const de: Translations = {
     euaLoadFailed:
       "Die rechtlichen Vereinbarungen konnten nicht geladen werden. Bitte prüfe deine Verbindung und versuche es erneut.",
     euaRetry: "Erneut versuchen",
+    errorBrowserTerminated:
+      "Das Anmeldefenster wurde geschlossen, bevor du fertig warst. Tippe erneut auf die Schaltfläche und bleibe im Browser, bis er dich zur App zurückbringt.",
+    errorNetwork:
+      "Der Anmeldedienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
   },
   mainNavigator: {
     homeTab: "Start",

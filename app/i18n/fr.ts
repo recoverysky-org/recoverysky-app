@@ -74,6 +74,10 @@ const fr: Translations = {
     euaLoadFailed:
       "Impossible de charger les accords juridiques. Vérifiez votre connexion et réessayez.",
     euaRetry: "Réessayer",
+    errorBrowserTerminated:
+      "La fenêtre de connexion s'est fermée avant la fin. Appuyez de nouveau sur le bouton et restez dans le navigateur jusqu'à ce qu'il vous ramène dans l'application.",
+    errorNetwork:
+      "Impossible de joindre le service de connexion. Vérifiez votre connexion et réessayez.",
   },
   mainNavigator: {
     homeTab: "Accueil",

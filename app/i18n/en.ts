@@ -77,6 +77,9 @@ const en = {
     euaLoadFailed:
       "We couldn't load the legal agreements. Please check your connection and try again.",
     euaRetry: "Try Again",
+    errorBrowserTerminated:
+      "The sign-in window closed before you finished. Tap the button again and stay in the browser until it brings you back to the app.",
+    errorNetwork: "We couldn't reach the sign-in service. Check your connection and try again.",
   },
   // Main Navigation
   mainNavigator: {

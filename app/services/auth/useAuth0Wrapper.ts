@@ -10,11 +10,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useAuth0, WebAuthError, WebAuthErrorCodes } from "react-native-auth0"
 
+import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore } from "@/models"
 import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encryption/sqliteKey"
 import { hashUserId, logger } from "@/utils/logger"
 
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
+import { classifyAuthError } from "./authErrorLogic"
 import {
   decodeJwtPayload,
   extractSqliteKeyFromClaims,
@@ -25,6 +27,20 @@ import { saveAuthCredentials, clearAuthCredentials } from "./secureStorage"
 import { reportUnusableToken } from "./unusableTokenHandler"
 
 const log = logger.child({ module: "useAuth0Wrapper" })
+
+/**
+ * Pick what the login screen shows for a failed web-auth call. The two cases
+ * we can give real advice for (browser closed by a relaunch, network) get an
+ * i18n string; everything else keeps the SDK's message so the raw diagnostic
+ * still reaches us via the "Auth error displayed to user" log line.
+ * ADDED 2026-09-12 — see authErrorLogic.ts for the incident history.
+ */
+function displayMessageFor(err: unknown, fallback: string): string {
+  const key = classifyAuthError(err)
+  if (key === "browserTerminated") return translate("loginScreen:errorBrowserTerminated")
+  if (key === "networkError") return translate("loginScreen:errorNetwork")
+  return (err instanceof Error && err.message) || fallback
+}
 
 export interface UseAuth0WrapperOptions {
   /** Callback when SQLite encryption key from JWT differs from current key */
@@ -90,7 +106,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         return
       }
       log.error("Auth0 error", { error: auth0Error.message })
-      setError(auth0Error.message || "Authentication failed")
+      // CHANGED 2026-09-12: route through displayMessageFor so BROWSER_TERMINATED
+      // and network failures get the actionable copy instead of the raw SDK text.
+      setError(displayMessageFor(auth0Error, "Authentication failed"))
     }
   }, [auth0Error])
 
@@ -252,7 +270,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       }
       const message = err instanceof Error ? err.message : "Login failed"
       log.error("Auth0 login failed", { error: message })
-      setError(message)
+      // CHANGED 2026-09-12: the log keeps the raw SDK message; the user sees the
+      // friendlier mapped copy when we have one (see displayMessageFor).
+      setError(displayMessageFor(err, message))
     }
   }, [authorize])
 
@@ -286,7 +306,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       }
       const message = err instanceof Error ? err.message : "Signup failed"
       log.error("Auth0 signup failed", { error: message })
-      setError(message)
+      // CHANGED 2026-09-12: the log keeps the raw SDK message; the user sees the
+      // friendlier mapped copy when we have one (see displayMessageFor).
+      setError(displayMessageFor(err, message))
     }
   }, [authorize])
 

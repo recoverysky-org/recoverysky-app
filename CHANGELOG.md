@@ -34,6 +34,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Zoom and in-person) now carry a standing note that attendance time can be
   corrected by editing the record in Attendance.
 
+### Fixed
+- **Login screen explains "browser closed" and network failures instead of
+  showing raw SDK text.** On Android, relaunching the app from the launcher
+  icon while the Auth0 sign-in tab is open makes react-native-auth0 reject
+  with "The browser window was closed by a new instance of the application"
+  (its `onNewIntent` path; the singleTask MainActivity also pops the tab off
+  the task). A plain retry always works, but the sentence read like a broken
+  app. Loki showed one real user on 4.8.0 hitting it three times and giving
+  up, plus the Play pre-launch crawler on 4.10.1. The wrapper now maps that
+  error and the SDK's network failures ("Network error" / "Failed to execute
+  the network request", the larger real-user bucket on 4.7–4.8) to actionable
+  i18n copy; every other error still shows the SDK message. Pure classifier in
+  `authErrorLogic.ts` (vitest-covered); new `loginScreen` keys in all nine
+  locales.
+
 ### Build
 
 - **Play Store submission uses a dedicated service account.** `eas submit

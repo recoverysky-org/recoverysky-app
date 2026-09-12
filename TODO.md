@@ -63,6 +63,32 @@ no `useWindowDimensions` consumers, no breakpoint helpers, no tablet branches.
 
 ---
 
+## 🔐 react-native-auth0 5.6.0 → 5.11.1 (native — needs runtimeVersion bump)
+
+Queued 2026-09-12. Spec: `docs/superpowers/specs/2026-09-12-react-native-auth0-5.11-upgrade-design.md`
+(read it first — it carries the composition notes and the manual checklist).
+
+- [ ] **Bump `react-native-auth0` to 5.11.1.** Four minors behind; 5.11.1 lists
+      unspecified "security fixes" and moves Auth0.Android 3.15 → 3.21 and
+      Auth0.swift 2.19 → 2.25. Config plugin is byte-identical across the range, so
+      prebuild output should not change — diff the generated manifest anyway.
+- [ ] **Wire `resumeSession()` into `useAuth0Wrapper` cold start.** Recovers an
+      Android login the OS killed mid-Custom-Tab (Samsung/Xiaomi, mail-app switch for
+      a verification code). One effect, no new store plumbing — the existing `user`
+      sync effect does the rest. Android-only in effect; safe to call everywhere.
+- [ ] **Confirm the Auth0 tenant does not set IPSIE `session_expiry`.** 5.11.0 adds a
+      `SESSION_EXPIRED` credentials error; our refresher treats unknown codes as
+      transient, so if the tenant ever sets it, map it to `permanent` in
+      `tokenFreshnessLogic.ts` (with a vitest case). Not speculatively.
+- [ ] Run the spec's manual checklist on **both** platforms before `release:*`.
+      Nothing in CI exercises the auth flow.
+
+_Not in scope (see spec Non-goals): the `LaunchActivity` trampoline for the
+`singleTask` launcher-relaunch case — one real user in 14 days, retry works,
+friendly message shipped 2026-09-12 as an OTA._
+
+---
+
 ## 🔴 Real crashes (chase these first)
 
 A genuine crash with app frames in the stack — unlike the ANR, worth

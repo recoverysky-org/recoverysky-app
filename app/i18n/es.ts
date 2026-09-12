@@ -73,6 +73,10 @@ const es: Translations = {
     euaLoadFailed:
       "No pudimos cargar los acuerdos legales. Comprueba tu conexión e inténtalo de nuevo.",
     euaRetry: "Reintentar",
+    errorBrowserTerminated:
+      "La ventana de inicio de sesión se cerró antes de terminar. Vuelve a tocar el botón y permanece en el navegador hasta que te devuelva a la app.",
+    errorNetwork:
+      "No pudimos conectar con el servicio de inicio de sesión. Revisa tu conexión e inténtalo de nuevo.",
   },
   mainNavigator: {
     homeTab: "Inicio",
