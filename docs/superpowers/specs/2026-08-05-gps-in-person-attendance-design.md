@@ -484,7 +484,8 @@ const useMiles = useMemo(() => getLocales()[0]?.measurementSystem === "us", [])
 ### Cold-start recovery
 
 `TimerSessionResumer` reads the session, applies the existing 6-hour staleness
-cap, and calls `setRecoverySession`. `TimerRecoveryGate` branches on
+cap (UPDATE 2026-09-12: the cap was removed — every persisted session now
+restores regardless of age), and calls `setRecoverySession`. `TimerRecoveryGate` branches on
 `sessionSource(session)` and mounts either `ExternalZoomTimerModal` or
 `InPersonTimerModal`, pre-seeded.
 

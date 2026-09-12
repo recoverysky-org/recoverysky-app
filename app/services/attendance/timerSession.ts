@@ -89,17 +89,6 @@ export function sessionSource(session: PersistedTimerSession): TimerSource {
 }
 
 /**
- * How stale a persisted session can be and still count as "live" for
- * `isTimerSessionActive()`. Mirrors TimerSessionResumer's MAX_RECOVERY_AGE_MS
- * deliberately: a session that resumer would refuse to restore must not be
- * allowed to hold the navigation lock either, or a user who force-quit mid
- * meeting a week ago comes back to permanently disabled tabs. Kept as its own
- * constant rather than imported to avoid app/services -> app/db coupling; if
- * you change one, change both.
- */
-const MAX_ACTIVE_SESSION_AGE_MS = 6 * 60 * 60 * 1000
-
-/**
  * Observable mirror of "a timer session is live right now".
  *
  * ADDED 2026-08-06 to fix a real loss-of-attendance path: navigating to
@@ -107,7 +96,8 @@ const MAX_ACTIVE_SESSION_AGE_MS = 6 * 60 * 60 * 1000
  * which unmounted InPersonTimerModal, which ran useAttendanceTimer's cleanup
  * and destroyed the clock. TimerSessionResumer only fires once per mount, so
  * nothing re-surfaced the timer until a cold start — and if none happened
- * within MAX_RECOVERY_AGE_MS the attendance was simply gone.
+ * within the resumer's then-6-hour staleness cap (removed 2026-09-12) the
+ * attendance was simply gone.
  *
  * The signal has to live HERE, on the persisted session, not in the modal's
  * React state. The modal's own mount lifecycle cannot drive a lock whose
@@ -121,15 +111,20 @@ const MAX_ACTIVE_SESSION_AGE_MS = 6 * 60 * 60 * 1000
  * Seeded from MMKV at module load so a cold-start recovery (resumer restores
  * -> TimerRecoveryGate shows the modal) is locked too, since that path resumes
  * rather than re-saving and so never calls saveTimerSession().
+ *
+ * CHANGED 2026-09-12: the seed used to apply a 6-hour staleness cap
+ * (MAX_ACTIVE_SESSION_AGE_MS) mirroring TimerSessionResumer's discard, so a
+ * session the resumer would refuse could not hold the navigation lock. The
+ * resumer's cap is gone — every persisted session restores, however old — so
+ * the seed must match: any persisted session with a real startedAt is live.
+ * The lock still releases the moment the user Saves or Cancels the restored
+ * timer, so there is no permanently-locked-tabs path.
  */
 const timerSessionActive = observable.box(false)
 
 function seedActiveFromStorage(): void {
   const existing = load<PersistedTimerSession>(STORAGE_KEY)
-  const live =
-    existing !== null &&
-    existing.startedAt > 0 &&
-    Date.now() - existing.startedAt <= MAX_ACTIVE_SESSION_AGE_MS
+  const live = existing !== null && existing.startedAt > 0
   runInAction(() => timerSessionActive.set(live))
 }
 seedActiveFromStorage()

@@ -397,6 +397,12 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
             tx="externalZoomTimer:hint"
             txOptions={{ minutes: minMinutes }}
           />
+          {/* ADDED 2026-09-12 with the removal of the resumer's staleness cap:
+              a restored session can legitimately show hours or days, and the
+              right move is Save-then-trim in Attendance, not Cancel. Shown
+              always (not only on resume) so the user has read it before the
+              day they need it. */}
+          <Text style={themed($correctionHint)} tx="externalZoomTimer:correctionHint" />
 
           <View style={themed($buttonRow)}>
             <Pressable
@@ -487,6 +493,15 @@ const $hint: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 12,
   color: colors.textDim,
   textAlign: "center",
+})
+
+// Same voice as $hint, nudged apart so the two sentences read as separate
+// notes rather than one run-on paragraph.
+const $correctionHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: spacing.xs,
 })
 
 const $buttonRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

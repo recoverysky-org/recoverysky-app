@@ -538,6 +538,8 @@ const pt: Translations = {
     longAttendanceMessage: "Você pode reduzir seu tempo de presença na aba Presença do aplicativo.",
     longAttendanceDontShow: "Não mostrar novamente",
     longAttendanceGoTo: "Ir para Presença",
+    correctionHint:
+      "O tempo de presença pode ser corrigido depois editando o registro na aba Presença.",
   },
   externalZoomEducation: {
     title: "Atenção",

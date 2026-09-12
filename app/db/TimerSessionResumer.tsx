@@ -23,39 +23,33 @@
  * wall-clock elapsed, let the user keep using Zoom and Save when the meeting
  * *actually* ends with full duration captured.
  *
- * A 6-hour staleness cap silently discards sessions old enough that the
- * meeting must have ended (and the device sat with no app re-entry). Tunable
- * if our 4-hour conferences ever bump against it.
+ * A 6-hour staleness cap used to silently discard sessions old enough that
+ * the meeting must have ended (and the device sat with no app re-entry).
+ * REMOVED 2026-09-12: there is no cap any more. Loki showed users resuming
+ * with 8-hour to 6-day-old sessions, mostly on the same recurring meeting,
+ * and the discard threw that attendance away with no way to get it back. The
+ * timer now always restores, whatever the age; the user Saves and trims the
+ * duration in the Attendance tab, which both timer modals now point out.
  *
  * Place inside DatabaseProvider alongside the other *Resumer / *Hydrator
  * components, below ProfileHydrator so we have a user context.
  *
  * CHANGED 2026-08-05: the persisted session can now be an in-person timer as
- * well as an external-Zoom one. Nothing here branches on it — the staleness
- * cap and the restore decision are identical for both — but TimerRecoveryGate
+ * well as an external-Zoom one. Nothing here branches on it — the restore
+ * decision is identical for both — but TimerRecoveryGate
  * does, so the source is logged here to make a mis-routed recovery diagnosable
  * from Loki without a device.
  */
 
 import { useEffect, useRef } from "react"
 
-import {
-  clearTimerSession,
-  loadTimerSession,
-  sessionSource,
-  setRecoverySession,
-} from "@/services/attendance"
+import { loadTimerSession, sessionSource, setRecoverySession } from "@/services/attendance"
 import { EXTERNAL_MIN_CREDIT_MS } from "@/services/zoom"
 import { logger } from "@/utils/logger"
 
 import { useDatabase } from "./DatabaseProvider"
 
 const log = logger.child({ module: "TimerSessionResumer" })
-
-// Meetings rarely run longer than 4 hours; 6h gives generous headroom while
-// still discarding clearly-stale persisted sessions (e.g. device left
-// untouched overnight with the app killed mid-meeting).
-const MAX_RECOVERY_AGE_MS = 6 * 60 * 60 * 1000
 
 export function TimerSessionResumer(): null {
   const { status } = useDatabase()
@@ -70,18 +64,10 @@ export function TimerSessionResumer(): null {
 
     const elapsedMs = Date.now() - session.startedAt
 
-    if (elapsedMs > MAX_RECOVERY_AGE_MS) {
-      log.warn("Discarding stale persisted timer session", {
-        mid: session.meetingId,
-        elapsedMs,
-      })
-      clearTimerSession()
-      return
-    }
-
-    // Restore in all in-range cases — even below the credit threshold — so
-    // a user who got killed seconds after launch can keep counting. Save
-    // gating still happens inside the modal via canSave.
+    // Restore in ALL cases — even below the credit threshold, so a user who
+    // got killed seconds after launch can keep counting, and however old the
+    // session is (see the header: the staleness discard was removed
+    // 2026-09-12). Save gating still happens inside the modal via canSave.
     log.info("Restoring persisted timer session via recovery surface", {
       mid: session.meetingId,
       source: sessionSource(session),

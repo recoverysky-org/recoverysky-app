@@ -335,6 +335,10 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
           </Text>
 
           <Text style={themed($hint)} tx="inPersonTimer:hint" txOptions={{ minutes: minMinutes }} />
+          {/* ADDED 2026-09-12 — see the same note in ExternalZoomTimerModal.
+              The key lives under externalZoomTimer: the text is venue-agnostic
+              and both modals must say it identically. */}
+          <Text style={themed($correctionHint)} tx="externalZoomTimer:correctionHint" />
 
           <View style={themed($buttonRow)}>
             <Pressable
@@ -431,6 +435,13 @@ const $hint: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 12,
   color: colors.textDim,
   textAlign: "center",
+})
+
+const $correctionHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 12,
+  color: colors.textDim,
+  textAlign: "center",
+  marginTop: spacing.xs,
 })
 
 const $buttonRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

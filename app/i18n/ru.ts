@@ -536,6 +536,8 @@ const ru: Translations = {
     longAttendanceMessage: "Вы можете уменьшить время посещения во вкладке «Посещение» приложения.",
     longAttendanceDontShow: "Больше не показывать",
     longAttendanceGoTo: "Перейти к посещениям",
+    correctionHint:
+      "Время посещения можно исправить позже, отредактировав запись на вкладке «Посещения».",
   },
   externalZoomEducation: {
     title: "Обратите внимание",

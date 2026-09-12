@@ -317,7 +317,8 @@ but the recovery path does not: `TimerSessionResumer` fires once per mount,
 gated on `hasRun` plus DB status (`app/db/TimerSessionResumer.tsx:62-65`). After
 re-login it never re-fires, so the timer silently vanishes until the next cold
 start — and is lost entirely if none happens within the 6-hour
-`MAX_RECOVERY_AGE_MS`.
+`MAX_RECOVERY_AGE_MS`. (UPDATE 2026-09-12: that cap was removed; the resumer
+now restores a persisted session of any age.)
 
 This is the same class of harm as the 2026-05-11 resumer rewrite and the
 2026-08-06 navigation lock. Deferring the eject is the smallest fix consistent

@@ -22,6 +22,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **Attendance timer recovery no longer discards old sessions.** The
+  cold-start resumer (`TimerSessionResumer`) used to silently throw away a
+  persisted timer older than 6 hours, and the navigation lock's MMKV seed
+  mirrored the same cap. Loki showed real users relaunching with timers that
+  had been running 8 hours to 6 days, mostly on the same recurring meeting,
+  and losing that attendance with no recovery path. Both caps are gone: the
+  timer now always restores with its true elapsed time, and the user Saves
+  and trims the duration in the Attendance tab. Both timer modals (external
+  Zoom and in-person) now carry a standing note that attendance time can be
+  corrected by editing the record in Attendance.
+
 ### Build
 
 - **Play Store submission uses a dedicated service account.** `eas submit

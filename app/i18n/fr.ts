@@ -547,6 +547,8 @@ const fr: Translations = {
       "Vous pouvez réduire votre temps de présence dans l'onglet Présence de l'application.",
     longAttendanceDontShow: "Ne plus afficher",
     longAttendanceGoTo: "Aller à Présence",
+    correctionHint:
+      "La durée de présence peut être corrigée plus tard en modifiant l'enregistrement dans l'onglet Présence.",
   },
   externalZoomEducation: {
     title: "À noter",

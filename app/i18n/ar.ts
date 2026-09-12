@@ -525,6 +525,7 @@ const ar: Translations = {
     longAttendanceMessage: "يمكنك تقليل مدة الحضور من تبويب «الحضور» في التطبيق.",
     longAttendanceDontShow: "عدم الإظهار مرة أخرى",
     longAttendanceGoTo: "الذهاب إلى الحضور",
+    correctionHint: "يمكن تصحيح وقت الحضور لاحقًا بتعديل السجل في تبويب الحضور.",
   },
   externalZoomEducation: {
     title: "انتبه",

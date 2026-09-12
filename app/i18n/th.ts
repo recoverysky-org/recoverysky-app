@@ -528,6 +528,7 @@ const th: Translations = {
     longAttendanceMessage: "คุณสามารถลดเวลาการเข้าร่วมได้ในแท็บ การเข้าร่วม ของแอป",
     longAttendanceDontShow: "ไม่ต้องแสดงอีก",
     longAttendanceGoTo: "ไปที่การเข้าร่วม",
+    correctionHint: "สามารถแก้ไขเวลาการเข้าร่วมภายหลังได้โดยแก้ไขรายการในแท็บการเข้าร่วม",
   },
   externalZoomEducation: {
     title: "โปรดทราบ",

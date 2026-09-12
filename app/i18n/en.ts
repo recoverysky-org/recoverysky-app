@@ -565,6 +565,12 @@ const en = {
       "You can adjust down your attendance time in the Attendance tab of the app.",
     longAttendanceDontShow: "Don't Show Again",
     longAttendanceGoTo: "Go to Attendance",
+    // Shown in both timer modals (external Zoom + in-person). Since the
+    // 2026-09-12 removal of the resumer's staleness cap, a restored timer can
+    // show hours or days on the clock; this tells the user the fix is a
+    // duration edit in Attendance, not Cancel.
+    correctionHint:
+      "Attendance time can be corrected later by editing the record in the Attendance tab.",
   },
   externalZoomEducation: {
     title: "Heads up",

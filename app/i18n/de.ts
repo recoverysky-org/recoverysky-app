@@ -541,6 +541,8 @@ const de: Translations = {
       "Du kannst deine Teilnahmedauer im Reiter „Teilnahme“ der App reduzieren.",
     longAttendanceDontShow: "Nicht mehr anzeigen",
     longAttendanceGoTo: "Zu Teilnahme",
+    correctionHint:
+      "Die Teilnahmezeit kann später durch Bearbeiten des Eintrags im Tab „Teilnahme“ korrigiert werden.",
   },
   externalZoomEducation: {
     title: "Hinweis",

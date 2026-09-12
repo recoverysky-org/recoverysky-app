@@ -541,6 +541,8 @@ const es: Translations = {
       "Puedes reducir tu tiempo de asistencia en la pestaña Asistencia de la app.",
     longAttendanceDontShow: "No mostrar de nuevo",
     longAttendanceGoTo: "Ir a Asistencia",
+    correctionHint:
+      "El tiempo de asistencia se puede corregir después editando el registro en la pestaña Asistencia.",
   },
   externalZoomEducation: {
     title: "Atención",
