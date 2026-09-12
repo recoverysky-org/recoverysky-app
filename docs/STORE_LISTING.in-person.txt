@@ -12,8 +12,15 @@ works", never the method), and we do NOT advertise unreleased features
 
 ASO pivot: position as a general AA / NA / CMA / RD **meeting finder** —
 online AND in person — rather than an online-only live-meeting app.
-This listing is for the release that ships the In-Person tab; do not
-publish it before that build/OTA is live.
+
+REVISION 2026-09-11: refreshed for the 4.10.x store release. The In-Person
+tab shipped in 4.8.0 and is no longer "new"; the promotional text and
+What's New now lead with everything user-facing that landed since —
+free-text search, the "Any" day option, the Distance / Start sort,
+schedule-wide favorites and ratings, faster launch, offline-aware
+messaging, and the Recovery Dharma fix. The description gained a bullet
+for each of those that a first-time reader would care about. Do not
+publish this revision against a build older than 4.10.1.
 
 
 ========================================================
@@ -29,7 +36,7 @@ fellowship tokens. "Finder", "RD", and "in person" move to the short
 description, which Google also indexes.)
 
 
---- SHORT DESCRIPTION (80 / 80) ---
+--- SHORT DESCRIPTION (80 / 80 — unchanged) ---
 
 AA, NA, CMA & Recovery Dharma meeting finder — online now or in person near you.
 
@@ -38,20 +45,20 @@ AA, NA, CMA & Recovery Dharma meeting finder — online now or in person near yo
 
 Find a meeting. Online, in person, happening right now, or any day this week. Then prove you were there, with verified attendance reports.
 
-RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma. It tracks live online meetings you can join in one tap, and more than 55,000 in-person meetings you can walk into — searchable by fellowship, day, time of day, and distance from you.
+RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma. It tracks live online meetings you can join in one tap, and more than 55,000 in-person meetings you can walk into — searchable by name, fellowship, day, time of day, and distance from you.
 
 FIND A MEETING ONLINE
 • See AA, NA, CMA, and Recovery Dharma meetings that are live right now
 • One tap from the listing into the meeting (opens in Zoom Workplace — free, just have it installed)
 • Every meeting's full weekly schedule, so you always know when it's on
-• Filter by fellowship, day, and time
+• Filter by fellowship, day, and time — or just type a meeting name, city, or keyword
 
 We keep the listings honest: meeting details are kept current, and every live listing is verified. When you tap Join, you get a room with others — not a broken link or a wrong password.
 
 FIND A MEETING NEAR YOU
 • 55,000+ in-person meetings across AA, NA, CMA, and Recovery Dharma
-• Sorted nearest first, with the distance on every row — pick your own search radius
-• Browse any day of the week, or narrow to morning, afternoon, evening, or overnight
+• Sorted nearest first or by start time, with the distance on every row — pick your own search radius
+• Browse one day or the whole week at once, and narrow to morning, afternoon, evening, or overnight
 • Every venue has a detail page: address, one-tap directions in your maps app, published contacts, and the full weekly schedule
 • Your location is read only while you're searching or logging in-person attendance — never at app start — and browsing coordinates are never stored or logged
 
@@ -64,6 +71,7 @@ If someone needs proof that you're showing up — drug court, DFS, probation, pa
 Unlimited reports come with RecoverySky Premium ($6.99/mo), which also unlocks meeting reminders, encrypted cloud backup, and sync across your devices — and keeps RecoverySky alive and growing.
 
 YOUR RECOVERY, IN ONE PLACE
+• Favorite and star-rate your meetings — they float to the top of every list, on every day they meet
 • Clean-time tracker and milestones
 • Money-saved tracker
 • The 90-in-90 challenge, with a certificate when you finish
@@ -95,7 +103,7 @@ APPLE APP STORE
 RecoverySky AA NA CMA Meetings
 
 
---- SUBTITLE (25 / 30) ---
+--- SUBTITLE (25 / 30 — unchanged) ---
 
 Online & in-person finder
 
@@ -103,12 +111,15 @@ Online & in-person finder
 which is the pivot; "meeting" and the fellowships are already in the name.)
 
 
---- PROMOTIONAL TEXT (167 / 170 — updatable without review) ---
+--- PROMOTIONAL TEXT (168 / 170 — updatable without review) ---
 
-New: in-person meetings. Search 55,000+ AA, NA, CMA & Recovery Dharma meetings near you, get directions, and log GPS-verified attendance — plus every live online room.
+New: search meetings by name, city, or keyword, browse the whole week at once, and sort nearby by distance or start time. Favorites now cover every day a meeting meets.
+
+(Previous promo, kept for reference — 167 / 170:
+New: in-person meetings. Search 55,000+ AA, NA, CMA & Recovery Dharma meetings near you, get directions, and log GPS-verified attendance — plus every live online room.)
 
 
---- KEYWORDS (100-char field, comma-separated, NO spaces) ---
+--- KEYWORDS (100-char field, comma-separated, NO spaces — unchanged) ---
 
 Optimized (95 / 100) — drops words already in the name/subtitle
 (meetings, online, in-person, finder, AA/NA/CMA):
@@ -132,14 +143,45 @@ Privacy Policy: https://www.recoverysky.app/privacy
 
 
 ========================================================
-WHAT'S NEW / RELEASE NOTES
+WHAT'S NEW / RELEASE NOTES — 4.10.x
 ========================================================
 
-Covers the in-person release (In-Person tab, searchable in-person listings,
-GPS-verified attendance, RD's return, unified meeting card, accessibility).
+Covers everything user-facing since the 4.8.0 in-person release: free-text
+search, the "Any" day option, the Distance / Start sort, schedule-wide
+favorites and ratings (with instant tap response and bigger touch
+targets), faster launch, offline-aware messaging, the Recovery Dharma
+regression fix, and the sign-in fix for report sending.
 Google Play limit: 500 chars.
 
---- FULL (bulleted, ~480 / 500) ---
+--- FULL (bulleted, 488 / 500) ---
+
+Finding a meeting just got easier:
+
+• Search by name, city, venue, or keyword — online and in person.
+• Pick "Any" day to search the whole week at once.
+• Sort nearby meetings by distance or start time.
+• Favorites and star ratings now cover every day a meeting meets, and respond the instant you tap.
+• Faster launch, and a clear "you're offline" notice.
+• Recovery Dharma is back in every fellowship picker.
+• Fixed a sign-in issue that could block report sending.
+
+Keep coming back. 🌤️
+
+--- SHORT (268 / 500) ---
+
+New in RecoverySky:
+• Search meetings by name, city, venue, or keyword
+• "Any" day: search the whole week at once
+• Sort nearby meetings by distance or start time
+• Favorites and ratings cover every day a meeting meets
+• Faster launch, plus fixes
+
+Keep coming back. 🌤️
+
+
+--- PREVIOUS: 4.8.0 in-person release (archived for reference) ---
+
+FULL (~480 / 500):
 
 RecoverySky now finds meetings in the real world, too:
 
@@ -147,16 +189,6 @@ RecoverySky now finds meetings in the real world, too:
 • Search now covers online AND in-person, with fellowship, day, time, and radius filters.
 • GPS-verified in-person attendance: tap "I'm Here" at the venue, and your timed, location-confirmed visit goes on your PDF report.
 • Recovery Dharma is back.
-
-Keep coming back. 🌤️
-
---- SHORT (~240 / 500) ---
-
-New in RecoverySky:
-• In-Person tab: 55,000+ meetings near you, with directions & schedules
-• Search across online and in-person meetings
-• GPS-verified in-person attendance for your reports
-• Recovery Dharma is back
 
 Keep coming back. 🌤️
 
@@ -186,7 +218,54 @@ DECISIONS & RATIONALE
 - RD (Recovery Dharma) claims are live as of 2026-08-04 — RD is a selectable
   fellowship in Settings/onboarding and the Live / Search / In-Person
   filters (`EXPO_PUBLIC_FELLOWSHIPS="AA,NA,CMA,RD"` in .env + eas.json).
+  CHANGED 2026-09-11: RD silently vanished from every OTA between 4.8.0-1
+  and 4.10.0 because the EAS server-side environment (the only source
+  `eas update` reads) never got the variable. 4.10.0 fixed the variable and
+  `npm run update` now gates on `check-env-sync.js --eas-only`, so it can't
+  regress the same way — but "Recovery Dharma is back" earns its spot in
+  the 4.10.x What's New precisely because 4.8.0-1 users watched it leave.
   Do not publish this listing against a build made before that config.
+- SEARCH CLAIMS (new 2026-09-11) are worded to what the search box does,
+  and must stay that way: it matches typed words against name, description,
+  fellowship, venue, city, region, notes, tags and type codes — but only
+  within the already-fetched results for the selected day / venue /
+  fellowship. So we say "search by meeting name, city, venue, or keyword"
+  and never "search every meeting" or "search the whole database". There
+  is no server-side search endpoint; don't promise one.
+- "ANY" DAY (new 2026-09-11): the In-Person segment offers it always; the
+  Search segment offers it only for in-person venues (an online day is
+  ~500 meetings, so seven days would bury the audience). "Search the whole
+  week at once" is therefore an in-person claim in both places it appears,
+  which is what the surrounding copy already implies. Don't reword it to
+  suggest online meetings can be searched across the week.
+- DISTANCE / START SORT (new 2026-09-11) is the In-Person list's second
+  segmented pill. It's hidden on the map view and in the no-location
+  day-browse fallback, so the description says "sorted nearest first or by
+  start time" alongside the distance-on-every-row claim, never as a
+  standalone map feature.
+- FAVORITES / RATINGS (new 2026-09-11): hearts and stars now apply
+  schedule-wide (every day the meeting meets), existing ones are upgraded
+  once automatically, the popup responds on the tap, and each star / the
+  heart got a 44 pt touch target. The description bullet promises the
+  ordering effect ("float to the top of every list") because that's what a
+  reader can see; the What's New adds the "every day it meets" and
+  "instant" bits because those are what changed for existing users.
+- "FASTER LAUNCH" is accurate as of 4.10.0: the device credential is
+  persisted for its seven-day life (most cold starts skip verification) and
+  cold start no longer waits on a live `/config` fetch after first launch.
+  We deliberately don't quote a number — the saving depends on network.
+- OFFLINE MESSAGING: "you're offline" replaces the false "maintenance"
+  banner for users with no connectivity (subway, airplane mode). Worded as
+  a notice, not a promise of offline functionality — the meeting lists
+  still need a connection; attendance is local and always was.
+- THE 4.10.1 SIGN-IN FIX gets one line ("could stop reports from sending")
+  because affected users saw "Failed to send report" and deserve to know
+  it's addressed. We don't explain tokens or audiences in store copy.
+- NOT MENTIONED, on purpose: the shorter onboarding / hidden Profile
+  section (nothing to sell — it's a removal), the Short Name prompt before
+  reports and certificates (a guard rail), the in-person announcement
+  popup (meta), the Live-tab refresh jitter and payload trim, and every
+  attestation / config-cache internals change. All real, none listing-worthy.
 - LOCATION CLAIMS are worded to match actual behavior, and must stay that
   way: browsing coordinates are foreground-only, never stored/logged/in
   analytics — but the VERIFIED check-in fix IS saved to the attendance
@@ -212,4 +291,7 @@ DECISIONS & RATIONALE
   Connect rejects them. Emoji is fine in Google Play's description and in
   "What's New" on both stores.
 - This file coexists with STORE_LISTING.warm.txt (the warm-voice
-  alternative). Whichever ships, keep the other for A/B reference.
+  alternative) and STORE_LISTING.in-person.ES.txt (the es-US localization,
+  which still reflects the 4.8.0 copy and needs the same refresh before
+  the Spanish listing is updated). Whichever ships, keep the others for
+  reference.
