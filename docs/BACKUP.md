@@ -209,6 +209,19 @@ pass, because `fullSync()` still has an outbox to drain afterwards.
 fetch therefore cannot strand the pull cursor; the next pass simply notices the
 body is still missing and tries again.
 
+**Except `not-found`, which is terminal for the session** (CHANGED 2026-09-14).
+`GET /reports/:id` answers 404 when the API has no such row at all — a report
+imported from Firebase during onboarding, or one created against another
+environment. Those ids can never be fetched, and because the missing-body
+filter has no terminal state they were re-walked on every `fullSync()` (every
+foreground): one GET, one warning, one `api_error` analytics event and one
+entitlement re-check per id, forever. The service now remembers `not-found` ids
+in memory (`bodyNotFound`) and skips them until the next launch; `onLogout()`
+clears the set. In-memory on purpose — same reasoning as the poller's 2026-09-13
+"not-found terminates" decision: no schema column, and a fresh launch retries
+once in case the row has since appeared. Transient failures are still retried
+next pass.
+
 ## Status and the Settings toggle
 
 `syncState` is a plain MobX `observable` — `{ phase, lastSyncedAt, pendingCount }`.

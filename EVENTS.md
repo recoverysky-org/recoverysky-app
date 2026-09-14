@@ -122,7 +122,7 @@ SDK that produced them was removed in 4.5.0 (see "Zoom Integration" in
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `api_error` | API call returned an error | `{ endpoint, kind }` | `app/services/api/index.ts` |
+| `api_error` | API call returned a **5xx** (`kind: "server"` only — CHANGED 2026-09-14; 4xx and network failures no longer fire it, see `shouldTrackApiProblem`) | `{ endpoint, kind }` | `app/services/api/index.ts` |
 | `report_delivery_failed` | Attendance report delivery failed | — | `app/hooks/useReportSender.ts` |
 
 ### Group 8: Settings & Account

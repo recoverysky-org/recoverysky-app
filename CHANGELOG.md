@@ -54,7 +54,25 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   rather than burning it. `BackupPassRunner` + the vitest-covered
   `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
 
+### Fixed
+- **Cloud backup no longer re-fetches report bodies the server has never had.**
+  A report imported from Firebase during onboarding (or created against another
+  environment) has no row in the API, so `GET /reports/:id` returns 404 forever.
+  The body backfill treated that as "retry next pass", and a pass runs on every
+  foreground — so a device with a dozen such reports made a dozen requests,
+  logged a dozen warnings, and sent a dozen analytics events every time the app
+  came to the front. `not-found` is now remembered for the session and skipped,
+  mirroring the report-delivery poller's 2026-09-13 fix. Transient failures
+  still retry.
+
 ### Changed
+- **`api_error` analytics now fires only for 5xx responses.** It used to fire for
+  every classified problem, so expected misses (the 404s above), auth rejections,
+  and offline timeouts dominated the metric and cost an analytics request each.
+  Network and client-side failures are still logged; they just aren't counted as
+  API errors.
+- **Umami's success log line no longer dumps the response body** (a ~400-byte
+  cache-token blob per event) into the dev log.
 - **Backup copy now says the data is encrypted** — on the device, in transit,
   and at rest in the cloud — in the post-purchase prompt, the new cold-start
   prompt, and the Settings Cloud Backup hint. Nine locales; non-English text is

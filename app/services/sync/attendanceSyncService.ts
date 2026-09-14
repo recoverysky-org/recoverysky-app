@@ -157,6 +157,16 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   let pushing = false
   let pulling = false
   let backfilling = false
+  // Report ids the server answered `not-found` for. Skipped for the rest of
+  // the session; cleared by onLogout(). ADDED 2026-09-14: reportsMissingBody()
+  // is a plain "empty html/text" filter with no terminal state, so an id the
+  // server has never heard of (a Firebase-imported report, or one created
+  // against another environment) was re-fetched on EVERY fullSync — one GET,
+  // one warning, one analytics event and one entitlement re-check per id per
+  // foreground, forever. Mirrors reportPollingLogic's "not-found terminates"
+  // (2026-09-13). In-memory on purpose, same reasoning as that decision: no
+  // schema column, and a fresh launch retries once in case the row appears.
+  const bodyNotFound = new Set<string>()
   // I2: true for the duration of initialBackup(). While set, settlePhase()
   // is a no-op — the backup owns "backing-up" across its two pullTicks and
   // final pushTick, and we don't want an inner tick's finally stomping that
@@ -529,7 +539,7 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     try {
       const gate = await deps.gate()
       if (!gate.ok) return
-      const ids = await deps.local.reportsMissingBody()
+      const ids = (await deps.local.reportsMissingBody()).filter((id) => !bodyNotFound.has(id))
       if (ids.length === 0) return
       for (let i = 0; i < ids.length; i++) {
         if (i > 0) {
@@ -566,7 +576,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
             // that the sync engine itself is unhealthy — feeding it into the
             // shared backoff would let one bad report id gate attendance
             // push/pull for everyone. The id just stays in
-            // reportsMissingBody()'s result and gets retried next pass.
+            // reportsMissingBody()'s result and gets retried next pass —
+            // EXCEPT `not-found`, which is remembered for the session (see
+            // `bodyNotFound`): the server has no such row and retrying it
+            // cannot succeed.
+            if (result.kind === "not-found") bodyNotFound.add(id)
             deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
           }
         } catch (err) {
@@ -682,6 +696,7 @@ export function createAttendanceSyncService(deps: SyncDeps) {
    * token. See takeQueueOwnership() in services/sync/index.ts.
    */
   async function onLogout(): Promise<void> {
+    bodyNotFound.clear()
     if (debounceTimer) {
       clearTimeout(debounceTimer)
       debounceTimer = null

@@ -88,3 +88,18 @@ export function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProb
 
   return problem
 }
+
+/**
+ * Whether a classified problem should be reported as an `api_error`
+ * analytics event. Only a 5xx ("server") is the API's fault. A 4xx is the
+ * client's (or an expected miss — a 404 on a report body the server never
+ * had), and cannot-connect / timeout are the network's; both were flooding
+ * the metric with non-errors.
+ *
+ * CHANGED 2026-09-14: used to be "every classified problem". On a device with
+ * Firebase-imported reports that meant one event per missing body on every
+ * foreground. Pure so vitest can cover it.
+ */
+export function shouldTrackApiProblem(problem: GeneralApiProblem): boolean {
+  return problem.kind === "server"
+}

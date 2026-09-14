@@ -1,7 +1,7 @@
 import { ApiErrorResponse } from "apisauce"
 import { expect, test } from "vitest"
 
-import { getGeneralApiProblem } from "./apiProblem"
+import { getGeneralApiProblem, shouldTrackApiProblem } from "./apiProblem"
 
 test("handles connection errors", () => {
   expect(getGeneralApiProblem({ problem: "CONNECTION_ERROR" } as ApiErrorResponse<null>)).toEqual({
@@ -71,4 +71,21 @@ test("handles other client errors", () => {
 
 test("handles cancellation errors", () => {
   expect(getGeneralApiProblem({ problem: "CANCEL_ERROR" } as ApiErrorResponse<null>)).toBeNull()
+})
+
+// CHANGED 2026-09-14: the `api_error` analytics event used to fire for every
+// classified problem, including expected 404s — one per missing report body
+// per foreground on a device with Firebase-imported reports. Only a 5xx is
+// the API's fault; everything else is either the client's (4xx) or the
+// network's (cannot-connect / timeout) and is already visible elsewhere.
+test("shouldTrackApiProblem: only server (5xx) problems count as api_error", () => {
+  expect(shouldTrackApiProblem({ kind: "server" })).toBe(true)
+  expect(shouldTrackApiProblem({ kind: "not-found" })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "unauthorized" })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "forbidden" })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "rejected" })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "bad-data" })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "timeout", temporary: true })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "cannot-connect", temporary: true })).toBe(false)
+  expect(shouldTrackApiProblem({ kind: "unknown", temporary: true })).toBe(false)
 })

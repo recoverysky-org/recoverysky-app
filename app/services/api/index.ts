@@ -15,7 +15,11 @@ import { trackEvent } from "@/services/tracking"
 import { delay } from "@/utils/delay"
 import { logger } from "@/utils/logger"
 
-import { getGeneralApiProblem as classifyApiProblem, type GeneralApiProblem } from "./apiProblem"
+import {
+  getGeneralApiProblem as classifyApiProblem,
+  shouldTrackApiProblem,
+  type GeneralApiProblem,
+} from "./apiProblem"
 import { bearerRejectionCode } from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
 import type { ApiConfig } from "./types"
@@ -26,11 +30,16 @@ import type { ApiConfig } from "./types"
  * is kept free of @/ imports so it's unit-testable under Vitest — see
  * [[vitest-no-path-alias]]. Same name/signature as before so none of this
  * file's 27+ call sites need to change.
+ *
+ * CHANGED 2026-09-14: only 5xx problems are tracked now (see
+ * shouldTrackApiProblem). Every classified problem used to fire, so expected
+ * 404s — one per never-fetchable report body per foreground — dominated the
+ * metric and cost an analytics POST each.
  */
 function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProblem | null {
   const problem = classifyApiProblem(response)
 
-  if (problem) {
+  if (problem && shouldTrackApiProblem(problem)) {
     trackEvent("api_error", {
       kind: problem.kind,
       endpoint: response.config?.url || "",

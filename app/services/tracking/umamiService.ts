@@ -156,7 +156,10 @@ function send(payload: UmamiPayload): void {
     .then(async (r) => {
       const text = await r.text().catch(() => "")
       if (r.ok) {
-        log.debug("Umami event sent", { event: eventName, status: r.status, body: text })
+        // CHANGED 2026-09-14: the success line no longer includes the response
+        // body — it's Umami's cache-token blob (~400 bytes of JWT) and was the
+        // bulk of every event line in the Metro log. Failures still log it.
+        log.debug("Umami event sent", { event: eventName, status: r.status })
       } else {
         log.warn("Umami send failed", { event: eventName, status: r.status, body: text })
       }

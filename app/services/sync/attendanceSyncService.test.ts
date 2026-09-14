@@ -380,6 +380,51 @@ describe("backfillReportBodies", () => {
     expect(deps.calls.logWarn?.length ?? 0).toBeGreaterThan(0)
   })
 
+  it("a not-found body is not fetched again in the same session", async () => {
+    // The server has no such row at all (Firebase-imported report, or one
+    // created against another environment) — it will never appear. Before
+    // 2026-09-14 every fullSync re-walked the whole list: N GETs, N analytics
+    // events, N warnings, on every foreground.
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      if (id === "r1") return { kind: "not-found" as const }
+      return { kind: "ok" as const, html: "<p>x</p>", text: "x" }
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport.map((c) => c[0])).toEqual(["r1", "r2", "r2"])
+  })
+
+  it("a transient fetch failure IS retried on the next pass", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      return { kind: "timeout" as const }
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport).toHaveLength(2)
+  })
+
+  it("onLogout forgets not-found ids so the next account starts clean", async () => {
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      return { kind: "not-found" as const }
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    await svc.onLogout()
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport).toHaveLength(2)
+  })
+
   it("no missing bodies → no requests", async () => {
     const deps = makeDeps()
     deps.local.reportsMissingBody = async () => []
