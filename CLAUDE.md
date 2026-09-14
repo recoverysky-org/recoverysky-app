@@ -565,9 +565,18 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   coverage (`rating.test.ts`).
 - **Report delivery polling** (`app/services/polling/reportPollingService.ts`)
   — adaptive, deduped, fire-and-forget: 15 s initial delay, then 10 s for
-  0–5 min, 60 s to 60 min, 15 min after that; never stops until resolved.
-  Restarted on cold start by `ReportPollingResumer`. The report-status
-  polling described in "Attendance Reports System" ultimately lands here.
+  0–5 min, 60 s to 60 min, 15 min after that. Restarted on cold start by
+  `ReportPollingResumer`. The report-status polling described in "Attendance
+  Reports System" ultimately lands here. CHANGED 2026-09-13: it used to
+  "never stop until resolved", and one device polled six reports owned by a
+  previous identity for three days (the server 404s an ownership mismatch).
+  Decisions are pure and vitest-covered in `reportPollingLogic.ts`: the
+  resume pass skips foreign-`uid` rows and rows older than 7 days and re-runs
+  on identity change (`stopAllPolls()` first); cadence is anchored on the
+  report's `generated`, not on resume time; any API problem drops to the slow
+  interval; `not-found` terminates the loop. Nothing is persisted on
+  termination — those rows stay "Pending" on purpose. A fresh send restarts an
+  active poll; a resume does not (asymmetric dedup, see the function comment).
 - **90-in-90 certificate** (`app/services/ninety/`, `useNinetyInNinety`) —
   expo-print HTML→PDF certificate for the 90-meetings-in-90-days challenge,
   written to the filesystem and shared. Errors typed via
@@ -737,7 +746,7 @@ enforced by config, not convention, and it is load-bearing:
   of this repo, and without the exclusion every test is discovered twice, making
   one real failure look like two. Don't remove those ignore patterns.
 
-Coverage is deliberately concentrated on pure logic — 31 test files (24 `.test.ts`
+Coverage is deliberately concentrated on pure logic — 32 test files (25 `.test.ts`
 for vitest, 7 `.test.tsx` for jest) covering sync/rating/announcement decisions,
 location gate, presence, nearby, map features, deep links, `returnTo` parsing,
 filters, sliders, logger, storage, api problems, local dates, i18n. Almost every

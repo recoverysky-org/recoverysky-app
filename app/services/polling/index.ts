@@ -1,1 +1,1 @@
-export { pollForConfirmation, resumeUnconfirmedPolls } from "./reportPollingService"
+export { pollForConfirmation, resumeUnconfirmedPolls, stopAllPolls } from "./reportPollingService"

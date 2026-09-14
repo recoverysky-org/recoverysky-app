@@ -35,6 +35,22 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   corrected by editing the record in Attendance.
 
 ### Fixed
+- **Report delivery polling no longer runs forever against reports it can
+  never see.** A Loki sweep found one 4.10.1 device signed in with its Google
+  identity polling six reports created under the user's email identity: 710
+  failed status calls in three days, 44 of them 429s. The server answers an
+  ownership mismatch with 404 (deliberately indistinguishable from "no such
+  id"), and the poller had no terminal condition except a delivered or
+  errored 200, so every cold start re-armed the whole backlog from the
+  10-second fast phase and blew the rate limit. The cold-start resume now
+  skips reports owned by a different identity and reports older than seven
+  days, re-runs when the signed-in identity changes (cancelling the previous
+  identity's polls), measures its cadence from the report's real age instead
+  of restarting the fast phase, backs off to the 15-minute interval after any
+  API problem, and stops on `not-found`. Nothing is persisted on stop: the
+  affected rows stay "Pending" in the Reports list, which is the honest state
+  from that device. Pure decisions in `reportPollingLogic.ts`
+  (vitest-covered).
 - **Login screen explains "browser closed" and network failures instead of
   showing raw SDK text.** On Android, relaunching the app from the launcher
   icon while the Auth0 sign-in tab is open makes react-native-auth0 reject
