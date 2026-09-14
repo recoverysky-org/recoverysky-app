@@ -103,3 +103,18 @@ export function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProb
 export function shouldTrackApiProblem(problem: GeneralApiProblem): boolean {
   return problem.kind === "server"
 }
+
+/**
+ * True when a response body is the API's readiness payload
+ * (`GET /status/ready` → `{ "status": "ready" }`).
+ *
+ * ADDED 2026-09-14: the cold-start precheck used to accept any 2xx from
+ * GET /status. A captive portal or a misrouted proxy can answer 200 with
+ * arbitrary HTML, which then read as "API healthy" and sent the user into
+ * attestation against a server that was never reached. Requiring the exact
+ * body makes the probe say what it means.
+ */
+export function isReadyBody(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) return false
+  return (data as { status?: unknown }).status === "ready"
+}

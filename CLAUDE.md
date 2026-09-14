@@ -391,9 +391,10 @@ sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
   the direction is `attestation → api`, and importing back would make
   `depcruise` see a cycle.
 - Bypass is the `X-Skip-Auth-Gate` sentinel header, **not** a URL list —
-  `getPublicStatus()` and the authenticated `getStatus()` share the `/status`
-  path. It is also the recursion guard for the device refresher's own
-  `/attest` call.
+  `getPublicStatus()` (now `GET /status/ready`, CHANGED 2026-09-14) and the
+  authenticated `getStatus()` (`GET /status`) share a router, and a URL
+  prefix rule would be fragile. It is also the recursion guard for the
+  device refresher's own `/attest` call.
 - Skews are asymmetric on purpose: 60 s for the Auth0 token (one cheap hop,
   handed to the SDK as `minTtl`), 5 min for the device token (a server round
   trip, plus a multi-second Apple/Play round trip only when the stored key
@@ -440,15 +441,19 @@ the wrong gate has historically killed in-meeting Zoom timers.
 - **`configStore.outageMode`** (cold-start gate): the app launched into
   an unusable state. Three triggers, all set by `setOutageMode()` in
   `app.tsx`'s init path:
-  1. `/status` precheck failed (API unreachable). This runs BEFORE
+  1. `/status/ready` precheck failed (API unreachable). This runs BEFORE
      attestation specifically so an outage doesn't get misreported as
      "Device Verification Failed" (`/attest` would fail too). Calls
      `api.getPublicStatus()` which bypasses the token freshness gate via
-     `X-Skip-Auth-Gate` since no JWT exists yet.
-  2. `/config` fetch failed after the `/status` precheck passed
+     `X-Skip-Auth-Gate` since no JWT exists yet. CHANGED 2026-09-14: was
+     `GET /status`; the readiness route is the same DB + TREX gate (503 when
+     either is down) with a tiny body, and the probe now requires
+     `{ "status": "ready" }` rather than any 2xx (pure `isReadyBody()` in
+     `apiProblem.ts`, vitest-covered).
+  2. `/config` fetch failed after the `/status/ready` precheck passed
      (transient half-up state). EXCEPTION (2026-09-09): not when the device
      lane came back `degraded` — a degraded device gets 401s from `/config`
-     while the public `/status` stays healthy, so outage mode's recovery
+     while the public `/status/ready` stays healthy, so outage mode's recovery
      poll would reload instantly and loop the cold start forever (burning
      an Apple key generation per cycle). That start renders on env-var
      defaults with the "Connecting…" banner and arms a one-shot reload for
@@ -462,7 +467,7 @@ the wrong gate has historically killed in-meeting Zoom timers.
   as the banner instead — see the config-cache spec.
 
   AppNavigator routes to `MaintenanceScreen` only when this is true. A
-  recovery `useEffect` polls `/status` every 15 s while we're in outage
+  recovery `useEffect` polls `/status/ready` every 15 s while we're in outage
   and calls `Updates.reloadAsync()` once the API responds — the reload
   is the safe path because the bootstrap registers MobX reactions that
   would duplicate on in-place re-init. Cleared automatically on the

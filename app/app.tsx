@@ -222,7 +222,7 @@ async function initializeDeviceAuthorization(deviceId: string): Promise<"ok" | "
  * in the init effect below).
  *
  * ADDED 2026-09-09 (final review): that start is deliberately NOT outage mode,
- * so nothing polls /status and nothing reloads on its own — but several
+ * so nothing polls /status/ready and nothing reloads on its own — but several
  * subsystems are one-shot on mount and read ConfigStore at that moment
  * (RevenueCat in SubscriptionContext, Umami, the OTLP api key). They never
  * re-run in-session, so a device that recovers mid-session would sit on
@@ -469,7 +469,7 @@ export function App() {
         logger.setContext({ deviceId })
 
         // Live device network state → NetworkStore. Registered BEFORE the
-        // /status precheck below so the outage screen's Device Offline vs
+        // /status/ready precheck below so the outage screen's Device Offline vs
         // System Maintenance variant has a real value from its first frame
         // (NetInfo fires the listener immediately with the current state).
         // Also finally activates NetworkStore's existing consumers — the
@@ -477,7 +477,7 @@ export function App() {
         // ADDED 2026-09-06: network-aware maintenance spec.
         initNetworkMonitoring(_rootStore)
 
-        // Startup config cache — read BEFORE the /status precheck so a warm
+        // Startup config cache — read BEFORE the /status/ready precheck so a warm
         // cache is in hand when we decide the config path below. Opening the
         // DB here is safe/idempotent (see openDbEarly). Any failure lands on
         // cachedConfig = null, which is byte-for-byte the pre-cache startup.
@@ -512,11 +512,13 @@ export function App() {
           },
         )
 
-        // /status precheck — runs BEFORE attestation. If the API is
+        // /status/ready precheck — runs BEFORE attestation. If the API is
         // unreachable, /attest will fail with a misleading "Device
-        // Verification Failed" alert. /status is unauthenticated and
+        // Verification Failed" alert. /status/ready is unauthenticated and
         // doesn't require any of the JWTs we're about to set up, so it's
         // the right way to detect "API is down at startup" cleanly.
+        // CHANGED 2026-09-14: was GET /status; the readiness route is the
+        // same DB + TREX gate with a tiny body — see getPublicStatus.
         //
         // Fail fast so users on a real outage see the MaintenanceScreen
         // quickly instead of staring at the splash — but give slow networks
@@ -541,24 +543,24 @@ export function App() {
           const result = await api.getPublicStatus(STATUS_TIMEOUT_LADDER_MS[attempt - 1])
           if (result.kind === "ok") {
             statusOk = true
-            if (attempt > 1) log.info("/status precheck recovered", { attempt })
+            if (attempt > 1) log.info("/status/ready precheck recovered", { attempt })
             break
           }
-          log.warn("/status precheck failed", { attempt, kind: result.kind })
+          log.warn("/status/ready precheck failed", { attempt, kind: result.kind })
           if (attempt <= STATUS_RETRY_DELAYS.length) {
             await new Promise((r) => setTimeout(r, STATUS_RETRY_DELAYS[attempt - 1]))
           }
         }
 
         if (!statusOk) {
-          log.warn("/status precheck exhausted retries — entering outage mode")
+          log.warn("/status/ready precheck exhausted retries — entering outage mode")
           _rootStore.configStore.setOutageMode()
           // Mount the root store so the app shell renders (AppNavigator
           // routes to MaintenanceScreen on outageMode). Skip attestation
           // and fetchConfig — both would fail anyway, and downstream
           // setup (Umami, push notifications, RevenueCat) all depend on
           // configStore being loaded. The outage-recovery effect below
-          // will detect when /status comes back and reload the app.
+          // will detect when /status/ready comes back and reload the app.
           setRootStore(_rootStore)
           trackEvent("app_initialized", { sessionId, outage: true })
           log.info("App initialization complete (outage mode)")
@@ -607,7 +609,7 @@ export function App() {
             // CHANGED 2026-09-09 (final review): a degraded device lane is the
             // one cold-cache failure that must NOT enter outage mode. With no
             // device token the API answers /config with a 401, so the fetch
-            // fails — but the PUBLIC /status the MaintenanceScreen recovery
+            // fails — but the PUBLIC /status/ready the MaintenanceScreen recovery
             // effect polls is healthy in an attest-only outage. It would call
             // reloadApp() at once, the whole init would run again (87 s ladder,
             // degrade, 401, outage), and on iOS every cycle burns one Secure
@@ -897,7 +899,7 @@ export function App() {
     }
   }, [rootStore])
 
-  // Outage recovery loop — polls /status while we're stuck in cold-start
+  // Outage recovery loop — polls /status/ready while we're stuck in cold-start
   // outage mode. When the API comes back, reload the app so the full init
   // sequence (attestation, fetchConfig, Umami, push, etc.) re-runs from
   // scratch. Reload is the safe option here: the bootstrap registers MobX
@@ -913,7 +915,7 @@ export function App() {
     let interval: ReturnType<typeof setInterval> | undefined
     // In-flight guard: the 15s interval tick and the reconnect reaction below
     // both call checkStatusAndReload, and a reconnect landing right on a tick
-    // would otherwise run two concurrent /status checks that could both
+    // would otherwise run two concurrent /status/ready checks that could both
     // resolve "ok" and both call reloadApp(). One reload is enough.
     let checking = false
 
@@ -923,7 +925,7 @@ export function App() {
       try {
         const result = await api.getPublicStatus()
         if (result.kind === "ok") {
-          log.info("/status recovered — reloading app to resume init")
+          log.info("/status/ready recovered — reloading app to resume init")
           if (interval) {
             clearInterval(interval)
             interval = undefined
@@ -949,7 +951,7 @@ export function App() {
         }
         if (!inOutage) return
 
-        log.info("Outage detected — starting /status recovery polling")
+        log.info("Outage detected — starting /status/ready recovery polling")
         interval = setInterval(() => {
           if (rootStore.networkStore.isOffline) return // wait for the reconnect reaction
           void checkStatusAndReload()

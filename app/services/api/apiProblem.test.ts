@@ -1,7 +1,7 @@
 import { ApiErrorResponse } from "apisauce"
 import { expect, test } from "vitest"
 
-import { getGeneralApiProblem, shouldTrackApiProblem } from "./apiProblem"
+import { getGeneralApiProblem, isReadyBody, shouldTrackApiProblem } from "./apiProblem"
 
 test("handles connection errors", () => {
   expect(getGeneralApiProblem({ problem: "CONNECTION_ERROR" } as ApiErrorResponse<null>)).toEqual({
@@ -88,4 +88,19 @@ test("shouldTrackApiProblem: only server (5xx) problems count as api_error", () 
   expect(shouldTrackApiProblem({ kind: "timeout", temporary: true })).toBe(false)
   expect(shouldTrackApiProblem({ kind: "cannot-connect", temporary: true })).toBe(false)
   expect(shouldTrackApiProblem({ kind: "unknown", temporary: true })).toBe(false)
+})
+
+// ADDED 2026-09-14: the cold-start precheck moved from GET /status to
+// GET /status/ready and now requires the readiness body, not just a 2xx —
+// a captive portal or misrouted proxy can answer 200 with anything.
+test("isReadyBody: accepts exactly the readiness payload", () => {
+  expect(isReadyBody({ status: "ready" })).toBe(true)
+  expect(isReadyBody({ status: "ready", extra: 1 })).toBe(true)
+  expect(isReadyBody({ status: "not ready", reasons: ["Database connection failed"] })).toBe(false)
+  expect(isReadyBody({ status: "healthy" })).toBe(false)
+  expect(isReadyBody({})).toBe(false)
+  expect(isReadyBody(null)).toBe(false)
+  expect(isReadyBody(undefined)).toBe(false)
+  expect(isReadyBody("ready")).toBe(false)
+  expect(isReadyBody("<html>captive portal</html>")).toBe(false)
 })

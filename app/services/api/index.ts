@@ -17,6 +17,7 @@ import { logger } from "@/utils/logger"
 
 import {
   getGeneralApiProblem as classifyApiProblem,
+  isReadyBody,
   shouldTrackApiProblem,
   type GeneralApiProblem,
 } from "./apiProblem"
@@ -670,14 +671,22 @@ export class Api {
    * misleading "Device Verification Failed" alert; this precheck lets us
    * route directly to the outage MaintenanceScreen instead.
    *
-   * Binary pass/fail — body field is ignored. /status itself doesn't
-   * require auth, and at cold start no X-Device-Token / X-API-Key has
-   * been set yet, so the request goes out unauthenticated.
+   * Binary pass/fail. /status/ready doesn't require auth, and at cold start
+   * no X-Device-Token / X-API-Key has been set yet, so the request goes out
+   * unauthenticated.
    *
    * CHANGED 2026-08-06: no longer relies on "no headers have been set yet" —
    * it passes SKIP_AUTH_GATE_HEADER so the auth gate leaves it alone
    * explicitly. The old implicit version broke the moment anything set a
    * header earlier in cold start.
+   *
+   * CHANGED 2026-09-14: probes GET /status/ready instead of GET /status and
+   * requires the `{ status: "ready" }` body (isReadyBody), not just a 2xx.
+   * Same gate on the server — both answer 503 when the database or the TREX
+   * engine is down — but the readiness route returns a few bytes instead of
+   * the full per-check report, and the body check keeps a captive portal's
+   * 200 from reading as "API healthy". The authenticated getStatus() above
+   * still uses /status for the connectivity indicator.
    */
   async getPublicStatus(timeoutMs = 2500): Promise<{ kind: "ok" } | GeneralApiProblem> {
     log.debug("Checking API public status (pre-attestation)")
@@ -692,14 +701,14 @@ export class Api {
     // escalating ladder (2.5s → 4s → 6s) per attempt so slow-but-alive
     // networks aren't misread as outages; the 2500 default still serves the
     // outage-recovery poll, which runs every 15s and wants to stay cheap.
-    const response = await this.recoverySkyApi.get<{ status: string }>("/status", undefined, {
+    const response = await this.recoverySkyApi.get<{ status: string }>("/status/ready", undefined, {
       timeout: timeoutMs,
       headers: { [SKIP_AUTH_GATE_HEADER]: "1" },
     })
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API public status check failed", {
+      log.warn("API readiness check failed", {
         problem: problem?.kind,
         status: response.status ?? 0,
       })
@@ -707,7 +716,17 @@ export class Api {
       return { kind: "unknown", temporary: true }
     }
 
-    log.info("API public status OK")
+    if (!isReadyBody(response.data)) {
+      // 2xx without the readiness payload: something answered, but not our
+      // API. Treated as temporary so the precheck retries on its ladder.
+      log.warn("API readiness check returned an unexpected body", {
+        status: response.status ?? 0,
+        bodyType: typeof response.data,
+      })
+      return { kind: "unknown", temporary: true }
+    }
+
+    log.info("API ready")
     return { kind: "ok" }
   }
 

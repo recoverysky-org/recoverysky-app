@@ -76,6 +76,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   still retry.
 
 ### Changed
+- **Cold-start API precheck now hits `GET /status/ready`.** The probe that
+  decides between normal startup and the outage screen (and the 15-second
+  recovery poll on that screen) used the full `/status` health report; the
+  readiness route is the same database-plus-TREX gate with a few-byte body.
+  The probe also now requires the `{ "status": "ready" }` payload instead of
+  accepting any 2xx, so a captive portal answering 200 no longer reads as a
+  healthy API and sends the user into attestation against nothing.
 - **`api_error` analytics now fires only for 5xx responses.** It used to fire for
   every classified problem, so expected misses (the 404s above), auth rejections,
   and offline timeouts dominated the metric and cost an analytics request each.
