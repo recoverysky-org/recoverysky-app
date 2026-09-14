@@ -63,11 +63,17 @@ no `useWindowDimensions` consumers, no breakpoint helpers, no tablet branches.
 
 ---
 
-## 🔐 react-native-auth0 5.6.0 → 5.11.1 (native — needs runtimeVersion bump)
+## 🧱 Next native build (4.11.0): native dependency refresh (needs runtimeVersion bump)
 
-Queued 2026-09-12. Spec: `docs/superpowers/specs/2026-09-12-react-native-auth0-5.11-upgrade-design.md`
-(read it first — it carries the composition notes and the manual checklist).
+Queued 2026-09-12. Spec: `docs/superpowers/specs/2026-09-12-next-native-build-design.md`
+(read it first — it carries the per-package rationale, composition notes, and the
+manual checklist for both platforms). One store build, one `npm run minor`,
+`runtimeVersion` → `4.11.0`, `versionCode` → `41100000` by hand.
 
+Everything JS-only from the same 2026-09-12 review already shipped on
+`chore/deps-2026-09-12` (commit `7c76118`); this list is what it left behind.
+
+**§A — `react-native-auth0` 5.6.0 → 5.11.1**
 - [ ] **Bump `react-native-auth0` to 5.11.1.** Four minors behind; 5.11.1 lists
       unspecified "security fixes" and moves Auth0.Android 3.15 → 3.21 and
       Auth0.swift 2.19 → 2.25. Config plugin is byte-identical across the range, so
@@ -80,12 +86,37 @@ Queued 2026-09-12. Spec: `docs/superpowers/specs/2026-09-12-react-native-auth0-5
       `SESSION_EXPIRED` credentials error; our refresher treats unknown codes as
       transient, so if the tenant ever sets it, map it to `permanent` in
       `tokenFreshnessLogic.ts` (with a vitest case). Not speculatively.
-- [ ] Run the spec's manual checklist on **both** platforms before `release:*`.
-      Nothing in CI exercises the auth flow.
 
-_Not in scope (see spec Non-goals): the `LaunchActivity` trampoline for the
-`singleTask` launcher-relaunch case — one real user in 14 days, retry works,
-friendly message shipped 2026-09-12 as an OTA._
+**§B — Expo SDK 54 patch alignment** (`npx expo install --check` has asked since 2026-09-12)
+- [ ] **`expo` 54.0.36 → 54.0.37.** Android `expo-fetch` first-chunk ordering race
+      (Sky agent stream + OTLP logger both go through `expo/fetch`); faster `TextDecoder`.
+- [ ] **`expo-updates` 29.0.19 → 29.0.20.** Rejects update assets whose key or
+      extension carries a path separator — OTA-path hardening. After the store build is
+      live, publish a trivial OTA first to prove the new client still takes our bundles.
+- [ ] **`expo-file-system` 19.0.23 → 19.0.24.** Alignment only; its one fix (iOS
+      `copyAsync` on edited `ph://` assets) is a path we never use.
+- [ ] Use `npx expo install <pkg>@~x.y.z` so the tilde ranges land the way Expo
+      expects; `npx expo install --check` must come back clean afterwards.
+
+**§C — `@maplibre/maplibre-react-native` 11.3.6 → 11.3.10**
+- [ ] **Bump to 11.3.10.** Android: two map ANR deadlocks + camera NPE (11.3.8).
+      iOS: heap corruption in style-image loading (11.3.9), `GeoJSONSource` recycling
+      (11.3.10), NaN edge insets on a zero-sized map view (11.3.8). All lifecycle bugs
+      on exactly the mount/unmount path the In-Person map's list/map toggle exercises.
+      No JS API change; `InPersonMapView.web.tsx` stub still required.
+- [ ] Recheck the privacy invariant after the bump: `NativeUserLocation` for the puck,
+      never `UserLocation`; `getSearchCenter` is still the only `coordsRef` reader.
+
+**Gate**
+- [ ] Run the spec's manual checklist on **both** platforms before `release:*`.
+      Nothing in CI exercises auth, OTA download, or the map.
+
+_Not in scope (see spec): the `LaunchActivity` trampoline for the `singleTask`
+launcher-relaunch case — one real user in 14 days, retry works, friendly message
+shipped 2026-09-12 as an OTA. Also not here: `@sentry/react-native` 8 (see
+"Background-ANR hygiene" below — native, so it belongs in this build or the next,
+never an OTA), React Native 0.87, Expo SDK 57, and the other majors — each is its
+own upgrade project._
 
 ---
 

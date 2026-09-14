@@ -51,6 +51,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Build
 
+- **Routine dependency refresh (JS-only, OTA-safe).** React Navigation
+  `native` 7.3.18 / `bottom-tabs` 7.18.18 / `native-stack` 7.18.10, MobX
+  6.16.1, mobx-state-tree 7.4.0, zod 4.6.2, date-fns 4.4.0, Vercel AI SDK
+  6.0.282 (+ `@ai-sdk/react` 3.0.285), `@revenuecat/purchases-js` 1.60.1
+  (web only), `@ungap/structured-clone` 1.4.0, and `@recoverysky-org/common`
+  2.9.0 (server-side attestation model only — the app's SQLite migration set
+  is unchanged). Dev tooling: Babel 7.29.7, jest-expo 54.0.18 (what
+  `expo install --check` asked for), babel-preset-expo 54.0.12, ts-jest,
+  tsx, dependency-cruiser, eslint-plugin-prettier, Reactotron,
+  testing-library. No native module moved, so `runtimeVersion`
+  stays put. The new React Navigation types surfaced that
+  `navigationRef.getRootState()` can be undefined; the Android back-button
+  handler in `navigationUtilities.ts` now treats that as "not ready" instead
+  of assuming a state. Deliberately skipped: `reanimated-color-picker` 4.3
+  (declares a peer of exactly Expo 56), prettier 3.9 (formatting churn),
+  Vitest 4.1.11 (npm 10.9 crashes in Arborist — `Cannot read properties of
+  null (reading 'edgesOut')` — resolving its optional jsdom→canvas peer
+  chain, and npm 12 hoists `@vitest/mocker` away from its nested `vite` so
+  every test run dies at startup; revisit after an npm fix), and
+  every native-module bump (`expo` 54.0.37, `expo-file-system`,
+  `expo-updates`, `react-native-auth0`, MapLibre) — those ride the next store
+  build with a `runtimeVersion` bump.
+
 - **Play Store submission uses a dedicated service account.** `eas submit
   --platform android` had been authenticating with the Firebase Admin SDK
   default service account stored on Expo's servers, which has no Play Console
