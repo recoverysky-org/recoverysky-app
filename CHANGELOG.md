@@ -23,6 +23,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Added
+- **Restore Purchases now offers to turn on Cloud Backup.** Only the purchase
+  paths ever showed the opt-in, so a subscriber restoring on a second device
+  (from Settings or from the onboarding import screen) was never asked and the
+  launch-time backup pass had already decided before the restore. Both restore
+  handlers now show the same dialog after the success toast, skipped when
+  backup is already on. The dialog moved into `useCloudBackupPrompt` and the
+  enable step into `enableCloudBackup()` so the toggle, the prompt, and the
+  backup pass share one implementation. Decision logic in the vitest-covered
+  `cloudBackupPromptLogic.ts`.
 - **RevenueCat customers now carry the user's email.** Every customer in the
   RevenueCat dashboard showed no email, so support could not find a subscriber
   by address. The app now forwards the signed-in Auth0 email as the `$email`

@@ -74,6 +74,8 @@ Three ideas carry the whole thing:
 | `app/services/sync/backupPassLogic.ts` + `app/db/BackupPassRunner.tsx` | The one-off backup pass (see its section). |
 | `app/models/ProfileStore.ts` | `syncEnabled` (MMKV, default false). |
 | `app/screens/SettingsScreen.tsx` | The opt-in toggle and `SyncStatusLine`. |
+| `app/services/sync/enableCloudBackup.ts` | The one "turn it ON" step (persist + analytics + fire-and-forget `initialBackup()`), shared by the toggle, the prompt, and the pass. |
+| `app/services/sync/cloudBackupPromptLogic.ts` + `app/hooks/useCloudBackupPrompt.ts` | The opt-in dialog: pure decision + the `Alert`. Shown after purchase (Settings) and after Restore Purchases (Settings and onboarding import). |
 
 `syncLogic.ts` is the only file with meaningful unit-test coverage of its
 decision logic, which is why anything worth testing gets extracted into it.
@@ -225,7 +227,9 @@ actually stopped.
 
 ### Toggle semantics
 
-- **ON** calls `initialBackup()`: a full pull of both resources, then the report
+- **ON** goes through `enableCloudBackup()` (ADDED 2026-09-14 — it, the opt-in
+  prompt, and the backup pass all call the same helper) which calls
+  `initialBackup()`: a full pull of both resources, then the report
   backfill, then a paced push of the entire local attendance history. Minutes,
   not seconds, for a long history — hence fire-and-forget with a status line.
   `initialBackup()` **never rejects**; it logs and sets `phase = "error"`
@@ -290,8 +294,18 @@ Re-pulling from zero would let the server's older copy overwrite a local edit
 whose push had failed three times and dropped out of the dirty check — the
 exact rows the pass exists to rescue.
 
-Accepting the prompt does what `handleSyncToggle(true)` does in Settings; the
-two are kept in step by hand (comment at the call site). Skipped on web.
+Accepting the prompt calls the shared `enableCloudBackup()`, the same step the
+Settings toggle runs. (It used to mirror `handleSyncToggle(true)` by hand; the
+post-restore prompt was the third caller that forced the extraction.) Skipped on
+web.
+
+**Why the pass does not cover Restore Purchases:** it runs once per launch,
+behind a ref latch, and decides from the entitlement at that moment. A user who
+launches without the entitlement, then restores in Settings or onboarding, was
+already skipped. That is why both restore handlers call `useCloudBackupPrompt`
+directly (ADDED 2026-09-14). Manual check: on a device with backup off, tap
+Restore Purchases with a live attendance subscription — expect the toast, then
+the opt-in dialog; tap it again — expect the toast only.
 
 ## Known issues
 

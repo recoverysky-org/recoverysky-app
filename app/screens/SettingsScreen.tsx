@@ -30,6 +30,7 @@ import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
 import { resetLocalDatabase } from "@/db/resetLocalDatabase"
+import { RESTORE_BACKUP_PROMPT_COPY, useCloudBackupPrompt } from "@/hooks/useCloudBackupPrompt"
 import { showLocationDeniedAlert } from "@/hooks/useLocationGate"
 import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
@@ -52,9 +53,9 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
-import { ENTITLEMENTS, hasEntitlement } from "@/services/purchases"
 import { requestRatingFromSettings } from "@/services/rating"
 import { attendanceSync } from "@/services/sync"
+import { enableCloudBackup } from "@/services/sync/enableCloudBackup"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
@@ -205,6 +206,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   // MST Stores - reactive!
   const profileStore = useProfileStore()
+  const { promptCloudBackup } = useCloudBackupPrompt()
   const authStore = useAuthenticationStore()
   const conversationStore = useConversationStore()
   const configStore = useConfigStore()
@@ -451,25 +453,16 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   const handleSyncToggle = useCallback(
     (value: boolean) => {
-      profileStore.setSyncEnabled(value)
-      trackEvent("cloud_backup_toggle", { enabled: value })
       if (value) {
-        // Fire-and-forget on purpose: initialBackup() is a full pull of both
-        // resources, then a report-body backfill, then a paced push of the
-        // entire local attendance history. For a big history that's minutes,
-        // not seconds — the user must be free to navigate away from Settings
-        // while it runs. Progress is visible via SyncStatusLine (phase +
-        // pendingCount), which reads attendanceSync.syncState directly, so we
-        // don't need to await or store anything here. Re-toggling ON after a
-        // pause safely re-runs the whole thing: the pull resumes from the
-        // persisted per-account cursors, and the push deliberately re-enqueues
-        // every local record — the server's last-write-wins upsert turns a
-        // re-push of unchanged rows into a harmless no-op, so there is nothing
-        // to diff and nothing to guard against. The bare `void` is safe because
-        // initialBackup() never rejects — it logs and flips phase to "error"
-        // internally (see its doc comment).
-        void attendanceSync.initialBackup()
+        // CHANGED 2026-09-14: the ON path (persist + analytics + fire-and-forget
+        // initialBackup()) moved into the shared enableCloudBackup() so the
+        // post-purchase/restore prompt and BackupPassRunner run the exact same
+        // steps. Its doc comment carries the fire-and-forget rationale.
+        enableCloudBackup(profileStore)
+        return
       }
+      profileStore.setSyncEnabled(false)
+      trackEvent("cloud_backup_toggle", { enabled: false })
       // Toggle OFF is pause-only, deliberately: it flips syncEnabled false so
       // the mutation hook stops enqueueing and every gate() check in
       // attendanceSyncService short-circuits, but the outbox queue, the pull
@@ -653,81 +646,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     [navigation],
   )
 
-  /**
-   * Post-purchase cloud-backup opt-in prompt. Doubles as the success dialog —
-   * it carries its own "Subscription active" title, so a user who just paid
-   * taps through one modal, not two.
-   *
-   * Returns whether it actually showed, so callers can fall back to the plain
-   * success Alert. It only applies when the user can act on it: the attendance
-   * entitlement is live AND backup is still off.
-   *
-   * AWAITS THE USER'S TAP. The returned promise resolves on dismissal, not on
-   * presentation, because `handleUpgrade` navigates away afterwards on the
-   * `returnTo` path and the destination must not race the dialog — see the
-   * ordering note there. `cancelable: false` plus `onDismiss` guarantee it
-   * always settles; an Android back-press that stranded the promise would
-   * strand that navigation with it.
-   *
-   * ENTITLEMENT IS RE-READ, NOT TAKEN FROM `hasAttendance`. That context value
-   * is React state captured in this closure when the screen last rendered, so
-   * immediately after `await showPaywall()` it still holds the PRE-purchase
-   * value — the user has just bought the entitlement and the closure would say
-   * they don't have it, silently skipping the prompt in the one case it exists
-   * for. `hasEntitlement()` reads RevenueCat's customer info, which
-   * `showPaywall()` already refreshed via `loadSubscriptionInfo()`.
-   *
-   * It checks ATTENDANCE rather than premium because the Cloud Backup section
-   * itself is gated on `hasAttendance` (see its render block below) — the /sync
-   * API requires that entitlement. Prompting a premium-only buyer would flip a
-   * toggle whose section never renders.
-   *
-   * `profileStore.syncEnabled` needs no such care: it's read off the MobX store
-   * object at call time, so it's always live.
-   *
-   * CHANGED 2026-08-08: split out of `showPurchaseSuccessAlert` and made
-   * awaitable so every purchase path can run it, not just the one that ended on
-   * Settings. See `handleUpgrade`.
-   */
-  const promptCloudBackup = useCallback(async (): Promise<boolean> => {
-    const canBackUp = await hasEntitlement(ENTITLEMENTS.ATTENDANCE)
-    if (!canBackUp || profileStore.syncEnabled) return false
-
-    await new Promise<void>((resolve) => {
-      Alert.alert(
-        translate("settingsScreen:subscriptionSuccess"),
-        translate("settingsScreen:subscriptionSuccessBackupMessage"),
-        [
-          {
-            text: translate("settingsScreen:cloudBackupPromptDecline"),
-            style: "cancel",
-            onPress: () => {
-              trackEvent("cloud_backup_prompt", { accepted: false })
-              resolve()
-            },
-          },
-          {
-            text: translate("settingsScreen:cloudBackupPromptAccept"),
-            onPress: () => {
-              trackEvent("cloud_backup_prompt", { accepted: true })
-              // Reuse the toggle handler rather than setting syncEnabled here —
-              // it owns the analytics event and the initialBackup() kickoff, and
-              // its fire-and-forget semantics are documented at its definition.
-              // Not awaited, so navigating away immediately after is safe.
-              handleSyncToggle(true)
-              resolve()
-            },
-          },
-        ],
-        // Android-only options. Belt and braces: `cancelable: false` blocks the
-        // back-press/outside-tap dismissal, and `onDismiss` settles the promise
-        // anyway if one ever gets through.
-        { cancelable: false, onDismiss: () => resolve() },
-      )
-    })
-
-    return true
-  }, [profileStore, handleSyncToggle])
+  // The post-purchase cloud-backup prompt used to live here as a screen-local
+  // useCallback. MOVED 2026-09-14 to useCloudBackupPrompt so the Restore
+  // Purchases handlers (here and in onboarding) can share it. Same contract:
+  // awaits the tap, re-reads the entitlement, returns whether it showed.
 
   /**
    * Post-purchase success dialog for a purchase that ends on Settings. The
@@ -801,6 +723,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     const restored = await restore()
     if (restored) {
       showToast({ tx: "subscription:restoreSuccess", type: "success" })
+      // ADDED 2026-09-14: a restored subscriber (typically a second device)
+      // was never asked to turn Cloud Backup on — only the purchase paths
+      // prompted, and the launch-time BackupPassRunner had already decided
+      // before the restore. No-ops when backup is already on.
+      await promptCloudBackup(RESTORE_BACKUP_PROMPT_COPY)
     } else {
       showToast({ tx: "subscription:restoreFailed", type: "error" })
     }

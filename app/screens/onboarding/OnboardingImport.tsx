@@ -16,6 +16,7 @@ import { Text } from "@/components/Text"
 import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceRepo, attendanceReportRepo } from "@/db"
+import { RESTORE_BACKUP_PROMPT_COPY, useCloudBackupPrompt } from "@/hooks/useCloudBackupPrompt"
 import { useJournalExport } from "@/hooks/useJournalExport"
 import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
@@ -205,6 +206,7 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
   const { restore } = useSubscription()
+  const { promptCloudBackup } = useCloudBackupPrompt()
   const { showToast } = useToast()
   const [importing, setImporting] = useState(false)
   const [restoring, setRestoring] = useState(false)
@@ -285,6 +287,10 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
     setRestoring(false)
     if (restored) {
       showToast({ tx: "subscription:restoreSuccess", type: "success" })
+      // ADDED 2026-09-14: same opt-in the Settings restore path shows. The
+      // user stays on this screen while the native alert is up; import/skip
+      // continue afterwards as usual.
+      await promptCloudBackup(RESTORE_BACKUP_PROMPT_COPY)
     } else {
       showToast({ tx: "subscription:restoreFailed", type: "error" })
     }

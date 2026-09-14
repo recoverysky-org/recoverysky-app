@@ -42,6 +42,7 @@ import { translate } from "@/i18n"
 import { useStores } from "@/models"
 import { attendanceSync } from "@/services/sync"
 import { BACKUP_PASS_ID, decideBackupPass } from "@/services/sync/backupPassLogic"
+import { enableCloudBackup } from "@/services/sync/enableCloudBackup"
 import { trackEvent } from "@/services/tracking"
 import { logger } from "@/utils/logger"
 import { loadString, saveString } from "@/utils/storage"
@@ -111,14 +112,12 @@ export const BackupPassRunner = observer(function BackupPassRunner(): null {
         {
           text: translate("settingsScreen:cloudBackupPromptAccept"),
           onPress: () => {
-            // Mirrors SettingsScreen's handleSyncToggle(true) — kept in step
-            // by hand because that handler is a screen-local useCallback. If
-            // the enable path ever grows a third step, extract it into
-            // app/services/sync and call it from both places.
-            profileStore.setSyncEnabled(true)
-            trackEvent("cloud_backup_toggle", { enabled: true })
+            // Used to mirror SettingsScreen's handleSyncToggle(true) by hand.
+            // CHANGED 2026-09-14: the third caller (the post-restore prompt)
+            // arrived, so the enable step was extracted into
+            // app/services/sync/enableCloudBackup and all three share it.
             trackEvent("cloud_backup_pass", { action: "accepted" })
-            void attendanceSync.initialBackup()
+            enableCloudBackup(profileStore)
           },
         },
       ],
