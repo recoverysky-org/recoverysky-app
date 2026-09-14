@@ -325,9 +325,12 @@ const es: Translations = {
     subscriptionSuccessMessage:
       "Gracias por apoyar a RecoverySky. ¡Disfruta de tus funciones premium!",
     subscriptionSuccessBackupMessage:
-      "Gracias por apoyar a RecoverySky. ¿Quieres respaldar tu historial de asistencia y mantenerlo sincronizado entre tus dispositivos?",
+      "Gracias por apoyar a RecoverySky. ¿Quieres respaldar tu historial de asistencia y mantenerlo sincronizado entre tus dispositivos? Tu asistencia está cifrada en tu dispositivo, en tránsito y en reposo en la nube.",
     cloudBackupPromptAccept: "Respaldar asistencia",
     cloudBackupPromptDecline: "Ahora no",
+    cloudBackupPassTitle: "¿Respaldar tu asistencia?",
+    cloudBackupPassMessage:
+      "Tu suscripción incluye respaldo en la nube, pero no está activado en este dispositivo. Actívalo para mantener tu historial de asistencia seguro y sincronizado entre tus dispositivos. Tu asistencia está cifrada en tu dispositivo, en tránsito y en reposo en la nube.",
     restoreSuccess: "Compras Restauradas",
     restoreSuccessMessage: "Tu suscripción ha sido restaurada exitosamente.",
     restoreNoSubscription: "No se Encontró Suscripción",
@@ -335,7 +338,8 @@ const es: Translations = {
     // Cloud Backup Section
     backupSection: "Copia de seguridad",
     cloudBackup: "Respaldar asistencia",
-    cloudBackupHint: "Mantén tu historial de asistencia seguro y sincronizado entre dispositivos",
+    cloudBackupHint:
+      "Mantén tu historial de asistencia seguro y sincronizado entre dispositivos. Cifrado en tu dispositivo, en tránsito y en la nube.",
     backupBackingUp: "Respaldando…",
     backupSyncing: "Sincronizando…",
     backupAllBackedUp: "Todo respaldado ✓ · {{time}}",

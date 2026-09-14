@@ -287,7 +287,7 @@ const fr: Translations = {
     backupSection: "Sauvegarde cloud",
     cloudBackup: "Sauvegarder la présence",
     cloudBackupHint:
-      "Gardez votre historique de présence en sécurité et synchronisé entre vos appareils",
+      "Gardez votre historique de présence en sécurité et synchronisé entre vos appareils. Chiffré sur votre appareil, en transit et dans le cloud.",
     backupBackingUp: "Sauvegarde en cours…",
     backupSyncing: "Synchronisation…",
     backupAllBackedUp: "Tout est sauvegardé ✓ · {{time}}",
@@ -341,9 +341,12 @@ const fr: Translations = {
     subscriptionSuccessMessage:
       "Merci de soutenir RecoverySky. Profite bien de tes fonctions premium!",
     subscriptionSuccessBackupMessage:
-      "Merci de soutenir RecoverySky. Veux-tu sauvegarder ton historique de présence et le garder synchronisé entre tes appareils?",
+      "Merci de soutenir RecoverySky. Veux-tu sauvegarder ton historique de présence et le garder synchronisé entre tes appareils? Tes données de présence sont chiffrées sur ton appareil, en transit et au repos dans le cloud.",
     cloudBackupPromptAccept: "Sauvegarder la présence",
     cloudBackupPromptDecline: "Pas maintenant",
+    cloudBackupPassTitle: "Sauvegarder ton historique de présence?",
+    cloudBackupPassMessage:
+      "Ton abonnement inclut la sauvegarde dans le cloud, mais elle n'est pas activée sur cet appareil. Active-la pour garder ton historique de présence en sécurité et synchronisé entre tes appareils. Tes données de présence sont chiffrées sur ton appareil, en transit et au repos dans le cloud.",
     restoreSuccess: "Achats restaurés",
     restoreSuccessMessage: "Ton abonnement a été restauré avec succès.",
     restoreNoSubscription: "Aucun abonnement trouvé",

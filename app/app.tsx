@@ -55,6 +55,7 @@ import {
   ReportPollingResumer,
   TimerSessionResumer,
   SyncResumer,
+  BackupPassRunner,
 } from "./db"
 // Not via the ./db barrel — see the note beside the barrel's resumer exports.
 import { FavoritesMigrator } from "./db/FavoritesMigrator"
@@ -1199,6 +1200,7 @@ export function App() {
                 <ReportPollingResumer />
                 <TimerSessionResumer />
                 <SyncResumer />
+                <BackupPassRunner />
                 <FavoritesMigrator />
                 <MeetingProvider>
                   <ThemeProvider>

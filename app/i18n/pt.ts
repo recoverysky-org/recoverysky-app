@@ -281,7 +281,8 @@ const pt: Translations = {
     // Cloud Backup Section
     backupSection: "Backup na nuvem",
     cloudBackup: "Fazer backup da presença",
-    cloudBackupHint: "Mantenha seu histórico de presença seguro e sincronizado entre dispositivos",
+    cloudBackupHint:
+      "Mantenha seu histórico de presença seguro e sincronizado entre dispositivos. Criptografado no seu dispositivo, em trânsito e na nuvem.",
     backupBackingUp: "Fazendo backup…",
     backupSyncing: "Sincronizando…",
     backupAllBackedUp: "Tudo salvo ✓ · {{time}}",
@@ -335,9 +336,12 @@ const pt: Translations = {
     subscriptionSuccessMessage:
       "Obrigado por apoiar o RecoverySky. Aproveite seus recursos premium!",
     subscriptionSuccessBackupMessage:
-      "Obrigado por apoiar o RecoverySky. Quer fazer backup do seu histórico de presença e mantê-lo sincronizado entre seus dispositivos?",
+      "Obrigado por apoiar o RecoverySky. Quer fazer backup do seu histórico de presença e mantê-lo sincronizado entre seus dispositivos? Sua presença é criptografada no seu dispositivo, em trânsito e em repouso na nuvem.",
     cloudBackupPromptAccept: "Fazer backup da presença",
     cloudBackupPromptDecline: "Agora não",
+    cloudBackupPassTitle: "Fazer backup da sua presença?",
+    cloudBackupPassMessage:
+      "Sua assinatura inclui backup na nuvem, mas ele não está ativado neste dispositivo. Ative-o para manter seu histórico de presença seguro e sincronizado entre seus dispositivos. Sua presença é criptografada no seu dispositivo, em trânsito e em repouso na nuvem.",
     restoreSuccess: "Compras Restauradas",
     restoreSuccessMessage: "Sua assinatura foi restaurada com sucesso.",
     restoreNoSubscription: "Nenhuma Assinatura Encontrada",

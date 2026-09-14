@@ -71,6 +71,7 @@ Three ideas carry the whole thing:
 | `app/services/sync/attendanceSyncService.ts` | The engine. A DI factory — all I/O arrives as `deps`. Owns `syncState`, the reentrancy guards, backoff, and pacing. |
 | `app/services/sync/index.ts` | The wiring. Builds the real `deps`, owns the gate, queue ownership, and the four triggers. |
 | `app/db/repositories.ts` | The mutation hook, `attendanceSyncWriter`, `syncQueueRepo`. |
+| `app/services/sync/backupPassLogic.ts` + `app/db/BackupPassRunner.tsx` | The one-off backup pass (see its section). |
 | `app/models/ProfileStore.ts` | `syncEnabled` (MMKV, default false). |
 | `app/screens/SettingsScreen.tsx` | The opt-in toggle and `SyncStatusLine`. |
 
@@ -105,6 +106,8 @@ There is no polling and no OS background task. Sync runs on:
 3. **The Attendance screen gaining focus** → `fullSync()`.
 4. **The gate transitioning closed → open** (a MobX reaction) → `fullSync()`.
 5. **Cold start**, after boot reconciliation → `fullSync()`.
+6. **The one-off backup pass** (`BackupPassRunner`, see below) → a full
+   `initialBackup()` for entitled users with backup on, once per pass id.
 
 ## Queue ownership
 
@@ -254,6 +257,41 @@ ownership mechanism. Every change to it must be exercised by hand:
 Then repeat steps 1–4 signing back in as **A**, and assert the offline edit
 survives and reaches the server. Both halves matter — a fix for one has twice
 broken the other during development.
+
+## The one-off backup pass
+
+ADDED 2026-09-14. `app/db/BackupPassRunner.tsx` (I/O) + the pure, vitest-covered
+`app/services/sync/backupPassLogic.ts` (decision).
+
+The toggle is per-device MMKV, and the only prompt to turn it on was the
+post-purchase dialog on the purchasing device. A subscriber's second device, or
+anyone who declined at purchase time, was never asked again. And an
+`initialBackup()` that died mid-flight was never re-run — `fullSync()` drains
+what is queued but never re-enqueues the history.
+
+Once per launch, after the DB is open **and** RevenueCat has answered
+(`isLoading` false — deciding earlier reads every entitled user as unentitled),
+`decideBackupPass()` returns one of:
+
+| Situation | Action | Pass consumed? |
+| --- | --- | --- |
+| Already done for `BACKUP_PASS_ID` | `skip` | — |
+| Signed out, anonymous, or not entitled | `skip` | **No** — a user who subscribes later gets it on their first launch after that, on every device |
+| Offline or maintenance | `skip` | **No** — `initialBackup()`'s gate would no-op with no signal back, so this defers instead of burning the shot |
+| Entitled, backup off | `prompt` | Yes, on either answer ("ask once, never again") |
+| Entitled, backup on | `backup` → `void initialBackup()` | Yes, when fired — the durable outbox, not the pass, guarantees completion |
+
+The consumed marker is MMKV `sync.backupPass.done` = `BACKUP_PASS_ID`. **To run
+another pass for everyone, bump the constant.** That is the whole mechanism.
+
+The pull cursor is deliberately NOT reset. A "full" backup means a full *push*
+(every local row re-enqueued) plus the local-state-driven report body backfill.
+Re-pulling from zero would let the server's older copy overwrite a local edit
+whose push had failed three times and dropped out of the dirty check — the
+exact rows the pass exists to rescue.
+
+Accepting the prompt does what `handleSyncToggle(true)` does in Settings; the
+two are kept in step by hand (comment at the call site). Skipped on web.
 
 ## Known issues
 

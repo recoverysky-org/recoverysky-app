@@ -389,6 +389,35 @@ export async function logoutUser(): Promise<Result<CustomerInfo>> {
 }
 
 /**
+ * Attach the user's email to the current RevenueCat customer (`$email`
+ * subscriber attribute) so support can find a subscriber by address in the
+ * RC dashboard.
+ *
+ * ADDED 2026-09-14: RC had no email on any customer because nothing ever
+ * called this. Must run AFTER `configure`/`logIn` so the attribute lands on
+ * the identified customer, not the anonymous one. The decision of whether
+ * there is anything to send lives in the pure `resolveEmailAttribute()`
+ * (`emailAttributeLogic.ts`) — callers pass only a resolved, non-empty email.
+ * The SDK caches attributes and only syncs changed values, so calling this on
+ * every launch is cheap. The address itself is never logged.
+ */
+export async function setUserEmail(email: string): Promise<Result<void>> {
+  try {
+    await Purchases.setEmail(email)
+    log.debug("Set RevenueCat email attribute")
+    return { ok: true, value: undefined }
+  } catch (error) {
+    const purchasesError = error as PurchasesError
+    log.warn("Failed to set RevenueCat email attribute", { error: purchasesError.message })
+    return {
+      ok: false,
+      error: purchasesError.message,
+      code: purchasesError.code,
+    }
+  }
+}
+
+/**
  * Sync existing purchases with RevenueCat
  *
  * Reads the on-device App Store receipt and sends it to RevenueCat for validation.

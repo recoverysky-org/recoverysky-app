@@ -22,7 +22,34 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+- **RevenueCat customers now carry the user's email.** Every customer in the
+  RevenueCat dashboard showed no email, so support could not find a subscriber
+  by address. The app now forwards the signed-in Auth0 email as the `$email`
+  subscriber attribute right after RevenueCat is configured and again after
+  each sign-in identity switch. Existing users are backfilled the first time
+  they launch after this ships; anonymous (device-id) customers get nothing.
+  Decision logic in the vitest-covered `emailAttributeLogic.ts`. A server-side
+  backfill for users who never relaunch is deferred until the Auth0 Management
+  API is reachable again.
+- **One-off cloud-backup pass on the next cold start.** Cloud Backup is a
+  per-device toggle, and the only prompt to turn it on fired on the device
+  where the subscription was bought — so a subscriber's second device, or
+  anyone who tapped "Not now" at purchase time, was never asked again and
+  their attendance sat unbacked-up. On the next launch, a signed-in user with
+  the attendance entitlement is now asked once (never again) to turn backup on
+  if it is off, and gets a full backup run automatically if it is already on.
+  The full run re-enqueues the entire local history, which also repairs any
+  earlier initial backup that died mid-flight (offline, outage) and was never
+  retried. Offline or maintenance at launch defers the pass to the next launch
+  rather than burning it. `BackupPassRunner` + the vitest-covered
+  `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
+
+### Changed
+- **Backup copy now says the data is encrypted** — on the device, in transit,
+  and at rest in the cloud — in the post-purchase prompt, the new cold-start
+  prompt, and the Settings Cloud Backup hint. Nine locales; non-English text is
+  best-effort and queued in `docs/translation-review-2026-08-03.md`.
 
 ## [4.10.1-2] — 2026-09-14
 
