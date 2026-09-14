@@ -55,6 +55,22 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
 
 ### Fixed
+- **Live tab refills itself when a cold-start outage ends, and no longer
+  empties when a refresh fails mid-session.** Two halves of one UX hole in
+  the Live meetings feed (`MeetingContext`). (1) The auto-refresh watched
+  `maintenanceMode` alone, but the cold-start outage path (`/status/ready`
+  precheck failed → full-screen MaintenanceScreen) never sets that flag, so
+  when the outage cleared nothing refetched and Live showed "no meetings"
+  until a manual pull. Production masked it because outage recovery reloads
+  the whole app; `Updates.reloadAsync` throws in dev builds, which is where
+  it surfaced. The refresh now fires on the recovery edge of *either* flag,
+  and the fetch is skipped (not retried for ~47 s) while either is up.
+  (2) A failed `getLiveSchedules` used to clear the list, so the first
+  quarter-hour poll that timed out as the API slid into maintenance wiped a
+  list the user was looking at. The last successful list is now kept; the
+  next successful refresh replaces it. Pure decisions in
+  `connectivityLogic.ts` (`isLiveRefreshBlocked`, `isServiceRecoveryEdge`),
+  vitest-covered.
 - **Persisted sign-in record no longer exceeds SecureStore's 2048-byte
   limit.** The `auth_credentials_v1` record stored the Auth0 ID token beside
   the access and refresh tokens; the ID token alone is ~1.3 KB of profile

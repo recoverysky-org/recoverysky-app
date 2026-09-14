@@ -5,6 +5,8 @@ import {
   decideOutageVariant,
   shouldFlipMaintenanceOnPollFailure,
   shouldSkipConfigPoll,
+  isLiveRefreshBlocked,
+  isServiceRecoveryEdge,
 } from "./connectivityLogic"
 
 describe("decideBanner", () => {
@@ -87,5 +89,41 @@ describe("shouldSkipConfigPoll", () => {
 
   it("polls normally while online", () => {
     expect(shouldSkipConfigPoll({ isOffline: false })).toBe(false)
+  })
+})
+
+describe("isLiveRefreshBlocked", () => {
+  it("is not blocked when the service is healthy", () => {
+    expect(isLiveRefreshBlocked({ maintenanceMode: false, outageMode: false })).toBe(false)
+  })
+
+  it("is blocked by runtime maintenance", () => {
+    expect(isLiveRefreshBlocked({ maintenanceMode: true, outageMode: false })).toBe(true)
+  })
+
+  it("is blocked by cold-start outage — the flag maintenance never sets on that path", () => {
+    // A cold start whose /status/ready precheck fails sets outageMode ONLY;
+    // maintenanceMode stays false for the whole outage. Watching maintenance
+    // alone is how Live stayed empty after the outage cleared.
+    expect(isLiveRefreshBlocked({ maintenanceMode: false, outageMode: true })).toBe(true)
+  })
+})
+
+describe("isServiceRecoveryEdge", () => {
+  it("fires on the blocked → unblocked transition", () => {
+    expect(isServiceRecoveryEdge(true, false)).toBe(true)
+  })
+
+  it("does not fire when blocking begins", () => {
+    expect(isServiceRecoveryEdge(false, true)).toBe(false)
+  })
+
+  it("does not fire while steady in either state", () => {
+    expect(isServiceRecoveryEdge(false, false)).toBe(false)
+    expect(isServiceRecoveryEdge(true, true)).toBe(false)
+  })
+
+  it("treats an unknown previous state as no edge — the initial refresh already ran", () => {
+    expect(isServiceRecoveryEdge(undefined, false)).toBe(false)
   })
 })

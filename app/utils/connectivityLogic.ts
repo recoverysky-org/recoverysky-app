@@ -74,3 +74,42 @@ export function shouldFlipMaintenanceOnPollFailure(i: {
 export function shouldSkipConfigPoll(i: { isOffline: boolean }): boolean {
   return i.isOffline
 }
+
+/**
+ * Is the Live meetings fetch pointless right now? Either service-side state
+ * means `getLiveSchedules` cannot succeed and should not be attempted:
+ *
+ * - `maintenanceMode` — runtime maintenance (server flag, or an online
+ *   device's exhausted /config retries). Banner UX.
+ * - `outageMode` — cold-start outage (`/status/ready` precheck failed, or
+ *   /config failed / reported maintenance on a cold cache). Full-screen UX.
+ *
+ * ADDED 2026-09-14: MeetingContext used to watch `maintenanceMode` alone.
+ * On the cold-start outage path `maintenanceMode` never becomes true — the
+ * precheck fails before /config is ever fetched — so when the outage cleared
+ * there was no true→false edge to fire the refresh, and the Live list stayed
+ * empty until a manual pull. Production was masked because outage recovery
+ * reloads the whole app (`Updates.reloadAsync`), which re-runs the initial
+ * fetch; `reloadAsync` throws in `__DEV__`, which is where the empty list
+ * was seen. Observing both flags makes the refresh independent of whether
+ * that reload succeeds.
+ */
+export function isLiveRefreshBlocked(i: {
+  maintenanceMode: boolean
+  outageMode: boolean
+}): boolean {
+  return i.maintenanceMode || i.outageMode
+}
+
+/**
+ * Did the service just become usable again? True only on the blocked →
+ * unblocked transition. `wasBlocked` is `undefined` on a reaction's first
+ * evaluation (no previous value); that is not an edge — the mount-time
+ * refresh already covers the initial state.
+ */
+export function isServiceRecoveryEdge(
+  wasBlocked: boolean | undefined,
+  isBlocked: boolean,
+): boolean {
+  return wasBlocked === true && !isBlocked
+}

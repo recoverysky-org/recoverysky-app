@@ -495,7 +495,13 @@ because the full-screen takes over.
 true:**
 - `MeetingProvider.refreshLiveMeetings()` (`app/context/MeetingContext.tsx`)
   — early-returns; the existing maintenance-exit reaction fires a
-  refresh automatically when the flag clears.
+  refresh automatically when the flag clears. CHANGED 2026-09-14: the
+  guard and the reaction both use `isLiveRefreshBlocked()` (maintenance
+  OR `outageMode`) — the outage path never sets `maintenanceMode`, so
+  watching it alone left Live empty after an outage cleared whenever the
+  recovery reload didn't run (`Updates.reloadAsync` throws in `__DEV__`).
+  A failed refresh also keeps the last successful list rather than
+  clearing it; don't reintroduce `setLiveMeetings([])` on the error path.
 - `ListingsScreen.fetchDailySchedules()` (`app/screens/ListingsScreen.tsx`)
   — separate path from MeetingContext (the Listings tab's own
   pull-to-refresh hits this directly), so it needs its own gate. Also

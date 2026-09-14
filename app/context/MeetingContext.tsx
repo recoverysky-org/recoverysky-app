@@ -20,6 +20,7 @@ import { reaction } from "mobx"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
 import { api, type ScheduleDataRow } from "@/services/api"
+import { isLiveRefreshBlocked, isServiceRecoveryEdge } from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
 
 import { projectOnline } from "./meetingPools"
@@ -199,13 +200,24 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Auto-refresh when maintenance mode ends so meetings are up to date
+  // Auto-refresh when maintenance mode ends so meetings are up to date.
+  // CHANGED 2026-09-14: observes the combined blocked flag (maintenance OR
+  // cold-start outage), not `maintenanceMode` alone. On the outage path
+  // maintenance never flips true, so there was no edge to fire on and the
+  // Live list sat empty after the outage cleared until a manual pull.
+  // Production hid this because outage recovery reloads the app — but
+  // `Updates.reloadAsync` throws in `__DEV__`, and relying on the reload is
+  // fragile anyway. See `isLiveRefreshBlocked` for the full story.
   useEffect(() => {
     const dispose = reaction(
-      () => configStore.maintenanceMode,
-      (inMaintenance, was) => {
-        if (was && !inMaintenance) {
-          log.info("Maintenance ended, refreshing live meetings")
+      () =>
+        isLiveRefreshBlocked({
+          maintenanceMode: configStore.maintenanceMode,
+          outageMode: configStore.outageMode,
+        }),
+      (isBlocked, wasBlocked) => {
+        if (isServiceRecoveryEdge(wasBlocked, isBlocked)) {
+          log.info("Maintenance/outage ended, refreshing live meetings")
           setRefreshTrigger((prev) => prev + 1)
         }
       },
@@ -246,8 +258,18 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       // We keep showing whatever cached schedules we already have. The
       // existing maintenance-exit reaction above will trigger a refresh
       // automatically when the flag clears.
-      if (configStore.maintenanceMode) {
-        log.debug("Skipping live meetings refresh — maintenance mode")
+      // CHANGED 2026-09-14: also skips during cold-start outage. The
+      // MaintenanceScreen is up and the API just failed its precheck, so the
+      // ~47 s retry ladder could only burn radio and log a guaranteed
+      // `getLiveSchedules(online) failed`. The recovery-edge reaction above
+      // fetches the moment either flag clears.
+      if (
+        isLiveRefreshBlocked({
+          maintenanceMode: configStore.maintenanceMode,
+          outageMode: configStore.outageMode,
+        })
+      ) {
+        log.debug("Skipping live meetings refresh — maintenance/outage mode")
         setIsLoading(false)
         return
       }
@@ -280,7 +302,13 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         // should carry the actual failure, not a generic string.
         const kind = "result" in outcome ? outcome.result.kind : outcome.error
         setError(`Network error: live schedules unavailable (${kind})`)
-        setLiveMeetings([])
+        // CHANGED 2026-09-14: a failed refresh no longer clears `liveMeetings`.
+        // This used to `setLiveMeetings([])`, so the first quarter-hour poll
+        // that timed out while the API slid into maintenance wiped a list the
+        // user was looking at, and the Live tab showed "no meetings" until
+        // the service came back. The last successful list is the better
+        // fallback: a stale meeting is more useful than none, `error` still
+        // records the failure, and the next successful refresh replaces it.
         setIsLoading(false)
         return
       }
@@ -309,6 +337,12 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     }
 
     refreshLiveMeetings()
+    // `configStore.maintenanceMode` / `outageMode` are read inside but are
+    // deliberately NOT deps: this effect must fire only on `refreshTrigger`.
+    // The flags are observed by the MobX reaction above, which bumps the
+    // trigger on the recovery edge; listing them here would run a second,
+    // duplicate refresh on every flip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger])
 
   // ============================================================================
