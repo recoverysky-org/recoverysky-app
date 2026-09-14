@@ -276,7 +276,8 @@ const ar: Translations = {
     // Cloud Backup Section
     backupSection: "النسخ الاحتياطي السحابي",
     cloudBackup: "نسخ الحضور احتياطيًا",
-    cloudBackupHint: "احتفظ بسجل حضورك آمنًا ومتزامنًا عبر أجهزتك",
+    cloudBackupHint:
+      "احتفظ بسجل حضورك آمنًا ومتزامنًا عبر أجهزتك. مشفّر على جهازك وأثناء النقل وفي السحابة.",
     backupBackingUp: "جارٍ النسخ الاحتياطي…",
     backupSyncing: "جارٍ المزامنة…",
     backupAllBackedUp: "تم النسخ الاحتياطي ✓ · {{time}}",
@@ -329,9 +330,12 @@ const ar: Translations = {
     subscriptionSuccess: "مرحباً بك في المميز!",
     subscriptionSuccessMessage: "شكراً لدعمك لـ RecoverySky. استمتع بالميزات المميزة!",
     subscriptionSuccessBackupMessage:
-      "شكراً لدعمك لـ RecoverySky. هل تريد نسخ سجل حضورك احتياطيًا والاحتفاظ به متزامنًا عبر أجهزتك؟",
+      "شكراً لدعمك لـ RecoverySky. هل تريد نسخ سجل حضورك احتياطيًا والاحتفاظ به متزامنًا عبر أجهزتك؟ بيانات حضورك مشفّرة على جهازك وأثناء النقل وأثناء التخزين في السحابة.",
     cloudBackupPromptAccept: "نسخ الحضور احتياطيًا",
     cloudBackupPromptDecline: "ليس الآن",
+    cloudBackupPassTitle: "نسخ حضورك احتياطيًا؟",
+    cloudBackupPassMessage:
+      "يتضمن اشتراكك النسخ الاحتياطي السحابي، لكنه غير مفعّل على هذا الجهاز. فعّله للاحتفاظ بسجل حضورك آمنًا ومتزامنًا عبر أجهزتك. بيانات حضورك مشفّرة على جهازك وأثناء النقل وأثناء التخزين في السحابة.",
     restoreSuccess: "تمت استعادة المشتريات",
     restoreSuccessMessage: "تمت استعادة اشتراكك بنجاح.",
     restoreNoSubscription: "لم يتم العثور على اشتراك",

@@ -282,7 +282,8 @@ const de: Translations = {
     // Cloud Backup Section
     backupSection: "Cloud-Backup",
     cloudBackup: "Anwesenheit sichern",
-    cloudBackupHint: "Halte deinen Anwesenheitsverlauf sicher und auf allen Geräten synchron",
+    cloudBackupHint:
+      "Halte deinen Anwesenheitsverlauf sicher und auf allen Geräten synchron. Verschlüsselt auf deinem Gerät, bei der Übertragung und in der Cloud.",
     backupBackingUp: "Sicherung läuft…",
     backupSyncing: "Wird synchronisiert…",
     backupAllBackedUp: "Alles gesichert ✓ · {{time}}",
@@ -336,9 +337,12 @@ const de: Translations = {
     subscriptionSuccessMessage:
       "Danke für deine Unterstützung von RecoverySky. Genieße deine Premium-Funktionen!",
     subscriptionSuccessBackupMessage:
-      "Danke für deine Unterstützung von RecoverySky. Möchtest du deinen Anwesenheitsverlauf sichern und auf allen Geräten synchron halten?",
+      "Danke für deine Unterstützung von RecoverySky. Möchtest du deinen Anwesenheitsverlauf sichern und auf allen Geräten synchron halten? Deine Anwesenheitsdaten sind auf deinem Gerät, bei der Übertragung und in der Cloud verschlüsselt.",
     cloudBackupPromptAccept: "Anwesenheit sichern",
     cloudBackupPromptDecline: "Jetzt nicht",
+    cloudBackupPassTitle: "Anwesenheit sichern?",
+    cloudBackupPassMessage:
+      "Dein Abo enthält die Cloud-Sicherung, aber sie ist auf diesem Gerät nicht aktiviert. Aktiviere sie, um deinen Anwesenheitsverlauf sicher und auf allen Geräten synchron zu halten. Deine Anwesenheitsdaten sind auf deinem Gerät, bei der Übertragung und in der Cloud verschlüsselt.",
     restoreSuccess: "Käufe wiederhergestellt",
     restoreSuccessMessage: "Dein Abonnement wurde erfolgreich wiederhergestellt.",
     restoreNoSubscription: "Kein Abonnement gefunden",

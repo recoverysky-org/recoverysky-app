@@ -297,7 +297,7 @@ SQLite with Drizzle ORM in `app/db/`:
 - **repositories.ts**: Lazy proxy objects over common-lib repository classes — `meetingRepo`, `scheduleRepo`, `attendanceRepo`, `attendanceReportRepo`, `feedbackRepo`, `chatMessageRepo`, `reminderRepo`, `syncQueueRepo`, `attendanceSyncWriter`, `profileRepository`. This file is also the **single mutation choke point** that enqueues to the sync outbox (see "Attendance Cloud Backup & Sync"); `attendanceSyncWriter` is the deliberate bypass used by inbound pulls.
 - **attendanceEvents.ts**: Simple pub/sub for cross-component attendance updates. Event types: `"created" | "processed" | "produced" | "archived" | "delivery_resolved"`. Subscribe in `useEffect`, emit after mutations. `delivery_resolved` includes `deliveryError?: boolean` for report delivery status.
 - **liveEvents.ts** / **reminderEvents.ts**: Similar pub/sub for live meeting preference and reminder changes
-- **Resumer/hydrator components** mounted in the provider tree: `ProfileHydrator`, `ChatHydrator`, `ReportPollingResumer` (restarts delivery polling after a cold start), `TimerSessionResumer` (recovers an external-Zoom timer session killed mid-meeting), `SyncResumer`
+- **Resumer/hydrator components** mounted in the provider tree: `ProfileHydrator`, `ChatHydrator`, `ReportPollingResumer` (restarts delivery polling after a cold start), `TimerSessionResumer` (recovers an external-Zoom timer session killed mid-meeting), `SyncResumer`, `BackupPassRunner` (the one-off cloud-backup pass — see `docs/BACKUP.md`; bump `BACKUP_PASS_ID` in `backupPassLogic.ts` to run it again)
 
 Migrations come from `@recoverysky-org/common/sqlite` (the `migrations` export), using the `useMigrations` hook.
 

@@ -789,3 +789,16 @@ one to check carefully: it has to say plainly that the local data cannot be
 recovered without the key, that Reset starts fresh on this device only, and that
 cloud-backed-up attendance syncs back after sign-in. `resetLocalData` is also the
 destructive button label in the confirm dialog, so it must read as an action.
+
+## 2026-09-14 — Cloud-backup pass + encryption sentence, 32 strings (8 locales × 4 keys)
+
+`settingsScreen.cloudBackupPassTitle`, `settingsScreen.cloudBackupPassMessage`
+(new), plus a sentence appended to `settingsScreen.subscriptionSuccessBackupMessage`
+and `settingsScreen.cloudBackupHint` (existing) — best-effort translations in ar,
+de, es, fr, pt, ru, th, uk. The sentence to check is the encryption claim: it must
+say the attendance data is encrypted **on the device**, **in transit**, and **at
+rest in the cloud** — all three, no more and no less, because it is a factual
+statement about the system. `cloudBackupHint` is a one-line Settings subtitle, so
+its shorter form ("on your device, in transit, and in the cloud") is fine as long
+as the three places survive. `fr` is inconsistent on purpose: the prompt strings
+use *tu* to match the existing purchase prompt, the hint keeps the existing *vous*.

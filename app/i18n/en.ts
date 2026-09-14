@@ -348,9 +348,12 @@ const en = {
     subscriptionSuccessMessage:
       "Thank you for supporting RecoverySky. Enjoy your premium features!",
     subscriptionSuccessBackupMessage:
-      "Thank you for supporting RecoverySky. Want to back up your attendance history and keep it synced across your devices?",
+      "Thank you for supporting RecoverySky. Want to back up your attendance history and keep it synced across your devices? Your attendance is encrypted on your device, in transit, and at rest in the cloud.",
     cloudBackupPromptAccept: "Back up attendance",
     cloudBackupPromptDecline: "Not now",
+    cloudBackupPassTitle: "Back up your attendance?",
+    cloudBackupPassMessage:
+      "Your subscription includes cloud backup, but it isn't turned on for this device. Turn it on to keep your attendance history safe and synced across your devices. Your attendance is encrypted on your device, in transit, and at rest in the cloud.",
     restoreSuccess: "Purchases Restored",
     restoreSuccessMessage: "Your subscription has been restored successfully.",
     restoreNoSubscription: "No Subscription Found",
@@ -358,7 +361,8 @@ const en = {
     // Cloud Backup Section
     backupSection: "Cloud Backup",
     cloudBackup: "Back up attendance",
-    cloudBackupHint: "Keep your attendance history safe and synced across devices",
+    cloudBackupHint:
+      "Keep your attendance history safe and synced across devices. Encrypted on your device, in transit, and in the cloud.",
     backupBackingUp: "Backing up…",
     backupSyncing: "Syncing…",
     backupAllBackedUp: "All backed up ✓ · {{time}}",
