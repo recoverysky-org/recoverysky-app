@@ -22,7 +22,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [4.10.1-2] — 2026-09-14
+
 ### Changed
+- **Database open failures are logged once per attempt with a
+  classification** (`kind`, `attempt`, `hadConnection`, `encryptedFileBytes`,
+  `retryInMs`) and the first line of the error, instead of the full multi-line
+  migration SQL on every one of hundreds of retries. `earlyOpen` logs the same
+  shape at WARN and closes the singleton connection when it fails, so
+  `DatabaseProvider` opens a fresh one instead of inheriting a latched codec
+  error.
 - **Attendance timer recovery no longer discards old sessions.** The
   cold-start resumer (`TimerSessionResumer`) used to silently throw away a
   persisted timer older than 6 hours, and the navigation lock's MMKV seed
@@ -35,6 +46,35 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   corrected by editing the record in Attendance.
 
 ### Fixed
+- **Encrypted database no longer bricks an install when its key goes missing,
+  and the provider no longer hammers a broken database.** (RS-024.) Seven iOS
+  devices in a week hit `Error code 7: out of memory` on the first statement
+  after `PRAGMA key`; that message is SQLCipher's wrong-key signature, not a
+  memory problem. Two things were wrong. `DatabaseProvider` had `status` in its
+  open callback's deps, so every failure re-fired the mount effect instantly —
+  ~29 attempts a second on the same poisoned connection, 320 ERROR lines per
+  device, and a user stuck on the loading overlay with no way out but deleting
+  the app. And the key service treated "no key in SecureStore" as "first
+  launch" and minted a fresh key even when an encrypted database was already on
+  disk, which can never open that file and overwrites the slot the real key
+  could have come back to. Now: the key step refuses to generate over an
+  existing encrypted file; the open runs once per mount, releases the
+  connection on failure, backs off (1 s / 5 s / 30 s / 60 s) for transient
+  causes, retries when the app comes to the foreground, and stops for a wrong
+  or missing key; and the overlay shows what went wrong with a Retry button
+  plus a confirmed **Reset local data** action for the unrecoverable case.
+  Decisions live in the vitest-covered `app/db/dbOpenLogic.ts`.
+- **Delete User Data no longer leaves the app unable to start.** It cleared
+  the SQLCipher key but left the encrypted database file, so the next cold
+  start had no key for a file that still existed (two of the seven RS-024
+  devices, both needed a reinstall). It now deletes the database and its key
+  together and restarts the app — which also makes it actually delete
+  attendance rows, as the name promises.
+- **Background launches while the phone is locked no longer spin forever.**
+  SecureStore returns `User interaction is not allowed` (errSecInteractionNotAllowed)
+  when a silent push wakes the app before the device is unlocked; one process
+  retried that for 14 hours. It is now classified as transient, backed off,
+  and retried on the next foreground transition.
 - **Report delivery polling no longer runs forever against reports it can
   never see.** A Loki sweep found one 4.10.1 device signed in with its Google
   identity polling six reports created under the user's email identity: 710

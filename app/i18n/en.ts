@@ -60,6 +60,13 @@ const en = {
     seeding: "Seeding database...",
     reencrypting: "Securing your data...",
     error: "Database error",
+    keychainUnavailable: "Waiting for your device to unlock…",
+    keyLostTitle: "Can't unlock your local data",
+    keyLostBody:
+      "The key that protects this device's local data is missing or no longer matches it. That data can't be recovered without the key. Resetting starts fresh on this device; attendance you backed up to the cloud syncs back after you sign in.",
+    resetLocalData: "Reset local data",
+    resetConfirmTitle: "Reset local data?",
+    resetConfirmBody: "This deletes the local database on this device. It cannot be undone.",
   },
   loginScreen: {
     logIn: "Log In",

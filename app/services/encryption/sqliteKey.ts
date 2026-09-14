@@ -20,29 +20,50 @@ const log = logger.child({ module: "sqliteKey" })
 const SQLITE_KEY = "sqlite_encryption_key_v1"
 
 /**
- * Get or generate SQLite encryption key.
+ * Load the stored SQLite encryption key, or null when the keychain has none.
  *
- * On first call (no stored key), generates a random 32-byte key (256-bit AES)
- * and stores it in SecureStore. Subsequent calls return the stored key.
+ * Throws when SecureStore itself fails — most importantly
+ * errSecInteractionNotAllowed (-25308), which iOS returns for our
+ * `WHEN_UNLOCKED` item when the app is launched in the background while the
+ * phone is locked. Callers must treat a throw as "try again later", never as
+ * "no key" (see RS-024: the two are worlds apart — one heals on unlock, the
+ * other is a bricked install).
  */
-export async function getSqliteEncryptionKey(): Promise<string> {
-  log.info("getSqliteEncryptionKey()")
-
+export async function loadSqliteEncryptionKey(): Promise<string | null> {
+  log.info("loadSqliteEncryptionKey()")
   try {
-    // Try to load existing key
-    let key = await SecureStore.getItemAsync(SQLITE_KEY)
-
+    const key = await SecureStore.getItemAsync(SQLITE_KEY)
     if (key) {
       log.info("Loaded existing SQLite encryption key from SecureStore")
       return key
     }
+    log.info("No SQLite encryption key in SecureStore")
+    return null
+  } catch (error) {
+    log.error("loadSqliteEncryptionKey failed", { error: String(error) })
+    throw error
+  }
+}
 
-    // Generate new 32-byte key (256-bit for AES)
+/**
+ * Generate a random 32-byte key (256-bit AES), store it in SecureStore, and
+ * return it as a 64-character hex string.
+ *
+ * CHANGED 2026-09-14 (RS-024): this used to be the fallback branch inside a
+ * single get-or-generate function, which minted a fresh key whenever the
+ * keychain came back empty — including on devices that still had an encrypted
+ * database on disk. The new key could never open that file, and storing it
+ * overwrote the only slot the old key could have returned to. The decision of
+ * WHETHER to generate now lives in `app/db/acquireKey.ts` (pure logic in
+ * `dbOpenLogic.ts`), which checks the database file first.
+ */
+export async function generateAndStoreSqliteEncryptionKey(): Promise<string> {
+  try {
     log.info("Generating new SQLite encryption key (first launch)")
     const randomBytes = await Crypto.getRandomBytesAsync(32)
 
     // Convert to hex string (64 characters)
-    key = Array.from(randomBytes)
+    const key = Array.from(randomBytes)
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("")
 
@@ -52,7 +73,7 @@ export async function getSqliteEncryptionKey(): Promise<string> {
 
     return key
   } catch (error) {
-    log.error("getSqliteEncryptionKey failed", { error: String(error) })
+    log.error("generateAndStoreSqliteEncryptionKey failed", { error: String(error) })
     throw error
   }
 }

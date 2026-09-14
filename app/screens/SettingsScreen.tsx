@@ -29,6 +29,7 @@ import { ThemeColorPicker } from "@/components/ThemeColorPicker"
 import { useToast } from "@/components/Toast"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
+import { resetLocalDatabase } from "@/db/resetLocalDatabase"
 import { showLocationDeniedAlert } from "@/hooks/useLocationGate"
 import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
 import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
@@ -44,7 +45,6 @@ import { setPendingMeetingId } from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
-import { clearSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import {
   loginNotificationUser,
   logoutNotificationUser,
@@ -63,6 +63,7 @@ import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { decideLocationGate, shouldRevokeLocationFlag, toOsStatus } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
+import { reloadApp } from "@/utils/reloadApp"
 import { parseReturnTo } from "@/utils/returnToLogic"
 import { clear as clearStorage, saveString } from "@/utils/storage"
 
@@ -539,8 +540,8 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // 5. Clear MMKV storage (all persisted snapshots)
               clearStorage()
 
-              // 6. Clear all secure store data (auth credentials, terms, SQLite key)
-              await Promise.all([clearAllSecureData(), clearSqliteEncryptionKey()])
+              // 6. Clear secure store data (auth credentials, terms)
+              await clearAllSecureData()
 
               // 7. Logout from Auth0 (clear session + MST auth state)
               await logout()
@@ -548,6 +549,24 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // Even if some steps fail, ensure auth is cleared
               authStore.logout()
             }
+
+            // 8. Delete the encrypted database AND its key together, then
+            // restart so every provider comes up on the fresh database.
+            // CHANGED 2026-09-14 (RS-024): this step used to be
+            // `clearSqliteEncryptionKey()` alone, inside step 6. Clearing the
+            // key while the SQLCipher file stayed on disk bricked the next
+            // cold start — no key, so a fresh one was minted, and it could
+            // never open the old file (two devices in Loki, both needed a
+            // reinstall). It also never actually deleted attendance rows,
+            // which "Delete User Data" promises. Outside the try/catch on
+            // purpose: the user confirmed a destructive action, and a failed
+            // Auth0 sign-out must not leave the database half-cleared.
+            try {
+              await resetLocalDatabase()
+            } catch (e) {
+              logger.error("Delete User Data: local database reset failed", { error: String(e) })
+            }
+            await reloadApp()
           },
         },
       ],

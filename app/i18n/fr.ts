@@ -57,6 +57,14 @@ const fr: Translations = {
     seeding: "Chargement des données...",
     reencrypting: "Sécurisation de tes données...",
     error: "Erreur de base de données",
+    keychainUnavailable: "En attente du déverrouillage de ton appareil…",
+    keyLostTitle: "Impossible de déverrouiller tes données locales",
+    keyLostBody:
+      "La clé qui protège les données locales de cet appareil est absente ou ne correspond plus. Ces données ne peuvent pas être récupérées sans la clé. Réinitialiser repart de zéro sur cet appareil ; les présences sauvegardées dans le cloud se resynchronisent après connexion.",
+    resetLocalData: "Réinitialiser les données locales",
+    resetConfirmTitle: "Réinitialiser les données locales ?",
+    resetConfirmBody:
+      "Cela supprime la base de données locale de cet appareil. Cette action est irréversible.",
   },
   loginScreen: {
     logIn: "Se connecter",

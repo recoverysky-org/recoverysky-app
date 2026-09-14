@@ -57,6 +57,14 @@ const de: Translations = {
     seeding: "Daten werden geladen...",
     reencrypting: "Deine Daten werden gesichert...",
     error: "Datenbankfehler",
+    keychainUnavailable: "Warten, bis dein Gerät entsperrt ist…",
+    keyLostTitle: "Deine lokalen Daten können nicht entsperrt werden",
+    keyLostBody:
+      "Der Schlüssel, der die lokalen Daten dieses Geräts schützt, fehlt oder passt nicht mehr dazu. Ohne den Schlüssel lassen sich diese Daten nicht wiederherstellen. Zurücksetzen beginnt auf diesem Gerät neu; in der Cloud gesicherte Anwesenheiten werden nach der Anmeldung wieder synchronisiert.",
+    resetLocalData: "Lokale Daten zurücksetzen",
+    resetConfirmTitle: "Lokale Daten zurücksetzen?",
+    resetConfirmBody:
+      "Dadurch wird die lokale Datenbank auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen.",
   },
   loginScreen: {
     logIn: "Anmelden",

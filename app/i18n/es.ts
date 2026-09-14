@@ -56,6 +56,14 @@ const es: Translations = {
     seeding: "Cargando datos...",
     reencrypting: "Asegurando tus datos...",
     error: "Error de base de datos",
+    keychainUnavailable: "Esperando a que se desbloquee tu dispositivo…",
+    keyLostTitle: "No se pueden desbloquear tus datos locales",
+    keyLostBody:
+      "La clave que protege los datos locales de este dispositivo falta o ya no coincide con ellos. Esos datos no se pueden recuperar sin la clave. Restablecer empieza de cero en este dispositivo; la asistencia respaldada en la nube se sincroniza de nuevo al iniciar sesión.",
+    resetLocalData: "Restablecer datos locales",
+    resetConfirmTitle: "¿Restablecer los datos locales?",
+    resetConfirmBody:
+      "Esto elimina la base de datos local de este dispositivo. No se puede deshacer.",
   },
   loginScreen: {
     logIn: "Iniciar sesión",

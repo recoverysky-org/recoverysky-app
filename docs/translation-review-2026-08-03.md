@@ -779,3 +779,13 @@ read as *your device*, not *our servers*.
 ## 2026-09-09
 
 - common.connectingBanner, errors.attestationUnsupportedMessage, errors.attestationServerFailedMessage — English placeholder in all eight locales.
+
+## 2026-09-14 — Database recovery overlay (RS-024), 48 strings (8 locales × 6 keys)
+
+`database.keychainUnavailable`, `database.keyLostTitle`, `database.keyLostBody`,
+`database.resetLocalData`, `database.resetConfirmTitle`, `database.resetConfirmBody`
+— best-effort translations in ar, de, es, fr, pt, ru, th, uk. `keyLostBody` is the
+one to check carefully: it has to say plainly that the local data cannot be
+recovered without the key, that Reset starts fresh on this device only, and that
+cloud-backed-up attendance syncs back after sign-in. `resetLocalData` is also the
+destructive button label in the confirm dialog, so it must read as an action.

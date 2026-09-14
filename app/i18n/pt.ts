@@ -56,6 +56,14 @@ const pt: Translations = {
     seeding: "Carregando dados...",
     reencrypting: "Protegendo seus dados...",
     error: "Erro no banco de dados",
+    keychainUnavailable: "Aguardando o desbloqueio do seu dispositivo…",
+    keyLostTitle: "Não foi possível desbloquear seus dados locais",
+    keyLostBody:
+      "A chave que protege os dados locais deste dispositivo está ausente ou não corresponde mais a eles. Esses dados não podem ser recuperados sem a chave. Redefinir começa do zero neste dispositivo; a presença salva na nuvem volta a sincronizar depois de entrar.",
+    resetLocalData: "Redefinir dados locais",
+    resetConfirmTitle: "Redefinir os dados locais?",
+    resetConfirmBody:
+      "Isso apaga o banco de dados local deste dispositivo. Não é possível desfazer.",
   },
   loginScreen: {
     logIn: "Entrar",

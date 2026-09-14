@@ -301,6 +301,27 @@ SQLite with Drizzle ORM in `app/db/`:
 
 Migrations come from `@recoverysky-org/common/sqlite` (the `migrations` export), using the `useMigrations` hook.
 
+**Opening the encrypted database (RS-024, 2026-09-14).** `SQLiteErrorException:
+Error code 7: out of memory` on the first statement after `PRAGMA key` is
+SQLCipher's *wrong-key* signature, not memory pressure: a codec failure makes
+`sqlite3Codec` return NULL and the pager maps that to `SQLITE_NOMEM`, and the
+codec latches the error on that connection for good. The rules that fell out of
+it, all in `app/db/`:
+- `acquireKey.ts` decides whether to mint a key (pure logic in
+  `dbOpenLogic.ts`, vitest-covered). **It refuses to generate a key while an
+  encrypted database file exists** — that combination means the keychain lost
+  the key, and a fresh key can only brick the install. Do not "simplify" this
+  back to get-or-generate.
+- `DatabaseProvider` opens once per mount, closes the singleton on failure (a
+  retry on the old handle can never succeed), backs off for transient causes
+  (locked keychain → `errSecInteractionNotAllowed` from a background launch),
+  retries on foreground, and stops for a wrong/missing key so the overlay can
+  offer **Reset local data**. Keep `status` out of the open callback's deps —
+  that dep is what produced 29 attempts a second.
+- The key and the file are one unit: anything that removes one goes through
+  `resetLocalDatabase()` (close → delete file + `-wal`/`-shm`/`-journal` →
+  clear key). Settings → Delete User Data does this and then `reloadApp()`.
+
 ### API Layer
 Apisauce wrapper in `app/services/api/`:
 - Dual auth: device authorization (`X-Device-Token` / `X-API-Key`) + user OAuth (`Authorization: Bearer`)

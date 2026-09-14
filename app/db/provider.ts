@@ -23,18 +23,56 @@ let db: ExpoSQLiteDatabase<typeof schema> | null = null
 let currentEncryptionKey: string | null = null
 
 /**
- * Delete the database file for a clean reseed or encryption migration
+ * The main database file plus the sidecar files SQLite may leave beside it.
+ * Deleting only the main file and leaving a `-wal` / `-journal` behind would
+ * let SQLite "recover" pages encrypted under the old key into the new
+ * database on the next open and fail exactly the way we are trying to reset.
+ */
+function databaseFiles(): File[] {
+  return ["", "-wal", "-shm", "-journal"].map(
+    (suffix) => new File(Paths.document, "SQLite", `${DATABASE_NAME}${suffix}`),
+  )
+}
+
+/**
+ * Delete the database file for a clean reseed or encryption migration.
+ *
+ * CHANGED 2026-09-14 (RS-024): also removes the WAL / SHM / rollback-journal
+ * sidecars (see `databaseFiles`), and requires the singleton connection to be
+ * closed first — expo-sqlite keeps the native handle alive in its own cache
+ * while a JS reference exists, so deleting underneath it would leave the
+ * process reading an unlinked inode until the next launch.
  */
 export async function deleteDatabase(): Promise<void> {
+  if (expoDb) {
+    throw new Error("deleteDatabase: close the database before deleting it")
+  }
+  for (const file of databaseFiles()) {
+    try {
+      if (file.exists) {
+        log.info("Deleting database file", { name: file.name })
+        file.delete()
+      }
+    } catch (error) {
+      log.warn("Failed to delete database file", { name: file.name, error: String(error) })
+    }
+  }
+}
+
+/**
+ * Size of the on-disk database file in bytes; 0 when absent or unreadable.
+ *
+ * Used by the key-acquisition step to tell "first launch" apart from "the
+ * keychain lost our key but the encrypted data is still here" (RS-024). A
+ * zero-byte file counts as absent — SQLCipher treats an empty file as a new
+ * database, so any key opens it.
+ */
+export function encryptedDatabaseBytes(): number {
   try {
     const dbFile = new File(Paths.document, "SQLite", DATABASE_NAME)
-    if (dbFile.exists) {
-      log.info("Deleting database")
-      dbFile.delete()
-      log.info("Database deleted")
-    }
-  } catch (error) {
-    log.warn("Failed to delete database", { error: String(error) })
+    return dbFile.exists ? dbFile.size : 0
+  } catch {
+    return 0
   }
 }
 
@@ -95,15 +133,25 @@ export async function openDb(encryptionKey?: string): Promise<{
 }
 
 /**
- * Close the database (for re-encryption or cleanup)
+ * Close the database (for re-encryption or cleanup).
+ *
+ * CHANGED 2026-09-14 (RS-024): always drops the module singleton, even when
+ * the native close throws. DatabaseProvider now calls this after a failed
+ * open so the next attempt gets a fresh connection: SQLCipher latches a codec
+ * error on the connection that hit it, and expo-sqlite hands the same cached
+ * native handle back for the same path, so retrying on the old handle could
+ * never succeed no matter what fixed the underlying cause.
  */
 export async function closeDb(): Promise<void> {
   if (expoDb) {
     log.info("Closing database")
-    expoDb.closeSync()
-    expoDb = null
-    db = null
-    currentEncryptionKey = null
+    try {
+      expoDb.closeSync()
+    } finally {
+      expoDb = null
+      db = null
+      currentEncryptionKey = null
+    }
     log.debug("Database closed")
   }
 }
