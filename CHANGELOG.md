@@ -23,6 +23,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Added
+- **RevenueCat customers now carry the user's email.** Every customer in the
+  RevenueCat dashboard showed no email, so support could not find a subscriber
+  by address. The app now forwards the signed-in Auth0 email as the `$email`
+  subscriber attribute right after RevenueCat is configured and again after
+  each sign-in identity switch. Existing users are backfilled the first time
+  they launch after this ships; anonymous (device-id) customers get nothing.
+  Decision logic in the vitest-covered `emailAttributeLogic.ts`. A server-side
+  backfill for users who never relaunch is deferred until the Auth0 Management
+  API is reachable again.
 - **One-off cloud-backup pass on the next cold start.** Cloud Backup is a
   per-device toggle, and the only prompt to turn it on fired on the device
   where the subscription was bought — so a subscriber's second device, or

@@ -30,6 +30,10 @@ export {
   presentPaywallIfNeeded,
   loginUser,
   logoutUser,
+  setUserEmail,
   addCustomerInfoListener,
   type SubscriptionInfo,
 } from "./revenueCatService"
+
+// Pure decision logic (vitest-covered)
+export { resolveEmailAttribute, type EmailAttributeInput } from "./emailAttributeLogic"

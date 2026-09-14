@@ -18,7 +18,7 @@ import {
 } from "react"
 import { CustomerInfo } from "react-native-purchases"
 
-import { useConfigStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import {
   initializeRevenueCat,
   getSubscriptionInfo,
@@ -30,6 +30,8 @@ import {
   addCustomerInfoListener,
   loginUser,
   logoutUser,
+  setUserEmail,
+  resolveEmailAttribute,
   type SubscriptionInfo,
 } from "@/services/purchases"
 import { trackEvent } from "@/services/tracking"
@@ -113,6 +115,7 @@ interface SubscriptionProviderProps {
 export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, appUserId }) => {
   const configStore = useConfigStore()
   const profileStore = useProfileStore()
+  const authStore = useAuthenticationStore()
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
@@ -134,6 +137,32 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
       setError(result.error)
     }
   }, [])
+
+  /**
+   * Forward the signed-in user's email to RevenueCat as the `$email`
+   * subscriber attribute.
+   *
+   * ADDED 2026-09-14: RC showed no email on any customer, so support could
+   * not look a subscriber up by address. Reads the auth store at call time
+   * rather than via props because `App` is not an observer — the `appUserId`
+   * prop only refreshes on incidental re-renders, and the email must be the
+   * value in the store at the moment RC becomes identified. `authEmail` is
+   * written in the same synchronous action as `userId` on login, so it is
+   * already present whenever `appUserId` is. Existing users are backfilled
+   * organically the first time they launch after this ships; the pure
+   * `resolveEmailAttribute()` decides whether there is anything to send
+   * (never for anonymous / device-id customers).
+   */
+  const syncEmailAttribute = useCallback(async () => {
+    const email = resolveEmailAttribute({
+      appUserId: authStore.userIdentifier,
+      deviceId: authStore.deviceId,
+      isAnonymous: authStore.isAnonymous,
+      authEmail: authStore.authEmail,
+    })
+    if (!email) return
+    await setUserEmail(email)
+  }, [authStore])
 
   /**
    * Initialize RevenueCat on mount
@@ -167,6 +196,10 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
           log.debug("Migration sync already completed — skipping")
         }
 
+        // Attribute sync runs after configure() so it lands on the identified
+        // customer. Failure is non-fatal — the next launch retries.
+        await syncEmailAttribute()
+
         await loadSubscriptionInfo()
       } else {
         setError(result.error)
@@ -176,7 +209,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     }
 
     void initialize()
-  }, [appUserId, loadSubscriptionInfo])
+  }, [appUserId, loadSubscriptionInfo, syncEmailAttribute])
 
   /**
    * Listen for customer info updates
@@ -210,6 +243,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
         const result = await loginUser(appUserId)
         if (result.ok) {
           log.info("RevenueCat identity updated after auth change", { appUserId })
+          // Now that RC is identified as the signed-in user, attach their email.
+          await syncEmailAttribute()
           // Re-sync receipts under new identity (bypass one-time flag)
           await syncExistingPurchases()
           await loadSubscriptionInfo()
@@ -217,7 +252,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
       }
     }
     void syncIdentity()
-  }, [appUserId, isInitialized, loadSubscriptionInfo])
+  }, [appUserId, isInitialized, loadSubscriptionInfo, syncEmailAttribute])
 
   /**
    * Auto-enable attendance tracking on first subscription detection only.
