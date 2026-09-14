@@ -543,6 +543,48 @@ Design + manual checklist: `docs/superpowers/specs/2026-08-06-jwt-refresh-design
 
 ---
 
+## 💳 RevenueCat `$email` backfill for dormant customers (API-repo script — NOT an app change)
+
+Queued 2026-09-14. Part 1 shipped the same day: the app sets the `$email`
+subscriber attribute whenever RevenueCat is identified as a signed-in Auth0
+user (`app/services/purchases/emailAttributeLogic.ts`), which backfills
+anyone who opens the app again. It does nothing for lapsed subscribers,
+refunds in progress, or uninstalls — the customers support actually gets
+asked about. Part 2 is a one-off, operator-run script that fills those in.
+
+Spec: `api/docs/superpowers/specs/2026-09-14-revenuecat-email-backfill-script-design.md`.
+Home: `api/scripts/backfill-rc-email.ts`. Dry run is the default; `--apply`
+writes; `--limit 5` gates the first real batch; a JSONL ledger makes it
+resumable. Starts from the RevenueCat customer export, never from the Auth0
+user list — RevenueCat's write endpoints create customers that don't exist,
+so iterating Auth0 would mint a phantom customer per non-subscriber.
+
+**Blocked on two credentials (both need the Auth0 tenant, MFA lockout as of
+2026-09-14):**
+
+- [ ] Grant `read:users` to the existing M2M app (`AUTH_MGMT_CLIENT_ID`). It
+      has only `update:users` today, which `POST /auth0/profile` uses.
+- [ ] Create a RevenueCat **secret** API key (`sk_…`) and add it to the API
+      `.env` as `REVENUECAT_SECRET_KEY`. Script-only — deliberately NOT in the
+      server's `config` schema, so the running API never holds a key that can
+      rewrite customer attributes.
+
+**Then:**
+
+- [ ] Extract the Auth0 Management token grant + retrying `fetch` from
+      `api/src/routes/auth0.ts` into `api/src/services/auth0Management.ts`
+      so the route and the script share one implementation (route tests stay
+      green).
+- [ ] Pure `scripts/lib/backfillRcEmailLogic.ts` (id classification, email
+      redaction, outcome decision, resume rule) with vitest coverage; the
+      script itself is I/O only, verified by the runbook in the spec.
+- [ ] Run the runbook: dry run → `--apply --limit 5` → dashboard spot-check →
+      full `--apply --resume` → dry run again shows nothing pending.
+- [ ] Confirm support can find a customer by email in the RevenueCat
+      dashboard, then delete the exported CSV.
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).
