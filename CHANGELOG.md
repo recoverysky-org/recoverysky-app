@@ -55,6 +55,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
 
 ### Fixed
+- **Persisted sign-in record no longer exceeds SecureStore's 2048-byte
+  limit.** The `auth_credentials_v1` record stored the Auth0 ID token beside
+  the access and refresh tokens; the ID token alone is ~1.3 KB of profile
+  claims and signature, so every login and every token refresh tripped
+  expo-secure-store's size warning. Nothing ever read the persisted ID token
+  (the SQLite key claim is taken from the fresh SDK token at login), so it is
+  no longer written. Matters now because Expo has said the next SDK will reject
+  oversized values instead of warning, which would have broken instant sign-in
+  restore on cold start. The secure-storage wrapper now logs each write's key
+  and byte size (never the value) and warns at the ceiling.
 - **Cloud backup no longer re-fetches report bodies the server has never had.**
   A report imported from Firebase during onboarding (or created against another
   environment) has no row in the API, so `GET /reports/:id` returns 404 forever.

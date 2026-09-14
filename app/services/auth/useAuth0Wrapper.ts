@@ -175,11 +175,13 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               authStore.setAuthEmail(user.email)
             }
 
-            // Persist credentials to SecureStore for instant restore on next cold start
+            // Persist credentials to SecureStore for instant restore on next cold start.
+            // CHANGED 2026-09-14: the ID token is deliberately left out — it is
+            // only needed right here (handleSqliteKeyFromJwt below) and its
+            // size pushed the record past SecureStore's 2048-byte limit.
             saveAuthCredentials({
               accessToken: credentials.accessToken,
               refreshToken: credentials.refreshToken ?? undefined,
-              idToken: credentials.idToken ?? undefined,
               expiresAt,
             }).catch((err) =>
               log.error("Failed to persist auth credentials", { error: String(err) }),

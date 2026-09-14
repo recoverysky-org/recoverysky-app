@@ -86,10 +86,12 @@ export async function setupRootStore(rootStore: RootStore) {
           log.error("Failed to clear unusable auth credentials", { error: String(e) }),
         )
       } else {
+        // No ID token on cold start — it is not persisted (see
+        // StoredAuthCredentials) and nothing after login needs it.
         rootStore.authenticationStore.setTokens(
           creds.accessToken,
           creds.refreshToken,
-          creds.idToken,
+          undefined,
           creds.expiresAt,
         )
         if (creds.expiresAt > Date.now()) {

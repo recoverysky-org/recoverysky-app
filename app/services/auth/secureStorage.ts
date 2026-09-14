@@ -7,6 +7,23 @@
 
 import { Platform } from "react-native"
 
+import { logger } from "@/utils/logger"
+
+const log = logger.child({ module: "secureStorage" })
+
+/**
+ * expo-secure-store's documented per-value ceiling. Today (SDK 54,
+ * expo-secure-store 15) an oversized write only logs a console warning; Expo
+ * has said a future SDK will reject it. Mirrored here so the app's own log
+ * carries the key and the size — the SDK warning names neither.
+ */
+const SECURE_STORE_VALUE_LIMIT_BYTES = 2048
+
+function utf8ByteLength(value: string): number {
+  // TextEncoder is available on Hermes (RN 0.74+) and every web target.
+  return new TextEncoder().encode(value).length
+}
+
 /**
  * Get item from secure storage
  */
@@ -24,6 +41,21 @@ export async function getItemAsync(key: string): Promise<string | null> {
  * Set item in secure storage
  */
 export async function setItemAsync(key: string, value: string): Promise<void> {
+  // ADDED 2026-09-14: size accounting per key, never the value. The
+  // auth_credentials_v1 record silently crossed the limit once the ID token
+  // was persisted beside the access token; the SDK warning that surfaced it
+  // did not say which key. Warn at the ceiling so growth (e.g. new claims on
+  // the access token) is visible before an SDK upgrade turns it into a throw.
+  const bytes = utf8ByteLength(value)
+  if (bytes > SECURE_STORE_VALUE_LIMIT_BYTES) {
+    log.warn("SecureStore value exceeds size limit", {
+      key,
+      bytes,
+      limit: SECURE_STORE_VALUE_LIMIT_BYTES,
+    })
+  } else {
+    log.debug("SecureStore write", { key, bytes })
+  }
   if (Platform.OS === "web") {
     const vault = await import("./vault")
     vault.put(key, value)
@@ -50,10 +82,21 @@ export async function deleteItemAsync(key: string): Promise<void> {
 
 const AUTH_CREDENTIALS_KEY = "auth_credentials_v1"
 
+/**
+ * The persisted slice of the Auth0 session.
+ *
+ * CHANGED 2026-09-14: `idToken` is no longer part of this record. It was
+ * the largest of the three tokens (profile claims, picture URL, our
+ * `metadata.sqliteKey` claim, RS256 signature — ~1.3 KB) and pushed the
+ * JSON past expo-secure-store's 2048-byte limit. Nothing ever read the
+ * persisted copy: the SQLite key is extracted from the fresh SDK token at
+ * login, and the refresher never consults an ID token. Old records that
+ * still carry `idToken` parse fine — the extra property is ignored — and are
+ * rewritten without it on the next refresh.
+ */
 export interface StoredAuthCredentials {
   accessToken: string
   refreshToken?: string
-  idToken?: string
   /** Expiry timestamp in milliseconds */
   expiresAt: number
 }

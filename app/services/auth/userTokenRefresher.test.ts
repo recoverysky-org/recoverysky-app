@@ -76,6 +76,34 @@ describe("buildUserTokenRefresher — usable token", () => {
     })
     expect(h.onPermanentFailure).not.toHaveBeenCalled()
   })
+
+  it("keeps the ID token in the store but leaves it out of the persisted record", async () => {
+    // The ID token is the largest of the three tokens (~1.3 KB of profile
+    // claims + signature). Persisting it alongside the access and refresh
+    // tokens pushed the SecureStore record past the 2048-byte limit; nothing
+    // reads the persisted copy, so it must not be written.
+    const h = harness({
+      accessToken: GOOD_JWT,
+      refreshToken: null,
+      idToken: "id.id.id",
+      expiresAt: 1_800_000_000,
+    })
+    await h.refresher.getToken()
+    expect(h.authStore.setTokens).toHaveBeenCalledWith(
+      GOOD_JWT,
+      "rt-1",
+      "id.id.id",
+      1_800_000_000_000,
+    )
+    expect(h.persistCredentials).toHaveBeenCalledTimes(1)
+    const persisted = h.persistCredentials.mock.calls[0][0]
+    expect(persisted).not.toHaveProperty("idToken")
+    expect(persisted).toEqual({
+      accessToken: GOOD_JWT,
+      refreshToken: "rt-1",
+      expiresAt: 1_800_000_000_000,
+    })
+  })
 })
 
 describe("buildUserTokenRefresher — unusable token from the SDK", () => {

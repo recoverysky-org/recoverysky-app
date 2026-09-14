@@ -190,10 +190,11 @@ export function buildUserTokenRefresher(
       // Write-back matters: without it the same refresh repeats on every cold
       // start, because setupRootStore hydrates from SecureStore and would keep
       // reading the old expiry.
+      // The ID token stays in the store (setTokens above) but is NOT
+      // persisted — see StoredAuthCredentials for why (2048-byte limit).
       persistCredentials({
         accessToken: creds.accessToken,
         refreshToken,
-        idToken: creds.idToken ?? undefined,
         expiresAt,
       }).catch((err) =>
         log.error("Failed to persist refreshed credentials", { error: String(err) }),
