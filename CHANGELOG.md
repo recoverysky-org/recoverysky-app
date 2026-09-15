@@ -55,6 +55,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
 
 ### Fixed
+- **Signed-out and anonymous launches no longer send a doomed push-token
+  registration.** The app registered its push token whenever it had *any*
+  identity, and the fallback identity when nobody is signed in is the device
+  id — but the server route only accepts a signed-in user, so every such
+  launch (and every sign-out) produced one guaranteed 403, a rejection the
+  API edge counts toward banning the address. Registration now waits for a
+  real Auth0 sign-in (`pushRegistrationUserId`, vitest-covered).
 - **A device with no usable attestation token no longer floods the API with
   401s.** Three pieces, all in the auth path. (1) When the request gate had
   neither a device JWT nor an API key — attestation degraded or backing off,

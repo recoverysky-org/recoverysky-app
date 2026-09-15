@@ -98,6 +98,7 @@ import {
   getLastNotificationResponse,
   setNotificationLanguage,
 } from "./services/notifications"
+import { pushRegistrationUserId } from "./services/notifications/pushRegistrationLogic"
 import { initRatingEngine } from "./services/rating"
 import { initAttendanceSync } from "./services/sync"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
@@ -651,22 +652,29 @@ export function App() {
         if (Platform.OS !== "web") {
           initializeNotifications()
 
-          // Register push token with backend
-          if (authStore.userIdentifier && authStore.deviceId) {
-            loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
+          // Register push token with backend.
+          // CHANGED 2026-09-14: keyed on a SIGNED-IN identity, not
+          // `userIdentifier` — that getter (and `loginAnonymously()`) hands
+          // back the device id when there is no Auth0 user, and the server
+          // route is `authenticateSignedIn`, so every signed-out or anonymous
+          // launch fired one guaranteed 403 (a rejection the edge counts).
+          // Decision in the pure `pushRegistrationUserId`; sign-out lands in
+          // the `else` below, which only clears local state.
+          const registrableUserId = () =>
+            pushRegistrationUserId({ userId: authStore.userId, isAnonymous: authStore.isAnonymous })
+          const initialUserId = registrableUserId()
+          if (initialUserId && authStore.deviceId) {
+            loginNotificationUser(initialUserId, authStore.deviceId).catch(() => {})
           }
 
           // React to auth state changes for push token registration
-          reaction(
-            () => authStore.userIdentifier,
-            (id) => {
-              if (id && authStore.deviceId) {
-                loginNotificationUser(id, authStore.deviceId).catch(() => {})
-              } else {
-                logoutNotificationUser()
-              }
-            },
-          )
+          reaction(registrableUserId, (id) => {
+            if (id && authStore.deviceId) {
+              loginNotificationUser(id, authStore.deviceId).catch(() => {})
+            } else {
+              logoutNotificationUser()
+            }
+          })
 
           // Sync language preference to backend
           reaction(
