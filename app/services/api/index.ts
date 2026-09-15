@@ -1239,9 +1239,15 @@ export class Api {
     fid?: string
     attendance?: AttendanceRecord[]
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
+    // The recipient address is NEVER logged (RS-025, 2026-09-15). It is the
+    // one raw identifier the app used to ship to Loki, and it belongs to a
+    // third party (sponsor, court officer, employer) who never consented to
+    // our telemetry. `reportId` already resolves to the recipient via the
+    // encrypted report row / the API, so support loses nothing. `hasEmail`
+    // keeps the "sent with a blank address" failure mode visible.
     log.info("Sending attendance report to API", {
       reportId: params.id,
-      email: params.email,
+      hasEmail: Boolean(params.email),
       fid: params.fid ?? "none",
       attendanceCount: params.attendance?.length ?? 0,
     })
@@ -1264,11 +1270,11 @@ export class Api {
       return { kind: "bad-data" }
     }
 
+    // No `email` here either — see the note on sendReport's first log line.
     log.info("Report sent successfully", {
       reportId: params.id,
       confirmed: response.data.confirmed,
       error: response.data.error,
-      email: response.data.email,
     })
     return { kind: "ok", data: response.data }
   }
@@ -1335,12 +1341,14 @@ export class Api {
       return { kind: "bad-data" }
     }
 
+    // No `email` here — this line fires on every delivery poll (10–60 s
+    // until confirmation), so it was the biggest single source of the
+    // recipient address in Loki. See the note on sendReport's first log line.
     log.debug("Report status received", {
       reportId: params.id,
       confirmed: response.data.confirmed,
       error: response.data.error,
       confirmation: response.data.confirmation || "none",
-      email: response.data.email,
     })
     return { kind: "ok", data: response.data }
   }

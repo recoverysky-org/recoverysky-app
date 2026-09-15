@@ -32,6 +32,16 @@ node -e 'const n=require("tweetnacl");const d=n.hash(new TextEncoder().encode(pr
 Query Loki with `{service_name="recoverysky-app"} | userId="<hash>"` (or
 `user_id` if the collector promoted the Resource attribute).
 
+**Never logged, in any field, at any level:** the report recipient's email
+address, the user's own email, `shortName`, and raw coordinates. Structured
+metadata counts — Loki indexes it just as well as line text, and
+`| email!=""` is exactly how the last leak was found (RS-025, 2026-09-15: the
+report send path attached the recipient address to six log calls across
+`Api` and `ReportSender`, ~100 lines per 48 h, spanning every build). The
+recipient is a third party — a sponsor, court officer, or employer — who never
+consented to our telemetry. When you need to tie a line to a recipient, log
+`reportId`; the encrypted report row and the API both resolve it.
+
 **Sentry and Umami are different.** Both receive `authStore.userIdentifier`
 (the raw sub, or `deviceId` when anonymous) via `setSentryUser` /
 `setTrackingUserId`, because their UIs group by user id and a hash would

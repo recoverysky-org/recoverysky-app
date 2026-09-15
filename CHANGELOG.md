@@ -22,6 +22,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Security
+- **The report recipient's email address is no longer sent to diagnostic
+  logs.** Six log lines on the attendance-report send path — three in the API
+  client (`Sending attendance report`, `Report sent successfully`, and the
+  `Report status received` line that fires on every delivery poll) and three in
+  the send hook (initial, resend/replace, forward) — attached the recipient
+  address as a structured field, so it reached Loki on every build from
+  4.8.0-3 on, roughly 100 lines per 48 hours. Every other identifier the app
+  logs is deliberately hashed; this was the only raw personal data left, and it
+  belongs to a third party (a sponsor, court officer, or employer) who never
+  agreed to our telemetry. The field is dropped rather than hashed: `reportId`
+  is on every line already and resolves to the recipient through the encrypted
+  report row, so support loses nothing. The send hook's lines now also carry
+  `module="ReportSender"`; they used the bare root logger and were invisible to
+  module-filtered searches, which is why the leak was undercounted.
+  (`docs/DIAGNOSTICS.md` now lists what is never logged.)
+
 ## [4.10.1-4] — 2026-09-14
 
 ### Fixed

@@ -26,7 +26,13 @@ import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/model
 import { api, type SendReportResponse, type GeneralApiProblem } from "@/services/api"
 import { pollForConfirmation } from "@/services/polling"
 import { trackEvent } from "@/services/tracking"
-import { logger } from "@/utils/logger"
+import { logger as rootLogger } from "@/utils/logger"
+
+// Module-scoped child so these lines carry `module="ReportSender"` in Loki.
+// ADDED 2026-09-15 (RS-025): the hook used the bare root logger, so its send
+// lines had no module label and were invisible to every `| module="…"`
+// fingerprint — including the one that found the email leak below.
+const logger = rootLogger.child({ module: "ReportSender" })
 
 // ============================================================================
 // Types
@@ -203,7 +209,9 @@ async function handleSend(
   // 1. Ensure report record exists (initial creates, others already exist)
   if (op.type === "initial") {
     reportId = generateReportId()
-    logger.info("Initial send started", { reportId, email, count: op.attendanceIds.length })
+    // The recipient address is never logged (RS-025) — `reportId` resolves to
+    // it via the encrypted report row. Same rule at every send log in this file.
+    logger.info("Initial send started", { reportId, count: op.attendanceIds.length })
 
     const createResult = await attendanceReportRepo.create({
       id: reportId,
@@ -232,7 +240,7 @@ async function handleSend(
     }
   } else {
     reportId = op.report.id
-    logger.info(`${op.type === "resend" ? "Resend" : "Replace"} started`, { reportId, email })
+    logger.info(`${op.type === "resend" ? "Resend" : "Replace"} started`, { reportId })
   }
 
   // 2. Reset ALL status fields to defaults + set email
@@ -307,7 +315,6 @@ async function handleForward(
     sourceFid: op.report.fid || "none",
     originId,
     newReportId: newId,
-    email: op.email,
   })
 
   await attendanceReportRepo.create({
