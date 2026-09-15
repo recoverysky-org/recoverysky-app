@@ -22,37 +22,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
-### Added
-- **Restore Purchases now offers to turn on Cloud Backup.** Only the purchase
-  paths ever showed the opt-in, so a subscriber restoring on a second device
-  (from Settings or from the onboarding import screen) was never asked and the
-  launch-time backup pass had already decided before the restore. Both restore
-  handlers now show the same dialog after the success toast, skipped when
-  backup is already on. The dialog moved into `useCloudBackupPrompt` and the
-  enable step into `enableCloudBackup()` so the toggle, the prompt, and the
-  backup pass share one implementation. Decision logic in the vitest-covered
-  `cloudBackupPromptLogic.ts`.
-- **RevenueCat customers now carry the user's email.** Every customer in the
-  RevenueCat dashboard showed no email, so support could not find a subscriber
-  by address. The app now forwards the signed-in Auth0 email as the `$email`
-  subscriber attribute right after RevenueCat is configured and again after
-  each sign-in identity switch. Existing users are backfilled the first time
-  they launch after this ships; anonymous (device-id) customers get nothing.
-  Decision logic in the vitest-covered `emailAttributeLogic.ts`. A server-side
-  backfill for users who never relaunch is deferred until the Auth0 Management
-  API is reachable again.
-- **One-off cloud-backup pass on the next cold start.** Cloud Backup is a
-  per-device toggle, and the only prompt to turn it on fired on the device
-  where the subscription was bought — so a subscriber's second device, or
-  anyone who tapped "Not now" at purchase time, was never asked again and
-  their attendance sat unbacked-up. On the next launch, a signed-in user with
-  the attendance entitlement is now asked once (never again) to turn backup on
-  if it is off, and gets a full backup run automatically if it is already on.
-  The full run re-enqueues the entire local history, which also repairs any
-  earlier initial backup that died mid-flight (offline, outage) and was never
-  retried. Offline or maintenance at launch defers the pass to the next launch
-  rather than burning it. `BackupPassRunner` + the vitest-covered
-  `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
+## [4.10.1-4] — 2026-09-14
 
 ### Fixed
 - **Signed-out and anonymous launches no longer send a doomed push-token
@@ -93,6 +63,60 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   before continuing, so a brand-new install with a long list of body-less
   reports stays under the edge's bucket, and fetches are paced at 1 s instead
   of 300 ms. Covered in the vitest suite for `attendanceSyncService`.
+
+### Changed
+- **Legacy per-meeting hearts and stars now go schedule-wide as lists load,
+  with no network lookups.** The one-time favorites/ratings migration
+  (`FavoritesMigrator` → `migrateFavorites`) asked the API for every loved or
+  rated meeting's schedule on launch — one or two `GET /schedules/meeting/:mid`
+  per favourite, a 404 for each meeting delisted upstream, unpaced, and
+  re-run on every launch until it finished. Those distinct 404 paths feed the
+  same edge probing rule as the report-body bug above, so a user with a
+  dozen delisted favourites could be banned on cold start. Every schedule list
+  the app fetches already carries each row's full sibling grid, so the same
+  reconcile now runs on the payload as it arrives (`feedbackCache
+  .reconcileSchedules` → pure `reconcileScheduleFeedback`): a mixed schedule
+  is loved whole or set to its highest star the first time it is listed, and
+  a favourite on a meeting that never appears in a list is never shown, so it
+  needs nothing. The migrator, its service, and both MMKV done-flags
+  (`favorites.scheduleMigration.v1` / `ratings.scheduleMigration.v1`, now
+  orphaned and harmless) are removed.
+
+## [4.10.1-3] — 2026-09-14
+
+### Added
+- **Restore Purchases now offers to turn on Cloud Backup.** Only the purchase
+  paths ever showed the opt-in, so a subscriber restoring on a second device
+  (from Settings or from the onboarding import screen) was never asked and the
+  launch-time backup pass had already decided before the restore. Both restore
+  handlers now show the same dialog after the success toast, skipped when
+  backup is already on. The dialog moved into `useCloudBackupPrompt` and the
+  enable step into `enableCloudBackup()` so the toggle, the prompt, and the
+  backup pass share one implementation. Decision logic in the vitest-covered
+  `cloudBackupPromptLogic.ts`.
+- **RevenueCat customers now carry the user's email.** Every customer in the
+  RevenueCat dashboard showed no email, so support could not find a subscriber
+  by address. The app now forwards the signed-in Auth0 email as the `$email`
+  subscriber attribute right after RevenueCat is configured and again after
+  each sign-in identity switch. Existing users are backfilled the first time
+  they launch after this ships; anonymous (device-id) customers get nothing.
+  Decision logic in the vitest-covered `emailAttributeLogic.ts`. A server-side
+  backfill for users who never relaunch is deferred until the Auth0 Management
+  API is reachable again.
+- **One-off cloud-backup pass on the next cold start.** Cloud Backup is a
+  per-device toggle, and the only prompt to turn it on fired on the device
+  where the subscription was bought — so a subscriber's second device, or
+  anyone who tapped "Not now" at purchase time, was never asked again and
+  their attendance sat unbacked-up. On the next launch, a signed-in user with
+  the attendance entitlement is now asked once (never again) to turn backup on
+  if it is off, and gets a full backup run automatically if it is already on.
+  The full run re-enqueues the entire local history, which also repairs any
+  earlier initial backup that died mid-flight (offline, outage) and was never
+  retried. Offline or maintenance at launch defers the pass to the next launch
+  rather than burning it. `BackupPassRunner` + the vitest-covered
+  `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
+
+### Fixed
 - **Live tab refills itself when a cold-start outage ends, and no longer
   empties when a refresh fails mid-session.** Two halves of one UX hole in
   the Live meetings feed (`MeetingContext`). (1) The auto-refresh watched
@@ -130,22 +154,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   still retry.
 
 ### Changed
-- **Legacy per-meeting hearts and stars now go schedule-wide as lists load,
-  with no network lookups.** The one-time favorites/ratings migration
-  (`FavoritesMigrator` → `migrateFavorites`) asked the API for every loved or
-  rated meeting's schedule on launch — one or two `GET /schedules/meeting/:mid`
-  per favourite, a 404 for each meeting delisted upstream, unpaced, and
-  re-run on every launch until it finished. Those distinct 404 paths feed the
-  same edge probing rule as the report-body bug above, so a user with a
-  dozen delisted favourites could be banned on cold start. Every schedule list
-  the app fetches already carries each row's full sibling grid, so the same
-  reconcile now runs on the payload as it arrives (`feedbackCache
-  .reconcileSchedules` → pure `reconcileScheduleFeedback`): a mixed schedule
-  is loved whole or set to its highest star the first time it is listed, and
-  a favourite on a meeting that never appears in a list is never shown, so it
-  needs nothing. The migrator, its service, and both MMKV done-flags
-  (`favorites.scheduleMigration.v1` / `ratings.scheduleMigration.v1`, now
-  orphaned and harmless) are removed.
 - **Cold-start API precheck now hits `GET /status/ready`.** The probe that
   decides between normal startup and the outage screen (and the 15-second
   recovery poll on that screen) used the full `/status` health report; the
