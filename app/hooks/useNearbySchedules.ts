@@ -103,6 +103,7 @@ import { inPersonPoolOf } from "@/context/meetingPools"
 import { feedbackCache } from "@/db"
 import { useConfigStore, useProfileStore } from "@/models"
 import { api, LiveSchedule } from "@/services/api"
+import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
 import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
@@ -527,7 +528,11 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // immediate retry on a non-ok result before giving up, so a single
       // dropped packet doesn't demote a user with a good GPS fix.
       let result = await api.getNearbySchedules(params)
-      if (result.kind !== "ok") {
+      // CHANGED 2026-09-14: `result.kind !== "ok"` → retryable kinds only. A
+      // 401/403/429 answered the same way the second time; re-sending it
+      // doubled every rejection during the 401 storms that got devices
+      // banned at the edge.
+      if (result.kind !== "ok" && isRetryableProblem(result.kind)) {
         // PRIVACY: log the scalars individually — never spread `params`,
         // which carries lat/lon.
         log.warn("Nearby fetch failed; retrying once", {

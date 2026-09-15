@@ -2,6 +2,7 @@ import { Platform } from "react-native"
 import { flow, getRoot, Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { api, type ServerConfig } from "@/services/api"
+import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import { shouldFlipMaintenanceOnPollFailure } from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
 import { DEFAULT_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
@@ -285,6 +286,13 @@ export const ConfigStoreModel = types
 
               sawOffline = sawOffline || readIsOffline()
               log.warn("Config fetch failed", { attempt, kind: result.kind })
+              // ADDED 2026-09-14: a 401/403/404/429 is a verdict, not a blip —
+              // an identical request two seconds later gets the identical
+              // answer. Retrying it tripled every rejected poll (and at the
+              // 15 s maintenance cadence that was 12 rejections a minute from
+              // one device — the edge's 401 brute-force scenario bans on six).
+              // Falls through to the same "all attempts failed" handling below.
+              if (!isRetryableProblem(result.kind)) break
             } catch (error) {
               sawOffline = sawOffline || readIsOffline()
               log.error("Config fetch error", {

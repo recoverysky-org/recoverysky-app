@@ -55,6 +55,24 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
 
 ### Fixed
+- **A device with no usable attestation token no longer floods the API with
+  401s.** Three pieces, all in the auth path. (1) When the request gate had
+  neither a device JWT nor an API key — attestation degraded or backing off,
+  or outage mode before a lane was chosen — it sent the request anyway, and
+  production has no API-key fallback, so every `/config` poll, meetings mount
+  and foreground was a guaranteed server 401; the edge's brute-force rule bans
+  on six. The gate now answers that 401 locally without touching the network
+  (call sites see the same `unauthorized` result). (2) A device JWT the server
+  had stopped honouring (rotated secret, revocation) was re-sent until its own
+  expiry, up to seven days, across relaunches. The server's code-less 401 for a
+  refused device token is now recognised; the token is dropped from memory and
+  SecureStore and the next request re-asserts through the existing
+  single-flight refresher — no extra Apple/Play round trip unless the stored
+  key is also refused. (3) The `/config`, live-meetings and nearby retry
+  ladders retried every failure kind, tripling each rejection; they now retry
+  transport failures only. Decisions are pure and vitest-covered
+  (`deviceJwtRejected`, `noDeviceCredentialAdapter`, `shouldDropRejectedJwt`,
+  `isRetryableProblem`).
 - **Cloud Backup no longer gets the device's IP banned by the API edge.**
   The report-body backfill asks `GET /reports/:id` for every local report
   with no stored body, and answers 404 for reports the server never had a

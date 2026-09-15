@@ -409,10 +409,32 @@ sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
   classified permanent) and a 401 carrying `token_malformed` /
   `token_claims` / `token_signature` from the API. `token_expired`,
   `token_invalid`, a code-less 401 and a 503 `auth_unavailable` never do.
-- There is **no reactive 401 path**. Both server middlewares return an
-  identical 401 body, so the client cannot tell which token failed. Accepted
-  consequence: server-side revocation and large clock skew are not
-  self-healing within a session.
+- There is **no reactive 401 path for the user lane**, and until 2026-09-14
+  there was none for the device lane either (the claim that "both server
+  middlewares return an identical 401 body" was wrong: the device middleware
+  answers a bad `X-Device-Token` with a code-less 401, while every user-lane
+  rejection carries `code: token_*`, and the device check runs first).
+  ADDED 2026-09-14: `deviceJwtRejected()` (`bearerRejectionLogic.ts`) reads
+  that asymmetry in the same monitor; a hit calls `markDeviceJwtRejected()`
+  (`deviceToken.ts`, identity-guarded by the pure `shouldDropRejectedJwt`)
+  which clears the JWT from module state and SecureStore, so the next
+  request re-asserts through the single-flight refresher. Before this a JWT
+  the server had stopped honouring was re-sent until its own expiry — up to
+  seven days — and CrowdSec's 401 brute-force scenario banned the device.
+- **No credential → no request** (ADDED 2026-09-14). When the gate has
+  neither a device JWT nor an API key (attestation degraded or backing off,
+  outage mode before a lane is chosen — production has no
+  `EXPO_PUBLIC_AUTH_KEY`), it installs `noDeviceCredentialAdapter` on the
+  request so it resolves as a 401 locally with the `no_device_credential`
+  marker body. Call sites still get `{ kind: "unauthorized" }`; nothing
+  reaches the wire. Don't "restore" the bare send — every one was a
+  guaranteed server 401 counted by the edge.
+- **Retry ladders retry transport failures only.** `ConfigStore.fetchConfig`,
+  `MeetingContext.retryWithBackoff` and the nearby fetch's single retry all
+  go through `isRetryableProblem()` (`contentRetryLogic.ts`, CHANGED
+  2026-09-14): a 401/403/404/429 ends the ladder on the first answer. They
+  used to retry any non-ok kind, which multiplied every rejection three to
+  four times per trigger.
 
 Design + manual test checklist:
 `docs/superpowers/specs/2026-08-06-jwt-refresh-design.md`.

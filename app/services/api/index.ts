@@ -21,7 +21,11 @@ import {
   shouldTrackApiProblem,
   type GeneralApiProblem,
 } from "./apiProblem"
-import { bearerRejectionCode } from "./bearerRejectionLogic"
+import {
+  bearerRejectionCode,
+  deviceJwtRejected,
+  noDeviceCredentialAdapter,
+} from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
 import type { ApiConfig } from "./types"
 
@@ -351,6 +355,15 @@ export interface TokenRefreshers {
    * token. Optional: tests and early cold start have no refresher yet.
    */
   onBearerRejected?: () => void
+  /**
+   * ADDED 2026-09-14: the server answered 401 to a request that carried this
+   * device JWT (code-less body — see deviceJwtRejected()). Wired to
+   * markDeviceJwtRejected() in services/attestation/deviceToken so the token
+   * is dropped and the next request goes through the refresher's single-flight
+   * assert instead of re-sending a JWT we now know is dead. Optional for the
+   * same reason as onBearerRejected.
+   */
+  onDeviceJwtRejected?: (token: string) => void
 }
 
 /**
@@ -516,7 +529,19 @@ export class Api {
         // undetected. It is the only field-visible signal of that class of
         // failure, since it is invisible on dev builds where .env supplies
         // EXPO_PUBLIC_AUTH_KEY.
-        log.warn("Request going out with no device credential", { url: request.url })
+        //
+        // CHANGED 2026-09-14: "almost certainly reject it" was a certainty in
+        // production (no EXPO_PUBLIC_AUTH_KEY in eas.json), and a device in
+        // attestation backoff or outage mode emitted that guaranteed 401 on
+        // every /config poll, MeetingProvider mount and foreground — the
+        // edge's 401 brute-force scenario bans on six. The request now
+        // resolves as the same 401 locally via a per-request axios adapter:
+        // call sites still get `{ kind: "unauthorized" }`, nothing reaches
+        // the wire, and the marker body says no server was involved. A local
+        // API with attestation disabled would have accepted the bare request;
+        // that setup needs EXPO_PUBLIC_AUTH_KEY in .env, which dev already has.
+        log.warn("No device credential — answering 401 locally", { url: request.url })
+        request.adapter = noDeviceCredentialAdapter
       }
 
       if (accessToken) {
@@ -538,6 +563,23 @@ export class Api {
    */
   private installBearerRejectionMonitor() {
     this.recoverySkyApi.addMonitor((response) => {
+      // ADDED 2026-09-14: the device-lane twin. A code-less 401 on a request
+      // that carried X-Device-Token means the DEVICE token was refused (the
+      // user lane always answers with a code). Hand the exact token over so
+      // the drop is identity-checked against whatever the module holds now.
+      const rejectedJwt = deviceJwtRejected(
+        response.status,
+        response.config?.headers,
+        response.data,
+      )
+      if (rejectedJwt) {
+        log.warn("Server rejected the device token — dropping it for re-attestation", {
+          url: response.config?.url,
+        })
+        this.refreshers.onDeviceJwtRejected?.(rejectedJwt)
+        return
+      }
+
       const code = bearerRejectionCode(response.status, response.config?.headers, response.data)
       if (!code) return
       log.error("Server rejected the bearer as unusable", {

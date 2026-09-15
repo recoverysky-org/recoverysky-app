@@ -69,6 +69,7 @@ import {
   establishDeviceToken,
   hydratePersistedDeviceJwt,
   isJwtExpiredOrNearExpiry,
+  markDeviceJwtRejected,
   setApiKeyFallback,
   isUsingApiKeyFallback,
 } from "./services/attestation/deviceToken"
@@ -435,6 +436,11 @@ export function App() {
           // via onPermanentFailure above). token_expired, token_invalid, a
           // code-less 401 and the 503 auth_unavailable never reach this.
           onBearerRejected: userRefresher.markRejected,
+          // ADDED 2026-09-14: a code-less 401 on a request that carried the
+          // device JWT drops that JWT (module + SecureStore) so the next
+          // request re-asserts through the single-flight refresher instead
+          // of re-sending a token the server has already refused.
+          onDeviceJwtRejected: markDeviceJwtRejected,
         })
 
         // Fire the deferred eject the moment the timer releases. Reads the

@@ -31,6 +31,7 @@ import {
   EXCHANGE_RETRY_DELAYS_MS,
   type EstablishOutcome,
   type Exchange,
+  shouldDropRejectedJwt,
 } from "./deviceTokenLogic"
 
 import { generateAssertion, generateAttestation, isAttestationSupported } from "./index"
@@ -141,6 +142,39 @@ export function setApiKeyFallback(): void {
   deviceJwt = null
   jwtExpiresAt = null
   deviceAuthInitialized = true
+}
+
+/**
+ * The server answered 401 to a request carrying `token`: forget it.
+ *
+ * ADDED 2026-09-14 — the reactive 401 path the 2026-09-09 spec deferred.
+ * Until now the only trigger for re-attestation was LOCAL expiry, so a JWT the
+ * server had stopped honouring (rotated DEVICE_JWT_SECRET, a revocation) was
+ * re-sent on every request until its own expiry, up to seven days, and a
+ * relaunch re-hydrated the same dead token from SecureStore. Clearing both
+ * copies makes `isJwtExpiredOrNearExpiry()` true, so the next request goes
+ * through the refresher's single-flight `establishDeviceToken()` — the cheap
+ * assert against the stored key, no Apple key generation unless the server
+ * rejects that key too. While that runs, or during its failure backoff, the
+ * refresher returns null and the auth gate answers 401 locally instead of
+ * re-sending a token it knows is dead (see noDeviceCredentialAdapter).
+ *
+ * Identity-guarded via `shouldDropRejectedJwt`: a late 401 for an old token
+ * must not clear the one a refresh just installed. Returns whether it acted.
+ */
+export function markDeviceJwtRejected(token: string): boolean {
+  if (!shouldDropRejectedJwt({ current: deviceJwt, rejected: token, usingApiKeyFallback })) {
+    return false
+  }
+  deviceJwt = null
+  jwtExpiresAt = null
+  log.warn("Device JWT rejected by server — cleared; next request will re-assert")
+  // Non-fatal: module state is already cleared; a failed delete only means
+  // the next cold start hydrates the dead token once more and lands back here.
+  void clearDeviceJwt().catch((err) =>
+    log.warn("Could not clear rejected device JWT from SecureStore", { error: String(err) }),
+  )
+  return true
 }
 
 // =============================================================================

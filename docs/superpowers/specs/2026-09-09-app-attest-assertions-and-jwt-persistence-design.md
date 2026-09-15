@@ -182,6 +182,13 @@ placeholder and go on the translation review queue.
   fast path and re-attest; the API runbook for secret rotation must say so. A narrow reactive path
   (on a 401 while holding a device JWT, mark it near-expiry so the refresher asserts) is the proper
   fix and is a follow-up, not part of this OTA.
+  **RESOLVED 2026-09-14:** the follow-up shipped. The two middlewares are distinguishable after all —
+  the device middleware's 401 carries no `code`, every user-lane 401 does — so
+  `deviceJwtRejected()` in the response monitor hands the refused token to `markDeviceJwtRejected()`,
+  which clears it from module state and SecureStore (identity-guarded against a late response for an
+  already-replaced token). The next request re-asserts through the single-flight refresher; while
+  that runs or backs off the gate answers 401 locally rather than re-sending a dead token. The
+  `device_jwt_v2` key bump is no longer the remedy for a secret rotation.
 - **iOS reinstall**: SecureStore normally survives, so the key id is still present and the assertion
   works. If the Keychain was wiped, step 2 is rejected and step 3 rebinds. Invisible to the user.
 - **Android**: JWT persistence and the nonce as request hash only. Token provider still warmed once per

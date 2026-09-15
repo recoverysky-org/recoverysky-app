@@ -63,6 +63,15 @@ export function isRetryableContentProblem(kind: ContentProblemKind): boolean {
 }
 
 /**
+ * The same policy under its general name. ADDED 2026-09-14 for the other
+ * retry ladders (ConfigStore.fetchConfig, MeetingContext.retryWithBackoff,
+ * the nearby fetch's single retry): each of them retried ANY non-ok result,
+ * so a 401 or a 429 was re-sent three to four times on a seconds ladder —
+ * multiplying exactly the rejected responses the edge bans on.
+ */
+export const isRetryableProblem = isRetryableContentProblem
+
+/**
  * Hold-off before the retry that follows `attempt` failed tries, or `null` when
  * the ladder is spent and the caller should give up.
  *

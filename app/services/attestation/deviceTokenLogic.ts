@@ -143,3 +143,21 @@ export function pickAttestationAlert(reason: BlockedReason): {
     messageKey: "errors:attestationServerFailedMessage",
   }
 }
+
+/**
+ * Whether a server 401 for `rejected` should drop the module's current JWT.
+ *
+ * ADDED 2026-09-14 — the reactive half the 2026-09-09 spec deferred (§4
+ * "Stored JWT from a rotated server secret"). Identity, not truthiness: a
+ * response for an old token can land after a refresh already installed a
+ * new one, and clearing the new one would churn attestation for nothing.
+ * The API-key lane has no JWT to drop.
+ */
+export function shouldDropRejectedJwt(i: {
+  current: string | null
+  rejected: string
+  usingApiKeyFallback: boolean
+}): boolean {
+  if (i.usingApiKeyFallback || i.current === null) return false
+  return i.current === i.rejected
+}

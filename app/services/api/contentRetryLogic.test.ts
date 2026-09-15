@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { GeneralApiProblem } from "./apiProblem"
 import {
+  isRetryableProblem,
   CONTENT_RETRY_DELAYS_MS,
   contentRetryDelayMs,
   fetchWithContentRetry,
@@ -62,6 +63,18 @@ describe("isRetryableContentProblem", () => {
     expect(isRetryableContentProblem("forbidden")).toBe(false)
     expect(isRetryableContentProblem("unauthorized")).toBe(false)
     expect(isRetryableContentProblem("rejected")).toBe(false)
+  })
+})
+
+describe("isRetryableProblem", () => {
+  it("is the same policy, exported under the general name for the non-content ladders", () => {
+    // ADDED 2026-09-14: ConfigStore, MeetingContext and the nearby fetch used
+    // to retry ANY non-ok result, which re-sent 401s and 429s on a seconds
+    // ladder — a rejection multiplied three to four times per trigger.
+    expect(isRetryableProblem("unauthorized")).toBe(false)
+    expect(isRetryableProblem("rejected")).toBe(false)
+    expect(isRetryableProblem("not-found")).toBe(false)
+    expect(isRetryableProblem("timeout")).toBe(true)
   })
 })
 

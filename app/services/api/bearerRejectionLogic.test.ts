@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest"
 
-import { BEARER_EJECT_CODES, bearerRejectionCode, readHeader } from "./bearerRejectionLogic"
+import {
+  BEARER_EJECT_CODES,
+  bearerRejectionCode,
+  deviceJwtRejected,
+  NO_DEVICE_CREDENTIAL_ERROR,
+  noDeviceCredentialAdapter,
+  readHeader,
+} from "./bearerRejectionLogic"
 
 /** Mimics axios 1.x AxiosHeaders: case-insensitive get(), no own enumerable keys to rely on. */
 class FakeAxiosHeaders {
@@ -76,5 +83,49 @@ describe("bearerRejectionCode", () => {
     expect(bearerRejectionCode(401, BEARER, "Unauthorized")).toBeNull()
     expect(bearerRejectionCode(401, BEARER, null)).toBeNull()
     expect(bearerRejectionCode(401, BEARER, { code: 42 })).toBeNull()
+  })
+})
+
+describe("deviceJwtRejected", () => {
+  // The device middleware answers a bad X-Device-Token with a code-less 401
+  // (api/src/middleware/deviceAuth.ts), while every user-lane rejection
+  // carries `code: token_*`. That asymmetry is the only signal that says
+  // which of the two credentials the server refused.
+  const DEVICE = { "X-Device-Token": "eyJ.device.jwt" }
+
+  it("returns the rejected token for a code-less 401 that carried a device JWT", () => {
+    expect(deviceJwtRejected(401, DEVICE, body())).toBe("eyJ.device.jwt")
+    expect(deviceJwtRejected(401, new FakeAxiosHeaders(DEVICE), body())).toBe("eyJ.device.jwt")
+  })
+
+  it("ignores a 401 whose body names a bearer code — the device token was accepted", () => {
+    expect(deviceJwtRejected(401, { ...DEVICE, ...BEARER }, body("token_expired"))).toBeNull()
+    expect(deviceJwtRejected(401, { ...DEVICE, ...BEARER }, body("token_signature"))).toBeNull()
+  })
+
+  it("ignores requests that carried no device token, including the local no-credential 401", () => {
+    expect(deviceJwtRejected(401, BEARER, body())).toBeNull()
+    expect(deviceJwtRejected(401, {}, { error: NO_DEVICE_CREDENTIAL_ERROR })).toBeNull()
+  })
+
+  it("ignores every other status", () => {
+    expect(deviceJwtRejected(403, DEVICE, body())).toBeNull()
+    expect(deviceJwtRejected(200, DEVICE, {})).toBeNull()
+    expect(deviceJwtRejected(undefined, DEVICE, body())).toBeNull()
+  })
+})
+
+describe("noDeviceCredentialAdapter", () => {
+  // Installed as the per-request axios adapter when the gate has nothing to
+  // stamp: the request resolves as a 401 locally and never reaches the wire.
+  it("resolves a 401 carrying the marker body without any network", async () => {
+    const config = { url: "/config", method: "get", headers: {} }
+    const response = await noDeviceCredentialAdapter(config)
+    expect(response.status).toBe(401)
+    expect(response.data).toEqual({
+      error: NO_DEVICE_CREDENTIAL_ERROR,
+      message: expect.any(String),
+    })
+    expect(response.config).toBe(config)
   })
 })

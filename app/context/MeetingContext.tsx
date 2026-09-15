@@ -20,6 +20,7 @@ import { reaction } from "mobx"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
 import { api, type ScheduleDataRow } from "@/services/api"
+import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import { isLiveRefreshBlocked, isServiceRecoveryEdge } from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
 
@@ -60,8 +61,12 @@ async function retryWithBackoff<T>(
   const maxAttempts = RETRY_CONFIG.maxAttempts
   let lastResult: T | undefined
   let lastError: string | undefined
+  // Attempts actually made — fewer than maxAttempts when a rejection ends
+  // the ladder early (below), so the log and the return stay honest.
+  let attemptsMade = 0
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    attemptsMade = attempt
     try {
       const result = await fn()
 
@@ -75,6 +80,16 @@ async function retryWithBackoff<T>(
       // API returned error response
       lastResult = result
       const errorKind = (result as { kind?: string })?.kind ?? "unknown"
+
+      // ADDED 2026-09-14: only transport-ish failures earn another attempt.
+      // A 401/403/404/429 answers the same way in one second as it does now;
+      // re-sending it four times per mount and per foreground was one of
+      // the multipliers behind the 401 storms that got devices banned at
+      // the edge (see contentRetryLogic's policy note).
+      if (!isRetryableProblem(errorKind as Parameters<typeof isRetryableProblem>[0])) {
+        lastError = errorKind
+        break
+      }
 
       if (attempt < maxAttempts) {
         const delay = Math.min(
@@ -100,16 +115,16 @@ async function retryWithBackoff<T>(
     }
   }
 
-  // All retries exhausted
-  log.error(`${label} failed after ${maxAttempts} attempts`, {
+  // All retries exhausted (or the ladder ended early on a rejection)
+  log.error(`${label} failed after ${attemptsMade} attempts`, {
     error: lastError,
   })
 
   if (lastResult !== undefined) {
-    return { result: lastResult, attempts: maxAttempts }
+    return { result: lastResult, attempts: attemptsMade }
   }
 
-  return { error: lastError ?? "Unknown error", attempts: maxAttempts }
+  return { error: lastError ?? "Unknown error", attempts: attemptsMade }
 }
 
 // ============================================================================

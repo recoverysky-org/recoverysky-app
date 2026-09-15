@@ -6,6 +6,7 @@ import {
   decideColdStartStep,
   EXCHANGE_RETRY_DELAYS_MS,
   pickAttestationAlert,
+  shouldDropRejectedJwt,
   TEMPORARY_API_KINDS,
 } from "./deviceTokenLogic"
 
@@ -180,5 +181,31 @@ describe("pickAttestationAlert", () => {
       titleKey: "errors:attestationServerFailedTitle",
       messageKey: "errors:attestationServerFailedMessage",
     })
+  })
+})
+
+describe("shouldDropRejectedJwt", () => {
+  // ADDED 2026-09-14: the server 401'd a request that carried `rejected`. Drop
+  // the module's JWT only when it is still that token — a late response for
+  // an old token must not clear the one a refresh just installed.
+  it("drops the current token when it is the one the server rejected", () => {
+    expect(
+      shouldDropRejectedJwt({ current: "a.b.c", rejected: "a.b.c", usingApiKeyFallback: false }),
+    ).toBe(true)
+  })
+
+  it("keeps a token that differs from the rejected one (already refreshed)", () => {
+    expect(
+      shouldDropRejectedJwt({ current: "new.jwt", rejected: "a.b.c", usingApiKeyFallback: false }),
+    ).toBe(false)
+  })
+
+  it("does nothing when there is no token or the device is on the API-key lane", () => {
+    expect(
+      shouldDropRejectedJwt({ current: null, rejected: "a.b.c", usingApiKeyFallback: false }),
+    ).toBe(false)
+    expect(
+      shouldDropRejectedJwt({ current: "a.b.c", rejected: "a.b.c", usingApiKeyFallback: true }),
+    ).toBe(false)
   })
 })
