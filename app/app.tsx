@@ -57,8 +57,6 @@ import {
   SyncResumer,
   BackupPassRunner,
 } from "./db"
-// Not via the ./db barrel — see the note beside the barrel's resumer exports.
-import { FavoritesMigrator } from "./db/FavoritesMigrator"
 import { initI18n, translate } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
@@ -1203,7 +1201,6 @@ export function App() {
                 <TimerSessionResumer />
                 <SyncResumer />
                 <BackupPassRunner />
-                <FavoritesMigrator />
                 <MeetingProvider>
                   <ThemeProvider>
                     <ToastProvider>

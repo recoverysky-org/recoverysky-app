@@ -32,10 +32,6 @@ export { ReportPollingResumer } from "./ReportPollingResumer"
 export { TimerSessionResumer } from "./TimerSessionResumer"
 export { SyncResumer } from "./SyncResumer"
 export { BackupPassRunner } from "./BackupPassRunner"
-// FavoritesMigrator is deliberately NOT re-exported here: its service chain
-// (services/favorites → services/api and → db/feedbackCache → repositories →
-// models) leads back into this barrel, so exporting it would hand depcruise a
-// fresh set of no-circular warnings. app.tsx imports it from its own module.
 export {
   meetingRepo,
   scheduleRepo,

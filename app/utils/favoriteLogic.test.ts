@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  classifyMigrationLookup,
   decideScheduleLove,
   decideScheduleRating,
-  orderRatedForMigration,
+  reconcileScheduleFeedback,
 } from "./favoriteLogic"
 
 /** Build a 1×N grid row from ids, the shape SchedulePopup's scheduleData carries. */
@@ -63,29 +62,6 @@ describe("decideScheduleLove", () => {
   })
 })
 
-describe("classifyMigrationLookup", () => {
-  it("propagates on ok", () => {
-    expect(classifyMigrationLookup("ok")).toBe("propagate")
-  })
-
-  it("skips delisted or malformed meetings so they never block the flag", () => {
-    expect(classifyMigrationLookup("not-found")).toBe("skip")
-    expect(classifyMigrationLookup("bad-data")).toBe("skip")
-  })
-
-  it("aborts on transient transport failures so the pass retries next launch", () => {
-    expect(classifyMigrationLookup("timeout")).toBe("abort")
-    expect(classifyMigrationLookup("cannot-connect")).toBe("abort")
-    expect(classifyMigrationLookup("server")).toBe("abort")
-  })
-
-  it("aborts on anything unrecognized — unknown defaults to retryable, never to skip", () => {
-    expect(classifyMigrationLookup("unknown")).toBe("abort")
-    expect(classifyMigrationLookup("unauthorized")).toBe("abort")
-    expect(classifyMigrationLookup("some-future-kind")).toBe("abort")
-  })
-})
-
 describe("decideScheduleRating", () => {
   it("sets the tapped star on every unique meeting in the grid, tapped mid included", () => {
     const result = decideScheduleRating({
@@ -133,36 +109,64 @@ describe("decideScheduleRating", () => {
   })
 })
 
-describe("orderRatedForMigration", () => {
-  it("returns only rated meetings, highest star first, so the first schedule hit wins with its max", () => {
-    const ordered = orderRatedForMigration([
-      { mid: "three", rates: 3 },
-      { mid: "unrated", rates: 0 },
-      { mid: "five", rates: 5 },
-      { mid: "four", rates: 4 },
-    ])
-    expect(ordered).toEqual([
-      { mid: "five", rates: 5 },
-      { mid: "four", rates: 4 },
-      { mid: "three", rates: 3 },
-    ])
+describe("reconcileScheduleFeedback", () => {
+  // Legacy per-meeting hearts/stars set before 2026-09-04/09 left a schedule
+  // mixed. Every list payload carries the full sibling grid, so the fix is
+  // applied as the schedules arrive — no lookup per favourite.
+  const schedule = (id: string, ...ids: string[]) => ({ meeting: { id }, data: [row(...ids)] })
+  const lookup = (records: Record<string, { loves?: boolean; rates?: number }>) => (mid: string) =>
+    mid in records ? { loves: records[mid].loves ?? false, rates: records[mid].rates ?? 0 } : null
+
+  it("favorites the whole schedule when any sibling is loved and another is not", () => {
+    const plan = reconcileScheduleFeedback(
+      [schedule("mon", "mon", "tue", "wed")],
+      lookup({ mon: { loves: true } }),
+    )
+    expect(plan.loveMids).toEqual([["mon", "tue", "wed"]])
+    expect(plan.ratingWrites).toEqual([])
   })
 
-  it("keeps input order among equal stars so a pass is deterministic", () => {
-    const ordered = orderRatedForMigration([
-      { mid: "a", rates: 2 },
-      { mid: "b", rates: 2 },
-      { mid: "c", rates: 2 },
-    ])
-    expect(ordered.map((r) => r.mid)).toEqual(["a", "b", "c"])
+  it("leaves a schedule alone when every sibling agrees, loved or not", () => {
+    const allLoved = reconcileScheduleFeedback(
+      [schedule("mon", "mon", "tue")],
+      lookup({ mon: { loves: true }, tue: { loves: true } }),
+    )
+    const noneLoved = reconcileScheduleFeedback([schedule("mon", "mon", "tue")], lookup({}))
+    expect(allLoved.loveMids).toEqual([])
+    expect(noneLoved.loveMids).toEqual([])
   })
 
-  it("does not mutate its input", () => {
-    const input = [
-      { mid: "a", rates: 1 },
-      { mid: "b", rates: 5 },
-    ]
-    orderRatedForMigration(input)
-    expect(input.map((r) => r.mid)).toEqual(["a", "b"])
+  it("rates the whole schedule at its highest star when siblings disagree", () => {
+    const plan = reconcileScheduleFeedback(
+      [schedule("mon", "mon", "tue", "wed")],
+      lookup({ mon: { rates: 3 }, tue: { rates: 5 } }),
+    )
+    expect(plan.ratingWrites).toEqual([{ mids: ["mon", "tue", "wed"], rates: 5 }])
+  })
+
+  it("does not write ratings when no sibling is rated or all match", () => {
+    const unrated = reconcileScheduleFeedback([schedule("mon", "mon", "tue")], lookup({}))
+    const uniform = reconcileScheduleFeedback(
+      [schedule("mon", "mon", "tue")],
+      lookup({ mon: { rates: 4 }, tue: { rates: 4 } }),
+    )
+    expect(unrated.ratingWrites).toEqual([])
+    expect(uniform.ratingWrites).toEqual([])
+  })
+
+  it("plans each schedule once even when it appears on several rows", () => {
+    const plan = reconcileScheduleFeedback(
+      [schedule("mon", "mon", "tue"), schedule("tue", "mon", "tue")],
+      lookup({ mon: { loves: true } }),
+    )
+    expect(plan.loveMids).toHaveLength(1)
+  })
+
+  it("falls back to the row's own meeting when the grid is null", () => {
+    const plan = reconcileScheduleFeedback(
+      [{ meeting: { id: "solo" }, data: null }],
+      lookup({ solo: { loves: true } }),
+    )
+    expect(plan.loveMids).toEqual([])
   })
 })

@@ -540,6 +540,9 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       if (!isCurrent()) return
 
       if (result.kind === "ok") {
+        // Legacy per-meeting hearts/stars → schedule-wide, before toMeetings
+        // snapshots `feedback` (ADDED 2026-09-14; see feedbackCache).
+        feedbackCache.reconcileSchedules(result.schedules)
         // Self-verify venue like the daily path (2026-08-02 fix wave):
         // a proxy/older server answering with online rows yields an
         // empty pool rather than mislabeled meetings.

@@ -17,6 +17,7 @@
  * await feedbackCache.toggleLove("meeting-123")
  */
 
+import { reconcileScheduleFeedback, type ScheduleRowLike } from "@/utils/favoriteLogic"
 import { logger } from "@/utils/logger"
 
 import { feedbackRepo, type FeedbackRecord } from "./repositories"
@@ -278,6 +279,32 @@ export const feedbackCache = {
       persist: (mid) => feedbackRepo.setRating(mid, clampedRating),
       label: "setRatingForMids",
     })
+  },
+
+  /**
+   * Bring legacy per-meeting hearts/stars up to schedule-wide for a batch of
+   * schedules that just arrived from the API. ADDED 2026-09-14, replacing the
+   * one-time `migrateFavorites` pass that looked every favorite up over the
+   * network — see `reconcileScheduleFeedback` for the full story.
+   *
+   * Call it BEFORE mapping the payload to rows: the setters' optimistic
+   * phase is synchronous (see `applyToMids`), so the `feedback` snapshot each
+   * fetch site takes right after already reflects the propagated value and
+   * the row paints with its heart on first render. Deliberately not async —
+   * the caller must not have to await it, and the writes settle in the
+   * background exactly like a popup tap. Uniform schedules cost one Map read
+   * per cell and produce no writes.
+   */
+  reconcileSchedules(schedules: readonly ScheduleRowLike[]): void {
+    if (!loaded) return
+    const plan = reconcileScheduleFeedback(schedules, (mid) => cache.get(mid) ?? null)
+    if (plan.loveMids.length === 0 && plan.ratingWrites.length === 0) return
+    log.info("Reconciling legacy per-meeting feedback to schedule-wide", {
+      loveSchedules: plan.loveMids.length,
+      ratingSchedules: plan.ratingWrites.length,
+    })
+    for (const mids of plan.loveMids) void this.setLoveForMids(mids, true)
+    for (const w of plan.ratingWrites) void this.setRatingForMids(w.mids, w.rates)
   },
 
   /**

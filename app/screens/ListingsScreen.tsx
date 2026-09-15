@@ -584,9 +584,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         result: Awaited<ReturnType<typeof api.getDailySchedules>> | null,
       ): PoolOutcome<MeetingWithTrex> => {
         if (result === null) return { ok: true, items: [] }
-        return result.kind === "ok"
-          ? { ok: true, items: toMeetings(result.schedules) }
-          : { ok: false, items: [] }
+        if (result.kind !== "ok") return { ok: false, items: [] }
+        // Legacy per-meeting hearts/stars → schedule-wide, before toMeetings
+        // snapshots `feedback` (ADDED 2026-09-14; see feedbackCache).
+        feedbackCache.reconcileSchedules(result.schedules)
+        return { ok: true, items: toMeetings(result.schedules) }
       }
 
       const onlinePool = toPool(onlineResult)

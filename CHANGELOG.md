@@ -105,6 +105,22 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   still retry.
 
 ### Changed
+- **Legacy per-meeting hearts and stars now go schedule-wide as lists load,
+  with no network lookups.** The one-time favorites/ratings migration
+  (`FavoritesMigrator` → `migrateFavorites`) asked the API for every loved or
+  rated meeting's schedule on launch — one or two `GET /schedules/meeting/:mid`
+  per favourite, a 404 for each meeting delisted upstream, unpaced, and
+  re-run on every launch until it finished. Those distinct 404 paths feed the
+  same edge probing rule as the report-body bug above, so a user with a
+  dozen delisted favourites could be banned on cold start. Every schedule list
+  the app fetches already carries each row's full sibling grid, so the same
+  reconcile now runs on the payload as it arrives (`feedbackCache
+  .reconcileSchedules` → pure `reconcileScheduleFeedback`): a mixed schedule
+  is loved whole or set to its highest star the first time it is listed, and
+  a favourite on a meeting that never appears in a list is never shown, so it
+  needs nothing. The migrator, its service, and both MMKV done-flags
+  (`favorites.scheduleMigration.v1` / `ratings.scheduleMigration.v1`, now
+  orphaned and harmless) are removed.
 - **Cold-start API precheck now hits `GET /status/ready`.** The probe that
   decides between normal startup and the outage screen (and the 15-second
   recovery poll on that screen) used the full `/status` health report; the

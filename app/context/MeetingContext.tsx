@@ -313,6 +313,11 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         return
       }
 
+      // Legacy per-meeting hearts/stars → schedule-wide, using the sibling
+      // grid this payload already carries. Must run before the map below
+      // snapshots `feedback` (ADDED 2026-09-14; see feedbackCache).
+      feedbackCache.reconcileSchedules(outcome.result.schedules)
+
       // Convert API schedules to MeetingWithTrex.
       const meetings: MeetingWithTrex[] = outcome.result.schedules.map((s) => ({
         ...s.meeting,

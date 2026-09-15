@@ -58,9 +58,10 @@ export function decideScheduleLove(args: {
 
 /**
  * Every unique meeting id in the grid, tapped meeting always first. Shared by
- * the love and rating decisions — and exported for the one-time migrations in
- * `services/favorites/migrateFavorites.ts` — so "which meetings make up this
- * schedule" has exactly one answer.
+ * the love and rating decisions and by `reconcileScheduleFeedback` (it used to
+ * serve the one-time migrations in `services/favorites/migrateFavorites.ts`,
+ * removed 2026-09-14) so "which meetings make up this schedule" has exactly
+ * one answer.
  */
 export function collectScheduleMids(
   tappedMid: string,
@@ -105,52 +106,88 @@ export function decideScheduleRating(args: {
   }
 }
 
-/** The two fields the ratings migration reads off a feedback record. */
-export interface RatedLike {
-  mid: string
+/** The two preference fields the reconcile reads off a feedback record. */
+export interface FeedbackPrefsLike {
+  loves: boolean
   rates: number
 }
 
-/**
- * Order the rated meetings for the one-time ratings migration
- * (`services/favorites/migrateFavorites.ts`): highest star first, input order
- * preserved among equals, unrated rows dropped.
- *
- * The migration walks this list and, for each mid not yet covered, SETs its
- * star on the whole schedule and marks every sibling covered. Highest-first is
- * what makes "the schedule's best rating wins" fall out of that walk without a
- * second pass: by the time a lower-rated sibling comes up, its schedule is
- * already covered. Deterministic tie order keeps a retried pass (the flag is
- * only set after full success) writing the same values.
- */
-export function orderRatedForMigration<T extends RatedLike>(records: readonly T[]): T[] {
-  // Array.prototype.sort is stable, which is what keeps equal stars in input order.
-  return records.filter((r) => r.rates > 0).sort((a, b) => b.rates - a.rates)
+/** One list row as the schedules endpoints return it: the meeting plus its sibling grid. */
+export interface ScheduleRowLike {
+  meeting: { id: string }
+  data: (ScheduleCellLike | null)[][] | null
+}
+
+export interface ScheduleFeedbackPlan {
+  /** Schedules to `setLoveForMids(mids, true)`. */
+  loveMids: string[][]
+  /** Schedules to `setRatingForMids(mids, rates)`. */
+  ratingWrites: { mids: string[]; rates: number }[]
 }
 
 /**
- * Classify one schedule lookup during the one-time favorites migration
- * (`services/favorites/migrateFavorites.ts`): existing per-meeting favorites
- * get their whole schedule favorited on first run after the schedule-wide
- * favorites update.
+ * Bring legacy per-meeting hearts and stars up to schedule-wide as the
+ * schedules arrive.
  *
- * - `"propagate"` — lookup succeeded; favorite the schedule's meetings.
- * - `"skip"` — the meeting no longer exists upstream (`not-found`) or the
- *   response was malformed (`bad-data`). Permanent: counting it handled is
- *   what lets the migration flag ever get set for a user holding a favorite
- *   on a delisted meeting.
- * - `"abort"` — everything else. The pass stops, the flag stays unset, and
- *   the whole migration retries next cold start (idempotent — setLoveForMids
- *   skips mids already loved). Unrecognized kinds land here deliberately,
- *   the same "unknown defaults to retryable" stance as
- *   tokenFreshnessLogic.ts — skipping on an unknown error would silently
- *   drop a user's favorite forever, while aborting merely costs a retry.
+ * Before 2026-09-04 (hearts) and 2026-09-09 (stars) feedback was set on the
+ * single tapped meeting, so a user's Monday favorite left Tue/Wed/… of the
+ * same schedule unloved. The first fix was a one-time migration
+ * (`services/favorites/migrateFavorites.ts`, REMOVED 2026-09-14) that asked
+ * the API `GET /schedules/meeting/:mid` for every loved or rated meeting to
+ * learn its siblings — one or two requests per favorite, a 404 per delisted
+ * one, unpaced, re-run every launch until it completed. Those distinct 404
+ * paths are what the edge's `http-probing` scenario bans on.
  *
- * Takes the `kind` string off the API result union; typed as plain `string`
- * so this module stays free of runtime `@/` imports (vitest reachability).
+ * The lookup was never needed: hearts are only ever rendered on rows that
+ * came from `/schedules/live`, `/schedules/daily` or `/schedules/nearby`,
+ * and every one of those rows already carries the full sibling grid. So the
+ * fix is applied here, to whatever payload just arrived, with no requests:
+ * a schedule where any sibling is loved and another is not gets loved
+ * whole; a schedule whose siblings hold different stars gets its highest
+ * star everywhere (same "best rating wins" rule the migration used). A
+ * favorite on a meeting that never appears in a list is never displayed,
+ * so it needs no reconcile; a delisted meeting simply never shows up.
+ *
+ * A mixed schedule can only be legacy data — the popups have written
+ * schedule-wide since the change — so this converges once per schedule and
+ * is then a no-op. It also covers a meeting added upstream to an
+ * already-loved schedule, which is what "schedule-wide" should mean.
+ *
+ * Pure: `lookup` is the cache read, the result is the list of writes. The
+ * I/O half is `feedbackCache.reconcileSchedules`. Uniform schedules produce
+ * nothing, so calling this on every fetch costs one Map lookup per cell.
  */
-export function classifyMigrationLookup(kind: string): "propagate" | "skip" | "abort" {
-  if (kind === "ok") return "propagate"
-  if (kind === "not-found" || kind === "bad-data") return "skip"
-  return "abort"
+export function reconcileScheduleFeedback(
+  schedules: readonly ScheduleRowLike[],
+  lookup: (mid: string) => FeedbackPrefsLike | null,
+): ScheduleFeedbackPlan {
+  const plan: ScheduleFeedbackPlan = { loveMids: [], ratingWrites: [] }
+  // The same schedule can occupy several rows (one per occurrence); plan it
+  // once. Keyed on the sorted mid set rather than `sid` so a row without one
+  // still dedupes.
+  const seen = new Set<string>()
+
+  for (const s of schedules) {
+    const mids = collectScheduleMids(s.meeting.id, s.data)
+    if (mids.length < 2) continue
+    const key = [...mids].sort().join("|")
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    let lovedCount = 0
+    let maxRates = 0
+    let ratesDisagree = false
+    const prefs = mids.map((mid) => lookup(mid) ?? { loves: false, rates: 0 })
+    for (const p of prefs) {
+      if (p.loves) lovedCount++
+      if (p.rates > maxRates) maxRates = p.rates
+    }
+    if (lovedCount > 0 && lovedCount < mids.length) plan.loveMids.push(mids)
+    if (maxRates > 0) {
+      ratesDisagree = prefs.some((p) => p.rates !== maxRates)
+      if (ratesDisagree) plan.ratingWrites.push({ mids, rates: maxRates })
+    }
+  }
+
+  return plan
 }
