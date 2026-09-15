@@ -109,6 +109,15 @@ export interface SyncDeps {
     getLastSyncedAt(uid: string): number | null
     setLastSyncedAt(uid: string, value: number): void
   }
+  /**
+   * Report ids the server answered `not-found` for, persisted per account
+   * (MMKV in production). ADDED 2026-09-14 — see `bodyNotFound` below for
+   * why this has to outlive the process.
+   */
+  bodyNotFound: {
+    get(uid: string): string[]
+    set(uid: string, ids: string[]): void
+  }
   /** Combined availability check — syncEnabled, entitlement, auth, network,
    * maintenance. `uid` is the account key for cursors. */
   gate(): Promise<{ ok: boolean; uid: string }>
@@ -138,8 +147,28 @@ const PUSH_DEBOUNCE_MS = 3_000
 const BACKOFF_MS = [30_000, 60_000, 300_000]
 /** Small gap between per-report body fetches so a large first sync doesn't
  * hammer the API. GET /reports/:id is a plain read, so this is politeness,
- * not a documented rate limit. */
-const REPORT_BODY_PACE_MS = 300
+ * not a documented rate limit.
+ * CHANGED 2026-09-14: 300 → 1000 ms. 25 body-less ids at 300 ms arrived at
+ * the edge as 25 distinct 404 paths in ~13 s, which is what the CrowdSec
+ * http-probing scenario bans on. The real protection is the not-found
+ * budget below; this just keeps the first five from landing as one burst
+ * on top of cold-start traffic. */
+const REPORT_BODY_PACE_MS = 1_000
+/**
+ * At most this many `not-found` answers per backfill pass, after which the
+ * pass ends and the backfill is held for NOT_FOUND_HOLD_MS. ADDED 2026-09-14
+ * after four CrowdSec bans in one day: the stock `crowdsecurity/http-probing`
+ * scenario is a leaky bucket over DISTINCT 404 paths from one IP —
+ * capacity 10, one event drains every 10 s — so a list of never-fetchable
+ * ids overflows it at any per-request gap short of 10 s. A budget is the
+ * only thing that works: 5 per pass, with a 60 s hold, adds at most 5 while
+ * the bucket drains 6, so it can never ratchet up across passes and leaves
+ * half the capacity for the app's other legitimate 404s. Successful fetches
+ * do not count. If the edge scenario is ever retuned, these two are the
+ * knobs.
+ */
+const NOT_FOUND_CAP_PER_PASS = 5
+const NOT_FOUND_HOLD_MS = 60_000
 
 export type AttendanceSyncService = ReturnType<typeof createAttendanceSyncService>
 
@@ -166,7 +195,40 @@ export function createAttendanceSyncService(deps: SyncDeps) {
   // foreground, forever. Mirrors reportPollingLogic's "not-found terminates"
   // (2026-09-13). In-memory on purpose, same reasoning as that decision: no
   // schema column, and a fresh launch retries once in case the row appears.
-  const bodyNotFound = new Set<string>()
+  // CHANGED 2026-09-14 (same day): "a fresh launch retries once" was the bug.
+  // The 404 is a true answer — that body does not exist — and re-asking 25
+  // of them on every cold start tripped CrowdSec's http-probing ban four
+  // times in a day. The set is now hydrated from `deps.bodyNotFound` (MMKV,
+  // keyed per uid) the first time a pass runs for an account and written
+  // through on every 404, so an id is asked exactly once per install. The
+  // one event that re-arms an id is the server copy changing — a pull
+  // `update`/`create` for that report calls forgetBodyNotFound(). Still no
+  // schema column: the mark is operational state, not report data.
+  let bodyNotFound = new Set<string>()
+  let bodyNotFoundUid: string | null = null
+  // Backfill is held until this instant after a pass hits
+  // NOT_FOUND_CAP_PER_PASS. Separate from `nextAllowedAt` on purpose: that
+  // one gates push/pull too, and five missing bodies say nothing about the
+  // health of the sync endpoints.
+  let nextBackfillAllowedAt = 0
+
+  function hydrateBodyNotFound(uid: string): void {
+    if (bodyNotFoundUid === uid) return
+    bodyNotFound = new Set(deps.bodyNotFound.get(uid))
+    bodyNotFoundUid = uid
+  }
+
+  function rememberBodyNotFound(uid: string, id: string): void {
+    hydrateBodyNotFound(uid)
+    bodyNotFound.add(id)
+    deps.bodyNotFound.set(uid, [...bodyNotFound])
+  }
+
+  function forgetBodyNotFound(uid: string, id: string): void {
+    hydrateBodyNotFound(uid)
+    if (!bodyNotFound.delete(id)) return
+    deps.bodyNotFound.set(uid, [...bodyNotFound])
+  }
   // I2: true for the duration of initialBackup(). While set, settlePhase()
   // is a no-op — the backup owns "backing-up" across its two pullTicks and
   // final pushTick, and we don't want an inner tick's finally stomping that
@@ -471,6 +533,9 @@ export function createAttendanceSyncService(deps: SyncDeps) {
               if (action === "delete") await deps.local.reportRemove(r.id)
               else if (action === "update") await deps.local.reportUpdateFromServer(r)
               else await deps.local.reportCreateFromServer(r)
+              // The server copy changed (or newly appeared): if we had given
+              // up on this report's body, ask once more on the next backfill.
+              if (action !== "delete") forgetBodyNotFound(gate.uid, r.id)
             }
           } catch (err) {
             pageClean = false
@@ -528,7 +593,7 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     // list of report ids to fetch one by one. Skipping is conservative and
     // self-healing — the ids stay in reportsMissingBody() and the next pass
     // after the backoff expires picks them up.
-    if (backfilling || backoffActive()) return
+    if (backfilling || backoffActive() || deps.now() < nextBackfillAllowedAt) return
     // Same I1 rule as pushTick/pullTick: the guard must be set synchronously,
     // before the first await. fullSync() and a resume-triggered fullSync()
     // can overlap, and if the flag were set after `await deps.gate()` both
@@ -536,9 +601,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     // and both would fetch the same missing bodies concurrently.
     backfilling = true
     let savedAny = false
+    let notFoundThisPass = 0
     try {
       const gate = await deps.gate()
       if (!gate.ok) return
+      hydrateBodyNotFound(gate.uid)
       const ids = (await deps.local.reportsMissingBody()).filter((id) => !bodyNotFound.has(id))
       if (ids.length === 0) return
       for (let i = 0; i < ids.length; i++) {
@@ -580,8 +647,23 @@ export function createAttendanceSyncService(deps: SyncDeps) {
             // EXCEPT `not-found`, which is remembered for the session (see
             // `bodyNotFound`): the server has no such row and retrying it
             // cannot succeed.
-            if (result.kind === "not-found") bodyNotFound.add(id)
             deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
+            if (result.kind === "not-found") {
+              rememberBodyNotFound(gate.uid, id)
+              notFoundThisPass++
+              if (notFoundThisPass >= NOT_FOUND_CAP_PER_PASS) {
+                // Budget spent — see NOT_FOUND_CAP_PER_PASS. The remaining
+                // ids are still in reportsMissingBody() and get their turn
+                // on the first pass after the hold.
+                nextBackfillAllowedAt = deps.now() + NOT_FOUND_HOLD_MS
+                deps.log.info("sync: report body backfill paused after not-found budget", {
+                  notFound: notFoundThisPass,
+                  remaining: ids.length - i - 1,
+                  holdMs: NOT_FOUND_HOLD_MS,
+                })
+                return
+              }
+            }
           }
         } catch (err) {
           // Same per-item-vs-whole-endpoint reasoning as above: NOT
@@ -696,7 +778,10 @@ export function createAttendanceSyncService(deps: SyncDeps) {
    * token. See takeQueueOwnership() in services/sync/index.ts.
    */
   async function onLogout(): Promise<void> {
-    bodyNotFound.clear()
+    // In-memory copy only: the persisted set is keyed per uid and stays put
+    // for when that account signs back in.
+    bodyNotFound = new Set()
+    bodyNotFoundUid = null
     if (debounceTimer) {
       clearTimeout(debounceTimer)
       debounceTimer = null

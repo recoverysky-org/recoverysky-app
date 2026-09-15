@@ -1054,7 +1054,13 @@ The load-bearing facts:
   tombstones. Reordering that clobbers unpushed user edits.
 - Reports are pull-only and `/sync/reports` is metadata-only;
   `backfillReportBodies()` fetches each body via `GET /reports/:id` so a synced
-  device holds a complete offline copy.
+  device holds a complete offline copy. A 404 there is a true answer (the body
+  does not exist — Firebase imports never had one) and is **persisted per uid**
+  in MMKV (`sync.bodyNotFound.<uid>`), with a budget of 5 not-founds per pass
+  and a 60 s hold (CHANGED 2026-09-14: the in-memory-only version re-asked 25
+  ids on every cold start and tripped CrowdSec's http-probing ban four times in
+  a day). Only a pull `update` for that report re-arms the fetch. Don't
+  "simplify" this back to a session-scoped set.
 - `app/services/sync/index.ts` has **zero automated coverage** (it imports
   `@/`, which vitest can't resolve). The account-switch path must be verified
   by hand — checklist in `docs/BACKUP.md`.

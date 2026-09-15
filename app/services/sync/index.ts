@@ -60,6 +60,11 @@ function cursorKey(resource: SyncResource, uid: string): string {
   return `sync.cursor.${resource}.${uid}`
 }
 
+/** MMKV key for the per-account set of report ids with no server-side body. */
+function bodyNotFoundKey(uid: string): string {
+  return `sync.bodyNotFound.${uid}`
+}
+
 // MMKV key recording which uid's rows currently sit in the outbox. Stamped by
 // enqueueAttendance() — the single enqueue path — so trigger 4 can tell "same
 // user signed back in" (owner === userId, queue survives) apart from "a
@@ -351,6 +356,26 @@ const deps: SyncDeps = {
     },
     setLastSyncedAt: (uid, value) => {
       saveString(`sync.lastSyncedAt.${uid}`, String(value))
+    },
+  },
+  // Per-uid list of report ids whose body the server has said does not exist
+  // (ADDED 2026-09-14, see `bodyNotFound` in attendanceSyncService.ts). MMKV
+  // like the cursors: a few dozen UUIDs at most, and it must survive a
+  // relaunch — the in-memory-only version re-asked every id on every cold
+  // start and got the IP banned by the edge's 404-probing rule.
+  bodyNotFound: {
+    get: (uid) => {
+      const raw = loadString(bodyNotFoundKey(uid))
+      if (!raw) return []
+      try {
+        const parsed: unknown = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : []
+      } catch {
+        return []
+      }
+    },
+    set: (uid, ids) => {
+      saveString(bodyNotFoundKey(uid), JSON.stringify(ids))
     },
   },
   gate,

@@ -46,6 +46,10 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
       return impl(...args)
     }
 
+  // Stands in for the MMKV-backed store: survives across service instances
+  // created from the same deps, which is how the tests model a relaunch.
+  const notFoundStore = new Map<string, string[]>()
+
   const deps: SyncDeps = {
     api: {
       pushAttendance: track("pushAttendance", async () => ({
@@ -100,6 +104,12 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
       set: track("cursorSet", () => {}),
       getLastSyncedAt: () => null,
       setLastSyncedAt: track("setLastSyncedAt", () => {}),
+    },
+    bodyNotFound: {
+      get: track("bodyNotFoundGet", (uid: string) => notFoundStore.get(uid) ?? []),
+      set: track("bodyNotFoundSet", (uid: string, ids: string[]) => {
+        notFoundStore.set(uid, ids)
+      }),
     },
     gate: track("gate", async () => ({ ok: true, uid: "auth0|u1" })),
     emitSynced: track("emitSynced", () => {}),
@@ -412,6 +422,78 @@ describe("backfillReportBodies", () => {
   })
 
   it("onLogout forgets not-found ids so the next account starts clean", async () => {
+    // The persisted set is keyed per uid, so a different account signing in
+    // on this device must not inherit the previous account's marks.
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      return { kind: "not-found" as const }
+    }
+    let uid = "auth0|u1"
+    deps.gate = async () => ({ ok: true, uid })
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    await svc.onLogout()
+    uid = "auth0|u2"
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport).toHaveLength(2)
+  })
+
+  it("a not-found body is remembered across launches for the same account", async () => {
+    // 2026-09-14 incident: the in-memory set alone meant every cold start
+    // re-asked GET /reports/:id for the same 25 body-less ids, and CrowdSec's
+    // http-probing scenario (distinct 404 paths, leaky bucket of 10) banned
+    // the IP four times in a day. A new service instance from the same deps
+    // is the test's model of a relaunch.
+    const deps = makeDeps()
+    deps.local.reportsMissingBody = async () => ["r1", "r2"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      if (id === "r1") return { kind: "not-found" as const }
+      return { kind: "ok" as const, html: "<p>x</p>", text: "x" }
+    }
+    await createAttendanceSyncService(deps).backfillReportBodies()
+    expect(deps.calls.bodyNotFoundSet).toContainEqual(["auth0|u1", ["r1"]])
+    await createAttendanceSyncService(deps).backfillReportBodies()
+    expect(deps.calls.getReport.map((c) => c[0])).toEqual(["r1", "r2", "r2"])
+  })
+
+  it("stops after five not-founds in one pass and holds the backfill for a minute", async () => {
+    // Budget, not just pacing: the http-probing bucket holds 10 distinct
+    // 404 paths and drains one every 10 s, so no per-request gap short of
+    // 10 s keeps a long list of never-fetchable ids under it. Five per pass
+    // with a one-minute hold caps us at 5 in-bucket, ever.
+    const deps = makeDeps()
+    let now = 1_000_000
+    deps.now = () => now
+    deps.local.reportsMissingBody = async () => ["r1", "r2", "r3", "r4", "r5", "r6", "r7"]
+    deps.api.getReport = async (id: string) => {
+      ;(deps.calls.getReport ??= []).push([id])
+      return { kind: "not-found" as const }
+    }
+    const svc = createAttendanceSyncService(deps)
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport).toHaveLength(5)
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport).toHaveLength(5)
+    now += 60_001
+    await svc.backfillReportBodies()
+    expect(deps.calls.getReport.map((c) => c[0])).toEqual([
+      "r1",
+      "r2",
+      "r3",
+      "r4",
+      "r5",
+      "r6",
+      "r7",
+    ])
+  })
+
+  it("a not-found mark is dropped when the server later updates that report", async () => {
+    // The only way a body can appear for an id we gave up on is the server
+    // copy changing (a resend). That arrives as an `update` on the reports
+    // pull, so that is the one event that re-arms the fetch.
     const deps = makeDeps()
     deps.local.reportsMissingBody = async () => ["r1"]
     deps.api.getReport = async (id: string) => {
@@ -420,7 +502,33 @@ describe("backfillReportBodies", () => {
     }
     const svc = createAttendanceSyncService(deps)
     await svc.backfillReportBodies()
-    await svc.onLogout()
+    expect(deps.calls.getReport).toHaveLength(1)
+
+    deps.local.reportExists = async () => true
+    deps.api.pullReports = async () => ({
+      kind: "ok" as const,
+      records: [
+        {
+          id: "r1",
+          uid: "auth0|u1",
+          name: "",
+          email: "",
+          timezone: "",
+          generated: 1,
+          confirmed: 0,
+          confirmation: "",
+          error: false,
+          credit: 0,
+          fid: "",
+          updated: 200,
+          deleted: false,
+        },
+      ],
+      cursor: 200,
+      hasMore: false,
+    })
+    await svc.pullTick("reports")
+    expect(deps.calls.bodyNotFoundSet).toContainEqual(["auth0|u1", []])
     await svc.backfillReportBodies()
     expect(deps.calls.getReport).toHaveLength(2)
   })

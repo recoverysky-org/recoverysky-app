@@ -55,6 +55,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `backupPassLogic.ts`; bump `BACKUP_PASS_ID` to run another pass later.
 
 ### Fixed
+- **Cloud Backup no longer gets the device's IP banned by the API edge.**
+  The report-body backfill asks `GET /reports/:id` for every local report
+  with no stored body, and answers 404 for reports the server never had a
+  body for (Firebase imports). Those 404s are true answers, but the app only
+  remembered them for the session, so every cold start re-asked the same
+  ids — 25 of them in ~13 s — and CrowdSec's 404-probing rule banned the
+  address for four hours, four times in one day, re-tripping on each
+  relaunch. A not-found body is now persisted per account (MMKV) so each id
+  is asked exactly once per install; a server-side update to that report
+  re-arms it. The pass also stops after five not-founds and waits a minute
+  before continuing, so a brand-new install with a long list of body-less
+  reports stays under the edge's bucket, and fetches are paced at 1 s instead
+  of 300 ms. Covered in the vitest suite for `attendanceSyncService`.
 - **Live tab refills itself when a cold-start outage ends, and no longer
   empties when a refresh fails mid-session.** Two halves of one UX hole in
   the Live meetings feed (`MeetingContext`). (1) The auto-refresh watched

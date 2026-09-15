@@ -202,24 +202,46 @@ To give a second device a genuinely complete local copy (no lazy-fetch, no
 network dependency when opening an old report), `backfillReportBodies()` runs as
 part of every sync pass. It asks the local DB which reports are missing a body,
 then fetches each one via `GET /reports/:id`, paced at `REPORT_BODY_PACE_MS`
-(300 ms). Each fetch is individually try/caught — one failure must not abort the
-pass, because `fullSync()` still has an outbox to drain afterwards.
+(1 s; was 300 ms until 2026-09-14). Each fetch is individually try/caught — one
+failure must not abort the pass, because `fullSync()` still has an outbox to
+drain afterwards.
 
 **The backfill is driven by local state, not by the cursor.** A failed body
 fetch therefore cannot strand the pull cursor; the next pass simply notices the
 body is still missing and tries again.
 
-**Except `not-found`, which is terminal for the session** (CHANGED 2026-09-14).
-`GET /reports/:id` answers 404 when the API has no such row at all — a report
-imported from Firebase during onboarding, or one created against another
+**Except `not-found`, which is terminal and persisted** (CHANGED 2026-09-14,
+twice). `GET /reports/:id` answers 404 when the API has no such row at all — a
+report imported from Firebase during onboarding, or one created against another
 environment. Those ids can never be fetched, and because the missing-body
 filter has no terminal state they were re-walked on every `fullSync()` (every
 foreground): one GET, one warning, one `api_error` analytics event and one
-entitlement re-check per id, forever. The service now remembers `not-found` ids
-in memory (`bodyNotFound`) and skips them until the next launch; `onLogout()`
-clears the set. In-memory on purpose — same reasoning as the poller's 2026-09-13
-"not-found terminates" decision: no schema column, and a fresh launch retries
-once in case the row has since appeared. Transient failures are still retried
+entitlement re-check per id, forever. The first fix that day remembered
+`not-found` ids in memory only, so a fresh launch re-asked all of them "in case
+the row has since appeared". That was the bug: 25 such ids at 300 ms reached the
+edge as 25 distinct 404 paths in ~13 s, and CrowdSec's stock
+`crowdsecurity/http-probing` scenario — a leaky bucket over distinct 404 paths
+from one IP, capacity 10, one event draining every 10 s — banned the address
+for four hours, four times in one day, re-tripping on every cold start.
+
+The 404 is a true answer, so it is now kept. The service hydrates `bodyNotFound`
+from MMKV (`sync.bodyNotFound.<uid>`, via the injected `deps.bodyNotFound`) the
+first time a pass runs for an account and writes through on every 404, so an id
+is asked **exactly once per install**. The one thing that re-arms an id is the
+server copy changing: a reports-pull `update` (or `create`) for that report
+drops its mark, because a resend is the only way a body can appear for it.
+`onLogout()` clears only the in-memory copy — the persisted set is per uid and
+waits for that account to sign back in.
+
+Persistence alone is not enough for a never-seen list, so the pass also carries
+a **budget**: after `NOT_FOUND_CAP_PER_PASS` (5) not-found answers the pass ends
+and the backfill is held for `NOT_FOUND_HOLD_MS` (60 s) — separate from the
+shared push/pull backoff, since five missing bodies say nothing about the sync
+endpoints. Five per minute adds less than the bucket drains (six), so it can
+never ratchet up across passes and leaves half the capacity for the app's other
+legitimate 404s. A brand-new install with 25 body-less reports classifies them
+over five passes in a few minutes of use and never asks again. Successful
+fetches do not count against the budget; transient failures are still retried
 next pass.
 
 ## Status and the Settings toggle
