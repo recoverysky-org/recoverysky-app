@@ -39,6 +39,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   module-filtered searches, which is why the leak was undercounted.
   (`docs/DIAGNOSTICS.md` now lists what is never logged.)
 
+### Fixed
+- **Every log line now carries the app version, session, device, and (signed
+  in) hashed user id — not just lines from loggers created late.** A child
+  logger took a snapshot of the root's context when it was created, and the
+  root's `setContext` built a new object each time, so any module-scope logger
+  (`const log = logger.child({ module })`, created at import) never saw the
+  context `app.tsx` fills in afterwards. Measured on 2026-09-16: 12 % of lines
+  (all of `App`, `deviceId`, `ErrorHandler`, `sentry`) had no version or
+  session — so no fingerprint on those modules could ever be tied to a build —
+  and only 45 % carried a user id, which left the support lookup in
+  `docs/DIAGNOSTICS.md` blind to the API, auth, config, and SQLite-key layers.
+  The context is now one object shared with every child and mutated in place
+  (`logger.ts`, vitest-covered). RS-026.
+
 ## [4.10.1-4] — 2026-09-14
 
 ### Fixed

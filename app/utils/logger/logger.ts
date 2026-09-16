@@ -43,7 +43,19 @@ class LoggerImpl implements Logger {
   private traceId?: string
   private spanId?: string
   private baseAttributes: LogAttributes
-  private context: LoggerContext = {}
+  /**
+   * Shared by reference with every child (see `child()`), and only ever
+   * mutated in place — never reassigned. `setContext` / `clearContext` on
+   * the root must be visible to a child created at module scope, long
+   * before app.tsx fills in sessionId/appVersion, deviceId and the hashed
+   * userId. CHANGED 2026-09-16 (RS-026): `setContext` used to build a new
+   * object, which silently detached every existing child; 12 % of app lines
+   * (all of `App`, `deviceId`, `ErrorHandler`, `sentry`) carried no version
+   * or session, and only 45 % carried a userId, because module-scope loggers
+   * kept a snapshot from import time. Don't "simplify" this back to
+   * `this.context = { ...this.context, ...ctx }`.
+   */
+  private readonly context: LoggerContext
   private hasLoggedStartup = false
 
   constructor(
@@ -189,7 +201,11 @@ class LoggerImpl implements Logger {
   }
 
   setContext(context: Partial<LoggerContext>): void {
-    this.context = { ...this.context, ...context }
+    // In place, so children created earlier see it (RS-026 — see the field
+    // doc). A key explicitly passed as `undefined` still lands as undefined,
+    // which `log()` filters out; that is how app.tsx clears userId on
+    // sign-out.
+    Object.assign(this.context, context)
   }
 
   getContext(): LoggerContext {
@@ -197,10 +213,15 @@ class LoggerImpl implements Logger {
   }
 
   clearContext(): void {
-    this.context = {}
+    // Delete keys rather than reassign — same sharing rule as setContext.
+    for (const key of Object.keys(this.context)) {
+      delete this.context[key as keyof LoggerContext]
+    }
   }
 
   child(attributes: LogAttributes): Logger {
+    // The child receives the SAME context object, not a copy — that is the
+    // whole mechanism by which a module-scope child stays current.
     return new LoggerImpl(this.config, { ...this.baseAttributes, ...attributes }, this.context)
   }
 

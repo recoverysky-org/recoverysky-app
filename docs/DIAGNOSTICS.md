@@ -32,6 +32,21 @@ node -e 'const n=require("tweetnacl");const d=n.hash(new TextEncoder().encode(pr
 Query Loki with `{service_name="recoverysky-app"} | userId="<hash>"` (or
 `user_id` if the collector promoted the Resource attribute).
 
+**Reach of that lookup by build (RS-026, fixed 2026-09-16).** On builds before
+the fix, a child logger snapshotted the context at creation, so every
+module-scope logger (`Api`, `AuthStore`, `ConfigStore`, `sqliteKey`, `App`,
+…) emitted lines with **no `userId` and mostly no `deviceId`** for the whole
+session; only component loggers created after sign-in carried them
+(measured 2026-09-16: 45 % of lines had a `userId`). For those builds, find
+the session another way — `| sessionId="…"` from a line that does carry the
+hash, or `module="LoginScreen"`/`useAuth0Wrapper` lines near the report time
+— and then widen to the whole session. On fixed builds every line after the
+`setContext` call carries all four fields, so the `userId` filter alone is
+complete. The same bug left 12 % of lines (`App`, `deviceId`, `ErrorHandler`,
+`sentry`) with no `appVersion` label at all; those cannot be version-filtered
+on old builds, and `service_version` on them is the bare package.json
+version without the OTA counter.
+
 **Never logged, in any field, at any level:** the report recipient's email
 address, the user's own email, `shortName`, and raw coordinates. Structured
 metadata counts — Loki indexes it just as well as line text, and

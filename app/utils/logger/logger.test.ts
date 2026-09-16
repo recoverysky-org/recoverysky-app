@@ -492,6 +492,68 @@ describe("Logger", () => {
       logger.destroy()
     })
 
+    // RS-026: a child created BEFORE setContext must still see the context.
+    // Module-scope loggers (`const log = logger.child({ module })`) are created
+    // during import, long before app.tsx sets sessionId/appVersion, deviceId,
+    // and the hashed userId — if the child holds a snapshot, every line those
+    // modules ever emit lacks all four fields.
+    it("should give a child created before setContext the later context", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      const childLogger = logger.child({ module: "App" })
+      logger.setContext({ sessionId: "session-xyz", appVersion: "4.10.1-5" })
+      logger.setContext({ deviceId: "device-abc" })
+      logger.setContext({ userId: "0123456789abcdef" })
+      childLogger.info("Emitted after the root context filled in")
+
+      await childLogger.flush()
+
+      const [records, , context] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({
+        sessionId: "session-xyz",
+        appVersion: "4.10.1-5",
+        deviceId: "device-abc",
+        userId: "0123456789abcdef",
+        module: "App",
+      })
+      // The OTLP Resource (service.version, session.id, device.id, user.id)
+      // is built from the same object at flush time.
+      expect(context).toEqual({
+        sessionId: "session-xyz",
+        appVersion: "4.10.1-5",
+        deviceId: "device-abc",
+        userId: "0123456789abcdef",
+      })
+
+      logger.destroy()
+    })
+
+    it("should clear a pre-existing child's context when the root clears", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.setContext({ sessionId: "session-xyz", userId: "0123456789abcdef" })
+      const childLogger = logger.child({ module: "App" })
+      logger.clearContext()
+      childLogger.info("After clear")
+
+      await childLogger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ module: "App" })
+
+      logger.destroy()
+    })
+
     it("should prioritize per-call attributes over context", async () => {
       const logger = createLogger({
         minLevel: "info",
@@ -617,7 +679,9 @@ describe("Logger", () => {
       logger.info("Test message")
       await logger.flush()
 
-      expect(warnSpy).toHaveBeenCalledWith("[Logger] Failed to send 1 logs, re-queued: Network error")
+      expect(warnSpy).toHaveBeenCalledWith(
+        "[Logger] Failed to send 1 logs, re-queued: Network error",
+      )
 
       warnSpy.mockRestore()
       logger.destroy()
