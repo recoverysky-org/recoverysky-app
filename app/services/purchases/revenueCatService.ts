@@ -22,7 +22,7 @@ import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui"
 import { logger } from "@/utils/logger"
 
 import { BILLING_UNRESPONSIVE_ERROR, raceStoreCall } from "./billingHealthLogic"
-import { REVENUECAT_CONFIG, ENTITLEMENTS, OFFERINGS, type EntitlementId } from "./config"
+import { REVENUECAT_CONFIG, ENTITLEMENTS, type EntitlementId } from "./config"
 
 const log = logger.child({ module: "RevenueCatService" })
 
@@ -193,17 +193,20 @@ export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
  */
 export async function getOfferings(): Promise<Result<PurchasesOffering | null>> {
   try {
-    const offeringId = OFFERINGS.getOfferingId()
     // CHANGED 2026-09-15: raced. This is the first store round trip on the
     // way to the paywall (product details come from Play/StoreKit), so it is
     // where a wedged store stalls a Subscribe tap — before any sheet appears.
     const fetched = await raceStoreCall(Purchases.getOfferings())
     if (fetched.kind === "timeout") return billingUnresponsive("getOfferings")
     const offerings = fetched.value
-    const offering = offerings.all[offeringId] ?? offerings.current
+    // CHANGED 2026-09-15: `current` only. This used to look up a hardcoded
+    // id first ("premium-standard" in dev, "default" in prod) and fall back
+    // to current — but neither id exists in the project, so the fallback was
+    // the only branch that ever ran. `current` is the offering the dashboard,
+    // Experiments and Targeting control; selecting by id would bypass them.
+    // See the note in config.ts.
+    const offering = offerings.current
     log.info("Resolved offering", {
-      requestedId: offeringId,
-      found: !!offerings.all[offeringId],
       resolvedId: offering?.identifier,
       availableOfferings: Object.keys(offerings.all).join(", "),
       packages: offering?.availablePackages.map((p) => p.identifier).join(", "),
@@ -287,7 +290,7 @@ export async function restorePurchases(): Promise<Result<CustomerInfo>> {
  * Present RevenueCat Paywall
  *
  * Shows the paywall UI configured in RevenueCat dashboard.
- * Uses the environment-appropriate offering (dev: 'premium-standard', prod: 'default').
+ * Uses the project's current offering (CHANGED 2026-09-15 — see getOfferings).
  * Returns true if a purchase was made or restored.
  */
 export async function presentPaywall(): Promise<Result<boolean>> {

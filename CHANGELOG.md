@@ -73,6 +73,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   vitest-covered `billingHealthLogic.ts`; five new i18n keys in nine locales
   (English placeholders outside `en`).
 
+### Changed
+- **The paywall always shows RevenueCat's current offering.** The code
+  looked up a hardcoded offering id first (`premium-standard` in dev,
+  `default` in production) and fell back to the current offering — but
+  neither id has existed in the RevenueCat project for some time, so the
+  fallback was the only path that ever ran, and the "Resolved offering …
+  found: false" log line on every paywall was the evidence. The lookup is
+  gone: `current` is the offering the dashboard, Experiments and Targeting
+  control, so changing the paywall is now a dashboard change with no release.
+
 ## [4.10.1-4] — 2026-09-14
 
 ### Fixed

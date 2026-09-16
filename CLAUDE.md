@@ -551,11 +551,11 @@ non-React code ever needs to read it, just grab
 
 ### Subscription System (RevenueCat)
 In `app/services/purchases/`:
-- **config.ts**: Entitlements (`recoverysky-premium`, `recoverysky-attendance`), offerings (`default` for prod, `premium-standard` for dev), API key selection by env/platform
+- **config.ts**: Entitlements (`recoverysky-premium`, `recoverysky-attendance`), API key selection by env/platform. No offering ids — CHANGED 2026-09-15, the paywall always uses RevenueCat's **current** offering (the hardcoded ids never existed in the project and the fallback to `current` was the only path that ran); change the paywall from the dashboard, not the code
 - **revenueCatService.ts**: SDK init, entitlement checks, offering-aware paywall presentation, purchase/restore flows
 - **SubscriptionContext** (`app/context/`): Wraps the app, initializes RC with `configStore.revenueCatApiKey`, listens for customer info updates, auto-enables attendance on first subscription
 
-Key pattern: `__DEV__` uses `test_` RC API key and `premium-standard` offering. Production uses platform-specific `appl_`/`goog_` keys and `default` offering. `__DEV__` is false in TestFlight/TestFlight builds.
+Key pattern: `__DEV__` uses the `test_` RC API key (Test Store). Production uses platform-specific `appl_`/`goog_` keys. Both use the project's current offering. `__DEV__` is false in TestFlight builds.
 
 ### Push Notifications (expo-notifications)
 In `app/services/notifications/`:

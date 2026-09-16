@@ -68,29 +68,16 @@ export const PRODUCTS = {
 } as const
 
 /**
- * Offering Identifiers
- *
- * These must match the offerings configured in RevenueCat dashboard.
- * In __DEV__ (simulator), we use a specific test offering.
+ * Offerings are NOT selected by id. REMOVED 2026-09-15: `OFFERINGS` picked
+ * "premium-standard" in dev and "default" in prod, and neither id has existed
+ * in the RevenueCat project for some time — the project's offerings are
+ * default-offering / premium-subscription / premium-subscription-redesign —
+ * so every environment was silently falling back to `offerings.current`
+ * anyway. `current` is what the dashboard, Experiments and Targeting control,
+ * and fetching by a hardcoded id bypasses all three, so `getOfferings()` in
+ * revenueCatService.ts now uses it deliberately. To show a different paywall,
+ * change the current offering in the dashboard; no release needed.
  */
-export const OFFERINGS = {
-  /** Default offering shown to all users */
-  DEFAULT: "default",
-  /** Premium standard offering for simulator/dev testing */
-  PREMIUM_STANDARD: "premium-standard",
-
-  /**
-   * Get the offering identifier for the current environment.
-   * Simulator/dev uses 'premium-standard', production uses 'default'.
-   */
-  getOfferingId(): string {
-    if (__DEV__) {
-      return this.PREMIUM_STANDARD
-    }
-    return this.DEFAULT
-  },
-} as const
 
 export type EntitlementId = (typeof ENTITLEMENTS)[keyof typeof ENTITLEMENTS]
 export type ProductId = (typeof PRODUCTS)[keyof typeof PRODUCTS]
-export type OfferingId = (typeof OFFERINGS)[keyof typeof OFFERINGS]

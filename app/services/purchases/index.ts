@@ -9,10 +9,8 @@ export {
   REVENUECAT_CONFIG,
   ENTITLEMENTS,
   PRODUCTS,
-  OFFERINGS,
   type EntitlementId,
   type ProductId,
-  type OfferingId,
 } from "./config"
 
 // Service functions
