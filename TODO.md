@@ -591,16 +591,22 @@ so iterating Auth0 would mint a phantom customer per non-subscriber.
       server's `config` schema, so the running API never holds a key that can
       rewrite customer attributes.
 
-**Then:**
+**Built 2026-09-16 (API commit `aecf2b8`), waiting only on the credentials:**
 
-- [ ] Extract the Auth0 Management token grant + retrying `fetch` from
+- [x] Extract the Auth0 Management token grant + retrying `fetch` from
       `api/src/routes/auth0.ts` into `api/src/services/auth0Management.ts`
       so the route and the script share one implementation (route tests stay
-      green).
-- [ ] Pure `scripts/lib/backfillRcEmailLogic.ts` (id classification, email
-      redaction, outcome decision, resume rule) with vitest coverage; the
-      script itself is I/O only, verified by the runbook in the spec.
-- [ ] Run the runbook: dry run → `--apply --limit 5` → dashboard spot-check →
+      green). Adds `getUser(sub)` and `decodeScopes()`.
+- [x] Pure `scripts/lib/backfillRcEmailLogic.ts` (id classification, CSV
+      reader, email redaction, outcome decision, resume rule, argv) with 17
+      vitest cases, plus `scripts/lib/backfillRcEmail.ts` — the loop with
+      injected Auth0/RC clients and 7 end-to-end tests (dry run makes zero RC
+      calls, 429 waits, 5xx retry, resume). `npm run backfill:rc-email`;
+      `npm run typecheck:scripts`.
+- [x] Live smoke: the script stops itself with `token lacks "read:users"
+      (has: update:users)` — it reports the blocker above by itself.
+- [ ] Run the runbook (a dry run needs only `read:users`; `--apply` also
+      needs `REVENUECAT_SECRET_KEY`): dry run → `--apply --limit 5` → dashboard spot-check →
       full `--apply --resume` → dry run again shows nothing pending.
 - [ ] Confirm support can find a customer by email in the RevenueCat
       dashboard, then delete the exported CSV.
