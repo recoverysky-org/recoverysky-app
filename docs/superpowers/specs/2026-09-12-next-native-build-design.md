@@ -37,6 +37,7 @@ series behind each one. So native changes queue here and go out as a single mino
 | B2 | `expo-updates` | 29.0.19 → 29.0.20 | Alignment; rejects update assets whose key/extension contains a path separator (OTA pipeline hardening) |
 | B3 | `expo-file-system` | 19.0.23 → 19.0.24 | Alignment only; the one fix (iOS `copyAsync` on edited `ph://` assets) does not affect us |
 | C | `@maplibre/maplibre-react-native` | 11.3.6 → 11.3.10 | Android: two map ANR deadlocks + camera NPE fixed; iOS: heap corruption in style-image loading, GeoJSON source recycling, NaN edge insets |
+| D | *(new config plugin)* `withAuth0LaunchTrampoline` | — | Android: a launcher-icon tap during sign-in no longer kills the Custom Tab (RS-005). Added 2026-09-15 — was a §A non-goal; see §D for why that changed |
 
 Not in this build, on purpose: `@sentry/react-native` 8.x, React Native 0.87, Expo SDK 57,
 `react-native-mmkv` 4, `react-native-purchases` 10, and the other majors from the
@@ -71,6 +72,9 @@ react-native-auth0 library" and offers a `LaunchActivity` trampoline workaround.
 change to Expo-generated files (would need a fourth config plugin) for a case that hit one real
 user in 14 days and already has a working retry plus a friendly message. Out of scope; recorded
 under "Non-goals" so nobody re-derives it.
+CHANGED 2026-09-15: that trampoline is now **§D of this build**. The paragraph above is kept
+because it is still an accurate account of what `resumeSession()` covers; what changed is the
+"one real user" arithmetic — see §D "Why" for the passwordless-email argument.
 
 ### A1. Dependency bump (native)
 
@@ -147,10 +151,10 @@ How it composes with what is already there, so the implementer does not add para
 
 ### A. Non-goals
 
-- **`LaunchActivity` trampoline for the `singleTask` relaunch case.** One real user in 14 days,
-  retry works, friendly message shipped 2026-09-12. Revisit only if `BROWSER_TERMINATED` shows up
-  in Loki from non-crawler sessions at a rate that matters (filter: `| error=~".*new instance.*"`,
-  exclude sessions with `skipped on simulator` or Play Integrity `-9` binding failures).
+- ~~**`LaunchActivity` trampoline for the `singleTask` relaunch case.**~~ MOVED to §D on
+  2026-09-15. The original bar was "revisit only if `BROWSER_TERMINATED` shows up from
+  non-crawler sessions at a rate that matters"; the rate question was answered by a product
+  decision (passwordless email sign-in) rather than by Loki — see §D.
 - **Trusted Web Activity instead of Custom Tabs.** No evidence it helps any failure we see, and
   it changes how the sign-in surface looks. Not without a reason.
 - **Passkeys, MFA, My Account API, actor tokens.** Product decisions, not upgrade hygiene.
@@ -249,6 +253,122 @@ three states that matter: first open, segment switch away and back, and dark/lig
 
 ---
 
+## §D. `withAuth0LaunchTrampoline` — Android launcher tap no longer kills the sign-in tab
+
+ADDED 2026-09-15. Tracks **RS-005** (`git.rso` app#4). Android only; iOS has no equivalent
+failure (`ASWebAuthenticationSession` is not an activity in our task).
+
+### Why
+
+**Root cause, confirmed from the SDK source, not inferred.** `A0Auth0Module.onNewIntent`
+(`react-native-auth0/android/.../A0Auth0Module.kt`, 5.6.0 line 544 — unchanged through 5.11.1)
+rejects any pending web-auth promise with `a0.session.browser_terminated` on **any** new intent
+reaching `MainActivity`. `MainActivity` is `singleTask` (Expo default; §A Non-goals explains why
+it stays). A launcher-icon tap while the Custom Tab is open therefore does two things at once:
+Android clears every activity above `MainActivity` in the task (the Custom Tab and Auth0's
+`AuthenticationActivity` are both in our task, so the tab vanishes) and delivers the launch
+intent via `onNewIntent`, which the SDK turns into the error. Nothing else can be the trigger:
+the Auth0 callback URI is owned by `RedirectActivity` and the plugin already stripped the broad
+`recoverysky-app` scheme from `MainActivity` (it keeps only `exp+recoverysky-app`); push taps
+require a signed-in user. So this is a user coming *back to the app by tapping its icon* —
+which is exactly what "one user tried seven times in four minutes" looks like, and what the
+Play pre-launch crawler does.
+
+**Why the 2026-09-12 non-goal no longer holds.** The bar was "one real user in 14 days". That
+was measured on Universal Login with password sign-up, where nobody has a reason to leave the
+Custom Tab. The recorded auth direction (spec `2026-09-12-passwordless-login-design.md`,
+memory `auth-direction-passwordless-email`) is **email-code sign-in**: every sign-up and every
+sign-in on a device without a stored session sends the user to their mail app for a code, and a
+large share of them come back by tapping the RecoverySky icon rather than via Recents. On
+passwordless this error is not an edge case; it is the default path failing for anyone who
+doesn't know the Recents gesture. The trampoline has to be in the binary **before** passwordless
+ships as an OTA on top of it, and 4.11.0 is the last native build before that.
+
+Also relevant, found on 2026-09-15: the RS-005 fingerprint (`module="LoginScreen" |
+error=~".*closed by a new instance.*"`) went blind on 4.10.1-1, because `LoginScreen` logs the
+*displayed* message and that became the friendly copy. The raw SDK text still lands in
+`useAuth0Wrapper`'s `Auth0 signup failed` / `Auth0 login failed` lines. Re-point the fingerprint
+to `module="useAuth0Wrapper"` (a `recoverysky-loki` task; the master record carries the note) —
+otherwise this build's fix can never be seen to work.
+
+### How it works
+
+Auth0's FAQ ("Auth0 web browser gets killed when going to the background on Android") is the
+reference. The idea: the launcher no longer targets `MainActivity`. It targets a throwaway
+`LaunchActivity` in `standard` launch mode. When the app's task already exists, Android brings
+the task forward and stacks `LaunchActivity` on top of whatever is there — the Custom Tab
+included — and `LaunchActivity` simply `finish()`es, revealing the tab. No intent ever reaches
+`MainActivity`, so `onNewIntent` never fires and the tab is never cleared. On a true cold start
+`LaunchActivity` is the task root, starts `MainActivity`, and finishes.
+
+Two deliberate departures from the FAQ text:
+
+1. **`isTaskRoot()` instead of `MainApplication` back-stack bookkeeping.** The FAQ tracks
+   `MainActivity`'s existence in a list on the `Application`. `isTaskRoot()` answers the same
+   question ("is there already a task with our activities in it?") without touching
+   `MainApplication.kt` or `MainActivity.kt`, so the plugin edits one generated file fewer and
+   cannot drift from an Expo template change to either. `singleTask` `MainActivity` launched
+   from `LaunchActivity` joins `LaunchActivity`'s task (same affinity), so after the trampoline
+   finishes on cold start the task is `[MainActivity]`, exactly as today.
+2. **Forward the launch intent on cold start.** `expo-notifications` opens the app from a
+   notification with `getLaunchIntentForPackage()` plus the response in extras
+   (`ExpoHandlingDelegate.openAppToForeground`); on a cold start it reads those extras from the
+   activity's intent. When the app is already running the response is delivered in-process
+   (`NotificationForwarderActivity` → `NotificationsService` → `NotificationsEmitter`) and the
+   launch intent is only there to bring the task forward, which is the case where we finish
+   without forwarding. So: **root → `startActivity(Intent(this, MainActivity::class.java).apply
+   { action = intent.action; data = intent.data; intent.extras?.let(::putExtras) })`; not
+   root → `finish()` only.** Verify both notification cases in the checklist.
+
+### D1. The plugin (`plugins/withAuth0LaunchTrampoline.ts`)
+
+Same shape as the other four: `withDangerousMod("android")` to write a file, `withAndroidManifest`
+to edit the manifest. Register it in `app.config.ts` after `withRestrictedResizability`.
+
+- **Write `android/app/src/main/java/<package path>/LaunchActivity.kt`** (package from
+  `config.android.package`, i.e. `live.meetingmaker.app.prod`):
+  `class LaunchActivity : Activity()` whose `onCreate` does the root/not-root branch above and
+  `finish()`es unconditionally. No layout, no `setContentView`. Kotlin, matching the Expo
+  template's `MainActivity.kt`.
+- **Manifest:** add `<activity android:name=".LaunchActivity" android:exported="true"
+  android:theme="@style/Theme.App.SplashScreen">` carrying the `MAIN` + `LAUNCHER` intent-filter,
+  and **remove** that filter from `.MainActivity` (leave its `VIEW exp+recoverysky-app` filter
+  alone). Same splash theme so a cold start is visually identical — `LaunchActivity` is on
+  screen for one frame with the splash drawable, then `MainActivity` draws the same drawable.
+  Do **not** give `LaunchActivity` `noHistory` or `excludeFromRecents`; `finish()` handles it and
+  those flags change Recents behaviour.
+- Nothing about `launchMode`, `taskAffinity`, or `RedirectActivity` changes. The plugin must be
+  idempotent (prebuild runs it on a fresh tree, but guard the manifest edit with a "filter
+  already on LaunchActivity" check like `withUsesFeatures` does for its entries).
+
+### D2. Things that reach the app through the launcher intent (audit, 2026-09-15)
+
+| Caller | Path | After §D |
+|---|---|---|
+| Home-screen / drawer icon, Play "Open" | `MAIN`/`LAUNCHER` | `LaunchActivity` — the whole point |
+| expo-notifications tap, app cold | `getLaunchIntentForPackage` + extras | `LaunchActivity` is root → forwards extras → `MainActivity` reads them (departure 2) |
+| expo-notifications tap, app running | same intent, but response already emitted in-process | `LaunchActivity` not root → `finish()`; task comes forward with the response already delivered |
+| Auth0 callback | `RedirectActivity` (`recoverysky-app://auth.recoverysky.app/android/…/callback`) | untouched |
+| `exp+recoverysky-app://` dev-client links | `MainActivity` `VIEW` filter | untouched |
+| App shortcuts, widgets, App Links (`https`) | none declared | n/a |
+
+If a future feature adds an `https` App Link or a shortcut, it targets `MainActivity` directly
+and does not go through the trampoline — that is fine, but such an intent **will** re-trigger
+the SDK rejection if it arrives mid-sign-in. Don't add a launcher-style shortcut without
+pointing it at `LaunchActivity`.
+
+### D3. Risk
+
+Moderate, and concentrated in one place: the manifest edit is the first plugin that *moves*
+an Expo-generated intent-filter rather than adding to the manifest, so a future Expo template
+change to `MainActivity`'s filters could leave two `LAUNCHER` filters (two icons in the drawer —
+loud, not subtle) or none (app not launchable — the Play review catches that). The prebuild
+manifest diff in the checklist is the gate. Runtime risk is low: the only behaviour the
+trampoline changes is what happens when the launcher intent finds an existing task, and today
+that behaviour is the bug.
+
+---
+
 ## Cross-cutting risks
 
 - The auth0 "security fixes" line is opaque. If a CVE lands for 5.6–5.11.0 before this ships,
@@ -261,6 +381,9 @@ three states that matter: first open, segment switch away and back, and dark/lig
 - Config-plugin edits are **not** part of this build. If one sneaks in, remember
   `expo run:*` will silently reuse the stale `ios/` / `android/` — `prebuild:clean` is
   mandatory anyway (CLAUDE.md "Expo Config").
+  CHANGED 2026-09-15: §D **is** a config-plugin edit, so the warning now applies for real:
+  `expo run:android` after adding the plugin will build the old manifest and the trampoline
+  will silently not exist. `prebuild:clean` first, every time, and check the manifest diff.
 
 ## Verification (manual, both platforms — nothing in CI runs any of this)
 
@@ -274,6 +397,10 @@ Then `npm run prebuild:clean` and a device build on each platform
 - [ ] `git diff` of the generated `android/app/src/main/AndroidManifest.xml` against the previous
       prebuild shows no Auth0-related change (RedirectActivity filter, MainActivity filters) and
       no new permissions or `uses-feature` entries from any of the five packages.
+      CHANGED 2026-09-15 for §D: the **one** expected Auth0-adjacent change is the `MAIN`/`LAUNCHER`
+      filter moving from `.MainActivity` to a new `.LaunchActivity`. Exactly one `LAUNCHER`
+      filter in the whole manifest; `.MainActivity` keeps its `VIEW exp+recoverysky-app` filter;
+      `RedirectActivity` byte-identical. `LaunchActivity.kt` exists under the package path.
 - [ ] `ios/Podfile.lock` diff lists only the expected pods moving: `Auth0` / `SimpleKeychain`
       (§A), `EXUpdates` / `ExpoFileSystem` / `Expo*` (§B), `MapLibre` (§C).
 - [ ] `runtimeVersion` matches `version` in `app.json` (`4.11.0`); Android `versionCode` is
@@ -288,6 +415,8 @@ Then `npm run prebuild:clean` and a device build on each platform
 - [ ] **Launcher relaunch (Android):** tap Sign Up → tap the app icon from the launcher → the
       friendly "sign-in window closed" message shows and a second tap succeeds. (Confirms the
       2026-09-12 OTA change still behaves on the new SDK; the SDK's error code is unchanged.)
+      CHANGED 2026-09-15: with §D in the build the expected result flips — see "§D — trampoline"
+      below. This line now only applies if §D is pulled from the build.
 - [ ] **Idle renewal:** sign in, wait past the access token TTL (or advance the clock), send an
       attendance report → refresher renews via `auth0Client.getFreshCredentials`, no 401.
 - [ ] iOS `ASWebAuthenticationSession` cancel → "Login cancelled by user", no error banner.
@@ -312,6 +441,28 @@ Then `npm run prebuild:clean` and a device build on each platform
       `adb logcat`, camera state intact.
 - [ ] Grep confirms `InPersonMapView.tsx` still imports `NativeUserLocation`, not `UserLocation`.
 
+**§D — trampoline (Android device, not emulator-only: Samsung One UI if one is to hand)**
+- [ ] **The fix itself:** tap Sign Up → Custom Tab opens → press Home → tap the app icon from
+      the launcher → the **Custom Tab is still there**, mid-form, and completing it signs the
+      user in. No "sign-in window closed" message. Repeat from Recents (should already have
+      worked; make sure it still does). Repeat with Login.
+- [ ] Cold start from the icon: splash → app, no visible extra frame or flash, no
+      `LaunchActivity` left in `adb shell dumpsys activity activities | grep -A3 LaunchActivity`
+      once the app is up.
+- [ ] `adb shell dumpsys package live.meetingmaker.app.prod | grep -B2 -A6 LAUNCHER` shows the
+      filter on `.LaunchActivity` only; one icon in the drawer.
+- [ ] **Push tap, app cold:** force-stop the app, send a test push, tap it → app opens **and**
+      the JS click handler routes to the tab named in `data.screen` (departure 2 forwards the
+      extras; if this fails the trampoline dropped them).
+- [ ] **Push tap, app backgrounded:** app running, press Home, send + tap a push → app comes
+      forward, handler routes, and the in-flight state (e.g. an open Custom Tab, or a running
+      attendance timer) is still on screen — nothing above `MainActivity` was cleared.
+- [ ] Auth0 callback still lands: complete a login normally; `RedirectActivity` handles the
+      `recoverysky-app://auth.recoverysky.app/…/callback` URI (Loki shows the usual
+      "Auth state synced to MST store" line, no `browser_terminated`).
+- [ ] After a week on 4.11.0, the re-pointed RS-005 fingerprint (`module="useAuth0Wrapper"`)
+      shows zero non-crawler matches on `appVersion=~"4.11.0.*"`.
+
 ## Release
 
 Native. `npm run minor` (→ 4.11.0), then by hand in `app.json`: `runtimeVersion` → `"4.11.0"`,
@@ -322,3 +473,6 @@ Changelog, all under the new `[4.11.0]` heading: `Build` entries for the auth0 b
 Expo patches, and the MapLibre bump (one bullet each — say what the fix protects, not the
 version arithmetic); `Added` entry for the process-death login recovery; a `Security` line for
 auth0 only if a CVE has been published by then, otherwise it stays under `Build`.
+ADDED 2026-09-15: a `Fixed` entry for §D — "tapping the app icon during Android sign-in no
+longer closes the sign-in window" — and, once the build is live, `release_record app 4.11.0` on
+the issues MCP moves RS-005 (fix-committed, fix_release `app 4.11.0`) to fix-deployed.

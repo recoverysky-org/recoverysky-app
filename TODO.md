@@ -107,13 +107,35 @@ Everything JS-only from the same 2026-09-12 review already shipped on
 - [ ] Recheck the privacy invariant after the bump: `NativeUserLocation` for the puck,
       never `UserLocation`; `getSearchCenter` is still the only `coordsRef` reader.
 
+**§D — `withAuth0LaunchTrampoline` config plugin (RS-005)** — added 2026-09-15
+- [ ] **Write `plugins/withAuth0LaunchTrampoline.ts`** and register it in `app.config.ts`.
+      Writes `LaunchActivity.kt` (`isTaskRoot()` → start `MainActivity` with the launch
+      intent's action/data/extras forwarded, else just `finish()`) and moves the
+      `MAIN`/`LAUNCHER` intent-filter from `.MainActivity` to `.LaunchActivity`
+      (splash theme, `exported="true"`). Full design + the expo-notifications audit in
+      spec §D. Root cause: `A0Auth0Module.onNewIntent` rejects the pending login on
+      *any* new intent to the `singleTask` `MainActivity`; a launcher tap mid-Custom-Tab
+      is that intent.
+- [ ] **Why this stopped being a non-goal:** passwordless email sign-in sends every
+      user to their mail app for a code; the ones who come back via the app icon
+      hit this every time. Has to be in the binary before passwordless ships as
+      an OTA on top of it.
+- [ ] `prebuild:clean` and diff the manifest: exactly one `LAUNCHER` filter, on
+      `.LaunchActivity`; `.MainActivity` keeps `VIEW exp+recoverysky-app`;
+      `RedirectActivity` unchanged.
+- [ ] Device checks in the spec's "§D — trampoline" list — especially the two push-tap
+      cases (cold: extras forwarded; backgrounded: nothing above `MainActivity` cleared).
+- [ ] Issues MCP: RS-005 is `fix-proposed`; move to `fix-committed` with
+      `fix_release app 4.11.0` when the plugin merges. Separately (recoverysky-loki repo):
+      re-point the RS-005 fingerprint to `module="useAuth0Wrapper"` — the `LoginScreen`
+      one has been blind since 4.10.1-1 because it logs the friendly copy.
+
 **Gate**
 - [ ] Run the spec's manual checklist on **both** platforms before `release:*`.
       Nothing in CI exercises auth, OTA download, or the map.
 
-_Not in scope (see spec): the `LaunchActivity` trampoline for the `singleTask`
-launcher-relaunch case — one real user in 14 days, retry works, friendly message
-shipped 2026-09-12 as an OTA. Also not here: `@sentry/react-native` 8 (see
+_Not in scope (see spec): ~~the `LaunchActivity` trampoline~~ (moved into §D above on
+2026-09-15). Not here: `@sentry/react-native` 8 (see
 "Background-ANR hygiene" below — native, so it belongs in this build or the next,
 never an OTA), React Native 0.87, Expo SDK 57, and the other majors — each is its
 own upgrade project._
