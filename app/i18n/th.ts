@@ -743,6 +743,14 @@ const th: Translations = {
     restoreSuccess: "กู้คืนการซื้อสำเร็จ!",
     restoreFailed: "ไม่พบการซื้อ",
     syncSuccess: "ยินดีต้อนรับกลับ! การสมัครสมาชิกของคุณได้รับการกู้คืนแล้ว",
+    // ADDED 2026-09-15: the store stopped answering (billingHealthLogic.ts).
+    billingUnresponsiveTitle: "Store isn't responding",
+    billingUnresponsiveAndroid:
+      "Google Play billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
+    billingUnresponsiveIos:
+      "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
+    billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
+    billingUnresponsiveStatusIos: "App Store not responding — restart device",
   },
   accessibility: {
     doubleTapToView: "แตะสองครั้งเพื่อดูรายละเอียด",

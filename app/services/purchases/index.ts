@@ -37,3 +37,8 @@ export {
 
 // Pure decision logic (vitest-covered)
 export { resolveEmailAttribute, type EmailAttributeInput } from "./emailAttributeLogic"
+export {
+  BILLING_UNRESPONSIVE_ERROR,
+  billingUnresponsiveCopy,
+  nextBillingUnresponsive,
+} from "./billingHealthLogic"

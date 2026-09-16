@@ -756,6 +756,14 @@ const pt: Translations = {
     restoreSuccess: "Compras restauradas!",
     restoreFailed: "Nenhuma compra encontrada",
     syncSuccess: "Bem-vindo de volta! Sua assinatura foi restaurada.",
+    // ADDED 2026-09-15: the store stopped answering (billingHealthLogic.ts).
+    billingUnresponsiveTitle: "Store isn't responding",
+    billingUnresponsiveAndroid:
+      "Google Play billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
+    billingUnresponsiveIos:
+      "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
+    billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
+    billingUnresponsiveStatusIos: "App Store not responding — restart device",
   },
   accessibility: {
     doubleTapToView: "Toque duas vezes para ver detalhes",

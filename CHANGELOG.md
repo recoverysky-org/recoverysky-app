@@ -53,6 +53,26 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   The context is now one object shared with every child and mutated in place
   (`logger.ts`, vitest-covered). RS-026.
 
+### Fixed
+- **A store that stops answering no longer freezes the subscription UI — it
+  tells the user to restart their device.** On 2026-09-15 a subscribe attempt
+  hung mid-purchase on a Pixel, and every launch afterwards, including two
+  fresh reinstalls, hung at the first RevenueCat call that touched Google Play
+  Billing (`syncPurchases()` on first launch). The promise never rejected, so
+  Settings showed "..." indefinitely and Subscribe never opened. A device
+  reboot cleared it: the wedge was the Play Store service, not app state.
+  Every RevenueCat call that reaches the store (`syncPurchases`, the paywall's
+  offerings fetch, `restorePurchases`) now has a 20 s ceiling. On timeout the
+  Settings status row reads "Google Play not responding — restart device" (or
+  the App Store wording on iOS), and a Subscribe or Restore tap that hits it
+  gets an alert naming the store, asking for a restart, and asking the user to
+  come back and confirm the subscription (Restore Purchases if it doesn't
+  show) since a hung purchase may or may not have completed. The migration
+  sync leaves its one-time flag unset on timeout so it retries next launch —
+  no Google Play or App Store subscriber is skipped. Decisions in the
+  vitest-covered `billingHealthLogic.ts`; five new i18n keys in nine locales
+  (English placeholders outside `en`).
+
 ## [4.10.1-4] — 2026-09-14
 
 ### Fixed

@@ -33,7 +33,13 @@ import { resetLocalDatabase } from "@/db/resetLocalDatabase"
 import { RESTORE_BACKUP_PROMPT_COPY, useCloudBackupPrompt } from "@/hooks/useCloudBackupPrompt"
 import { showLocationDeniedAlert } from "@/hooks/useLocationGate"
 import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
-import { translate, getAvailableLanguages, getCurrentLanguage, languageNames } from "@/i18n"
+import {
+  translate,
+  getAvailableLanguages,
+  getCurrentLanguage,
+  languageNames,
+  type TxKeyPath,
+} from "@/i18n"
 import {
   useProfileStore,
   useAuthenticationStore,
@@ -53,6 +59,7 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
+import { billingUnresponsiveCopy } from "@/services/purchases"
 import { requestRatingFromSettings } from "@/services/rating"
 import { attendanceSync } from "@/services/sync"
 import { enableCloudBackup } from "@/services/sync/enableCloudBackup"
@@ -294,6 +301,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     isPremium,
     hasAttendance,
     isLoading: isSubscriptionLoading,
+    billingUnresponsive,
     subscriptionInfo,
     showPaywall,
     restore,
@@ -758,6 +766,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
   // Get subscription status text
   const getSubscriptionStatus = (): string => {
+    // ADDED 2026-09-15: the store stopped answering (billingHealthLogic.ts).
+    // Checked before the loading state so the row never sits on "..." with
+    // no explanation — it names the store and says to restart the device.
+    if (billingUnresponsive) {
+      return translate(billingUnresponsiveCopy(Platform.OS).status as TxKeyPath)
+    }
     if (isSubscriptionLoading) return translate("settingsScreen:subscriptionLoading")
     if (isPremium) {
       if (subscriptionInfo?.isInTrial) return translate("settingsScreen:subscriptionPremiumTrial")

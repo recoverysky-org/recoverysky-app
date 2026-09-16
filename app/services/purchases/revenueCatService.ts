@@ -21,6 +21,7 @@ import RevenueCatUI, { PAYWALL_RESULT } from "react-native-purchases-ui"
 
 import { logger } from "@/utils/logger"
 
+import { BILLING_UNRESPONSIVE_ERROR, raceStoreCall } from "./billingHealthLogic"
 import { REVENUECAT_CONFIG, ENTITLEMENTS, OFFERINGS, type EntitlementId } from "./config"
 
 const log = logger.child({ module: "RevenueCatService" })
@@ -29,6 +30,17 @@ const log = logger.child({ module: "RevenueCatService" })
  * RevenueCat Service Result type
  */
 type Result<T> = { ok: true; value: T } | { ok: false; error: string; code?: PURCHASES_ERROR_CODE }
+
+/**
+ * The Result for a store call that never answered. ADDED 2026-09-15 — see
+ * billingHealthLogic.ts for the incident. `error` is the sentinel the
+ * SubscriptionContext keys its "store isn't responding" state on; callers
+ * that don't know about it just see a failed Result.
+ */
+function billingUnresponsive<T>(call: string): Result<T> {
+  log.warn("Store call did not answer within the ceiling", { call })
+  return { ok: false, error: BILLING_UNRESPONSIVE_ERROR }
+}
 
 /**
  * Subscription info for UI display
@@ -73,8 +85,12 @@ export async function initializeRevenueCat(
       Purchases.setLogLevel(LOG_LEVEL.DEBUG)
     }
 
-    // Configure the SDK
-    await Purchases.configure({
+    // Configure the SDK. Synchronous on the bridge (declared `void`), so it
+    // cannot be the call that hangs when the store is wedged — the first
+    // store round trip is whichever of syncPurchases / getOfferings /
+    // restorePurchases / getCustomerInfo runs next, and those are raced
+    // (see billingHealthLogic.ts).
+    Purchases.configure({
       apiKey: key,
       appUserID: appUserId,
     })
@@ -178,7 +194,12 @@ export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
 export async function getOfferings(): Promise<Result<PurchasesOffering | null>> {
   try {
     const offeringId = OFFERINGS.getOfferingId()
-    const offerings = await Purchases.getOfferings()
+    // CHANGED 2026-09-15: raced. This is the first store round trip on the
+    // way to the paywall (product details come from Play/StoreKit), so it is
+    // where a wedged store stalls a Subscribe tap — before any sheet appears.
+    const fetched = await raceStoreCall(Purchases.getOfferings())
+    if (fetched.kind === "timeout") return billingUnresponsive("getOfferings")
+    const offerings = fetched.value
     const offering = offerings.all[offeringId] ?? offerings.current
     log.info("Resolved offering", {
       requestedId: offeringId,
@@ -241,7 +262,10 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<Result<Cus
 export async function restorePurchases(): Promise<Result<CustomerInfo>> {
   try {
     log.info("Restoring purchases")
-    const customerInfo = await Purchases.restorePurchases()
+    // CHANGED 2026-09-15: raced — see getOfferings.
+    const restored = await raceStoreCall(Purchases.restorePurchases())
+    if (restored.kind === "timeout") return billingUnresponsive("restorePurchases")
+    const customerInfo = restored.value
 
     log.info("Purchases restored", {
       isPremium: customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM] !== undefined,
@@ -270,6 +294,12 @@ export async function presentPaywall(): Promise<Result<boolean>> {
   try {
     // Fetch the correct offering for the environment
     const offeringsResult = await getOfferings()
+    // ADDED 2026-09-15: a store that never answered the offerings fetch will
+    // not answer the sheet either — presenting it would hang the tap with no
+    // message. Surface the timeout instead so the context can tell the user.
+    if (!offeringsResult.ok && offeringsResult.error === BILLING_UNRESPONSIVE_ERROR) {
+      return offeringsResult
+    }
     const offering = offeringsResult.ok ? (offeringsResult.value ?? undefined) : undefined
 
     log.info("Presenting paywall", { offering: offering?.identifier })
@@ -311,6 +341,10 @@ export async function presentPaywallIfNeeded(): Promise<Result<boolean>> {
   try {
     // Fetch the correct offering for the environment
     const offeringsResult = await getOfferings()
+    // ADDED 2026-09-15: same as presentPaywall — don't open a sheet the store can't serve.
+    if (!offeringsResult.ok && offeringsResult.error === BILLING_UNRESPONSIVE_ERROR) {
+      return offeringsResult
+    }
     const offering = offeringsResult.ok ? (offeringsResult.value ?? undefined) : undefined
 
     log.info("Presenting paywall if needed", { offering: offering?.identifier })
@@ -420,14 +454,23 @@ export async function setUserEmail(email: string): Promise<Result<void>> {
 /**
  * Sync existing purchases with RevenueCat
  *
- * Reads the on-device App Store receipt and sends it to RevenueCat for validation.
- * Use this once for migrating users from a previous payment processor (e.g. iaptic).
+ * Reads the on-device store receipts (App Store receipt on iOS, Google Play
+ * purchase tokens on Android) and sends them to RevenueCat for validation.
+ * Use this once for migrating users from a previous payment processor (e.g. iaptic)
+ * — on BOTH platforms; this is how an existing Google Play subscriber reaches
+ * RevenueCat without re-purchasing.
  * Unlike restorePurchases(), this does NOT trigger an Apple ID sign-in dialog.
  */
 export async function syncExistingPurchases(): Promise<Result<void>> {
   try {
-    log.info("Migration sync: reading on-device App Store receipt and sending to RevenueCat")
-    await Purchases.syncPurchases()
+    log.info("Migration sync: reading on-device store receipts and sending to RevenueCat")
+    // CHANGED 2026-09-15: raced. This was the call left hanging on every
+    // reinstall in the 2026-09-15 incident; the context awaited it before
+    // flipping isLoading, so the whole subscription UI stayed on "...".
+    // A timeout leaves the one-time flag unset so the migration retries next
+    // launch — no customer is skipped, it just stops blocking.
+    const synced = await raceStoreCall(Purchases.syncPurchases())
+    if (synced.kind === "timeout") return billingUnresponsive("syncPurchases")
 
     // Log post-sync entitlement state for verification
     const customerInfo = await Purchases.getCustomerInfo()

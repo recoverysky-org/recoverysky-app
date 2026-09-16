@@ -16,8 +16,10 @@ import {
   type ReactNode,
   type FC,
 } from "react"
+import { Alert, Platform } from "react-native"
 import { CustomerInfo } from "react-native-purchases"
 
+import { translate, type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import {
   initializeRevenueCat,
@@ -32,6 +34,9 @@ import {
   logoutUser,
   setUserEmail,
   resolveEmailAttribute,
+  BILLING_UNRESPONSIVE_ERROR,
+  billingUnresponsiveCopy,
+  nextBillingUnresponsive,
   type SubscriptionInfo,
 } from "@/services/purchases"
 import { trackEvent } from "@/services/tracking"
@@ -56,6 +61,13 @@ interface SubscriptionContextValue {
   subscriptionInfo: SubscriptionInfo | null
   /** Error message if any */
   error: string | null
+  /**
+   * The store (Google Play Billing / StoreKit) stopped answering a RevenueCat
+   * call. ADDED 2026-09-15 — see billingHealthLogic.ts. Settings shows the
+   * "restart your device" status instead of "..." while this is true; it
+   * clears on the next store call that succeeds.
+   */
+  billingUnresponsive: boolean
   /** Present the paywall UI */
   showPaywall: () => Promise<boolean>
   /** Present paywall only if user doesn't have Pro */
@@ -77,6 +89,7 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   hasAttendance: false,
   subscriptionInfo: null,
   error: null,
+  billingUnresponsive: false,
   showPaywall: async () => false,
   showPaywallIfNeeded: async () => false,
   restore: async () => false,
@@ -122,6 +135,34 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
   const [hasAttendance, setHasAttendance] = useState(false)
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [billingUnresponsive, setBillingUnresponsive] = useState(false)
+
+  /**
+   * Fold a store call's Result into the billingUnresponsive flag (pure
+   * decision in `nextBillingUnresponsive`). Every RevenueCat call that
+   * reaches the store passes through here so a success anywhere clears the
+   * flag and a timeout anywhere sets it.
+   */
+  const noteStoreResult = useCallback((result: { ok: boolean; error?: string }) => {
+    setBillingUnresponsive((prev) => nextBillingUnresponsive(prev, result))
+  }, [])
+
+  /**
+   * Tell the user the store is not answering and what to do about it.
+   * ADDED 2026-09-15. Only for a user-initiated tap (Subscribe, Restore):
+   * subscribing is the most important thing a user does in this app, and a
+   * silent failure there reads as our bug. The copy names the store and asks
+   * for a device restart — the one thing that cleared the 2026-09-15 wedge —
+   * then to come back and confirm the subscription, because a purchase that
+   * hung may or may not have gone through on the store's side.
+   */
+  const alertBillingUnresponsive = useCallback(() => {
+    const copy = billingUnresponsiveCopy(Platform.OS)
+    log.warn("Store unresponsive during a user action — asking for a device restart", {
+      platform: Platform.OS,
+    })
+    Alert.alert(translate(copy.title as TxKeyPath), translate(copy.message as TxKeyPath))
+  }, [])
 
   /**
    * Load subscription info from RevenueCat
@@ -175,14 +216,21 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
         appUserId,
         configStore.revenueCatApiKey || undefined,
       )
+      // CHANGED 2026-09-15: the store round trips below (syncPurchases, and
+      // the paywall/restore calls elsewhere) are bounded by the store ceiling
+      // (billingHealthLogic.ts), so this effect can no longer leave
+      // isLoading = true forever. A timeout sets billingUnresponsive, which
+      // Settings renders as the "restart your device" status.
       if (result.ok) {
         setIsInitialized(true)
 
         // One-time sync for users migrating from the old app (iaptic → RevenueCat).
-        // Silently sends the on-device App Store receipt to RC without Apple ID prompt.
+        // Silently sends the on-device store receipts to RC — App Store receipt on
+        // iOS, Google Play purchase tokens on Android — without a store sign-in prompt.
         if (!loadString("rc_purchases_synced")) {
           log.info("First launch with RevenueCat — running migration sync for existing receipts")
           const syncResult = await syncExistingPurchases()
+          noteStoreResult(syncResult)
           if (syncResult.ok) {
             log.info("Migration sync succeeded — marking as complete")
           } else {
@@ -209,7 +257,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     }
 
     void initialize()
-  }, [appUserId, loadSubscriptionInfo, syncEmailAttribute])
+  }, [appUserId, loadSubscriptionInfo, syncEmailAttribute, noteStoreResult])
 
   /**
    * Listen for customer info updates
@@ -246,13 +294,13 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
           // Now that RC is identified as the signed-in user, attach their email.
           await syncEmailAttribute()
           // Re-sync receipts under new identity (bypass one-time flag)
-          await syncExistingPurchases()
+          noteStoreResult(await syncExistingPurchases())
           await loadSubscriptionInfo()
         }
       }
     }
     void syncIdentity()
-  }, [appUserId, isInitialized, loadSubscriptionInfo, syncEmailAttribute])
+  }, [appUserId, isInitialized, loadSubscriptionInfo, syncEmailAttribute, noteStoreResult])
 
   /**
    * Auto-enable attendance tracking on first subscription detection only.
@@ -271,13 +319,18 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
   const showPaywall = useCallback(async (): Promise<boolean> => {
     trackEvent("paywall_shown", { source: "manual" })
     const result = await presentPaywall()
+    noteStoreResult(result)
+    if (!result.ok && result.error === BILLING_UNRESPONSIVE_ERROR) {
+      alertBillingUnresponsive()
+      return false
+    }
     if (result.ok && result.value) {
       trackEvent("purchase_completed", { entitlement: "premium" })
       await loadSubscriptionInfo()
       return true
     }
     return false
-  }, [loadSubscriptionInfo])
+  }, [loadSubscriptionInfo, noteStoreResult, alertBillingUnresponsive])
 
   /**
    * Present paywall if needed
@@ -285,13 +338,18 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
   const showPaywallIfNeeded = useCallback(async (): Promise<boolean> => {
     trackEvent("paywall_shown", { source: "gated" })
     const result = await presentPaywallIfNeeded()
+    noteStoreResult(result)
+    if (!result.ok && result.error === BILLING_UNRESPONSIVE_ERROR) {
+      alertBillingUnresponsive()
+      return false
+    }
     if (result.ok && result.value) {
       trackEvent("purchase_completed", { entitlement: "premium" })
       await loadSubscriptionInfo()
       return true
     }
     return false
-  }, [loadSubscriptionInfo])
+  }, [loadSubscriptionInfo, noteStoreResult, alertBillingUnresponsive])
 
   /**
    * Restore purchases
@@ -300,6 +358,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
     setIsLoading(true)
     const result = await restorePurchases()
     setIsLoading(false)
+    noteStoreResult(result)
 
     if (result.ok) {
       await loadSubscriptionInfo()
@@ -308,9 +367,12 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
       return premium
     }
 
+    // ADDED 2026-09-15: a store that never answered is not "no purchases
+    // found" — tell the user what actually happened and what to do.
+    if (result.error === BILLING_UNRESPONSIVE_ERROR) alertBillingUnresponsive()
     setError(result.error)
     return false
-  }, [loadSubscriptionInfo])
+  }, [loadSubscriptionInfo, noteStoreResult, alertBillingUnresponsive])
 
   /**
    * Refresh subscription status
@@ -360,6 +422,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
       hasAttendance,
       subscriptionInfo,
       error,
+      billingUnresponsive,
       showPaywall,
       showPaywallIfNeeded,
       restore,
@@ -374,6 +437,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children, 
       hasAttendance,
       subscriptionInfo,
       error,
+      billingUnresponsive,
       showPaywall,
       showPaywallIfNeeded,
       restore,
