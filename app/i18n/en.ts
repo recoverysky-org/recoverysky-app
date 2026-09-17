@@ -87,6 +87,35 @@ const en = {
     errorBrowserTerminated:
       "The sign-in window closed before you finished. Tap the button again and stay in the browser until it brings you back to the app.",
     errorNetwork: "We couldn't reach the sign-in service. Check your connection and try again.",
+    // ADDED 2026-09-17 — passwordless login (spec 1). loginButton/signupButton are retired with the LoginScreen rewrite.
+    continueWithEmail: "Continue with Email",
+    continueWithApple: "Continue with Apple",
+    continueWithGoogle: "Continue with Google",
+    sendCodeTo: "Send code to {{email}}",
+    useDifferentEmail: "Use a different email",
+    emailLabel: "Email address",
+    emailPlaceholder: "you@example.com",
+    sendCode: "Send Code",
+    codeSentTo: "We sent a code to {{email}}",
+    codeLabel: "6-digit code",
+    verify: "Verify",
+    resendCode: "Resend code",
+    resendIn: "Resend in {{seconds}}s",
+    wrongEmailGoBack: "Wrong email? Go back",
+    errorWrongCode: "That code didn't match. Check the email and try again.",
+    errorCodeExpired: "That code has expired. Tap Resend to get a new one.",
+    errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
+    errorSendRateLimited:
+      "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  wrongAccountScreen: {
+    title: "This device is set up for a different RecoverySky account.",
+    body: "Sign in to that account to continue. Your meetings and records are safe.",
+    support: "If you can't sign in to that account, contact support@recoverysky.app",
+    sendCodeTo: "Send code to {{email}}",
+    signInWithGoogle: "Sign in with Google",
+    signInWithApple: "Sign in with Apple",
+    cancel: "Cancel",
   },
   // Main Navigation
   mainNavigator: {
