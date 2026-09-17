@@ -1,10 +1,25 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
 
-import { logger } from "@/utils/logger"
+import { hashUserId, logger } from "@/utils/logger"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
 const log = logger.child({ module: "AuthStore" })
+
+/** How the CURRENT session was established — drives the logout branch (spec 1 §2.4). */
+export type LoginMethod = "email" | "apple" | "google"
+
+/**
+ * A session whose sub is not the device owner's. Held in memory only while
+ * WrongAccountScreen is up; never persisted (spec 2 §2.1).
+ */
+export interface ForeignSession {
+  sub: string
+  email?: string
+  idToken?: string
+  /** undefined on a cold-start restore — consumers treat that as "browser possible". */
+  loginMethod?: LoginMethod
+}
 
 export const AuthenticationStoreModel = types
   .model("AuthenticationStore")
@@ -17,6 +32,22 @@ export const AuthenticationStoreModel = types
     deviceId: types.maybe(types.string),
     /** Whether user is using anonymous login (no OAuth) */
     isAnonymous: types.optional(types.boolean, false),
+    /**
+     * ADDED 2026-09-17 (spec 1 §2.4). Written only when a session is ACCEPTED
+     * by the ownership gate — a foreign session must not leave this behind.
+     */
+    loginMethod: types.maybe(
+      types.enumeration<LoginMethod>("LoginMethod", ["email", "apple", "google"]),
+    ),
+    /**
+     * ADDED 2026-09-17 (spec 2 §1). The one account that owns this device's
+     * local data. Survives logout on purpose; cleared only by
+     * resetLocalDatabase(). Proof method is derived from the prefix by
+     * ownerProofMethod() — do not add a stored method field.
+     */
+    ownerSub: types.maybe(types.string),
+    /** Owner's email at stamping time. Shown masked, only for the code path; login_hint otherwise. Never logged. */
+    ownerEmail: types.maybe(types.string),
   })
   .volatile(() => ({
     /** OAuth refresh token — persisted to SecureStore, never MMKV */
@@ -39,6 +70,8 @@ export const AuthenticationStoreModel = types
      * state from scratch.
      */
     pendingLogout: false,
+    /** See ForeignSession. Volatile: a cold start re-derives it from the SDK's restored session. */
+    foreignSession: undefined as ForeignSession | undefined,
   }))
   .views((store) => ({
     /**
@@ -145,6 +178,32 @@ export const AuthenticationStoreModel = types
       log.info("setPendingLogout()", { value })
       store.pendingLogout = value
     },
+    setLoginMethod(method?: LoginMethod) {
+      log.debug("setLoginMethod()", { method })
+      store.loginMethod = method
+    },
+    /** Stamp the device owner. Called only on an `adopt` decision (spec 2 §1.3). */
+    setOwner(sub: string, email?: string) {
+      log.info("setOwner()", { ownerId: hashUserId(sub) })
+      store.ownerSub = sub
+      store.ownerEmail = email
+    },
+    /** Only resetLocalDatabase() calls this — the record and the data are one unit. */
+    clearOwner() {
+      log.warn("clearOwner()")
+      store.ownerSub = undefined
+      store.ownerEmail = undefined
+    },
+    setForeignSession(session: ForeignSession) {
+      log.warn("setForeignSession()", {
+        sessionId: hashUserId(session.sub),
+        loginMethod: session.loginMethod,
+      })
+      store.foreignSession = session
+    },
+    clearForeignSession() {
+      store.foreignSession = undefined
+    },
     /**
      * Login as anonymous user
      * Uses deviceId as userId for tracking
@@ -167,6 +226,10 @@ export const AuthenticationStoreModel = types
       store.userId = undefined
       store.isAnonymous = false
       store.pendingLogout = false
+      // ADDED 2026-09-17: the session's method goes with the session; the
+      // owner record does NOT — it protects the data that stays on disk.
+      store.loginMethod = undefined
+      store.foreignSession = undefined
       // Note: deviceId is NOT cleared - it persists across sessions
     },
   }))
