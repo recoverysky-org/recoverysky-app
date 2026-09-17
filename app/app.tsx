@@ -1188,9 +1188,6 @@ export function App() {
     config,
   }
 
-  // Get userId for RevenueCat
-  const revenueCatUserId = rootStore.authenticationStore.userIdentifier
-
   // otherwise, we're ready to render the app
   return (
     <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
@@ -1207,7 +1204,7 @@ export function App() {
             first-focus keyboard warm-up for a hang-free startup. */}
         <KeyboardProvider preload={false}>
           <RootStoreProvider value={rootStore}>
-            <SubscriptionProvider appUserId={revenueCatUserId}>
+            <SubscriptionProvider>
               <DatabaseProvider>
                 <ProfileHydrator />
                 <ChatHydrator />

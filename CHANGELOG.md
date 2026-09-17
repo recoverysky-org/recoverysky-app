@@ -40,6 +40,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   (`docs/DIAGNOSTICS.md` now lists what is never logged.)
 
 ### Fixed
+- **Subscriptions bought right after signing in now belong to the signed-in
+  account.** RevenueCat's identity was read from the auth store at render
+  time in a component that doesn't re-render on auth changes, so after
+  sign-in the SDK stayed identified as the *device* until something else
+  happened to re-render — and a purchase made in that window posted to a
+  device-id customer the user's account could never see. The RevenueCat
+  export showed 286 such purchases, 81 with active subscriptions (paying
+  users who saw the paywall on every launch until they thought to tap
+  Restore). Identity is now a MobX reaction: RevenueCat is switched the
+  instant `userId` is written, and the device id is never used as a RevenueCat
+  identity at all (signed-out sessions run on RevenueCat's own anonymous id,
+  which is merged into the account on sign-in). Store receipts are synced once
+  per identity per install instead of once per install, so the 81 stranded
+  subscriptions move to their owners' accounts on the next signed-in launch
+  with no Restore tap. Decisions in the vitest-covered `rcIdentityLogic.ts`.
 - **Every log line now carries the app version, session, device, and (signed
   in) hashed user id — not just lines from loggers created late.** A child
   logger took a snapshot of the root's context when it was created, and the

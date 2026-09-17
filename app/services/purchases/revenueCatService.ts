@@ -90,6 +90,11 @@ export async function initializeRevenueCat(
     // store round trip is whichever of syncPurchases / getOfferings /
     // restorePurchases / getCustomerInfo runs next, and those are raced
     // (see billingHealthLogic.ts).
+    // CHANGED 2026-09-17: `appUserId` is the Auth0 sub or undefined — never
+    // the device id. Undefined lets the SDK run on its own `$RCAnonymousID`,
+    // which logIn() later aliases into the user's customer; a custom device
+    // id was a separate customer forever (9,881 of them in the 2026-09-17
+    // export, 81 holding subscriptions the signed-in user could not see).
     Purchases.configure({
       apiKey: key,
       appUserID: appUserId,

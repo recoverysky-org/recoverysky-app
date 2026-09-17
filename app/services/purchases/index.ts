@@ -40,3 +40,9 @@ export {
   billingUnresponsiveCopy,
   nextBillingUnresponsive,
 } from "./billingHealthLogic"
+export {
+  decideRcIdentityTransition,
+  rcIdentityFor,
+  shouldSyncForIdentity,
+  syncFlagKey,
+} from "./rcIdentityLogic"
