@@ -613,6 +613,39 @@ so iterating Auth0 would mint a phantom customer per non-subscriber.
 
 ---
 
+## 🧹 Remove the anonymous-login path (device id as a user identity)
+
+Jenova's direction, 2026-09-17: the device id must not be used as a *user
+identity* anywhere. Anonymous sign-in was disabled about a month after launch
+(Android only; iOS never had it), yet the code paths remain and keep producing
+device-id "users": `loginAnonymously()` (`AuthenticationStore.ts`, stores the
+device id in `userId` with `isAnonymous = true`), the `userIdentifier` getter
+(`userId ?? deviceId`), `LoginScreen`'s `type === "anonymous"` branch, and the
+`useAuth0Wrapper.ts:326` fallback. 15 files reference `isAnonymous` /
+`loginAnonymously` / `userIdentifier`.
+
+Two consumers were already fixed to ignore the device identity:
+RevenueCat (`884a4a2`, spec `2026-09-17-revenuecat-identity-reactive-design.md`)
+and push-token registration (`072aa6a`). The remaining readers (sync `gate()`,
+report polling's `uid`, `useCloudBackupPrompt`, `BackupPassRunner`,
+`AppNavigator`'s `isAuthenticated`, tracking's `setTrackingUserId`) each need
+a decision: "signed-in Auth0 user or nothing".
+
+Keep `deviceId` itself — attestation, the logger's `deviceId` attribute, and
+`getDeviceId()` are legitimate *device* identity, not user identity.
+
+- [ ] Inventory each `isAnonymous` / `userIdentifier` reader and decide its
+      signed-out behaviour.
+- [ ] Remove `loginAnonymously()`, the LoginScreen branch, the wrapper
+      fallback; make `userIdentifier` either signed-in `userId` or undefined
+      (or delete it).
+- [ ] `isAuthenticated` stops treating anonymous as authenticated; confirm the
+      navigator still routes signed-out users to Login.
+- [ ] Migration for installs currently in the anonymous state (MMKV
+      `isAnonymous = true`): treat as signed out on next launch.
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).
