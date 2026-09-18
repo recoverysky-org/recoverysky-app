@@ -17,6 +17,7 @@ import { LoginScreen } from "@/screens/LoginScreen"
 import { MaintenanceScreen } from "@/screens/MaintenanceScreen"
 import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
 import { TermsScreen } from "@/screens/TermsScreen"
+import { WrongAccountScreen } from "@/screens/WrongAccountScreen"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
@@ -52,8 +53,23 @@ const AppStack = observer(function AppStack() {
   // shows the non-blocking MaintenanceBanner instead and leaves navigation
   // alone — critical so the in-meeting Zoom timer modal is never unmounted
   // by a navigator swap mid-meeting.
+  //
+  // CHANGED 2026-09-18 (spec 2 §2.2): a fourth state sits between Login and
+  // the rest — the SDK holds a session for an account that is not this
+  // device's owner. The wrapper's ownership gate wrote no tokens, so
+  // `isAuthenticated` is false and this can only ever displace Login; the
+  // order below is outage → WrongAccount → Login → Onboarding → Main.
+  // Outage still wins: an unreachable API means the owner could not prove
+  // anything here anyway, and the recovery poll needs the screen it reloads
+  // from.
   const showOutage = configStore.outageMode
-  log.debug("Auth state retrieved", { isAuthenticated, needsOnboarding, showOutage })
+  const hasForeignSession = !!authStore.foreignSession
+  log.debug("Auth state retrieved", {
+    isAuthenticated,
+    needsOnboarding,
+    showOutage,
+    foreignSession: hasForeignSession,
+  })
 
   const {
     theme: { colors },
@@ -65,22 +81,28 @@ const AppStack = observer(function AppStack() {
       isAuthenticated,
       authReady: authStore.authReady,
       needsOnboarding,
+      foreignSession: hasForeignSession,
     })
     return () => {
       log.debug("AppStack unmounting")
     }
-  }, [isAuthenticated, authStore.authReady, needsOnboarding])
+  }, [isAuthenticated, authStore.authReady, needsOnboarding, hasForeignSession])
 
   // Don't render navigation until auth is resolved — splash screen covers this
   if (!authStore.authReady) {
     return null
   }
 
-  // Determine initial route based on outage, auth, and onboarding status
+  // Determine initial route based on outage, auth, and onboarding status.
+  // CHANGED 2026-09-18: must mirror the branch below exactly — only the
+  // matching <Stack.Screen> is registered, so an initialRouteName naming a
+  // screen this render doesn't include warns and falls back to the first one.
   const initialRoute = showOutage
     ? "Maintenance"
     : !isAuthenticated
-      ? "Login"
+      ? hasForeignSession
+        ? "WrongAccount"
+        : "Login"
       : needsOnboarding
         ? "Onboarding"
         : "Main"
@@ -89,6 +111,7 @@ const AppStack = observer(function AppStack() {
     showOutage,
     isAuthenticated,
     needsOnboarding,
+    foreignSession: hasForeignSession,
   })
 
   return (
@@ -136,6 +159,14 @@ const AppStack = observer(function AppStack() {
             />
           </>
         )
+      ) : hasForeignSession ? (
+        // spec 2 §2.2: the SDK holds a session for an account that is not this
+        // device's owner. isAuthenticated is false (the gate wrote no token),
+        // so nothing in the authenticated branch — or any identity-driven
+        // reaction — ever sees it. Login is deliberately not registered
+        // alongside: offering "sign in" next to "you are signed in as the
+        // wrong person" is what produced the loop this screen replaces.
+        <Stack.Screen name="WrongAccount" component={WrongAccountScreen} />
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />
       )}

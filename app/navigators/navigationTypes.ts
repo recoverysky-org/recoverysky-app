@@ -63,6 +63,8 @@ export type OnboardingParamList = {
 export type AppStackParamList = {
   Maintenance: undefined
   Login: undefined
+  /** ADDED 2026-09-18 (spec 2 §2.2): shown instead of Login while a foreign session is held. */
+  WrongAccount: undefined
   Import: undefined
   Licenses: undefined
   Terms: undefined
