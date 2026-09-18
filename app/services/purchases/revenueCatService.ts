@@ -395,7 +395,9 @@ export async function presentPaywallIfNeeded(): Promise<Result<boolean>> {
  */
 export async function loginUser(appUserId: string): Promise<Result<CustomerInfo>> {
   try {
-    log.info("Logging in user to RevenueCat", { appUserId })
+    // No `appUserId` in the line: it is the raw Auth0 sub, and every record
+    // ships to Loki (CLAUDE.md "Logging" — hashed ids only). FIXED 2026-09-18.
+    log.info("Logging in user to RevenueCat")
     const { customerInfo } = await Purchases.logIn(appUserId)
     return { ok: true, value: customerInfo }
   } catch (error) {
