@@ -563,7 +563,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             // purpose: the user confirmed a destructive action, and a failed
             // Auth0 sign-out must not leave the database half-cleared.
             try {
-              await resetLocalDatabase()
+              await resetLocalDatabase({ clearOwner: () => authStore.clearOwner() })
             } catch (e) {
               logger.error("Delete User Data: local database reset failed", { error: String(e) })
             }
