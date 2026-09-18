@@ -5,13 +5,15 @@
  * - Sync auth state to MST AuthenticationStore for API layer compatibility
  * - Handle anonymous login (Auth0 doesn't support this natively)
  * - Extract SQLite encryption key from JWT claims if present
+ * - Passwordless email code login (sendCode/verifyCode), direct-to-provider
+ *   social login, and the device-ownership gate (spec 2 §2.1)
  */
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useAuth0, WebAuthError, WebAuthErrorCodes } from "react-native-auth0"
 
 import { translate } from "@/i18n"
-import { useAuthenticationStore, useConfigStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, type LoginMethod } from "@/models"
 import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encryption/sqliteKey"
 import { hashUserId, logger } from "@/utils/logger"
 
@@ -23,23 +25,59 @@ import {
   isUsableAccessToken,
   type IdTokenClaims,
 } from "./jwtUtils"
+import { linkForeignIdentity } from "./linkForeignIdentity"
+import { decideOwnership } from "./ownerLogic"
 import { saveAuthCredentials, clearAuthCredentials } from "./secureStorage"
 import { reportUnusableToken } from "./unusableTokenHandler"
 
 const log = logger.child({ module: "useAuth0Wrapper" })
 
 /**
- * Pick what the login screen shows for a failed web-auth call. The two cases
- * we can give real advice for (browser closed by a relaunch, network) get an
- * i18n string; everything else keeps the SDK's message so the raw diagnostic
- * still reaches us via the "Auth error displayed to user" log line.
+ * Pick what the login screen shows for a failed auth call. Classified cases
+ * get an i18n string; everything else keeps the SDK's message so the raw
+ * diagnostic still reaches us via the "Auth error displayed to user" log line.
  * ADDED 2026-09-12 — see authErrorLogic.ts for the incident history.
+ * CHANGED 2026-09-17: exported and extended with the passwordless outcomes
+ * (spec 1 §2.5) so LoginScreen can map a thrown error the same way.
  */
-function displayMessageFor(err: unknown, fallback: string): string {
-  const key = classifyAuthError(err)
-  if (key === "browserTerminated") return translate("loginScreen:errorBrowserTerminated")
-  if (key === "networkError") return translate("loginScreen:errorNetwork")
-  return (err instanceof Error && err.message) || fallback
+export function authErrorMessage(err: unknown, fallback: string): string {
+  switch (classifyAuthError(err)) {
+    case "browserTerminated":
+      return translate("loginScreen:errorBrowserTerminated")
+    case "networkError":
+    // The OTP grant is missing on the Auth0 application (runbook §3.2). The
+    // user can do nothing about it; the error-level log below is for us.
+    case "passwordlessNotEnabled":
+      return translate("loginScreen:errorNetwork")
+    case "wrongCode":
+      return translate("loginScreen:errorWrongCode")
+    case "codeExpired":
+      return translate("loginScreen:errorCodeExpired")
+    case "tooManyAttempts":
+      return translate("loginScreen:errorTooManyAttempts")
+    case "sendRateLimited":
+      return translate("loginScreen:errorSendRateLimited")
+    default:
+      return (err instanceof Error && err.message) || fallback
+  }
+}
+
+export type ProviderConnection = "apple" | "google-oauth2"
+
+export interface ProviderLoginOptions {
+  /** Prefills the provider's account chooser — the owner's stored email (spec 2 §2.3). */
+  loginHint?: string
+  /**
+   * Clear Auth0's browser cookie before opening the provider. Required when a
+   * foreign session arrived through the browser: otherwise the cookie hands
+   * that same account straight back (spec 2 §2.3 "the cookie trap").
+   */
+  clearBrowserSessionFirst?: boolean
+}
+
+const METHOD_FOR_CONNECTION: Record<ProviderConnection, LoginMethod> = {
+  "apple": "apple",
+  "google-oauth2": "google",
 }
 
 export interface UseAuth0WrapperOptions {
@@ -48,10 +86,17 @@ export interface UseAuth0WrapperOptions {
 }
 
 export interface UseAuth0WrapperResult {
-  /** Initiate the OAuth login flow */
-  login: () => Promise<void>
-  /** Initiate the OAuth signup flow (opens Auth0 signup tab) */
-  signup: () => Promise<void>
+  /** Email a six-digit code. Rejects with the raw SDK error (classify with classifyAuthError). */
+  sendCode: (email: string) => Promise<void>
+  /** Exchange the code for a session. Rejects with the raw SDK error. */
+  verifyCode: (email: string, code: string) => Promise<void>
+  /** Browser login straight to Apple/Google — Universal Login never shows. */
+  loginWithProvider: (
+    connection: ProviderConnection,
+    options?: ProviderLoginOptions,
+  ) => Promise<void>
+  /** Cancel on WrongAccountScreen: drop the foreign session and return to Login. */
+  abandonForeignSession: () => Promise<void>
   /** Login as anonymous user (no OAuth) */
   loginAnonymously: () => void
   /** Logout and clear all tokens */
@@ -81,6 +126,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   const {
     authorize,
     clearSession,
+    clearCredentials,
+    sendEmailCode,
+    authorizeWithEmail,
     user,
     isLoading: auth0Loading,
     error: auth0Error,
@@ -95,6 +143,14 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   // Guard: prevent user sync from re-populating MST during logout
   const isLoggingOut = useRef(false)
 
+  // How the login that is currently in flight was started. Read by the sync
+  // effect once the SDK sets `user`, then cleared. NOT the store's persisted
+  // loginMethod: that is written only for an ACCEPTED session, so a foreign
+  // session never leaves it behind (spec 2 §2.1). Empty on a cold-start
+  // restore, which every consumer treats as "browser possible".
+  // ADDED 2026-09-17.
+  const pendingLoginMethodRef = useRef<LoginMethod | undefined>(undefined)
+
   // Sync Auth0 error to local state (ignore user-cancelled errors)
   useEffect(() => {
     if (auth0Error) {
@@ -106,9 +162,14 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         return
       }
       log.error("Auth0 error", { error: auth0Error.message })
-      // CHANGED 2026-09-12: route through displayMessageFor so BROWSER_TERMINATED
+      // ADDED 2026-09-17: a missing OTP grant is a tenant misconfiguration, not
+      // a user error — the user sees the generic network copy, we get this.
+      if (classifyAuthError(auth0Error) === "passwordlessNotEnabled") {
+        log.error("Passwordless OTP grant missing on the Auth0 application — see spec 1 §3.2")
+      }
+      // CHANGED 2026-09-12: route through authErrorMessage so BROWSER_TERMINATED
       // and network failures get the actionable copy instead of the raw SDK text.
-      setError(displayMessageFor(auth0Error, "Authentication failed"))
+      setError(authErrorMessage(auth0Error, "Authentication failed"))
     }
   }, [auth0Error])
 
@@ -153,6 +214,41 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               return
             }
 
+            // ADDED 2026-09-17 (spec 2 §2.1): one device, one owner. A session
+            // for any other account writes NOTHING below — no tokens, no
+            // userId, no SecureStore copy — so isAuthenticated stays false and
+            // every identity-driven reaction (sync outbox handover, RevenueCat,
+            // push registration, logger/Sentry identity) never sees it. The SDK
+            // has already saved these credentials in its own keychain entry;
+            // a cold start restores them, hits this gate again, and shows the
+            // same screen. That is intended.
+            const decision = decideOwnership({
+              ownerSub: authStore.ownerSub,
+              sessionSub: user.sub,
+              isAnonymous: authStore.isAnonymous,
+            })
+            if (decision === "mismatch") {
+              authStore.setForeignSession({
+                sub: user.sub,
+                email: user.email,
+                idToken: credentials.idToken ?? undefined,
+                loginMethod: pendingLoginMethodRef.current,
+              })
+              pendingLoginMethodRef.current = undefined
+              // The splash must never wait on a session we are refusing.
+              authStore.setAuthReady()
+              log.warn("Foreign session on an owned device", {
+                ownerId: hashUserId(authStore.ownerSub),
+                sessionId: hashUserId(user.sub),
+                loginMethod: authStore.foreignSession?.loginMethod ?? "unknown",
+              })
+              return
+            }
+            if (decision === "adopt") {
+              authStore.setOwner(user.sub, user.email)
+              log.info("Device owner adopted", { ownerId: hashUserId(user.sub) })
+            }
+
             // Auth0 SDK returns expiresAt as UNIX timestamp (seconds)
             // Convert to milliseconds for JavaScript Date compatibility
             const expiresAt = credentials.expiresAt * 1000
@@ -171,6 +267,13 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
 
             // Set user info
             authStore.setUserId(user.sub)
+
+            // ADDED 2026-09-17: accepted session — record how it was started
+            // (drives the logout branch). Falls back to the persisted value on
+            // a cold-start restore, where nothing is in flight.
+            authStore.setLoginMethod(pendingLoginMethodRef.current ?? authStore.loginMethod)
+            pendingLoginMethodRef.current = undefined
+
             if (user.email) {
               authStore.setAuthEmail(user.email)
             }
@@ -196,6 +299,21 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             }
 
             log.info("Auth state synced to MST store", { userId: hashUserId(user.sub) })
+
+            // ADDED 2026-09-17 (spec 2 §2.5): the owner just signed back in
+            // over a foreign session. Link that identity into the owner's
+            // account so the same wrong tap next time resolves to the owner.
+            // Fire-and-forget; the token lives only in memory and a failure
+            // just means the next mismatch retries with a fresh one.
+            const foreign = authStore.foreignSession
+            if (foreign && foreign.sub !== user.sub) {
+              authStore.clearForeignSession()
+              if (foreign.idToken) {
+                void linkForeignIdentity(foreign.idToken)
+              } else {
+                log.warn("Foreign session had no ID token — nothing to link")
+              }
+            }
           }
         } catch (err) {
           log.error("Failed to sync credentials to store", { error: String(err) })
@@ -246,73 +364,154 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   }
 
   /**
-   * Initiate the OAuth login flow
+   * Email a six-digit code. Any address is accepted — passwordless creates the
+   * account on first use — so there is no "no account" outcome to surface.
+   * ADDED 2026-09-17 (spec 1 §2.2), replacing the Universal Login login().
    */
-  const login = useCallback(async () => {
-    log.info("Starting Auth0 login flow")
-    setError(null)
-
-    try {
-      // Cancel any stale/interrupted login transactions (iOS only)
+  const sendCode = useCallback(
+    async (email: string) => {
+      log.info("Sending passwordless code")
+      setError(null)
+      setLocalLoading(true)
       try {
-        await cancelWebAuth()
-      } catch {
-        // Ignore - cancelWebAuth may fail if no transaction exists
+        await sendEmailCode({ email: email.trim().toLowerCase(), send: "code" })
+        pendingLoginMethodRef.current = "email"
+      } finally {
+        setLocalLoading(false)
       }
-
-      await authorize(
-        { scope: AUTH0_CONFIG.scopes.join(" "), audience: AUTH0_CONFIG.audience },
-        { customScheme: AUTH0_CONFIG.customScheme },
-      )
-      log.info("Auth0 login flow completed")
-    } catch (err) {
-      if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
-        log.info("Login cancelled by user")
-        return
-      }
-      const message = err instanceof Error ? err.message : "Login failed"
-      log.error("Auth0 login failed", { error: message })
-      // CHANGED 2026-09-12: the log keeps the raw SDK message; the user sees the
-      // friendlier mapped copy when we have one (see displayMessageFor).
-      setError(displayMessageFor(err, message))
-    }
-  }, [authorize])
+    },
+    [sendEmailCode],
+  )
 
   /**
-   * Initiate the OAuth signup flow (opens Auth0 signup tab)
+   * Exchange the code for a session. The SDK saves the credentials and sets
+   * `user`; the sync effect above does the rest, exactly as for a browser login.
    */
-  const signup = useCallback(async () => {
-    log.info("Starting Auth0 signup flow")
-    setError(null)
-
-    try {
+  const verifyCode = useCallback(
+    async (email: string, code: string) => {
+      log.info("Verifying passwordless code")
+      setError(null)
+      setLocalLoading(true)
+      pendingLoginMethodRef.current = "email"
       try {
-        await cancelWebAuth()
-      } catch {
-        // Ignore - cancelWebAuth may fail if no transaction exists
-      }
-
-      await authorize(
-        {
-          scope: AUTH0_CONFIG.scopes.join(" "),
+        await authorizeWithEmail({
+          email: email.trim().toLowerCase(),
+          code: code.trim(),
+          // LOAD-BEARING (spec 1 §2.2): without the audience Auth0 issues an
+          // opaque token, isUsableAccessToken() rejects it, and the user is
+          // signed out one tick after signing in. offline_access in the scope
+          // string is what yields the refresh token.
           audience: AUTH0_CONFIG.audience,
-          additionalParameters: { screen_hint: "signup" },
-        },
-        { customScheme: AUTH0_CONFIG.customScheme },
-      )
-      log.info("Auth0 signup flow completed")
-    } catch (err) {
-      if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
-        log.info("Signup cancelled by user")
-        return
+          scope: AUTH0_CONFIG.scopes.join(" "),
+        })
+      } catch (err) {
+        pendingLoginMethodRef.current = undefined
+        throw err
+      } finally {
+        setLocalLoading(false)
       }
-      const message = err instanceof Error ? err.message : "Signup failed"
-      log.error("Auth0 signup failed", { error: message })
-      // CHANGED 2026-09-12: the log keeps the raw SDK message; the user sees the
-      // friendlier mapped copy when we have one (see displayMessageFor).
-      setError(displayMessageFor(err, message))
+    },
+    [authorizeWithEmail],
+  )
+
+  /**
+   * Browser login pointed straight at Apple or Google. Cancel, browser-
+   * terminated and network handling are exactly the old login()'s.
+   * ADDED 2026-09-17: `connection` is what skips Universal Login's own
+   * account picker (spec 1 §2.3).
+   */
+  const loginWithProvider = useCallback(
+    async (connection: ProviderConnection, options: ProviderLoginOptions = {}) => {
+      log.info("Starting provider login", {
+        connection,
+        clearFirst: !!options.clearBrowserSessionFirst,
+      })
+      setError(null)
+      pendingLoginMethodRef.current = METHOD_FOR_CONNECTION[connection]
+
+      try {
+        // Cancel any stale/interrupted login transactions (iOS only)
+        try {
+          await cancelWebAuth()
+        } catch {
+          // Ignore - cancelWebAuth may fail if no transaction exists
+        }
+
+        if (options.clearBrowserSessionFirst) {
+          try {
+            await clearSession({}, { customScheme: AUTH0_CONFIG.customScheme })
+          } catch (err) {
+            // The iOS "Sign In" dialog was dismissed. Proceed anyway: worst
+            // case the cookie is still there and the provider returns the
+            // foreign account, which lands on the same screen again.
+            if (!(err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED)) {
+              throw err
+            }
+            log.info("Browser session clear cancelled by user — proceeding")
+          }
+        }
+
+        await authorize(
+          {
+            scope: AUTH0_CONFIG.scopes.join(" "),
+            audience: AUTH0_CONFIG.audience,
+            connection,
+            additionalParameters: options.loginHint ? { login_hint: options.loginHint } : undefined,
+          },
+          { customScheme: AUTH0_CONFIG.customScheme },
+        )
+        log.info("Provider login flow completed", { connection })
+      } catch (err) {
+        pendingLoginMethodRef.current = undefined
+        if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
+          log.info("Provider login cancelled by user")
+          return
+        }
+        const message = err instanceof Error ? err.message : "Login failed"
+        // CHANGED 2026-09-12: the log keeps the raw SDK message; the user sees
+        // the friendlier mapped copy when we have one (see authErrorMessage).
+        log.error("Provider login failed", { connection, error: message })
+        setError(authErrorMessage(err, message))
+      }
+    },
+    [authorize, clearSession, cancelWebAuth],
+  )
+
+  /**
+   * Cancel on WrongAccountScreen (spec 2 §2.4). Drops the SDK's stored
+   * credentials for the foreign session and, when it arrived through the
+   * browser (or we cannot tell), Auth0's cookie too — otherwise the next
+   * provider tap silently returns the same wrong account.
+   *
+   * Deliberately does NOT touch the owner record or any local data: the
+   * foreign session never owned anything on this device.
+   */
+  const abandonForeignSession = useCallback(async () => {
+    const foreign = authStore.foreignSession
+    log.info("Abandoning foreign session", { loginMethod: foreign?.loginMethod ?? "unknown" })
+    // Same guard as logout: the SDK clearing `user` must not re-enter the
+    // sync effect while we are tearing the session down.
+    isLoggingOut.current = true
+    try {
+      if (foreign?.loginMethod !== "email") {
+        try {
+          await clearSession({}, { customScheme: AUTH0_CONFIG.customScheme })
+        } catch (err) {
+          if (!(err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED)) {
+            log.warn("Browser session clear failed — clearing credentials only", {
+              error: String(err),
+            })
+          }
+        }
+      }
+      await clearCredentials().catch((err) =>
+        log.error("Failed to clear SDK credentials", { error: String(err) }),
+      )
+    } finally {
+      authStore.clearForeignSession()
+      isLoggingOut.current = false
     }
-  }, [authorize])
+  }, [authStore, clearSession, clearCredentials])
 
   /**
    * Login as anonymous user (no OAuth required)
@@ -349,8 +548,17 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     try {
       // Clear Auth0 web session (requires browser redirect)
       if (user && !authStore.isAnonymous) {
-        await clearSession({}, { customScheme: AUTH0_CONFIG.customScheme })
-        log.info("Auth0 session cleared")
+        // CHANGED 2026-09-17 (spec 1 §2.4): an email-code session never
+        // created a browser session, so there is no Auth0 cookie to clear.
+        // clearSession() would open a browser for nothing and, on iOS, show
+        // the system dialog. Social sessions keep the browser logout.
+        if (authStore.loginMethod === "email") {
+          await clearCredentials()
+          log.info("Email session credentials cleared")
+        } else {
+          await clearSession({}, { customScheme: AUTH0_CONFIG.customScheme })
+          log.info("Auth0 session cleared")
+        }
       }
 
       // Clear MST store and SecureStore
@@ -374,7 +582,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     } finally {
       isLoggingOut.current = false
     }
-  }, [user, authStore, clearSession])
+  }, [user, authStore, clearSession, clearCredentials])
 
   /**
    * Clear the error state
@@ -384,8 +592,10 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   }, [])
 
   return {
-    login,
-    signup,
+    sendCode,
+    verifyCode,
+    loginWithProvider,
+    abandonForeignSession,
     loginAnonymously,
     logout,
     isLoading,
