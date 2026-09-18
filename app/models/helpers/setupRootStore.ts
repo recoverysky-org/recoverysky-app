@@ -47,6 +47,20 @@ export async function setupRootStore(rootStore: RootStore) {
     log.error("Failed to load RootStore from MMKV", { error: String(e) })
   }
 
+  // ADDED 2026-09-17 (spec 2 §1.3): first launch after the ownership OTA on an
+  // install that was signed in. Adopt the persisted account as the device
+  // owner NOW, before any reaction sees the session, so the upgrade itself
+  // never shows the wrong-account screen. Must run before the isAnonymous
+  // reset below: an anonymous snapshot carries userId === deviceId, and a
+  // device id must never become the owner.
+  {
+    const auth = rootStore.authenticationStore
+    if (!auth.ownerSub && auth.userId && !auth.isAnonymous) {
+      auth.setOwner(auth.userId, auth.authEmail || undefined)
+      log.info("Owner stamped from hydration")
+    }
+  }
+
   // Reset anonymous flag on cold start so returning anonymous users see the Login screen.
   if (rootStore.authenticationStore.isAnonymous) {
     rootStore.authenticationStore.setProp("isAnonymous", false)
