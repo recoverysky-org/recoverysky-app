@@ -41,12 +41,14 @@ const log = logger.child({ module: "useAuth0Wrapper" })
  * treats as "browser possible".
  *
  * ADDED 2026-09-17. CHANGED 2026-09-18: module-scoped, not a per-instance
- * useRef. The hook is mounted TWICE — AppStack calls it bare (AppNavigator.tsx)
- * and LoginScreen calls it again — so both instances register the [user] sync
- * effect and both run syncUserToStore on every login. With a per-instance ref
- * the AppStack copy was always undefined, and because setForeignSession
- * replaces the whole object, whichever instance flushed last (usually AppStack,
- * since child effects flush first) wrote loginMethod: undefined over the real
+ * useRef. This hook has FIVE mount sites — AppStack (AppNavigator.tsx, bare),
+ * LoginScreen, WrongAccountScreen, SettingsScreen and DevScreen — and each one
+ * registers the [user] sync effect, so several run syncUserToStore on the same
+ * login. At least two are live during any login: AppStack plus whichever of
+ * LoginScreen / WrongAccountScreen is on screen. With a per-instance ref the
+ * AppStack copy was always undefined, and because setForeignSession replaces
+ * the whole object, whichever instance flushed last (usually AppStack, since
+ * child effects flush first) wrote loginMethod: undefined over the real
  * value. An email-code foreign session then looked browser-possible and
  * abandonForeignSession opened a browser — plus the iOS system dialog — to
  * clear a cookie that never existed. One JS process and one SDK-talking module
@@ -241,7 +243,14 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             const decision = decideOwnership({
               ownerSub: authStore.ownerSub,
               sessionSub: user.sub,
-              isAnonymous: authStore.isAnonymous,
+              // CHANGED 2026-09-18: hardcoded false, not authStore.isAnonymous.
+              // Auth0 never issues an anonymous session — reaching this line at
+              // all means a real account signed in. The store flag describes
+              // the PREVIOUS session (anonymous mode is our own local concept),
+              // and decideOwnership returns "match" for an anonymous one, so
+              // passing it here let any account through on a device whose flag
+              // had not been reset yet.
+              isAnonymous: false,
             })
             if (decision === "mismatch") {
               // CHANGED 2026-09-18: setForeignSession replaces the whole
@@ -332,10 +341,18 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             // account so the same wrong tap next time resolves to the owner.
             // Fire-and-forget; the token lives only in memory and a failure
             // just means the next mismatch retries with a fresh one.
+            // CHANGED 2026-09-18: the clear is now unconditional whenever a
+            // foreign record exists. It used to be gated on the sub comparison
+            // too, which left the record — and its ID token — held in memory
+            // in the one case where the accepted session IS the recorded one.
+            // Only the link call needs the comparison: linking an identity to
+            // itself is meaningless.
             const foreign = authStore.foreignSession
-            if (foreign && foreign.sub !== user.sub) {
+            if (foreign) {
               authStore.clearForeignSession()
-              if (foreign.idToken) {
+              if (foreign.sub === user.sub) {
+                log.info("Accepted session matches the recorded foreign one — record dropped")
+              } else if (foreign.idToken) {
                 void linkForeignIdentity(foreign.idToken)
               } else {
                 log.warn("Foreign session had no ID token — nothing to link")

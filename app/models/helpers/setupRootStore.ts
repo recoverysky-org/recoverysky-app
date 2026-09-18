@@ -53,9 +53,19 @@ export async function setupRootStore(rootStore: RootStore) {
   // never shows the wrong-account screen. Must run before the isAnonymous
   // reset below: an anonymous snapshot carries userId === deviceId, and a
   // device id must never become the owner.
+  //
+  // CHANGED 2026-09-18: running before the reset is NOT sufficient on its own,
+  // hence the explicit deviceId check. The reset below persists through
+  // onSnapshot, so an install that used the old anonymous login (live on
+  // Android 2025-12-26 → 2026-05-14) reaches its SECOND cold start with
+  // `isAnonymous: false` already written and `userId` still the device id —
+  // the `!auth.isAnonymous` guard passes and the device id becomes the owner.
+  // That state is unrecoverable from inside the app: ownerProofMethod() on a
+  // device id is "unknown" and ownerEmail is undefined, so WrongAccountView
+  // offers Cancel and nothing else, and every real sign-in loops back to it.
   {
     const auth = rootStore.authenticationStore
-    if (!auth.ownerSub && auth.userId && !auth.isAnonymous) {
+    if (!auth.ownerSub && auth.userId && !auth.isAnonymous && auth.userId !== auth.deviceId) {
       auth.setOwner(auth.userId, auth.authEmail || undefined)
       log.info("Owner stamped from hydration")
     }

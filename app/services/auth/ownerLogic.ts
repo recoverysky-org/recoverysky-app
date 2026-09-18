@@ -12,10 +12,17 @@ export type OwnershipDecision = "adopt" | "match" | "mismatch"
 /**
  * One device, one owner. Anonymous sessions never own a device and are never
  * blocked by one — the first real sign-in adopts.
+ *
+ * CHANGED 2026-09-18: `isAnonymous` means "the session being decided is itself
+ * anonymous", which is never true for an Auth0 session. It is NOT the auth
+ * store's persisted flag: that describes the previous session, and passing it
+ * here would wave a stranger's account through on a device whose flag had not
+ * been reset yet. The gate in useAuth0Wrapper.ts passes a literal false.
  */
 export function decideOwnership(input: {
   ownerSub: string | undefined
   sessionSub: string
+  /** True only when the session being decided is itself anonymous (never for an Auth0 session). */
   isAnonymous: boolean
 }): OwnershipDecision {
   if (input.isAnonymous) return "match"

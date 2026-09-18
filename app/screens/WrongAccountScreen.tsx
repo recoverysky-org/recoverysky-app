@@ -1,11 +1,16 @@
 /**
  * Shown instead of Login when the SDK holds a session for an account that is
  * not this device's owner (spec 2 §2.3). Two exits only: prove you are the
- * owner, or Cancel. Nothing here can delete, rekey, or overwrite local data —
- * which is also why the wrapper is mounted WITHOUT `onSqliteKeyChange`: a
- * rekey driven from this screen would be a stranger's session rewriting the
- * owner's encrypted database. The owner's own key is applied by the AppStack
- * instance of the hook once the session is accepted.
+ * owner, or Cancel. Nothing here can delete, rekey, or overwrite local data.
+ *
+ * The wrapper is mounted WITHOUT `onSqliteKeyChange`, which is NOT a guard
+ * against a stranger's rekey — `handleSqliteKeyFromJwt` runs only after the
+ * ownership gate has already ACCEPTED the session, so a foreign session never
+ * reaches it. CHANGED 2026-09-18 (the original comment claimed otherwise).
+ * The real effect: when the owner signs back in from here, this instance takes
+ * the bare `setSqliteEncryptionKey` fallback branch rather than a rekey
+ * callback — the same branch the AppStack instance takes on the normal login
+ * path, since it mounts the hook bare too.
  *
  * This file is the observer shell: it reads the store and calls the auth
  * wrapper. The presentational half lives in WrongAccountView.tsx (jest-

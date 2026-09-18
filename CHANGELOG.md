@@ -22,6 +22,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+> **Deploy order and ship gate.** The API deploys first — the app's
+> wrong-account recovery calls its identity-link endpoint, and an app that
+> reaches a server without it gets a 404 on every link attempt. Nothing here
+> merges until the Auth0 tenant runbook in spec 1 §3 is complete on
+> production: passwordless email is off by default, and shipping ahead of it
+> leaves users with a login screen that can only fail. All of it is JS-only,
+> so it ships as an OTA — no `runtimeVersion` bump.
+
 ### Added
 - **Passwordless email login: type your email, get a six-digit code, done.**
   No password, no browser — Auth0's Universal Login web screen no longer

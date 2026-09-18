@@ -383,11 +383,15 @@ Three separate trust layers, easy to confuse:
    CHANGED 2026-09-18: the pending login method — which of
    `sendCode`/`verifyCode`/`loginWithProvider` is in flight, read by the
    `[user]` sync effect once the SDK sets `user` — is a MODULE-SCOPED
-   variable in `useAuth0Wrapper.ts`, **not** a `useRef`. Both `AppStack`
-   (`AppNavigator.tsx`) and `LoginScreen` mount this hook, so both run the
-   sync effect; a per-instance ref left one copy permanently `undefined`,
-   and whichever instance flushed last (usually `AppStack`) overwrote the
-   real value with it. An email-code foreign session then looked
+   variable in `useAuth0Wrapper.ts`, **not** a `useRef`. The hook has FIVE
+   mount sites — `AppStack` (`AppNavigator.tsx`, bare), `LoginScreen`,
+   `WrongAccountScreen`, `SettingsScreen` and `DevScreen` — and every one of
+   them registers the `[user]` sync effect. At least two are live during any
+   login: `AppStack` plus whichever of `LoginScreen` / `WrongAccountScreen`
+   is on screen. A per-instance ref left the other copies permanently
+   `undefined`, and whichever instance flushed last (usually `AppStack`,
+   since child effects flush first) overwrote the real value with it. An
+   email-code foreign session then looked
    "browser possible" and `abandonForeignSession()` opened a browser — plus
    the iOS system dialog — to clear a cookie that never existed. Don't move
    this back into per-instance state.
