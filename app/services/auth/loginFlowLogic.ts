@@ -58,6 +58,14 @@ export function resendWaitSeconds(lastSentAt: number | null, now: number): numbe
  * Step transitions. `tooManyAttempts` / `sendRateLimited` return to `email`
  * on purpose: the only remedy is waiting, and leaving the user on `code`
  * invites more failed attempts and a longer lockout.
+ *
+ * CHANGED 2026-09-18: `sendRateLimited` no longer ejects a user who is ALREADY
+ * on the code step. That event fires when a RESEND is refused, which says
+ * nothing about the code Auth0 already delivered — it is still sitting in the
+ * inbox and still valid. Sending them back to `email` discarded the field they
+ * were typing into and left Send, itself rate-limited, as the only control on
+ * screen: a dead end built out of a recoverable state. `tooManyAttempts` is
+ * different and still ejects, because there the CODE is what got locked out.
  */
 export function nextStep(step: LoginStep, event: LoginEvent): LoginStep {
   switch (event) {
@@ -73,7 +81,9 @@ export function nextStep(step: LoginStep, event: LoginEvent): LoginStep {
     case "wrongEmail":
       return "email"
     case "tooManyAttempts":
+      return "email"
     case "sendRateLimited":
+      if (step === "code") return "code"
       return "email"
   }
 }

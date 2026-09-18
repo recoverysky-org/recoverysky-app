@@ -237,15 +237,30 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         const key = classifyAuthError(err)
         // Never the address: an email in a log line is an identifier.
         log.warn("Send code failed", { key: key ?? "unclassified" })
-        // Auth0 is holding this address down; the code step would only invite
-        // attempts against a code that never arrived.
+        // Auth0 is holding this address down. From the email step that means
+        // there is nothing to do but wait; from the code step `nextStep` keeps
+        // the user where they are, because a refused RESEND says nothing about
+        // the code already in their inbox (see loginFlowLogic.ts). Neither
+        // `code` nor `lastSentAt` is touched here, so the field they were
+        // typing into and the running cooldown both survive.
         if (key === "sendRateLimited") setStep((s) => nextStep(s, "sendRateLimited"))
       }
     },
     [sendCode, clearError],
   )
 
+  /**
+   * Guards the one-render window between "six digits are present" and
+   * `isLoading` turning true. In that frame the auto-submit effect below and
+   * the still-enabled Verify button are both live, and a fast tap could spend
+   * two of Auth0's `too_many_attempts` budget on one code. A ref, not state:
+   * it has to be readable and writable synchronously, before React re-renders.
+   */
+  const verifyInFlight = useRef(false)
+
   const handleVerify = useCallback(async () => {
+    if (verifyInFlight.current) return
+    verifyInFlight.current = true
     clearError()
     try {
       await verifyCode(email, code)
@@ -260,12 +275,16 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       // Never the code: it is a live credential until it expires.
       log.warn("Verify code failed", { key: key ?? "unclassified" })
       // Clear the field so the auto-submit effect below can fire again on the
-      // next six digits instead of sitting on a known-bad value.
-      if (key === "wrongCode") setCode("")
+      // next six digits instead of sitting on a known-bad value. An expired
+      // code is as dead as a wrong one — leaving it in place would strand the
+      // user on a field that can never auto-submit again.
+      if (key === "wrongCode" || key === "codeExpired") setCode("")
       if (key === "tooManyAttempts") {
         setCode("")
         setStep((s) => nextStep(s, "tooManyAttempts"))
       }
+    } finally {
+      verifyInFlight.current = false
     }
   }, [verifyCode, email, code, clearError])
 
@@ -323,11 +342,15 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       if (termsAlreadyAccepted) {
         void runAction(action)
       } else {
+        // Clear here too, not just in runAction: the modal covers the screen
+        // but the strip is still behind it, so a previous failure would be the
+        // first thing the user sees again after accepting.
+        clearError()
         setPendingAction(action)
         setShowEuaModal(true)
       }
     },
-    [termsAlreadyAccepted, runAction],
+    [termsAlreadyAccepted, runAction, clearError],
   )
 
   // Kept for the commented-out anonymous-login button further down (see the
@@ -387,8 +410,17 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       </View>
 
       <View style={themed($contentContainer)}>
+        {/* CHANGED 2026-09-18: given live-region semantics. This strip is now
+            the ONLY error surface for all three steps (see runSend), and it
+            appears without any focus change — a screen-reader user would
+            otherwise never learn that the code was rejected. `alert` is what
+            iOS announces; `accessibilityLiveRegion` is the Android half. */}
         {error && (
-          <View style={themed($errorContainer)}>
+          <View
+            style={themed($errorContainer)}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+          >
             <Text style={themed($errorText)}>{error}</Text>
           </View>
         )}

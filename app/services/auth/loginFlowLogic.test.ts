@@ -65,7 +65,12 @@ describe("nextStep", () => {
   })
   it("returns to email when the only remedy is waiting", () => {
     expect(nextStep("code", "tooManyAttempts")).toBe("email")
-    expect(nextStep("code", "sendRateLimited")).toBe("email")
     expect(nextStep("email", "sendRateLimited")).toBe("email")
+  })
+  // CHANGED 2026-09-18: a refused RESEND must not discard the code the user
+  // already has. Ejecting to `email` left Send — itself rate-limited — as the
+  // only control on screen.
+  it("keeps a rate-limited resend on the code step", () => {
+    expect(nextStep("code", "sendRateLimited")).toBe("code")
   })
 })
