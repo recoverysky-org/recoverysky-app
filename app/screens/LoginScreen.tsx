@@ -240,10 +240,21 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         // Auth0 is holding this address down. From the email step that means
         // there is nothing to do but wait; from the code step `nextStep` keeps
         // the user where they are, because a refused RESEND says nothing about
-        // the code already in their inbox (see loginFlowLogic.ts). Neither
-        // `code` nor `lastSentAt` is touched here, so the field they were
-        // typing into and the running cooldown both survive.
-        if (key === "sendRateLimited") setStep((s) => nextStep(s, "sendRateLimited"))
+        // the code already in their inbox (see loginFlowLogic.ts). `code` is
+        // deliberately untouched, so the field they were typing into survives.
+        //
+        // The cooldown is re-armed rather than left running: the refusal only
+        // reaches us once the previous cooldown has already elapsed, so a
+        // Resend button left hot would be tappable again immediately and would
+        // do nothing but feed the edge's 429 counter — this repo has a CrowdSec
+        // history with exactly that shape. Note RESEND_COOLDOWN_MS is OUR
+        // hold-off, not Auth0's: their per-address window is longer, so a
+        // second refusal after this one is expected, not a bug.
+        if (key === "sendRateLimited") {
+          setLastSentAt(Date.now())
+          setNow(Date.now())
+          setStep((s) => nextStep(s, "sendRateLimited"))
+        }
       }
     },
     [sendCode, clearError],
