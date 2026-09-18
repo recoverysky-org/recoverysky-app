@@ -33,6 +33,30 @@ import { reportUnusableToken } from "./unusableTokenHandler"
 const log = logger.child({ module: "useAuth0Wrapper" })
 
 /**
+ * How the login that is currently in flight was started. Written by sendCode /
+ * verifyCode / loginWithProvider before the SDK call, read by the sync effect
+ * once the SDK sets `user`. NOT the store's persisted loginMethod: that is
+ * written only for an ACCEPTED session, so a foreign session never leaves it
+ * behind (spec 2 §2.1). Empty on a cold-start restore, which every consumer
+ * treats as "browser possible".
+ *
+ * ADDED 2026-09-17. CHANGED 2026-09-18: module-scoped, not a per-instance
+ * useRef. The hook is mounted TWICE — AppStack calls it bare (AppNavigator.tsx)
+ * and LoginScreen calls it again — so both instances register the [user] sync
+ * effect and both run syncUserToStore on every login. With a per-instance ref
+ * the AppStack copy was always undefined, and because setForeignSession
+ * replaces the whole object, whichever instance flushed last (usually AppStack,
+ * since child effects flush first) wrote loginMethod: undefined over the real
+ * value. An email-code foreign session then looked browser-possible and
+ * abandonForeignSession opened a browser — plus the iOS system dialog — to
+ * clear a cookie that never existed. One JS process and one SDK-talking module
+ * make module scope the correct home for this. Deliberately NOT cleared inside
+ * syncUserToStore (every mounted instance must read the same value); logout()
+ * and abandonForeignSession() clear it instead.
+ */
+let pendingLoginMethod: LoginMethod | undefined
+
+/**
  * Pick what the login screen shows for a failed auth call. Classified cases
  * get an i18n string; everything else keeps the SDK's message so the raw
  * diagnostic still reaches us via the "Auth error displayed to user" log line.
@@ -143,14 +167,6 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   // Guard: prevent user sync from re-populating MST during logout
   const isLoggingOut = useRef(false)
 
-  // How the login that is currently in flight was started. Read by the sync
-  // effect once the SDK sets `user`, then cleared. NOT the store's persisted
-  // loginMethod: that is written only for an ACCEPTED session, so a foreign
-  // session never leaves it behind (spec 2 §2.1). Empty on a cold-start
-  // restore, which every consumer treats as "browser possible".
-  // ADDED 2026-09-17.
-  const pendingLoginMethodRef = useRef<LoginMethod | undefined>(undefined)
-
   // Sync Auth0 error to local state (ignore user-cancelled errors)
   useEffect(() => {
     if (auth0Error) {
@@ -228,13 +244,22 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               isAnonymous: authStore.isAnonymous,
             })
             if (decision === "mismatch") {
+              // CHANGED 2026-09-18: setForeignSession replaces the whole
+              // object, and the second mounted instance of this hook runs the
+              // same effect (see pendingLoginMethod above). Carry a method we
+              // already recorded for THIS sub rather than regressing it to
+              // undefined. A cold-start restore has neither and yields
+              // undefined, which is correct — treat it as browser-possible.
+              const carried =
+                authStore.foreignSession?.sub === user.sub
+                  ? authStore.foreignSession.loginMethod
+                  : undefined
               authStore.setForeignSession({
                 sub: user.sub,
                 email: user.email,
                 idToken: credentials.idToken ?? undefined,
-                loginMethod: pendingLoginMethodRef.current,
+                loginMethod: pendingLoginMethod ?? carried,
               })
-              pendingLoginMethodRef.current = undefined
               // The splash must never wait on a session we are refusing.
               authStore.setAuthReady()
               log.warn("Foreign session on an owned device", {
@@ -271,8 +296,10 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             // ADDED 2026-09-17: accepted session — record how it was started
             // (drives the logout branch). Falls back to the persisted value on
             // a cold-start restore, where nothing is in flight.
-            authStore.setLoginMethod(pendingLoginMethodRef.current ?? authStore.loginMethod)
-            pendingLoginMethodRef.current = undefined
+            // CHANGED 2026-09-18: pendingLoginMethod is NOT cleared here — the
+            // other mounted instance's copy of this effect still has to read it.
+            // logout() and abandonForeignSession() own the clearing.
+            authStore.setLoginMethod(pendingLoginMethod ?? authStore.loginMethod)
 
             if (user.email) {
               authStore.setAuthEmail(user.email)
@@ -375,7 +402,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       setLocalLoading(true)
       try {
         await sendEmailCode({ email: email.trim().toLowerCase(), send: "code" })
-        pendingLoginMethodRef.current = "email"
+        pendingLoginMethod = "email"
       } finally {
         setLocalLoading(false)
       }
@@ -392,7 +419,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       log.info("Verifying passwordless code")
       setError(null)
       setLocalLoading(true)
-      pendingLoginMethodRef.current = "email"
+      pendingLoginMethod = "email"
       try {
         await authorizeWithEmail({
           email: email.trim().toLowerCase(),
@@ -405,7 +432,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
           scope: AUTH0_CONFIG.scopes.join(" "),
         })
       } catch (err) {
-        pendingLoginMethodRef.current = undefined
+        pendingLoginMethod = undefined
         throw err
       } finally {
         setLocalLoading(false)
@@ -427,7 +454,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         clearFirst: !!options.clearBrowserSessionFirst,
       })
       setError(null)
-      pendingLoginMethodRef.current = METHOD_FOR_CONNECTION[connection]
+      pendingLoginMethod = METHOD_FOR_CONNECTION[connection]
 
       try {
         // Cancel any stale/interrupted login transactions (iOS only)
@@ -462,7 +489,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         )
         log.info("Provider login flow completed", { connection })
       } catch (err) {
-        pendingLoginMethodRef.current = undefined
+        pendingLoginMethod = undefined
         if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
           log.info("Provider login cancelled by user")
           return
@@ -492,6 +519,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     // Same guard as logout: the SDK clearing `user` must not re-enter the
     // sync effect while we are tearing the session down.
     isLoggingOut.current = true
+    let sdkCredentialsCleared = true
     try {
       if (foreign?.loginMethod !== "email") {
         try {
@@ -504,11 +532,26 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
           }
         }
       }
-      await clearCredentials().catch((err) =>
-        log.error("Failed to clear SDK credentials", { error: String(err) }),
-      )
+      await clearCredentials().catch((err) => {
+        sdkCredentialsCleared = false
+        log.error("Failed to clear SDK credentials", { error: String(err) })
+      })
     } finally {
+      // We drop our foreign record even when the SDK refused to drop its own.
+      // The alternative — keeping the record so the two stay in step — strands
+      // the user on WrongAccountScreen with a Cancel button that does nothing.
+      // ADDED 2026-09-18: say so in the log, because the mismatched state is
+      // real until the next cold start re-runs the gate over the SDK's
+      // surviving session and rebuilds the record.
+      if (!sdkCredentialsCleared) {
+        log.warn(
+          "Foreign record dropped while the SDK session survived — self-heals on next cold start",
+        )
+      }
       authStore.clearForeignSession()
+      // Nothing is in flight any more; a later cold-start restore must read
+      // undefined here (see pendingLoginMethod).
+      pendingLoginMethod = undefined
       isLoggingOut.current = false
     }
   }, [authStore, clearSession, clearCredentials])
@@ -580,6 +623,12 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       authStore.logout()
       clearAuthCredentials().catch(() => {})
     } finally {
+      // ADDED 2026-09-18: nothing is in flight after a logout attempt, so the
+      // next session must not inherit this one's method (see
+      // pendingLoginMethod). Safe on the user-cancelled path too: that path
+      // leaves authStore.loginMethod intact, which is what the logout branch
+      // actually reads.
+      pendingLoginMethod = undefined
       isLoggingOut.current = false
     }
   }, [user, authStore, clearSession, clearCredentials])
