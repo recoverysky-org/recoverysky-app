@@ -221,8 +221,17 @@ see the Build entries in `CHANGELOG.md` for recent bumps.
 MST with MMKV persistence in `app/models/`:
 - **RootStore**: Combines all stores, initialized in `app.tsx`
 - **AuthenticationStore**: Auth state with two storage tiers:
-  - **Props** (MMKV): `refreshToken`, `authEmail`, `userId`, `deviceId`, `isAnonymous`
-  - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never persisted to MMKV
+  - **Props** (MMKV): `refreshToken`, `authEmail`, `userId`, `deviceId`, `isAnonymous`,
+    `loginMethod` (how the current session was established — `"email" | "apple" |
+    "google"`; drives the logout branch, see "Auth, Attestation & Encryption
+    Keys" §1), `ownerSub` / `ownerEmail` (the device owner — the one account
+    whose local data this install holds; survives logout, cleared only by
+    `resetLocalDatabase()`, see "Database Layer")
+  - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never
+    persisted to MMKV; `foreignSession` (a session the ownership gate refused
+    — sub/email/idToken/loginMethod, held only while `WrongAccountScreen` is
+    up, never persisted — see "Navigation" and spec
+    `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
   - Computed: `isAuthenticated`
 - **ProfileStore**: User profile and preferences with two storage tiers:
   - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription` / `subscriptionExpires`, `themeColor`, `onboardingCompleted`, `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `locationEnabled` (default OFF — see "Permissions & the Location Gate"), `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`, `seenAnnouncementIds`, `dontShowShortMeetingWarning`, the `moneySaved*` family (weekly total + one per weekday + `moneySavedTobacco`), the `ninety*` family (`ninetyStartDate` / `ninetyStartEpoch` / `ninetyStrictMode` / `ninetyCertificatePath`, plus DEV-only `ninetyDebugDay`)
@@ -261,7 +270,9 @@ const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ### Navigation
 React Navigation v7 in `app/navigators/`:
 
-**App-level gating** (`AppNavigator.tsx`): outage check → Login → Onboarding → Main. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
+**App-level gating** (`AppNavigator.tsx`): outage check → (authenticated: Onboarding | Main) → WrongAccount (when `authStore.foreignSession` is set) → Login. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
+
+CHANGED 2026-09-18 (spec `2026-09-17-device-owner-and-wrong-account-recovery-design.md` §2.2): a fourth state sits between Login and the rest. `WrongAccountScreen` shows while the SDK holds a session whose sub is not `ownerSub`; `isAuthenticated` is false in that state by construction (the ownership gate in `useAuth0Wrapper` writes no token for a mismatched session), so no identity-driven reaction ever sees it. `initialRouteName` mirrors the same branch order exactly — only the matching `<Stack.Screen>` is registered per render, so it must not diverge.
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. Two tabs are built but **hard-disabled behind local `const … = false` flags**, not entitlements: `agentTabVisible` (Agent — hidden until release-ready) and `socialTabVisible` (Community/Social — hidden pending SPA-side fixes; re-enable with `__DEV__ || isPremium`). `useSubscription()`'s `isPremium` is still read and `void`-ed here so the hook stays wired for future gates — don't "clean up" that line.
 
@@ -321,6 +332,13 @@ it, all in `app/db/`:
 - The key and the file are one unit: anything that removes one goes through
   `resetLocalDatabase()` (close → delete file + `-wal`/`-shm`/`-journal` →
   clear key). Settings → Delete User Data does this and then `reloadApp()`.
+  CHANGED 2026-09-18 (spec 2 §1.4): and so is the owner record —
+  `resetLocalDatabase({ clearOwner })` clears `ownerSub`/`ownerEmail` as the
+  last step of the same teardown, after the file and key are gone, so a
+  failure earlier leaves the owner record intact rather than clearing
+  ownership over a database that's still on disk. Both callers pass
+  `authStore.clearOwner`; `clearOwner` is injected rather than imported so
+  `app/db/` does not grow a runtime dependency on `app/models/`.
 
 ### API Layer
 Apisauce wrapper in `app/services/api/`:
@@ -337,14 +355,43 @@ Apisauce wrapper in `app/services/api/`:
 
 Three separate trust layers, easy to confuse:
 
-1. **User identity — Auth0** (`app/services/auth/`). Universal Login via
-   `react-native-auth0`, config in `auth0.ts` (`EXPO_PUBLIC_AUTH0_*`,
-   custom scheme `recoverysky-app`, scopes include `offline_access`).
+1. **User identity — Auth0** (`app/services/auth/`). Three ways in (spec
+   `docs/superpowers/specs/2026-09-12-passwordless-login-design.md`): an
+   in-app email code (`sendCode` / `verifyCode` — `authorizeWithEmail` MUST
+   get our `audience` + `scope` or the token comes back opaque and the user
+   is signed out one tick after signing in, spec §2.2), and Apple / Google
+   via `authorize({ connection })` so Auth0's Universal Login web screen
+   never renders. Config lives in `auth0.ts` (`EXPO_PUBLIC_AUTH0_*`, custom
+   scheme `recoverysky-app`, scopes include `offline_access`).
    `useAuth0Wrapper.ts` is the hook the app consumes. Tokens land in
    `AuthenticationStore` — only `refreshToken` is persisted (MMKV);
    `accessToken` / `idToken` / `expiresAt` are volatile by design.
    `secureStorage.ts` wraps expo-secure-store; `vault.ts` is a **web-only**
    tweetnacl-obscured storage shim (native uses Keychain/Keystore instead).
+
+   `loginMethod` is recorded on the store only for an ACCEPTED session — one
+   the ownership gate below did not refuse. Logout branches on it:
+   `clearCredentials()` for `"email"` (no browser session was ever created,
+   so there is nothing for `clearSession()` to revoke and no iOS system
+   "Sign In" dialog to cancel), `clearSession()` for `"apple"` / `"google"`.
+   The ownership gate (`decideOwnership`, `ownerLogic.ts`, vitest-covered)
+   runs before any token is written — see "Navigation" above and
+   "Attendance Cloud Backup & Sync" below for what it protects. The
+   password migration for pre-passwordless accounts is entirely an Auth0
+   post-login Action, not app code — see spec 1 §3.5.
+
+   CHANGED 2026-09-18: the pending login method — which of
+   `sendCode`/`verifyCode`/`loginWithProvider` is in flight, read by the
+   `[user]` sync effect once the SDK sets `user` — is a MODULE-SCOPED
+   variable in `useAuth0Wrapper.ts`, **not** a `useRef`. Both `AppStack`
+   (`AppNavigator.tsx`) and `LoginScreen` mount this hook, so both run the
+   sync effect; a per-instance ref left one copy permanently `undefined`,
+   and whichever instance flushed last (usually `AppStack`) overwrote the
+   real value with it. An email-code foreign session then looked
+   "browser possible" and `abandonForeignSession()` opened a browser — plus
+   the iOS system dialog — to clear a cookie that never existed. Don't move
+   this back into per-instance state.
+
    ADDED 2026-09-10: every access token is shape-checked by the pure
    `isUsableAccessToken()` (`jwtUtils.ts`) before it enters the store —
    cold-start hydration, the SDK sync effect, and the refresher all apply
@@ -800,8 +847,8 @@ enforced by config, not convention, and it is load-bearing:
   of this repo, and without the exclusion every test is discovered twice, making
   one real failure look like two. Don't remove those ignore patterns.
 
-Coverage is deliberately concentrated on pure logic — 32 test files (25 `.test.ts`
-for vitest, 7 `.test.tsx` for jest) covering sync/rating/announcement decisions,
+Coverage is deliberately concentrated on pure logic — 53 test files (43 `.test.ts`
+for vitest, 10 `.test.tsx` for jest) covering sync/rating/announcement decisions,
 location gate, presence, nearby, map features, deep links, `returnTo` parsing,
 filters, sliders, logger, storage, api problems, local dates, i18n. Almost every
 `*Logic.ts` module exists because its sibling hook or component couldn't be
@@ -1068,6 +1115,11 @@ The load-bearing facts:
   exists solely to prevent this, and it is deliberately **fail-closed** — if
   the account-switch queue clear fails, sync stays dead until the next launch
   rather than risking a leak.
+- ADDED 2026-09-17: the ownership gate in `useAuth0Wrapper` (see "Auth,
+  Attestation & Encryption Keys" §1) is what keeps a foreign session from
+  ever reaching `takeQueueOwnership` in the first place — a refused session
+  never sets `userId`, so the account-switch clear above cannot fire for an
+  accidental wrong-account login. The MMKV check stays as belt-and-braces.
 - Local mutations enqueue to a durable `sync_queue` outbox via the single
   choke point in `app/db/repositories.ts`. Inbound pulls write through
   `attendanceSyncWriter`, which **never** fires the mutation hook — otherwise a

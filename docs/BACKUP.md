@@ -297,6 +297,15 @@ Then repeat steps 1–4 signing back in as **A**, and assert the offline edit
 survives and reaches the server. Both halves matter — a fix for one has twice
 broken the other during development.
 
+- **Wrong-account login leaves the outbox alone (2026-09-17).** Create an
+  attendance record offline as A. Sign out. Sign in as a different email →
+  `WrongAccountScreen`. Cancel → back to Login. Sign in as A again. Expect:
+  the offline row pushes on the next sync tick, and the log never shows
+  "Account switch — clearing the previous owner's outbox" — the wrong-account
+  attempt never wrote a `userId`, so `takeQueueOwnership` never saw a switch
+  to clear. See the ownership gate in "Auth, Attestation & Encryption Keys"
+  §1 of `CLAUDE.md`.
+
 ## The one-off backup pass
 
 ADDED 2026-09-14. `app/db/BackupPassRunner.tsx` (I/O) + the pure, vitest-covered

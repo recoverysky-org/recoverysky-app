@@ -66,3 +66,30 @@ header of `app/services/crashReporting/sentry.ts`.
 **Privacy-policy dependency:** the policy must list a diagnostic identifier
 and the Loki retention window. The policy is not in this repo — re-check it
 whenever this table changes.
+
+### Ownership lines (2026-09-17)
+
+Passwordless login and wrong-account recovery (spec
+`2026-09-17-device-owner-and-wrong-account-recovery-design.md`) add their own
+log lines. As with everything above, only the `hashUserId()` form of a sub is
+ever logged — never the raw value, never an email address.
+
+| line | module | ids |
+| --- | --- | --- |
+| `Device owner adopted` | `useAuth0Wrapper` | `ownerId` (hashed) |
+| `Owner stamped from hydration` | `RootStore` | — |
+| `Foreign session on an owned device` | `useAuth0Wrapper` | `ownerId`, `sessionId` (both hashed), `loginMethod` |
+| `Foreign identity linked` | `linkForeignIdentity` | `linked`, `reason`, `moved` |
+| `Foreign identity link failed` | `linkForeignIdentity` | `problem` (API problem kind) |
+
+Umami also gets three events from this flow, none carrying identifiers:
+`wrong_account_shown` (`proof` — which proof method the screen offered),
+`wrong_account_cancelled`, and the existing `login_code_sent` /
+`login_completed` (`method`) events, now also fired for the email path.
+
+**Support lookup for "I signed in and my meetings are gone":** search Loki
+for `Foreign session on an owned device` scoped to the device (`deviceId` is
+on every line — see the identifiers table above); `ownerId` in that line is
+the account that actually holds the data. If the user since cancelled and
+walked away, there is no further trace — `WrongAccountScreen` never wrote
+anything to local storage.

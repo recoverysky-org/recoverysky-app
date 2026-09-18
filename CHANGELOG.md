@@ -22,7 +22,42 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **Passwordless email login: type your email, get a six-digit code, done.**
+  No password, no browser — Auth0's Universal Login web screen no longer
+  opens for email sign-in. Login and sign-up are the same path now; the
+  separate Sign Up button is gone. Apple and Google buttons open the
+  provider directly instead of Auth0's hosted login page.
+  (spec: `docs/superpowers/specs/2026-09-12-passwordless-login-design.md`)
+- **Wrong-account recovery.** Signing in with an account that isn't the one
+  this device belongs to now shows a single recovery screen instead of
+  silently switching data: prove you're the device owner (a code to the
+  owner's email, or the owner's Apple/Google button) and the two accounts
+  are linked, so the same wrong tap resolves automatically next time.
+  Cancel is the only other way out, and nothing on this screen can delete,
+  rekey, or read the device owner's local data.
+  (spec: `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
+
+### Changed
+- Signing out after an email-code login no longer opens a browser, and iOS
+  no longer shows the system "Sign In" dialog on sign-out — an email session
+  never created a browser session to begin with.
+
+### Removed
+- The Sign Up button and the separate signup flow. Passwordless email
+  creates the account on first use, so there was nothing left for it to do.
+
 ### Security
+- **A session for a different account can no longer read the device
+  owner's local data, push a stranger's attendance into the sync outbox,
+  or register push/RevenueCat identity under the wrong account.** The
+  ownership gate in `useAuth0Wrapper` (`decideOwnership`) compares every
+  accepted session's sub against the stored device owner before writing
+  anything — a mismatched session gets no token, no `userId`, no
+  SecureStore copy, so `isAuthenticated` stays false and no
+  identity-driven reaction (the `sync.queueOwnerUid` account-switch clear
+  included) ever sees it. `WrongAccountScreen` is the only way out: prove
+  ownership, or cancel.
 - **The report recipient's email address is no longer sent to diagnostic
   logs.** Six log lines on the attendance-report send path — three in the API
   client (`Sending attendance report`, `Report sent successfully`, and the

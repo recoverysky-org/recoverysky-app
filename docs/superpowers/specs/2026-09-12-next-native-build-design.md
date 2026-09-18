@@ -65,6 +65,12 @@ in the build after, never an OTA.
    on the login screen with no error. We have no telemetry for this case because nothing fails
    client-side, so its frequency is unknown; the fix is cheap enough not to need a number.
 
+   NOTE 2026-09-17: with passwordless login (spec
+   `2026-09-12-passwordless-login-design.md`) the email path never opens a
+   browser, so this scenario — a Custom Tab killed mid-login while the user
+   is in their mail app for a code — now applies only to the Apple and
+   Google buttons, which still go through `authorize()`.
+
 What this does **not** fix: the launcher-relaunch case from the investigation. That is the
 `onNewIntent` path (MainActivity is `singleTask`, so a fresh launch intent pops the tab off the
 task and the SDK rejects the pending promise). The SDK's FAQ says it is "not addressable by the
