@@ -16,14 +16,26 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
 import { translate } from "@/i18n"
+import { useAuthenticationStore } from "@/models"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
+import { classifyAuthError } from "@/services/auth/authErrorLogic"
+import {
+  maskEmail,
+  nextStep,
+  resendWaitSeconds,
+  type LoginEvent,
+  type LoginStep,
+} from "@/services/auth/loginFlowLogic"
+import { ownerProofMethod } from "@/services/auth/ownerLogic"
 import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
-import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { useAuth0Wrapper, type ProviderConnection } from "@/services/auth/useAuth0Wrapper"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
+
+import { ChooseStep, CodeStep, EmailStep } from "./login/LoginSteps"
 
 const log = logger.child({ module: "LoginScreen" })
 
@@ -44,24 +56,68 @@ function htmlToText(html: string): string {
 
 interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
-type LoginType = "authenticated" | "signup" | "anonymous" | null
+/**
+ * What the legal-agreements modal will run once accepted. CHANGED 2026-09-17:
+ * was a `"authenticated" | "signup" | "anonymous"` string; the passwordless
+ * screen has more entry points, each carrying its own argument.
+ */
+type PendingAction =
+  | { kind: "email" }
+  | { kind: "ownerEmail" }
+  | { kind: "provider"; connection: ProviderConnection }
+  | { kind: "anonymous" }
+  | null
+
+/** The `kind` of whatever action is currently in flight — see `inFlight` below. */
+type ActionKind = NonNullable<PendingAction>["kind"]
 
 /**
- * LoginScreen - OAuth login via Auth0
+ * LoginScreen — three ways in (spec 1 §1): an in-app email code, Apple, Google.
+ * Login and sign-up are one path, so the old two-button screen is gone.
  *
- * Provides login options with EUA agreement requirement.
- * Shows End User Agreement popup before allowing login.
+ * CHANGED 2026-09-17: the original doc comment read "OAuth login via Auth0 …
+ * Shows End User Agreement popup before allowing login". The second half still
+ * holds and is load-bearing — the legal-agreements modal gates every method
+ * exactly as it gated the two buttons — but Universal Login is no longer the
+ * only way in, so the first half is replaced.
  */
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
   const { rekeyDb } = useDatabase()
-  const { login, signup, loginAnonymously, isLoading, error, clearError } = useAuth0Wrapper({
+  const authStore = useAuthenticationStore()
+  const {
+    sendCode,
+    verifyCode,
+    loginWithProvider,
+    loginAnonymously,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth0Wrapper({
     onSqliteKeyChange: rekeyDb,
   })
 
+  // spec 2 §2.6: a returning owner on their own device taps once and gets a
+  // code. Only the code path prefills — an owner who signed in with Apple or
+  // Google gets the plain provider buttons, because sending them a code would
+  // create a second identity for the same person.
+  const ownerEmail =
+    ownerProofMethod(authStore.ownerSub) === "code" ? authStore.ownerEmail : undefined
+
+  const [step, setStep] = useState<LoginStep>("choose")
+  const [email, setEmail] = useState("")
+  const [code, setCode] = useState("")
+  const [lastSentAt, setLastSentAt] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  // What the hook's `isLoading` is currently loading. CHANGED 2026-09-17: the
+  // "Opening browser…" line used to key off `isLoading` alone, which was
+  // accurate when every login opened a browser. An email code never does, so
+  // the copy is now tied to the action that actually leaves the app.
+  const [inFlight, setInFlight] = useState<ActionKind | null>(null)
+
   // Agreement modal state
   const [showEuaModal, setShowEuaModal] = useState(false)
-  const [pendingLoginType, setPendingLoginType] = useState<LoginType>(null)
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [termsAlreadyAccepted, setTermsAlreadyAccepted] = useState(false)
   const [activeTab, setActiveTab] = useState<"disclaimer" | "eula">("disclaimer")
 
@@ -145,50 +201,140 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     }
   }, [error])
 
-  const proceedWithLogin = useCallback(
-    async (type: LoginType) => {
+  // One-second tick for the Resend countdown, only while the code step is up.
+  // Anywhere else it would re-render the screen once a second for nothing.
+  useEffect(() => {
+    if (step !== "code") return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [step])
+
+  /**
+   * ONE error surface, deliberately.
+   *
+   * `sendCode` / `verifyCode` fail twice over: they reject with the raw SDK
+   * error AND the SDK's own reducer dispatches ERROR, which the wrapper's
+   * effect turns into its `error` state via `authErrorMessage()`. The strip
+   * below renders that `error` and nothing else — these catch blocks only
+   * classify for step routing and for the log line, and must never set a
+   * second message of their own, or one failure paints two.
+   *
+   * (`loginWithProvider` does not reject at all; it swallows and sets the same
+   * `error`, so the provider path already had exactly one surface.)
+   */
+  const runSend = useCallback(
+    async (address: string, event: LoginEvent) => {
       clearError()
-      if (type === "authenticated") await login()
-      else if (type === "signup") await signup()
-      else if (type === "anonymous") await loginAnonymously()
-      trackEvent("login_completed", { method: type === "anonymous" ? "anonymous" : "oauth" })
+      try {
+        await sendCode(address)
+        setLastSentAt(Date.now())
+        // Seed the clock in the same tick so the countdown starts at the full
+        // cooldown rather than at whatever the last tick left behind.
+        setNow(Date.now())
+        trackEvent("login_code_sent")
+        setStep((s) => nextStep(s, event))
+      } catch (err) {
+        const key = classifyAuthError(err)
+        // Never the address: an email in a log line is an identifier.
+        log.warn("Send code failed", { key: key ?? "unclassified" })
+        // Auth0 is holding this address down; the code step would only invite
+        // attempts against a code that never arrived.
+        if (key === "sendRateLimited") setStep((s) => nextStep(s, "sendRateLimited"))
+      }
     },
-    [login, signup, loginAnonymously, clearError],
+    [sendCode, clearError],
   )
 
-  const handleLoginPress = useCallback(() => {
-    log.info("Login button pressed", { type: "authenticated" })
-    if (termsAlreadyAccepted) {
-      proceedWithLogin("authenticated")
-    } else {
-      setPendingLoginType("authenticated")
-      setShowEuaModal(true)
+  const handleVerify = useCallback(async () => {
+    clearError()
+    try {
+      await verifyCode(email, code)
+      trackEvent("login_completed", { method: "email" })
+      // NOTE: a successful verify does not always mean a session. The
+      // wrapper's ownership gate (spec 2 §2.1) can refuse a foreign account,
+      // in which case no tokens are written and AppNavigator routes to
+      // WrongAccount instead. Nothing is left spinning either way — the hook
+      // clears its own loading state in a `finally`.
+    } catch (err) {
+      const key = classifyAuthError(err)
+      // Never the code: it is a live credential until it expires.
+      log.warn("Verify code failed", { key: key ?? "unclassified" })
+      // Clear the field so the auto-submit effect below can fire again on the
+      // next six digits instead of sitting on a known-bad value.
+      if (key === "wrongCode") setCode("")
+      if (key === "tooManyAttempts") {
+        setCode("")
+        setStep((s) => nextStep(s, "tooManyAttempts"))
+      }
     }
-  }, [termsAlreadyAccepted, proceedWithLogin])
+  }, [verifyCode, email, code, clearError])
 
-  const handleSignupPress = useCallback(() => {
-    log.info("Login button pressed", { type: "signup" })
-    if (termsAlreadyAccepted) {
-      proceedWithLogin("signup")
-    } else {
-      setPendingLoginType("signup")
-      setShowEuaModal(true)
-    }
-  }, [termsAlreadyAccepted, proceedWithLogin])
+  // Auto-submit the moment six digits are present, autofilled or typed
+  // (spec 1 §1.3) — the OS one-time-code suggestion fills the field in one go
+  // and an extra Verify tap after that reads as a bug.
+  useEffect(() => {
+    if (step === "code" && /^\d{6}$/.test(code) && !isLoading) void handleVerify()
+    // Keyed on `code` alone on purpose: `handleVerify` changes identity with
+    // every keystroke, so depending on it would re-fire the submit mid-request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
+
+  const runAction = useCallback(
+    async (action: PendingAction) => {
+      if (!action) return
+      clearError()
+      setInFlight(action.kind)
+      try {
+        switch (action.kind) {
+          case "email":
+            setStep((s) => nextStep(s, "chooseEmail"))
+            return
+          case "ownerEmail":
+            if (!ownerEmail) return
+            // Seed the field too: the code step masks it, and "Wrong email?"
+            // drops the user onto the email step with it already filled in.
+            setEmail(ownerEmail)
+            await runSend(ownerEmail, "chooseOwnerEmail")
+            return
+          case "provider":
+            await loginWithProvider(action.connection)
+            trackEvent("login_completed", {
+              method: action.connection === "apple" ? "apple" : "google",
+            })
+            return
+          case "anonymous":
+            loginAnonymously()
+            trackEvent("login_completed", { method: "anonymous" })
+            return
+        }
+      } finally {
+        setInFlight(null)
+      }
+    },
+    [clearError, ownerEmail, runSend, loginWithProvider, loginAnonymously],
+  )
+
+  // Every entry point goes through the legal gate first — unchanged in
+  // substance from the two-button screen, just one funnel instead of three
+  // near-identical handlers.
+  const gated = useCallback(
+    (action: PendingAction) => {
+      log.info("Login action", { kind: action?.kind ?? "none" })
+      if (termsAlreadyAccepted) {
+        void runAction(action)
+      } else {
+        setPendingAction(action)
+        setShowEuaModal(true)
+      }
+    },
+    [termsAlreadyAccepted, runAction],
+  )
 
   // Kept for the commented-out anonymous-login button further down (see the
   // comment above that block). Disabling the rule rather than renaming to
   // `_handleAnonymousPress` keeps re-enabling a literal one-block uncomment.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAnonymousPress = useCallback(() => {
-    log.info("Login button pressed", { type: "anonymous" })
-    if (termsAlreadyAccepted) {
-      proceedWithLogin("anonymous")
-    } else {
-      setPendingLoginType("anonymous")
-      setShowEuaModal(true)
-    }
-  }, [termsAlreadyAccepted, proceedWithLogin])
+  const handleAnonymousPress = useCallback(() => gated({ kind: "anonymous" }), [gated])
 
   const handleEuaAgree = useCallback(async () => {
     // Belt-and-braces alongside the button's `disabled` prop: acceptance is
@@ -199,7 +345,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       return
     }
 
-    log.info("EUA accepted", { loginType: pendingLoginType ?? "none" })
+    log.info("EUA accepted", { action: pendingAction?.kind ?? "none" })
     setShowEuaModal(false)
 
     // Persist acceptance to SecureStore
@@ -208,15 +354,15 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       log.error("Failed to persist terms acceptance", { error: String(err) }),
     )
 
-    await proceedWithLogin(pendingLoginType)
-    setPendingLoginType(null)
-  }, [canAgree, pendingLoginType, proceedWithLogin])
+    await runAction(pendingAction)
+    setPendingAction(null)
+  }, [canAgree, pendingAction, runAction])
 
   const handleEuaCancel = useCallback(() => {
-    log.info("EUA cancelled", { loginType: pendingLoginType ?? "none" })
+    log.info("EUA cancelled", { action: pendingAction?.kind ?? "none" })
     setShowEuaModal(false)
-    setPendingLoginType(null)
-  }, [pendingLoginType])
+    setPendingAction(null)
+  }, [pendingAction])
 
   return (
     <Screen
@@ -251,56 +397,72 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             It announced the AA/NA Live → RecoverySky rename to migrating users and has
             outlived that transition — same reason the matching HomeScreen card is gone. */}
 
-        {/* Auth0 OAuth Login */}
-        <Pressable
-          testID="login-button"
-          accessibilityRole="button"
-          accessibilityLabel={translate("loginScreen:loginButton")}
-          style={[themed($button), isLoading && themed($buttonDisabled)]}
-          onPress={handleLoginPress}
-          disabled={isLoading}
-        >
-          <Text style={themed($buttonText)} tx="loginScreen:loginButton" />
-          {isLoading && pendingLoginType === "authenticated" && (
-            <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
-          )}
-        </Pressable>
+        {step === "choose" && (
+          <ChooseStep
+            ownerEmailMasked={ownerEmail ? maskEmail(ownerEmail) : undefined}
+            isLoading={isLoading}
+            onEmail={() => gated({ kind: "email" })}
+            onOwnerEmail={() => gated({ kind: "ownerEmail" })}
+            onProvider={(connection) => gated({ kind: "provider", connection })}
+          />
+        )}
 
-        {/* Auth0 OAuth Signup */}
-        <Pressable
-          testID="signup-button"
-          accessibilityRole="button"
-          accessibilityLabel={translate("loginScreen:signupButton")}
-          style={[themed($button), isLoading && themed($buttonDisabled)]}
-          onPress={handleSignupPress}
-          disabled={isLoading}
-        >
-          <Text style={themed($buttonText)} tx="loginScreen:signupButton" />
-          {isLoading && pendingLoginType === "signup" && (
-            <ActivityIndicator size="small" color={theme.colors.tint} style={themed($spinner)} />
-          )}
-        </Pressable>
+        {step === "email" && (
+          <EmailStep
+            email={email}
+            onChangeEmail={setEmail}
+            isSending={isLoading}
+            onSend={() => void runSend(email, "codeSent")}
+            onBack={() => {
+              clearError()
+              setStep((s) => nextStep(s, "back"))
+            }}
+          />
+        )}
+
+        {step === "code" && (
+          <CodeStep
+            emailMasked={maskEmail(email)}
+            code={code}
+            onChangeCode={setCode}
+            isVerifying={isLoading}
+            onVerify={() => void handleVerify()}
+            resendWaitSeconds={resendWaitSeconds(lastSentAt, now)}
+            onResend={() => void runSend(email, "codeSent")}
+            onWrongEmail={() => {
+              clearError()
+              // Drop the code with the address: it was issued for the old one.
+              setCode("")
+              setStep((s) => nextStep(s, "wrongEmail"))
+            }}
+          />
+        )}
 
         {/* Anonymous login intentionally disabled in the UI. We're keeping the
             handler + state plumbing (handleAnonymousPress, loginAnonymously,
-            "anonymous" branches in proceedWithLogin) so re-enabling is a
-            one-block uncomment. Hidden because the anonymous-user experience
-            doesn't meet the bar we want for new installs — bring it back only
-            when paired with a clear upgrade path. */}
-        {/* {Platform.OS !== "ios" && (
+            the "anonymous" PendingAction) so re-enabling is a one-block
+            uncomment. Hidden because the anonymous-user experience doesn't
+            meet the bar we want for new installs — bring it back only when
+            paired with a clear upgrade path.
+            CHANGED 2026-09-17: also gated on the choose step, so re-enabling
+            it cannot put an anonymous button under the code field. */}
+        {/* {Platform.OS !== "ios" && step === "choose" && (
           <Pressable
             testID="anonymous-button"
             accessibilityRole="button"
             accessibilityLabel={translate("loginScreen:continueAnonymously")}
-            style={[themed($button), isLoading && themed($buttonDisabled)]}
             onPress={handleAnonymousPress}
             disabled={isLoading}
           >
-            <Text style={themed($buttonTextSecondary)} tx="loginScreen:continueAnonymously" />
+            <Text style={themed($loadingText)} tx="loginScreen:continueAnonymously" />
           </Pressable>
         )} */}
 
-        {isLoading && <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />}
+        {/* Only the provider path leaves the app, so only it gets this copy —
+            an email code never opens a browser. */}
+        {isLoading && inFlight === "provider" && (
+          <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
+        )}
       </View>
 
       {/* EUA Modal */}
@@ -463,45 +625,9 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
   textAlign: "center",
 })
 
-const $button: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: colors.background,
-  borderWidth: 1.5,
-  borderColor: colors.tint,
-  paddingVertical: spacing.md,
-  paddingHorizontal: spacing.xl,
-  borderRadius: 12,
-  shadowColor: colors.tint,
-  shadowOffset: { width: 0, height: 0 },
-  shadowOpacity: 0.5,
-  shadowRadius: 8,
-  elevation: 8,
-})
-
-const $buttonDisabled: ThemedStyle<ViewStyle> = () => ({
-  opacity: 0.7,
-})
-
-const $buttonText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 18,
-  fontWeight: "600",
-  color: colors.tint,
-})
-
-// Kept for the commented-out anonymous-login button — same reasoning as
-// handleAnonymousPress above.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const $buttonTextSecondary: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 18,
-  fontWeight: "600",
-  color: colors.textDim,
-})
-
-const $spinner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginLeft: spacing.sm,
-})
+// MOVED 2026-09-17 to app/screens/login/LoginSteps.tsx: $button, $buttonDisabled,
+// $buttonText, $buttonTextSecondary and $spinner now live with the buttons that
+// use them, so WrongAccountScreen gets the same look for free.
 
 // Breathing room above the spinner while the disclaimer/EULA text loads. Was an
 // inline `{ marginTop: 40 }`, which trips react-native/no-inline-styles.

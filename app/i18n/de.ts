@@ -72,8 +72,6 @@ const de: Translations = {
       "Melde dich an, um auf Abonnements und Premium-Funktionen zuzugreifen. Apple verlangt ein Konto für Apps mit interaktiven Diensten wie Videokonferenzen.",
     enterDetailsAndroid:
       "Melde dich an, um auf Abonnements und Premium-Funktionen zuzugreifen. Für Abonnements ist ein Konto erforderlich.\n\nDu kannst dich jederzeit in den Einstellungen an- und abmelden.",
-    loginButton: "Anmelden",
-    signupButton: "Registrieren",
     continueAnonymously: "",
     openingBrowser: "Browser wird für die Anmeldung geöffnet...",
     euaTitle: "Rechtliche Vereinbarungen",

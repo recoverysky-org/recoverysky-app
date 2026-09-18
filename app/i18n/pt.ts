@@ -71,8 +71,6 @@ const pt: Translations = {
       "Entre na sua conta pra acessar assinaturas e recursos premium. A Apple exige uma conta pra apps com serviços interativos como videoconferência.",
     enterDetailsAndroid:
       "Entre na sua conta pra acessar assinaturas e recursos premium. Assinaturas precisam de uma conta ativa.\n\nVocê pode entrar e sair a qualquer momento em Configurações.",
-    loginButton: "Entrar",
-    signupButton: "Criar Conta",
     continueAnonymously: "",
     openingBrowser: "Abrindo navegador pra autenticação...",
     euaTitle: "Acordos Legais",
