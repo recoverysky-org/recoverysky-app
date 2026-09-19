@@ -31,6 +31,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   can now target one platform and repeat until a given native version
   (announcement popup).
 
+### Fixed
+- **Android: tapping the app icon while the sign-in browser tab is open no
+  longer cancels the sign-in.** The launcher now targets a one-frame
+  `LaunchActivity` trampoline (new config plugin `withAuth0LaunchTrampoline`)
+  instead of the single-task main activity, so returning to the app from the
+  home screen mid-sign-in reveals the Auth0 tab rather than clearing it and
+  handing the SDK a "browser window was closed" error. Native-shape change:
+  ships with the next store build (4.11.0) and needs the `runtimeVersion`
+  bump; see spec §D for the launcher-intent audit and device checklist.
+  (RS-005)
+
 ## [4.10.1-18] — 2026-10-04
 
 ### Removed

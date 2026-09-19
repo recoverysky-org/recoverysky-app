@@ -78,6 +78,11 @@ module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
       // portrait-locked app they have today. The property STOPS WORKING at
       // targetSdk 37 (~Aug 2027) — see the plugin source and TODO.md.
       "./plugins/withRestrictedResizability",
+      // Android: the launcher icon targets a throwaway LaunchActivity instead
+      // of the singleTask MainActivity, so a home-screen tap while the Auth0
+      // Custom Tab is open no longer kills the sign-in (RS-005). See the
+      // plugin header and spec §D. Native-shape change: 4.11.0.
+      "./plugins/withAuth0LaunchTrampoline",
     ],
   }
 }

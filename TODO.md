@@ -108,7 +108,12 @@ Everything JS-only from the same 2026-09-12 review already shipped on
       never `UserLocation`; `getSearchCenter` is still the only `coordsRef` reader.
 
 **§D — `withAuth0LaunchTrampoline` config plugin (RS-005)** — added 2026-09-15
-- [ ] **Write `plugins/withAuth0LaunchTrampoline.ts`** and register it in `app.config.ts`.
+- [x] **Write `plugins/withAuth0LaunchTrampoline.ts`** and register it in `app.config.ts`.
+      DONE 2026-09-19 on branch `feat/auth0-launch-trampoline` (merge with the 4.11.0
+      build, not before — it is a native-shape change and root's `runtimeVersion` is
+      still 4.10.1). Manifest half verified against the last generated manifest with
+      `npx tsx plugins/withAuth0LaunchTrampoline.check.ts`; the Kotlin half and the
+      device checklist below still need `prebuild:clean` + a device build.
       Writes `LaunchActivity.kt` (`isTaskRoot()` → start `MainActivity` with the launch
       intent's action/data/extras forwarded, else just `finish()`) and moves the
       `MAIN`/`LAUNCHER` intent-filter from `.MainActivity` to `.LaunchActivity`
