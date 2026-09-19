@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { classifyAuthError } from "./authErrorLogic"
+import { classifyAuthError, isUserAbandonedAuth } from "./authErrorLogic"
 
 describe("classifyAuthError", () => {
   it("maps the SDK's BROWSER_TERMINATED type", () => {
@@ -37,5 +37,31 @@ describe("classifyAuthError", () => {
 
   it("never classifies a user cancel — callers filter that first, but be safe", () => {
     expect(classifyAuthError({ type: "USER_CANCELLED", message: "cancelled" })).toBeNull()
+  })
+})
+
+// RS-022 (2026-09-19): a declined consent screen is the user's decision, not
+// an error, and used to be logged at ERROR twice per tap.
+describe("isUserAbandonedAuth", () => {
+  it("is true for the SDK's USER_CANCELLED and ACCESS_DENIED types", () => {
+    expect(isUserAbandonedAuth({ type: "USER_CANCELLED", message: "cancelled" })).toBe(true)
+    expect(isUserAbandonedAuth({ type: "ACCESS_DENIED", message: "access denied" })).toBe(true)
+  })
+
+  it("is true for the production decline text even under a generic type", () => {
+    expect(
+      isUserAbandonedAuth({
+        type: "UNKNOWN_ERROR",
+        message: "An unexpected error occurred. CAUSE: User did not authorize the request.",
+      }),
+    ).toBe(true)
+  })
+
+  it("is false for real failures and non-objects", () => {
+    expect(isUserAbandonedAuth({ type: "NETWORK_ERROR", message: "Network error" })).toBe(false)
+    expect(isUserAbandonedAuth({ type: "BROWSER_TERMINATED", message: "closed" })).toBe(false)
+    expect(isUserAbandonedAuth({ message: "Something odd" })).toBe(false)
+    expect(isUserAbandonedAuth(null)).toBe(false)
+    expect(isUserAbandonedAuth("string error")).toBe(false)
   })
 })
