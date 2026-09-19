@@ -448,12 +448,23 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // PRIVACY: `String(err)` yields "Name: message" only — an Error's
       // toString never includes a request config or URL, so this cannot leak
       // the coordinates we just asked for. Do not log the error object.
-      log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
+      //
       // A cached position committed earlier in this call is still valid — the
       // fresh fix timing out doesn't make it wrong. Degrading here would throw
       // away the position the list is already sorted by, which is the exact
       // failure this change exists to remove.
-      if (seededFromCache) return true
+      // CHANGED 2026-09-19 (RS-016): that case logs at INFO, not WARN. The
+      // list is rendered and sorted; nothing is "unavailable", the 5 s
+      // refinement just missed its budget. Both outcomes used to share one
+      // WARN line, so the tracker's location fingerprint counted a working
+      // segment as a failure and could not tell the two apart.
+      if (seededFromCache) {
+        log.info("Fresh fix missed its budget; keeping the cached position", {
+          error: String(err),
+        })
+        return true
+      }
+      log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
       coordsRef.current = null
       setNearbyFetchFailed(false)
       setFix("failed")

@@ -42,6 +42,32 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `attendanceSyncService.test.ts`, `syncLogic.test.ts` and the new
   `creditLogic.test.ts`; `docs/BACKUP.md` "Push" has the design. RS-034.
 
+- **Cloud backup's first sync ticks no longer race the RevenueCat SDK on a
+  cold start.** The sync gate asked RevenueCat for the attendance entitlement
+  before the SDK had been configured, on launches where a stored access token
+  had expired: the refresh landed, every sync trigger fired in the same
+  second, and each one hit "There is no singleton instance" — five ERROR lines
+  per launch on the one device fast enough to lose the race, and a first sync
+  delayed until the next trigger. The gate now checks that the SDK is
+  configured, the same way it already checks that the database is open, and
+  skips the tick quietly; the later triggers run as before. RS-029.
+- **A Play Integrity provider that failed to start is retried on the next
+  attestation instead of failing for the rest of the process.** One Android
+  device's Play Store could not be bound at launch (Play Integrity error -9),
+  and because the provider was prepared exactly once per process, every later
+  attestation in that session threw "provider not prepared" and the app ran
+  without a device token until the next cold start. The prepare is now
+  re-attempted lazily each time an attestation needs it; a Play Store that is
+  still broken degrades the same way it did before. RS-015.
+- **A nearby-meetings location refinement that misses its budget is no
+  longer logged as a failure.** When the In-Person segment already holds a
+  cached position, the list is rendered and sorted from it and the fresh
+  fix only refines the distances — but its 5 s timeout logged the same WARN
+  as "no position at all", so the tracker counted a working segment as a
+  location failure and could not tell the two apart. The refinement miss is
+  now an INFO line of its own; WARN means the segment really has nothing to
+  show. RS-016.
+
 ### Security
 - **The report recipient's email address is no longer sent to diagnostic
   logs.** Six log lines on the attendance-report send path — three in the API
