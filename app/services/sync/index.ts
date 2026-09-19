@@ -27,7 +27,7 @@ import {
 import type { RootStore } from "@/models"
 import { api } from "@/services/api"
 import { ENTITLEMENTS } from "@/services/purchases/config"
-import { hasEntitlement } from "@/services/purchases/revenueCatService"
+import { hasEntitlement, isPurchasesConfigured } from "@/services/purchases/revenueCatService"
 import { logger, type LogAttributes } from "@/utils/logger"
 import { loadString, saveString } from "@/utils/storage"
 
@@ -125,9 +125,18 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
     !rs.networkStore.isOffline &&
     uid.length > 0
   if (!cheapOk) return { ok: false, uid }
+  // Hard block, same shape as the DB-open guard above: RevenueCat is
+  // configured by <SubscriptionContext>'s mount effect, which this service —
+  // wired from the RootStore setup path — can run ahead of. Asking the SDK
+  // for entitlements before then throws "no singleton instance", which
+  // hasEntitlement() logged at ERROR five times per affected launch and read
+  // as "not entitled". Self-heals exactly like the DB guard: SyncResumer's
+  // fullSync() and the later triggers land after the provider has mounted.
+  // ADDED 2026-09-19 (RS-029).
+  if (!(await isPurchasesConfigured())) return { ok: false, uid }
   const entitled = await hasEntitlement(ENTITLEMENTS.ATTENDANCE)
-  // Re-check after the await: the account-switch reaction may have raised the
-  // flag while this call was suspended on the entitlement SDK.
+  // Re-check after the awaits: the account-switch reaction may have raised
+  // the flag while this call was suspended on the purchases SDK.
   if (ownerClearPending) return { ok: false, uid }
   return { ok: entitled, uid }
 }

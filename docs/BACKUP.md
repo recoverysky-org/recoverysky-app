@@ -94,6 +94,10 @@ No sync traffic happens unless *all* of these hold, checked on every tick in
 - not `configStore.maintenanceMode`
 - not `networkStore.isOffline`
 - no queue-ownership clear is pending (see below)
+- the RevenueCat SDK has been configured (`Purchases.isConfigured()`; ADDED
+  2026-09-19, RS-029) — the service is wired before `<SubscriptionContext>`
+  mounts, so a fast cold start used to reach the entitlement check first and
+  log five ERRORs per launch. Skipped, not failed; `SyncResumer` retries.
 
 The entitlement check is `await`ed, so `gate()` re-checks the ownership flag
 *after* that await. A sign-in can land while we're suspended.
