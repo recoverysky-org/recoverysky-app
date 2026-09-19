@@ -67,6 +67,18 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
   const local = LOCAL_VERSION
 
   // Step 1: Native version check
+  //
+  // CHANGED 2026-09-19 (RS-035): the Cancel button is gone. A build that is
+  // behind the store is also cut off from every OTA (runtimeVersion tracks
+  // the native version), so "later" meant "never": 4.8.0-x alone showed this
+  // prompt in ~300 sessions a week and dismissed it every time, while its
+  // users kept hitting defects fixed months earlier. The one remaining button
+  // opens the store page and the app then CONTINUES RUNNING — nothing here
+  // blocks, quits, or loops. The user can come back without updating and use
+  // the app; the prompt simply returns on the next cold start or long
+  // foreground, exactly as before. Installing from the store is what restarts
+  // the app, not us. `cancelable: false` closes the Android back-button and
+  // tap-outside dismissals so the button is the only way through.
   if (latestVersion && isVersionBehind(local, latestVersion)) {
     log.info("Local version behind", { local, latest: latestVersion })
     promptInFlight = true
@@ -76,14 +88,6 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
         translate("common:storeUpdateMessage"),
         [
           {
-            text: translate("common:cancel"),
-            style: "cancel",
-            onPress: () => {
-              promptInFlight = false
-              resolve(true)
-            },
-          },
-          {
             text: translate("common:storeUpdateButton"),
             onPress: () => {
               promptInFlight = false
@@ -92,6 +96,7 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
             },
           },
         ],
+        { cancelable: false },
       )
     })
   }

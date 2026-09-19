@@ -24,6 +24,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [4.10.1-6] — 2026-09-19
 
+### Changed
+- **The "New Version Available" prompt no longer has a Cancel button.** A
+  build that is behind the store is also cut off from every over-the-air
+  update, so dismissing the prompt meant staying on that build for good;
+  about 300 sessions a week on 4.8.0 were doing exactly that and still
+  hitting problems fixed months ago. The prompt now offers only Update Now,
+  which opens the store page. The app keeps running after the tap: nobody
+  is locked out, and the prompt simply comes back on the next launch until
+  the store update is installed. RS-035.
+
 ### Build
 - **The Sentry source-map upload no longer warns about a mismatched server
   URL.** The Sentry plugin entry in `app.json` spelled the server as
