@@ -12,6 +12,10 @@ import * as Crypto from "expo-crypto"
 
 import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
 import { meetingEvents } from "@/db/meetingEvents"
+// The file, not the `@/services/attendance` barrel: that barrel is imported
+// by consumers of this module's own barrel, and a cycle here is what
+// depcruise exists to catch.
+import { clampCredit } from "@/services/attendance/creditLogic"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "ExternalAttendance" })
@@ -72,9 +76,27 @@ function buildTimerEvents(startedAt: number, endedAt: number): AttendanceEvent[]
 export async function saveTimerAttendance(
   input: TimerAttendanceInput,
 ): Promise<TimerAttendanceResult> {
-  const credit = input.endedAt - input.startedAt
+  // CHANGED 2026-09-19 (RS-034): bounded to MAX_CREDIT_MS. TimerSessionResumer
+  // restores a session whatever its age (since 2026-09-12), so a timer left
+  // running across days produces an interval no meeting can have — and one
+  // such row (37 days) overflowed the api's int32 `credit` column and stopped
+  // that user's sync. The user still trims the duration in the Attendance
+  // tab, as the modal tells them; `start`/`end` and the "Timer saved" event
+  // keep the real wall-clock interval for that. WARN so the tracker can
+  // count how often stale timers still happen.
+  const rawCreditMs = input.endedAt - input.startedAt
+  const { credit, clamped } = clampCredit(rawCreditMs)
   const valid = credit >= MIN_CREDIT_MS
   const attendanceId = Crypto.randomUUID()
+
+  if (clamped) {
+    log.warn("Timer credit clamped to the daily maximum", {
+      attendanceId,
+      mid: input.mid,
+      rawCreditMs,
+      creditMs: credit,
+    })
+  }
 
   log.info("Saving timer attendance", {
     attendanceId,

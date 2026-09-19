@@ -22,6 +22,26 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+- **Attendance cloud backup no longer stops for good behind one record the
+  server cannot store.** The push sent the outbox in batches of up to 200 and,
+  when the server answered a batch with a 5xx, backed off and sent the same
+  batch again on the next tick — forever, because a 500 carries no per-record
+  result and the client had no other way to find the bad row. One user has
+  been stuck on exactly this since 2026-09-18: a single attendance record whose
+  duration was 37 days (a timer left running since June, from before the
+  no-staleness-cap change) overflowed the API's 32-bit `credit` column, and
+  the 199 records behind it never reached the server. A 5xx now bisects the
+  batch to the one offending record, quarantines it, and syncs the rest; a
+  real outage still ends the tick after three requests with the usual backoff.
+  Independently, an attended duration is now capped at 24 hours when a timer
+  session is saved (both the external-Zoom and in-person timers) and again in
+  the push payload, so a stale timer can never poison a batch again on any
+  build. The user still trims the duration in the Attendance tab, as the
+  timer modals already say. The 90 vitest cases behind this are in
+  `attendanceSyncService.test.ts`, `syncLogic.test.ts` and the new
+  `creditLogic.test.ts`; `docs/BACKUP.md` "Push" has the design. RS-034.
+
 ### Security
 - **The report recipient's email address is no longer sent to diagnostic
   logs.** Six log lines on the attendance-report send path — three in the API

@@ -226,6 +226,163 @@ describe("pushTick", () => {
     await svc.pushTick()
     expect(deps.calls.pushAttendance).toHaveLength(1)
   })
+
+  // RS-034 (2026-09-19): a 5xx on a batch is no longer "retry the same batch
+  // forever". One record the server cannot store used to stop a device's sync
+  // for good, with every row behind it.
+  describe("poison batch (5xx)", () => {
+    const fourPending = async () =>
+      ["att-1", "att-2", "att-3", "att-4"].map((id, i) => ({
+        queueId: `q${i + 1}`,
+        recordId: id,
+        operation: "update" as const,
+        payload: null,
+      }))
+
+    /** Server that 5xxes any batch containing `poisonId`, else accepts all. */
+    const poisonServer =
+      (deps: ReturnType<typeof makeDeps>, poisonId: string) =>
+      async (records: ServerAttendanceRecord[]) => {
+        ;(deps.calls.pushAttendance ??= []).push([records])
+        if (records.some((r) => r.id === poisonId)) return { kind: "server" as const }
+        return { kind: "ok" as const, accepted: records.length, rejected: [] }
+      }
+
+    it("bisects to the one record the server cannot store, fails it, and syncs the rest", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = fourPending
+      deps.api.pushAttendance = poisonServer(deps, "att-3")
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+
+      expect(deps.calls.markSynced.map((c) => c[0]).sort()).toEqual(["q1", "q2", "q4"])
+      expect(deps.calls.markFailed).toEqual([["q3", "server rejected"]])
+      // whole [1,2,3,4] → [1,2] ok, [3,4] fail → [3] fail (quarantined), [4] ok
+      const sizes = deps.calls.pushAttendance.map((c) => (c[0] as unknown[]).length)
+      expect(sizes).toEqual([4, 2, 2, 1, 1])
+      // The server answered the good halves: no backoff, so the next tick
+      // reaches the gate (a tick inside a backoff window returns before it).
+      const gateCalls = deps.calls.gate.length
+      await svc.pushTick()
+      expect(deps.calls.gate.length).toBeGreaterThan(gateCalls)
+    })
+
+    it("paces and re-checks the gate before every extra request of the bisection", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = fourPending
+      deps.api.pushAttendance = poisonServer(deps, "att-3")
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      // one gate check for the tick, then one per request after the first
+      expect(deps.calls.sleep).toHaveLength(4)
+      expect(deps.calls.gate).toHaveLength(5)
+    })
+
+    it("stops the bisection when the gate closes mid-way, leaving the rest pending", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = fourPending
+      deps.api.pushAttendance = poisonServer(deps, "att-3")
+      let gateCalls = 0
+      deps.gate = async () => ({ ok: ++gateCalls < 3, uid: "auth0|u1" })
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      // whole (fail), left half (ok), then the gate closes before the right half
+      expect(deps.calls.pushAttendance).toHaveLength(2)
+      expect(deps.calls.markSynced.map((c) => c[0])).toEqual(["q1", "q2"])
+      expect(deps.calls.markFailed).toBeUndefined()
+    })
+
+    it("a 5xx on both halves is an outage: entries stay pending and the backoff arms", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = fourPending
+      deps.api.pushAttendance = async (records: ServerAttendanceRecord[]) => {
+        ;(deps.calls.pushAttendance ??= []).push([records])
+        return { kind: "server" as const }
+      }
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      // whole, left, right — and no further descent
+      expect(deps.calls.pushAttendance).toHaveLength(3)
+      expect(deps.calls.markSynced).toBeUndefined()
+      expect(deps.calls.markFailed).toBeUndefined()
+      await svc.pushTick()
+      expect(deps.calls.pushAttendance).toHaveLength(3)
+    })
+
+    it("a transient 5xx (both halves then succeed) settles everything with no backoff", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = fourPending
+      let first = true
+      deps.api.pushAttendance = async (records: ServerAttendanceRecord[]) => {
+        ;(deps.calls.pushAttendance ??= []).push([records])
+        if (first) {
+          first = false
+          return { kind: "server" as const }
+        }
+        return { kind: "ok" as const, accepted: records.length, rejected: [] }
+      }
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      expect(deps.calls.markSynced.map((c) => c[0]).sort()).toEqual(["q1", "q2", "q3", "q4"])
+      expect(deps.calls.markFailed).toBeUndefined()
+      expect(svc.syncState.phase).toBe("idle")
+    })
+
+    it("a transport failure inside the bisection aborts like any other transport failure", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = fourPending
+      let n = 0
+      deps.api.pushAttendance = async (records: ServerAttendanceRecord[]) => {
+        ;(deps.calls.pushAttendance ??= []).push([records])
+        n++
+        if (n === 1) return { kind: "server" as const }
+        return { kind: "timeout" as const }
+      }
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      expect(deps.calls.pushAttendance).toHaveLength(2)
+      expect(deps.calls.markFailed).toBeUndefined()
+      await svc.pushTick() // backoff
+      expect(deps.calls.pushAttendance).toHaveLength(2)
+    })
+
+    it("a batch of one that 5xxes is quarantined without any bisection", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = async () => [
+        { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
+      ]
+      deps.api.pushAttendance = async (records: ServerAttendanceRecord[]) => {
+        ;(deps.calls.pushAttendance ??= []).push([records])
+        return { kind: "server" as const }
+      }
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      expect(deps.calls.pushAttendance).toHaveLength(1)
+      expect(deps.calls.markFailed).toEqual([["q1", "server rejected"]])
+      expect(deps.calls.logError.map((c) => c[0])).toContain(
+        "sync: server cannot store record — quarantined",
+      )
+    })
+
+    it("an over-long credit is clamped on the wire and warned about", async () => {
+      const deps = makeDeps()
+      deps.queue.pending = async () => [
+        { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
+      ]
+      deps.local.findByIds = async (ids: string[]) =>
+        ids.map((id) => ({ ...baseRecord, id, credit: 3_207_443_155 }))
+      deps.api.pushAttendance = async (records: ServerAttendanceRecord[]) => {
+        ;(deps.calls.pushAttendance ??= []).push([records])
+        return { kind: "ok" as const, accepted: 1, rejected: [] }
+      }
+      const svc = createAttendanceSyncService(deps)
+      await svc.pushTick()
+      const sent = deps.calls.pushAttendance[0][0] as ServerAttendanceRecord[]
+      expect(sent[0].credit).toBe(24 * 60 * 60 * 1000)
+      expect(deps.calls.logWarn.map((c) => c[0])).toContain("sync: credit clamped for push")
+      expect(deps.calls.markSynced.map((c) => c[0])).toEqual(["q1"])
+    })
+  })
 })
 
 describe("pullTick", () => {

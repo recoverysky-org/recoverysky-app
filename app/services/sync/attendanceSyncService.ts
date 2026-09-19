@@ -139,7 +139,10 @@ export interface SyncState {
   pendingCount: number
 }
 
-/** ~7 s between push batches keeps a big drain under the server's 10 req/min limit. */
+/** ~7 s between push batches keeps a big drain under the server's 10 req/min limit.
+ * Also the gap between the requests of a poison-batch bisection (see
+ * `isolatePoison`): isolating one record out of 200 costs 17 requests, so
+ * the gap is what keeps that walk under the same limit. */
 const BATCH_PACE_MS = 7_000
 /** Rapid-fire local edits collapse into one push tick. */
 const PUSH_DEBOUNCE_MS = 3_000
@@ -305,6 +308,154 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     })
   }
 
+  /** The 2xx shape of `deps.api.pushAttendance`, once `kind` has been checked. */
+  interface PushOk {
+    accepted: number
+    rejected: { id: string; reason: "stale" | "invalid" }[]
+  }
+
+  /**
+   * Wait one pace, then re-check the gate. Every request after the first in a
+   * push tick goes through this: the user may sign out (or go offline)
+   * mid-drain, and pushing under the wrong identity is worse than leaving
+   * entries pending. Returns false when the tick must stop.
+   */
+  async function paceAndRecheckGate(): Promise<boolean> {
+    await deps.sleep(BATCH_PACE_MS)
+    const gateNow = await deps.gate()
+    return gateNow.ok
+  }
+
+  /** Settle every queue entry behind a batch the server answered 2xx. */
+  async function resolveBatch(
+    batch: ServerAttendanceRecord[],
+    queueIdsByRecord: Map<string, string[]>,
+    ok: PushOk,
+  ): Promise<void> {
+    const invalid = new Set(ok.rejected.filter((r) => r.reason === "invalid").map((r) => r.id))
+    for (const rec of batch) {
+      const queueIds = queueIdsByRecord.get(rec.id) ?? []
+      if (invalid.has(rec.id)) {
+        // A client bug (schema drift) — log loudly, don't retry forever.
+        deps.log.error("sync: server rejected record as invalid", { id: rec.id })
+        for (const qid of queueIds) await deps.queue.markFailed(qid, "invalid")
+      } else {
+        // accepted OR stale: either way the server is settled — done.
+        for (const qid of queueIds) await deps.queue.markSynced(qid)
+      }
+    }
+  }
+
+  /**
+   * Push one batch. "done" means every record in it is settled (synced,
+   * invalid, or quarantined); "abort" means the tick must stop — entries stay
+   * pending and the backoff is armed.
+   *
+   * ADDED 2026-09-19 (RS-034). A 5xx used to be treated as transient forever:
+   * `recordFailure()` and return, same batch next tick. When ONE record in
+   * the batch is something the server cannot store (a `credit` that
+   * overflowed the api's int32 column — a 37-day timer session), the whole
+   * insert fails every time, and the server returns no per-record result on a
+   * 500, so the client never learns which row it was. One user's sync was
+   * stopped for good with 200 rows behind that one. A 5xx now goes to
+   * `isolatePoison`, which bisects the batch to the offending record and
+   * quarantines it. Transport failures (timeout, cannot-connect, a 4xx) are
+   * unchanged: those say nothing about any record.
+   */
+  async function pushBatch(
+    batch: ServerAttendanceRecord[],
+    queueIdsByRecord: Map<string, string[]>,
+  ): Promise<"done" | "abort"> {
+    const result = await deps.api.pushAttendance(batch)
+    if (result.kind === "ok") {
+      await resolveBatch(batch, queueIdsByRecord, result as PushOk)
+      recordSuccess()
+      return "done"
+    }
+    if (result.kind !== "server") {
+      // Whole-request failure — entries stay pending; next trigger retries.
+      recordFailure()
+      return "abort"
+    }
+    return isolatePoison(batch, queueIdsByRecord)
+  }
+
+  /**
+   * `batch` is known to 5xx as a whole. Split it, push each half, and recurse
+   * into the half that still fails until one record is left.
+   *
+   * The two-halves rule is the outage guard. A real outage 5xxes BOTH halves,
+   * and that ends the tick after three requests (whole, left, right) with the
+   * usual backoff — rather than walking every record down to a batch of one
+   * and failing each in turn, which is what a naive bisection does when the
+   * server is simply down. It also means two poison records that land in
+   * different halves look like an outage and stay pending; that costs the
+   * user a stuck sync, which is where we were, and a record only becomes
+   * poison through a bug that is also fixed at the source (`clampCredit`).
+   * Both halves succeeding is a transient 5xx: everything settled, done.
+   *
+   * The quarantine is `markFailed`, which is a retry budget, not a verdict:
+   * `getPending()` re-offers the row until `retryCount` reaches 3, so the
+   * record is re-sent alone on two more ticks (one request each — a batch of
+   * one needs no bisection) and then drops out. Three tries is right for a
+   * server-side cause the api may fix in the meantime, and the row itself is
+   * untouched in SQLite either way.
+   *
+   * Cost: one poison record in 200 is isolated in 17 requests (the whole
+   * batch, then two per level for eight levels), paced at BATCH_PACE_MS —
+   * about two minutes, under the rate limit.
+   */
+  async function isolatePoison(
+    batch: ServerAttendanceRecord[],
+    queueIdsByRecord: Map<string, string[]>,
+  ): Promise<"done" | "abort"> {
+    if (batch.length === 1) {
+      const rec = batch[0]
+      deps.log.error("sync: server cannot store record — quarantined", {
+        id: rec.id,
+        credit: rec.credit,
+        deleted: rec.deleted,
+      })
+      for (const qid of queueIdsByRecord.get(rec.id) ?? []) {
+        await deps.queue.markFailed(qid, "server rejected")
+      }
+      // The sibling halves answered 2xx to get here — the server is healthy.
+      recordSuccess()
+      return "done"
+    }
+
+    const mid = Math.ceil(batch.length / 2)
+    const halves = [batch.slice(0, mid), batch.slice(mid)]
+    const stillFailing: ServerAttendanceRecord[][] = []
+    for (const half of halves) {
+      if (!(await paceAndRecheckGate())) return "abort"
+      const result = await deps.api.pushAttendance(half)
+      if (result.kind === "ok") {
+        await resolveBatch(half, queueIdsByRecord, result as PushOk)
+        continue
+      }
+      if (result.kind !== "server") {
+        recordFailure()
+        return "abort"
+      }
+      stillFailing.push(half)
+    }
+
+    if (stillFailing.length === 0) {
+      // The whole-batch 5xx was transient; both halves went through.
+      recordSuccess()
+      return "done"
+    }
+    if (stillFailing.length === 2) {
+      deps.log.warn("sync: both halves of a batch failed — treating as an outage", {
+        count: batch.length,
+      })
+      recordFailure()
+      return "abort"
+    }
+    return isolatePoison(stillFailing[0], queueIdsByRecord)
+  }
+
   /** Drain the outbox: read current rows, batch, push, resolve queue entries. */
   async function pushTick(): Promise<void> {
     if (pushing || backoffActive()) return
@@ -384,43 +535,28 @@ export function createAttendanceSyncService(deps: SyncDeps) {
           for (const qid of w.queueIds) await deps.queue.markFailed(qid, "local row missing")
           continue
         }
-        records.push(toServerRecord(row))
+        const rec = toServerRecord(row)
+        if (rec.credit !== row.credit) {
+          // ADDED 2026-09-19 (RS-034): a stale-timer row written before the
+          // save-time clamp. Counted here so the tracker can see how many are
+          // still in outboxes; the wire carries the bounded value.
+          deps.log.warn("sync: credit clamped for push", {
+            id: row.id,
+            credit: row.credit,
+            clampedTo: rec.credit,
+          })
+        }
+        records.push(rec)
         queueIdsByRecord.set(recordId, w.queueIds)
       }
 
+      // CHANGED 2026-09-19 (RS-034): the per-batch request, resolution and
+      // failure handling moved into pushBatch()/isolatePoison() so a 5xx can
+      // bisect instead of retrying the same batch forever.
       const batches = chunk(records, SYNC_PUSH_BATCH_MAX)
       for (let i = 0; i < batches.length; i++) {
-        if (i > 0) {
-          await deps.sleep(BATCH_PACE_MS)
-          // Re-check between batches: the user may sign out (or go offline)
-          // mid-drain, and pushing under the wrong identity is worse than
-          // leaving entries pending.
-          const gateNow = await deps.gate()
-          if (!gateNow.ok) return
-        }
-        const result = await deps.api.pushAttendance(batches[i])
-        if (result.kind !== "ok") {
-          // Whole-request failure — entries stay pending; next trigger retries.
-          recordFailure()
-          return
-        }
-        const ok = result as {
-          accepted: number
-          rejected: { id: string; reason: "stale" | "invalid" }[]
-        }
-        const invalid = new Set(ok.rejected.filter((r) => r.reason === "invalid").map((r) => r.id))
-        for (const rec of batches[i]) {
-          const queueIds = queueIdsByRecord.get(rec.id) ?? []
-          if (invalid.has(rec.id)) {
-            // A client bug (schema drift) — log loudly, don't retry forever.
-            deps.log.error("sync: server rejected record as invalid", { id: rec.id })
-            for (const qid of queueIds) await deps.queue.markFailed(qid, "invalid")
-          } else {
-            // accepted OR stale: either way the server is settled — done.
-            for (const qid of queueIds) await deps.queue.markSynced(qid)
-          }
-        }
-        recordSuccess()
+        if (i > 0 && !(await paceAndRecheckGate())) return
+        if ((await pushBatch(batches[i], queueIdsByRecord)) === "abort") return
       }
 
       const remaining = await deps.queue.pending()
