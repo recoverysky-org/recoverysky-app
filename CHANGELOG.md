@@ -25,6 +25,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [4.10.1-6] — 2026-09-19
 
 ### Fixed
+- **Being signed out because the session could not be renewed now says so.**
+  When a stored session can never be refreshed again (a dead refresh token, or
+  the DPoP key it is bound to gone from the Keychain), the app signs the user
+  out. It did that silently: the Login screen appeared with no explanation, as
+  if they had never signed in. The Login screen now shows a short notice that
+  the session could not be restored on this device and asks them to sign in
+  again. One new i18n key in nine locales (translations queued for review).
+  RS-036.
+- **Declining the Auth0 consent screen is no longer logged as an error.** A
+  user who reached the consent screen and chose not to authorize got the same
+  treatment as a cancelled tab everywhere except in the logs, where the
+  decline arrived as "User did not authorize the request" at ERROR twice per
+  tap. It is classified as the user's choice now, alongside a closed tab.
+  RS-022.
 - **Attendance cloud backup no longer stops for good behind one record the
   server cannot store.** The push sent the outbox in batches of up to 200 and,
   when the server answered a batch with a 5xx, backed off and sent the same

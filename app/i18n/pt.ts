@@ -85,6 +85,8 @@ const pt: Translations = {
       "A janela de login fechou antes de você terminar. Toque no botão novamente e permaneça no navegador até ele trazer você de volta ao app.",
     errorNetwork:
       "Não foi possível acessar o serviço de login. Verifique sua conexão e tente novamente.",
+    sessionUnrecoverable:
+      "Você foi desconectado porque sua sessão não pôde ser restaurada neste dispositivo. Entre novamente.",
   },
   mainNavigator: {
     homeTab: "Início",

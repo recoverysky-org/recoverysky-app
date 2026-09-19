@@ -802,3 +802,11 @@ statement about the system. `cloudBackupHint` is a one-line Settings subtitle, s
 its shorter form ("on your device, in transit, and in the cloud") is fine as long
 as the three places survive. `fr` is inconsistent on purpose: the prompt strings
 use *tu* to match the existing purchase prompt, the hint keeps the existing *vous*.
+
+## 2026-09-19 — Forced-logout notice (RS-036), 8 strings (8 locales × 1 key)
+
+`loginScreen.sessionUnrecoverable` — best-effort translations in ar, de, es, fr,
+pt, ru, th, uk. Shown on the Login screen after the app had to sign the user out
+because the stored session could not be renewed (dead refresh token, missing
+DPoP key). It must read as "this was done to you, and signing in again fixes
+it" — not as a scolding and not as a generic error.

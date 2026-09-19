@@ -86,6 +86,8 @@ const de: Translations = {
       "Das Anmeldefenster wurde geschlossen, bevor du fertig warst. Tippe erneut auf die Schaltfläche und bleibe im Browser, bis er dich zur App zurückbringt.",
     errorNetwork:
       "Der Anmeldedienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+    sessionUnrecoverable:
+      "Du wurdest abgemeldet, weil deine Sitzung auf diesem Gerät nicht wiederhergestellt werden konnte. Bitte melde dich erneut an.",
   },
   mainNavigator: {
     homeTab: "Start",

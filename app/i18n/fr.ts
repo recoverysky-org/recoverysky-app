@@ -86,6 +86,8 @@ const fr: Translations = {
       "La fenêtre de connexion s'est fermée avant la fin. Appuyez de nouveau sur le bouton et restez dans le navigateur jusqu'à ce qu'il vous ramène dans l'application.",
     errorNetwork:
       "Impossible de joindre le service de connexion. Vérifiez votre connexion et réessayez.",
+    sessionUnrecoverable:
+      "Vous avez été déconnecté(e) car votre session n'a pas pu être restaurée sur cet appareil. Veuillez vous reconnecter.",
   },
   mainNavigator: {
     homeTab: "Accueil",

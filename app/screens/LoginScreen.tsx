@@ -16,6 +16,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useDatabase } from "@/db/DatabaseProvider"
 import { translate } from "@/i18n"
+import { useAuthenticationStore } from "@/models"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
@@ -55,9 +56,26 @@ type LoginType = "authenticated" | "signup" | "anonymous" | null
 export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_props) {
   const { themed, theme } = useAppTheme()
   const { rekeyDb } = useDatabase()
+  const authStore = useAuthenticationStore()
   const { login, signup, loginAnonymously, isLoading, error, clearError } = useAuth0Wrapper({
     onSqliteKeyChange: rekeyDb,
   })
+
+  // ADDED 2026-09-19 (RS-036): a forced logout (permanent refresh failure —
+  // see performForcedLogout in app.tsx) used to land here with no explanation.
+  // The flag is read once at mount into local state and cleared from the
+  // store straight away, so a re-render or a later visit never re-shows it;
+  // the notice itself goes away when the user taps a sign-in button.
+  const [showForcedLogoutNotice, setShowForcedLogoutNotice] = useState(
+    () => authStore.forcedLogoutNotice,
+  )
+  useEffect(() => {
+    if (!authStore.forcedLogoutNotice) return
+    log.info("Showing forced-logout notice")
+    authStore.setForcedLogoutNotice(false)
+    // Mount-only by design: the flag is consumed exactly once per visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Agreement modal state
   const [showEuaModal, setShowEuaModal] = useState(false)
@@ -148,6 +166,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   const proceedWithLogin = useCallback(
     async (type: LoginType) => {
       clearError()
+      setShowForcedLogoutNotice(false)
       if (type === "authenticated") await login()
       else if (type === "signup") await signup()
       else if (type === "anonymous") await loginAnonymously()
@@ -244,6 +263,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         {error && (
           <View style={themed($errorContainer)}>
             <Text style={themed($errorText)}>{error}</Text>
+          </View>
+        )}
+        {!error && showForcedLogoutNotice && (
+          <View style={themed($errorContainer)} accessibilityRole="alert">
+            <Text style={themed($errorText)} tx="loginScreen:sessionUnrecoverable" />
           </View>
         )}
 

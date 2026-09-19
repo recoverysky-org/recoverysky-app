@@ -340,6 +340,11 @@ export function App() {
         const performForcedLogout = () => {
           log.warn("Performing forced logout after permanent refresh failure")
           authStore.logout()
+          // ADDED 2026-09-19 (RS-036): raised AFTER logout(), which resets the
+          // volatile fields. LoginScreen shows the "session could not be
+          // restored" line on mount and clears it, so the eject stops looking
+          // like a fresh install.
+          authStore.setForcedLogoutNotice(true)
           // Both credential stores must go. Clearing only ours leaves the SDK's
           // keychain entry intact and the next useAuth0Wrapper sync would
           // cheerfully re-hydrate the dead session.

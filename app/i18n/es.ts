@@ -85,6 +85,8 @@ const es: Translations = {
       "La ventana de inicio de sesión se cerró antes de terminar. Vuelve a tocar el botón y permanece en el navegador hasta que te devuelva a la app.",
     errorNetwork:
       "No pudimos conectar con el servicio de inicio de sesión. Revisa tu conexión e inténtalo de nuevo.",
+    sessionUnrecoverable:
+      "Se cerró tu sesión porque no se pudo restaurar en este dispositivo. Vuelve a iniciar sesión.",
   },
   mainNavigator: {
     homeTab: "Inicio",
