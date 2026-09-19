@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.1-6] — 2026-09-19
+
 ### Fixed
 - **Attendance cloud backup no longer stops for good behind one record the
   server cannot store.** The push sent the outbox in batches of up to 200 and,
@@ -67,6 +69,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   location failure and could not tell the two apart. The refinement miss is
   now an INFO line of its own; WARN means the segment really has nothing to
   show. RS-016.
+
+## [4.10.1-5] — 2026-09-18
 
 ### Security
 - **The report recipient's email address is no longer sent to diagnostic
