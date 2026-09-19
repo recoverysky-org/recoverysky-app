@@ -24,6 +24,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [4.10.1-6] — 2026-09-19
 
+### Build
+- **The Sentry source-map upload no longer warns about a mismatched server
+  URL.** The Sentry plugin entry in `app.json` spelled the server as
+  `https://sentry.io/`; the organization auth token embeds it without the
+  trailing slash, and sentry-cli compares the two literally, so every
+  `npm run update` warned that it was ignoring the configured URL. Same host
+  either way and every upload succeeded. The slash is gone. This is an
+  upload-tool setting that never enters the binary, so no `runtimeVersion`
+  bump; the generated `sentry.properties` files pick it up on the next
+  prebuild and were corrected by hand meanwhile.
+
 ### Fixed
 - **Being signed out because the session could not be renewed now says so.**
   When a stored session can never be refreshed again (a dead refresh token, or

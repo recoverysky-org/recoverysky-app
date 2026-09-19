@@ -152,7 +152,7 @@
       {
         "organization": "recoverysky-inc-0f",
         "project": "recoverysky-app",
-        "url": "https://sentry.io/"
+        "url": "https://sentry.io"
       }
     ],
     "@maplibre/maplibre-react-native"
