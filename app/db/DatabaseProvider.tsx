@@ -46,6 +46,7 @@ import {
   closeDb,
   encryptedDatabaseBytes,
   getDb,
+  onDbClosed,
   openDb as openDbProvider,
   rekeyDatabase,
 } from "./provider"
@@ -296,6 +297,31 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     void openDb()
     return clearRetryTimer
   }, [openDb, clearRetryTimer])
+
+  // ADDED 2026-09-19 (Sentry RECOVERYSKY-APP-1X): drop the children when the
+  // singleton is closed underneath us. reloadApp() closes the database BEFORE
+  // `Updates.reloadAsync()` (the SharedObject teardown race, see its header),
+  // and the runtime lives on for up to a second. In that second this
+  // provider still said "seeded" and still rendered the tree, so the
+  // "children render only while the database is open" promise was broken:
+  // the outage-recovery reload ran closeDb() while /config, landing in the
+  // same instant, cleared outageMode in place, AppNavigator swapped to Main,
+  // and the attendance badge's mount-time query threw "Database not opened"
+  // — three users in two days on 4.8.0 and 4.10.1. Transitioning to "closed"
+  // unmounts the children as soon as the handle is gone, so nothing can read
+  // it whatever else fires before the reload lands. "closed" is inert here:
+  // the mount effect ran already and the foreground retry keys on "error".
+  // Only from "seeded": our own failed-open path calls closeDb() while
+  // "opening" and owns that transition itself.
+  useEffect(
+    () =>
+      onDbClosed(() => {
+        if (statusRef.current !== "seeded") return
+        log.info("Database closed underneath the provider — unmounting children")
+        transition("closed")
+      }),
+    [transition],
+  )
 
   // A locked keychain (app launched in the background while the phone was
   // locked) unlocks with the phone, and the user opening the app is the

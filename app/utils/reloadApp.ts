@@ -47,6 +47,18 @@ export async function reloadApp(onError?: (e: unknown) => void): Promise<void> {
     log.warn("closeDb before reload failed", { error: String(e) })
   }
 
+  // ADDED 2026-09-19 (Sentry RECOVERYSKY-APP-1X): push the logger's pending
+  // batch out before the runtime dies. The logger batches on a 5 s timer, and
+  // a reload cuts it off — every line from the last few seconds before a
+  // reload (including the ERROR this Sentry issue is made of, which Loki had
+  // zero copies of in seven days) was lost. Best-effort and bounded: a Loki
+  // that does not answer must not hold the reload.
+  try {
+    await Promise.race([logger.flush(), new Promise<void>((r) => setTimeout(r, 1500))])
+  } catch {
+    // Nothing to do — the reload is the priority.
+  }
+
   try {
     await Updates.reloadAsync()
   } catch (e) {

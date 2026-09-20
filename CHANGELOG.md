@@ -22,7 +22,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
-## [4.10.1-6] — 2026-09-19
+### Fixed
+- **Reloading the app no longer throws "Database not opened" errors from the
+  screens still on display.** Every app reload closes the encrypted database
+  first (a deliberate guard against a native teardown crash), but the
+  JavaScript runtime keeps running for up to a second afterwards while the
+  screens are still mounted. When the outage-recovery reload and a
+  successful `/config` fetch landed in the same instant, the tree switched to
+  the main tabs and the attendance badge queried a closed database; Sentry
+  recorded it on three devices in two days across 4.8.0 and 4.10.1. The
+  database provider now unmounts its screens the moment the connection is
+  closed underneath it, so nothing can query it before the reload lands. The
+  logger also flushes its pending batch before a reload, which is why those
+  errors had never reached Loki. Sentry RECOVERYSKY-APP-1X.
 
 ### Changed
 - **The "New Version Available" prompt no longer has a Cancel button.** A
@@ -44,6 +56,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   upload-tool setting that never enters the binary, so no `runtimeVersion`
   bump; the generated `sentry.properties` files pick it up on the next
   prebuild and were corrected by hand meanwhile.
+
+## [4.10.1-6] — 2026-09-19
 
 ### Fixed
 - **Being signed out because the session could not be renewed now says so.**
