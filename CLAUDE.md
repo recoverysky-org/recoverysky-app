@@ -414,6 +414,12 @@ sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
   middlewares return an identical 401 body" was wrong: the device middleware
   answers a bad `X-Device-Token` with a code-less 401, while every user-lane
   rejection carries `code: token_*`, and the device check runs first).
+  CORRECTED 2026-09-21 (RS-040): "every user-lane rejection" has one
+  un-coded exception — a request with no `Authorization` header at all gets
+  auth.ts's plain `{ error: "Unauthorized", message: "Missing or invalid
+  authorization header" }`, after the device JWT was verified. That exact
+  body is excluded by `USER_LANE_MISSING_CREDENTIALS_BODY`; every other
+  code-less 401 still drops the JWT.
   ADDED 2026-09-14: `deviceJwtRejected()` (`bearerRejectionLogic.ts`) reads
   that asymmetry in the same monitor; a hit calls `markDeviceJwtRejected()`
   (`deviceToken.ts`, identity-guarded by the pure `shouldDropRejectedJwt`)

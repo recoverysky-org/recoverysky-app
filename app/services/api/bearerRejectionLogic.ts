@@ -65,6 +65,22 @@ export function bearerRejectionCode(
 }
 
 /**
+ * The one user-lane 401 that carries no `code`: api/src/middleware/auth.ts
+ * answers a request with NO Authorization header at all with exactly this
+ * body (its `authMethod: "none"` branch). Every other user-lane rejection is
+ * coded. Mirrored verbatim because it is the only thing that tells this
+ * response apart from the device middleware's — both say `error:
+ * "Unauthorized"`, and the device lane's messages are "Invalid device token"
+ * / "Device token expired" / "Device token validation failed". If the API
+ * ever adds a `code` to that branch, this constant becomes dead weight, which
+ * is the intended direction (RS-040).
+ */
+export const USER_LANE_MISSING_CREDENTIALS_BODY = {
+  error: "Unauthorized",
+  message: "Missing or invalid authorization header",
+} as const
+
+/**
  * The device JWT this 401 refused, or null when the response says nothing
  * about the device lane.
  *
@@ -76,6 +92,17 @@ export function bearerRejectionCode(
  * asymmetry is the whole decision. A request that carried no device token
  * (the API-key lane, a bypassed exchange, or the local no-credential 401
  * below) has nothing to reject.
+ *
+ * CHANGED 2026-09-21 (RS-040): "every user-lane rejection carries a code"
+ * had one hole — a signed-in route called with no Bearer at all gets
+ * auth.ts's code-less missing-header 401, AFTER the device middleware has
+ * verified the JWT. Reading that as a device rejection threw away a valid
+ * device JWT on every cold start of an install whose keychain had lost its
+ * auth credentials while MMKV still named the user (19 drops / 5 devices in
+ * 7d, all on /push-tokens/ and /sync/attendance). That body is now excluded
+ * by its exact text; everything else code-less still drops, because a
+ * wrongly dropped JWT costs one re-assert and a wrongly kept dead one costs
+ * an edge ban.
  *
  * Before this existed there was no reactive 401 path at all: a JWT the server
  * had stopped honouring (rotated secret, revocation) was re-sent on every
@@ -93,8 +120,18 @@ export function deviceJwtRejected(
   if (!deviceToken) return null
 
   if (data !== null && typeof data === "object") {
-    const code = (data as { code?: unknown }).code
+    const { code, error, message } = data as {
+      code?: unknown
+      error?: unknown
+      message?: unknown
+    }
     if (typeof code === "string") return null
+    if (
+      error === USER_LANE_MISSING_CREDENTIALS_BODY.error &&
+      message === USER_LANE_MISSING_CREDENTIALS_BODY.message
+    ) {
+      return null
+    }
   }
   return deviceToken
 }

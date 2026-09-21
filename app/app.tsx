@@ -667,8 +667,19 @@ export function App() {
           // launch fired one guaranteed 403 (a rejection the edge counts).
           // Decision in the pure `pushRegistrationUserId`; sign-out lands in
           // the `else` below, which only clears local state.
+          // CHANGED 2026-09-21 (RS-040): also keyed on the store holding a
+          // token. `userId` is MMKV and is back before this runs; the tokens
+          // are SecureStore and were missing on an install whose keychain had
+          // lost them — the request went out with no Bearer, the user lane
+          // answered its code-less 401, and the app dropped a valid device
+          // JWT on every cold start. The value is still the id, so a token
+          // refresh does not re-fire this; only the null↔id edges do.
           const registrableUserId = () =>
-            pushRegistrationUserId({ userId: authStore.userId, isAnonymous: authStore.isAnonymous })
+            pushRegistrationUserId({
+              userId: authStore.userId,
+              isAnonymous: authStore.isAnonymous,
+              hasSession: !!authStore.accessToken || !!authStore.refreshToken,
+            })
           const initialUserId = registrableUserId()
           if (initialUserId && authStore.deviceId) {
             loginNotificationUser(initialUserId, authStore.deviceId).catch(() => {})

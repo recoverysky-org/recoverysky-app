@@ -23,6 +23,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Fixed
+- **A valid device token is no longer thrown away when a signed-in request
+  goes out without a user token.** The server answers a request that carries
+  no `Authorization` header with a plain 401, after it has already accepted
+  the device token. The app read that plain 401 as "the device token was
+  rejected", cleared it, and re-attested on the next request — on one iOS
+  device this happened at every cold start for a day, because its keychain
+  had lost the sign-in credentials while the app still remembered the user,
+  so push-token registration fired with nothing to sign it. Two changes:
+  push-token registration now waits until the app actually holds a session
+  token, not just a remembered user id; and the rejection classifier
+  recognises the server's "missing authorization header" body as the user
+  lane and leaves the device token alone. 19 wasted re-attestations across 5
+  devices in the week before the fix. RS-040.
 - **Reloading the app no longer throws "Database not opened" errors from the
   screens still on display.** Every app reload closes the encrypted database
   first (a deliberate guard against a native teardown crash), but the

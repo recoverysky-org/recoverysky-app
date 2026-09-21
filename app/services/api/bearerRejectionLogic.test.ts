@@ -7,6 +7,7 @@ import {
   NO_DEVICE_CREDENTIAL_ERROR,
   noDeviceCredentialAdapter,
   readHeader,
+  USER_LANE_MISSING_CREDENTIALS_BODY,
 } from "./bearerRejectionLogic"
 
 /** Mimics axios 1.x AxiosHeaders: case-insensitive get(), no own enumerable keys to rely on. */
@@ -101,6 +102,25 @@ describe("deviceJwtRejected", () => {
   it("ignores a 401 whose body names a bearer code — the device token was accepted", () => {
     expect(deviceJwtRejected(401, { ...DEVICE, ...BEARER }, body("token_expired"))).toBeNull()
     expect(deviceJwtRejected(401, { ...DEVICE, ...BEARER }, body("token_signature"))).toBeNull()
+  })
+
+  it("ignores the user lane's missing-header 401 — the device token was verified, the Bearer was absent", () => {
+    // RS-040: api/src/middleware/auth.ts answers a request with no
+    // Authorization header at all with a 401 that carries NO code. The device
+    // middleware runs first and has already accepted the JWT by then.
+    expect(deviceJwtRejected(401, DEVICE, USER_LANE_MISSING_CREDENTIALS_BODY)).toBeNull()
+    expect(
+      deviceJwtRejected(401, new FakeAxiosHeaders(DEVICE), USER_LANE_MISSING_CREDENTIALS_BODY),
+    ).toBeNull()
+  })
+
+  it("still drops for the device middleware's own code-less bodies", () => {
+    expect(
+      deviceJwtRejected(401, DEVICE, { error: "Unauthorized", message: "Device token expired" }),
+    ).toBe("eyJ.device.jwt")
+    expect(
+      deviceJwtRejected(401, DEVICE, { error: "Unauthorized", message: "Invalid device token" }),
+    ).toBe("eyJ.device.jwt")
   })
 
   it("ignores requests that carried no device token, including the local no-credential 401", () => {
