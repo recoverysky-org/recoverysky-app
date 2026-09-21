@@ -338,7 +338,9 @@ export function App() {
         // can go out regardless of what happens below. Beat two is the actual
         // eject, which we hold while an attendance timer is live.
         const performForcedLogout = () => {
-          log.warn("Performing forced logout after permanent refresh failure")
+          // CHANGED 2026-09-21 (RS-039): warn → error. A session was lost;
+          // that is the definition of ERROR in docs/DIAGNOSTICS.md.
+          log.error("Performing forced logout after permanent refresh failure")
           authStore.logout()
           // ADDED 2026-09-19 (RS-036): raised AFTER logout(), which resets the
           // volatile fields. LoginScreen shows the "session could not be
@@ -839,7 +841,10 @@ export function App() {
                   log.debug("Auth0 profile synced", { name: value })
                 } else {
                   // Don't update lastSynced on failure — next edit retries.
-                  log.warn("Auth0 profile sync failed", { kind: result.kind })
+                  // CHANGED 2026-09-21 (RS-039): warn → error. The user's name
+                  // save did not reach Auth0 and nothing retries it until they
+                  // edit again (RS-006). The Api module's own line is debug now.
+                  log.error("Auth0 profile sync failed", { kind: result.kind })
                 }
               }, 800)
             },

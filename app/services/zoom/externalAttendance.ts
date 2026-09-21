@@ -90,7 +90,9 @@ export async function saveTimerAttendance(
   const attendanceId = Crypto.randomUUID()
 
   if (clamped) {
-    log.warn("Timer credit clamped to the daily maximum", {
+    // CHANGED 2026-09-21 (RS-039): warn → info. The clamp working as
+    // designed (RS-034) is a state change, not a degradation.
+    log.info("Timer credit clamped to the daily maximum", {
       attendanceId,
       mid: input.mid,
       rawCreditMs,

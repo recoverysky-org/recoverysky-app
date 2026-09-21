@@ -374,6 +374,9 @@ export function createAttendanceSyncService(deps: SyncDeps) {
     }
     if (result.kind !== "server") {
       // Whole-request failure — entries stay pending; next trigger retries.
+      // ADDED 2026-09-21 (RS-039): the Api module's "Sync push failed" line is
+      // debug now; this is the record. WARN — backed off and retried.
+      deps.log.warn("sync: push failed — backing off", { kind: result.kind, count: batch.length })
       recordFailure()
       return "abort"
     }
@@ -435,6 +438,11 @@ export function createAttendanceSyncService(deps: SyncDeps) {
         continue
       }
       if (result.kind !== "server") {
+        // ADDED 2026-09-21 (RS-039): see pushBatch.
+        deps.log.warn("sync: push failed mid-bisection — backing off", {
+          kind: result.kind,
+          count: half.length,
+        })
         recordFailure()
         return "abort"
       }
@@ -540,7 +548,9 @@ export function createAttendanceSyncService(deps: SyncDeps) {
           // ADDED 2026-09-19 (RS-034): a stale-timer row written before the
           // save-time clamp. Counted here so the tracker can see how many are
           // still in outboxes; the wire carries the bounded value.
-          deps.log.warn("sync: credit clamped for push", {
+          // CHANGED 2026-09-21 (RS-039): warn → info. The clamp working as
+          // designed is a state change, not a degradation.
+          deps.log.info("sync: credit clamped for push", {
             id: row.id,
             credit: row.credit,
             clampedTo: rec.credit,
@@ -591,6 +601,9 @@ export function createAttendanceSyncService(deps: SyncDeps) {
             ? await deps.api.pullAttendance(since)
             : await deps.api.pullReports(since)
         if (result.kind !== "ok") {
+          // ADDED 2026-09-21 (RS-039): the Api module's "Sync … pull failed"
+          // line is debug now; this is the record. WARN — backed off and retried.
+          deps.log.warn("sync: pull failed — backing off", { resource, kind: result.kind })
           recordFailure()
           return
         }
@@ -783,8 +796,15 @@ export function createAttendanceSyncService(deps: SyncDeps) {
             // EXCEPT `not-found`, which is remembered for the session (see
             // `bodyNotFound`): the server has no such row and retrying it
             // cannot succeed.
-            deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
+            // CHANGED 2026-09-21 (RS-039): `not-found` is a true answer (the
+            // body never existed — Firebase imports, RS-018) and was 749 of
+            // the week's WARN lines; it is INFO. Every other kind stays WARN.
+            // The Api module's "Report detail fetch failed" line is debug now.
+            if (result.kind !== "not-found") {
+              deps.log.warn("sync: report body fetch failed", { id, kind: result.kind })
+            }
             if (result.kind === "not-found") {
+              deps.log.info("sync: report body not on server", { id })
               rememberBodyNotFound(gate.uid, id)
               notFoundThisPass++
               if (notFoundThisPass >= NOT_FOUND_CAP_PER_PASS) {

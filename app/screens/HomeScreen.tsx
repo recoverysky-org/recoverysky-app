@@ -154,6 +154,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         setNewsTitle(result.title)
         setNewsBody(result.body)
       } else {
+        // ADDED 2026-09-21 (RS-039): the Api module's "News fetch failed" line
+        // is debug now, so this is the only record. WARN, not ERROR — Home
+        // renders without the card and nothing the user did is lost.
+        if (result.kind !== "ok")
+          log.warn("News unavailable — hiding the card", { kind: result.kind })
         setNewsTitle("")
         setNewsBody("")
       }

@@ -24,6 +24,14 @@
  * logger.info("Action") // includes userId and deviceId automatically
  * ```
  *
+ * Levels — pick by what the user experienced (full table in
+ * docs/DIAGNOSTICS.md "Log levels", ADDED 2026-09-21 for RS-039):
+ * - error: a user-visible operation failed or a session was lost
+ * - warn:  degraded, retried, or recovered
+ * - info:  state changes and recovery actions
+ * - debug: transport (every `Api` line) and idempotency no-ops
+ * The `Api` module never logs above debug — the caller owns the level.
+ *
  * Configuration:
  * - Set EXPO_PUBLIC_OTLP_ENDPOINT in .env when Alloy is online
  * - API key is fetched from /config endpoint and applied via logger.updateConfig()

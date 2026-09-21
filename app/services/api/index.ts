@@ -315,6 +315,17 @@ export { getGeneralApiProblem }
 export type { ApiConfig } from "./types"
 
 const log = logger.child({ module: "Api" })
+// CHANGED 2026-09-21 (RS-039): every "<thing> failed { problem }" line in this
+// module is now `debug`, not `warn`. This layer only knows a request did not
+// succeed — it cannot know whether the user was waiting on it (a report send)
+// or a background pass will retry (a report-body backfill), so it cannot pick
+// a severity. The caller owns the level and logs one contextual line for every
+// non-ok result that matters; before this both layers logged the same event
+// at WARN and ~2,000 of 4,205 weekly WARN lines were that duplicate. The lines
+// that stay `warn` here are the ones only this module can see: a 2xx with the
+// wrong shape ("Invalid … response format"), the auth gate's own decisions,
+// and getContent's terminal "unavailable after retries" (it owns that ladder).
+// Policy: docs/DIAGNOSTICS.md "Log levels".
 
 /** Default API base URL (used before ConfigStore loads) */
 const DEFAULT_API_URL = "https://api.recoverysky.app"
@@ -613,7 +624,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Attestation verification failed", { problem: problem?.kind })
+      log.debug("Attestation verification failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -642,7 +653,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Attestation challenge failed", { problem: problem?.kind })
+      log.debug("Attestation challenge failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -669,7 +680,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Attestation assert failed", { problem: problem?.kind })
+      log.debug("Attestation assert failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -695,7 +706,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API status check failed", { problem: problem?.kind })
+      log.debug("API status check failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -750,7 +761,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API readiness check failed", {
+      log.debug("API readiness check failed", {
         problem: problem?.kind,
         status: response.status ?? 0,
       })
@@ -791,7 +802,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -833,7 +844,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -880,7 +891,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -942,7 +953,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1037,7 +1048,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Zoom JWT request failed", { problem: problem?.kind })
+      log.debug("Zoom JWT request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1065,7 +1076,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Replyke token request failed", { problem: problem?.kind })
+      log.debug("Replyke token request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1092,7 +1103,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Auth0 profile update failed", { problem: problem?.kind })
+      log.debug("Auth0 profile update failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1112,7 +1123,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Config request failed", {
+      log.debug("Config request failed", {
         problem: problem?.kind,
         url: `${this.recoverySkyApi.getBaseURL()}/config`,
         status: response.status ?? 0,
@@ -1146,7 +1157,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Content fetch failed", { collection, document, problem: problem?.kind })
+      log.debug("Content fetch failed", { collection, document, problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1215,7 +1226,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Delete reminders failed", { problem: problem?.kind })
+      log.debug("Delete reminders failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1256,7 +1267,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Send report failed", {
+      log.debug("Send report failed", {
         reportId: params.id,
         problem: problem?.kind,
         status: response.status,
@@ -1293,7 +1304,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Resend report failed", {
+      log.debug("Resend report failed", {
         reportId: params.id,
         problem: problem?.kind,
         status: response.status,
@@ -1331,7 +1342,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Report status poll failed", { problem: problem?.kind, reportId: params.id })
+      log.debug("Report status poll failed", { problem: problem?.kind, reportId: params.id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1447,7 +1458,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Sync push failed", { problem: problem?.kind, count: records.length })
+      log.debug("Sync push failed", { problem: problem?.kind, count: records.length })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1476,7 +1487,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Sync attendance pull failed", { problem: problem?.kind, since })
+      log.debug("Sync attendance pull failed", { problem: problem?.kind, since })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1505,7 +1516,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Sync reports pull failed", { problem: problem?.kind, since })
+      log.debug("Sync reports pull failed", { problem: problem?.kind, since })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1531,7 +1542,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Report detail fetch failed", { problem: problem?.kind, reportId: params.id })
+      log.debug("Report detail fetch failed", { problem: problem?.kind, reportId: params.id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1568,7 +1579,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Transcription failed", { problem: problem?.kind, status: response.status })
+      log.debug("Transcription failed", { problem: problem?.kind, status: response.status })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1597,7 +1608,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Create reminder failed", { problem: problem?.kind, mid: input.mid })
+      log.debug("Create reminder failed", { problem: problem?.kind, mid: input.mid })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1616,7 +1627,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Update reminder failed", { problem: problem?.kind, id })
+      log.debug("Update reminder failed", { problem: problem?.kind, id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1636,7 +1647,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Delete reminder failed", { problem: problem?.kind, id })
+      log.debug("Delete reminder failed", { problem: problem?.kind, id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1654,7 +1665,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Fetch reminders failed", { problem: problem?.kind })
+      log.debug("Fetch reminders failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1684,7 +1695,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Push token registration failed", { problem: problem?.kind })
+      log.debug("Push token registration failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1712,7 +1723,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Bug report send failed", { problem: problem?.kind })
+      log.debug("Bug report send failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1738,7 +1749,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("News fetch failed", { problem: problem?.kind })
+      log.debug("News fetch failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }

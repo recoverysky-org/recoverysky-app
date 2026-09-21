@@ -115,7 +115,7 @@ function makeDeps(overrides: Partial<SyncDeps> = {}): SyncDeps & {
     emitSynced: track("emitSynced", () => {}),
     log: {
       debug: () => {},
-      info: () => {},
+      info: track("logInfo", () => {}),
       warn: track("logWarn", () => {}),
       error: track("logError", () => {}),
     },
@@ -364,7 +364,7 @@ describe("pushTick", () => {
       )
     })
 
-    it("an over-long credit is clamped on the wire and warned about", async () => {
+    it("an over-long credit is clamped on the wire and logged", async () => {
       const deps = makeDeps()
       deps.queue.pending = async () => [
         { queueId: "q1", recordId: "att-1", operation: "update", payload: null },
@@ -379,7 +379,8 @@ describe("pushTick", () => {
       await svc.pushTick()
       const sent = deps.calls.pushAttendance[0][0] as ServerAttendanceRecord[]
       expect(sent[0].credit).toBe(24 * 60 * 60 * 1000)
-      expect(deps.calls.logWarn.map((c) => c[0])).toContain("sync: credit clamped for push")
+      // CHANGED 2026-09-21 (RS-039): the clamp line is info, not warn.
+      expect(deps.calls.logInfo.map((c) => c[0])).toContain("sync: credit clamped for push")
       expect(deps.calls.markSynced.map((c) => c[0])).toEqual(["q1"])
     })
   })

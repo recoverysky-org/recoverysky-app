@@ -88,7 +88,9 @@ export async function saveInPersonTimerAttendance(
 
   if (clamped) {
     // PRIVACY: same field set as the info line below — no fix, no distance.
-    log.warn("In-person timer credit clamped to the daily maximum", {
+    // CHANGED 2026-09-21 (RS-039): warn → info, same reasoning as the
+    // external-Zoom clamp.
+    log.info("In-person timer credit clamped to the daily maximum", {
       attendanceId,
       mid: input.mid,
       rawCreditMs,

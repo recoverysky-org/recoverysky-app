@@ -80,7 +80,9 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
     try {
       const byUser = await reminderRepo.findByUserId(uid)
       if (byUser.ok) {
-        setReminders(byUser.value.filter((r) => gridMids.has(r.mid ?? "") || (sid && r.sid === sid)))
+        setReminders(
+          byUser.value.filter((r) => gridMids.has(r.mid ?? "") || (sid && r.sid === sid)),
+        )
       } else {
         setReminders([])
       }
@@ -149,6 +151,15 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
             at_start: created.at_start,
             enabled: created.enabled,
           })
+          // ADDED 2026-09-21 (RS-039): a non-ok result used to be silent here —
+          // only a thrown error was logged, and the Api module's own line was
+          // the sole record. Reminders are scheduled server-side, so a rejected
+          // create means the reminder the user just set will never fire; that
+          // is a user-visible failure (ERROR), not a transport blip.
+          .then((r) => {
+            if (r.kind !== "ok")
+              log.error("Reminder API sync rejected", { op: "create", kind: r.kind })
+          })
           .catch((e) => log.warn("API sync failed for createReminder", { error: String(e) }))
       }
 
@@ -191,6 +202,12 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
           enabled: updated?.enabled ?? true,
           ...input,
         })
+        // ADDED 2026-09-21 (RS-039): see createReminder — a rejected update
+        // leaves the server firing the old schedule.
+        .then((r) => {
+          if (r.kind !== "ok")
+            log.error("Reminder API sync rejected", { op: "update", kind: r.kind })
+        })
         .catch((e) => log.warn("API sync failed for updateReminder", { error: String(e) }))
     },
     [uid, did],
@@ -218,6 +235,12 @@ export function useReminders(meeting: MeetingWithTrex | null, sid: string): UseR
       // Fire-and-forget API sync
       api
         .deleteReminder(id, uid)
+        // ADDED 2026-09-21 (RS-039): see createReminder — a rejected delete
+        // means the server keeps pushing a reminder the user removed.
+        .then((r) => {
+          if (r.kind !== "ok")
+            log.error("Reminder API sync rejected", { op: "delete", kind: r.kind })
+        })
         .catch((e) => log.warn("API sync failed for deleteReminder", { error: String(e) }))
     },
     [uid],

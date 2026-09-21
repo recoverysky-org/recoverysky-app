@@ -57,7 +57,9 @@ async function ensureToken(): Promise<boolean> {
   }
 
   try {
-    log.debug("ensureToken: requesting push token from APNs/FCM", { projectId: projectId.slice(0, 8) + "..." })
+    log.debug("ensureToken: requesting push token from APNs/FCM", {
+      projectId: projectId.slice(0, 8) + "...",
+    })
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId })
     cachedToken = token
     log.info("ensureToken: push token obtained", { token: token.slice(0, 20) + "..." })
@@ -109,6 +111,12 @@ async function upsertToken(overrides?: { enabled?: boolean; language?: string })
 
   if (result.kind === "ok") {
     log.debug("upsertToken: success")
+  } else if (result.kind === "unauthorized") {
+    // CHANGED 2026-09-21 (RS-039): `unauthorized` is registration firing
+    // before sign-in (RS-012) — 415 WARN lines from 329 devices in a week
+    // for a known, benign ordering. INFO; every other kind stays WARN. The
+    // Api module's "Push token registration failed" line is debug now.
+    log.info("upsertToken: skipped — not signed in yet", { kind: result.kind })
   } else {
     log.warn("upsertToken: failed", { kind: result.kind })
   }
@@ -121,7 +129,8 @@ async function upsertToken(overrides?: { enabled?: boolean; language?: string })
  */
 export function initializeNotifications(): void {
   if (isInitialized) {
-    log.warn("initializeNotifications: already initialized, skipping")
+    // CHANGED 2026-09-21 (RS-039): warn → debug. An idempotency no-op.
+    log.debug("initializeNotifications: already initialized, skipping")
     return
   }
 

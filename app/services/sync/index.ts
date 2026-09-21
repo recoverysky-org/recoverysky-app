@@ -426,7 +426,8 @@ let initialized = false
  */
 export function initAttendanceSync(rootStore: RootStore): void {
   if (initialized) {
-    log.warn("initAttendanceSync called twice — ignoring")
+    // CHANGED 2026-09-21 (RS-039): warn → debug. An idempotency no-op.
+    log.debug("initAttendanceSync called twice — ignoring")
     return
   }
   initialized = true

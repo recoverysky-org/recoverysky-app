@@ -66,3 +66,44 @@ header of `app/services/crashReporting/sentry.ts`.
 **Privacy-policy dependency:** the policy must list a diagnostic identifier
 and the Loki retention window. The policy is not in this repo — re-check it
 whenever this table changes.
+
+# Log levels
+
+ADDED 2026-09-21 (RS-039). Before this the app reserved ERROR for a handful
+of infrastructure faults and logged the failures a user actually feels at
+WARN, so the dashboard's Errors tile read 0 for the whole fleet and was
+*right* — anything alerting or triaging on ERROR was blind. The level is the
+signal; pick it by what the user experienced, not by how surprised the code
+was.
+
+| Level   | Means                                                                 | Examples                                                                              |
+| ------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `fatal` | The app cannot continue                                               | attestation blocked, RootStore init failed                                             |
+| `error` | **A user-visible operation failed, or a session was lost**            | report send rejected, forced logout, maintenance mode entered, sign-in error shown     |
+| `warn`  | Degraded, retried, or recovered — the user may notice, nothing is lost | one venue pool failed (partial list), sync push backing off, token refreshed late      |
+| `info`  | State changes and recovery actions                                    | signed in, timer session restored, credit clamped to the daily max, backfill 404      |
+| `debug` | Transport and idempotency no-ops                                      | every `Api` request/response line, "already initialized, skipping"                    |
+| `trace` | Per-frame / per-row detail                                            |                                                                                       |
+
+Rules that fall out of the table:
+
+- **The `Api` module logs transport at `debug` and never judges severity.**
+  It does not know what the user was doing, so `Report detail fetch failed`
+  from a background backfill and from a user tapping a report look identical
+  to it. The **caller owns the level**: every non-`ok` result that matters
+  gets one line from the module that can judge it. Before 2026-09-21 the two
+  layers each logged the same failure at WARN, and ~2,000 of 4,205 weekly
+  WARN lines were that duplicate.
+- **`kind` is not a severity.** `not-found` is a normal answer for a lookup
+  (`checkFirebaseUser` for a new user, a report body Firebase never had).
+  Don't build a dashboard failure signal from `kind` alone.
+- **A retried failure is `warn` until the retry budget is spent**, then the
+  terminal outcome gets the level the user experiences: a config poll that
+  exhausts its ladder and flips `maintenanceMode` is `error`; the same ladder
+  giving up while the device is offline is `warn` (nothing we can fix).
+- **Known-benign storms go to `info`**, not `warn`, with the RS number in the
+  code comment — e.g. `upsertToken` before sign-in (RS-012), report-body 404
+  backfill (RS-018).
+
+Production ships `EXPO_PUBLIC_LOG_LEVEL=trace` (`eas.json`), so moving a line
+to `debug` changes what a dashboard counts, not what Loki stores.

@@ -45,6 +45,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   which opens the store page. The app keeps running after the tap: nobody
   is locked out, and the prompt simply comes back on the next launch until
   the store update is installed. RS-035.
+- **The ERROR log level now means a user felt something fail.** The app
+  reserved ERROR for a handful of infrastructure faults and logged the
+  failures users actually hit — a rejected report send, a forced sign-out, the
+  maintenance banner going up, a sign-in error on screen, a profile save that
+  never reached Auth0 — at WARN, so the Errors tile on the app-logs dashboard
+  read 0 for the whole fleet and was right. Those five paths are ERROR now.
+  In the other direction, the API transport layer no longer logs its own WARN
+  for every failed request (it cannot know whether the user was waiting on
+  it; the caller that can judge logs one line instead — that duplicate was
+  about half of all WARN volume), and a handful of known-benign lines
+  (report-body backfill 404s, push-token registration before sign-in, timer
+  credit clamps, "already initialized" no-ops, analytics send failures) are
+  INFO or DEBUG. Reminder create/update/delete and Settings → Delete All
+  Reminders now record a server rejection at ERROR where before only the
+  transport line existed — a rejected reminder never fires. The level policy
+  is written down in `docs/DIAGNOSTICS.md` "Log levels". Nothing changes on
+  screen; Loki volume is unchanged (production ships at `trace`). RS-039.
 
 ### Build
 - **The Sentry source-map upload no longer warns about a mismatched server

@@ -159,7 +159,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   // Log auth errors when they occur
   useEffect(() => {
     if (error) {
-      log.warn("Auth error displayed to user", { error })
+      // CHANGED 2026-09-21 (RS-039): warn → error. Sign-in is the core flow
+      // and this fires only for real failures — useAuth0Wrapper filters
+      // user-cancelled / declined before `error` is ever set.
+      log.error("Auth error displayed to user", { error })
     }
   }, [error])
 

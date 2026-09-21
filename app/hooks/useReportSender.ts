@@ -153,7 +153,10 @@ async function processApiResult(
   }
 
   trackEvent("report_delivery_failed")
-  logger.warn("Report API failed", { reportId, kind: apiResult.kind })
+  // CHANGED 2026-09-21 (RS-039): warn → error. The user tapped Send and the
+  // report did not go; they see the error state. The Api module's own
+  // "Send report failed" line is debug now, so this is the record.
+  logger.error("Report API failed", { reportId, kind: apiResult.kind })
   await attendanceReportRepo.update(reportId, { error: true })
   attendanceEvents.emit({ type: "produced", id: reportId, reportId })
   // CHANGED 2026-09-10: a 401 means the bearer was rejected. The API-client
