@@ -4,15 +4,25 @@ probably a device attestation failure
 # Identifiers in logs
 
 Every OTLP log record (→ Loki) carries these identity attributes, set via
-`logger.setContext()` in `app.tsx`. They are also emitted as OTel Resource
-attributes under the canonical names in parentheses.
+`logger.setContext()` in `app.tsx`. Lines logged at cold start before a key
+was known (`App module loaded`, `getDeviceId()`, `Database opened`, …) have
+it filled in at flush time; a key that was set to `undefined` (anonymous
+user, sign-out) is never filled in afterwards.
 
-| Attribute    | Resource key      | Value                                            | Lifetime            |
-| ------------ | ----------------- | ------------------------------------------------ | ------------------- |
-| `sessionId`  | `session.id`      | random per process launch                        | one cold start      |
-| `appVersion` | `service.version` | `{version}-{update}` (native + OTA counter)      | static              |
-| `deviceId`   | `device.id`       | install-scoped UUID (survives sign-in/sign-out)  | until reinstall     |
-| `userId`     | `user.id`         | **hashed** Auth0 `sub` (`hashUserId()`, 16 hex)  | signed-in only      |
+| Attribute    | Value                                            | Lifetime            |
+| ------------ | ------------------------------------------------ | ------------------- |
+| `sessionId`  | random per process launch                        | one cold start      |
+| `appVersion` | `{version}-{update}` (native + OTA counter)      | static              |
+| `deviceId`   | install-scoped UUID (survives sign-in/sign-out)  | until reinstall     |
+| `userId`     | **hashed** Auth0 `sub` (`hashUserId()`, 16 hex)  | signed-in only      |
+
+**One spelling from 4.10.1-9 on (RS-042).** Earlier builds also sent the
+identity as OTel Resource attributes (`session.id` / `device.id` /
+`user.id`), which Loki surfaces as `session_id` / `device_id` / `user_id`.
+Those were stamped at *flush* time, so every cold-start line carried only
+the snake_case spelling and `| userId="<hash>"` missed ~35 lines per launch.
+For windows that include older builds, match both:
+`| userId="<hash>" or user_id="<hash>"` (`bin/loki user` already does).
 
 **`userId` is never the raw Auth0 `sub`.** The sub embeds the identity
 provider and its account id (`google-oauth2|1098…`), which is
@@ -29,8 +39,8 @@ still personal data under GDPR, but nothing in the log alone reverses it.
 node -e 'const n=require("tweetnacl");const d=n.hash(new TextEncoder().encode(process.argv[1]));console.log(Buffer.from(d.subarray(0,8)).toString("hex"))' 'auth0|abc123'
 ```
 
-Query Loki with `{service_name="recoverysky-app"} | userId="<hash>"` (or
-`user_id` if the collector promoted the Resource attribute).
+Query Loki with `{service_name="recoverysky-app"} | userId="<hash>"` — plus
+`or user_id="<hash>"` for builds before 4.10.1-9 (see the table note above).
 
 **Reach of that lookup by build (RS-026, fixed 2026-09-16).** On builds before
 the fix, a child logger snapshotted the context at creation, so every

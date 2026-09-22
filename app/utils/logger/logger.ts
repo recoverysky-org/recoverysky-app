@@ -51,6 +51,41 @@ const CONTEXT_KEYS: ReadonlySet<string> = new Set([
   "user_id",
 ])
 
+/** The LoggerContext fields, in the order `log()` stamps them. */
+const CONTEXT_FIELDS: ReadonlyArray<keyof LoggerContext> = [
+  "sessionId",
+  "appVersion",
+  "deviceId",
+  "userId",
+]
+
+/**
+ * Late-bind identity onto records logged before it was known (RS-042).
+ *
+ * Cold start logs ~35 lines (`App module loaded`, `getDeviceId()`,
+ * `loadSqliteEncryptionKey()`, `Database opened`, …) before app.tsx calls
+ * `setContext({ deviceId })` and `setContext({ userId })`, and `flush()`
+ * holds them until /config supplies the OTLP key — by which point the
+ * context is complete. A record's `pendingContext` lists the keys that were
+ * still unresolved when it was logged; they are filled from the context
+ * now, and only when the record does not already carry them.
+ *
+ * "Unresolved" means never passed to `setContext` at all, NOT "currently
+ * absent": app.tsx writes `userId: undefined` explicitly for an anonymous
+ * user and on sign-out, which resolves the key as known-absent. So a line
+ * logged while signed out can never pick up a later sign-in's identity.
+ */
+function resolvePendingContext(records: LogRecord[], context: LoggerContext): void {
+  for (const record of records) {
+    if (!record.pendingContext) continue
+    for (const key of record.pendingContext) {
+      const value = context[key]
+      if (value && record.attributes[key] === undefined) record.attributes[key] = value
+    }
+    delete record.pendingContext
+  }
+}
+
 function withoutContextKeys(attributes: LogAttributes): LogAttributes {
   let out: LogAttributes | undefined
   for (const key of Object.keys(attributes)) {
@@ -80,15 +115,23 @@ class LoggerImpl implements Logger {
    * `this.context = { ...this.context, ...ctx }`.
    */
   private readonly context: LoggerContext
+  /**
+   * Context keys ever passed to `setContext`, even as `undefined` — see
+   * `resolvePendingContext`. Shared by reference with every child for the
+   * same reason `context` is.
+   */
+  private readonly resolvedKeys: Set<keyof LoggerContext>
   private hasLoggedStartup = false
 
   constructor(
     private config: LoggerConfig,
     baseAttributes: LogAttributes = {},
     context: LoggerContext = {},
+    resolvedKeys: Set<keyof LoggerContext> = new Set(),
   ) {
     this.baseAttributes = baseAttributes
     this.context = context
+    this.resolvedKeys = resolvedKeys
     this.startFlushTimer()
   }
 
@@ -137,6 +180,11 @@ class LoggerImpl implements Logger {
       ...(this.traceId && { traceId: this.traceId }),
       ...(this.spanId && { spanId: this.spanId }),
     }
+
+    // RS-042: remember which identity keys were not yet known, so flush can
+    // fill them in. After boot every key is resolved and this is a no-op.
+    const pending = CONTEXT_FIELDS.filter((key) => !this.resolvedKeys.has(key))
+    if (pending.length > 0) record.pendingContext = pending
 
     // Console output — gated on consoleInDev, which was previously dead: this
     // condition's second half was always true (shouldLog() already filtered
@@ -209,6 +257,10 @@ class LoggerImpl implements Logger {
     // service.version). This lets server-side bridges (Alloy → Loki) promote
     // them to labels / structured metadata without custom transforms. The
     // same fields stay on each LogRecord's attributes too — see otlp.ts.
+    // CHANGED 2026-09-22 (RS-042): the context now only supplies
+    // `service.version` to the Resource; identity rides on the records alone,
+    // late-bound here for lines logged before it was known.
+    resolvePendingContext(records, this.context)
     const result = await sendToOtlp(records, this.config, this.context)
 
     if (!result.ok) {
@@ -242,6 +294,11 @@ class LoggerImpl implements Logger {
     // which `log()` filters out; that is how app.tsx clears userId on
     // sign-out.
     Object.assign(this.context, context)
+    // RS-042: a key written here — even as undefined — is resolved, and
+    // records logged from now on are never back-filled with it.
+    for (const key of Object.keys(context)) {
+      this.resolvedKeys.add(key as keyof LoggerContext)
+    }
   }
 
   getContext(): LoggerContext {
@@ -258,7 +315,12 @@ class LoggerImpl implements Logger {
   child(attributes: LogAttributes): Logger {
     // The child receives the SAME context object, not a copy — that is the
     // whole mechanism by which a module-scope child stays current.
-    return new LoggerImpl(this.config, { ...this.baseAttributes, ...attributes }, this.context)
+    return new LoggerImpl(
+      this.config,
+      { ...this.baseAttributes, ...attributes },
+      this.context,
+      this.resolvedKeys,
+    )
   }
 
   logStartup(): void {

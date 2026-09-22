@@ -166,7 +166,7 @@ describeIfEndpoint("OTLP Integration Tests", () => {
       })
     })
 
-    it("should emit deviceId/sessionId as OTel canonical Resource attributes", () => {
+    it("should emit only service.name / service.version as Resource attributes", () => {
       const records: LogRecord[] = [
         {
           timestamp: 1704067200000,
@@ -180,59 +180,41 @@ describeIfEndpoint("OTLP Integration Tests", () => {
         deviceId: "device-abc",
         sessionId: "session-xyz",
         appVersion: "4.5.0",
+        userId: "0123456789abcdef",
       })
 
       const resourceAttrs = payload.resourceLogs[0].resource.attributes
-      // Canonical OTel semantic conventions
-      expect(resourceAttrs).toContainEqual({
-        key: "device.id",
-        value: { stringValue: "device-abc" },
-      })
-      expect(resourceAttrs).toContainEqual({
-        key: "session.id",
-        value: { stringValue: "session-xyz" },
-      })
       // appVersion in context overrides the config's serviceVersion
       expect(resourceAttrs).toContainEqual({
         key: "service.version",
         value: { stringValue: "4.5.0" },
       })
+      // CHANGED 2026-09-22 (RS-042): identity is per-record only. The Resource
+      // copies (device.id / session.id / user.id) were a second spelling in
+      // Loki and carried flush-time, not log-time, identity.
+      const keys = resourceAttrs.map((a) => a.key)
+      expect(keys).toEqual(["service.name", "service.version"])
       // Body must remain the raw message — never stringified attributes
       expect(payload.resourceLogs[0].scopeLogs[0].logRecords[0].body.stringValue).toBe(
         "Test message",
       )
     })
 
-    it("should omit absent context keys from Resource attributes", () => {
+    it("should never ship a record's pendingContext", () => {
       const records: LogRecord[] = [
         {
           timestamp: 1704067200000,
           level: "info",
           message: "x",
-          attributes: {},
+          attributes: { deviceId: "device-abc" },
+          pendingContext: ["userId"],
         },
       ]
 
-      const payload = toOtlpPayload(records, testConfig, { deviceId: "device-only" })
-      const resourceAttrs = payload.resourceLogs[0].resource.attributes
-      const keys = resourceAttrs.map((a) => a.key)
+      const payload = toOtlpPayload(records, testConfig)
+      const logRecord = payload.resourceLogs[0].scopeLogs[0].logRecords[0]
 
-      expect(keys).toContain("device.id")
-      expect(keys).not.toContain("session.id")
-    })
-
-    it("should emit userId as the OTel `user.id` Resource attribute", () => {
-      const records: LogRecord[] = [
-        { timestamp: 1704067200000, level: "info", message: "x", attributes: {} },
-      ]
-
-      const payload = toOtlpPayload(records, testConfig, { userId: "0123456789abcdef" })
-      const resourceAttrs = payload.resourceLogs[0].resource.attributes
-
-      expect(resourceAttrs).toContainEqual({
-        key: "user.id",
-        value: { stringValue: "0123456789abcdef" },
-      })
+      expect(JSON.stringify(logRecord)).not.toContain("pendingContext")
     })
   })
 

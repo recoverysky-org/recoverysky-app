@@ -63,6 +63,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   closed underneath it, so nothing can query it before the reload lands. The
   logger also flushes its pending batch before a reload, which is why those
   errors had never reached Loki. Sentry RECOVERYSKY-APP-1X.
+- **Cold-start log lines are attributable to their user again.** The first
+  ~35 lines of every launch (`App module loaded`, `getDeviceId()`, `Database
+  opened`, `setTokens()`, …) are logged before `app.tsx` knows the device
+  and user, then held until `/config` supplies the log key. They reached
+  Loki with identity only as `user_id` / `device_id` (the OTLP Resource,
+  stamped at flush time), so a `| userId="<hash>"` lookup silently missed
+  them, roughly 750 lines an hour. The logger now fills in identity keys
+  that had never been set when a line was logged, at flush time. A key
+  set to empty (anonymous user, sign-out) is never filled in, so a
+  signed-out line can't pick up the next sign-in. The Resource no longer
+  carries `device.id` / `session.id` / `user.id`, so camelCase is the only
+  spelling. RS-042.
 
 ### Changed
 - **The "New Version Available" prompt no longer has a Cancel button.** A
