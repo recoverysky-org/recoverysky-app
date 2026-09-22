@@ -67,6 +67,69 @@ header of `app/services/crashReporting/sentry.ts`.
 and the Loki retention window. The policy is not in this repo — re-check it
 whenever this table changes.
 
+# Tracing
+
+ADDED 2026-09-21. The app starts a distributed trace for every RecoverySky
+API request and records no spans of its own: the auth gate sends a W3C
+`traceparent` header with a fresh random trace id, and the response monitor
+writes one `"API request"` debug line (module `Api`) with `method`, `url`
+(query string stripped), `status`, `durationMs`, `problem` when there was
+one, and `traceId`. The API's OpenTelemetry http instrumentation continues
+the id, so its pino lines carry the same `traceId` and Tempo stores the
+server-side trace under it. Ids are random per request and identify nothing.
+
+**From an app symptom to the server's side of it:**
+
+```logql
+# 1. The app's line for the request (structured metadata, no regex needed)
+{service_name="recoverysky-app"} | module="Api" | status="401" | url="/config"
+#    → copy traceId from the line
+
+# 2. The API's lines for the same request (container stdout via the per-node
+#    Alloy, so the stream label is the swarm service name; pino JSON with
+#    traceId in the body)
+{service_name="app_api"} |= "<traceId>"
+
+# 3. The trace itself: Explore → Tempo → TraceQL
+{ trace:id = "<traceId>" }
+```
+
+Tempo keeps 72 h of blocks (`stacks/observability`), Loki 31 days — after
+three days only steps 1–2 work.
+
+Verified live 2026-09-22 against api 1.12.1: the app's `GET /schedules/live`
+id resolved in Tempo to a `SERVER` span whose parent is the app's span id,
+with the Express middleware / router / handler children under it; `/config`
+and `/status` ids 404 in Tempo because the API's `ignorePaths` drops them.
+`tempo.rso` answers `GET /api/traces/<id>` and `/api/search?tags=…` from the
+workstation (plain http, via the ingress Caddy).
+
+**Stacks-side prerequisites** (not in this repo; check before assuming a
+missing trace is an app bug):
+
+- The API exports spans only when Infisical sets `API_OTEL_TRACE_EXPORTER=otlp`
+  and `API_OTEL_TRACES_ENDPOINT=http://ingress_alloy:4318/v1/traces`
+  (`stacks/app/stack.yml` defaults to `console` / empty; the trex-engine,
+  scraper and hugo entries in the same file show the working shape). Until
+  then step 3 finds nothing and steps 1–2 still work.
+- Step 2 needs the API's console transport to print `traceId`: its
+  `wonder-logger.yaml` `includeFields` lists only `version` as of 1.12.1, so
+  the id the traceContext plugin stamps never reaches stdout → Loki. Until
+  `traceId` (and `spanId`) are added there, go app line → Tempo directly
+  (steps 1 and 3), and use the API's `requestId` for its own lines.
+- The app marks every request sampled, and the API's sampler is ParentBased,
+  so the API's `sampleRate` does not apply to app traffic — only to requests
+  with no `traceparent` (probes, webhooks, curl). If `/config` polls need to
+  stay out of Tempo, that is the API's route-based ignore list, not a flag on
+  the app side: the app can't know which poll will be the one that fails.
+- Grafana's Loki datasource links `traceId` to Tempo with a regex over the
+  line body (`"traceId":"(\w+)"` in
+  `stacks/observability/grafana/etc/provisioning/datasources/datasources.yml`).
+  That matches the API's pino lines. The app's `traceId` is structured
+  metadata, not body text, so the click-through from an app line needs a
+  second derived field with `matcherType: label` on `traceId`. Step 1's copy
+  and paste works regardless.
+
 # Log levels
 
 ADDED 2026-09-21 (RS-039). Before this the app reserved ERROR for a handful

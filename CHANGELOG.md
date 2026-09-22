@@ -22,6 +22,21 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **Every API request now starts a distributed trace.** The auth gate stamps
+  a W3C `traceparent` header with a fresh random trace id on each request,
+  and a new per-response debug line (`"API request"`, module `Api`) records
+  the method, path, status, duration and that `traceId`. The API's OpenTelemetry
+  instrumentation continues the id rather than minting its own, so the app's
+  Loki line, the API's pino lines and the Tempo trace for one request all
+  share it — the support recipe is in `docs/DIAGNOSTICS.md` "Tracing". The
+  app still records no spans of its own (no tracing SDK, nothing extra on
+  battery or the wire beyond one 55-byte header). Ids are random and carry no
+  identity. Pure logic in `app/services/api/traceparentLogic.ts`, vitest-covered.
+  Nothing shows in Tempo until the API's `API_OTEL_TRACE_EXPORTER` /
+  `API_OTEL_TRACES_ENDPOINT` point at the ingress Alloy (stacks-side, see the
+  same doc section).
+
 ### Fixed
 - **A valid device token is no longer thrown away when a signed-in request
   goes out without a user token.** The server answers a request that carries

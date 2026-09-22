@@ -25,9 +25,35 @@ import {
   bearerRejectionCode,
   deviceJwtRejected,
   noDeviceCredentialAdapter,
+  readHeader,
 } from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
+import {
+  makeTraceContext,
+  traceIdFromTraceparent,
+  TRACE_CONTEXT_BYTES,
+  TRACEPARENT_HEADER,
+} from "./traceparentLogic"
 import type { ApiConfig } from "./types"
+
+/**
+ * A fresh W3C `traceparent` value for one outbound request, or undefined when
+ * no CSPRNG is reachable. `crypto.getRandomValues` is expo-crypto's, installed
+ * by app/utils/cryptoPolyfill.ts as the first import in index.tsx (Hermes has
+ * no global crypto); web has the real thing. Never throws: this runs inside
+ * the async request transform, where a rejection would fail the request
+ * itself — a missing trace id is worth nothing, a failed request is worth
+ * less than nothing.
+ */
+function newTraceparent(): string | undefined {
+  try {
+    const bytes = new Uint8Array(TRACE_CONTEXT_BYTES)
+    globalThis.crypto.getRandomValues(bytes)
+    return makeTraceContext(bytes).traceparent
+  } catch {
+    return undefined
+  }
+}
 
 /**
  * Classifies an api response's problem and tracks an `api_error` analytics
@@ -464,6 +490,40 @@ export class Api {
 
     this.installAuthGate()
     this.installBearerRejectionMonitor()
+    this.installRequestTraceMonitor()
+  }
+
+  /**
+   * One debug line per RecoverySky response carrying the trace id the auth
+   * gate stamped on the request, so `{module="Api"} | traceId="…"` in Loki
+   * finds the app's side of a Tempo trace and vice versa.
+   *
+   * ADDED 2026-09-21. The id goes on the line as an ordinary attribute, NOT
+   * through `logger.setTraceContext()`: that setter is instance-wide and
+   * requests overlap, so a per-request id set there would be stamped on
+   * whichever unrelated lines happened to be written before the next request
+   * overwrote it. Loki's native OTLP ingestion lands attributes and the OTLP
+   * trace field in structured metadata alike, so nothing is lost query-wise.
+   *
+   * Debug, per the RS-039 policy (transport detail; the caller owns the
+   * user-facing level). Production ships LOG_LEVEL=trace, so it reaches Loki.
+   * The query string is stripped from the url on purpose — DELETE /reminders
+   * carries the uid there.
+   */
+  private installRequestTraceMonitor() {
+    this.recoverySkyApi.addMonitor((response) => {
+      const traceId = traceIdFromTraceparent(
+        readHeader(response.config?.headers, TRACEPARENT_HEADER),
+      )
+      log.debug("API request", {
+        method: response.config?.method?.toUpperCase(),
+        url: response.config?.url?.split("?")[0],
+        status: response.status,
+        durationMs: response.duration,
+        ...(response.problem && { problem: response.problem }),
+        ...(traceId && { traceId }),
+      })
+    })
   }
 
   // ===========================================================================
@@ -502,6 +562,16 @@ export class Api {
       // leak to the wire. Re-verify the header type on upgrade.
       const headers = (request.headers ?? {}) as Record<string, string>
       request.headers = headers as typeof request.headers
+
+      // ADDED 2026-09-21: start a trace for every request, BEFORE the bypass
+      // below so the attest exchanges and the /status/ready probe — the
+      // requests we most often need to see server-side — are traced too. The
+      // API's http instrumentation continues this id into Tempo, and the
+      // response monitor (installRequestTraceMonitor) logs the same id so a
+      // Loki line for this request links to that trace. See
+      // traceparentLogic.ts for why the app starts traces but records no spans.
+      const traceparent = newTraceparent()
+      if (traceparent) headers[TRACEPARENT_HEADER] = traceparent
 
       // Bypass. The three attest exchanges — getAttestChallenge(),
       // verifyAttestation(), assertAttestation() — are called while we are

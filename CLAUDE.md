@@ -1004,6 +1004,20 @@ in, `userId` — which is **always the `hashUserId()` form, never the raw Auth0
 `authEmail`, `shortName`, or coordinates directly; see `docs/DIAGNOSTICS.md`
 "Identifiers in logs" for the table and the support lookup recipe.
 
+**Tracing (ADDED 2026-09-21): the app starts traces but records no spans.**
+There is no OTel tracing SDK in the app and it should stay that way — a
+tracer in Hermes costs polyfills, battery and network on a recovery app, and
+client-side timings are already in Loki keyed by `sessionId`. Instead the
+auth gate in `app/services/api/index.ts` stamps a random W3C `traceparent` on
+every request (pure helpers in `traceparentLogic.ts`, vitest-covered) and
+`installRequestTraceMonitor` logs one `"API request"` debug line per response
+with the same `traceId`. The API's wonder-logger/OTel instrumentation
+continues that id into Tempo. The id goes on the line as an attribute, never
+via `logger.setTraceContext()` — that setter is instance-wide and requests
+overlap. Recipe in `docs/DIAGNOSTICS.md` "Tracing". Sentry's
+`tracesSampleRate` is 0 on purpose; don't turn it on as a shortcut to
+"tracing" — it goes to Sentry, not Tempo.
+
 ## Environment Variables
 
 `EXPO_PUBLIC_*` variables are baked in at build time. For local development:
