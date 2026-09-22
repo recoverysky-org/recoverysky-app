@@ -75,6 +75,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   signed-out line can't pick up the next sign-in. The Resource no longer
   carries `device.id` / `session.id` / `user.id`, so camelCase is the only
   spelling. RS-042.
+- **A wrong-key database now offers "Reset local data" as intended.** The
+  RS-024 fix classified open failures from the error's text, but the
+  wrong-key code (`Error code 7: out of memory`) is on the Drizzle error's
+  `cause`, not in its text, so every real occurrence was labelled `unknown`.
+  For `unknown` the loading overlay offers only Retry, which can never
+  unlock the file. Two devices were stuck behind that screen on 4.10.1-2
+  to 4.10.1-4 until they reinstalled. The classifier now reads the whole
+  cause chain, and the log line carries the root cause. RS-024.
 
 ### Changed
 - **The "New Version Available" prompt no longer has a Cancel button.** A

@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest"
 import {
   classifyDbOpenFailure,
   decideKeyAcquisition,
+  errorChainText,
   nextAutoRetryDelayMs,
+  rootCauseLine,
   SQLITE_KEY_MISSING_MARKER,
 } from "./dbOpenLogic"
 
@@ -67,6 +69,42 @@ describe("classifyDbOpenFailure", () => {
 
   it("falls back to unknown", () => {
     expect(classifyDbOpenFailure("Error: something else entirely")).toBe("unknown")
+  })
+})
+
+// RS-024 (2026-09-22): the real failure is a DrizzleError whose wrong-key
+// code lives on `.cause`; `String(e)` alone classified it "unknown" and hid
+// the Reset button. These use real Error objects, not a pre-joined string.
+describe("errorChainText / rootCauseLine", () => {
+  const sqlite = new Error("SQLiteErrorException: Error code 7: out of memory")
+  const drizzle = new Error(
+    "Failed to run the query 'CREATE TABLE IF NOT EXISTS \"__drizzle_migrations\" (\n id SERIAL PRIMARY KEY\n)'",
+    { cause: sqlite },
+  )
+
+  it("reaches the wrong-key code on the cause", () => {
+    expect(classifyDbOpenFailure(String(drizzle))).toBe("unknown")
+    expect(classifyDbOpenFailure(errorChainText(drizzle))).toBe("key-mismatch")
+  })
+
+  it("walks more than one level", () => {
+    const outer = new Error("FunctionCallException: 'prepareSync'", { cause: drizzle })
+    expect(classifyDbOpenFailure(errorChainText(outer))).toBe("key-mismatch")
+    expect(rootCauseLine(outer)).toBe("Error: SQLiteErrorException: Error code 7: out of memory")
+  })
+
+  it("handles non-Error values and a cyclic chain", () => {
+    expect(errorChainText("plain string")).toBe("plain string")
+    expect(rootCauseLine(undefined)).toBe("undefined")
+    const a = new Error("a")
+    const b = new Error("b", { cause: a })
+    ;(a as { cause?: unknown }).cause = b
+    expect(errorChainText(a)).toBe("Error: a\nError: b")
+    expect(() => rootCauseLine(a)).not.toThrow()
+  })
+
+  it("returns the first line of a multi-line root", () => {
+    expect(rootCauseLine(new Error("line one\nline two"))).toBe("Error: line one")
   })
 })
 

@@ -60,10 +60,53 @@ export function decideKeyAcquisition(input: {
 }
 
 /**
+ * Flatten an error and its `.cause` chain into one string for
+ * `classifyDbOpenFailure`, outermost first, one link per line.
+ *
+ * ADDED 2026-09-22 (RS-024): the provider used to classify `String(e)`. For
+ * the real failure that is a DrizzleError whose message is only "Failed to
+ * run the query '…'"; the SQLiteErrorException carrying "Error code 7: out of
+ * memory" lives on `e.cause`, which `String()` never includes. Every
+ * wrong-key open on 4.10.1-2..-4 was therefore logged `kind: unknown` (82
+ * lines, two devices, 09-14..09-16), and `unknown` shows Retry only — the
+ * Reset local data button the fix existed to offer never appeared.
+ */
+export function errorChainText(error: unknown): string {
+  const parts: string[] = []
+  const seen = new Set<unknown>()
+  let current: unknown = error
+  // Depth cap and `seen` guard against cyclic or pathological cause chains.
+  while (current !== undefined && current !== null && !seen.has(current) && parts.length < 8) {
+    seen.add(current)
+    parts.push(String(current))
+    current = current instanceof Error ? current.cause : undefined
+  }
+  return parts.join("\n")
+}
+
+/**
+ * First line of the innermost error in the `.cause` chain — the part worth
+ * logging. ADDED 2026-09-22 (RS-024): the outer DrizzleError's first line is
+ * literally "Failed to run the query '", which is all Loki ever showed.
+ */
+export function rootCauseLine(error: unknown): string {
+  let current: unknown = error
+  const seen = new Set<unknown>()
+  while (current instanceof Error && current.cause !== undefined && !seen.has(current)) {
+    seen.add(current)
+    current = current.cause
+  }
+  return String(current).split("\n")[0]
+}
+
+/**
  * Classify a database-open failure from its stringified error. Patterns are
  * the exact strings expo-sqlite / expo-secure-store produce on iOS and
  * Android; keep them loose (substring) because the message arrives wrapped in
  * DrizzleError / FunctionCallException text.
+ *
+ * CHANGED 2026-09-22 (RS-024): pass `errorChainText(e)`, not `String(e)` —
+ * the wrapping is a `.cause` chain, not text; see `errorChainText`.
  */
 export function classifyDbOpenFailure(message: string): DbOpenFailureKind {
   if (message.includes(SQLITE_KEY_MISSING_MARKER)) return "key-missing"

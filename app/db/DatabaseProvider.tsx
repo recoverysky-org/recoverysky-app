@@ -37,8 +37,10 @@ import { logger } from "@/utils/logger"
 import { acquireSqliteEncryptionKey } from "./acquireKey"
 import {
   classifyDbOpenFailure,
+  errorChainText,
   isTransientFailure,
   nextAutoRetryDelayMs,
+  rootCauseLine,
   type DbOpenFailureKind,
 } from "./dbOpenLogic"
 import { feedbackCache } from "./feedbackCache"
@@ -192,7 +194,9 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
       transition("seeded")
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
-      const kind = classifyDbOpenFailure(String(e))
+      // CHANGED 2026-09-22 (RS-024): classify the whole cause chain — the
+      // wrong-key code sits on the DrizzleError's `.cause`, not in its text.
+      const kind = classifyDbOpenFailure(errorChainText(e))
       attemptRef.current = attempt
       const retryInMs = nextAutoRetryDelayMs(kind, attempt)
       // One line per attempt, with the classification and the first line of
@@ -205,6 +209,9 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
         encryptedFileBytes: encryptedDatabaseBytes(),
         retryInMs: retryInMs ?? undefined,
         error: message.split("\n")[0],
+        // ADDED 2026-09-22 (RS-024): the innermost cause (e.g. "Error code 7:
+        // out of memory") — `error` above is only the DrizzleError wrapper.
+        cause: rootCauseLine(e),
       })
       // Release the connection: SQLCipher latches a codec error on the
       // handle that hit it and expo-sqlite would hand the same cached native
