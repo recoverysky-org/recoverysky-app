@@ -38,6 +38,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   same doc section).
 
 ### Fixed
+- **The Home clean-time counter now advances on its own.** It froze at the day
+  the app was last cold-started: the card memoized its breakdown on the
+  recovery date alone and `cleanDays` was a cached computed reading
+  `new Date()`, so neither ever re-ran while Home stayed mounted behind the
+  other tabs. A phone that kept the app alive in the background could show the
+  same count for days, milestones included. Both now read an observable local
+  date that ticks at midnight and on foreground. The `(Nd)` suffix in the
+  display name had the same freeze (plus a UTC off-by-one) and now reuses
+  `cleanDays`.
 - **A valid device token is no longer thrown away when a signed-in request
   goes out without a user token.** The server answers a request that carries
   no `Authorization` header with a plain 401, after it has already accepted

@@ -5,6 +5,7 @@ import { liveEvents } from "@/db"
 import { profileRepository } from "@/db/repositories"
 import { changeLanguage, translate } from "@/i18n"
 import { todayLocalISODate } from "@/utils/localDate"
+import { getLocalDay } from "@/utils/localDay"
 import { logger } from "@/utils/logger"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
@@ -148,8 +149,12 @@ export const ProfileStoreModel = types
     get cleanDays(): number {
       // Use T12:00:00 to avoid timezone boundary issues
       const recovery = new Date(self.recoveryDate + "T12:00:00")
-      const today = new Date()
-      today.setHours(12, 0, 0, 0) // Normalize to noon for consistent day calculation
+      // Normalize to noon for consistent day calculation.
+      // CHANGED 2026-09-22: "today" comes from the observable getLocalDay()
+      // instead of `new Date()`. A computed is cached while observed and the
+      // clock isn't a dependency, so the count froze at the cold-start day
+      // for as long as the app stayed alive in the background.
+      const today = new Date(getLocalDay() + "T12:00:00")
       const diffTime = Math.abs(today.getTime() - recovery.getTime())
       return Math.floor(diffTime / (1000 * 60 * 60 * 24))
     },
@@ -196,11 +201,10 @@ export const ProfileStoreModel = types
         parts.push(self.recoveryDate)
       }
       if (self.showCleanDays) {
-        const days = Math.floor(
-          Math.abs(new Date().getTime() - new Date(self.recoveryDate).getTime()) /
-            (1000 * 60 * 60 * 24),
-        )
-        parts.push(`${days}d`)
+        // CHANGED 2026-09-22: was an inline `new Date()` diff, which froze with
+        // the computed cache (see cleanDays) and parsed recoveryDate as UTC
+        // midnight — off by one for devices behind UTC. cleanDays fixes both.
+        parts.push(`${this.cleanDays}d`)
       }
 
       if (parts.length > 0) {
