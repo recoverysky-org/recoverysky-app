@@ -157,8 +157,12 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         // ADDED 2026-09-21 (RS-039): the Api module's "News fetch failed" line
         // is debug now, so this is the only record. WARN, not ERROR — Home
         // renders without the card and nothing the user did is lost.
+        // CHANGED 2026-09-22: WARN → DEBUG. A missing news card is routine
+        // (no news published, offline, degraded device lane) and the WARN was
+        // pure noise in Loki; the line stays at debug for when news is
+        // actually being investigated.
         if (result.kind !== "ok")
-          log.warn("News unavailable — hiding the card", { kind: result.kind })
+          log.debug("News unavailable — hiding the card", { kind: result.kind })
         setNewsTitle("")
         setNewsBody("")
       }
