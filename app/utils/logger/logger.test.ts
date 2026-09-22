@@ -116,7 +116,7 @@ describe("Logger", () => {
         apiKey: "test-key",
       })
 
-      logger.info("Test message", { userId: "123", action: "login" })
+      logger.info("Test message", { requestId: "123", action: "login" })
 
       await logger.flush()
 
@@ -125,7 +125,7 @@ describe("Logger", () => {
       expect(records[0]).toMatchObject({
         level: "info",
         message: "Test message",
-        attributes: { userId: "123", action: "login" },
+        attributes: { requestId: "123", action: "login" },
       })
       expect(records[0].timestamp).toBeTypeOf("number")
 
@@ -554,7 +554,9 @@ describe("Logger", () => {
       logger.destroy()
     })
 
-    it("should prioritize per-call attributes over context", async () => {
+    // CHANGED 2026-09-22 (RS-043): context keys are reserved — per-call values
+    // used to win, which is how a raw-sub prefix replaced the hashed userId.
+    it("should not let per-call attributes override context keys", async () => {
       const logger = createLogger({
         minLevel: "info",
         consoleInDev: false,
@@ -562,13 +564,81 @@ describe("Logger", () => {
         apiKey: "test-key",
       })
 
-      logger.setContext({ sessionId: "context-session" })
-      logger.info("Override test", { sessionId: "override-session" })
+      logger.setContext({ sessionId: "context-session", userId: "0123456789abcdef" })
+      logger.info("Override test", {
+        sessionId: "override-session",
+        userId: "google-o...",
+        user_id: "forged",
+        module: "kept",
+      })
 
       await logger.flush()
 
       const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
-      expect(records[0].attributes.sessionId).toBe("override-session")
+      expect(records[0].attributes).toEqual({
+        sessionId: "context-session",
+        userId: "0123456789abcdef",
+        module: "kept",
+      })
+
+      logger.destroy()
+    })
+
+    it("should drop a per-call context key even when context lacks it", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      // Anonymous user: no userId in context, so there is nothing to win the
+      // spread — the caller's value must still not reach the record.
+      logger.setContext({ deviceId: "device-hash" })
+      logger.info("Anonymous", { userId: "auth0|6a...", deviceId: "raw-dev..." })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ deviceId: "device-hash" })
+
+      logger.destroy()
+    })
+
+    it("should not let child attributes override context keys", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.setContext({ appVersion: "4.10.1-8" })
+      const child = logger.child({ module: "Push", appVersion: "stale" })
+      child.info("From child")
+
+      await child.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ appVersion: "4.10.1-8", module: "Push" })
+
+      logger.destroy()
+    })
+
+    it("should keep traceId as an ordinary per-call attribute", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.info("API request", { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes.traceId).toBe("4bf92f3577b34da6a3ce929d0e0e4736")
 
       logger.destroy()
     })

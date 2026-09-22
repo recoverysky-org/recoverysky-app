@@ -37,6 +37,30 @@ const CONSOLE_METHODS: Record<LogLevel, keyof Console> = {
   fatal: "error",
 }
 
+/**
+ * Attribute keys owned by `LoggerContext`. Only the logger may set them, from
+ * context — see the RS-043 note in `log()`. `user_id` is the spelling Loki
+ * derives from the `user.id` resource attribute, reserved so no caller can
+ * forge that one either.
+ */
+const CONTEXT_KEYS: ReadonlySet<string> = new Set([
+  "sessionId",
+  "appVersion",
+  "deviceId",
+  "userId",
+  "user_id",
+])
+
+function withoutContextKeys(attributes: LogAttributes): LogAttributes {
+  let out: LogAttributes | undefined
+  for (const key of Object.keys(attributes)) {
+    if (!CONTEXT_KEYS.has(key)) continue
+    out ??= { ...attributes }
+    delete out[key]
+  }
+  return out ?? attributes
+}
+
 class LoggerImpl implements Logger {
   private buffer: LogRecord[] = []
   private flushTimer: ReturnType<typeof setInterval> | null = null
@@ -93,11 +117,23 @@ class LoggerImpl implements Logger {
     // Hashed, never raw — see hashUserId.ts and the LoggerContext doc comment.
     if (this.context.userId) contextAttrs.userId = this.context.userId
 
+    // ADDED 2026-09-22 (RS-043): per-call and child attributes can no longer
+    // set the context keys. They used to win the spread below, and the push
+    // path's `userId: sub.slice(0, 8) + "..."` replaced the hashed userId on
+    // ~950 lines a day — unattributable, and part of the raw sub in Loki.
+    // Stripping (rather than just spreading context last) also covers an
+    // anonymous user, whose context has no userId for a caller's to lose to.
+    // `traceId` is deliberately NOT reserved: the per-request "API request"
+    // line carries it as an attribute (see the Tracing note in CLAUDE.md).
     const record: LogRecord = {
       timestamp: Date.now(),
       level,
       message,
-      attributes: { ...contextAttrs, ...this.baseAttributes, ...attributes },
+      attributes: {
+        ...contextAttrs,
+        ...withoutContextKeys(this.baseAttributes),
+        ...withoutContextKeys(attributes),
+      },
       ...(this.traceId && { traceId: this.traceId }),
       ...(this.spanId && { spanId: this.spanId }),
     }

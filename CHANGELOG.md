@@ -91,6 +91,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   is written down in `docs/DIAGNOSTICS.md` "Log levels". Nothing changes on
   screen; Loki volume is unchanged (production ships at `trace`). RS-039.
 
+### Security
+- **Push-token logs no longer carry part of the raw Auth0 sub.** Three
+  push-registration log lines logged `userId` / `deviceId` as their first
+  eight characters (`google-o...`, `apple|00...`). Those keys are the
+  logger's own identity fields, so the truncated raw value replaced the
+  hashed `userId` on the line: about 950 lines a day that couldn't be
+  matched to a user, each carrying a fragment of the identity that
+  `hashUserId` exists to keep out of Loki. The fields are gone, and the
+  logger now removes `sessionId` / `appVersion` / `deviceId` / `userId` /
+  `user_id` from per-call and child attributes, so only the context can set
+  them. `traceId` stays an ordinary attribute. This has to land before
+  RS-042's removal of the snake_case `user_id`. RS-043.
+
 ### Build
 - **The Sentry source-map upload no longer warns about a mismatched server
   URL.** The Sentry plugin entry in `app.json` spelled the server as

@@ -1759,7 +1759,10 @@ export class Api {
     language?: string
     enabled?: boolean
   }): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    log.debug("Registering push token", { userId: input.userId.slice(0, 8) + "..." })
+    // CHANGED 2026-09-22 (RS-043): no `userId` field — it was the first eight
+    // characters of the raw Auth0 sub and overwrote the logger's hashed
+    // userId on this line. The hashed identity is already on every record.
+    log.debug("Registering push token")
 
     const response = await this.recoverySkyApi.post("/push-tokens/", input)
 

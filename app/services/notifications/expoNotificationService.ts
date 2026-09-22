@@ -99,9 +99,12 @@ async function upsertToken(overrides?: { enabled?: boolean; language?: string })
     ...overrides,
   }
 
+  // CHANGED 2026-09-22 (RS-043): no `userId` / `deviceId` fields here. They
+  // were `.slice(0, 8)` of the raw Auth0 sub / device id, and because the
+  // keys collide with the logger's identity context they REPLACED the hashed
+  // userId on the line — unattributable, and eight characters of raw sub in
+  // Loki. The logger already stamps the hashed identity on every record.
   log.debug("upsertToken: POST /push-tokens/", {
-    userId: payload.userId.slice(0, 8) + "...",
-    deviceId: payload.deviceId.slice(0, 8) + "...",
     token: payload.token.slice(0, 20) + "...",
     platform: payload.platform,
     ...overrides,
@@ -153,10 +156,8 @@ export function initializeNotifications(): void {
  * Call when user authenticates or re-authenticates.
  */
 export async function registerPushToken(userId: string, deviceId: string): Promise<void> {
-  log.debug("registerPushToken: called", {
-    userId: userId.slice(0, 8) + "...",
-    deviceId: deviceId.slice(0, 8) + "...",
-  })
+  // CHANGED 2026-09-22 (RS-043): identity fields removed — see upsertToken.
+  log.debug("registerPushToken: called")
   cachedUserId = userId
   cachedDeviceId = deviceId
 
