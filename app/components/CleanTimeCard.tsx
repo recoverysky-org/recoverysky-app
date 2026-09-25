@@ -5,7 +5,7 @@
  * total days, clean date, and progress toward the next milestone.
  */
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { Platform, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
@@ -101,7 +101,6 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
   // Inline date editor — mirrors the Settings recovery-date picker so users
   // can adjust their start date directly from the dashboard.
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const endOfYear = useRef(new Date(new Date().getFullYear(), 11, 31)).current
   const isDarkMode = themeContext === "dark"
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -116,6 +115,12 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
   // Read in render so observer() tracks it: the card re-renders when the local
   // date rolls over (midnight, or foregrounding on a later day).
   const today = getLocalDay()
+
+  // Picker ceiling: Dec 31 of the current local year.
+  // CHANGED 2026-09-25: was a useRef captured on first render, so an app kept
+  // alive across New Year still capped the picker at last year's Dec 31 and a
+  // January recovery date couldn't be chosen until a cold start.
+  const endOfYear = useMemo(() => new Date(Number(today.slice(0, 4)), 11, 31), [today])
 
   const breakdown = useMemo(
     () => computeBreakdown(profileStore.recoveryDate, today),

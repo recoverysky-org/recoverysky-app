@@ -156,7 +156,12 @@ export const ProfileStoreModel = types
       // for as long as the app stayed alive in the background.
       const today = new Date(getLocalDay() + "T12:00:00")
       const diffTime = Math.abs(today.getTime() - recovery.getTime())
-      return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      // CHANGED 2026-09-25: was Math.floor. Noon to noon is 1 h short of a whole
+      // number of days whenever a spring-forward DST change sits between the
+      // two dates without its matching fall-back, and flooring dropped a day
+      // for most of the year (US: Jan 1 → Sep 25 read 266, not 267) — the
+      // `(Nd)` in displayName then disagreed with CleanTimeCard's exact count.
+      return Math.round(diffTime / (1000 * 60 * 60 * 24))
     },
 
     /**

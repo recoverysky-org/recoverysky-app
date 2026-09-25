@@ -38,18 +38,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   same doc section).
 
 ### Fixed
-- **The Home clean-time counter now advances on its own.** It froze at the day
-  the app was last cold-started: the card memoized its breakdown on the
-  recovery date alone and `cleanDays` was a cached computed reading
-  `new Date()`, so neither ever re-ran while Home stayed mounted behind the
-  other tabs. A phone that kept the app alive in the background could show the
-  same count for days, milestones included. Both now read an observable local
-  date that ticks at midnight and on foreground. The `(Nd)` suffix in the
-  display name had the same freeze (plus a UTC off-by-one) and now reuses
-  `cleanDays`. The Home recovery chart (its "today" edge) and the 90-in-90
-  card ("Day N of 90") froze the same way and now follow the same clock. The
-  90-in-90 day count also no longer drops a day for the rest of the challenge
-  once it spans the spring-forward DST change.
+- **The `(Nd)` clean-days count no longer reads a day short.** It rounded a
+  noon-to-noon difference down, so across a spring-forward DST change it lost a
+  day for most of the year (US: Jan 1 → Sep 25 showed 266, not 267) and
+  disagreed with the clean-time card. The Money Saved card had the same
+  midnight freeze as the other Home cards and now advances too, and the
+  recovery-date picker's Dec 31 limit follows the year instead of staying on
+  the year the app was launched in.
+- **Starting 90-in-90 in the evening no longer skips that night.** The start
+  date and the certificate's completion date were saved as the UTC date, so a
+  device behind UTC starting at 9pm got tomorrow's date. That evening's meeting
+  didn't count, and Day 1 lasted two days.
 - **A valid device token is no longer thrown away when a signed-in request
   goes out without a user token.** The server answers a request that carries
   no `Authorization` header with a plain 401, after it has already accepted
@@ -146,6 +145,22 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   upload-tool setting that never enters the binary, so no `runtimeVersion`
   bump; the generated `sentry.properties` files pick it up on the next
   prebuild and were corrected by hand meanwhile.
+
+## [4.10.1-10] — 2026-09-25
+
+### Fixed
+- **The Home clean-time counter now advances on its own.** It froze at the day
+  the app was last cold-started: the card memoized its breakdown on the
+  recovery date alone and `cleanDays` was a cached computed reading
+  `new Date()`, so neither ever re-ran while Home stayed mounted behind the
+  other tabs. A phone that kept the app alive in the background could show the
+  same count for days, milestones included. Both now read an observable local
+  date that ticks at midnight and on foreground. The `(Nd)` suffix in the
+  display name had the same freeze (plus a UTC off-by-one) and now reuses
+  `cleanDays`. The Home recovery chart (its "today" edge) and the 90-in-90
+  card ("Day N of 90") froze the same way and now follow the same clock. The
+  90-in-90 day count also no longer drops a day for the rest of the challenge
+  once it spans the spring-forward DST change.
 
 ## [4.10.1-6] — 2026-09-19
 

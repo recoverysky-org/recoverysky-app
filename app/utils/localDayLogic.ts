@@ -3,7 +3,8 @@
  *
  * Kept free of `@/` and React Native imports so Vitest can load it — see
  * "Test Runner Split" in CLAUDE.md. The MobX box and AppState wiring live in
- * `localDay.ts`, which the tests don't import.
+ * `localDay.ts`; its own test (`localDay.test.ts`) can load it only by mocking
+ * `react-native`, so the pure math stays here where it needs no mock.
  */
 
 /**
