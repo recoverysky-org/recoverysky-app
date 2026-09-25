@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 
 import { attendanceRepo, attendanceEvents, type AttendanceRecord } from "@/db"
 import { useAuthenticationStore } from "@/models"
+import { getLocalDay } from "@/utils/localDay"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "useRecoveryChart" })
@@ -79,7 +80,11 @@ function splitCreditByDay(start: number, end: number): Map<string, number> {
 /**
  * Build a complete array of days from startDate to today, with minutes per day.
  */
-function buildDailyData(records: AttendanceRecord[], rangeStartMs: number): ChartDay[] {
+function buildDailyData(
+  records: AttendanceRecord[],
+  rangeStartMs: number,
+  today: Date,
+): ChartDay[] {
   // Accumulate minutes per date key using midnight-aware splitting
   const minutesByDate = new Map<string, number>()
   for (const r of records) {
@@ -92,7 +97,6 @@ function buildDailyData(records: AttendanceRecord[], rangeStartMs: number): Char
 
   // Build array from today backwards to rangeStart
   const result: ChartDay[] = []
-  const today = new Date()
   const startDate = new Date(rangeStartMs)
 
   // Iterate from today backwards
@@ -152,8 +156,16 @@ export function useRecoveryChart(range: ChartRange): RecoveryChartData {
     })
   }, [refresh])
 
+  // Read in render so the calling observer() re-renders when the local date
+  // rolls over (midnight, or foregrounding on a later day).
+  // ADDED 2026-09-22: the memo used to read `new Date()` with only
+  // [records, range] as deps, so the chart's right edge stayed on the day the
+  // card first rendered — same freeze as the clean-time card (see localDay.ts).
+  const localDay = getLocalDay()
+
   const chartData = useMemo(() => {
-    const today = new Date()
+    // Noon keeps the day math clear of DST midnight edges.
+    const today = new Date(localDay + "T12:00:00")
 
     let rangeStartMs: number
     if (range === "all") {
@@ -167,11 +179,11 @@ export function useRecoveryChart(range: ChartRange): RecoveryChartData {
       rangeStartMs = start.getTime()
     }
 
-    const days = buildDailyData(records, rangeStartMs)
+    const days = buildDailyData(records, rangeStartMs, today)
     const maxMinutes = days.length > 0 ? Math.max(...days.map((d) => d.minutes)) : 0
 
     return { days, maxMinutes }
-  }, [records, range])
+  }, [records, range, localDay])
 
   return {
     ...chartData,

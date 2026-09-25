@@ -46,7 +46,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   same count for days, milestones included. Both now read an observable local
   date that ticks at midnight and on foreground. The `(Nd)` suffix in the
   display name had the same freeze (plus a UTC off-by-one) and now reuses
-  `cleanDays`.
+  `cleanDays`. The Home recovery chart (its "today" edge) and the 90-in-90
+  card ("Day N of 90") froze the same way and now follow the same clock. The
+  90-in-90 day count also no longer drops a day for the rest of the challenge
+  once it spans the spring-forward DST change.
 - **A valid device token is no longer thrown away when a signed-in request
   goes out without a user token.** The server answers a request that carries
   no `Authorization` header with a plain 401, after it has already accepted
