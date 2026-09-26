@@ -7,6 +7,7 @@ import { changeLanguage, translate } from "@/i18n"
 import { todayLocalISODate } from "@/utils/localDate"
 import { getLocalDay } from "@/utils/localDay"
 import { logger } from "@/utils/logger"
+import type { RecoveryDateSource } from "@/utils/recoveryDateLogic"
 
 import { withSetPropAction } from "./helpers/withSetPropAction"
 
@@ -56,6 +57,16 @@ export const ProfileStoreModel = types
 
     // Onboarding & UX
     onboardingCompleted: types.optional(types.boolean, false),
+
+    // Where the (volatile, SQLite-held) recoveryDate came from: "user" when
+    // picked or imported, "default" when the app chose it, "" until an old
+    // install's first hydration migrates it. Gates whether a Firebase import
+    // may overwrite the date — see app/utils/recoveryDateLogic.ts. ADDED
+    // 2026-09-26 with the unsaved-default fix; not sensitive (no date in it).
+    recoveryDateSource: types.optional(
+      types.enumeration<RecoveryDateSource>("RecoveryDateSource", ["", "default", "user"]),
+      "",
+    ),
     dontShowShortMeetingWarning: types.optional(types.boolean, false),
 
     // Attendance settings
@@ -281,7 +292,23 @@ export const ProfileStoreModel = types
         const day = String(date.getDate()).padStart(2, "0")
         const dateStr = `${year}-${month}-${day}`
         self.recoveryDate = dateStr
+        self.recoveryDateSource = "user"
         persistSecure({ recoveryDate: dateStr })
+      },
+
+      /**
+       * Persist an app-chosen recovery date (the hydration backfill) without
+       * marking it user-chosen, so a later Firebase import may still replace it.
+       * ADDED 2026-09-26 — see app/utils/recoveryDateLogic.ts.
+       */
+      setDefaultRecoveryDate(dateStr: string) {
+        self.recoveryDate = dateStr
+        self.recoveryDateSource = "default"
+        persistSecure({ recoveryDate: dateStr })
+      },
+
+      setRecoveryDateSource(value: RecoveryDateSource) {
+        self.recoveryDateSource = value
       },
 
       setFellowship(value: string) {
@@ -309,7 +336,12 @@ export const ProfileStoreModel = types
       setSecureProfile(data: SecureProfileData) {
         if (data.shortName !== undefined) self.shortName = data.shortName
         if (data.pronouns !== undefined) self.pronouns = data.pronouns
-        if (data.recoveryDate !== undefined) self.recoveryDate = data.recoveryDate
+        if (data.recoveryDate !== undefined) {
+          self.recoveryDate = data.recoveryDate
+          // Only caller with a date is the Firebase import: the user's own
+          // clean date from the old app, so it is protected like a pick.
+          self.recoveryDateSource = "user"
+        }
         if (data.fellowship !== undefined) self.fellowship = data.fellowship
         if (data.language !== undefined) {
           self.language = data.language
@@ -382,6 +414,12 @@ export const ProfileStoreModel = types
        */
       completeOnboarding() {
         self.onboardingCompleted = true
+        // Persist the recovery date the user just accepted. A picker change
+        // already persisted it, but an untouched default lived only in memory
+        // and re-read as "today" on every cold start — clean time stuck at 0
+        // days (fixed 2026-09-26; see app/utils/recoveryDateLogic.ts).
+        persistSecure({ recoveryDate: self.recoveryDate })
+        if (self.recoveryDateSource === "") self.recoveryDateSource = "default"
         // Fresh install caught-up baseline: a user finishing onboarding never
         // wants "NEW feature!" popups for features that shipped WITH their
         // install. Mark every currently-bundled announcement as already seen.
@@ -509,6 +547,7 @@ export const ProfileStoreModel = types
         // Device-LOCAL today (not UTC) — keep in sync with the volatile default
         // above so a freshly reset profile matches a fresh install.
         self.recoveryDate = todayLocalISODate()
+        self.recoveryDateSource = "default"
         self.fellowship = "AA"
         self.language = ""
         self.userIdNum = ""

@@ -29,8 +29,8 @@ import {
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { todayLocalISODate } from "@/utils/localDate"
 import { logger } from "@/utils/logger"
+import { mayImportRecoveryDate } from "@/utils/recoveryDateLogic"
 
 const log = logger.child({ module: "OnboardingImport" })
 
@@ -78,11 +78,6 @@ async function importUserProfile(
   // Only import fields still at their default values — don't overwrite
   // values the user has already customized (e.g. via Settings).
   const secureData: Record<string, string | null> = {}
-  // Must match ProfileStore's recovery-date default (device-LOCAL today, not
-  // UTC) so the "still at default?" check below correctly detects an untouched
-  // value and allows the Firebase import to populate it.
-  const today = todayLocalISODate()
-
   // CHANGED 2026-08-13: the default shortName became "" (was "Anon M."), so
   // "still at default" now has TWO shapes — fresh installs hold "", but every
   // install predating this change has "Anon M." persisted in encrypted SQLite.
@@ -95,7 +90,11 @@ async function importUserProfile(
   if (profile.pronouns && profileStore.pronouns === null) {
     secureData.pronouns = normalizePronouns(profile.pronouns)
   }
-  if (profile.recoveryDate && profileStore.recoveryDate === today) {
+  // CHANGED 2026-09-26: was `profileStore.recoveryDate === today`, which only
+  // detected the untouched default because that default was never saved and
+  // re-read as today every launch. It is persisted now, so ask where the date
+  // came from instead — see mayImportRecoveryDate.
+  if (profile.recoveryDate && mayImportRecoveryDate(profileStore.recoveryDateSource)) {
     secureData.recoveryDate = profile.recoveryDate
   }
   if (profile.fellowship) {

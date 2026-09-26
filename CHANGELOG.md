@@ -38,6 +38,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   same doc section).
 
 ### Fixed
+- **Clean time no longer stays at 0 days if you kept the default recovery
+  date.** The onboarding default ("today") was only saved when the date picker
+  was touched. A user who accepted it had no date stored, so every launch
+  re-read the date as the current day: the counter sat at 0 and the date moved
+  forward each midnight. Onboarding now saves the accepted date, and installs
+  already in this state are repaired on their next launch by backfilling the
+  app's install date (the date they were shown and accepted); web falls back to
+  today. The Firebase import now checks whether the user picked the date,
+  rather than whether it equals today, so a backfilled date can still be
+  replaced by the user's real clean date from the old app.
 - **The `(Nd)` clean-days count no longer reads a day short.** It rounded a
   noon-to-noon difference down, so across a spring-forward DST change it lost a
   day for most of the year (US: Jan 1 → Sep 25 showed 266, not 267) and
