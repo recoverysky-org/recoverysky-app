@@ -368,3 +368,52 @@ JS-only. `CHANGELOG.md` → `[Unreleased]` → `Added`. Ship via `npm run update
 - **? button per coached screen** as the replay mechanism, replacing a
   Settings "Replay tips" row — Jenova.
 - **Scrim swallows outside taps; back = Next** — recommended, accepted.
+
+## Planning amendments (2026-09-25)
+
+Found while reading the code for the implementation plan. Each supersedes the
+section it names.
+
+- **§3 — the overlay is its own transparent `Modal`, not an absolute sibling
+  View.** An RN `Modal` is a separate native window (iOS: a presented view
+  controller; Android: a Dialog). A View in `app.tsx` cannot draw above
+  `SchedulePopup` / `InPersonPopup`, so popup targets would be spotlit
+  *under* the popup. The overlay stays mounted once in `app.tsx`, but renders
+  `<Modal transparent statusBarTranslucent navigationBarTranslucent>`. iOS
+  stacks a later-presented modal on top of an open one; `useCoachMoment`'s
+  450 ms settle delay lets a popup finish sliding in before we present.
+- **§3 — scrim is one "donut" View, not four rectangles.** A View placed at
+  the cutout rect grown by `B` on every side, with `borderWidth: B`,
+  `borderRadius: r + B` and `borderColor` = scrim, has a hole whose inner
+  corners have radius exactly `r`. With `B` ≥ the window diagonal the outer
+  edge is off-screen. Four rectangles can only cut square holes, which leaves
+  bright corners around a rounded ring. Still no `react-native-svg`.
+- **§3 — motion uses RN `Animated`, not Reanimated.** Nothing under `app/`
+  imports Reanimated, and `babel.config.js` has no worklets plugin. The
+  popups already animate with `Animated` (`useNativeDriver: false` for
+  layout props), and this does the same.
+- **§6 a11y — no `importantForAccessibility` on the target.** A `Modal` with
+  `accessibilityViewIsModal` content already hides the app beneath it from
+  VoiceOver and TalkBack.
+- **§2 — off-screen targets skip.** A target whose measured rect is not
+  fully inside the window vertically (for example Settings' Cloud Backup row
+  below the fold) is treated like an unmeasurable one: that step is skipped.
+  If every step of a moment skips, the moment is not marked seen.
+- **§2 — split context module.** `app/coach/CoachContext.ts` holds the
+  context, its no-op default value and `useCoach()`, and imports no stores.
+  `useCoachTarget` depends only on that module. So the existing jest test of
+  `InPersonListHeader` (a target host) keeps rendering without a provider
+  and without pulling MMKV-backed stores into its graph.
+- **§1 — moment list.**
+  - `home` gains a second step, `home.helpButton` (circle cutout): "Tap ? on
+    any screen to see its tips again". It introduces the replay affordance.
+  - `inpersonPopup` gets `requires: { attendanceEnabled: true }`, because
+    "I'm Here" only renders when attendance is on.
+- **§5 — Skip on a replay.** When the running moment came from the **?**
+  (`forced`), the secondary button reads **Close** and does not turn
+  `coachTipsEnabled` off. Asking for tips is not a request to stop them. The
+  moment is still marked seen.
+- **§6 testing — overlay test targets `CoachCallout`.** The callout card is
+  split out as a presentational component and gets the jest test: button
+  flow, labels, and a11y props. The step machine is `advanceRun()` in
+  `coachMarkLogic.ts`, which vitest covers.
