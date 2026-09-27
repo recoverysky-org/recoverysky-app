@@ -37,13 +37,16 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import type { StartsIn } from "@/utils/atNextLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
+import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
 import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 
 const log = logger.child({ module: "LiveScreen" })
 
 /**
- * Starts In ships dark until GET /schedules/at_next is deployed (api repo).
+ * Starts In ships dark until GET /schedules/at-next is deployed (api repo).
+ * CHANGED 2026-09-27: the route exists in the api repo (583b2fa, v1.16.0) and
+ * the client now matches its contract; flip once that build is in production.
  * Flip to `true` after the deploy: a JS-only OTA, no runtimeVersion bump.
  * If flipped too early, a 404 hides the selector for the session
  * (useAtNextSchedules → `unavailable`).
@@ -84,6 +87,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // reason. FIXED 2026-09-26 (review round 1, MINOR fold-in).
   const {
     meetings: atNextMeetings,
+    atMs: atNextAtMs,
     isLoading: atNextLoading,
     failed: atNextFailed,
     unavailable: atNextUnavailable,
@@ -198,10 +202,16 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // first edit. The tier semantics are documented (and vitest-covered) there.
   // CHANGED 2026-09-26: at_next rows are already in start order, and feedback
   // ranking would scramble the countdown — only the Live tier applies it.
-  const sortedMeetings = useMemo(
-    () => (startsIn === "live" ? sortByFeedback(filteredMeetings) : filteredMeetings),
-    [filteredMeetings, startsIn],
-  )
+  // CHANGED 2026-09-27: the deployed at-next returns only meetings starting
+  // exactly at one quarter-hour mark (`starts_at=true`), so there is no
+  // countdown to preserve — every row shares a start. Feedback ranking applies
+  // in both modes again, so favourites lead the Starts In list like Live.
+  const sortedMeetings = useMemo(() => sortByFeedback(filteredMeetings), [filteredMeetings])
+
+  // "7:30p" for the mark the at-next answer is for (ADDED 2026-09-27). Null in
+  // Live mode and before the first answer, when there is no mark to name.
+  const atNextTimeLabel =
+    startsIn !== "live" && atNextAtMs !== null ? formatMillisToLocalTime(atNextAtMs) : null
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -365,9 +375,13 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     return (
       <View style={themed($emptyContainer)}>
         <Text preset="subheading" style={themed($emptyText)}>
-          {startsIn === "live"
-            ? t("liveScreen:noMeetings")
-            : t("liveScreen:atNextEmpty", { minutes: startsIn })}
+          {/* CHANGED 2026-09-27: at-next answers for one quarter-hour mark,
+              so the empty copy names that time instead of "the next N
+              minutes". Falls back to the generic copy before any mark is
+              known (e.g. the first fetch failed over to the error branch). */}
+          {atNextTimeLabel
+            ? t("liveScreen:atNextEmpty", { time: atNextTimeLabel })
+            : t("liveScreen:noMeetings")}
         </Text>
       </View>
     )
@@ -379,6 +393,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     atNextLoading,
     atNextFailed,
     refreshAtNext,
+    atNextTimeLabel,
     language,
     fellowshipMeetings.length,
     setLanguage,
@@ -419,8 +434,15 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
                 is MeetingContext's Live-pipeline timestamp — showing it next to
                 at_next rows implied those rows were as fresh as the last Live
                 poll, which isn't true (at_next has its own 5-min cadence and no
-                exposed last-fetch time worth surfacing). Only show it in Live. */}
+                exposed last-fetch time worth surfacing). Only show it in Live.
+                CHANGED 2026-09-27: at-next's cadence is now one fetch just
+                after each quarter-hour `at`; minute mode shows that mark
+                ("starting at 7:30p") on this line instead, below. */}
             {lastRefresh && startsIn === "live" && ` (${lastRefresh.toLocaleTimeString()})`}
+            {/* ADDED 2026-09-27: in Starts In mode, name the quarter-hour mark
+                the list is for — "30 min" means "starting at the mark after
+                next", which the chip alone doesn't say. */}
+            {atNextTimeLabel && ` · ${t("liveScreen:startingAt", { time: atNextTimeLabel })}`}
           </Text>
         </View>
       )}

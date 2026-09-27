@@ -280,7 +280,7 @@ segment's languages. Each segment's language empty state ("Show all
 languages") must be checked ahead of that segment's other catch-all empty
 branches (time-bucket, nearby/fallback, etc.) or it never renders — hit once on
 In-Person. Live's **Starts In** pill (`useAtNextSchedules`, `atNextLogic.ts`,
-`GET /schedules/at_next`) resets to Live on the segment's hide edge (leaving
+`GET /schedules/at-next`) resets to Live on the segment's hide edge (leaving
 Live via a segment switch or leaving the Meetings tab), not the show edge —
 `useAtNextSchedules`'s effects run before `LiveScreen`'s reset effect in the
 same commit, so a show-edge reset fired one wasted `at_next` request per
@@ -293,6 +293,14 @@ refetch and 60 s prune tick now pause while `AppState` isn't `"active"`
 (Android keeps JS timers firing in the background) and resume with one
 immediate refetch on the background→active edge — this does not reset Starts
 In, which stays a per-segment-visit concern owned by `LiveScreen`.
+CHANGED 2026-09-27: aligned with the deployed API contract (api repo
+`src/openapi.ts`): the route is hyphenated `/schedules/at-next`, `offset`
+picks ONE coming quarter-hour mark (not a window), `starts_at` is a boolean
+the app sends as `true` (only meetings starting exactly at the mark), and the
+response's `at` names that mark. So the list is labelled "starting at 7:30p",
+rows are feedback-ranked like Live, and the hook refetches once just after
+`at` passes (`refetchDelayMs`, with a 60 s floor for a device clock running
+ahead of the API) instead of every 5 min.
 Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
 
 A `meetingId` route param force-routes to the segment the caller supplied,

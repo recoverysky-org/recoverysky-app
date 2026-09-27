@@ -154,6 +154,34 @@ with a trailing `Z` (`Date.toISOString()`), with `tz` alongside for the API's
 local-day interpretation. The API must accept the `Z` form — the example
 above is illustrative of the format family, not the literal wire value.
 
+**SUPERSEDED 2026-09-27 — the deployed contract** (api repo `src/openapi.ts`,
+operationId `getAtNextSchedules`, commit 583b2fa) differs from the draft above,
+and the app now follows it:
+
+```
+GET /schedules/at-next?offset=30&starts_at=true&venueType=online
+  offset        15 | 30 | 45 | 60 — picks ONE quarter-hour mark: 15 is the next
+                :00/:15/:30/:45 strictly after now; 30/45/60 are 15/30/45 min
+                past it (at 12:06, 30 → 12:30; at 12:20, 30 → 12:45)
+  starts_at     boolean, default true — true: only meetings starting exactly at
+                the mark (CONTINUOUS excluded); false: everything in session then.
+                The app sends `true` explicitly.
+  venueType     "online"
+  periodicities / fellowship  optional, as /schedules/live; the app sends neither
+  (no `tz` param)
+Response: the /schedules/live shape plus the mark —
+  { timestamp, at, offset, count, schedules: [...] }   `at` = ISO mark answered for
+Errors: 400 bad offset / non-boolean starts_at, 401, 500 (404 = older API build)
+```
+
+Consequences in the app: "Starts In 30" means *starting at the mark after
+next*, so the list is labelled with `at` ("starting at 7:30p", empty state "No
+meetings starting at 7:30p"); rows all share one start, so they are ranked by
+feedback like Live rather than start-sorted; and because each offset's answer
+only changes when its mark passes (the API keeps each offset as a warm cache
+slot rotating at the boundary), the hook refetches once just after `at` instead
+of every 5 min. `buildStartsAt` and `sortByStart` were removed.
+
 ### `api.getAtNextSchedules({ offset })` — `app/services/api/index.ts`
 
 GET with the query params above (apisauce `get(url, params)`, like `getLiveSchedules`); `offset` typed as the `15|30|45|60` union. Returns

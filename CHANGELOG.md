@@ -40,7 +40,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   language with no matches shows a "Show all languages" shortcut instead of an
   empty list.
 - Live: "Starts In" selector (Live / 15 / 30 / 45 / 60 min) backed by the new
-  `GET /schedules/at_next` endpoint. Dev builds only until the API ships.
+  `GET /schedules/at-next` endpoint: each option lists the online meetings
+  starting at one coming quarter-hour mark (15 = the next :00/:15/:30/:45,
+  30/45/60 = the marks after it), labelled with that time ("starting at
+  7:30p"). Dev builds only until the flag flips.
 
 ### Fixed
 - **The Home News card's idle state is no longer logged as a fault.** The API

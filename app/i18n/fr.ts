@@ -193,7 +193,10 @@ const fr: Translations = {
     startsIn: "Starts in",
     startsInLive: "Live",
     startsInMinutes: "{{minutes}} min",
-    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    // CHANGED 2026-09-27: at-next answers for one quarter-hour mark, so the
+    // copy names that time ({{time}}, e.g. "7:30p") instead of a window.
+    atNextEmpty: "No meetings starting at {{time}}",
+    startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {

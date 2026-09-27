@@ -1,5 +1,5 @@
 /**
- * Data for Live's Starts In view (GET /schedules/at_next). ADDED 2026-09-26.
+ * Data for Live's Starts In view (GET /schedules/at-next). ADDED 2026-09-26.
  *
  * Deliberately separate from MeetingContext: the in-progress Live pipeline
  * (quarter-hour polling, maintenance-exit refresh) stays untouched, and this
@@ -21,6 +21,14 @@
  *   `offset` conditions as everything else here. This does NOT reset
  *   `startsIn`: that reset is owned by LiveScreen's hide-edge effect and is
  *   per segment-visit, not per app-foreground-visit.
+ * - CHANGED 2026-09-27: aligned with the deployed `GET /schedules/at-next`
+ *   (see api.getAtNextSchedules). Each offset is one quarter-hour mark whose
+ *   answer only changes when that mark passes, so the 5-min interval is gone:
+ *   the hook refetches once, just after the response's `at`
+ *   (atNextLogic.refetchDelayMs), and re-arms from each successful answer.
+ *   `atMs` is returned so LiveScreen can say "Starting at 7:30p". Rows are no
+ *   longer start-sorted (they all start at `at`); LiveScreen ranks them by
+ *   feedback like the Live list.
  *
  * INTEGRATION REQUIREMENT: call from an `observer()` component (reads ConfigStore).
  */
@@ -32,18 +40,19 @@ import { projectOnline } from "@/context/meetingPools"
 import { useConfigStore } from "@/models"
 import { api } from "@/services/api"
 import {
-  buildStartsAt,
   classifyAtNextProblem,
   offsetOf,
+  parseAtMillis,
   pruneStarted,
-  sortByStart,
+  refetchDelayMs,
   type StartsIn,
 } from "@/utils/atNextLogic"
 import { isLiveRefreshBlocked } from "@/utils/connectivityLogic"
 
-/** Refetch cadence while shown: the window slides, and new meetings enter it. */
-const REFETCH_MS = 5 * 60_000
 /** Prune cadence: minute resolution matches `starts_at`. */
+// CHANGED 2026-09-27: `starts_at` is now a boolean, not a minute-truncated
+// timestamp; a minute tick still suffices to drop rows once the mark passes.
+// (REFETCH_MS, the 5-min refetch interval, was removed — see the header.)
 const TICK_MS = 60_000
 
 export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
@@ -59,6 +68,12 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
   const [isLoading, setIsLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
+  // The quarter-hour mark the last answer was for (UTC ms), and when that
+  // answer landed. ADDED 2026-09-27. `lastFetchMs` is what re-arms the
+  // mark-driven refetch: a clock-skewed device can get the same `at` back,
+  // and keying only on `atMs` would then never schedule another fetch.
+  const [atMs, setAtMs] = useState<number | null>(null)
+  const [lastFetchMs, setLastFetchMs] = useState<number | null>(null)
   const seqRef = useRef(0)
   // AppState-aware pause (CHANGED 2026-09-26). Mirrors useLivePolling's inline
   // regex edge-check rather than extracting a pure helper: this is the same
@@ -72,7 +87,7 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
     const seq = ++seqRef.current
     setIsLoading(true)
     const outcome = await retryWithBackoff(
-      () => api.getAtNextSchedules(offset, buildStartsAt(new Date())),
+      () => api.getAtNextSchedules(offset),
       (result) => result.kind === "ok",
       `getAtNextSchedules(${offset})`,
       // CHANGED 2026-09-26: ends the retry ladder as soon as this call is
@@ -85,7 +100,10 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
 
     if ("result" in outcome && outcome.result.kind === "ok") {
       setRaw(projectOnline(outcome.result.schedules.map(toMeetingWithTrex)))
-      setNowMs(Date.now())
+      const fetchedMs = Date.now()
+      setNowMs(fetchedMs)
+      setAtMs(parseAtMillis(outcome.result.at))
+      setLastFetchMs(fetchedMs)
       setFailed(false)
       return
     }
@@ -107,6 +125,8 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
   useEffect(() => {
     seqRef.current++
     setRaw([])
+    setAtMs(null)
+    setLastFetchMs(null)
     setFailed(false)
     setIsLoading(false)
   }, [offset])
@@ -135,9 +155,21 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
     // foreground refetch" the header promises; no separate call needed.
     if (!visible || offset === null || !isActive) return
     void refresh()
-    const id = setInterval(() => void refresh(), REFETCH_MS)
-    return () => clearInterval(id)
+    // CHANGED 2026-09-27: no interval any more — the next fetch is scheduled
+    // from the answer's `at` by the effect below.
   }, [visible, offset, refresh, isActive])
+
+  // Refetch just after the mark passes (ADDED 2026-09-27). Re-armed by every
+  // successful answer via `lastFetchMs`; cleared when hidden, backgrounded,
+  // or switched back to Live. A failed fetch doesn't re-arm — the retry
+  // prompt is the way back, same as before.
+  useEffect(() => {
+    if (!visible || offset === null || !isActive || lastFetchMs === null) return
+    const delay = refetchDelayMs(atMs, Date.now())
+    if (delay === null) return
+    const id = setTimeout(() => void refresh(), delay)
+    return () => clearTimeout(id)
+  }, [visible, offset, isActive, atMs, lastFetchMs, refresh])
 
   useEffect(() => {
     // CHANGED 2026-09-26: paused while backgrounded, same reasoning as above.
@@ -146,7 +178,8 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
     return () => clearInterval(id)
   }, [visible, offset, isActive])
 
-  const meetings = useMemo(() => sortByStart(pruneStarted(raw, nowMs)), [raw, nowMs])
+  // CHANGED 2026-09-27: no start sort — every row starts at `atMs`.
+  const meetings = useMemo(() => pruneStarted(raw, nowMs), [raw, nowMs])
 
-  return { meetings, isLoading, failed, unavailable, blocked, refresh }
+  return { meetings, atMs, isLoading, failed, unavailable, blocked, refresh }
 }

@@ -950,36 +950,44 @@ export class Api {
    * Callers gate on `startsInVisible` until the route is deployed; a 404 from
    * an older API build is the caller's signal to hide the selector.
    *
-   * CHANGED 2026-09-26 (review round 1): noting the exact shape of
-   * `starts_at` because the spec's example used a local-offset timestamp —
-   * `buildStartsAt()` (atNextLogic.ts) actually sends UTC ISO 8601 (trailing
-   * "Z", via `Date.toISOString()`), with `tz` riding alongside as a separate
-   * param for the API to do local-day interpretation. The API must accept
-   * the "Z" form; don't "fix" the client to send a local offset instead.
+   * CHANGED 2026-09-27: aligned with the deployed contract (api repo
+   * src/openapi.ts, operationId `getAtNextSchedules`). We had coded against
+   * the design draft, which differed in every way that matters:
+   * - the route is `/schedules/at-next` (hyphen); `/schedules/at_next` 404s,
+   *   which would have hidden the selector for the session;
+   * - `starts_at` is a BOOLEAN (default true: only meetings starting exactly
+   *   at the mark), not a reference timestamp — the ISO string we sent was a
+   *   400 — and there is no `tz` param;
+   * - `offset` picks one quarter-hour mark (15 = the next :00/:15/:30/:45
+   *   strictly after now; 30/45/60 = 15/30/45 min past it), and the response
+   *   adds `at` (that mark) and `offset`.
+   * `starts_at=true` is sent explicitly rather than relying on the default,
+   * so a server-side default change can't silently turn "starting at 7:30"
+   * into "in session at 7:30". `at` is returned so the caller can label the
+   * list and refetch when the mark passes (atNextLogic.refetchDelayMs).
    *
-   * @param offset - 15 | 30 | 45 | 60 minutes
-   * @param startsAt - UTC ISO 8601 reference time, e.g. "2026-09-26T18:04:00.000Z"
-   *   (see atNextLogic.buildStartsAt)
+   * @param offset - 15 | 30 | 45 | 60 — which coming quarter-hour mark
    */
   async getAtNextSchedules(
     offset: AtNextOffset,
-    startsAt: string,
-  ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    log.debug("Fetching at_next schedules from API", { offset, startsAt, tz })
+  ): Promise<
+    { kind: "ok"; schedules: LiveSchedule[]; count: number; at: string } | GeneralApiProblem
+  > {
+    log.debug("Fetching at-next schedules from API", { offset })
 
     const params: Record<string, string | number> = {
       offset,
-      starts_at: startsAt,
-      tz,
+      starts_at: "true",
       venueType: "online",
     }
 
     const response = await this.recoverySkyApi.get<{
       timestamp: string
+      at: string
+      offset: AtNextOffset
       count: number
       schedules: LiveSchedule[]
-    }>("/schedules/at_next", params)
+    }>("/schedules/at-next", params)
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
@@ -988,12 +996,23 @@ export class Api {
       return { kind: "unknown", temporary: true }
     }
 
-    if (!response.data || !Array.isArray(response.data.schedules)) {
-      log.warn("Invalid at_next response data format")
+    // `at` is required too: without it the caller can neither label the list
+    // nor know when to refetch, so a response missing it is bad data.
+    if (
+      !response.data ||
+      !Array.isArray(response.data.schedules) ||
+      typeof response.data.at !== "string"
+    ) {
+      log.warn("Invalid at-next response data format")
       return { kind: "bad-data" }
     }
 
-    return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
+    return {
+      kind: "ok",
+      schedules: response.data.schedules,
+      count: response.data.count,
+      at: response.data.at,
+    }
   }
 
   /**
