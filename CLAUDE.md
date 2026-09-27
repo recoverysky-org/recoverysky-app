@@ -16,13 +16,17 @@ RecoverySky Hybrid is a React Native app built with Ignite v11.3.2 template, tar
 # Development
 npm start              # Start Expo dev client
 npm start -- --clear   # Start with Metro cache cleared (use after config changes)
-npm run ios            # Run on iOS
+npm run ios            # Run on iOS (reuses existing ios/ — see prebuild below)
 npm run android        # Run on Android
 npm run web            # Run web version
+npm run prebuild:clean # Regenerate ios/ + android/ (then patch-android.sh) — REQUIRED after
+                       # app.json / app.config.ts / plugins/ edits; also prebuild:ios:clean,
+                       # prebuild:android:clean
+npm run align-deps     # expo install --fix: align deps to the Expo SDK
 
 # Code Quality
 npm run compile        # TypeScript type check
-npm run lint           # ESLint with auto-fix
+npm run lint           # ⚠️ eslint . --fix REPO-WIDE — prefer `npx eslint --fix <files you touched>`
 npm run lint:check     # ESLint check only
 npm run lint:deps      # Dependency validation (depcruise)
 
@@ -30,6 +34,7 @@ npm run lint:deps      # Dependency validation (depcruise)
 npm test                          # Everything: vitest run && jest --forceExit
 npm run test:unit                 # Vitest only (pure .ts)
 npm run test:unit -- path/to/file.test.ts       # Single Vitest file
+npm run test:unit:watch           # Vitest watch mode (also test:component:watch)
 npm run test:component            # jest-expo only (.tsx component tests)
 npm run test:component -- path/to/file.test.tsx # Single Jest file
 npm run test:e2e                  # ⚠️ Hits live infra (Loki) — needs network
@@ -211,7 +216,7 @@ older code or docs, that's stale — see "Linked Packages" below for why.
 Metro workarounds (`watchFolders`, `nodeModulesPaths`) and a `--clear` restart
 after edits, plus `@common`/`@sqlite` babel aliases pointing at its `lib/`
 output. That setup is gone: the package is now a plain registry dependency
-(`package.json` → `"@recoverysky-org/common": "^2.4.1"`), installed into
+(a caret range in `package.json`), installed into
 `node_modules` like anything else. `metro.config.js` has no
 `watchFolders`/`nodeModulesPaths` entries and no sibling directory exists on
 disk. Bumping the version is a normal `npm install` + `package.json` edit —
@@ -248,6 +253,7 @@ Persistence is automatic via `onSnapshot` → MMKV in `helpers/setupRootStore.ts
 ### React Context Providers
 Alongside MST, three React Context providers exist in `app/context/`:
 - **MeetingContext**: Loads meetings from SQLite, joins with TREX data, filters live meetings
+- **MeetingFiltersContext**: the Meetings tab's shared Fellowship + Lang browse filters (see "Shared filter bar" under Navigation)
 - **SubscriptionContext**: RevenueCat subscription state — `isPremium`, `hasAttendance`, `showPaywall()`, `showPaywallIfNeeded()`, `restore()`, `login()`, `logout()`
 
 ```typescript
@@ -265,62 +271,55 @@ React Navigation v7 in `app/navigators/`:
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. Two tabs are built but **hard-disabled behind local `const … = false` flags**, not entitlements: `agentTabVisible` (Agent — hidden until release-ready) and `socialTabVisible` (Community/Social — hidden pending SPA-side fixes; re-enable with `__DEV__ || isPremium`). `useSubscription()`'s `isPremium` is still read and `void`-ed here so the hook stays wired for future gates — don't "clean up" that line.
 
-**Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Online | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Online" is a label-only rename of Live (2026-09-27; key still `live`), and the Live screen's heading follows the Starts In pick: "Live Now" for Live Now, "Starts in 30m" for a minute chip. A minute pick remembers the mark it was made for; once that mark moves (quarter-hour refetch, return from background) it follows its meetings to whichever visible chip now shows that mark (60m's 13:00 becomes 45m at 12:15), then to the lowest visible chip once the mark has passed or its chip is hidden, and to Live Now only when no chip is left (`followStartsIn`). While a batch is loading the pick and chips hold still and the list shows a spinner; a chip tapped mid-batch adopts the mark the batch lands with rather than being moved. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). `MeetingsScreen` is the segmented-control shell; each segment's content is a named export from its own screen file — `LiveContent` (`LiveScreen.tsx`), `InPersonContent` (`InPersonScreen.tsx`), `ListingsContent` (`ListingsScreen.tsx`). All three mount from app start; inactive ones are hidden with `display: "none"`, not unmounted.
+**Meetings tab segments** (`MeetingsScreen.tsx`): Online | In-Person | Search,
+with segment keys `live` / `inperson` / `listings`. The labels were renamed and
+the keys were not, so don't rename keys to match labels. `MeetingsScreen` is the
+segmented-control shell; each segment's content is a named export from its own
+screen file (`LiveContent`, `InPersonContent`, `ListingsContent`). All three
+mount at app start, and inactive ones are hidden with `display: "none"`, not
+unmounted.
 
-**Shared filter bar** (ADDED 2026-09-26): Fellowship and Lang live in
-`MeetingFilterBar` directly below the segmented control (moved there 2026-09-27), not inside any segment. State
-is `MeetingFiltersContext` (owned by `MeetingsScreen`, MMKV keys
-`meetings.fellowship` / `meetings.language`, pure decisions in
-`meetingFiltersLogic.ts`). It is a browse selection and never writes
-`profileStore.fellowship`. It follows Settings through the `preferences_changed`
-event, **not** a MobX reaction: hydration assigns `profileStore.fellowship` on
-every cold start and a reaction would wipe the remembered pick. Segments report
-their loaded list via `reportMeetings()` so the Lang picker offers the active
-segment's languages. Each segment's language empty state ("Show all
-languages") must be checked ahead of that segment's other catch-all empty
-branches (time-bucket, nearby/fallback, etc.) or it never renders — hit once on
-In-Person. Live's **Starts In** pill (`useAtNextSchedules`, `atNextLogic.ts`,
-`GET /schedules/at-next`) resets to Live on the segment's hide edge (leaving
-Live via a segment switch or leaving the Meetings tab), not the show edge —
-`useAtNextSchedules`'s effects run before `LiveScreen`'s reset effect in the
-same commit, so a show-edge reset fired one wasted `at_next` request per
-revisit; the user-visible rule is still "resets to Live on every visit". It is
-gated by `startsInVisible` in `LiveScreen.tsx` until the API route is deployed.
-A failed `at_next` refresh keeps the last-loaded list rather than blanking it,
-surfacing an inline tap-to-retry instead (empty-list branch or a banner over
-kept rows). CHANGED 2026-09-26 (review round 1): `useAtNextSchedules`'s 5-min
-refetch and 60 s prune tick now pause while `AppState` isn't `"active"`
-(Android keeps JS timers firing in the background) and resume with one
-immediate refetch on the background→active edge — this does not reset Starts
-In, which stays a per-segment-visit concern owned by `LiveScreen`.
-CHANGED 2026-09-27: aligned with the deployed API contract (api repo
-`src/openapi.ts`): the route is hyphenated `/schedules/at-next`, `offset`
-picks ONE coming quarter-hour mark (not a window), `starts_at` is a boolean
-the app sends as `true` (only meetings starting exactly at the mark), and the
-response's `at` names that mark. So the list is labelled "starting at 7:30p",
-rows are feedback-ranked like Live, and the hook refetches once just after the
-next quarter-hour boundary — `at` for offset 15 but `at − (offset − 15) min`
-for 30/45/60, because the server recomputes every mark at each boundary
-(`refetchDelayMs`, with a 60 s floor for a device clock running ahead of the
-API) — instead of every 5 min. Meetings starting off the quarter hour (7:05…)
-never appear under Starts In; that's the contract, not a bug.
-CHANGED 2026-09-27 (later): the control reads "[Live Now] Starts in
-[15m|30m|45m|60m]" and `useAtNextSchedules(active)` now prefetches all four
-offsets in one parallel batch (on showing Live, on foreground, after each
-boundary, on pull-to-refresh) — picking a chip only chooses a slot. Chips with
-no meetings after the shared Fellowship + Lang filters are hidden
-(`availableStartsIn`), the whole control hides when none have any, and a pick
-whose chip empties falls back to Live Now (`resolveStartsIn`). That's four
-requests per quarter hour while Live is on screen (usually cache hits
-server-side; the first request after a boundary for a newly-due mark can be a
-cache miss that builds it). Hardening (review, same day): the refetch timer
-takes the LATEST boundary across slots so a failed slot's stale mark can't
-turn it into a 60 s poll; a failed slot keeps its rows only until its own
-boundary passes; an all-failed batch retries at the next clock quarter-hour;
-pull-to-refresh in Live Now refreshes the Starts In batch too; hiding Live
-abandons an in-flight batch's retries; and rows are pruned with a ~10 s grace
-so the minute tick can't empty the selected chip just before its refetch.
-Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
+**Shared filter bar.** Fellowship and Lang live in `MeetingFilterBar`, directly
+below the segmented control. State is `MeetingFiltersContext` (owned by
+`MeetingsScreen`; MMKV keys `meetings.fellowship` / `meetings.language`; pure
+decisions in `meetingFiltersLogic.ts`).
+- It is a browse selection and never writes `profileStore.fellowship`. It
+  follows Settings through the `preferences_changed` event, **not** a MobX
+  reaction: hydration assigns `profileStore.fellowship` on every cold start,
+  and a reaction would wipe the remembered pick.
+- Segments call `reportMeetings()` so the Lang picker offers the active
+  segment's languages.
+- Each segment's "Show all languages" empty state must be checked before its
+  other catch-all empty branches, or it never renders.
+
+**Starts In** (Live segment: `useAtNextSchedules`, pure `atNextLogic.ts`,
+`GET /schedules/at-next`) is currently `__DEV__`-only, via `startsInVisible` in
+`LiveScreen.tsx`.
+- The control reads "[Live Now] Starts in [15m|30m|45m|60m]", and the Live
+  heading follows the pick. The hook prefetches all four offsets as one
+  parallel batch (on showing Live, on foreground, after each quarter-hour
+  boundary, and on pull-to-refresh), so tapping a chip only chooses a slot.
+- Each offset names ONE coming quarter-hour mark, and the app sends
+  `starts_at=true`, so only meetings starting exactly at that mark appear. A
+  7:05 meeting never shows under Starts In; that's the API contract (api repo
+  `src/openapi.ts`), not a bug.
+- Chips left empty by the Fellowship + Lang filters are hidden
+  (`availableStartsIn`), and the whole control hides when every chip is empty.
+  As marks move, a pick follows its meetings to whichever chip now shows that
+  mark (`followStartsIn`). Once the mark passes or its chip is hidden, it moves
+  to the lowest visible chip, and to Live Now only when no chip is left. While
+  a batch loads, the pick and chips hold still.
+- The pick resets to Live Now on the segment's **hide** edge, not the show edge.
+  The hook's effects run first in the same commit, so a show-edge reset fired
+  one wasted request per visit.
+- The hook refetches once, just after the next boundary (`refetchDelayMs`,
+  60 s floor), keyed on the LATEST boundary across slots so one failed slot
+  can't turn the refetch into a 60 s poll. Timers pause while `AppState` isn't
+  `"active"`. A failed refresh keeps the last rows (only until that slot's own
+  boundary) and shows an inline tap-to-retry, never a blank list.
+
+Spec (its appendix holds the full change history):
+`docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
 
 A `meetingId` route param force-routes to the segment the caller supplied,
 falling back to `live` only when none is given. It used to hardcode `live`
@@ -392,223 +391,140 @@ Apisauce wrapper in `app/services/api/`:
 
 Three separate trust layers, easy to confuse:
 
-1. **User identity — Auth0** (`app/services/auth/`). Universal Login via
-   `react-native-auth0`, config in `auth0.ts` (`EXPO_PUBLIC_AUTH0_*`,
-   custom scheme `recoverysky-app`, scopes include `offline_access`).
-   `useAuth0Wrapper.ts` is the hook the app consumes. Tokens land in
-   `AuthenticationStore` — only `refreshToken` is persisted (MMKV);
-   `accessToken` / `idToken` / `expiresAt` are volatile by design.
-   `secureStorage.ts` wraps expo-secure-store; `vault.ts` is a **web-only**
-   tweetnacl-obscured storage shim (native uses Keychain/Keystore instead).
-   ADDED 2026-09-10: every access token is shape-checked by the pure
-   `isUsableAccessToken()` (`jwtUtils.ts`) before it enters the store —
-   cold-start hydration, the SDK sync effect, and the refresher all apply
-   it — because an audience-less refresh token renews into an opaque
-   userinfo-only token forever. The user-lane refresher now lives in
-   `userTokenRefresher.ts` with injected I/O (vitest-covered); the API's
-   bearer-rejection codes reach its `markRejected()` through an apisauce
-   monitor (`bearerRejectionLogic.ts`). Spec:
-   `docs/superpowers/specs/2026-09-10-opaque-access-token-after-idle-renewal-design.md`.
+1. **User identity — Auth0** (`app/services/auth/`). `react-native-auth0`
+   Universal Login (`auth0.ts`, scheme `recoverysky-app`, `offline_access`),
+   consumed through `useAuth0Wrapper.ts`. Only `refreshToken` persists (MMKV);
+   `accessToken` / `idToken` / `expiresAt` are volatile by design. `vault.ts`
+   is a **web-only** storage shim (native uses Keychain/Keystore). Every access
+   token must pass the pure `isUsableAccessToken()` (`jwtUtils.ts`) before it
+   enters the store, because an audience-less refresh token renews into an
+   opaque userinfo-only token forever. The refresher is
+   `userTokenRefresher.ts` (injected I/O, vitest-covered).
 2. **Device trust — attestation** (`app/services/attestation/`). Apple App
-   Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
-   exchanged with the backend for a device JWT that becomes
-   `X-Device-Token`. CHANGED 2026-09-09: the JWT and the iOS App Attest key
-   id are **persisted in SecureStore** (`device_jwt_v1`,
-   `app_attest_key_id_v1`, per install, untouched by sign-out). Cold start
-   is `hydratePersistedDeviceJwt()` → `establishDeviceToken()`, which asserts
-   against the stored key (`POST /attest/assert`) and only generates a new
-   key when the server rejects it. Decisions live in the pure, vitest-covered
-   `deviceTokenLogic.ts`; the native calls in `index.ts`; the I/O in
-   `deviceToken.ts`. Temporary failures **degrade** (app opens,
-   `configStore.deviceAuthDegraded`, "Connecting…" banner, refresher retries)
-   rather than block; only `unsupported` and a 401/403 on `POST /attest`
-   block (CHANGED 2026-09-09 after final review: a 400 `bad_nonce` and a 429
-   from the routes' per-IP limiter degrade — they are protocol outcomes, not
-   verdicts about the device).
-   Simulators, web, and Android dev builds call `setApiKeyFallback()` to take
-   the `X-API-Key` path instead. Spec:
-   `docs/superpowers/specs/2026-09-09-app-attest-assertions-and-jwt-persistence-design.md`.
+   Attest / Google Play Integrity via `@expo/app-integrity`, exchanged for a
+   device JWT sent as `X-Device-Token`. The JWT and the iOS key id persist in
+   SecureStore (`device_jwt_v1`, `app_attest_key_id_v1`: per install, kept on
+   sign-out). Cold start asserts against the stored key
+   (`POST /attest/assert`) and mints a new key only when the server rejects
+   it. Decisions live in the pure `deviceTokenLogic.ts`, native calls in
+   `index.ts`, I/O in `deviceToken.ts`. Temporary failures **degrade** (the app
+   opens, `configStore.deviceAuthDegraded` shows the "Connecting…" banner, the
+   refresher retries). Only `unsupported` or a 401/403 on `POST /attest`
+   blocks; a 400 `bad_nonce` or a 429 degrades. Simulators, web, and Android
+   dev builds call `setApiKeyFallback()` and use `X-API-Key` instead.
 3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
    Anonymous users get a locally generated 256-bit key in SecureStore
-   (`sqlite_encryption_key_v1`); authenticated users get the key from JWT
-   custom claims. This is what makes ProfileStore's "volatile (encrypted
-   SQLite)" tier actually encrypted.
+   (`sqlite_encryption_key_v1`); authenticated users get it from JWT custom
+   claims. This is what makes ProfileStore's "volatile (encrypted SQLite)" tier
+   actually encrypted.
 
-**Token freshness gate.** Both JWTs are refreshed *proactively*, by a single
-apisauce async request transform installed in the `Api` constructor
-(`installAuthGate`). It awaits two injected refreshers and stamps
-`X-Device-Token` / `Authorization` onto each individual request — there are no
-sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
-`updateAuth` / `waitForAttestation` are gone.
-
+**Token freshness gate** (`installAuthGate`, installed in the `Api`
+constructor). A single async request transform awaits two refreshers and stamps
+`X-Device-Token` / `Authorization` onto each request. There are no sticky auth
+headers.
 - Refreshers are **injected** via `api.registerTokenRefreshers()` from
-  `app.tsx`, never imported. `app/services/api/` must stay a dependency leaf:
-  the direction is `attestation → api`, and importing back would make
-  `depcruise` see a cycle.
-- Bypass is the `X-Skip-Auth-Gate` sentinel header, **not** a URL list —
-  `getPublicStatus()` (now `GET /status/ready`, CHANGED 2026-09-14) and the
-  authenticated `getStatus()` (`GET /status`) share a router, and a URL
-  prefix rule would be fragile. It is also the recursion guard for the
+  `app.tsx`, never imported. `app/services/api/` must stay a dependency leaf
+  (`attestation → api`), or depcruise sees a cycle.
+- Bypass is the `X-Skip-Auth-Gate` sentinel header, not a URL list (`/status`
+  and `/status/ready` share a router). It is also the recursion guard for the
   device refresher's own `/attest` call.
-- Skews are asymmetric on purpose: 60 s for the Auth0 token (one cheap hop,
-  handed to the SDK as `minTtl`), 5 min for the device token (a server round
-  trip, plus a multi-second Apple/Play round trip only when the stored key
-  was rejected).
-- A refresh failure classified `permanent` (see `tokenFreshnessLogic.ts`)
-  forces a logout — **deferred while `isTimerSessionActive()`**, because the
-  eject swaps the tree above `MainNavigator`'s timer tab-lock and
-  `TimerSessionResumer` would not re-fire after re-login. Unknown error codes
-  default to `transient` deliberately; do not "tidy" that default.
-- Two more things latch the user lane the same way (2026-09-10): a renewed
-  token that fails `isUsableAccessToken()` (thrown as `UnusableTokenError`,
-  classified permanent) and a 401 carrying `token_malformed` /
-  `token_claims` / `token_signature` from the API. `token_expired`,
-  `token_invalid`, a code-less 401 and a 503 `auth_unavailable` never do.
-- There is **no reactive 401 path for the user lane**, and until 2026-09-14
-  there was none for the device lane either (the claim that "both server
-  middlewares return an identical 401 body" was wrong: the device middleware
-  answers a bad `X-Device-Token` with a code-less 401, while every user-lane
-  rejection carries `code: token_*`, and the device check runs first).
-  CORRECTED 2026-09-21 (RS-040): "every user-lane rejection" has one
-  un-coded exception — a request with no `Authorization` header at all gets
-  auth.ts's plain `{ error: "Unauthorized", message: "Missing or invalid
-  authorization header" }`, after the device JWT was verified. That exact
-  body is excluded by `USER_LANE_MISSING_CREDENTIALS_BODY`; every other
-  code-less 401 still drops the JWT.
-  ADDED 2026-09-14: `deviceJwtRejected()` (`bearerRejectionLogic.ts`) reads
-  that asymmetry in the same monitor; a hit calls `markDeviceJwtRejected()`
-  (`deviceToken.ts`, identity-guarded by the pure `shouldDropRejectedJwt`)
-  which clears the JWT from module state and SecureStore, so the next
-  request re-asserts through the single-flight refresher. Before this a JWT
-  the server had stopped honouring was re-sent until its own expiry — up to
-  seven days — and CrowdSec's 401 brute-force scenario banned the device.
-- **No credential → no request** (ADDED 2026-09-14). When the gate has
-  neither a device JWT nor an API key (attestation degraded or backing off,
-  outage mode before a lane is chosen — production has no
-  `EXPO_PUBLIC_AUTH_KEY`), it installs `noDeviceCredentialAdapter` on the
-  request so it resolves as a 401 locally with the `no_device_credential`
-  marker body. Call sites still get `{ kind: "unauthorized" }`; nothing
-  reaches the wire. Don't "restore" the bare send — every one was a
-  guaranteed server 401 counted by the edge.
-- **Retry ladders retry transport failures only.** `ConfigStore.fetchConfig`,
-  `MeetingContext.retryWithBackoff` and the nearby fetch's single retry all
-  go through `isRetryableProblem()` (`contentRetryLogic.ts`, CHANGED
-  2026-09-14): a 401/403/404/429 ends the ladder on the first answer. They
-  used to retry any non-ok kind, which multiplied every rejection three to
-  four times per trigger.
+- Skews are asymmetric on purpose: 60 s for Auth0 (passed to the SDK as
+  `minTtl`), 5 min for the device token.
+- A refresh failure classified `permanent` (`tokenFreshnessLogic.ts`) forces a
+  logout — **deferred while `isTimerSessionActive()`**, because the eject
+  would kill an in-meeting timer that `TimerSessionResumer` can't recover.
+  Unknown error codes default to `transient` deliberately.
+- The user lane also latches permanent on a renewed token that fails the shape
+  check (`UnusableTokenError`) and on a 401 carrying `token_malformed` /
+  `token_claims` / `token_signature`. `token_expired`, `token_invalid`, a
+  code-less 401, and a 503 `auth_unavailable` never do.
+- **Device-lane reactive 401.** The device middleware answers a bad
+  `X-Device-Token` with a *code-less* 401, while user-lane rejections carry
+  `code: token_*`. `deviceJwtRejected()` (`bearerRejectionLogic.ts`, an
+  apisauce monitor) detects that, and `markDeviceJwtRejected()` drops the JWT
+  from memory and SecureStore so the next request re-asserts. One exception
+  (RS-040): the exact missing-`Authorization` body
+  (`USER_LANE_MISSING_CREDENTIALS_BODY`) is a user-lane answer and does not
+  drop the JWT. Before this path existed, a dead JWT was re-sent for up to
+  seven days and CrowdSec banned the device.
+- **No credential → no request.** When the gate has neither a device JWT nor an
+  API key (production has no `EXPO_PUBLIC_AUTH_KEY`), it installs
+  `noDeviceCredentialAdapter`. The request resolves locally as a 401
+  (`no_device_credential`), call sites get `{ kind: "unauthorized" }`, and
+  nothing reaches the wire. Don't restore the bare send.
+- **Retry ladders retry transport failures only** (`isRetryableProblem()`,
+  `contentRetryLogic.ts`). `ConfigStore.fetchConfig`,
+  `MeetingContext.retryWithBackoff`, and the nearby fetch's retry all stop on
+  the first 401/403/404/429.
 
-Design + manual test checklist:
-`docs/superpowers/specs/2026-08-06-jwt-refresh-design.md`.
+Specs under `docs/superpowers/specs/`: `2026-08-06-jwt-refresh-design.md`
+(design, manual test checklist, and an appendix with this section's full change
+history), `2026-09-09-app-attest-assertions-and-jwt-persistence-design.md`,
+`2026-09-10-opaque-access-token-after-idle-renewal-design.md`.
 
 ### Maintenance Mode
 
-Two distinct states, **never conflate them** — the distinction matters because
-one is a non-blocking banner and the other is a full-screen takeover, and
-the wrong gate has historically killed in-meeting Zoom timers.
+Two distinct states — **never conflate them.** One is a non-blocking banner,
+the other a full-screen takeover, and using the wrong gate has killed
+in-meeting Zoom timers before.
 
-- **`configStore.maintenanceMode`** (runtime maintenance): server flagged
-  `MAINTENANCE_MODE` via `/config`, **or** `/config` polling has failed
-  past the retry budget after a previous successful load. Shows the
-  `<MaintenanceBanner />` (yellow sticky strip) and signals API-dependent
-  features to self-disable. **Does NOT gate the navigator.** Mid-meeting
-  Zoom timer (`ExternalZoomTimerModal` inside `SchedulePopup`) must
-  survive maintenance flipping on; gating navigation here would unmount
-  it.
+- **`configStore.maintenanceMode`** (runtime): `/config` reported
+  `MAINTENANCE_MODE`, or `/config` polling failed past its retry budget
+  **while online**. Offline poll failures never set it — the banner shows its
+  offline variant and polling pauses until reconnect (`connectivityLogic.ts`,
+  vitest-covered). Shows `<MaintenanceBanner />` and makes API-dependent
+  features self-disable. **It never gates the navigator**: the mid-meeting
+  `ExternalZoomTimerModal` inside `SchedulePopup` must survive it.
+- **`configStore.outageMode`** (cold-start gate, set by `setOutageMode()` in
+  `app.tsx`'s init path) is the only thing that routes `AppNavigator` to
+  `MaintenanceScreen`. Triggers:
+  1. `api.getPublicStatus()` (`GET /status/ready`; the body must be
+     `{ "status": "ready" }`, checked by `isReadyBody()`) fails. This runs
+     BEFORE attestation so an outage isn't misreported as "Device Verification
+     Failed".
+  2. `/config` fails after that precheck passed — **except** when the device
+     lane came back `degraded`. A degraded device gets 401s from `/config`
+     while `/status/ready` is healthy, so outage recovery would reload-loop
+     forever (burning an Apple key generation per cycle). That start renders
+     on env-var defaults with the "Connecting…" banner and arms a one-shot
+     reload for when `/config` finally loads.
+  3. `/config` returns `MAINTENANCE_MODE=true`.
 
-  CHANGED 2026-09-06: the polling-failure trigger fires ONLY while the
-  device is online (`networkStore.isOffline` false). Offline poll failures
-  never flip this flag — the banner shows its "Device Offline" variant
-  instead, and polling pauses until reconnect. Decision logic in
-  `app/utils/connectivityLogic.ts` (vitest-covered); spec:
-  docs/superpowers/specs/2026-09-06-network-aware-maintenance-design.md.
-- **`configStore.outageMode`** (cold-start gate): the app launched into
-  an unusable state. Three triggers, all set by `setOutageMode()` in
-  `app.tsx`'s init path:
-  1. `/status/ready` precheck failed (API unreachable). This runs BEFORE
-     attestation specifically so an outage doesn't get misreported as
-     "Device Verification Failed" (`/attest` would fail too). Calls
-     `api.getPublicStatus()` which bypasses the token freshness gate via
-     `X-Skip-Auth-Gate` since no JWT exists yet. CHANGED 2026-09-14: was
-     `GET /status`; the readiness route is the same DB + TREX gate (503 when
-     either is down) with a tiny body, and the probe now requires
-     `{ "status": "ready" }` rather than any 2xx (pure `isReadyBody()` in
-     `apiProblem.ts`, vitest-covered).
-  2. `/config` fetch failed after the `/status/ready` precheck passed
-     (transient half-up state). EXCEPTION (2026-09-09): not when the device
-     lane came back `degraded` — a degraded device gets 401s from `/config`
-     while the public `/status/ready` stays healthy, so outage mode's recovery
-     poll would reload instantly and loop the cold start forever (burning
-     an Apple key generation per cycle). That start renders on env-var
-     defaults with the "Connecting…" banner and arms a one-shot reload for
-     when `/config` finally loads.
-  3. `/config` fetch succeeded but reported `MAINTENANCE_MODE=true`
-     at startup.
+  Triggers 2 and 3 fire only on a cold config cache. Warm starts seed
+  ConfigStore from SQLite, fetch in the background, and show maintenance as the
+  banner instead (`2026-08-14-config-cache-cold-start-design.md`). Recovery
+  polls `/status/ready` every 15 s and then calls `Updates.reloadAsync()`,
+  because re-initialising in place would duplicate the bootstrap's MobX
+  reactions. Runtime maintenance never clears outage mode.
 
-  CHANGED 2026-08-14: triggers 2 and 3 now fire only when the config cache
-  is cold (first launch / unreadable cache). Warm-cache starts seed
-  ConfigStore from SQLite, fetch in the background, and surface maintenance
-  as the banner instead — see the config-cache spec.
+**The banner** (`app/components/MaintenanceBanner.tsx`) is a sibling of
+`<AppNavigator />` in `app.tsx`, absolutely positioned above every screen and
+modal. It has three variants, in priority order: offline (wins — it's the more
+accurate diagnosis) → "Connecting to RecoverySky…" (`deviceAuthDegraded`) →
+amber maintenance. `MaintenanceScreen` mirrors the offline/maintenance split and
+switches live.
 
-  AppNavigator routes to `MaintenanceScreen` only when this is true. A
-  recovery `useEffect` polls `/status/ready` every 15 s while we're in outage
-  and calls `Updates.reloadAsync()` once the API responds — the reload
-  is the safe path because the bootstrap registers MobX reactions that
-  would duplicate on in-place re-init. Cleared automatically on the
-  next `/config` fetch that returns with maintenance off — runtime
-  maintenance does NOT clear it, so a user who launched into
-  maintenance stays on the full screen until the service is healthy
-  again.
+**Features that self-disable under `maintenanceMode`.** Each has its own guard,
+so any new API-dependent feature needs one too:
+- `MeetingProvider.refreshLiveMeetings()` — the guard and the recovery reaction
+  both use `isLiveRefreshBlocked()` (maintenance OR outage). Outage must be
+  watched too, because `Updates.reloadAsync` throws in `__DEV__`. A failed
+  refresh keeps the last list; don't reintroduce `setLiveMeetings([])`.
+- `ListingsScreen.fetchDailySchedules()` — a separate fetch path with its own
+  gate.
+- `useReportSender.send()`, plus the AttendanceScreen Send button
+  (`canSendReport && !maintenanceMode`).
+- `SchedulePopup.handleCellPress()` — blocks reminder edits, since reminders
+  depend on server-side push scheduling.
+- Settings → Import row.
 
-**The banner** (`app/components/MaintenanceBanner.tsx`) is mounted as a
-sibling to `<AppNavigator />` in `app.tsx`'s provider tree, with absolute
-positioning + high `zIndex`, so it draws above every screen and modal.
-It observes `maintenanceMode` only — outage doesn't double-render
-because the full-screen takes over.
+`MAINTENANCE_UPDATE` was removed on purpose; the regular foreground OTA check
+covers that case. Read `maintenanceMode` from MobX (outside React:
+`rootStore.configStore.maintenanceMode`) — a parallel event bus would create two
+sources of truth.
 
-  The banner is three-variant, in priority order: a muted blue-grey
-  "You're offline" strip (which WINS over the other two — offline is the
-  more accurate diagnosis), a calm "Connecting to RecoverySky…" strip
-  driven by `configStore.deviceAuthDegraded` (ADDED 2026-09-09 with the
-  attestation degrade path — see "Auth, Attestation & Encryption Keys"),
-  and the amber maintenance strip. `MaintenanceScreen` mirrors the
-  offline/maintenance split for cold-start outage ("Device Offline" vs
-  "System Maintenance", live-switching since it observes NetworkStore).
-
-**API-dependent features that self-disable when `maintenanceMode` is
-true:**
-- `MeetingProvider.refreshLiveMeetings()` (`app/context/MeetingContext.tsx`)
-  — early-returns; the existing maintenance-exit reaction fires a
-  refresh automatically when the flag clears. CHANGED 2026-09-14: the
-  guard and the reaction both use `isLiveRefreshBlocked()` (maintenance
-  OR `outageMode`) — the outage path never sets `maintenanceMode`, so
-  watching it alone left Live empty after an outage cleared whenever the
-  recovery reload didn't run (`Updates.reloadAsync` throws in `__DEV__`).
-  A failed refresh also keeps the last successful list rather than
-  clearing it; don't reintroduce `setLiveMeetings([])` on the error path.
-- `ListingsScreen.fetchDailySchedules()` (`app/screens/ListingsScreen.tsx`)
-  — separate path from MeetingContext (the Listings tab's own
-  pull-to-refresh hits this directly), so it needs its own gate. Also
-  early-returns.
-- `useReportSender.send()` (`app/hooks/useReportSender.ts`) — defensive
-  early-return; the AttendanceScreen Send button visually disables via
-  `canSendReport` AND'd with `!maintenanceMode`.
-- `SchedulePopup.handleCellPress()` (`app/components/SchedulePopup.tsx`)
-  — reminders rely on server-side push scheduling; block reminder
-  creation/edit so users don't think they set a reminder that we
-  couldn't actually deliver.
-- Settings → Import row (`app/screens/SettingsScreen.tsx`) — disabled
-  with the standard greyed-out pattern.
-
-**`MAINTENANCE_UPDATE` was removed.** The OTA-reload-at-end-of-maintenance
-path complicated the model and the rare edge case it served (server
-forces an update after maintenance) is better handled by the regular
-foreground OTA check. Don't add it back without a strong reason.
-
-**Why MobX, not an event bus.** `maintenanceMode` is observable; any
-`observer()` component reacts automatically. Adding a parallel
-`maintenanceEvents` channel would create two sources of truth. If
-non-React code ever needs to read it, just grab
-`rootStore.configStore.maintenanceMode` directly.
+Spec (its appendix holds this section's full change history):
+`docs/superpowers/specs/2026-09-06-network-aware-maintenance-design.md`.
 
 ### Subscription System (RevenueCat)
 In `app/services/purchases/`:
@@ -861,8 +777,8 @@ enforced by config, not convention, and it is load-bearing:
   of this repo, and without the exclusion every test is discovered twice, making
   one real failure look like two. Don't remove those ignore patterns.
 
-Coverage is deliberately concentrated on pure logic — 59 test files (48 `.test.ts`
-for vitest, 11 `.test.tsx` for jest) covering sync/rating/announcement decisions,
+Coverage is deliberately concentrated on pure logic — roughly five vitest `.test.ts`
+files for every jest `.test.tsx` — covering sync/rating/announcement decisions,
 location gate, presence, nearby, map features, deep links, `returnTo` parsing,
 filters, sliders, logger, storage, api problems, local dates, i18n. Almost every
 `*Logic.ts` module exists because its sibling hook or component couldn't be

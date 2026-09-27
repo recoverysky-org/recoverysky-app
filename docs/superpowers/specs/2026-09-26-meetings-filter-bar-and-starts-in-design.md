@@ -317,3 +317,64 @@ labels / a11y labels, "No {language} meetings", "Show all languages",
 - Building `/schedules/at_next` (api repo).
 - Persisting Starts In.
 - A Fellowship "All" option.
+
+## Appendix: CLAUDE.md history (moved 2026-09-27)
+
+This is the "Meetings tab segments + Shared filter bar" text from `CLAUDE.md` exactly as it read before it was cut down to current-state rules. It is kept here so the reasoning and change log are not lost.
+
+**Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Online | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Online" is a label-only rename of Live (2026-09-27; key still `live`), and the Live screen's heading follows the Starts In pick: "Live Now" for Live Now, "Starts in 30m" for a minute chip. A minute pick remembers the mark it was made for; once that mark moves (quarter-hour refetch, return from background) it follows its meetings to whichever visible chip now shows that mark (60m's 13:00 becomes 45m at 12:15), then to the lowest visible chip once the mark has passed or its chip is hidden, and to Live Now only when no chip is left (`followStartsIn`). While a batch is loading the pick and chips hold still and the list shows a spinner; a chip tapped mid-batch adopts the mark the batch lands with rather than being moved. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). `MeetingsScreen` is the segmented-control shell; each segment's content is a named export from its own screen file — `LiveContent` (`LiveScreen.tsx`), `InPersonContent` (`InPersonScreen.tsx`), `ListingsContent` (`ListingsScreen.tsx`). All three mount from app start; inactive ones are hidden with `display: "none"`, not unmounted.
+
+**Shared filter bar** (ADDED 2026-09-26): Fellowship and Lang live in
+`MeetingFilterBar` directly below the segmented control (moved there 2026-09-27), not inside any segment. State
+is `MeetingFiltersContext` (owned by `MeetingsScreen`, MMKV keys
+`meetings.fellowship` / `meetings.language`, pure decisions in
+`meetingFiltersLogic.ts`). It is a browse selection and never writes
+`profileStore.fellowship`. It follows Settings through the `preferences_changed`
+event, **not** a MobX reaction: hydration assigns `profileStore.fellowship` on
+every cold start and a reaction would wipe the remembered pick. Segments report
+their loaded list via `reportMeetings()` so the Lang picker offers the active
+segment's languages. Each segment's language empty state ("Show all
+languages") must be checked ahead of that segment's other catch-all empty
+branches (time-bucket, nearby/fallback, etc.) or it never renders — hit once on
+In-Person. Live's **Starts In** pill (`useAtNextSchedules`, `atNextLogic.ts`,
+`GET /schedules/at-next`) resets to Live on the segment's hide edge (leaving
+Live via a segment switch or leaving the Meetings tab), not the show edge —
+`useAtNextSchedules`'s effects run before `LiveScreen`'s reset effect in the
+same commit, so a show-edge reset fired one wasted `at_next` request per
+revisit; the user-visible rule is still "resets to Live on every visit". It is
+gated by `startsInVisible` in `LiveScreen.tsx` until the API route is deployed.
+A failed `at_next` refresh keeps the last-loaded list rather than blanking it,
+surfacing an inline tap-to-retry instead (empty-list branch or a banner over
+kept rows). CHANGED 2026-09-26 (review round 1): `useAtNextSchedules`'s 5-min
+refetch and 60 s prune tick now pause while `AppState` isn't `"active"`
+(Android keeps JS timers firing in the background) and resume with one
+immediate refetch on the background→active edge — this does not reset Starts
+In, which stays a per-segment-visit concern owned by `LiveScreen`.
+CHANGED 2026-09-27: aligned with the deployed API contract (api repo
+`src/openapi.ts`): the route is hyphenated `/schedules/at-next`, `offset`
+picks ONE coming quarter-hour mark (not a window), `starts_at` is a boolean
+the app sends as `true` (only meetings starting exactly at the mark), and the
+response's `at` names that mark. So the list is labelled "starting at 7:30p",
+rows are feedback-ranked like Live, and the hook refetches once just after the
+next quarter-hour boundary — `at` for offset 15 but `at − (offset − 15) min`
+for 30/45/60, because the server recomputes every mark at each boundary
+(`refetchDelayMs`, with a 60 s floor for a device clock running ahead of the
+API) — instead of every 5 min. Meetings starting off the quarter hour (7:05…)
+never appear under Starts In; that's the contract, not a bug.
+CHANGED 2026-09-27 (later): the control reads "[Live Now] Starts in
+[15m|30m|45m|60m]" and `useAtNextSchedules(active)` now prefetches all four
+offsets in one parallel batch (on showing Live, on foreground, after each
+boundary, on pull-to-refresh) — picking a chip only chooses a slot. Chips with
+no meetings after the shared Fellowship + Lang filters are hidden
+(`availableStartsIn`), the whole control hides when none have any, and a pick
+whose chip empties falls back to Live Now (`resolveStartsIn`). That's four
+requests per quarter hour while Live is on screen (usually cache hits
+server-side; the first request after a boundary for a newly-due mark can be a
+cache miss that builds it). Hardening (review, same day): the refetch timer
+takes the LATEST boundary across slots so a failed slot's stale mark can't
+turn it into a 60 s poll; a failed slot keeps its rows only until its own
+boundary passes; an all-failed batch retries at the next clock quarter-hour;
+pull-to-refresh in Live Now refreshes the Starts In batch too; hiding Live
+abandons an in-flight batch's retries; and rows are pruned with a ~10 s grace
+so the minute tick can't empty the selected chip just before its refetch.
+Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
