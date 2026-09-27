@@ -471,7 +471,9 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       if (startsInVisible) void refreshAtNext()
     } else {
       setAtNextPulling(true)
-      void refreshAtNext()
+      // `finally` too: refreshAtNext returns early when blocked/unavailable,
+      // and then atNextLoading never flips to clear the spinner above.
+      void refreshAtNext().finally(() => setAtNextPulling(false))
     }
   }, [startsIn, refresh, refreshAtNext])
 
