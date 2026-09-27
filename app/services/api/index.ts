@@ -12,6 +12,7 @@ import Config from "@/config"
 import type { AttendanceRecord } from "@/db"
 import type { ServerAttendanceRecord, ServerReportRecord } from "@/services/sync/syncLogic"
 import { trackEvent } from "@/services/tracking"
+import type { AtNextOffset } from "@/utils/atNextLogic"
 import { delay } from "@/utils/delay"
 import { logger } from "@/utils/logger"
 
@@ -929,6 +930,54 @@ export class Api {
       count: response.data.count,
       timestamp: response.data.timestamp,
     })
+    return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
+  }
+
+  /**
+   * Get online meetings starting within `offset` minutes of `startsAt`.
+   *
+   * ADDED 2026-09-26 for Live's "Starts In" selector. Same response shape as
+   * /schedules/live, but `millis` is each meeting's upcoming start. The API
+   * owns the window math. Fellowship is deliberately NOT sent: the Meetings
+   * filter bar applies it on-device, so switching fellowship never refetches.
+   * Callers gate on `startsInVisible` until the route is deployed; a 404 from
+   * an older API build is the caller's signal to hide the selector.
+   *
+   * @param offset - 15 | 30 | 45 | 60 minutes
+   * @param startsAt - ISO 8601 reference time (see atNextLogic.buildStartsAt)
+   */
+  async getAtNextSchedules(
+    offset: AtNextOffset,
+    startsAt: string,
+  ): Promise<{ kind: "ok"; schedules: LiveSchedule[]; count: number } | GeneralApiProblem> {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    log.debug("Fetching at_next schedules from API", { offset, startsAt, tz })
+
+    const params: Record<string, string | number> = {
+      offset,
+      starts_at: startsAt,
+      tz,
+      venueType: "online",
+    }
+
+    const response = await this.recoverySkyApi.get<{
+      timestamp: string
+      count: number
+      schedules: LiveSchedule[]
+    }>("/schedules/at_next", params)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.debug("API request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    if (!response.data || !Array.isArray(response.data.schedules)) {
+      log.warn("Invalid at_next response data format")
+      return { kind: "bad-data" }
+    }
+
     return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
   }
 

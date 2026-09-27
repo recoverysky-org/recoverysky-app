@@ -19,7 +19,7 @@ import { reaction } from "mobx"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
-import { api, type ScheduleDataRow } from "@/services/api"
+import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import { isLiveRefreshBlocked, isServiceRecoveryEdge } from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
@@ -53,7 +53,7 @@ function sleep(ms: number): Promise<void> {
  * in-person live pool it existed for (see the refresh effect below). Every
  * caller now gets the full `RETRY_CONFIG` budget.
  */
-async function retryWithBackoff<T>(
+export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   isSuccess: (result: T) => boolean,
   label: string,
@@ -191,6 +191,26 @@ export function useMeetings(): MeetingContextType {
     throw new Error("useMeetings must be used within a MeetingProvider")
   }
   return context
+}
+
+/**
+ * API schedule entry → the row shape every Meetings surface renders.
+ * EXTRACTED 2026-09-26: this literal was written out twice (here and in
+ * LiveScreen's deep-link slow path), and the at_next hook needed a third copy.
+ * Prefer the schedule-level password over the meeting-level one; the API
+ * provides it per schedule.
+ */
+export function toMeetingWithTrex(s: LiveSchedule): MeetingWithTrex {
+  return {
+    ...s.meeting,
+    password: s.password || s.meeting.password || "",
+    passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
+    feedback: feedbackCache.get(s.meeting.id),
+    sid: s.sid,
+    millis: s.millis,
+    duration_ms: s.duration_ms ?? 0,
+    scheduleData: s.data,
+  }
 }
 
 // ============================================================================
@@ -334,17 +354,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       feedbackCache.reconcileSchedules(outcome.result.schedules)
 
       // Convert API schedules to MeetingWithTrex.
-      const meetings: MeetingWithTrex[] = outcome.result.schedules.map((s) => ({
-        ...s.meeting,
-        // Prefer schedule-level password over meeting-level (API provides it per-schedule)
-        password: s.password || s.meeting.password || "",
-        passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
-        feedback: feedbackCache.get(s.meeting.id),
-        sid: s.sid,
-        millis: s.millis,
-        duration_ms: s.duration_ms ?? 0,
-        scheduleData: s.data,
-      }))
+      const meetings: MeetingWithTrex[] = outcome.result.schedules.map(toMeetingWithTrex)
 
       // projectOnline stays as a belt-and-braces filter: the server defaults
       // to online and we ask for it explicitly, but a row with a physical

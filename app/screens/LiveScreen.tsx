@@ -17,7 +17,7 @@ import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { useMeetings, toMeetingWithTrex, type MeetingWithTrex } from "@/context/MeetingContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
@@ -199,16 +199,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             consumePendingMeetingId()
             return
           }
-          const meetingWithTrex: MeetingWithTrex = {
-            ...s.meeting,
-            password: s.password || s.meeting.password || "",
-            passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
-            feedback: feedbackCache.get(s.meeting.id),
-            sid: s.sid,
-            millis: s.millis,
-            duration_ms: s.duration_ms ?? 0,
-            scheduleData: s.data,
-          }
+          const meetingWithTrex = toMeetingWithTrex(s)
           consumedMeetingIdRef.current = targetId
           consumePendingMeetingId()
           setSelectedMeeting(meetingWithTrex)
