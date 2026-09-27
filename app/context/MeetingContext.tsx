@@ -52,11 +52,23 @@ function sleep(ms: number): Promise<void> {
  * CHANGED 2026-09-09: the `maxAttempts` parameter is gone with the
  * in-person live pool it existed for (see the refresh effect below). Every
  * caller now gets the full `RETRY_CONFIG` budget.
+ *
+ * CHANGED 2026-09-26: added the optional `shouldContinue` parameter.
+ * `useAtNextSchedules.refresh()` bumps a sequence ref per call so a slow
+ * response can't land under a newer selection, but that check only fires
+ * *after* the whole ladder (up to 4 attempts, several seconds of backoff)
+ * finishes — a superseded request kept retrying against the network the
+ * whole time. `shouldContinue`, when passed, is checked before every retry
+ * (not the first attempt, which the caller always wants dispatched) and
+ * ends the ladder early, the same way an unretryable problem kind already
+ * does. Optional and back-compatible: existing callers that don't pass it
+ * behave exactly as before.
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   isSuccess: (result: T) => boolean,
   label: string,
+  shouldContinue?: () => boolean,
 ): Promise<{ result: T; attempts: number } | { error: string; attempts: number }> {
   const maxAttempts = RETRY_CONFIG.maxAttempts
   let lastResult: T | undefined
@@ -66,6 +78,12 @@ export async function retryWithBackoff<T>(
   let attemptsMade = 0
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // CHANGED 2026-09-26: only gates *retries* — the first attempt always
+    // runs even if the caller's predicate would already say no, since the
+    // caller dispatched this call because it wanted at least one try.
+    if (attempt > 1 && shouldContinue && !shouldContinue()) {
+      break
+    }
     attemptsMade = attempt
     try {
       const result = await fn()
