@@ -128,7 +128,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Changed
 - Meetings: the Live segment tab is now **Online** — with Starts In it also
   lists meetings that haven't begun, so "Live" no longer fit. The screen
-  heading says what you're looking at: "Live Now", or "Starts in 30m" when a
+  heading says what you're looking at: "Live Now", or "Starts within 30m" when a
   Starts In chip is selected (dev builds, with Starts In). If the quarter hour
   turns over (or you come back to the app later) the selection follows the same
   meetings to whichever chip now shows them (60m becomes 45m), or moves to the

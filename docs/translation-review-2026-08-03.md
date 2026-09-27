@@ -826,7 +826,7 @@ it" — not as a scolding and not as a generic error.
 **Still English placeholders (need translating):** `liveScreen.startsIn`,
 `startsInLive` ("Live Now"), `startsInMinutes` ("{{minutes}}m"),
 `startsInMinutesA11y` ("Starts in {{minutes}} minutes"), `titleStartsIn`
-("Starts in {{minutes}}m"), `startingAt`, `atNextError`, and
+("Starts within {{minutes}}m"), `startingAt`, `atNextError`, and
 `meetingsScreen.noMeetingsInLanguage` / `showAllLanguages`. Starts In is dev-only
 until `startsInVisible` flips, so these can land with that release. Keep
 `startsInLive` and `title` consistent — they read side by side.

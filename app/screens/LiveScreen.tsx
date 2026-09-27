@@ -497,7 +497,9 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             "Live Online" for Live Now, "Live in 30m" for a minute chip — now
             that the segment tab itself just says "Online".
             CHANGED 2026-09-27 (Jenova, later): the wording is now "Live Now" /
-            "Starts in 30m", matching the chips. */}
+            "Starts in 30m", matching the chips.
+            CHANGED 2026-09-27 (Jenova): "Starts within 30m" — the list is
+            meetings starting at the next mark within that window. */}
         <Text
           preset="heading"
           text={
