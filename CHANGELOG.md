@@ -22,6 +22,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.1-14] — 2026-09-27
+
+Also carries the changes shipped in 4.10.1-11 through 4.10.1-13, which went
+out without their own changelog headings.
+
 ### Added
 - **Every API request now starts a distributed trace.** The auth gate stamps
   a W3C `traceparent` header with a fresh random trace id on each request,
@@ -45,7 +50,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   :00/:15/:30/:45, 30m/45m/60m = the marks after it), labelled with that time
   ("starting at 7:30p"). The app checks all four marks in the background and
   only shows chips that have meetings for your fellowship and language, so a
-  chip never opens onto an empty list. Dev builds only until the flag flips.
+  chip never opens onto an empty list. Live in production builds from
+  4.10.1-14 (it was dev-only until the API's v1.16.0 deploy).
 
 ### Fixed
 - **The Home News card's idle state is no longer logged as a fault.** The API

@@ -57,8 +57,11 @@ const log = logger.child({ module: "LiveScreen" })
  * Flip to `true` after the deploy: a JS-only OTA, no runtimeVersion bump.
  * If flipped too early, a 404 hides the selector for the session
  * (useAtNextSchedules → `unavailable`).
+ * CHANGED 2026-09-27: flipped on for production. Prod api reports 1.16.0 and
+ * /schedules/at-next answers 401 unauthenticated (route mounted) where an
+ * unknown /schedules path 404s, so the route is live.
  */
-const startsInVisible = __DEV__
+const startsInVisible = true
 
 /**
  * LiveContent - Core content for live meetings display
