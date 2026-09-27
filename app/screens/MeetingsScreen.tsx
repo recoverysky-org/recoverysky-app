@@ -3,12 +3,16 @@ import { View, ViewStyle } from "react-native"
 import { useRoute, RouteProp } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 
+import { MeetingFilterBar } from "@/components/MeetingFilterBar"
 import { Screen } from "@/components/Screen"
 import { SegmentedControl } from "@/components/SegmentedControl"
+import { MeetingFiltersProvider, useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { MainTabParamList, MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
+import { buildLanguageOptions } from "@/utils/meetingFiltersLogic"
 
 import { InPersonContent } from "./InPersonScreen"
 import { ListingsContent } from "./ListingsScreen"
@@ -21,6 +25,36 @@ const SEGMENTS = [
 ]
 // Index↔key mapping is positional; keep this array aligned with SEGMENTS.
 const SEGMENT_KEYS: MeetingsSegment[] = ["live", "inperson", "listings"]
+
+/**
+ * The filter bar bound to MeetingFiltersContext. ADDED 2026-09-26.
+ * Language options come from the ACTIVE segment's loaded list, so the picker
+ * offers what the user is looking at, not the union of three tabs.
+ */
+const ConnectedFilterBar: FC<{ activeSegment: MeetingsSegment }> = function ConnectedFilterBar({
+  activeSegment,
+}) {
+  const { fellowship, language, setFellowship, setLanguage, meetingsBySegment } =
+    useMeetingFilters()
+  const languageOptions = buildLanguageOptions(meetingsBySegment[activeSegment] ?? [], language)
+
+  return (
+    <MeetingFilterBar
+      fellowship={fellowship}
+      fellowshipOptions={ACTIVE_FELLOWSHIPS}
+      language={language}
+      languageOptions={languageOptions}
+      onSelectFellowship={(value) => {
+        setFellowship(value)
+        trackEvent("meetings_fellowship_changed", { fellowship: value })
+      }}
+      onSelectLanguage={(value) => {
+        setLanguage(value)
+        trackEvent("meetings_language_changed", { language: value ?? "all" })
+      }}
+    />
+  )
+}
 
 /**
  * MeetingsScreen - Consolidated meetings tab with segment control
@@ -128,27 +162,31 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   }, [activeSegment])
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-      {/* Segment Control */}
-      <View style={themed($header)}>
-        <SegmentedControl
-          segments={SEGMENTS}
-          selectedIndex={selectedIndex}
-          onChange={handleSegmentChange}
-        />
-      </View>
+    <MeetingFiltersProvider>
+      <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+        {/* Shared filters (ADDED 2026-09-26): above the segments because they
+            apply to all three. See MeetingFiltersContext. */}
+        <View style={themed($header)}>
+          <ConnectedFilterBar activeSegment={activeSegment} />
+          <SegmentedControl
+            segments={SEGMENTS}
+            selectedIndex={selectedIndex}
+            onChange={handleSegmentChange}
+          />
+        </View>
 
-      {/* Content Views - all three mounted, inactive ones hidden via display:none */}
-      <View style={[$content, activeSegment === "live" ? $contentVisible : $contentHidden]}>
-        <LiveContent meetingId={route.params?.meetingId} />
-      </View>
-      <View style={[$content, activeSegment === "inperson" ? $contentVisible : $contentHidden]}>
-        <InPersonContent active={inPersonActivated} visible={activeSegment === "inperson"} />
-      </View>
-      <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
-        <ListingsContent active={listingsActivated} />
-      </View>
-    </Screen>
+        {/* Content Views - all three mounted, inactive ones hidden via display:none */}
+        <View style={[$content, activeSegment === "live" ? $contentVisible : $contentHidden]}>
+          <LiveContent meetingId={route.params?.meetingId} />
+        </View>
+        <View style={[$content, activeSegment === "inperson" ? $contentVisible : $contentHidden]}>
+          <InPersonContent active={inPersonActivated} visible={activeSegment === "inperson"} />
+        </View>
+        <View style={[$content, activeSegment === "listings" ? $contentVisible : $contentHidden]}>
+          <ListingsContent active={listingsActivated} />
+        </View>
+      </Screen>
+    </MeetingFiltersProvider>
   )
 })
 

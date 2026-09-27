@@ -148,6 +148,15 @@ const uk: Translations = {
     inPersonSegment: "Особисто",
     // Relabeled from "Каталог" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Пошук",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Fellowship",
+    filterLang: "Lang",
+    filterLanguageA11y: "Language",
+    allLanguages: "All",
+    selectLanguage: "Select Language",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Розклад",
