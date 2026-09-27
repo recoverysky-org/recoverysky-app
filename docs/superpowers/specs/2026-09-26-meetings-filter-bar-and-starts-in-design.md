@@ -2,7 +2,7 @@
 
 Date: 2026-09-26
 Status: approved in brainstorming, awaiting written-spec review
-Scope: app repo only. The `/schedules/at-next` endpoint is built separately in
+Scope: app repo only. The `/schedules/at_next` endpoint is built separately in
 the api repo; this spec records the contract the app codes against.
 
 ## Goal
@@ -128,16 +128,15 @@ dropped.
 ### API contract (built in the api repo)
 
 ```
-POST /schedules/at-next
+GET /schedules/at_next?offset=30&starts_at=2026-09-26T19:08:00-07:00&tz=America/Los_Angeles&venueType=online
 Auth: device auth, same as /schedules/live (goes through the token freshness gate)
-Body: {
-  offset: 15 | 30 | 45 | 60,
-  starts_at: string,            // ISO 8601, device "now" truncated to the minute
-  tz: string,                   // IANA, Intl.DateTimeFormat().resolvedOptions().timeZone
-  venueType: "online",
-  periodicities?: string[],     // same semantics as /schedules/live
-  fellowship?: string           // accepted by the API; the app does not send it
-}
+Query params (all URL params, no body):
+  offset        15 | 30 | 45 | 60
+  starts_at     ISO 8601, device "now" truncated to the minute
+  tz            IANA, Intl.DateTimeFormat().resolvedOptions().timeZone
+  venueType     "online"
+  periodicities optional, same semantics as /schedules/live
+  fellowship    optional, same semantics as /schedules/live; the app does not send it
 Response: same shape as GET /schedules/live —
   { timestamp, count, schedules: [{ sid, meeting, millis, duration_ms, continuous, data }] }
   where `millis` is the meeting's upcoming start (UTC ms).
@@ -150,7 +149,7 @@ without a refetch, matching Live.
 
 ### `api.getAtNextSchedules({ offset })` — `app/services/api/index.ts`
 
-POST with the body above; `offset` typed as the `15|30|45|60` union. Returns
+GET with the query params above (apisauce `get(url, params)`, like `getLiveSchedules`); `offset` typed as the `15|30|45|60` union. Returns
 `{ kind: "ok"; schedules: LiveSchedule[]; count } | GeneralApiProblem`, the
 same union as `getLiveSchedules`. Results go through `projectOnline()`.
 
@@ -265,6 +264,6 @@ labels / a11y labels, "No {language} meetings", "Show all languages",
 
 ## Out of scope
 
-- Building `/schedules/at-next` (api repo).
+- Building `/schedules/at_next` (api repo).
 - Persisting Starts In.
 - A Fellowship "All" option.
