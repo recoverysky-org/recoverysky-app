@@ -145,6 +145,15 @@ const ar: Translations = {
     inPersonSegment: "حضوريًا",
     // Relabeled from "الدليل" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "بحث",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "الزمالة",
+    filterLang: "اللغة",
+    filterLanguageA11y: "اللغة",
+    allLanguages: "الكل",
+    selectLanguage: "اختر اللغة",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "الجدول",
@@ -173,7 +182,12 @@ const ar: Translations = {
     fri: "جمع",
     sat: "سبت",
     sun: "أحد",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "دليل الاجتماعات" 2026-08-03 — namespace/key unchanged.
@@ -187,8 +201,6 @@ const ar: Translations = {
     emptyNoMatches: "لا توجد اجتماعات تطابق بحثك",
     // Filter labels
     dayLabel: "اليوم",
-    languageLabel: "اللغة",
-    langLabel: "اللغة",
     venueLabel: "المكان",
     venueOnline: "عبر الإنترنت",
     venueInPerson: "حضوري",
@@ -197,13 +209,11 @@ const ar: Translations = {
     radiusOff: "الموقع متوقف",
     emptyNoLocation: "فعّل الموقع للبحث عن اجتماعات حضورية بالقرب منك",
     radiusOnlineNote: "غير متاح للاجتماعات عبر الإنترنت",
-    allLanguages: "الكل",
     startLabel: "البداية",
     endLabel: "النهاية",
     toSeparator: "إلى",
     // Modal titles
     selectDay: "اختر اليوم",
-    selectLanguage: "اختر اللغة",
     startTime: "وقت البداية",
     endTime: "وقت النهاية",
     // Day names
@@ -862,7 +872,6 @@ const ar: Translations = {
   inPersonScreen: {
     title: "حضوريًا",
     withinRadius: "ضمن {{distance}}",
-    fellowshipLabel: "الزمالة",
     selectRadius: "النطاق",
     shortTimeLabel: "الوقت",
     shortTimeAll: "أي وقت",

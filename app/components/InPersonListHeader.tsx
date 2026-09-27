@@ -37,8 +37,6 @@ import type { InPersonSortOrder, NearbyBannerReason } from "@/utils/nearbyLogic"
 const BANNER_ACCENT = "#f59e0b"
 
 export interface InPersonListHeaderProps {
-  /** Fellowship code ("AA") for the fellowship selector's value column */
-  fellowshipLabel: string
   /** Translated weekday name for the day selector's value column */
   selectedDayLabel: string
   /** Bare distance ("25 mi") for the radius selector's value column */
@@ -76,7 +74,6 @@ export interface InPersonListHeaderProps {
    * is excluded by the screen so its native spinner isn't doubled here.
    */
   isRefetching: boolean
-  onOpenFellowship: () => void
   onOpenDay: () => void
   onOpenRadius: () => void
   onOpenShortTime: () => void
@@ -114,7 +111,6 @@ export interface InPersonListHeaderProps {
 
 export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
   function InPersonListHeader({
-    fellowshipLabel,
     selectedDayLabel,
     radiusLabel,
     radiusA11yLabel,
@@ -124,7 +120,6 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
     locationDisabled,
     showSpinner,
     isRefetching,
-    onOpenFellowship,
     onOpenDay,
     onOpenRadius,
     onOpenShortTime,
@@ -251,23 +246,12 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           deliberately left free to wrap: at ~160dp per cell the long ones
           (de "Gemeinschaft", ru "Сообщество") can need two lines, and since
           $selectorRow stretches, that just makes the row taller with both
-          cells still matching. Truncating a label would be worse. */}
-        <View style={themed($selectorRow)}>
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={onOpenFellowship}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:fellowshipLabel")}, ${fellowshipLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:fellowshipLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {fellowshipLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+          cells still matching. Truncating a label would be worse.
 
+          CHANGED 2026-09-26: Fellowship left this grid for the shared filter
+          bar above the segments (MeetingFilterBar). The remaining three cells
+          fit one row, which gives the list back a row of height. */}
+        <View style={themed($selectorRow)}>
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={onOpenRadius}
@@ -282,9 +266,7 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
           </TouchableOpacity>
-        </View>
 
-        <View style={themed($selectorRow)}>
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={onOpenDay}
@@ -328,7 +310,14 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           show — on the map the sort half is empty but the way back to the list
           must still be here, and in fallback mode the sort pill is hidden but
           the map one may not be. The map slot is a plain spacer when
-          hidden so the sort pill still lands under the right column. */}
+          hidden so the sort pill still lands under the right column.
+          CHANGED 2026-09-26: "the grid's two columns" above is stale — the
+          selector grid lost its two-row/two-column shape when Fellowship
+          moved out to the shared filter bar (see the CHANGED note on
+          $selectorRow above); it's a single row of three cells now. This
+          controls row still sits flush underneath it either way, so the
+          layout claim stands even though the grid it's describing changed
+          shape. */}
         {(showMapToggle || showSortToggle) && (
           <View style={themed($controlsRow)}>
             <View>
@@ -431,6 +420,11 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // Same horizontal inset as `$selectorRow` so the two pills sit flush under the
 // grid's two columns. No top margin: the grid row above already carries
 // `marginVertical: spacing.sm`, which is the gap we want.
+// CHANGED 2026-09-26: "the grid's two columns" is stale — Fellowship left the
+// grid for the shared filter bar above the segments, so `$selectorRow` is now
+// one row of three cells (Radius / Day / Time), not a 2×2 grid. The shared
+// horizontal inset is still the point: these two pills line up with that
+// row's left and right edges either way.
 const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",

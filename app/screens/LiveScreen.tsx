@@ -1,28 +1,29 @@
 import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
 import {
+  ActivityIndicator,
+  Pressable,
   ViewStyle,
   FlatList,
   RefreshControl,
   View,
   TextStyle,
-  TouchableOpacity,
-  Modal,
-  Pressable,
 } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
+import { StartsInPill } from "@/components/StartsInPill"
 import { Text } from "@/components/Text"
-import { useMeetings, type MeetingWithTrex } from "@/context/MeetingContext"
+import { useMeetings, toMeetingWithTrex, type MeetingWithTrex } from "@/context/MeetingContext"
+import { MeetingFiltersProvider, useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
+import { useAtNextSchedules } from "@/hooks/useAtNextSchedules"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
-import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import {
   peekPendingMeetingId,
@@ -30,21 +31,24 @@ import {
   usePendingMeetingId,
 } from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import type { StartsIn } from "@/utils/atNextLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
-import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
+import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 
 const log = logger.child({ module: "LiveScreen" })
 
 /**
- * Fellowships available for filtering — driven by EXPO_PUBLIC_FELLOWSHIPS
- * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
- * Label is the short code itself (e.g. "AA").
+ * Starts In ships dark until GET /schedules/at_next is deployed (api repo).
+ * Flip to `true` after the deploy: a JS-only OTA, no runtimeVersion bump.
+ * If flipped too early, a 404 hides the selector for the session
+ * (useAtNextSchedules → `unavailable`).
  */
-const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS.map((value) => ({ value, label: value }))
+const startsInVisible = __DEV__
 
 /**
  * LiveContent - Core content for live meetings display
@@ -55,6 +59,8 @@ const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS.map((value) => ({ value, label
  */
 interface LiveContentProps {
   meetingId?: string
+  /** True only while Live is on screen (segment AND Meetings tab focused). Drives the Starts In reset. */
+  visible: boolean
 }
 
 // `meetingId` is still passed by MeetingsScreen but is no longer read here —
@@ -62,28 +68,72 @@ interface LiveContentProps {
 // the props for call-site compatibility; prefixed `_` to mark it unused.
 export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   meetingId: _meetingId,
+  visible,
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
-  const profileStore = useProfileStore()
   const reminderLookup = useReminderLookup()
+  const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
+
+  const [startsIn, setStartsIn] = useState<StartsIn>("live")
+  // Destructured (not held as one `atNext` object) so every effect/callback
+  // below can list exactly the fields it reads — the hook returns a new
+  // object identity every render, so depending on the whole thing would
+  // recreate those callbacks (and trip react-hooks/exhaustive-deps) for no
+  // reason. FIXED 2026-09-26 (review round 1, MINOR fold-in).
+  const {
+    meetings: atNextMeetings,
+    isLoading: atNextLoading,
+    failed: atNextFailed,
+    unavailable: atNextUnavailable,
+    blocked: atNextBlocked,
+    refresh: refreshAtNext,
+  } = useAtNextSchedules(startsInVisible ? startsIn : "live", visible)
+  const showStartsIn = startsInVisible && !atNextUnavailable
+
+  // Reset to Live when Live goes OFF screen, not when it comes back.
+  // FIXED 2026-09-26 (review round 1, IMPORTANT): this used to fire on the
+  // hidden→visible edge, which is one render too late. `useAtNextSchedules`
+  // is called above this effect, and React runs a component's hooks (and the
+  // effects that follow from them) top-to-bottom within the same commit — so
+  // on a hidden→visible transition, the hook's OWN fetch effect already ran
+  // `refresh()` for whatever `startsIn` was left over from the last visit
+  // (seq++, isLoading true, a real request sent) before this effect had a
+  // chance to reset `startsIn` back to "live". That painted one stale frame
+  // (old selection, old rows, old RefreshControl state) and fired a wasted
+  // request. Resetting on hide instead means `startsIn` is already "live" —
+  // and nothing is fetching, since `visible` is false — for the entire time
+  // Live is off screen, so the next show renders "live" from frame one with
+  // no request in flight. Still keyed on the edge, never on a store value
+  // (CLAUDE.md "The trap, hit twice") — just the other edge.
+  const prevVisibleRef = useRef<boolean | undefined>(undefined)
+  useEffect(() => {
+    if (prevVisibleRef.current === true && !visible) setStartsIn("live")
+    prevVisibleRef.current = visible
+  }, [visible])
+
+  // Fall back to Live when the endpoint is missing or fetching is blocked.
+  useEffect(() => {
+    if (atNextUnavailable || atNextBlocked) setStartsIn("live")
+  }, [atNextUnavailable, atNextBlocked])
+
+  const handleStartsInSelect = useCallback((value: StartsIn) => {
+    setStartsIn(value)
+    trackEvent("live_starts_in_changed", { offset: value })
+  }, [])
 
   // Log mount/unmount
   useEffect(() => {
     log.info("LiveContent mounted", {
       liveMeetingsCount: liveMeetings.length,
-      fellowship: profileStore.fellowship || "all",
+      fellowship: fellowship || "all",
     })
     return () => log.debug("LiveContent unmounted")
     // Mount-only logger — deps intentionally empty so it fires once on mount,
     // not on every fellowship/liveMeetings change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Fellowship filter — local state, defaults from saved preference but doesn't write back
-  const [filterFellowship, setFilterFellowship] = useState(profileStore.fellowship)
-  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
 
   // Live feedback state for DISPLAY only (not sorting)
   // This updates immediately when user interacts, but doesn't affect sort order
@@ -104,23 +154,39 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   }, [])
 
   // Subscribe to live events — reset local filter when Settings preference changes
+  // CHANGED 2026-09-26: the fellowship reset moved to MeetingFiltersContext,
+  // which owns the shared filter for all three segments. This keeps only the
+  // refresh.
   useEffect(() => {
     const unsubscribe = liveEvents.subscribe((event) => {
-      if (event.type === "preferences_changed") {
-        setFilterFellowship(profileStore.fellowship)
-        refresh()
-      } else if (event.type === "refresh_requested") {
+      if (event.type === "preferences_changed" || event.type === "refresh_requested") {
         refresh()
       }
     })
     return unsubscribe
-  }, [refresh, profileStore.fellowship])
+  }, [refresh])
 
   // Filter meetings by local fellowship filter (not the saved preference)
-  const filteredMeetings = useMemo(() => {
-    if (!filterFellowship || filterFellowship === "") return liveMeetings
-    return liveMeetings.filter((m) => m.fellowship === filterFellowship)
-  }, [liveMeetings, filterFellowship])
+  // CHANGED 2026-09-26: fellowship and language come from the shared Meetings
+  // filter bar (MeetingFiltersContext). Two stages so the bar's language
+  // options reflect this fellowship's meetings, not every fellowship's.
+  // CHANGED 2026-09-26: source switches to the at_next window's rows when a
+  // minute option is selected, so fellowship/language filtering (and the
+  // filter bar's language options via reportMeetings) apply to whichever list
+  // is actually on screen.
+  const source = startsIn === "live" ? liveMeetings : atNextMeetings
+  const fellowshipMeetings = useMemo(
+    () => (fellowship ? source.filter((m) => m.fellowship === fellowship) : source),
+    [source, fellowship],
+  )
+  const filteredMeetings = useMemo(
+    () => fellowshipMeetings.filter((m) => matchesLanguage(m, language)),
+    [fellowshipMeetings, language],
+  )
+
+  useEffect(() => {
+    reportMeetings("live", fellowshipMeetings)
+  }, [reportMeetings, fellowshipMeetings])
 
   // Sort meetings: 1) favorites by stars, 2) rated non-favorites, 3) rest
   // Uses meeting.feedback which is a snapshot from when meetings were loaded,
@@ -130,7 +196,12 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // but the In-Person and Search segments needed the same ordering, and three
   // hand-written copies of a three-tier comparator would have drifted on the
   // first edit. The tier semantics are documented (and vitest-covered) there.
-  const sortedMeetings = useMemo(() => sortByFeedback(filteredMeetings), [filteredMeetings])
+  // CHANGED 2026-09-26: at_next rows are already in start order, and feedback
+  // ranking would scramble the countdown — only the Live tier applies it.
+  const sortedMeetings = useMemo(
+    () => (startsIn === "live" ? sortByFeedback(filteredMeetings) : filteredMeetings),
+    [filteredMeetings, startsIn],
+  )
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -199,16 +270,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             consumePendingMeetingId()
             return
           }
-          const meetingWithTrex: MeetingWithTrex = {
-            ...s.meeting,
-            password: s.password || s.meeting.password || "",
-            passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
-            feedback: feedbackCache.get(s.meeting.id),
-            sid: s.sid,
-            millis: s.millis,
-            duration_ms: s.duration_ms ?? 0,
-            scheduleData: s.data,
-          }
+          const meetingWithTrex = toMeetingWithTrex(s)
           consumedMeetingIdRef.current = targetId
           consumePendingMeetingId()
           setSelectedMeeting(meetingWithTrex)
@@ -265,14 +327,62 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
 
-  const ListEmptyComponent = useCallback(
-    () => (
+  // CHANGED 2026-09-26: the at_next branches come first — a failed minute
+  // fetch or an empty countdown window need their own copy, ahead of the
+  // language-empty-state and plain-empty fallbacks below.
+  // CHANGED 2026-09-26 (review round 1, MINOR fold-in): added the loading
+  // branch — without it, the first fetch for a freshly-selected minute option
+  // rendered "No meetings starting in the next N minutes" for a beat before
+  // any response landed, which reads as a real (if surprising) answer rather
+  // than "still checking". A bare spinner, same pattern as ListingsScreen's
+  // `isLoading && meetings.length === 0` branch, needs no new i18n string.
+  const ListEmptyComponent = useCallback(() => {
+    if (startsIn !== "live" && atNextLoading) {
+      return (
+        <View style={themed($loadingContainer)}>
+          <ActivityIndicator size="large" color={theme.colors.tint} />
+        </View>
+      )
+    }
+    if (startsIn !== "live" && atNextFailed) {
+      return (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={() => void refreshAtNext()}
+          disabled={atNextLoading}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: atNextLoading }}
+        >
+          <Text style={themed($emptyText)}>{t("liveScreen:atNextError")}</Text>
+        </Pressable>
+      )
+    }
+    // ADDED 2026-09-26: the list has meetings, just none in the selected
+    // language. Say that and offer the clear.
+    if (language && fellowshipMeetings.length > 0) {
+      return <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
+    }
+    return (
       <View style={themed($emptyContainer)}>
-        <Text preset="subheading" tx="liveScreen:noMeetings" style={themed($emptyText)} />
+        <Text preset="subheading" style={themed($emptyText)}>
+          {startsIn === "live"
+            ? t("liveScreen:noMeetings")
+            : t("liveScreen:atNextEmpty", { minutes: startsIn })}
+        </Text>
       </View>
-    ),
-    [themed],
-  )
+    )
+  }, [
+    themed,
+    theme.colors.tint,
+    t,
+    startsIn,
+    atNextLoading,
+    atNextFailed,
+    refreshAtNext,
+    language,
+    fellowshipMeetings.length,
+    setLanguage,
+  ])
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
@@ -291,76 +401,46 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         <Text preset="heading" tx="liveScreen:title" />
       </View>
 
-      {/* Fellowship Selector - single line */}
-      <TouchableOpacity
-        style={themed($selectorButton)}
-        onPress={() => setFellowshipModalVisible(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`${t("settingsScreen:recoveryFellowship")}, ${filterFellowship || t("liveScreen:defaultFellowship")}`}
-      >
-        <Text style={themed($selectorLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
-        <View style={$selectorValueRow}>
-          <Text style={themed($selectorValue)}>
-            {filterFellowship || t("liveScreen:defaultFellowship")}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+      {/* Starts In selector (ADDED 2026-09-26, dev builds only — see
+          startsInVisible above). Sits where the old fellowship row used to,
+          just below the title header. */}
+      {showStartsIn && (
+        <View style={themed($startsInRow)}>
+          <StartsInPill value={startsIn} disabled={atNextBlocked} onSelect={handleStartsInSelect} />
         </View>
-      </TouchableOpacity>
-
-      {/* Fellowship Selector Modal */}
-      <Modal
-        visible={fellowshipModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFellowshipModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
-          <View style={themed($modalContent)} accessibilityViewIsModal>
-            <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
-            {SELECTABLE_FELLOWSHIPS.map((f) => (
-              <TouchableOpacity
-                key={f.value}
-                style={[
-                  themed($modalOption),
-                  filterFellowship === f.value && themed($modalOptionSelected),
-                ]}
-                onPress={() => {
-                  log.info("Fellowship filter changed", {
-                    from: filterFellowship,
-                    to: f.value,
-                  })
-                  setFilterFellowship(f.value)
-                  setFellowshipModalVisible(false)
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: filterFellowship === f.value }}
-                accessibilityLabel={f.label}
-              >
-                <Text
-                  style={[
-                    themed($modalOptionText),
-                    filterFellowship === f.value && themed($modalOptionTextSelected),
-                  ]}
-                >
-                  {f.label}
-                </Text>
-                {filterFellowship === f.value && (
-                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
+      )}
 
       {/* Meeting Count - matches Listings style */}
       {sortedMeetings.length > 0 && (
         <View style={themed($countContainer)}>
           <Text style={themed($countText)}>
             {t("liveScreen:meetingCount", { count: sortedMeetings.length })}
-            {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
+            {/* CHANGED 2026-09-26 (review round 1, MINOR fold-in): `lastRefresh`
+                is MeetingContext's Live-pipeline timestamp — showing it next to
+                at_next rows implied those rows were as fresh as the last Live
+                poll, which isn't true (at_next has its own 5-min cadence and no
+                exposed last-fetch time worth surfacing). Only show it in Live. */}
+            {lastRefresh && startsIn === "live" && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
         </View>
+      )}
+
+      {/* Inline retry banner (ADDED 2026-09-26, review round 1, IMPORTANT —
+          plan-mandated spec: "A failed fetch keeps the last list and surfaces
+          an inline 'Couldn't load — tap to retry'"). Only for the non-empty
+          case: an empty list gets its own retry copy via ListEmptyComponent
+          above, so the two never render at once. */}
+      {startsIn !== "live" && atNextFailed && sortedMeetings.length > 0 && (
+        <Pressable
+          style={themed($retryBanner)}
+          onPress={() => void refreshAtNext()}
+          disabled={atNextLoading}
+          accessibilityRole="button"
+          accessibilityLabel={t("liveScreen:atNextError")}
+          accessibilityState={{ disabled: atNextLoading }}
+        >
+          <Text style={themed($retryBannerText)}>{t("liveScreen:atNextError")}</Text>
+        </Pressable>
       )}
 
       <FlatList
@@ -372,8 +452,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         contentContainerStyle={themed($listContent)}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refresh}
+            refreshing={startsIn === "live" ? isLoading : atNextLoading}
+            onRefresh={startsIn === "live" ? refresh : refreshAtNext}
             tintColor={theme.colors.text}
           />
         }
@@ -398,7 +478,20 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_props) {
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
-      <LiveContent />
+      {/* CHANGED 2026-09-26: `visible` became required on LiveContentProps
+          (drives the Starts In reset). This standalone wrapper has no
+          segment/tab-focus concept of its own — it IS the whole screen
+          whenever it's mounted — so `true` is the correct constant.
+          CHANGED 2026-09-26 (review round 1): LiveContent calls
+          useMeetingFilters(), which throws without a MeetingFiltersProvider
+          ancestor — MeetingsScreen supplies one, but this standalone wrapper
+          didn't. Nothing currently navigates to "Live" (grepped — no
+          navigator/barrel reference), so this was a latent crash rather than
+          a live one, but wrap it anyway so it isn't a trap for whoever wires
+          up a route or deep link to it later. */}
+      <MeetingFiltersProvider>
+        <LiveContent visible />
+      </MeetingFiltersProvider>
     </Screen>
   )
 }
@@ -416,83 +509,10 @@ const $screenContainer: ViewStyle = {
   flex: 1,
 }
 
-// Fellowship selector - single line
-const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginHorizontal: spacing.md,
-  marginVertical: spacing.sm,
+const $startsInRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
-  borderRadius: 8,
-  backgroundColor: colors.card,
-  borderWidth: 1,
-  borderColor: colors.border,
-})
-
-const $selectorLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})
-
-const $selectorValueRow: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 4,
-}
-
-const $selectorValue: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 16,
-  fontWeight: "600",
-  color: colors.tint,
-})
-
-// Modal styles
-const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.5)",
-  justifyContent: "center",
-  alignItems: "center",
-})
-
-const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.background,
-  borderRadius: 12,
-  padding: spacing.md,
-  minWidth: 200,
-  maxWidth: "80%",
-})
-
-const $modalTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 18,
-  fontWeight: "700",
-  color: colors.text,
-  marginBottom: spacing.md,
-  textAlign: "center",
-})
-
-const $modalOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.sm,
-  borderRadius: 8,
-})
-
-const $modalOptionSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.card,
-})
-
-const $modalOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 16,
-  color: colors.text,
-})
-
-const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontWeight: "600",
+  paddingBottom: spacing.sm,
+  alignItems: "flex-start",
 })
 
 const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -503,6 +523,21 @@ const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $countText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
   color: colors.textDim,
+})
+
+const $retryBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginHorizontal: spacing.md,
+  marginBottom: spacing.sm,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  borderRadius: 8,
+  backgroundColor: colors.errorBackground,
+})
+
+const $retryBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.error,
+  fontSize: 13,
+  textAlign: "center",
 })
 
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -518,6 +553,15 @@ const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: spacing.xxl,
+})
+
+// Same shape as ListingsScreen's loading indicator (its `isLoading &&
+// meetings.length === 0` branch) — reused rather than inventing a second
+// "still loading" idiom for the same tab group.
+const $loadingContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "center",
   paddingVertical: spacing.xxl,

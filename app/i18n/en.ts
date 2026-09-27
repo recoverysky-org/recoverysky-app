@@ -153,6 +153,15 @@ const en = {
     inPersonSegment: "In-Person",
     // Relabeled from "Listings" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Search",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Fellowship",
+    filterLang: "Lang",
+    filterLanguageA11y: "Language",
+    allLanguages: "All",
+    selectLanguage: "Select language",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Schedule",
@@ -184,7 +193,12 @@ const en = {
     fri: "FRI",
     sat: "SAT",
     sun: "SUN",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Meeting Listings" 2026-08-03 — namespace/key unchanged.
@@ -200,8 +214,6 @@ const en = {
     emptyNoMatches: "No meetings match your search",
     // Filter labels
     dayLabel: "Day",
-    languageLabel: "Language",
-    langLabel: "Lang",
     venueLabel: "Venue",
     venueOnline: "Online",
     venueInPerson: "In-Person",
@@ -210,13 +222,11 @@ const en = {
     radiusOff: "Location off",
     emptyNoLocation: "Turn on location to search for in-person meetings near you",
     radiusOnlineNote: "not available for online meetings",
-    allLanguages: "All",
     startLabel: "Start",
     endLabel: "End",
     toSeparator: "to",
     // Modal titles
     selectDay: "Select Day",
-    selectLanguage: "Select Language",
     startTime: "Start Time",
     endTime: "End Time",
     // "Any day" option on both day pickers (In-Person + Search). `anyDay` is
@@ -928,7 +938,6 @@ const en = {
   inPersonScreen: {
     title: "In-Person",
     withinRadius: "Within {{distance}}",
-    fellowshipLabel: "Fellowship",
     selectRadius: "Radius",
     shortTimeLabel: "Time",
     shortTimeAll: "Any time",

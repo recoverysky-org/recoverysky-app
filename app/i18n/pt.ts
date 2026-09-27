@@ -148,6 +148,15 @@ const pt: Translations = {
     inPersonSegment: "Presencial",
     // Relabeled from "Lista" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Pesquisar",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Irmandade",
+    filterLang: "Idioma",
+    filterLanguageA11y: "Idioma",
+    allLanguages: "Todos",
+    selectLanguage: "Selecionar Idioma",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Agenda",
@@ -176,7 +185,12 @@ const pt: Translations = {
     fri: "SEX",
     sat: "SÁB",
     sun: "DOM",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Lista de Reuniões" 2026-08-03 — namespace/key unchanged.
@@ -190,8 +204,6 @@ const pt: Translations = {
     emptyNoMatches: "Nenhuma reunião corresponde à sua busca",
     // Filter labels
     dayLabel: "Dia",
-    languageLabel: "Idioma",
-    langLabel: "Idioma",
     venueLabel: "Local",
     venueOnline: "Online",
     venueInPerson: "Presencial",
@@ -200,13 +212,11 @@ const pt: Translations = {
     radiusOff: "Localização desativada",
     emptyNoLocation: "Ative a localização para buscar reuniões presenciais perto de você",
     radiusOnlineNote: "indisponível para reuniões online",
-    allLanguages: "Todos",
     startLabel: "Início",
     endLabel: "Fim",
     toSeparator: "até",
     // Modal titles
     selectDay: "Selecionar Dia",
-    selectLanguage: "Selecionar Idioma",
     startTime: "Horário de Início",
     endTime: "Horário de Fim",
     // Day names
@@ -881,7 +891,6 @@ const pt: Translations = {
   inPersonScreen: {
     title: "Presencial",
     withinRadius: "Em um raio de {{distance}}",
-    fellowshipLabel: "Irmandade",
     selectRadius: "Raio",
     shortTimeLabel: "Horário",
     shortTimeAll: "Qualquer horário",

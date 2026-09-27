@@ -144,6 +144,15 @@ const th: Translations = {
     inPersonSegment: "แบบพบหน้า",
     // Relabeled from "รายการ" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "ค้นหา",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "กลุ่ม",
+    filterLang: "ภาษา",
+    filterLanguageA11y: "ภาษา",
+    allLanguages: "ทั้งหมด",
+    selectLanguage: "เลือกภาษา",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "ตาราง",
@@ -172,7 +181,12 @@ const th: Translations = {
     fri: "ศ.",
     sat: "ส.",
     sun: "อา.",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "รายการประชุม" 2026-08-03 — namespace/key unchanged.
@@ -186,8 +200,6 @@ const th: Translations = {
     emptyNoMatches: "ไม่มีการประชุมที่ตรงกับการค้นหาของคุณ",
     // Filter labels
     dayLabel: "วัน",
-    languageLabel: "ภาษา",
-    langLabel: "ภาษา",
     venueLabel: "รูปแบบ",
     venueOnline: "ออนไลน์",
     venueInPerson: "พบหน้า",
@@ -196,13 +208,11 @@ const th: Translations = {
     radiusOff: "ปิดตำแหน่งที่ตั้ง",
     emptyNoLocation: "เปิดตำแหน่งที่ตั้งเพื่อค้นหาการประชุมแบบพบหน้าใกล้คุณ",
     radiusOnlineNote: "ใช้ไม่ได้กับการประชุมออนไลน์",
-    allLanguages: "ทั้งหมด",
     startLabel: "เริ่ม",
     endLabel: "สิ้นสุด",
     toSeparator: "ถึง",
     // Modal titles
     selectDay: "เลือกวัน",
-    selectLanguage: "เลือกภาษา",
     startTime: "เวลาเริ่ม",
     endTime: "เวลาสิ้นสุด",
     // Day names
@@ -864,7 +874,6 @@ const th: Translations = {
   inPersonScreen: {
     title: "แบบพบหน้า",
     withinRadius: "ภายใน {{distance}}",
-    fellowshipLabel: "กลุ่ม",
     selectRadius: "รัศมี",
     shortTimeLabel: "เวลา",
     shortTimeAll: "ทุกเวลา",

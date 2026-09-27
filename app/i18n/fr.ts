@@ -152,6 +152,15 @@ const fr: Translations = {
     inPersonSegment: "En personne",
     // Relabeled from "Répertoire" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Recherche",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Fraternité",
+    filterLang: "Langue",
+    filterLanguageA11y: "Langue",
+    allLanguages: "Toutes",
+    selectLanguage: "Choisir la langue",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Horaire",
@@ -180,7 +189,12 @@ const fr: Translations = {
     fri: "VEN",
     sat: "SAM",
     sun: "DIM",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Répertoire de réunions" 2026-08-03 — namespace/key unchanged.
@@ -194,8 +208,6 @@ const fr: Translations = {
     emptyNoMatches: "Aucune réunion ne correspond à votre recherche",
     // Filter labels
     dayLabel: "Jour",
-    languageLabel: "Langue",
-    langLabel: "Langue",
     venueLabel: "Lieu",
     venueOnline: "En ligne",
     venueInPerson: "En personne",
@@ -205,13 +217,11 @@ const fr: Translations = {
     emptyNoLocation:
       "Activez la localisation pour rechercher des réunions en présentiel près de vous",
     radiusOnlineNote: "non disponible pour les réunions en ligne",
-    allLanguages: "Toutes",
     startLabel: "Début",
     endLabel: "Fin",
     toSeparator: "à",
     // Modal titles
     selectDay: "Choisir le jour",
-    selectLanguage: "Choisir la langue",
     startTime: "Heure de début",
     endTime: "Heure de fin",
     // Day names
@@ -886,7 +896,6 @@ const fr: Translations = {
   inPersonScreen: {
     title: "En personne",
     withinRadius: "Dans un rayon de {{distance}}",
-    fellowshipLabel: "Fraternité",
     selectRadius: "Rayon",
     shortTimeLabel: "Heure",
     shortTimeAll: "À toute heure",

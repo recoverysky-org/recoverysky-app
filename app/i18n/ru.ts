@@ -149,6 +149,15 @@ const ru: Translations = {
     inPersonSegment: "Очно",
     // Relabeled from "Каталог" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Поиск",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Сообщество",
+    filterLang: "Язык",
+    filterLanguageA11y: "Язык",
+    allLanguages: "Все",
+    selectLanguage: "Выбрать язык",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Расписание",
@@ -177,7 +186,12 @@ const ru: Translations = {
     fri: "ПТ",
     sat: "СБ",
     sun: "ВС",
-    defaultFellowship: "АА",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Каталог собраний" 2026-08-03 — namespace/key unchanged.
@@ -191,8 +205,6 @@ const ru: Translations = {
     emptyNoMatches: "Нет встреч, соответствующих вашему запросу",
     // Filter labels
     dayLabel: "День",
-    languageLabel: "Язык",
-    langLabel: "Язык",
     venueLabel: "Формат",
     venueOnline: "Онлайн",
     venueInPerson: "Очно",
@@ -201,13 +213,11 @@ const ru: Translations = {
     radiusOff: "Геолокация выключена",
     emptyNoLocation: "Включите геолокацию, чтобы искать очные встречи рядом с вами",
     radiusOnlineNote: "недоступно для онлайн-встреч",
-    allLanguages: "Все",
     startLabel: "Начало",
     endLabel: "Конец",
     toSeparator: "до",
     // Modal titles
     selectDay: "Выбрать день",
-    selectLanguage: "Выбрать язык",
     startTime: "Время начала",
     endTime: "Время окончания",
     // Day names
@@ -875,7 +885,6 @@ const ru: Translations = {
   inPersonScreen: {
     title: "Очно",
     withinRadius: "В радиусе {{distance}}",
-    fellowshipLabel: "Сообщество",
     selectRadius: "Радиус",
     shortTimeLabel: "Время",
     shortTimeAll: "Любое время",

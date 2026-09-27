@@ -29,7 +29,6 @@ import { FC, useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   FlatList,
   RefreshControl,
-  ScrollView,
   View,
   ViewStyle,
   TextStyle,
@@ -45,12 +44,14 @@ import { useTranslation } from "react-i18next"
 
 import { DaySelectorModal } from "@/components/DaySelectorModal"
 import { InPersonPopup } from "@/components/InPersonPopup"
+import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField, type TextFieldAccessoryProps } from "@/components/TextField"
 import { MeetingWithTrex } from "@/context/MeetingContext"
+import { useMeetingFilters } from "@/context/MeetingFiltersContext"
 import {
   inPersonPoolOf,
   isInPersonVenue,
@@ -68,7 +69,6 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { sortByFeedback } from "@/utils/feedbackSort"
-import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
   ANY_DAY,
   anyDayAllowedFor,
@@ -90,6 +90,7 @@ import {
   type VenueChoice,
 } from "@/utils/filterLogic"
 import { logger } from "@/utils/logger"
+import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 import {
   buildNearbyParams,
   DEFAULT_RADIUS_KM,
@@ -101,39 +102,6 @@ import {
 } from "@/utils/nearbyLogic"
 
 const log = logger.child({ module: "ListingsScreen" })
-
-/**
- * Fellowships available for filtering — driven by EXPO_PUBLIC_FELLOWSHIPS
- * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
- * Label is the short code itself (e.g. "AA").
- */
-const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS.map((value) => ({ value, label: value }))
-
-/** Map of ISO 639-1 language codes (uppercase) to native display names */
-const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
-  EN: "English",
-  ES: "Español",
-  FR: "Français",
-  PT: "Português",
-  DE: "Deutsch",
-  RU: "Русский",
-  AR: "العربية",
-  TH: "ไทย",
-  IT: "Italiano",
-  JA: "日本語",
-  KO: "한국어",
-  ZH: "中文",
-  NL: "Nederlands",
-  PL: "Polski",
-  SV: "Svenska",
-  HE: "עברית",
-  HI: "हिन्दी",
-  TR: "Türkçe",
-  UK: "Українська",
-  FA: "فارسی",
-}
-
-const getLanguageDisplayName = (code: string): string => LANGUAGE_DISPLAY_NAMES[code] ?? code
 
 /** Amber accent — the same literal InPersonScreen uses for its banner, so the
  *  two segments' location banners are visually one thing. */
@@ -190,6 +158,11 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   const profileStore = useProfileStore()
   const configStore = useConfigStore()
   const reminderLookup = useReminderLookup()
+  // CHANGED 2026-09-26: fellowship and language come from the shared Meetings
+  // filter bar (MeetingFiltersContext), not profileStore/local state. Search
+  // used to write picks straight to profileStore.setFellowship, silently
+  // changing the user's Settings fellowship.
+  const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
 
   // Refs
   const listRef = useRef<FlatList>(null)
@@ -197,9 +170,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   // State
   const [selectedDay, setSelectedDay] = useState(getCurrentIsoDow)
   const [dayModalVisible, setDayModalVisible] = useState(false)
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null) // null = all
-  const [languageModalVisible, setLanguageModalVisible] = useState(false)
-  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
   const [startHour, setStartHour] = useState(0) // 0-23
   const [endHour, setEndHour] = useState(24) // 1-24 (24 = midnight end)
   const [timePickerVisible, setTimePickerVisible] = useState<"start" | "end" | null>(null)
@@ -443,15 +413,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     [location],
   )
 
-  // Get unique languages from meetings
-  const availableLanguages = useMemo(() => {
-    const langs = new Set<string>()
-    meetings.forEach((m) => {
-      if (m.language) langs.add(m.language.toUpperCase())
-    })
-    return Array.from(langs).sort()
-  }, [meetings])
-
   // Format hour for display (e.g., "6am", "12pm", "12am").
   // Pure (only depends on its arg) — memoized with [] so it stays referentially
   // stable and doesn't invalidate the ListHeader useCallback every render.
@@ -516,7 +477,10 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       return
     }
 
-    const fellowship = profileStore.fellowship
+    // CHANGED 2026-09-26: fellowship comes from the shared Meetings filter bar
+    // (MeetingFiltersContext), not profileStore. Search used to write its picks
+    // to profileStore.setFellowship, which silently changed the user's
+    // Settings fellowship.
     if (!fellowship) {
       setAllMeetings([])
       setError(null)
@@ -694,7 +658,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     // so that primitive is the honest dependency. Depending on `location`
     // itself would refetch on every unrelated status flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveDay, profileStore.fellowship, maintenanceMode, venue, radiusKm, location.fixVersion])
+  }, [effectiveDay, fellowship, maintenanceMode, venue, radiusKm, location.fixVersion])
 
   // Fetch when day, fellowship, venue, radius, maintenance or the location fix
   // changes.
@@ -769,13 +733,42 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   const filteredMeetings = useMemo(() => {
     return meetings.filter((m) => {
       const inTimeRange = matchesSearchTime(m.millis, searchTime, startHour, endHour)
-      const matchesLanguage = !selectedLanguage || m.language?.toUpperCase() === selectedLanguage
-      if (!inTimeRange || !matchesLanguage) return false
+      const languageOk = matchesLanguage(m, language)
+      if (!inTimeRange || !languageOk) return false
       // The WeakMap is an optimization only: a miss (a row object the memo
       // above never saw) rebuilds inline rather than silently failing the row.
       return matchesFreeText(haystacks.get(m) ?? buildSearchHaystack(m), queryTokens)
     })
-  }, [meetings, searchTime, startHour, endHour, selectedLanguage, haystacks, queryTokens])
+  }, [meetings, searchTime, startHour, endHour, language, haystacks, queryTokens])
+
+  // Reports this segment's venue-filtered pool (post-venue, pre-language/time/
+  // text) so the shared filter bar can offer Search's languages too.
+  useEffect(() => {
+    reportMeetings("listings", meetings)
+  }, [reportMeetings, meetings])
+
+  // ADDED 2026-09-26: the time and text filters leave rows, but language
+  // removes them all.
+  const languageEmptied = useMemo(
+    () =>
+      !!language &&
+      filteredMeetings.length === 0 &&
+      meetings.some(
+        (m) =>
+          matchesSearchTime(m.millis, searchTime, startHour, endHour) &&
+          matchesFreeText(haystacks.get(m) ?? buildSearchHaystack(m), queryTokens),
+      ),
+    [
+      language,
+      filteredMeetings.length,
+      meetings,
+      searchTime,
+      startHour,
+      endHour,
+      haystacks,
+      queryTokens,
+    ],
+  )
 
   // Feeds the empty state: true only when a query is active AND the pool it
   // emptied was non-empty. Time/language can also empty a pool, but they
@@ -882,7 +875,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // hold no position, an In-Person search with location off empties the
       // list entirely — and "No meetings for AA" would blame the fellowship
       // for it. Tapping opens the radius picker, which is what prompts.
-      needsLocation && !error && profileStore.fellowship ? (
+      needsLocation && !error && fellowship ? (
         <Pressable
           style={themed($emptyContainer)}
           onPress={handleOpenRadiusModal}
@@ -893,10 +886,17 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         </Pressable>
       ) : (
         <View style={themed($emptyContainer)}>
-          {!profileStore.fellowship ? (
+          {!fellowship ? (
             <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
           ) : error ? (
             <Text style={themed($errorText)}>{error}</Text>
+          ) : languageEmptied && language ? (
+            // ADDED 2026-09-26: must sit ahead of `searchNarrowedToNothing`.
+            // That check is a broader catch-all (any text query over a
+            // non-empty pool), so a query typed alongside a language pick
+            // that is the actual cause would otherwise be shadowed by the
+            // generic "no matches" copy below.
+            <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
           ) : searchNarrowedToNothing ? (
             // Added 2026-09-05: the day/venue fetch DID return meetings; the
             // text filter emptied the list. "No meetings for AA" would blame
@@ -904,7 +904,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             <Text style={themed($emptyText)}>{t("listingsScreen:emptyNoMatches")}</Text>
           ) : (
             <Text style={themed($emptyText)}>
-              {t("listingsScreen:emptyStateFiltered", { fellowship: profileStore.fellowship })}
+              {t("listingsScreen:emptyStateFiltered", { fellowship })}
             </Text>
           )}
         </View>
@@ -912,10 +912,13 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     [
       themed,
       t,
-      profileStore.fellowship,
+      fellowship,
       error,
       needsLocation,
       handleOpenRadiusModal,
+      languageEmptied,
+      language,
+      setLanguage,
       searchNarrowedToNothing,
     ],
   )
@@ -957,23 +960,13 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             when. Day and Time keep sharing a row — they're the pair a user
             almost always sets together — and moving them to the bottom puts
             them directly above the Custom start/end row that the Time cell
-            reveals, which the previous order had one row removed. */}
-        <View style={themed($selectorRow)}>
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={() => setFellowshipModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:fellowshipLabel")}, ${profileStore.fellowship || "AA"}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:fellowshipLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {profileStore.fellowship || "AA"}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+            reveals, which the previous order had one row removed.
 
+            CHANGED 2026-09-26: Fellowship and Lang left for the shared filter
+            bar above the segments. Venue / Radius now share the "what and
+            where" row and Day / Time stay together directly above the Custom
+            start/end row. */}
+        <View style={themed($selectorRow)}>
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={() => setVenueModalVisible(true)}
@@ -984,25 +977,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             <View style={$selectorValueRow}>
               <Text style={themed($selectorValue)} numberOfLines={1}>
                 {venueLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <View style={themed($selectorRow)}>
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={() => setLanguageModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("listingsScreen:languageLabel")}, ${selectedLanguage ? getLanguageDisplayName(selectedLanguage) : t("listingsScreen:allLanguages")}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("listingsScreen:langLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {selectedLanguage
-                  ? getLanguageDisplayName(selectedLanguage)
-                  : t("listingsScreen:allLanguages")}
               </Text>
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
@@ -1181,14 +1155,12 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       t,
       theme.colors.tint,
       theme.colors.textDim,
-      profileStore.fellowship,
       // Search box (2026-09-07): its value, and the two accessory components
       // it renders (memoized on theme/t, so these rarely change).
       query,
       SearchIconAccessory,
       ClearAccessory,
       selectedDayLabel,
-      selectedLanguage,
       startHour,
       endHour,
       formatHour,
@@ -1260,114 +1232,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         anyDisabledTx="listingsScreen:anyDayOnlineHint"
         onClose={() => setDayModalVisible(false)}
       />
-
-      {/* Language Selector Modal */}
-      <Modal
-        visible={languageModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLanguageModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setLanguageModalVisible(false)}>
-          <View style={themed($modalContent)} accessibilityViewIsModal>
-            <Text style={themed($modalTitle)}>{t("listingsScreen:selectLanguage")}</Text>
-            <ScrollView bounces={false}>
-              {/* All option */}
-              <TouchableOpacity
-                style={[themed($modalOption), !selectedLanguage && themed($modalOptionSelected)]}
-                onPress={() => {
-                  setSelectedLanguage(null)
-                  trackEvent("listings_language_changed", { language: "all" })
-                  setLanguageModalVisible(false)
-                  listRef.current?.scrollToOffset({ offset: 0, animated: true })
-                }}
-              >
-                <Text
-                  style={[
-                    themed($modalOptionText),
-                    !selectedLanguage && themed($modalOptionTextSelected),
-                  ]}
-                >
-                  {t("listingsScreen:allLanguages")}
-                </Text>
-                {!selectedLanguage && (
-                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                )}
-              </TouchableOpacity>
-              {/* Language options */}
-              {availableLanguages.map((lang) => (
-                <TouchableOpacity
-                  key={lang}
-                  style={[
-                    themed($modalOption),
-                    selectedLanguage === lang && themed($modalOptionSelected),
-                  ]}
-                  onPress={() => {
-                    setSelectedLanguage(lang)
-                    trackEvent("listings_language_changed", { language: lang })
-                    setLanguageModalVisible(false)
-                    listRef.current?.scrollToOffset({ offset: 0, animated: true })
-                  }}
-                >
-                  <Text
-                    style={[
-                      themed($modalOptionText),
-                      selectedLanguage === lang && themed($modalOptionTextSelected),
-                    ]}
-                  >
-                    {getLanguageDisplayName(lang)}
-                  </Text>
-                  {selectedLanguage === lang && (
-                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Fellowship Selector Modal */}
-      <Modal
-        visible={fellowshipModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFellowshipModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
-          <View style={themed($modalContent)} accessibilityViewIsModal>
-            <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
-            <ScrollView bounces={false}>
-              {SELECTABLE_FELLOWSHIPS.map((f) => (
-                <TouchableOpacity
-                  key={f.value}
-                  style={[
-                    themed($modalOption),
-                    profileStore.fellowship === f.value && themed($modalOptionSelected),
-                  ]}
-                  onPress={() => {
-                    profileStore.setFellowship(f.value)
-                    trackEvent("listings_fellowship_changed", { fellowship: f.value })
-                    setFellowshipModalVisible(false)
-                  }}
-                >
-                  <Text
-                    style={[
-                      themed($modalOptionText),
-                      profileStore.fellowship === f.value && themed($modalOptionTextSelected),
-                    ]}
-                  >
-                    {f.label}
-                  </Text>
-                  {profileStore.fellowship === f.value && (
-                    <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
 
       {/* Venue Selector Modal */}
       <Modal

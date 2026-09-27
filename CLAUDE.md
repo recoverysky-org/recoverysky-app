@@ -267,6 +267,34 @@ React Navigation v7 in `app/navigators/`:
 
 **Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Live | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). `MeetingsScreen` is the segmented-control shell; each segment's content is a named export from its own screen file — `LiveContent` (`LiveScreen.tsx`), `InPersonContent` (`InPersonScreen.tsx`), `ListingsContent` (`ListingsScreen.tsx`). All three mount from app start; inactive ones are hidden with `display: "none"`, not unmounted.
 
+**Shared filter bar** (ADDED 2026-09-26): Fellowship and Lang live in
+`MeetingFilterBar` above the segmented control, not inside any segment. State
+is `MeetingFiltersContext` (owned by `MeetingsScreen`, MMKV keys
+`meetings.fellowship` / `meetings.language`, pure decisions in
+`meetingFiltersLogic.ts`). It is a browse selection and never writes
+`profileStore.fellowship`. It follows Settings through the `preferences_changed`
+event, **not** a MobX reaction: hydration assigns `profileStore.fellowship` on
+every cold start and a reaction would wipe the remembered pick. Segments report
+their loaded list via `reportMeetings()` so the Lang picker offers the active
+segment's languages. Each segment's language empty state ("Show all
+languages") must be checked ahead of that segment's other catch-all empty
+branches (time-bucket, nearby/fallback, etc.) or it never renders — hit once on
+In-Person. Live's **Starts In** pill (`useAtNextSchedules`, `atNextLogic.ts`,
+`GET /schedules/at_next`) resets to Live on the segment's hide edge (leaving
+Live via a segment switch or leaving the Meetings tab), not the show edge —
+`useAtNextSchedules`'s effects run before `LiveScreen`'s reset effect in the
+same commit, so a show-edge reset fired one wasted `at_next` request per
+revisit; the user-visible rule is still "resets to Live on every visit". It is
+gated by `startsInVisible` in `LiveScreen.tsx` until the API route is deployed.
+A failed `at_next` refresh keeps the last-loaded list rather than blanking it,
+surfacing an inline tap-to-retry instead (empty-list branch or a banner over
+kept rows). CHANGED 2026-09-26 (review round 1): `useAtNextSchedules`'s 5-min
+refetch and 60 s prune tick now pause while `AppState` isn't `"active"`
+(Android keeps JS timers firing in the background) and resume with one
+immediate refetch on the background→active edge — this does not reset Starts
+In, which stays a per-segment-visit concern owned by `LiveScreen`.
+Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
+
 A `meetingId` route param force-routes to the segment the caller supplied,
 falling back to `live` only when none is given. It used to hardcode `live`
 unconditionally, which sent in-person deep links to a segment that discards
@@ -806,8 +834,8 @@ enforced by config, not convention, and it is load-bearing:
   of this repo, and without the exclusion every test is discovered twice, making
   one real failure look like two. Don't remove those ignore patterns.
 
-Coverage is deliberately concentrated on pure logic — 32 test files (25 `.test.ts`
-for vitest, 7 `.test.tsx` for jest) covering sync/rating/announcement decisions,
+Coverage is deliberately concentrated on pure logic — 59 test files (48 `.test.ts`
+for vitest, 11 `.test.tsx` for jest) covering sync/rating/announcement decisions,
 location gate, presence, nearby, map features, deep links, `returnTo` parsing,
 filters, sliders, logger, storage, api problems, local dates, i18n. Almost every
 `*Logic.ts` module exists because its sibling hook or component couldn't be

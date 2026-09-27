@@ -36,6 +36,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Nothing shows in Tempo until the API's `API_OTEL_TRACE_EXPORTER` /
   `API_OTEL_TRACES_ENDPOINT` point at the ingress Alloy (stacks-side, see the
   same doc section).
+- Language filter on Live and In-Person (Search already had one). A remembered
+  language with no matches shows a "Show all languages" shortcut instead of an
+  empty list.
+- Live: "Starts In" selector (Live / 15 / 30 / 45 / 60 min) backed by the new
+  `GET /schedules/at_next` endpoint. Dev builds only until the API ships.
 
 ### Fixed
 - **The Home News card's idle state is no longer logged as a fault.** The API
@@ -112,6 +117,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   unlock the file. Two devices were stuck behind that screen on 4.10.1-2
   to 4.10.1-4 until they reinstalled. The classifier now reads the whole
   cause chain, and the log line carries the root cause. RS-024.
+- Choosing a fellowship in Search no longer changes the fellowship saved in
+  Settings.
 
 ### Changed
 - **The "New Version Available" prompt no longer has a Cancel button.** A
@@ -139,6 +146,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   transport line existed — a rejected reminder never fires. The level policy
   is written down in `docs/DIAGNOSTICS.md` "Log levels". Nothing changes on
   screen; Loki volume is unchanged (production ships at `trace`). RS-039.
+- Meetings: Fellowship and Language filters moved out of the individual Live /
+  In-Person / Search segments into one bar above them. Both are shared across
+  the three segments and remembered across restarts; changing your fellowship
+  in Settings still updates the bar.
 
 ### Security
 - **Push-token logs no longer carry part of the raw Auth0 sub.** Three
