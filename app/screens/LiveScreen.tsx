@@ -18,7 +18,7 @@ import { Screen } from "@/components/Screen"
 import { StartsInPill } from "@/components/StartsInPill"
 import { Text } from "@/components/Text"
 import { useMeetings, toMeetingWithTrex, type MeetingWithTrex } from "@/context/MeetingContext"
-import { useMeetingFilters } from "@/context/MeetingFiltersContext"
+import { MeetingFiltersProvider, useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
 import { useAtNextSchedules } from "@/hooks/useAtNextSchedules"
@@ -481,8 +481,17 @@ export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_p
       {/* CHANGED 2026-09-26: `visible` became required on LiveContentProps
           (drives the Starts In reset). This standalone wrapper has no
           segment/tab-focus concept of its own — it IS the whole screen
-          whenever it's mounted — so `true` is the correct constant. */}
-      <LiveContent visible />
+          whenever it's mounted — so `true` is the correct constant.
+          CHANGED 2026-09-26 (review round 1): LiveContent calls
+          useMeetingFilters(), which throws without a MeetingFiltersProvider
+          ancestor — MeetingsScreen supplies one, but this standalone wrapper
+          didn't. Nothing currently navigates to "Live" (grepped — no
+          navigator/barrel reference), so this was a latent crash rather than
+          a live one, but wrap it anyway so it isn't a trap for whoever wires
+          up a route or deep link to it later. */}
+      <MeetingFiltersProvider>
+        <LiveContent visible />
+      </MeetingFiltersProvider>
     </Screen>
   )
 }
