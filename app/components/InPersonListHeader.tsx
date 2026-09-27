@@ -310,7 +310,14 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           show — on the map the sort half is empty but the way back to the list
           must still be here, and in fallback mode the sort pill is hidden but
           the map one may not be. The map slot is a plain spacer when
-          hidden so the sort pill still lands under the right column. */}
+          hidden so the sort pill still lands under the right column.
+          CHANGED 2026-09-26: "the grid's two columns" above is stale — the
+          selector grid lost its two-row/two-column shape when Fellowship
+          moved out to the shared filter bar (see the CHANGED note on
+          $selectorRow above); it's a single row of three cells now. This
+          controls row still sits flush underneath it either way, so the
+          layout claim stands even though the grid it's describing changed
+          shape. */}
         {(showMapToggle || showSortToggle) && (
           <View style={themed($controlsRow)}>
             <View>

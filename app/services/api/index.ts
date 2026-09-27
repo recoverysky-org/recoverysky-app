@@ -943,8 +943,16 @@ export class Api {
    * Callers gate on `startsInVisible` until the route is deployed; a 404 from
    * an older API build is the caller's signal to hide the selector.
    *
+   * CHANGED 2026-09-26 (review round 1): noting the exact shape of
+   * `starts_at` because the spec's example used a local-offset timestamp —
+   * `buildStartsAt()` (atNextLogic.ts) actually sends UTC ISO 8601 (trailing
+   * "Z", via `Date.toISOString()`), with `tz` riding alongside as a separate
+   * param for the API to do local-day interpretation. The API must accept
+   * the "Z" form; don't "fix" the client to send a local offset instead.
+   *
    * @param offset - 15 | 30 | 45 | 60 minutes
-   * @param startsAt - ISO 8601 reference time (see atNextLogic.buildStartsAt)
+   * @param startsAt - UTC ISO 8601 reference time, e.g. "2026-09-26T18:04:00.000Z"
+   *   (see atNextLogic.buildStartsAt)
    */
   async getAtNextSchedules(
     offset: AtNextOffset,

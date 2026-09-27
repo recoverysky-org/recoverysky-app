@@ -147,6 +147,13 @@ The API owns the interpretation of `offset` + `starts_at`. The app sends
 (below). Fellowship is not sent so bar changes filter instantly on-device
 without a refetch, matching Live.
 
+**Clarification (review round 1, 2026-09-26):** the example URL above uses a
+local-offset timestamp (`19:08:00-07:00`), but the shipped client
+(`atNextLogic.buildStartsAt()`) actually sends `starts_at` as **UTC** ISO 8601
+with a trailing `Z` (`Date.toISOString()`), with `tz` alongside for the API's
+local-day interpretation. The API must accept the `Z` form — the example
+above is illustrative of the format family, not the literal wire value.
+
 ### `api.getAtNextSchedules({ offset })` — `app/services/api/index.ts`
 
 GET with the query params above (apisauce `get(url, params)`, like `getLiveSchedules`); `offset` typed as the `15|30|45|60` union. Returns
@@ -250,6 +257,10 @@ labels / a11y labels, "No {language} meetings", "Show all languages",
 - [ ] Against an API without the route: chips hide, view stays on Live.
 - [ ] Maintenance banner on → chips disabled.
 - [ ] VoiceOver and TalkBack pass on the bar and chips.
+- [ ] Cold start → Settings → change fellowship → first open of Meetings
+  shows the new fellowship. (review round 1, 2026-09-26: this used to be
+  lost when Settings was reached before Meetings ever mounted — see
+  MeetingFiltersContext.tsx's module-scope `preferences_changed` subscriber.)
 
 ## Docs & release
 

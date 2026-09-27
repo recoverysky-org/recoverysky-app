@@ -286,6 +286,13 @@ Live via a segment switch or leaving the Meetings tab), not the show edge —
 same commit, so a show-edge reset fired one wasted `at_next` request per
 revisit; the user-visible rule is still "resets to Live on every visit". It is
 gated by `startsInVisible` in `LiveScreen.tsx` until the API route is deployed.
+A failed `at_next` refresh keeps the last-loaded list rather than blanking it,
+surfacing an inline tap-to-retry instead (empty-list branch or a banner over
+kept rows). CHANGED 2026-09-26 (review round 1): `useAtNextSchedules`'s 5-min
+refetch and 60 s prune tick now pause while `AppState` isn't `"active"`
+(Android keeps JS timers firing in the background) and resume with one
+immediate refetch on the background→active edge — this does not reset Starts
+In, which stays a per-segment-visit concern owned by `LiveScreen`.
 Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
 
 A `meetingId` route param force-routes to the segment the caller supplied,
