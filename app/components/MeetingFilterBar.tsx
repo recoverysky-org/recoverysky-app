@@ -1,5 +1,7 @@
 /**
  * MeetingFilterBar: the Fellowship | Lang bar above the Meetings segments.
+ * CHANGED 2026-09-27: it now renders directly below the segment tabs
+ * (MeetingsScreen), still outside every segment.
  *
  * ADDED 2026-09-26. Fellowship and Language apply to all three segments, so
  * they live here once instead of inside each segment's own filter grid.
@@ -164,7 +166,10 @@ const $row: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "stretch",
   marginHorizontal: spacing.md,
-  marginBottom: spacing.sm,
+  // CHANGED 2026-09-27: marginBottom → marginTop. The bar now renders below
+  // the segment tabs, so the gap belongs above it; the header's own bottom
+  // padding spaces it from the segment content.
+  marginTop: spacing.sm,
   gap: spacing.sm,
 })
 const $cell: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

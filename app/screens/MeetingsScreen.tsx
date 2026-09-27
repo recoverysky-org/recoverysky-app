@@ -168,14 +168,17 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
     <MeetingFiltersProvider>
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
         {/* Shared filters (ADDED 2026-09-26): above the segments because they
-            apply to all three. See MeetingFiltersContext. */}
+            apply to all three. See MeetingFiltersContext.
+            CHANGED 2026-09-27: moved directly below the segment tabs. The tabs
+            are the primary navigation and read first; the bar still sits
+            outside every segment, so it still applies to all three. */}
         <View style={themed($header)}>
-          <ConnectedFilterBar activeSegment={activeSegment} />
           <SegmentedControl
             segments={SEGMENTS}
             selectedIndex={selectedIndex}
             onChange={handleSegmentChange}
           />
+          <ConnectedFilterBar activeSegment={activeSegment} />
         </View>
 
         {/* Content Views - all three mounted, inactive ones hidden via display:none */}

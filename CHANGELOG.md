@@ -147,9 +147,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   is written down in `docs/DIAGNOSTICS.md` "Log levels". Nothing changes on
   screen; Loki volume is unchanged (production ships at `trace`). RS-039.
 - Meetings: Fellowship and Language filters moved out of the individual Live /
-  In-Person / Search segments into one bar above them. Both are shared across
-  the three segments and remembered across restarts; changing your fellowship
-  in Settings still updates the bar.
+  In-Person / Search segments into one bar directly below the segment tabs.
+  Both are shared across the three segments and remembered across restarts;
+  changing your fellowship in Settings still updates the bar.
 
 ### Security
 - **Push-token logs no longer carry part of the raw Auth0 sub.** Three

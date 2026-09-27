@@ -963,7 +963,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             reveals, which the previous order had one row removed.
 
             CHANGED 2026-09-26: Fellowship and Lang left for the shared filter
-            bar above the segments. Venue / Radius now share the "what and
+            bar below the segment tabs. Venue / Radius now share the "what and
             where" row and Day / Time stay together directly above the Custom
             start/end row. */}
         <View style={themed($selectorRow)}>

@@ -1009,7 +1009,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // pointing at Settings would route them past the control that's already on
     // screen — so this opens that picker instead.
     // CHANGED 2026-09-26: no longer tappable — Fellowship lives in the shared
-    // bar above the segments. `fellowship` is now always a member of
+    // bar below the segment tabs. `fellowship` is now always a member of
     // ACTIVE_FELLOWSHIPS (MeetingFiltersContext.resolveFellowship), so this is
     // effectively unreachable, but kept as a defensive fallback rather than
     // asserted away.
@@ -1209,7 +1209,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           stay reachable while the map is up; a map you can't re-filter without
           switching back to the list would make the toggle a dead end.
           CHANGED 2026-09-26: "fellowship selector" is stale — Fellowship
-          moved to the shared filter bar above the segments, so this header's
+          moved to the shared filter bar below the segment tabs, so this header's
           own selectors are Radius/Day/Time. Fellowship (and Language) still
           stay reachable while the map is up; they just live one level up
           now, not in this row. */}

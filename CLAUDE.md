@@ -268,7 +268,7 @@ React Navigation v7 in `app/navigators/`:
 **Meetings tab segments** (`MeetingsScreen.tsx`): three segments — Live | In-Person | Search, segment keys `live` / `inperson` / `listings`. "Search" is a label-only rename of the old Listings segment (the key is still `listings`; only the i18n label changed). `MeetingsScreen` is the segmented-control shell; each segment's content is a named export from its own screen file — `LiveContent` (`LiveScreen.tsx`), `InPersonContent` (`InPersonScreen.tsx`), `ListingsContent` (`ListingsScreen.tsx`). All three mount from app start; inactive ones are hidden with `display: "none"`, not unmounted.
 
 **Shared filter bar** (ADDED 2026-09-26): Fellowship and Lang live in
-`MeetingFilterBar` above the segmented control, not inside any segment. State
+`MeetingFilterBar` directly below the segmented control (moved there 2026-09-27), not inside any segment. State
 is `MeetingFiltersContext` (owned by `MeetingsScreen`, MMKV keys
 `meetings.fellowship` / `meetings.language`, pure decisions in
 `meetingFiltersLogic.ts`). It is a browse selection and never writes

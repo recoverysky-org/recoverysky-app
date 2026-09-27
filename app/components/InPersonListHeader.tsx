@@ -249,7 +249,7 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           cells still matching. Truncating a label would be worse.
 
           CHANGED 2026-09-26: Fellowship left this grid for the shared filter
-          bar above the segments (MeetingFilterBar). The remaining three cells
+          bar below the segment tabs (MeetingFilterBar). The remaining three cells
           fit one row, which gives the list back a row of height. */}
         <View style={themed($selectorRow)}>
           <TouchableOpacity
@@ -421,7 +421,7 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // grid's two columns. No top margin: the grid row above already carries
 // `marginVertical: spacing.sm`, which is the gap we want.
 // CHANGED 2026-09-26: "the grid's two columns" is stale — Fellowship left the
-// grid for the shared filter bar above the segments, so `$selectorRow` is now
+// grid for the shared filter bar below the segment tabs, so `$selectorRow` is now
 // one row of three cells (Radius / Day / Time), not a 2×2 grid. The shared
 // horizontal inset is still the point: these two pills line up with that
 // row's left and right edges either way.
