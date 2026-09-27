@@ -185,6 +185,14 @@ removed. Known gap: meetings starting off the quarter hour (7:05, 7:10…) never
 appear under any Starts In option, because `starts_at=true` matches the mark
 exactly.
 
+**CHANGED 2026-09-27 (Jenova):** the control is "[Live Now] Starts in
+[15m|30m|45m|60m]". The app prefetches all four offsets while Live is on
+screen and shows only the chips whose list is non-empty after the shared
+Fellowship + Lang filters; the control hides when none are, and a selected chip
+that empties falls back to Live Now. Screen readers hear "Starts in 30
+minutes". This supersedes the always-visible chips and the per-selection fetch
+above.
+
 ### `api.getAtNextSchedules({ offset })` — `app/services/api/index.ts`
 
 GET with the query params above (apisauce `get(url, params)`, like `getLiveSchedules`); `offset` typed as the `15|30|45|60` union. Returns

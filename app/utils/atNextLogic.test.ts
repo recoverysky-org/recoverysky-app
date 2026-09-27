@@ -1,19 +1,22 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  AT_NEXT_OFFSETS,
+  availableStartsIn,
   classifyAtNextProblem,
+  nextRefetchDelayMs,
+  resolveStartsIn,
   offsetOf,
   parseAtMillis,
   pruneStarted,
   REFETCH_GRACE_MS,
   REFETCH_SKEW_FLOOR_MS,
   refetchDelayMs,
-  STARTS_IN_OPTIONS,
 } from "./atNextLogic"
 
-describe("STARTS_IN_OPTIONS / offsetOf", () => {
-  it("offers Live then 15/30/45/60 in order", () => {
-    expect(STARTS_IN_OPTIONS).toEqual(["live", "15", "30", "45", "60"])
+describe("AT_NEXT_OFFSETS / offsetOf", () => {
+  it("prefetches the four quarter-hour offsets in order", () => {
+    expect(AT_NEXT_OFFSETS).toEqual([15, 30, 45, 60])
   })
 
   it("maps live to no offset and the rest to numbers", () => {
@@ -91,5 +94,45 @@ describe("classifyAtNextProblem", () => {
     for (const kind of ["timeout", "server", "unauthorized", "cannot-connect", "unknown"]) {
       expect(classifyAtNextProblem(kind)).toBe("show-error")
     }
+  })
+})
+
+describe("availableStartsIn", () => {
+  it("offers only the minute options that have meetings, in order", () => {
+    expect(availableStartsIn({ 15: 2, 30: 0, 45: 5 })).toEqual(["15", "45"])
+  })
+
+  it("offers nothing when no slot has meetings or none has loaded", () => {
+    expect(availableStartsIn({ 15: 0, 30: 0, 45: 0, 60: 0 })).toEqual([])
+    expect(availableStartsIn({})).toEqual([])
+  })
+})
+
+describe("resolveStartsIn", () => {
+  it("keeps Live Now and any still-available minute option", () => {
+    expect(resolveStartsIn("live", [])).toBe("live")
+    expect(resolveStartsIn("30", ["15", "30"])).toBe("30")
+  })
+
+  it("falls back to Live Now when the selected option has emptied", () => {
+    expect(resolveStartsIn("30", ["15", "45"])).toBe("live")
+    expect(resolveStartsIn("60", [])).toBe("live")
+  })
+})
+
+describe("nextRefetchDelayMs", () => {
+  const now = Date.UTC(2026, 8, 26, 19, 6)
+  const at15 = Date.UTC(2026, 8, 26, 19, 15)
+
+  it("uses the earliest boundary across the loaded slots", () => {
+    // All four share the 19:15 boundary; a missing slot doesn't matter.
+    expect(
+      nextRefetchDelayMs({ 15: at15, 30: at15 + 15 * 60_000, 60: at15 + 45 * 60_000 }, now),
+    ).toBe(9 * 60_000 + REFETCH_GRACE_MS)
+  })
+
+  it("returns null when no slot has a mark yet", () => {
+    expect(nextRefetchDelayMs({}, now)).toBeNull()
+    expect(nextRefetchDelayMs({ 15: null }, now)).toBeNull()
   })
 })

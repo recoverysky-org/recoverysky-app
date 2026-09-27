@@ -16,26 +16,54 @@ jest.mock("react-i18next", () => {
 })
 
 describe("StartsInPill", () => {
-  it("shows all five options with Live selected by default", () => {
-    render(<StartsInPill value="live" onSelect={jest.fn()} />)
-    for (const label of ["Live", "15 min", "30 min", "45 min", "60 min"]) {
-      expect(screen.getByLabelText(label)).toBeTruthy()
-    }
-    expect(screen.getByLabelText("Live").props.accessibilityState?.selected).toBe(true)
+  // CHANGED 2026-09-27: "Live Now" + "Starts in" + only the minute chips that
+  // have meetings (the screen prefetches all four and passes the non-empty ones).
+  it("shows Live Now, the Starts in caption and only the available minute chips", () => {
+    render(<StartsInPill value="live" available={["15", "45"]} onSelect={jest.fn()} />)
+    expect(screen.getByLabelText("Live Now")).toBeTruthy()
+    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("15m")).toBeTruthy()
+    expect(screen.getByText("45m")).toBeTruthy()
+    expect(screen.queryByText("30m")).toBeNull()
+    expect(screen.queryByText("60m")).toBeNull()
   })
 
-  it("reports the picked option", () => {
-    const onSelect = jest.fn()
-    render(<StartsInPill value="live" onSelect={onSelect} />)
-    fireEvent.press(screen.getByLabelText("30 min"))
-    expect(onSelect).toHaveBeenCalledWith("30")
+  it("announces minute chips in full for screen readers", () => {
+    render(<StartsInPill value="live" available={["30"]} onSelect={jest.fn()} />)
+    expect(screen.getByLabelText("Starts in 30 minutes")).toBeTruthy()
   })
 
-  it("blocks the minute options while disabled (maintenance)", () => {
+  it("marks Live Now selected by default and a minute chip when chosen", () => {
+    const { rerender } = render(
+      <StartsInPill value="live" available={["15", "30"]} onSelect={jest.fn()} />,
+    )
+    expect(screen.getByLabelText("Live Now").props.accessibilityState?.selected).toBe(true)
+    expect(screen.getByLabelText("Starts in 30 minutes").props.accessibilityState?.selected).toBe(
+      false,
+    )
+
+    rerender(<StartsInPill value="30" available={["15", "30"]} onSelect={jest.fn()} />)
+    expect(screen.getByLabelText("Live Now").props.accessibilityState?.selected).toBe(false)
+    expect(screen.getByLabelText("Starts in 30 minutes").props.accessibilityState?.selected).toBe(
+      true,
+    )
+  })
+
+  it("reports picks in both directions", () => {
     const onSelect = jest.fn()
-    render(<StartsInPill value="live" disabled onSelect={onSelect} />)
-    expect(screen.getByLabelText("15 min").props.accessibilityState?.disabled).toBe(true)
-    fireEvent.press(screen.getByLabelText("15 min"))
-    expect(onSelect).not.toHaveBeenCalled()
+    const { rerender } = render(
+      <StartsInPill value="live" available={["15", "30"]} onSelect={onSelect} />,
+    )
+    fireEvent.press(screen.getByLabelText("Starts in 30 minutes"))
+    expect(onSelect).toHaveBeenLastCalledWith("30")
+
+    rerender(<StartsInPill value="30" available={["15", "30"]} onSelect={onSelect} />)
+    fireEvent.press(screen.getByLabelText("Live Now"))
+    expect(onSelect).toHaveBeenLastCalledWith("live")
+  })
+
+  it("renders nothing when no minute option has meetings", () => {
+    render(<StartsInPill value="live" available={[]} onSelect={jest.fn()} />)
+    expect(screen.queryByLabelText("Live Now")).toBeNull()
   })
 })

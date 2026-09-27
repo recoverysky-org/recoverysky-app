@@ -187,8 +187,11 @@ const es: Translations = {
     sun: "DOM",
     // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
     startsIn: "Starts in",
-    startsInLive: "Live",
-    startsInMinutes: "{{minutes}} min",
+    // CHANGED 2026-09-27: "Live Now" / "15m" (Jenova); the full phrase is
+    // spoken via startsInMinutesA11y.
+    startsInLive: "Live Now",
+    startsInMinutes: "{{minutes}}m",
+    startsInMinutesA11y: "Starts in {{minutes}} minutes",
     // CHANGED 2026-09-27: at-next answers for one quarter-hour mark, so the
     // copy names that time ({{time}}, e.g. "7:30p") instead of a window.
     atNextEmpty: "No meetings starting at {{time}}",

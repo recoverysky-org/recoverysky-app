@@ -304,6 +304,15 @@ for 30/45/60, because the server recomputes every mark at each boundary
 (`refetchDelayMs`, with a 60 s floor for a device clock running ahead of the
 API) — instead of every 5 min. Meetings starting off the quarter hour (7:05…)
 never appear under Starts In; that's the contract, not a bug.
+CHANGED 2026-09-27 (later): the control reads "[Live Now] Starts in
+[15m|30m|45m|60m]" and `useAtNextSchedules(active)` now prefetches all four
+offsets in one parallel batch (on showing Live, on foreground, after each
+boundary, on pull-to-refresh) — picking a chip only chooses a slot. Chips with
+no meetings after the shared Fellowship + Lang filters are hidden
+(`availableStartsIn`), the whole control hides when none have any, and a pick
+whose chip empties falls back to Live Now (`resolveStartsIn`). That's four
+requests per quarter hour while Live is on screen, all served from the API's
+warm cache.
 Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
 
 A `meetingId` route param force-routes to the segment the caller supplied,

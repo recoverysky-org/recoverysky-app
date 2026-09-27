@@ -29,8 +29,14 @@ export type StartsIn = "live" | "15" | "30" | "45" | "60"
 /** Minutes the API accepts for `offset`. */
 export type AtNextOffset = 15 | 30 | 45 | 60
 
-/** Selector order. `live` leads because it is the default (today's list). */
-export const STARTS_IN_OPTIONS: readonly StartsIn[] = ["live", "15", "30", "45", "60"]
+/**
+ * The four offsets, in chip order. REPLACED 2026-09-27: was
+ * `STARTS_IN_OPTIONS` (Live + all four, always shown). Now every offset is
+ * prefetched while Live is on screen and only the ones with meetings get a
+ * chip (availableStartsIn), so the list of offsets and the list of chips are
+ * different things.
+ */
+export const AT_NEXT_OFFSETS: readonly AtNextOffset[] = [15, 30, 45, 60]
 
 /** `null` for `live`: that view comes from MeetingContext, not at_next. */
 export function offsetOf(s: StartsIn): AtNextOffset | null {
@@ -112,4 +118,46 @@ export function pruneStarted<T extends { millis: number }>(
  */
 export function classifyAtNextProblem(kind: string): "hide-for-session" | "show-error" {
   return kind === "not-found" ? "hide-for-session" : "show-error"
+}
+
+/**
+ * Minute chips worth showing: offsets whose (already fellowship/language
+ * filtered) list is non-empty, in chip order. ADDED 2026-09-27 (Jenova): the
+ * app prefetches all four and hides the ones with nothing starting, so a chip
+ * never opens onto an empty list. A slot that hasn't loaded counts as empty.
+ */
+export function availableStartsIn(
+  countByOffset: Partial<Record<AtNextOffset, number>>,
+): StartsIn[] {
+  return AT_NEXT_OFFSETS.filter((o) => (countByOffset[o] ?? 0) > 0).map(
+    (o) => String(o) as StartsIn,
+  )
+}
+
+/**
+ * The selection to render: Live Now stays; a minute option stays only while
+ * it is still available. ADDED 2026-09-27. A refetch at the quarter-hour
+ * boundary (or a filter change) can empty the chip the user is on; falling
+ * back to Live Now beats showing an empty list under a chip that just vanished.
+ */
+export function resolveStartsIn(selected: StartsIn, available: readonly StartsIn[]): StartsIn {
+  return selected === "live" || available.includes(selected) ? selected : "live"
+}
+
+/**
+ * When to refetch all four slots: the earliest boundary any loaded slot
+ * implies (they all share the next quarter-hour boundary, but a slot can be
+ * missing after a partial failure). Null when nothing has a mark yet.
+ * ADDED 2026-09-27.
+ */
+export function nextRefetchDelayMs(
+  atByOffset: Partial<Record<AtNextOffset, number | null>>,
+  nowMs: number,
+): number | null {
+  let best: number | null = null
+  for (const offset of AT_NEXT_OFFSETS) {
+    const delay = refetchDelayMs(atByOffset[offset] ?? null, offset, nowMs)
+    if (delay !== null && (best === null || delay < best)) best = delay
+  }
+  return best
 }

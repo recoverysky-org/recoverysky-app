@@ -39,11 +39,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - Language filter on Live and In-Person (Search already had one). A remembered
   language with no matches shows a "Show all languages" shortcut instead of an
   empty list.
-- Live: "Starts In" selector (Live / 15 / 30 / 45 / 60 min) backed by the new
-  `GET /schedules/at-next` endpoint: each option lists the online meetings
-  starting at one coming quarter-hour mark (15 = the next :00/:15/:30/:45,
-  30/45/60 = the marks after it), labelled with that time ("starting at
-  7:30p"). Dev builds only until the flag flips.
+- Live: "Live Now · Starts in 15m 30m 45m 60m" selector backed by the new
+  `GET /schedules/at-next` endpoint: each minute chip lists the online
+  meetings starting at one coming quarter-hour mark (15m = the next
+  :00/:15/:30/:45, 30m/45m/60m = the marks after it), labelled with that time
+  ("starting at 7:30p"). The app checks all four marks in the background and
+  only shows chips that have meetings for your fellowship and language, so a
+  chip never opens onto an empty list. Dev builds only until the flag flips.
 
 ### Fixed
 - **The Home News card's idle state is no longer logged as a fault.** The API

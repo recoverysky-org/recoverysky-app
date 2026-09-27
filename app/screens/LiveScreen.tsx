@@ -35,7 +35,14 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import type { StartsIn } from "@/utils/atNextLogic"
+import {
+  AT_NEXT_OFFSETS,
+  availableStartsIn,
+  offsetOf,
+  resolveStartsIn,
+  type AtNextOffset,
+  type StartsIn,
+} from "@/utils/atNextLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
@@ -79,22 +86,49 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   const reminderLookup = useReminderLookup()
   const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
 
-  const [startsIn, setStartsIn] = useState<StartsIn>("live")
+  // CHANGED 2026-09-27: the user's pick is `selectedStartsIn`; `startsIn`
+  // (below) is what renders — the pick, unless its chip has emptied.
+  const [selectedStartsIn, setSelectedStartsIn] = useState<StartsIn>("live")
   // Destructured (not held as one `atNext` object) so every effect/callback
   // below can list exactly the fields it reads — the hook returns a new
   // object identity every render, so depending on the whole thing would
   // recreate those callbacks (and trip react-hooks/exhaustive-deps) for no
   // reason. FIXED 2026-09-26 (review round 1, MINOR fold-in).
+  // CHANGED 2026-09-27 (Jenova): the hook prefetches all four offsets while
+  // Live is on screen; picking a chip no longer fetches, it chooses a slot.
   const {
-    meetings: atNextMeetings,
-    atMs: atNextAtMs,
+    slots: atNextSlots,
     isLoading: atNextLoading,
     failed: atNextFailed,
     unavailable: atNextUnavailable,
     blocked: atNextBlocked,
     refresh: refreshAtNext,
-  } = useAtNextSchedules(startsInVisible ? startsIn : "live", visible)
-  const showStartsIn = startsInVisible && !atNextUnavailable
+  } = useAtNextSchedules(startsInVisible && visible)
+
+  // Chips only for offsets with meetings the user would actually see — after
+  // the shared Fellowship + Lang filters, so a chip never opens onto an empty
+  // list (ADDED 2026-09-27). Nothing while blocked or when the route is
+  // missing, which hides the whole control.
+  const availableStartsInOptions = useMemo(() => {
+    if (!startsInVisible || atNextUnavailable || atNextBlocked) return []
+    const counts: Partial<Record<AtNextOffset, number>> = {}
+    for (const offset of AT_NEXT_OFFSETS) {
+      counts[offset] = atNextSlots[offset].meetings.filter(
+        (m) => (!fellowship || m.fellowship === fellowship) && matchesLanguage(m, language),
+      ).length
+    }
+    return availableStartsIn(counts)
+  }, [atNextSlots, atNextUnavailable, atNextBlocked, fellowship, language])
+  const startsIn = resolveStartsIn(selectedStartsIn, availableStartsInOptions)
+  const startsInOffset = offsetOf(startsIn)
+  const showStartsIn = availableStartsInOptions.length > 0
+
+  // Drop the pick once its chip has gone (boundary refetch, filter change,
+  // maintenance, missing route) so it doesn't spring back later.
+  // CHANGED 2026-09-27: replaces the unavailable/blocked-only fallback effect.
+  useEffect(() => {
+    if (startsIn !== selectedStartsIn) setSelectedStartsIn(startsIn)
+  }, [startsIn, selectedStartsIn])
 
   // Reset to Live when Live goes OFF screen, not when it comes back.
   // FIXED 2026-09-26 (review round 1, IMPORTANT): this used to fire on the
@@ -111,19 +145,17 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // Live is off screen, so the next show renders "live" from frame one with
   // no request in flight. Still keyed on the edge, never on a store value
   // (CLAUDE.md "The trap, hit twice") — just the other edge.
+  // CHANGED 2026-09-27: the hook no longer fetches per selection, so the
+  // wasted-request reason above is moot; the hide-edge reset stays because
+  // "resets to Live Now on every visit" is still the rule.
   const prevVisibleRef = useRef<boolean | undefined>(undefined)
   useEffect(() => {
-    if (prevVisibleRef.current === true && !visible) setStartsIn("live")
+    if (prevVisibleRef.current === true && !visible) setSelectedStartsIn("live")
     prevVisibleRef.current = visible
   }, [visible])
 
-  // Fall back to Live when the endpoint is missing or fetching is blocked.
-  useEffect(() => {
-    if (atNextUnavailable || atNextBlocked) setStartsIn("live")
-  }, [atNextUnavailable, atNextBlocked])
-
   const handleStartsInSelect = useCallback((value: StartsIn) => {
-    setStartsIn(value)
+    setSelectedStartsIn(value)
     trackEvent("live_starts_in_changed", { offset: value })
   }, [])
 
@@ -178,7 +210,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // minute option is selected, so fellowship/language filtering (and the
   // filter bar's language options via reportMeetings) apply to whichever list
   // is actually on screen.
-  const source = startsIn === "live" ? liveMeetings : atNextMeetings
+  const source = startsInOffset === null ? liveMeetings : atNextSlots[startsInOffset].meetings
   const fellowshipMeetings = useMemo(
     () => (fellowship ? source.filter((m) => m.fellowship === fellowship) : source),
     [source, fellowship],
@@ -210,8 +242,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 
   // "7:30p" for the mark the at-next answer is for (ADDED 2026-09-27). Null in
   // Live mode and before the first answer, when there is no mark to name.
-  const atNextTimeLabel =
-    startsIn !== "live" && atNextAtMs !== null ? formatMillisToLocalTime(atNextAtMs) : null
+  const atNextAtMs = startsInOffset === null ? null : atNextSlots[startsInOffset].atMs
+  const atNextTimeLabel = atNextAtMs !== null ? formatMillisToLocalTime(atNextAtMs) : null
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -418,10 +450,16 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 
       {/* Starts In selector (ADDED 2026-09-26, dev builds only — see
           startsInVisible above). Sits where the old fellowship row used to,
-          just below the title header. */}
+          just below the title header.
+          CHANGED 2026-09-27: "[Live Now] Starts in [15m|30m|…]", showing only
+          the minute chips with meetings; hidden entirely when none have any. */}
       {showStartsIn && (
         <View style={themed($startsInRow)}>
-          <StartsInPill value={startsIn} disabled={atNextBlocked} onSelect={handleStartsInSelect} />
+          <StartsInPill
+            value={startsIn}
+            available={availableStartsInOptions}
+            onSelect={handleStartsInSelect}
+          />
         </View>
       )}
 
