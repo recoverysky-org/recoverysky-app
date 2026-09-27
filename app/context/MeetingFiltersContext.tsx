@@ -18,6 +18,19 @@
  * profileStore.fellowship: hydration assigns that field directly on every cold
  * start, so a reaction would wipe the remembered pick at every launch.
  *
+ * CHANGED 2026-09-26: the in-provider listener above only exists once the
+ * Meetings tab has mounted at least once — MainNavigator statically imports
+ * MeetingsScreen (which statically imports this module), so the *module*
+ * loads eagerly at app start, but React Navigation still defers *mounting*
+ * each tab's screen component until it's first visited. Cold start → Home →
+ * Settings → change fellowship never mounts MeetingsScreen, so the provider
+ * (and its useEffect) doesn't exist yet, and the MMKV pick from a stale
+ * session survives to clobber the new Settings value on first Meetings visit.
+ * The fix is a second, module-scope subscription below that clears the MMKV
+ * key regardless of whether the provider is mounted. It's intentionally
+ * module-scope, not a reaction, for the same hydration-race reason as the
+ * in-provider listener.
+ *
  * Spec: docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md
  */
 import {
@@ -45,6 +58,18 @@ import { loadString, remove, saveString } from "@/utils/storage"
 
 const FELLOWSHIP_KEY = "meetings.fellowship"
 const LANGUAGE_KEY = "meetings.language"
+
+// Module-scope (not inside the provider component) so it exists from app
+// start, before MeetingsScreen/MeetingFiltersProvider has ever mounted — see
+// the file header comment ("CHANGED 2026-09-26"). Deliberately NOT a MobX
+// reaction on profileStore.fellowship, for the same reason as the
+// in-provider listener: hydration assigns that field directly on every cold
+// start and a reaction would wipe the remembered pick at every launch.
+liveEvents.subscribe((event) => {
+  if (event.type === "preferences_changed" && event.reason === "fellowship") {
+    remove(FELLOWSHIP_KEY)
+  }
+})
 
 export interface MeetingFiltersValue {
   /** Always a member of ACTIVE_FELLOWSHIPS. */
@@ -88,6 +113,13 @@ export const MeetingFiltersProvider: FC<PropsWithChildren> = observer(
       const unsubscribe = liveEvents.subscribe((event) => {
         if (event.type === "preferences_changed" && event.reason === "fellowship") {
           // Drop the bar's own pick so it follows the new Settings value.
+          // CHANGED 2026-09-26: the module-scope subscriber above now also
+          // clears the MMKV key, so when this provider IS mounted the two
+          // handlers both fire and both call remove() — harmless (remove is
+          // idempotent) — but only this one can also reset live React state
+          // (setPersistedFellowship), which the module-scope handler can't
+          // reach. Keep both: this covers the mounted case, the module-scope
+          // one covers the not-yet-mounted case (see file header).
           setPersistedFellowship(null)
           remove(FELLOWSHIP_KEY)
         }
