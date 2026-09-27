@@ -1,13 +1,5 @@
 import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
-import {
-  ActivityIndicator,
-  Pressable,
-  ViewStyle,
-  FlatList,
-  RefreshControl,
-  View,
-  TextStyle,
-} from "react-native"
+import { Pressable, ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -369,36 +361,14 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
 
-  // CHANGED 2026-09-26: the at_next branches come first — a failed minute
-  // fetch or an empty countdown window need their own copy, ahead of the
-  // language-empty-state and plain-empty fallbacks below.
-  // CHANGED 2026-09-26 (review round 1, MINOR fold-in): added the loading
-  // branch — without it, the first fetch for a freshly-selected minute option
-  // rendered "No meetings starting in the next N minutes" for a beat before
-  // any response landed, which reads as a real (if surprising) answer rather
-  // than "still checking". A bare spinner, same pattern as ListingsScreen's
-  // `isLoading && meetings.length === 0` branch, needs no new i18n string.
+  // CHANGED 2026-09-26: the at_next branches came first — a failed minute
+  // fetch or an empty countdown window needed their own copy.
+  // CHANGED 2026-09-27 (review): those minute-mode branches (spinner, retry,
+  // "No meetings starting at …") are gone. A Starts In chip now exists only
+  // while its filtered list is non-empty and the pick falls back to Live Now
+  // in the same render that list empties, so they could never render. A
+  // failure over kept rows still gets the inline retry banner below the count.
   const ListEmptyComponent = useCallback(() => {
-    if (startsIn !== "live" && atNextLoading) {
-      return (
-        <View style={themed($loadingContainer)}>
-          <ActivityIndicator size="large" color={theme.colors.tint} />
-        </View>
-      )
-    }
-    if (startsIn !== "live" && atNextFailed) {
-      return (
-        <Pressable
-          style={themed($emptyContainer)}
-          onPress={() => void refreshAtNext()}
-          disabled={atNextLoading}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: atNextLoading }}
-        >
-          <Text style={themed($emptyText)}>{t("liveScreen:atNextError")}</Text>
-        </Pressable>
-      )
-    }
     // ADDED 2026-09-26: the list has meetings, just none in the selected
     // language. Say that and offer the clear.
     if (language && fellowshipMeetings.length > 0) {
@@ -406,30 +376,22 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     }
     return (
       <View style={themed($emptyContainer)}>
-        <Text preset="subheading" style={themed($emptyText)}>
-          {/* CHANGED 2026-09-27: at-next answers for one quarter-hour mark,
-              so the empty copy names that time instead of "the next N
-              minutes". Falls back to the generic copy before any mark is
-              known (e.g. the first fetch failed over to the error branch). */}
-          {atNextTimeLabel
-            ? t("liveScreen:atNextEmpty", { time: atNextTimeLabel })
-            : t("liveScreen:noMeetings")}
-        </Text>
+        <Text preset="subheading" style={themed($emptyText)} tx="liveScreen:noMeetings" />
       </View>
     )
-  }, [
-    themed,
-    theme.colors.tint,
-    t,
-    startsIn,
-    atNextLoading,
-    atNextFailed,
-    refreshAtNext,
-    atNextTimeLabel,
-    language,
-    fellowshipMeetings.length,
-    setLanguage,
-  ])
+  }, [themed, language, fellowshipMeetings.length, setLanguage])
+
+  // Pull-to-refresh (ADDED 2026-09-27, review): in Live Now it also refreshes
+  // the Starts In batch, so a gesture recovers chips that vanished after a
+  // failed batch instead of waiting for the next quarter hour.
+  const handleRefresh = useCallback(() => {
+    if (startsIn === "live") {
+      refresh()
+      if (startsInVisible) void refreshAtNext()
+    } else {
+      void refreshAtNext()
+    }
+  }, [startsIn, refresh, refreshAtNext])
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
@@ -523,7 +485,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         refreshControl={
           <RefreshControl
             refreshing={startsIn === "live" ? isLoading : atNextLoading}
-            onRefresh={startsIn === "live" ? refresh : refreshAtNext}
+            onRefresh={handleRefresh}
             tintColor={theme.colors.text}
           />
         }
@@ -623,15 +585,6 @@ const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "center",
-  justifyContent: "center",
-  paddingVertical: spacing.xxl,
-})
-
-// Same shape as ListingsScreen's loading indicator (its `isLoading &&
-// meetings.length === 0` branch) — reused rather than inventing a second
-// "still loading" idiom for the same tab group.
-const $loadingContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "center",
   paddingVertical: spacing.xxl,

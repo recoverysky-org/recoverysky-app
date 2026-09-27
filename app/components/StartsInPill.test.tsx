@@ -21,7 +21,9 @@ describe("StartsInPill", () => {
   it("shows Live Now, the Starts in caption and only the available minute chips", () => {
     render(<StartsInPill value="live" available={["15", "45"]} onSelect={jest.fn()} />)
     expect(screen.getByLabelText("Live Now")).toBeTruthy()
-    expect(screen.getByText("Starts in")).toBeTruthy()
+    // Visible, but hidden from screen readers (the chips' labels carry it).
+    expect(screen.getByText("Starts in", { includeHiddenElements: true })).toBeTruthy()
+    expect(screen.queryByText("Starts in")).toBeNull()
     expect(screen.getByText("15m")).toBeTruthy()
     expect(screen.getByText("45m")).toBeTruthy()
     expect(screen.queryByText("30m")).toBeNull()

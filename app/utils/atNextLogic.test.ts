@@ -4,6 +4,8 @@ import {
   AT_NEXT_OFFSETS,
   availableStartsIn,
   classifyAtNextProblem,
+  isSlotCurrent,
+  msUntilNextQuarterHour,
   nextRefetchDelayMs,
   resolveStartsIn,
   offsetOf,
@@ -124,15 +126,67 @@ describe("nextRefetchDelayMs", () => {
   const now = Date.UTC(2026, 8, 26, 19, 6)
   const at15 = Date.UTC(2026, 8, 26, 19, 15)
 
-  it("uses the earliest boundary across the loaded slots", () => {
+  it("uses the shared boundary of the loaded slots", () => {
     // All four share the 19:15 boundary; a missing slot doesn't matter.
     expect(
-      nextRefetchDelayMs({ 15: at15, 30: at15 + 15 * 60_000, 60: at15 + 45 * 60_000 }, now),
+      nextRefetchDelayMs(
+        { 15: at15, 30: at15 + 15 * 60_000, 60: at15 + 45 * 60_000 },
+        now,
+      ),
     ).toBe(9 * 60_000 + REFETCH_GRACE_MS)
+  })
+
+  it("ignores a stale slot kept from an earlier boundary (a partial failure)", () => {
+    // At 19:16 offset 15 failed and still holds 19:15 (boundary passed);
+    // the fresh slots point at the 19:30 boundary. Taking the stale one would
+    // turn the quarter-hour timer into a 60 s poll.
+    const at1916 = Date.UTC(2026, 8, 26, 19, 16)
+    expect(
+      nextRefetchDelayMs(
+        {
+          15: at15,
+          30: Date.UTC(2026, 8, 26, 19, 45),
+          45: Date.UTC(2026, 8, 26, 20, 0),
+          60: Date.UTC(2026, 8, 26, 20, 15),
+        },
+        at1916,
+      ),
+    ).toBe(14 * 60_000 + REFETCH_GRACE_MS)
+  })
+
+  it("still floors when every boundary is past (device clock ahead)", () => {
+    expect(nextRefetchDelayMs({ 15: at15 }, at15 + 30_000)).toBe(REFETCH_SKEW_FLOOR_MS)
   })
 
   it("returns null when no slot has a mark yet", () => {
     expect(nextRefetchDelayMs({}, now)).toBeNull()
     expect(nextRefetchDelayMs({ 15: null }, now)).toBeNull()
+  })
+})
+
+describe("isSlotCurrent", () => {
+  const at30 = Date.UTC(2026, 8, 26, 19, 30) // offset 30 → boundary 19:15
+
+  it("is current until its quarter-hour boundary passes", () => {
+    expect(isSlotCurrent(at30, 30, Date.UTC(2026, 8, 26, 19, 14))).toBe(true)
+    expect(isSlotCurrent(at30, 30, Date.UTC(2026, 8, 26, 19, 15))).toBe(false)
+  })
+
+  it("is not current without a mark", () => {
+    expect(isSlotCurrent(null, 15, 0)).toBe(false)
+  })
+})
+
+describe("msUntilNextQuarterHour", () => {
+  it("waits for the next :00/:15/:30/:45 plus the grace", () => {
+    expect(msUntilNextQuarterHour(Date.UTC(2026, 8, 26, 19, 6))).toBe(
+      9 * 60_000 + REFETCH_GRACE_MS,
+    )
+  })
+
+  it("on an exact boundary, waits for the following one", () => {
+    expect(msUntilNextQuarterHour(Date.UTC(2026, 8, 26, 19, 15))).toBe(
+      15 * 60_000 + REFETCH_GRACE_MS,
+    )
   })
 })

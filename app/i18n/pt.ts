@@ -193,9 +193,6 @@ const pt: Translations = {
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
     titleStartsIn: "Live in {{minutes}}m",
-    // CHANGED 2026-09-27: at-next answers for one quarter-hour mark, so the
-    // copy names that time ({{time}}, e.g. "7:30p") instead of a window.
-    atNextEmpty: "No meetings starting at {{time}}",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },

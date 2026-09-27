@@ -43,6 +43,15 @@
  *   per-offset fetch; the sequence ref now guards whole batches. A partial
  *   failure keeps that slot's previous rows and sets `failed`; any 404 means
  *   the route is missing and sets `unavailable`.
+ * - FIXED 2026-09-27 (review): a failed slot keeps its rows only while its
+ *   boundary hasn't passed (isSlotCurrent) — after that they described an
+ *   older mark and duplicated another chip. A batch where every offset failed
+ *   now re-arms on the next clock quarter-hour (msUntilNextQuarterHour)
+ *   instead of never; hiding Live or backgrounding the app abandons an
+ *   in-flight batch's retries; rows are pruned with a short grace so the
+ *   minute tick landing in the seconds between a mark and its refetch can't
+ *   empty the chip the user is on; and slots gone stale while Live was hidden
+ *   are cleared on show instead of flashing old chips.
  *
  * INTEGRATION REQUIREMENT: call from an `observer()` component (reads ConfigStore).
  */
@@ -56,15 +65,25 @@ import { api } from "@/services/api"
 import {
   AT_NEXT_OFFSETS,
   classifyAtNextProblem,
+  isSlotCurrent,
+  msUntilNextQuarterHour,
   nextRefetchDelayMs,
   parseAtMillis,
   pruneStarted,
+  REFETCH_GRACE_MS,
   type AtNextOffset,
 } from "@/utils/atNextLogic"
 import { isLiveRefreshBlocked } from "@/utils/connectivityLogic"
 
 /** Prune cadence: a minute tick suffices to drop rows once their mark passes. */
 const TICK_MS = 60_000
+/**
+ * Rows survive this long past their start (ADDED 2026-09-27, review). The
+ * boundary refetch lands REFETCH_GRACE_MS after the mark; without slack a
+ * tick in that gap emptied the chip the user was on and LiveScreen dropped
+ * the pick, seconds before fresh rows would have arrived.
+ */
+const PRUNE_GRACE_MS = 2 * REFETCH_GRACE_MS
 
 /** One offset's answer: its rows and the quarter-hour mark they start at. */
 export interface AtNextSlot {
@@ -98,9 +117,11 @@ export function useAtNextSchedules(active: boolean) {
   const [isLoading, setIsLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
-  // When the last batch with at least one answer landed. Re-arms the boundary
-  // timer even when the marks come back unchanged (a clock-skewed device).
-  const [lastFetchMs, setLastFetchMs] = useState<number | null>(null)
+  // The last completed batch: when it landed and whether any offset answered.
+  // Re-arms the next-batch timer every time, even when the marks come back
+  // unchanged (a clock-skewed device). CHANGED 2026-09-27 (review): was
+  // `lastFetchMs`, set only on success, so an all-failed batch never re-armed.
+  const [lastBatch, setLastBatch] = useState<{ ms: number; ok: boolean } | null>(null)
   const seqRef = useRef(0)
   // AppState-aware pause (CHANGED 2026-09-26), same edge-check as
   // useLivePolling.
@@ -149,13 +170,20 @@ export function useAtNextSchedules(active: boolean) {
       return
     }
     // A failed offset keeps its previous rows: a transient miss shouldn't make
-    // a chip vanish and reappear a quarter-hour later.
-    if (anyOk) {
-      const fetchedMs = Date.now()
-      setRawSlots((prev) => ({ ...prev, ...updates }))
-      setNowMs(fetchedMs)
-      setLastFetchMs(fetchedMs)
-    }
+    // a chip vanish and reappear a quarter-hour later — but only while those
+    // rows still answer the current question (see the header).
+    const fetchedMs = Date.now()
+    setRawSlots((prev) => {
+      const next = { ...prev, ...updates }
+      for (const offset of AT_NEXT_OFFSETS) {
+        if (!updates[offset] && !isSlotCurrent(prev[offset].atMs, offset, fetchedMs)) {
+          next[offset] = EMPTY_SLOTS[offset]
+        }
+      }
+      return next
+    })
+    setNowMs(fetchedMs)
+    setLastBatch({ ms: fetchedMs, ok: anyOk })
     setFailed(anyFailed)
   }, [blocked, unavailable])
 
@@ -178,13 +206,40 @@ export function useAtNextSchedules(active: boolean) {
   // are pruned against the real clock before the batch lands.
   useEffect(() => {
     if (!active || !isForeground) return
-    setNowMs(Date.now())
+    const shownMs = Date.now()
+    setNowMs(shownMs)
+    // Slots whose boundary passed while Live was hidden would flash chips for
+    // an old mark until the batch lands (ADDED 2026-09-27, review).
+    setRawSlots((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const offset of AT_NEXT_OFFSETS) {
+        if (prev[offset].atMs !== null && !isSlotCurrent(prev[offset].atMs, offset, shownMs)) {
+          next[offset] = EMPTY_SLOTS[offset]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
     void refresh()
+    // Hidden or backgrounded: abandon the in-flight batch so its retry
+    // ladders stop (shouldContinue reads seqRef) — ADDED 2026-09-27, review.
+    // The ref object is held in a local only to satisfy exhaustive-deps; it
+    // is a counter, not a DOM node, and bumping its CURRENT value at cleanup
+    // time is exactly the intent.
+    const seq = seqRef
+    return () => {
+      seq.current++
+      setIsLoading(false)
+    }
   }, [active, isForeground, refresh])
 
-  // One batch just after the next quarter-hour boundary, re-armed by each
-  // batch that returned anything. A batch where every offset failed doesn't
-  // re-arm; the retry prompt is the way back.
+  // One batch just after the next quarter-hour boundary, re-armed by every
+  // completed batch. CHANGED 2026-09-27 (review): a batch where every offset
+  // failed used to leave nothing armed (the "retry prompt" it relied on only
+  // exists in minute mode, and the chips vanish once rows prune). It now
+  // retries at the next clock quarter-hour, which also covers an answer
+  // whose `at` couldn't be parsed.
   const atByOffset = useMemo(
     () => ({
       15: rawSlots[15].atMs,
@@ -195,12 +250,13 @@ export function useAtNextSchedules(active: boolean) {
     [rawSlots],
   )
   useEffect(() => {
-    if (!active || !isForeground || lastFetchMs === null) return
-    const delay = nextRefetchDelayMs(atByOffset, Date.now())
-    if (delay === null) return
+    if (!active || !isForeground || lastBatch === null) return
+    const now = Date.now()
+    const delay =
+      (lastBatch.ok ? nextRefetchDelayMs(atByOffset, now) : null) ?? msUntilNextQuarterHour(now)
     const id = setTimeout(() => void refresh(), delay)
     return () => clearTimeout(id)
-  }, [active, isForeground, atByOffset, lastFetchMs, refresh])
+  }, [active, isForeground, atByOffset, lastBatch, refresh])
 
   useEffect(() => {
     if (!active || !isForeground) return
@@ -210,7 +266,7 @@ export function useAtNextSchedules(active: boolean) {
 
   const slots = useMemo<AtNextSlots>(() => {
     const prune = (slot: AtNextSlot): AtNextSlot => ({
-      meetings: pruneStarted(slot.meetings, nowMs),
+      meetings: pruneStarted(slot.meetings, nowMs - PRUNE_GRACE_MS),
       atMs: slot.atMs,
     })
     return {

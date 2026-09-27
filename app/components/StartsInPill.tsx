@@ -47,17 +47,30 @@ export const StartsInPill: FC<StartsInPillProps> = ({ value, available, onSelect
         options={[{ value: "live", label: t("liveScreen:startsInLive") }]}
         onSelect={onSelect}
       />
-      <Text style={themed($caption)}>{t("liveScreen:startsIn")}</Text>
-      <SegmentedPill<StartsIn>
-        value={value}
-        accessibilityLabel={t("liveScreen:startsIn")}
-        options={available.map((option) => ({
-          value: option,
-          label: t("liveScreen:startsInMinutes", { minutes: option }),
-          accessibilityLabel: t("liveScreen:startsInMinutesA11y", { minutes: option }),
-        }))}
-        onSelect={onSelect}
-      />
+      {/* Caption + minute pill wrap as one unit, so "Starts in" is never
+          orphaned at the end of a line (ADDED 2026-09-27, review). The caption
+          is hidden from screen readers: the tablist's label and each chip's
+          "Starts in 30 minutes" already say it, and reading it a third time
+          is noise. */}
+      <View style={themed($startsInGroup)}>
+        <Text
+          style={themed($caption)}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {t("liveScreen:startsIn")}
+        </Text>
+        <SegmentedPill<StartsIn>
+          value={value}
+          accessibilityLabel={t("liveScreen:startsIn")}
+          options={available.map((option) => ({
+            value: option,
+            label: t("liveScreen:startsInMinutes", { minutes: option }),
+            accessibilityLabel: t("liveScreen:startsInMinutesA11y", { minutes: option }),
+          }))}
+          onSelect={onSelect}
+        />
+      </View>
     </View>
   )
 }
@@ -67,6 +80,12 @@ export const StartsInPill: FC<StartsInPillProps> = ({ value, available, onSelect
 const $row: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   flexWrap: "wrap",
+  alignItems: "center",
+  gap: spacing.xs,
+})
+
+const $startsInGroup: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
 })

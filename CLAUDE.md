@@ -311,8 +311,15 @@ boundary, on pull-to-refresh) — picking a chip only chooses a slot. Chips with
 no meetings after the shared Fellowship + Lang filters are hidden
 (`availableStartsIn`), the whole control hides when none have any, and a pick
 whose chip empties falls back to Live Now (`resolveStartsIn`). That's four
-requests per quarter hour while Live is on screen, all served from the API's
-warm cache.
+requests per quarter hour while Live is on screen (usually cache hits
+server-side; the first request after a boundary for a newly-due mark can be a
+cache miss that builds it). Hardening (review, same day): the refetch timer
+takes the LATEST boundary across slots so a failed slot's stale mark can't
+turn it into a 60 s poll; a failed slot keeps its rows only until its own
+boundary passes; an all-failed batch retries at the next clock quarter-hour;
+pull-to-refresh in Live Now refreshes the Starts In batch too; hiding Live
+abandons an in-flight batch's retries; and rows are pruned with a ~10 s grace
+so the minute tick can't empty the selected chip just before its refetch.
 Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
 
 A `meetingId` route param force-routes to the segment the caller supplied,

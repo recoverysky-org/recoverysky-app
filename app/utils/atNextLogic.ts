@@ -86,9 +86,9 @@ export function refetchDelayMs(
   offset: AtNextOffset,
   nowMs: number,
 ): number | null {
-  if (atMs === null) return null
-  const boundaryMs = atMs - (offset - 15) * 60_000
-  return boundaryMs > nowMs ? boundaryMs - nowMs + REFETCH_GRACE_MS : REFETCH_SKEW_FLOOR_MS
+  // CHANGED 2026-09-27: one definition of the boundary math — delegates to
+  // the four-slot version with a single slot.
+  return nextRefetchDelayMs({ [offset]: atMs }, nowMs)
 }
 
 /**
@@ -144,20 +144,53 @@ export function resolveStartsIn(selected: StartsIn, available: readonly StartsIn
   return selected === "live" || available.includes(selected) ? selected : "live"
 }
 
+/** The quarter-hour boundary after which an offset's answer is stale. */
+function boundaryOf(atMs: number, offset: AtNextOffset): number {
+  return atMs - (offset - 15) * 60_000
+}
+
 /**
- * When to refetch all four slots: the earliest boundary any loaded slot
- * implies (they all share the next quarter-hour boundary, but a slot can be
- * missing after a partial failure). Null when nothing has a mark yet.
+ * Whether a slot's rows still answer the current question: its boundary
+ * hasn't passed. ADDED 2026-09-27 (review): a slot that failed to refresh
+ * keeps its rows, but once its boundary passes they describe an older mark
+ * — the "30m" rows would duplicate what "15m" now shows — so they're dropped.
+ */
+export function isSlotCurrent(atMs: number | null, offset: AtNextOffset, nowMs: number): boolean {
+  return atMs !== null && boundaryOf(atMs, offset) > nowMs
+}
+
+/**
+ * When to refetch all four slots. They share one boundary, so this takes the
+ * LATEST boundary any slot implies. Null when nothing has a mark yet.
  * ADDED 2026-09-27.
+ * FIXED 2026-09-27 (review): this took the earliest, so a failed slot's stale
+ * mark (boundary already past) forced the 60 s skew floor and turned the
+ * quarter-hour timer into a full batch every minute for as long as that
+ * offset kept failing. The latest boundary ignores stale slots, and a device
+ * whose clock runs ahead (every boundary past) still gets the floor.
  */
 export function nextRefetchDelayMs(
   atByOffset: Partial<Record<AtNextOffset, number | null>>,
   nowMs: number,
 ): number | null {
-  let best: number | null = null
+  let latest: number | null = null
   for (const offset of AT_NEXT_OFFSETS) {
-    const delay = refetchDelayMs(atByOffset[offset] ?? null, offset, nowMs)
-    if (delay !== null && (best === null || delay < best)) best = delay
+    const atMs = atByOffset[offset]
+    if (atMs === null || atMs === undefined) continue
+    const boundary = boundaryOf(atMs, offset)
+    if (latest === null || boundary > latest) latest = boundary
   }
-  return best
+  if (latest === null) return null
+  return latest > nowMs ? latest - nowMs + REFETCH_GRACE_MS : REFETCH_SKEW_FLOOR_MS
+}
+
+/**
+ * Delay to the next clock quarter-hour (:00/:15/:30/:45) plus the grace.
+ * ADDED 2026-09-27 (review): the fallback schedule after a batch where every
+ * offset failed, which has no `at` to schedule from. Without it nothing
+ * retried until the user left Live, and the chips simply vanished.
+ */
+export function msUntilNextQuarterHour(nowMs: number): number {
+  const quarter = 15 * 60_000
+  return (Math.floor(nowMs / quarter) + 1) * quarter - nowMs + REFETCH_GRACE_MS
 }
