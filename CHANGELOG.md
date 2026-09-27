@@ -153,8 +153,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   In-Person / Search segments into one bar directly below the segment tabs.
   Both are shared across the three segments and remembered across restarts;
   changing your fellowship in Settings still updates the bar. In-Person's
-  Radius, Day and Time filters now each get their own full-width row, so no
-  value is squeezed into a third of the screen.
+  Radius filter now has its own full-width row with Day and Time side by side
+  beneath it, matching Search, so no value is squeezed into a third of the
+  screen.
 
 ### Security
 - **Push-token logs no longer carry part of the raw Auth0 sub.** Three

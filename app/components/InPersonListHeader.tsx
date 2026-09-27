@@ -254,7 +254,12 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           CHANGED 2026-09-27 (Jenova): each of Radius / Day / Time now gets its
           own full-width row ($selectorColumn). Three cells abreast left each
           ~100dp, too tight for a label plus value; stacked, every value has
-          room and the three read as a list of questions. */}
+          room and the three read as a list of questions.
+          CHANGED 2026-09-27 (Jenova, later the same day): Radius keeps its own
+          full-width row, and Day | Time now share the row below it ($whenRow),
+          matching Search's grid where the two "when" filters sit together.
+          Day ("Mon") and Time (one-word buckets) are short enough for half
+          width; Radius is the "where" question and leads on its own. */}
         <View style={themed($selectorColumn)}>
           <TouchableOpacity
             style={themed($selectorButton)}
@@ -271,35 +276,37 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={onOpenDay}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {selectedDayLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+          <View style={themed($whenRow)}>
+            <TouchableOpacity
+              style={[themed($selectorButton), $halfCell]}
+              onPress={onOpenDay}
+              accessibilityRole="button"
+              accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
+            >
+              <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
+              <View style={$selectorValueRow}>
+                <Text style={themed($selectorValue)} numberOfLines={1}>
+                  {selectedDayLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={onOpenShortTime}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {shortTimeLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[themed($selectorButton), $halfCell]}
+              onPress={onOpenShortTime}
+              accessibilityRole="button"
+              accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
+            >
+              <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
+              <View style={$selectorValueRow}>
+                <Text style={themed($selectorValue)} numberOfLines={1}>
+                  {shortTimeLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Controls row: list/map pill on the left, Distance/Start sort pill on
@@ -324,7 +331,9 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           shape.
           CHANGED 2026-09-27: the selectors are now a vertical stack of
           full-width rows ($selectorColumn); the pills still share its
-          horizontal inset, so their outer edges line up with the rows. */}
+          horizontal inset, so their outer edges line up with the rows.
+          CHANGED 2026-09-27 (later): Radius full width, then Day | Time
+          ($whenRow) — same inset, so the pills still line up. */}
         {(showMapToggle || showSortToggle) && (
           <View style={themed($controlsRow)}>
             <View>
@@ -447,6 +456,19 @@ const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 // CHANGED 2026-09-27: dropped `flex: 1`. It split a row between three cells;
 // inside the vertical $selectorColumn it would fight the auto height instead.
+// Day | Time side by side under Radius (ADDED 2026-09-27). Same gap as the
+// column so the half cells line up with the full-width Radius row above.
+const $whenRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "stretch",
+  gap: spacing.sm,
+})
+
+// Each half of $whenRow. `flex: 1` is safe here (a row, width-split) — it was
+// only removed from $selectorButton itself because the column would treat it
+// as a height instruction.
+const $halfCell: ViewStyle = { flex: 1 }
+
 const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
