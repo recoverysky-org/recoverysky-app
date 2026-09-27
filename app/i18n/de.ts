@@ -152,11 +152,11 @@ const de: Translations = {
     listingsSegment: "Suche",
     // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
     // than "Language" for the same half-width reason as Search's old cell.
-    filterFellowship: "Fellowship",
-    filterLang: "Lang",
-    filterLanguageA11y: "Language",
-    allLanguages: "All",
-    selectLanguage: "Select Language",
+    filterFellowship: "Gemeinschaft",
+    filterLang: "Sprache",
+    filterLanguageA11y: "Sprache",
+    allLanguages: "Alle",
+    selectLanguage: "Sprache wählen",
     noMeetingsInLanguage: "No {{language}} meetings here",
     showAllLanguages: "Show all languages",
   },
@@ -187,7 +187,6 @@ const de: Translations = {
     fri: "FR",
     sat: "SA",
     sun: "SO",
-    defaultFellowship: "AA",
     // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
     startsIn: "Starts in",
     startsInLive: "Live",
@@ -207,8 +206,6 @@ const de: Translations = {
     emptyNoMatches: "Keine Meetings entsprechen deiner Suche",
     // Filter labels
     dayLabel: "Tag",
-    languageLabel: "Sprache",
-    langLabel: "Sprache",
     venueLabel: "Ort",
     venueOnline: "Online",
     venueInPerson: "Vor Ort",
@@ -217,13 +214,11 @@ const de: Translations = {
     radiusOff: "Standort aus",
     emptyNoLocation: "Aktiviere den Standort, um Präsenz-Meetings in deiner Nähe zu suchen",
     radiusOnlineNote: "für Online-Meetings nicht verfügbar",
-    allLanguages: "Alle",
     startLabel: "Beginn",
     endLabel: "Ende",
     toSeparator: "bis",
     // Modal titles
     selectDay: "Tag wählen",
-    selectLanguage: "Sprache wählen",
     startTime: "Startzeit",
     endTime: "Endzeit",
     // Day names
@@ -900,7 +895,6 @@ const de: Translations = {
   inPersonScreen: {
     title: "Vor Ort",
     withinRadius: "Im Umkreis von {{distance}}",
-    fellowshipLabel: "Gemeinschaft",
     selectRadius: "Umkreis",
     shortTimeLabel: "Zeit",
     shortTimeAll: "Jederzeit",

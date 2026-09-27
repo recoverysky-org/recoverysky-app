@@ -159,7 +159,7 @@ const en = {
     filterLang: "Lang",
     filterLanguageA11y: "Language",
     allLanguages: "All",
-    selectLanguage: "Select Language",
+    selectLanguage: "Select language",
     noMeetingsInLanguage: "No {{language}} meetings here",
     showAllLanguages: "Show all languages",
   },
@@ -193,7 +193,6 @@ const en = {
     fri: "FRI",
     sat: "SAT",
     sun: "SUN",
-    defaultFellowship: "AA",
     // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
     startsIn: "Starts in",
     startsInLive: "Live",
@@ -215,8 +214,6 @@ const en = {
     emptyNoMatches: "No meetings match your search",
     // Filter labels
     dayLabel: "Day",
-    languageLabel: "Language",
-    langLabel: "Lang",
     venueLabel: "Venue",
     venueOnline: "Online",
     venueInPerson: "In-Person",
@@ -225,13 +222,11 @@ const en = {
     radiusOff: "Location off",
     emptyNoLocation: "Turn on location to search for in-person meetings near you",
     radiusOnlineNote: "not available for online meetings",
-    allLanguages: "All",
     startLabel: "Start",
     endLabel: "End",
     toSeparator: "to",
     // Modal titles
     selectDay: "Select Day",
-    selectLanguage: "Select Language",
     startTime: "Start Time",
     endTime: "End Time",
     // "Any day" option on both day pickers (In-Person + Search). `anyDay` is
@@ -943,7 +938,6 @@ const en = {
   inPersonScreen: {
     title: "In-Person",
     withinRadius: "Within {{distance}}",
-    fellowshipLabel: "Fellowship",
     selectRadius: "Radius",
     shortTimeLabel: "Time",
     shortTimeAll: "Any time",

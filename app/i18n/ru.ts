@@ -151,11 +151,11 @@ const ru: Translations = {
     listingsSegment: "Поиск",
     // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
     // than "Language" for the same half-width reason as Search's old cell.
-    filterFellowship: "Fellowship",
-    filterLang: "Lang",
-    filterLanguageA11y: "Language",
-    allLanguages: "All",
-    selectLanguage: "Select Language",
+    filterFellowship: "Сообщество",
+    filterLang: "Язык",
+    filterLanguageA11y: "Язык",
+    allLanguages: "Все",
+    selectLanguage: "Выбрать язык",
     noMeetingsInLanguage: "No {{language}} meetings here",
     showAllLanguages: "Show all languages",
   },
@@ -186,7 +186,6 @@ const ru: Translations = {
     fri: "ПТ",
     sat: "СБ",
     sun: "ВС",
-    defaultFellowship: "АА",
     // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
     startsIn: "Starts in",
     startsInLive: "Live",
@@ -206,8 +205,6 @@ const ru: Translations = {
     emptyNoMatches: "Нет встреч, соответствующих вашему запросу",
     // Filter labels
     dayLabel: "День",
-    languageLabel: "Язык",
-    langLabel: "Язык",
     venueLabel: "Формат",
     venueOnline: "Онлайн",
     venueInPerson: "Очно",
@@ -216,13 +213,11 @@ const ru: Translations = {
     radiusOff: "Геолокация выключена",
     emptyNoLocation: "Включите геолокацию, чтобы искать очные встречи рядом с вами",
     radiusOnlineNote: "недоступно для онлайн-встреч",
-    allLanguages: "Все",
     startLabel: "Начало",
     endLabel: "Конец",
     toSeparator: "до",
     // Modal titles
     selectDay: "Выбрать день",
-    selectLanguage: "Выбрать язык",
     startTime: "Время начала",
     endTime: "Время окончания",
     // Day names
@@ -890,7 +885,6 @@ const ru: Translations = {
   inPersonScreen: {
     title: "Очно",
     withinRadius: "В радиусе {{distance}}",
-    fellowshipLabel: "Сообщество",
     selectRadius: "Радиус",
     shortTimeLabel: "Время",
     shortTimeAll: "Любое время",
