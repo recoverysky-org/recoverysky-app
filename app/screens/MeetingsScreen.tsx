@@ -1,6 +1,6 @@
 import { FC, useState, useCallback, useEffect, useRef } from "react"
 import { View, ViewStyle } from "react-native"
-import { useRoute, RouteProp } from "@react-navigation/native"
+import { useRoute, useIsFocused, RouteProp } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 
 import { MeetingFilterBar } from "@/components/MeetingFilterBar"
@@ -73,6 +73,9 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
 }) {
   const { themed } = useAppTheme()
   const route = useRoute<RouteProp<MainTabParamList, "Meetings">>()
+  // ADDED 2026-09-26: Live resets Starts In on every visit, including a return
+  // to the Meetings tab from another tab, which activeSegment alone can't see.
+  const isFocused = useIsFocused()
 
   // Initialize segment from route params or default to "live"
   const [activeSegment, setActiveSegment] = useState<MeetingsSegment>(
@@ -177,7 +180,10 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
 
         {/* Content Views - all three mounted, inactive ones hidden via display:none */}
         <View style={[$content, activeSegment === "live" ? $contentVisible : $contentHidden]}>
-          <LiveContent meetingId={route.params?.meetingId} />
+          <LiveContent
+            meetingId={route.params?.meetingId}
+            visible={isFocused && activeSegment === "live"}
+          />
         </View>
         <View style={[$content, activeSegment === "inperson" ? $contentVisible : $contentHidden]}>
           <InPersonContent active={inPersonActivated} visible={activeSegment === "inperson"} />

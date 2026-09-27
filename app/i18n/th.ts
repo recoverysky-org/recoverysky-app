@@ -182,6 +182,12 @@ const th: Translations = {
     sat: "ส.",
     sun: "อา.",
     defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "รายการประชุม" 2026-08-03 — namespace/key unchanged.

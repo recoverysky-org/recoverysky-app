@@ -194,6 +194,12 @@ const en = {
     sat: "SAT",
     sun: "SUN",
     defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    startsInLive: "Live",
+    startsInMinutes: "{{minutes}} min",
+    atNextEmpty: "No meetings starting in the next {{minutes}} minutes",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Meeting Listings" 2026-08-03 — namespace/key unchanged.

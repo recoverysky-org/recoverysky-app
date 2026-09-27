@@ -1,5 +1,5 @@
 import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
-import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
+import { Pressable, ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -7,11 +7,13 @@ import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
+import { StartsInPill } from "@/components/StartsInPill"
 import { Text } from "@/components/Text"
 import { useMeetings, toMeetingWithTrex, type MeetingWithTrex } from "@/context/MeetingContext"
 import { useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
+import { useAtNextSchedules } from "@/hooks/useAtNextSchedules"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
@@ -21,14 +23,24 @@ import {
   usePendingMeetingId,
 } from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
+import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { isShowEdge, type StartsIn } from "@/utils/atNextLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
 import { logger } from "@/utils/logger"
 import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 
 const log = logger.child({ module: "LiveScreen" })
+
+/**
+ * Starts In ships dark until GET /schedules/at_next is deployed (api repo).
+ * Flip to `true` after the deploy: a JS-only OTA, no runtimeVersion bump.
+ * If flipped too early, a 404 hides the selector for the session
+ * (useAtNextSchedules → `unavailable`).
+ */
+const startsInVisible = __DEV__
 
 /**
  * LiveContent - Core content for live meetings display
@@ -39,6 +51,8 @@ const log = logger.child({ module: "LiveScreen" })
  */
 interface LiveContentProps {
   meetingId?: string
+  /** True only while Live is on screen (segment AND Meetings tab focused). Drives the Starts In reset. */
+  visible: boolean
 }
 
 // `meetingId` is still passed by MeetingsScreen but is no longer read here —
@@ -46,12 +60,35 @@ interface LiveContentProps {
 // the props for call-site compatibility; prefixed `_` to mark it unused.
 export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   meetingId: _meetingId,
+  visible,
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
   const reminderLookup = useReminderLookup()
   const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
+
+  const [startsIn, setStartsIn] = useState<StartsIn>("live")
+  const atNext = useAtNextSchedules(startsInVisible ? startsIn : "live", visible)
+  const showStartsIn = startsInVisible && !atNext.unavailable
+
+  // Reset to Live on every visit. Keyed on the visibility edge, never on a
+  // store value (CLAUDE.md "The trap, hit twice").
+  const prevVisibleRef = useRef<boolean | undefined>(undefined)
+  useEffect(() => {
+    if (isShowEdge(prevVisibleRef.current, visible)) setStartsIn("live")
+    prevVisibleRef.current = visible
+  }, [visible])
+
+  // Fall back to Live when the endpoint is missing or fetching is blocked.
+  useEffect(() => {
+    if (atNext.unavailable || atNext.blocked) setStartsIn("live")
+  }, [atNext.unavailable, atNext.blocked])
+
+  const handleStartsInSelect = useCallback((value: StartsIn) => {
+    setStartsIn(value)
+    trackEvent("live_starts_in_changed", { offset: value })
+  }, [])
 
   // Log mount/unmount
   useEffect(() => {
@@ -100,9 +137,14 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // CHANGED 2026-09-26: fellowship and language come from the shared Meetings
   // filter bar (MeetingFiltersContext). Two stages so the bar's language
   // options reflect this fellowship's meetings, not every fellowship's.
+  // CHANGED 2026-09-26: source switches to the at_next window's rows when a
+  // minute option is selected, so fellowship/language filtering (and the
+  // filter bar's language options via reportMeetings) apply to whichever list
+  // is actually on screen.
+  const source = startsIn === "live" ? liveMeetings : atNext.meetings
   const fellowshipMeetings = useMemo(
-    () => (fellowship ? liveMeetings.filter((m) => m.fellowship === fellowship) : liveMeetings),
-    [liveMeetings, fellowship],
+    () => (fellowship ? source.filter((m) => m.fellowship === fellowship) : source),
+    [source, fellowship],
   )
   const filteredMeetings = useMemo(
     () => fellowshipMeetings.filter((m) => matchesLanguage(m, language)),
@@ -121,7 +163,12 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // but the In-Person and Search segments needed the same ordering, and three
   // hand-written copies of a three-tier comparator would have drifted on the
   // first edit. The tier semantics are documented (and vitest-covered) there.
-  const sortedMeetings = useMemo(() => sortByFeedback(filteredMeetings), [filteredMeetings])
+  // CHANGED 2026-09-26: at_next rows are already in start order, and feedback
+  // ranking would scramble the countdown — only the Live tier applies it.
+  const sortedMeetings = useMemo(
+    () => (startsIn === "live" ? sortByFeedback(filteredMeetings) : filteredMeetings),
+    [filteredMeetings, startsIn],
+  )
 
   // State for schedule popup
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
@@ -247,19 +294,45 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
 
-  const ListEmptyComponent = useCallback(
-    () =>
-      // ADDED 2026-09-26: the list has meetings, just none in the selected
-      // language. Say that and offer the clear.
-      language && fellowshipMeetings.length > 0 ? (
-        <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
-      ) : (
-        <View style={themed($emptyContainer)}>
-          <Text preset="subheading" tx="liveScreen:noMeetings" style={themed($emptyText)} />
-        </View>
-      ),
-    [themed, language, fellowshipMeetings.length, setLanguage],
-  )
+  // CHANGED 2026-09-26: the at_next branches come first — a failed minute
+  // fetch or an empty countdown window need their own copy, ahead of the
+  // language-empty-state and plain-empty fallbacks below.
+  const ListEmptyComponent = useCallback(() => {
+    if (startsIn !== "live" && atNext.failed) {
+      return (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={() => void atNext.refresh()}
+          accessibilityRole="button"
+        >
+          <Text style={themed($emptyText)}>{t("liveScreen:atNextError")}</Text>
+        </Pressable>
+      )
+    }
+    // ADDED 2026-09-26: the list has meetings, just none in the selected
+    // language. Say that and offer the clear.
+    if (language && fellowshipMeetings.length > 0) {
+      return <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
+    }
+    return (
+      <View style={themed($emptyContainer)}>
+        <Text preset="subheading" style={themed($emptyText)}>
+          {startsIn === "live"
+            ? t("liveScreen:noMeetings")
+            : t("liveScreen:atNextEmpty", { minutes: startsIn })}
+        </Text>
+      </View>
+    )
+  }, [
+    themed,
+    t,
+    startsIn,
+    atNext.failed,
+    atNext.refresh,
+    language,
+    fellowshipMeetings.length,
+    setLanguage,
+  ])
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
@@ -277,6 +350,19 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
       </View>
+
+      {/* Starts In selector (ADDED 2026-09-26, dev builds only — see
+          startsInVisible above). Sits where the old fellowship row used to,
+          just below the title header. */}
+      {showStartsIn && (
+        <View style={themed($startsInRow)}>
+          <StartsInPill
+            value={startsIn}
+            disabled={atNext.blocked}
+            onSelect={handleStartsInSelect}
+          />
+        </View>
+      )}
 
       {/* Meeting Count - matches Listings style */}
       {sortedMeetings.length > 0 && (
@@ -297,8 +383,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         contentContainerStyle={themed($listContent)}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refresh}
+            refreshing={startsIn === "live" ? isLoading : atNext.isLoading}
+            onRefresh={startsIn === "live" ? refresh : atNext.refresh}
             tintColor={theme.colors.text}
           />
         }
@@ -323,7 +409,11 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 export const LiveScreen: FC<MainTabScreenProps<"Live">> = function LiveScreen(_props) {
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={$styles.container}>
-      <LiveContent />
+      {/* CHANGED 2026-09-26: `visible` became required on LiveContentProps
+          (drives the Starts In reset). This standalone wrapper has no
+          segment/tab-focus concept of its own — it IS the whole screen
+          whenever it's mounted — so `true` is the correct constant. */}
+      <LiveContent visible />
     </Screen>
   )
 }
@@ -340,6 +430,12 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $screenContainer: ViewStyle = {
   flex: 1,
 }
+
+const $startsInRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.md,
+  paddingBottom: spacing.sm,
+  alignItems: "flex-start",
+})
 
 const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.md,
