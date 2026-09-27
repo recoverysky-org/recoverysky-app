@@ -160,7 +160,7 @@ const ar: Translations = {
     placeholder: "عرض الجدول قريباً",
   },
   liveScreen: {
-    title: "مباشر عبر الإنترنت",
+    title: "مباشر الآن",
     noMeetings: "لا توجد اجتماعات مباشرة الآن",
     lastRefresh: "آخر فحص: {{time}}",
     joinMeeting: "انضمام",
@@ -189,7 +189,7 @@ const ar: Translations = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
-    titleStartsIn: "Live in {{minutes}}m",
+    titleStartsIn: "Starts in {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },

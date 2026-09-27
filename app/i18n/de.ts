@@ -165,7 +165,7 @@ const de: Translations = {
     placeholder: "Zeitplan-Ansicht kommt bald",
   },
   liveScreen: {
-    title: "Live Online",
+    title: "Jetzt live",
     noMeetings: "Gerade finden keine Meetings statt",
     lastRefresh: "Zuletzt geprüft: {{time}}",
     joinMeeting: "Beitreten",
@@ -194,7 +194,7 @@ const de: Translations = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
-    titleStartsIn: "Live in {{minutes}}m",
+    titleStartsIn: "Starts in {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },

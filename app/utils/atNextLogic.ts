@@ -135,13 +135,39 @@ export function availableStartsIn(
 }
 
 /**
- * The selection to render: Live Now stays; a minute option stays only while
- * it is still available. ADDED 2026-09-27. A refetch at the quarter-hour
- * boundary (or a filter change) can empty the chip the user is on; falling
- * back to Live Now beats showing an empty list under a chip that just vanished.
+ * Where a Starts In pick should be after the slots change.
+ *
+ * REPLACED 2026-09-27 (Jenova): was `resolveStartsIn`, which fell back to
+ * Live Now whenever the picked chip vanished. That lost the pick exactly when
+ * the user most needed it kept: pick 30m at 12:06 (the 12:30 mark), background
+ * the app, come back at 12:21 — every slot has gone stale, so the chip
+ * vanished, the pick dropped to Live Now, and the refetch then showed 12:30
+ * under 15m with nobody looking. Also, while watching, the boundary refetch
+ * at 12:15 silently turned "30m" into 12:45 under the user.
+ *
+ * Now: a minute pick is remembered with the mark it was made for
+ * (`pickedAtMs`). It stays while its chip is visible AND that chip still
+ * answers for the same mark (so a pull-to-refresh inside the quarter keeps
+ * it). Once the mark has moved or the chip is gone, the pick moves to the
+ * LOWEST visible chip — the soonest starts, which is what "starting soon"
+ * browsing wants — and only falls back to Live Now when no chip is visible.
+ * Callers must not apply this while a batch is loading (the slots are
+ * mid-refresh; see LiveScreen).
  */
-export function resolveStartsIn(selected: StartsIn, available: readonly StartsIn[]): StartsIn {
-  return selected === "live" || available.includes(selected) ? selected : "live"
+export function followStartsIn(i: {
+  selected: StartsIn
+  pickedAtMs: number | null
+  atByOffset: Partial<Record<AtNextOffset, number | null>>
+  available: readonly StartsIn[]
+}): { startsIn: StartsIn; pickedAtMs: number | null } {
+  if (i.selected === "live") return { startsIn: "live", pickedAtMs: null }
+  const offset = Number(i.selected) as AtNextOffset
+  if (i.available.includes(i.selected) && (i.atByOffset[offset] ?? null) === i.pickedAtMs) {
+    return { startsIn: i.selected, pickedAtMs: i.pickedAtMs }
+  }
+  const lowest = i.available[0]
+  if (!lowest) return { startsIn: "live", pickedAtMs: null }
+  return { startsIn: lowest, pickedAtMs: i.atByOffset[Number(lowest) as AtNextOffset] ?? null }
 }
 
 /** The quarter-hour boundary after which an offset's answer is stale. */

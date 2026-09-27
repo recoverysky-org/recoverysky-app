@@ -1,5 +1,13 @@
 import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
-import { Pressable, ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
+import {
+  ActivityIndicator,
+  Pressable,
+  ViewStyle,
+  FlatList,
+  RefreshControl,
+  View,
+  TextStyle,
+} from "react-native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -30,8 +38,8 @@ import type { ThemedStyle } from "@/theme/types"
 import {
   AT_NEXT_OFFSETS,
   availableStartsIn,
+  followStartsIn,
   offsetOf,
-  resolveStartsIn,
   type AtNextOffset,
   type StartsIn,
 } from "@/utils/atNextLogic"
@@ -81,6 +89,10 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // CHANGED 2026-09-27: the user's pick is `selectedStartsIn`; `startsIn`
   // (below) is what renders — the pick, unless its chip has emptied.
   const [selectedStartsIn, setSelectedStartsIn] = useState<StartsIn>("live")
+  // The quarter-hour mark the minute pick was made for (ADDED 2026-09-27):
+  // lets followStartsIn tell "same chip, same meetings" from "the mark moved
+  // under the user" after a boundary refetch or a return from background.
+  const [pickedAtMs, setPickedAtMs] = useState<number | null>(null)
   // Destructured (not held as one `atNext` object) so every effect/callback
   // below can list exactly the fields it reads — the hook returns a new
   // object identity every render, so depending on the whole thing would
@@ -111,16 +123,47 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     }
     return availableStartsIn(counts)
   }, [atNextSlots, atNextUnavailable, atNextBlocked, fellowship, language])
-  const startsIn = resolveStartsIn(selectedStartsIn, availableStartsInOptions)
-  const startsInOffset = offsetOf(startsIn)
-  const showStartsIn = availableStartsInOptions.length > 0
+  const atNextAtByOffset = useMemo(
+    () => ({
+      15: atNextSlots[15].atMs,
+      30: atNextSlots[30].atMs,
+      45: atNextSlots[45].atMs,
+      60: atNextSlots[60].atMs,
+    }),
+    [atNextSlots],
+  )
+  const followed = followStartsIn({
+    selected: selectedStartsIn,
+    pickedAtMs,
+    atByOffset: atNextAtByOffset,
+    available: availableStartsInOptions,
+  })
 
-  // Drop the pick once its chip has gone (boundary refetch, filter change,
-  // maintenance, missing route) so it doesn't spring back later.
-  // CHANGED 2026-09-27: replaces the unavailable/blocked-only fallback effect.
+  // While a batch is in flight (a return from background, the boundary
+  // refetch, a pull-to-refresh) the slots are mid-refresh — possibly cleared
+  // as stale — so the pick and the chips hold still and the list shows a
+  // spinner, instead of flashing to Live Now and back. ADDED 2026-09-27.
+  const lastAvailableRef = useRef<StartsIn[]>([])
   useEffect(() => {
-    if (startsIn !== selectedStartsIn) setSelectedStartsIn(startsIn)
-  }, [startsIn, selectedStartsIn])
+    if (!atNextLoading) lastAvailableRef.current = availableStartsInOptions
+  }, [atNextLoading, availableStartsInOptions])
+  const chipsToShow = atNextLoading ? lastAvailableRef.current : availableStartsInOptions
+  const startsIn = atNextLoading ? selectedStartsIn : followed.startsIn
+  const startsInOffset = offsetOf(startsIn)
+  const showStartsIn = chipsToShow.length > 0
+
+  // Commit where the pick went once the batch has landed: kept while its chip
+  // still answers for the same mark, otherwise moved to the LOWEST visible
+  // chip, and Live Now only when no chip is left (atNextLogic.followStartsIn).
+  // CHANGED 2026-09-27 (Jenova): used to drop straight to Live Now whenever
+  // the picked chip vanished — including after every return from background,
+  // since all slots go stale — and kept "30m" selected while it silently
+  // switched from 12:30 to 12:45 at the boundary.
+  useEffect(() => {
+    if (atNextLoading) return
+    if (followed.startsIn !== selectedStartsIn) setSelectedStartsIn(followed.startsIn)
+    if (followed.pickedAtMs !== pickedAtMs) setPickedAtMs(followed.pickedAtMs)
+  }, [atNextLoading, followed.startsIn, followed.pickedAtMs, selectedStartsIn, pickedAtMs])
 
   // Reset to Live when Live goes OFF screen, not when it comes back.
   // FIXED 2026-09-26 (review round 1, IMPORTANT): this used to fire on the
@@ -142,14 +185,22 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // "resets to Live Now on every visit" is still the rule.
   const prevVisibleRef = useRef<boolean | undefined>(undefined)
   useEffect(() => {
-    if (prevVisibleRef.current === true && !visible) setSelectedStartsIn("live")
+    if (prevVisibleRef.current === true && !visible) {
+      setSelectedStartsIn("live")
+      setPickedAtMs(null)
+    }
     prevVisibleRef.current = visible
   }, [visible])
 
-  const handleStartsInSelect = useCallback((value: StartsIn) => {
-    setSelectedStartsIn(value)
-    trackEvent("live_starts_in_changed", { offset: value })
-  }, [])
+  const handleStartsInSelect = useCallback(
+    (value: StartsIn) => {
+      setSelectedStartsIn(value)
+      const offset = offsetOf(value)
+      setPickedAtMs(offset === null ? null : atNextSlots[offset].atMs)
+      trackEvent("live_starts_in_changed", { offset: value })
+    },
+    [atNextSlots],
+  )
 
   // Log mount/unmount
   useEffect(() => {
@@ -368,7 +419,17 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // while its filtered list is non-empty and the pick falls back to Live Now
   // in the same render that list empties, so they could never render. A
   // failure over kept rows still gets the inline retry banner below the count.
+  // CHANGED 2026-09-27 (later): one minute-mode branch is back — the spinner.
+  // The pick now holds through a batch (see followStartsIn above), and after
+  // a return from background its slot can be empty until the batch lands.
   const ListEmptyComponent = useCallback(() => {
+    if (startsIn !== "live" && atNextLoading) {
+      return (
+        <View style={themed($loadingContainer)}>
+          <ActivityIndicator size="large" color={theme.colors.tint} />
+        </View>
+      )
+    }
     // ADDED 2026-09-26: the list has meetings, just none in the selected
     // language. Say that and offer the clear.
     if (language && fellowshipMeetings.length > 0) {
@@ -379,7 +440,15 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         <Text preset="subheading" style={themed($emptyText)} tx="liveScreen:noMeetings" />
       </View>
     )
-  }, [themed, language, fellowshipMeetings.length, setLanguage])
+  }, [
+    themed,
+    theme.colors.tint,
+    startsIn,
+    atNextLoading,
+    language,
+    fellowshipMeetings.length,
+    setLanguage,
+  ])
 
   // Pull-to-refresh (ADDED 2026-09-27, review): in Live Now it also refreshes
   // the Starts In batch, so a gesture recovers chips that vanished after a
@@ -409,7 +478,9 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       <View style={themed($header)}>
         {/* CHANGED 2026-09-27 (Jenova): the title follows the Starts In pick —
             "Live Online" for Live Now, "Live in 30m" for a minute chip — now
-            that the segment tab itself just says "Online". */}
+            that the segment tab itself just says "Online".
+            CHANGED 2026-09-27 (Jenova, later): the wording is now "Live Now" /
+            "Starts in 30m", matching the chips. */}
         <Text
           preset="heading"
           text={
@@ -582,6 +653,14 @@ const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
   height: 1,
   backgroundColor: colors.border,
   opacity: 0.5,
+})
+
+// Same shape as ListingsScreen's loading indicator. Re-added 2026-09-27 for
+// the minute-mode spinner above.
+const $loadingContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: spacing.xxl,
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

@@ -174,7 +174,9 @@ const en = {
     // Relabeled 2026-08-04: "Live Meetings" → "Live Online". The screen only
     // ever lists online meetings, and with the In-Person segment beside it
     // "Live" alone read as "live meetings of any kind".
-    title: "Live Online",
+    // CHANGED 2026-09-27 (Jenova): "Live Online" → "Live Now"; the segment
+    // tab now says "Online", and this heading pairs with "Starts in 30m".
+    title: "Live Now",
     noMeetings: "No meetings are live right now",
     lastRefresh: "Last checked: {{time}}",
     joinMeeting: "Join Meeting",
@@ -204,8 +206,8 @@ const en = {
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
     // Screen title while a Starts In chip is selected (ADDED 2026-09-27);
-    // `title` ("Live Online") shows for Live Now.
-    titleStartsIn: "Live in {{minutes}}m",
+    // `title` ("Live Now") shows for Live Now.
+    titleStartsIn: "Starts in {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },

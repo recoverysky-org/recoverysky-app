@@ -7,7 +7,7 @@ import {
   isSlotCurrent,
   msUntilNextQuarterHour,
   nextRefetchDelayMs,
-  resolveStartsIn,
+  followStartsIn,
   offsetOf,
   parseAtMillis,
   pruneStarted,
@@ -110,15 +110,56 @@ describe("availableStartsIn", () => {
   })
 })
 
-describe("resolveStartsIn", () => {
-  it("keeps Live Now and any still-available minute option", () => {
-    expect(resolveStartsIn("live", [])).toBe("live")
-    expect(resolveStartsIn("30", ["15", "30"])).toBe("30")
+describe("followStartsIn", () => {
+  const m1230 = Date.UTC(2026, 8, 26, 12, 30)
+  const m1245 = Date.UTC(2026, 8, 26, 12, 45)
+  const m1300 = Date.UTC(2026, 8, 26, 13, 0)
+
+  it("keeps Live Now", () => {
+    expect(
+      followStartsIn({ selected: "live", pickedAtMs: null, atByOffset: {}, available: ["15"] }),
+    ).toEqual({ startsIn: "live", pickedAtMs: null })
   })
 
-  it("falls back to Live Now when the selected option has emptied", () => {
-    expect(resolveStartsIn("30", ["15", "45"])).toBe("live")
-    expect(resolveStartsIn("60", [])).toBe("live")
+  it("keeps a minute pick while its chip is visible and its mark hasn't moved", () => {
+    // e.g. a pull-to-refresh inside the same quarter hour
+    expect(
+      followStartsIn({
+        selected: "30",
+        pickedAtMs: m1230,
+        atByOffset: { 15: Date.UTC(2026, 8, 26, 12, 15), 30: m1230 },
+        available: ["15", "30"],
+      }),
+    ).toEqual({ startsIn: "30", pickedAtMs: m1230 })
+  })
+
+  it("moves to the lowest visible chip once the picked mark has moved (boundary or foreground)", () => {
+    // Picked 30m at 12:06 (12:30). Back at 12:21: 15m is now 12:30, 30m is 12:45.
+    expect(
+      followStartsIn({
+        selected: "30",
+        pickedAtMs: m1230,
+        atByOffset: { 15: m1230, 30: m1245, 45: m1300 },
+        available: ["15", "30", "45"],
+      }),
+    ).toEqual({ startsIn: "15", pickedAtMs: m1230 })
+  })
+
+  it("moves to the lowest visible chip when the picked chip disappears", () => {
+    expect(
+      followStartsIn({
+        selected: "30",
+        pickedAtMs: m1245,
+        atByOffset: { 15: m1230, 30: m1245, 45: m1300 },
+        available: ["45"],
+      }),
+    ).toEqual({ startsIn: "45", pickedAtMs: m1300 })
+  })
+
+  it("falls back to Live Now when no chip is visible", () => {
+    expect(
+      followStartsIn({ selected: "30", pickedAtMs: m1230, atByOffset: {}, available: [] }),
+    ).toEqual({ startsIn: "live", pickedAtMs: null })
   })
 })
 
@@ -129,10 +170,7 @@ describe("nextRefetchDelayMs", () => {
   it("uses the shared boundary of the loaded slots", () => {
     // All four share the 19:15 boundary; a missing slot doesn't matter.
     expect(
-      nextRefetchDelayMs(
-        { 15: at15, 30: at15 + 15 * 60_000, 60: at15 + 45 * 60_000 },
-        now,
-      ),
+      nextRefetchDelayMs({ 15: at15, 30: at15 + 15 * 60_000, 60: at15 + 45 * 60_000 }, now),
     ).toBe(9 * 60_000 + REFETCH_GRACE_MS)
   })
 
@@ -179,9 +217,7 @@ describe("isSlotCurrent", () => {
 
 describe("msUntilNextQuarterHour", () => {
   it("waits for the next :00/:15/:30/:45 plus the grace", () => {
-    expect(msUntilNextQuarterHour(Date.UTC(2026, 8, 26, 19, 6))).toBe(
-      9 * 60_000 + REFETCH_GRACE_MS,
-    )
+    expect(msUntilNextQuarterHour(Date.UTC(2026, 8, 26, 19, 6))).toBe(9 * 60_000 + REFETCH_GRACE_MS)
   })
 
   it("on an exact boundary, waits for the following one", () => {

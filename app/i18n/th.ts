@@ -159,7 +159,7 @@ const th: Translations = {
     placeholder: "มุมมองตารางกำลังมาเร็วๆ นี้",
   },
   liveScreen: {
-    title: "สดออนไลน์",
+    title: "สดตอนนี้",
     noMeetings: "ตอนนี้ไม่มีประชุมสดนะ",
     lastRefresh: "ตรวจสอบล่าสุด: {{time}}",
     joinMeeting: "เข้าร่วม",
@@ -188,7 +188,7 @@ const th: Translations = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
-    titleStartsIn: "Live in {{minutes}}m",
+    titleStartsIn: "Starts in {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },

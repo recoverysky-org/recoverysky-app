@@ -164,7 +164,7 @@ const ru: Translations = {
     placeholder: "Расписание скоро появится",
   },
   liveScreen: {
-    title: "Сейчас онлайн",
+    title: "Сейчас идут",
     noMeetings: "Сейчас нет собраний онлайн",
     lastRefresh: "Последняя проверка: {{time}}",
     joinMeeting: "Подключиться",
@@ -193,7 +193,7 @@ const ru: Translations = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
-    titleStartsIn: "Live in {{minutes}}m",
+    titleStartsIn: "Starts in {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },

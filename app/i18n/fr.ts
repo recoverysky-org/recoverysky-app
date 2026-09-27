@@ -167,7 +167,7 @@ const fr: Translations = {
     placeholder: "Vue de l'horaire à venir",
   },
   liveScreen: {
-    title: "En direct en ligne",
+    title: "En direct maintenant",
     noMeetings: "Aucune réunion en direct en ce moment",
     lastRefresh: "Dernière vérification : {{time}}",
     joinMeeting: "Joindre",
@@ -196,7 +196,7 @@ const fr: Translations = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
-    titleStartsIn: "Live in {{minutes}}m",
+    titleStartsIn: "Starts in {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
