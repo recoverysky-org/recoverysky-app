@@ -134,15 +134,41 @@ describe("followStartsIn", () => {
   })
 
   it("moves to the lowest visible chip once the picked mark has moved (boundary or foreground)", () => {
-    // Picked 30m at 12:06 (12:30). Back at 12:21: 15m is now 12:30, 30m is 12:45.
+    // Picked 30m at 12:06 (12:30). Back at 12:36: 15m is 12:45, 30m is 13:00.
+    // The returned mark must be the NEW chip's, not the old pick's.
+    const m1315 = Date.UTC(2026, 8, 26, 13, 15)
     expect(
       followStartsIn({
         selected: "30",
         pickedAtMs: m1230,
-        atByOffset: { 15: m1230, 30: m1245, 45: m1300 },
+        atByOffset: { 15: m1245, 30: m1300, 45: m1315 },
         available: ["15", "30", "45"],
       }),
-    ).toEqual({ startsIn: "15", pickedAtMs: m1230 })
+    ).toEqual({ startsIn: "15", pickedAtMs: m1245 })
+  })
+
+  it("moves even when the picked chip is itself the lowest but its mark moved", () => {
+    expect(
+      followStartsIn({
+        selected: "15",
+        pickedAtMs: m1230,
+        atByOffset: { 15: m1245 },
+        available: ["15"],
+      }),
+    ).toEqual({ startsIn: "15", pickedAtMs: m1245 })
+  })
+
+  it("adopts the current mark for a pick made before its mark was known", () => {
+    // A tap while a batch was loading (the slot was cleared): keep the chip the
+    // user chose rather than treating the unknown mark as "moved".
+    expect(
+      followStartsIn({
+        selected: "30",
+        pickedAtMs: null,
+        atByOffset: { 15: m1230, 30: m1245 },
+        available: ["15", "30"],
+      }),
+    ).toEqual({ startsIn: "30", pickedAtMs: m1245 })
   })
 
   it("moves to the lowest visible chip when the picked chip disappears", () => {

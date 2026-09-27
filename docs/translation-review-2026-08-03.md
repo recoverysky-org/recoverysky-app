@@ -810,3 +810,23 @@ pt, ru, th, uk. Shown on the Login screen after the app had to sign the user out
 because the stored session could not be renewed (dead refresh token, missing
 DPoP key). It must read as "this was done to you, and signing in again fixes
 it" — not as a scolding and not as a generic error.
+
+## 2026-09-27 — Meetings filter bar, Online tab, Live Now / Starts In
+
+**Best-effort translations to check (8 locales each):**
+- `meetingsScreen.liveSegment` → "Online" (was "Live"): es "En línea", ar
+  "عبر الإنترنت", de "Online", fr "En ligne", pt "Online", ru "Онлайн", th
+  "ออนไลน์", uk "Онлайн".
+- `liveScreen.title` → "Live Now" (was "Live Online", the 2026-08-04 retitle
+  row above): es "En vivo ahora", ar "مباشر الآن", de "Jetzt live", fr "En
+  direct maintenant", pt "Ao vivo agora", ru "Сейчас идут", th "สดตอนนี้",
+  uk "Зараз ідуть". It heads the Online segment while "Live Now" is selected,
+  i.e. meetings in progress right now.
+
+**Still English placeholders (need translating):** `liveScreen.startsIn`,
+`startsInLive` ("Live Now"), `startsInMinutes` ("{{minutes}}m"),
+`startsInMinutesA11y` ("Starts in {{minutes}} minutes"), `titleStartsIn`
+("Starts in {{minutes}}m"), `startingAt`, `atNextError`, and
+`meetingsScreen.noMeetingsInLanguage` / `showAllLanguages`. Starts In is dev-only
+until `startsInVisible` flips, so these can land with that release. Keep
+`startsInLive` and `title` consistent — they read side by side.

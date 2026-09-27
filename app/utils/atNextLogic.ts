@@ -160,14 +160,21 @@ export function followStartsIn(i: {
   atByOffset: Partial<Record<AtNextOffset, number | null>>
   available: readonly StartsIn[]
 }): { startsIn: StartsIn; pickedAtMs: number | null } {
-  if (i.selected === "live") return { startsIn: "live", pickedAtMs: null }
-  const offset = Number(i.selected) as AtNextOffset
-  if (i.available.includes(i.selected) && (i.atByOffset[offset] ?? null) === i.pickedAtMs) {
-    return { startsIn: i.selected, pickedAtMs: i.pickedAtMs }
+  const offset = offsetOf(i.selected)
+  if (offset === null) return { startsIn: "live", pickedAtMs: null }
+  const currentAtMs = i.atByOffset[offset] ?? null
+  if (i.available.includes(i.selected)) {
+    // A pick made while its mark was unknown (tapped during a batch, when the
+    // slot was cleared) adopts the mark it lands with instead of counting as
+    // "moved". CHANGED 2026-09-27 (review): without this the user's own tap
+    // was overridden to the lowest chip the moment the batch landed.
+    if (i.pickedAtMs === null) return { startsIn: i.selected, pickedAtMs: currentAtMs }
+    if (currentAtMs === i.pickedAtMs) return { startsIn: i.selected, pickedAtMs: i.pickedAtMs }
   }
   const lowest = i.available[0]
-  if (!lowest) return { startsIn: "live", pickedAtMs: null }
-  return { startsIn: lowest, pickedAtMs: i.atByOffset[Number(lowest) as AtNextOffset] ?? null }
+  const lowestOffset = lowest ? offsetOf(lowest) : null
+  if (!lowest || lowestOffset === null) return { startsIn: "live", pickedAtMs: null }
+  return { startsIn: lowest, pickedAtMs: i.atByOffset[lowestOffset] ?? null }
 }
 
 /** The quarter-hour boundary after which an offset's answer is stale. */

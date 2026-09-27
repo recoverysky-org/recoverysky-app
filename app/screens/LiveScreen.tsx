@@ -143,11 +143,13 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // refetch, a pull-to-refresh) the slots are mid-refresh — possibly cleared
   // as stale — so the pick and the chips hold still and the list shows a
   // spinner, instead of flashing to Live Now and back. ADDED 2026-09-27.
-  const lastAvailableRef = useRef<StartsIn[]>([])
+  // State, not a ref read during render (CHANGED 2026-09-27, review): the
+  // chips from the last settled render, shown while a batch is in flight.
+  const [lastSettledChips, setLastSettledChips] = useState<StartsIn[]>([])
   useEffect(() => {
-    if (!atNextLoading) lastAvailableRef.current = availableStartsInOptions
+    if (!atNextLoading) setLastSettledChips(availableStartsInOptions)
   }, [atNextLoading, availableStartsInOptions])
-  const chipsToShow = atNextLoading ? lastAvailableRef.current : availableStartsInOptions
+  const chipsToShow = atNextLoading ? lastSettledChips : availableStartsInOptions
   const startsIn = atNextLoading ? selectedStartsIn : followed.startsIn
   const startsInOffset = offsetOf(startsIn)
   const showStartsIn = chipsToShow.length > 0
@@ -196,10 +198,13 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     (value: StartsIn) => {
       setSelectedStartsIn(value)
       const offset = offsetOf(value)
-      setPickedAtMs(offset === null ? null : atNextSlots[offset].atMs)
+      // A tap on a held chip mid-batch can't know its mark yet (the slot may
+      // be cleared or about to move): null lets followStartsIn adopt the mark
+      // the batch lands with instead of overriding the tap. (review, 2026-09-27)
+      setPickedAtMs(offset === null || atNextLoading ? null : atNextSlots[offset].atMs)
       trackEvent("live_starts_in_changed", { offset: value })
     },
-    [atNextSlots],
+    [atNextSlots, atNextLoading],
   )
 
   // Log mount/unmount
@@ -453,11 +458,19 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // Pull-to-refresh (ADDED 2026-09-27, review): in Live Now it also refreshes
   // the Starts In batch, so a gesture recovers chips that vanished after a
   // failed batch instead of waiting for the next quarter hour.
+  // The pull spinner in minute mode tracks the user's own pull only (CHANGED
+  // 2026-09-27, review): driving it from atNextLoading also spun it for every
+  // background/boundary batch, on top of the list's own spinner.
+  const [atNextPulling, setAtNextPulling] = useState(false)
+  useEffect(() => {
+    if (!atNextLoading) setAtNextPulling(false)
+  }, [atNextLoading])
   const handleRefresh = useCallback(() => {
     if (startsIn === "live") {
       refresh()
       if (startsInVisible) void refreshAtNext()
     } else {
+      setAtNextPulling(true)
       void refreshAtNext()
     }
   }, [startsIn, refresh, refreshAtNext])
@@ -498,11 +511,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
           the minute chips with meetings; hidden entirely when none have any. */}
       {showStartsIn && (
         <View style={themed($startsInRow)}>
-          <StartsInPill
-            value={startsIn}
-            available={availableStartsInOptions}
-            onSelect={handleStartsInSelect}
-          />
+          <StartsInPill value={startsIn} available={chipsToShow} onSelect={handleStartsInSelect} />
         </View>
       )}
 
@@ -555,7 +564,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         contentContainerStyle={themed($listContent)}
         refreshControl={
           <RefreshControl
-            refreshing={startsIn === "live" ? isLoading : atNextLoading}
+            refreshing={startsIn === "live" ? isLoading : atNextPulling}
             onRefresh={handleRefresh}
             tintColor={theme.colors.text}
           />
