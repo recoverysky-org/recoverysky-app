@@ -250,8 +250,12 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
 
           CHANGED 2026-09-26: Fellowship left this grid for the shared filter
           bar below the segment tabs (MeetingFilterBar). The remaining three cells
-          fit one row, which gives the list back a row of height. */}
-        <View style={themed($selectorRow)}>
+          fit one row, which gives the list back a row of height.
+          CHANGED 2026-09-27 (Jenova): each of Radius / Day / Time now gets its
+          own full-width row ($selectorColumn). Three cells abreast left each
+          ~100dp, too tight for a label plus value; stacked, every value has
+          room and the three read as a list of questions. */}
+        <View style={themed($selectorColumn)}>
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={onOpenRadius}
@@ -317,7 +321,10 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           $selectorRow above); it's a single row of three cells now. This
           controls row still sits flush underneath it either way, so the
           layout claim stands even though the grid it's describing changed
-          shape. */}
+          shape.
+          CHANGED 2026-09-27: the selectors are now a vertical stack of
+          full-width rows ($selectorColumn); the pills still share its
+          horizontal inset, so their outer edges line up with the rows. */}
         {(showMapToggle || showSortToggle) && (
           <View style={themed($controlsRow)}>
             <View>
@@ -409,8 +416,11 @@ const $headerTitleGroup: ViewStyle = {
   flexShrink: 1,
 }
 
-const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
+// CHANGED 2026-09-27: was `$selectorRow` (one row of three cells); now a
+// column so each selector is its own full-width row. `alignItems: "stretch"`
+// is what makes each row span the width now that the cells have no `flex: 1`.
+const $selectorColumn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "column",
   alignItems: "stretch",
   marginHorizontal: spacing.md,
   marginVertical: spacing.sm,
@@ -425,6 +435,8 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // one row of three cells (Radius / Day / Time), not a 2×2 grid. The shared
 // horizontal inset is still the point: these two pills line up with that
 // row's left and right edges either way.
+// CHANGED 2026-09-27: `$selectorRow` is now `$selectorColumn` (three stacked
+// full-width rows); same inset, same alignment.
 const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
@@ -433,8 +445,9 @@ const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.sm,
 })
 
+// CHANGED 2026-09-27: dropped `flex: 1`. It split a row between three cells;
+// inside the vertical $selectorColumn it would fight the auto height instead.
 const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
