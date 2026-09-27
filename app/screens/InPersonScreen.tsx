@@ -1027,6 +1027,19 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         </View>
       )
     }
+    // ADDED 2026-09-26: language emptied the list, so name that rather than
+    // falling into one of the catch-alls below. Must sit HERE, ahead of the
+    // shortTime and mode/bannerReason branches: `languageEmptied` already
+    // requires the time bucket to leave rows (see its definition), so a
+    // time-emptied list still hits the shortTime branch below unaffected —
+    // but `mode === "nearby"` further down is an unconditional catch-all
+    // whenever this renders in nearby mode, and `bannerReason` is always
+    // non-null whenever this renders in fallback mode, so either one would
+    // shadow this branch forever if it were placed after them (dead code —
+    // caught in review round 1, 2026-09-26).
+    if (languageEmptied && language) {
+      return <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
+    }
     // The time filter emptied a day that DOES have meetings. This has to
     // outrank both branches below, because their copy blames the radius or the
     // fellowship and the radius one opens the radius picker — sending the user
@@ -1107,9 +1120,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           </Text>
         </Pressable>
       )
-    }
-    if (languageEmptied && language) {
-      return <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
     }
     return (
       <View style={themed($emptyContainer)}>
@@ -1197,7 +1207,12 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
       {/* The SAME header renders in both modes — deliberately. The filters,
           the day/radius/fellowship selectors and the permission banner all
           stay reachable while the map is up; a map you can't re-filter without
-          switching back to the list would make the toggle a dead end. */}
+          switching back to the list would make the toggle a dead end.
+          CHANGED 2026-09-26: "fellowship selector" is stale — Fellowship
+          moved to the shared filter bar above the segments, so this header's
+          own selectors are Radius/Day/Time. Fellowship (and Language) still
+          stay reachable while the map is up; they just live one level up
+          now, not in this row. */}
       {effectiveViewMode === "map" ? (
         <View style={$screenContainer}>
           <InPersonListHeader
