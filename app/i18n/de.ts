@@ -146,7 +146,7 @@ const de: Translations = {
   meetingsScreen: {
     title: "Meetings",
     placeholder: "Meeting-Liste kommt bald",
-    liveSegment: "Live",
+    liveSegment: "Online",
     inPersonSegment: "Vor Ort",
     // Relabeled from "Verzeichnis" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Suche",
@@ -194,6 +194,7 @@ const de: Translations = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    titleStartsIn: "Live in {{minutes}}m",
     // CHANGED 2026-09-27: at-next answers for one quarter-hour mark, so the
     // copy names that time ({{time}}, e.g. "7:30p") instead of a window.
     atNextEmpty: "No meetings starting at {{time}}",

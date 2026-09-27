@@ -445,7 +445,17 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
           that does put a control there (In-Person's map/list toggle) still
           pins it to the right edge. */}
       <View style={themed($header)}>
-        <Text preset="heading" tx="liveScreen:title" />
+        {/* CHANGED 2026-09-27 (Jenova): the title follows the Starts In pick —
+            "Live Online" for Live Now, "Live in 30m" for a minute chip — now
+            that the segment tab itself just says "Online". */}
+        <Text
+          preset="heading"
+          text={
+            startsInOffset === null
+              ? t("liveScreen:title")
+              : t("liveScreen:titleStartsIn", { minutes: startsInOffset })
+          }
+        />
       </View>
 
       {/* Starts In selector (ADDED 2026-09-26, dev builds only — see

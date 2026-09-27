@@ -149,7 +149,10 @@ const en = {
   meetingsScreen: {
     title: "Meetings",
     placeholder: "Meeting list coming soon",
-    liveSegment: "Live",
+    // CHANGED 2026-09-27 (Jenova): "Live" → "Online". With Starts In the
+    // segment also lists meetings that haven't started yet, so "Live" no
+    // longer described it; the screen title carries the live/starts-in state.
+    liveSegment: "Online",
     inPersonSegment: "In-Person",
     // Relabeled from "Listings" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Search",
@@ -200,6 +203,9 @@ const en = {
     startsInLive: "Live Now",
     startsInMinutes: "{{minutes}}m",
     startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    // Screen title while a Starts In chip is selected (ADDED 2026-09-27);
+    // `title` ("Live Online") shows for Live Now.
+    titleStartsIn: "Live in {{minutes}}m",
     // CHANGED 2026-09-27: at-next answers for one quarter-hour mark, so the
     // copy names that time ({{time}}, e.g. "7:30p") instead of a window.
     atNextEmpty: "No meetings starting at {{time}}",

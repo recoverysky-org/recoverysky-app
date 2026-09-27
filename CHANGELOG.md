@@ -126,6 +126,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Settings.
 
 ### Changed
+- Meetings: the Live segment tab is now **Online** — with Starts In it also
+  lists meetings that haven't begun, so "Live" no longer fit. The screen
+  heading says what you're looking at: "Live Online" for Live Now, "Live in
+  30m" when a Starts In chip is selected.
 - **The "New Version Available" prompt no longer has a Cancel button.** A
   build that is behind the store is also cut off from every over-the-air
   update, so dismissing the prompt meant staying on that build for good;
