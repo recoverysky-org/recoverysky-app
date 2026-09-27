@@ -1,28 +1,19 @@
 import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
-import {
-  ViewStyle,
-  FlatList,
-  RefreshControl,
-  View,
-  TextStyle,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-} from "react-native"
-import { Ionicons } from "@expo/vector-icons"
+import { ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
+import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import { MeetingRow } from "@/components/MeetingRow"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useMeetings, toMeetingWithTrex, type MeetingWithTrex } from "@/context/MeetingContext"
+import { useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, liveEvents, type FeedbackRecord } from "@/db"
 import { useLivePolling } from "@/hooks/useLivePolling"
 import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
-import { useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import {
   peekPendingMeetingId,
@@ -34,17 +25,10 @@ import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { sortByFeedback } from "@/utils/feedbackSort"
-import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { logger } from "@/utils/logger"
+import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 
 const log = logger.child({ module: "LiveScreen" })
-
-/**
- * Fellowships available for filtering — driven by EXPO_PUBLIC_FELLOWSHIPS
- * via ACTIVE_FELLOWSHIPS (single source of truth across all four pickers).
- * Label is the short code itself (e.g. "AA").
- */
-const SELECTABLE_FELLOWSHIPS = ACTIVE_FELLOWSHIPS.map((value) => ({ value, label: value }))
 
 /**
  * LiveContent - Core content for live meetings display
@@ -66,24 +50,20 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
   const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
-  const profileStore = useProfileStore()
   const reminderLookup = useReminderLookup()
+  const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
 
   // Log mount/unmount
   useEffect(() => {
     log.info("LiveContent mounted", {
       liveMeetingsCount: liveMeetings.length,
-      fellowship: profileStore.fellowship || "all",
+      fellowship: fellowship || "all",
     })
     return () => log.debug("LiveContent unmounted")
     // Mount-only logger — deps intentionally empty so it fires once on mount,
     // not on every fellowship/liveMeetings change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Fellowship filter — local state, defaults from saved preference but doesn't write back
-  const [filterFellowship, setFilterFellowship] = useState(profileStore.fellowship)
-  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
 
   // Live feedback state for DISPLAY only (not sorting)
   // This updates immediately when user interacts, but doesn't affect sort order
@@ -104,23 +84,34 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   }, [])
 
   // Subscribe to live events — reset local filter when Settings preference changes
+  // CHANGED 2026-09-26: the fellowship reset moved to MeetingFiltersContext,
+  // which owns the shared filter for all three segments. This keeps only the
+  // refresh.
   useEffect(() => {
     const unsubscribe = liveEvents.subscribe((event) => {
-      if (event.type === "preferences_changed") {
-        setFilterFellowship(profileStore.fellowship)
-        refresh()
-      } else if (event.type === "refresh_requested") {
+      if (event.type === "preferences_changed" || event.type === "refresh_requested") {
         refresh()
       }
     })
     return unsubscribe
-  }, [refresh, profileStore.fellowship])
+  }, [refresh])
 
   // Filter meetings by local fellowship filter (not the saved preference)
-  const filteredMeetings = useMemo(() => {
-    if (!filterFellowship || filterFellowship === "") return liveMeetings
-    return liveMeetings.filter((m) => m.fellowship === filterFellowship)
-  }, [liveMeetings, filterFellowship])
+  // CHANGED 2026-09-26: fellowship and language come from the shared Meetings
+  // filter bar (MeetingFiltersContext). Two stages so the bar's language
+  // options reflect this fellowship's meetings, not every fellowship's.
+  const fellowshipMeetings = useMemo(
+    () => (fellowship ? liveMeetings.filter((m) => m.fellowship === fellowship) : liveMeetings),
+    [liveMeetings, fellowship],
+  )
+  const filteredMeetings = useMemo(
+    () => fellowshipMeetings.filter((m) => matchesLanguage(m, language)),
+    [fellowshipMeetings, language],
+  )
+
+  useEffect(() => {
+    reportMeetings("live", fellowshipMeetings)
+  }, [reportMeetings, fellowshipMeetings])
 
   // Sort meetings: 1) favorites by stars, 2) rated non-favorites, 3) rest
   // Uses meeting.feedback which is a snapshot from when meetings were loaded,
@@ -257,12 +248,17 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   const keyExtractor = useCallback((item: MeetingWithTrex) => item.id, [])
 
   const ListEmptyComponent = useCallback(
-    () => (
-      <View style={themed($emptyContainer)}>
-        <Text preset="subheading" tx="liveScreen:noMeetings" style={themed($emptyText)} />
-      </View>
-    ),
-    [themed],
+    () =>
+      // ADDED 2026-09-26: the list has meetings, just none in the selected
+      // language. Say that and offer the clear.
+      language && fellowshipMeetings.length > 0 ? (
+        <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
+      ) : (
+        <View style={themed($emptyContainer)}>
+          <Text preset="subheading" tx="liveScreen:noMeetings" style={themed($emptyText)} />
+        </View>
+      ),
+    [themed, language, fellowshipMeetings.length, setLanguage],
   )
 
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
@@ -281,68 +277,6 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
       <View style={themed($header)}>
         <Text preset="heading" tx="liveScreen:title" />
       </View>
-
-      {/* Fellowship Selector - single line */}
-      <TouchableOpacity
-        style={themed($selectorButton)}
-        onPress={() => setFellowshipModalVisible(true)}
-        accessibilityRole="button"
-        accessibilityLabel={`${t("settingsScreen:recoveryFellowship")}, ${filterFellowship || t("liveScreen:defaultFellowship")}`}
-      >
-        <Text style={themed($selectorLabel)}>{t("settingsScreen:recoveryFellowship")}</Text>
-        <View style={$selectorValueRow}>
-          <Text style={themed($selectorValue)}>
-            {filterFellowship || t("liveScreen:defaultFellowship")}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-        </View>
-      </TouchableOpacity>
-
-      {/* Fellowship Selector Modal */}
-      <Modal
-        visible={fellowshipModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFellowshipModalVisible(false)}
-      >
-        <Pressable style={themed($modalOverlay)} onPress={() => setFellowshipModalVisible(false)}>
-          <View style={themed($modalContent)} accessibilityViewIsModal>
-            <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
-            {SELECTABLE_FELLOWSHIPS.map((f) => (
-              <TouchableOpacity
-                key={f.value}
-                style={[
-                  themed($modalOption),
-                  filterFellowship === f.value && themed($modalOptionSelected),
-                ]}
-                onPress={() => {
-                  log.info("Fellowship filter changed", {
-                    from: filterFellowship,
-                    to: f.value,
-                  })
-                  setFilterFellowship(f.value)
-                  setFellowshipModalVisible(false)
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: filterFellowship === f.value }}
-                accessibilityLabel={f.label}
-              >
-                <Text
-                  style={[
-                    themed($modalOptionText),
-                    filterFellowship === f.value && themed($modalOptionTextSelected),
-                  ]}
-                >
-                  {f.label}
-                </Text>
-                {filterFellowship === f.value && (
-                  <Ionicons name="checkmark" size={18} color={theme.colors.tint} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
 
       {/* Meeting Count - matches Listings style */}
       {sortedMeetings.length > 0 && (
@@ -406,85 +340,6 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $screenContainer: ViewStyle = {
   flex: 1,
 }
-
-// Fellowship selector - single line
-const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginHorizontal: spacing.md,
-  marginVertical: spacing.sm,
-  paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
-  borderRadius: 8,
-  backgroundColor: colors.card,
-  borderWidth: 1,
-  borderColor: colors.border,
-})
-
-const $selectorLabel: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 14,
-  color: colors.textDim,
-})
-
-const $selectorValueRow: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 4,
-}
-
-const $selectorValue: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 16,
-  fontWeight: "600",
-  color: colors.tint,
-})
-
-// Modal styles
-const $modalOverlay: ThemedStyle<ViewStyle> = () => ({
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.5)",
-  justifyContent: "center",
-  alignItems: "center",
-})
-
-const $modalContent: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  backgroundColor: colors.background,
-  borderRadius: 12,
-  padding: spacing.md,
-  minWidth: 200,
-  maxWidth: "80%",
-})
-
-const $modalTitle: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 18,
-  fontWeight: "700",
-  color: colors.text,
-  marginBottom: spacing.md,
-  textAlign: "center",
-})
-
-const $modalOption: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.sm,
-  borderRadius: 8,
-})
-
-const $modalOptionSelected: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  backgroundColor: colors.card,
-})
-
-const $modalOptionText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 16,
-  color: colors.text,
-})
-
-const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.tint,
-  fontWeight: "600",
-})
 
 const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.md,
