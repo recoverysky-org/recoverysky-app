@@ -28,6 +28,7 @@ import {
   readHeader,
 } from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
+import { classifyNewsPayload, type NewsPayloadOutcome } from "./newsLogic"
 import {
   makeTraceContext,
   traceIdFromTraceparent,
@@ -337,6 +338,12 @@ export interface ContentResult {
 
 // Re-export for convenience
 export type { GeneralApiProblem } from "./apiProblem"
+
+/**
+ * Outcome of `Api.getNews`. `no-content` is the server's idle state (204,
+ * nothing published) — the common case, not a fault. See newsLogic.ts.
+ */
+export type NewsResult = NewsPayloadOutcome | GeneralApiProblem
 export { getGeneralApiProblem }
 export type { ApiConfig } from "./types"
 
@@ -1808,17 +1815,18 @@ export class Api {
   /**
    * Get current news/announcement for the home screen
    * GET /news
+   *
+   * CHANGED 2026-09-26: returns `{ kind: "no-content" }` for the server's idle
+   * state. The API answers `204 No Content` when nothing is published
+   * (api/src/routes/news.ts) — nearly every call in production — and this
+   * used to fold that into `bad-data`, so HomeScreen logged a fault kind on
+   * 144 of 145 loads in a 6h window and a truly malformed payload was
+   * invisible. The split lives in the vitest-covered `classifyNewsPayload`.
    */
-  async getNews(): Promise<{ kind: "ok"; title: string; body: string } | GeneralApiProblem> {
+  async getNews(): Promise<NewsResult> {
     log.debug("Fetching news from API")
 
-    const response = await this.recoverySkyApi.get<{
-      id: string
-      title: string
-      body: string
-      start: number
-      end: number
-    }>("/news")
+    const response = await this.recoverySkyApi.get<unknown>("/news")
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
@@ -1827,24 +1835,25 @@ export class Api {
       return { kind: "unknown", temporary: true }
     }
 
-    if (
-      !response.data ||
-      typeof response.data.title !== "string" ||
-      typeof response.data.body !== "string"
-    ) {
-      // DEBUG, not WARN: a 200 without title/body is the normal "no active
-      // announcement" idle state — the server returns an empty payload
-      // outside the news start/end window, and HomeScreen just clears the
-      // banner (treats bad-data as "no news"). It fired on every home load
-      // with nothing scheduled, so it was recurring dashboard noise, not a
-      // fault. Genuinely malformed news is indistinguishable from empty here
-      // without server cooperation (e.g. a 204), so we don't keep a warn arm.
-      log.debug("No active news / empty news response")
-      return { kind: "bad-data" }
+    const outcome = classifyNewsPayload(response.status, response.data)
+
+    if (outcome.kind === "no-content") {
+      // DEBUG: the normal idle state — a 204 (or an empty 200) outside any
+      // news start/end window. HomeScreen just leaves the card hidden.
+      log.debug("No active news")
+      return outcome
     }
 
-    log.debug("News received", { title: response.data.title })
-    return { kind: "ok", title: response.data.title, body: response.data.body }
+    if (outcome.kind === "bad-data") {
+      // WARN, not DEBUG: since 2026-09-26 the idle state is classified
+      // separately above, so reaching here means a 2xx with content that is
+      // not a news item — a server or proxy fault worth seeing in Loki.
+      log.warn("Malformed news payload", { status: response.status })
+      return outcome
+    }
+
+    log.debug("News received", { title: outcome.title })
+    return outcome
   }
 }
 

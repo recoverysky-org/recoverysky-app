@@ -943,6 +943,24 @@ behavior-changing edit, add an entry **before opening the PR / committing**.
   attendance timer", not "ExternalZoomTimerModal.tsx" alone).
 - Bug fixes should describe the user-visible failure mode, not just the
   patch.
+- **Name the tracker issue the release will need to update.** If the change
+  fixes (or partially addresses) an issue in the `issues` MCP tracker, end
+  the entry with its id, e.g. `(RS-049)`. That tag is the only record of
+  which issues need `fix-deployed` + `fix_release` once the change ships —
+  the tracker's version-scoped fingerprint keeps counting the old build
+  until the release is recorded, so an untagged fix can never auto-resolve.
+
+**When cutting a release (OTA or native), the `[Unreleased]` block is the
+worklist for the tracker.** Before moving it under the new heading, collect
+every `(RS-NNN)` tag in it. After the release is actually live, for each
+one: confirm the fix commit is in the tag range
+(`git log <prev-tag>..<new-tag>`), then `issue_update` with
+`status: fix-deployed` and `fix_release: "app <version>"`. Never set
+`resolved` — the fingerprint earns that. If a tagged fix did NOT make the
+cut, leave the entry in `[Unreleased]` rather than shipping the heading
+without it; the tag is a promise about what the release carries. This is
+the step `bump-update.sh` / `bump-version.sh` cannot do for you (see
+`recoverysky-tracker` skill, "Record").
 
 **What to skip:**
 - Pure refactors with no user-visible behavior change.

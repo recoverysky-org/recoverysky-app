@@ -38,6 +38,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   same doc section).
 
 ### Fixed
+- **The Home News card's idle state is no longer logged as a fault.** The API
+  answers `204 No Content` when nothing is published, which is nearly every
+  load, and `getNews` folded that into `bad-data` — so Home logged "News
+  unavailable" with a fault kind on 144 of 145 loads in a 6h window (~450–500
+  a day since 4.10.1-8). A 204 or empty payload is now its own `no-content`
+  outcome (pure, vitest-covered `newsLogic.ts`) that Home does not log, and
+  `bad-data` is reserved for a 2xx with content that isn't a news item, which
+  now warns instead of hiding at debug. (RS-049)
 - **Clean time no longer stays at 0 days if you kept the default recovery
   date.** The onboarding default ("today") was only saved when the date picker
   was touched. A user who accepted it had no date stored, so every launch

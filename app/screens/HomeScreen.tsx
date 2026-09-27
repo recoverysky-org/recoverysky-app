@@ -161,7 +161,12 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         // (no news published, offline, degraded device lane) and the WARN was
         // pure noise in Loki; the line stays at debug for when news is
         // actually being investigated.
-        if (result.kind !== "ok")
+        // CHANGED 2026-09-26: `no-content` is the server's idle state (204,
+        // nothing published) and was the kind on 144 of 145 loads in a 6h
+        // window as `bad-data`. It is not "unavailable", so it no longer logs
+        // here at all — getNews records it at debug. `bad-data` now means a
+        // genuinely malformed payload and getNews warns on it.
+        if (result.kind !== "ok" && result.kind !== "no-content")
           log.debug("News unavailable — hiding the card", { kind: result.kind })
         setNewsTitle("")
         setNewsBody("")
