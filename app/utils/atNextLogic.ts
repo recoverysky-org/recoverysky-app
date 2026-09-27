@@ -148,9 +148,13 @@ export function availableStartsIn(
  * Now: a minute pick is remembered with the mark it was made for
  * (`pickedAtMs`). It stays while its chip is visible AND that chip still
  * answers for the same mark (so a pull-to-refresh inside the quarter keeps
- * it). Once the mark has moved or the chip is gone, the pick moves to the
- * LOWEST visible chip — the soonest starts, which is what "starting soon"
- * browsing wants — and only falls back to Live Now when no chip is visible.
+ * it). Once the mark has moved, the pick FOLLOWS ITS MEETINGS to whichever
+ * visible chip now answers for that mark (see below); only when the mark has
+ * passed, or no visible chip shows it, does it move to the LOWEST visible
+ * chip, and to Live Now only when no chip is visible.
+ * CHANGED 2026-09-27 (Jenova): "lowest chip" alone jumped a watched 60m
+ * (13:00) to 15m (12:30) at the 12:15 boundary; following the mark keeps the
+ * same meetings on screen under 45m.
  * Callers must not apply this while a batch is loading (the slots are
  * mid-refresh; see LiveScreen).
  */
@@ -171,6 +175,19 @@ export function followStartsIn(i: {
     if (i.pickedAtMs === null) return { startsIn: i.selected, pickedAtMs: currentAtMs }
     if (currentAtMs === i.pickedAtMs) return { startsIn: i.selected, pickedAtMs: i.pickedAtMs }
   }
+  // Follow the meetings (CHANGED 2026-09-27, Jenova: "the point is to adjust
+  // so the same meetings remain visible"): if another visible chip now
+  // answers for the picked mark — 60m's 13:00 is under 45m after the 12:15
+  // boundary; 30m's 12:30 is under 15m after a return at 12:21 — move there.
+  if (i.pickedAtMs !== null) {
+    for (const option of i.available) {
+      const o = offsetOf(option)
+      if (o !== null && (i.atByOffset[o] ?? null) === i.pickedAtMs) {
+        return { startsIn: option, pickedAtMs: i.pickedAtMs }
+      }
+    }
+  }
+  // The picked mark has passed (or its chip is hidden): the soonest chip.
   const lowest = i.available[0]
   const lowestOffset = lowest ? offsetOf(lowest) : null
   if (!lowest || lowestOffset === null) return { startsIn: "live", pickedAtMs: null }

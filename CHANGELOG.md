@@ -130,8 +130,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   lists meetings that haven't begun, so "Live" no longer fit. The screen
   heading says what you're looking at: "Live Now", or "Starts in 30m" when a
   Starts In chip is selected (dev builds, with Starts In). If the quarter hour
-  turns over (or you come back to the app later) the selection moves to the
-  soonest chip that still has meetings instead of dropping back to Live Now.
+  turns over (or you come back to the app later) the selection follows the same
+  meetings to whichever chip now shows them (60m becomes 45m), or moves to the
+  soonest chip once they've started, instead of dropping back to Live Now.
 - **The "New Version Available" prompt no longer has a Cancel button.** A
   build that is behind the store is also cut off from every over-the-air
   update, so dismissing the prompt meant staying on that build for good;

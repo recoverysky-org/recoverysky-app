@@ -157,6 +157,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // Commit where the pick went once the batch has landed: kept while its chip
   // still answers for the same mark, otherwise moved to the LOWEST visible
   // chip, and Live Now only when no chip is left (atNextLogic.followStartsIn).
+  // CHANGED 2026-09-27 (Jenova, later): before the lowest chip it first
+  // follows its meetings to the chip that now shows the same mark.
   // CHANGED 2026-09-27 (Jenova): used to drop straight to Live Now whenever
   // the picked chip vanished — including after every return from background,
   // since all slots go stale — and kept "30m" selected while it silently

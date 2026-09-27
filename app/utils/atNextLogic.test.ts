@@ -133,7 +133,43 @@ describe("followStartsIn", () => {
     ).toEqual({ startsIn: "30", pickedAtMs: m1230 })
   })
 
-  it("moves to the lowest visible chip once the picked mark has moved (boundary or foreground)", () => {
+  it("follows its meetings to the chip that now shows the same mark (60m → 45m at the boundary)", () => {
+    // Watching 60m = 13:00 at 12:14; at 12:15 the chips shift: 45m is now 13:00.
+    const m1315 = Date.UTC(2026, 8, 26, 13, 15)
+    expect(
+      followStartsIn({
+        selected: "60",
+        pickedAtMs: m1300,
+        atByOffset: { 15: m1230, 30: m1245, 45: m1300, 60: m1315 },
+        available: ["15", "30", "45", "60"],
+      }),
+    ).toEqual({ startsIn: "45", pickedAtMs: m1300 })
+  })
+
+  it("follows its meetings after a return from background (30m → 15m)", () => {
+    // Picked 30m at 12:06 (12:30); back at 12:21, 12:30 is now under 15m.
+    expect(
+      followStartsIn({
+        selected: "30",
+        pickedAtMs: m1230,
+        atByOffset: { 15: m1230, 30: m1245, 45: m1300 },
+        available: ["15", "30", "45"],
+      }),
+    ).toEqual({ startsIn: "15", pickedAtMs: m1230 })
+  })
+
+  it("does not follow to a chip that is hidden (its filtered list is empty)", () => {
+    expect(
+      followStartsIn({
+        selected: "60",
+        pickedAtMs: m1300,
+        atByOffset: { 15: m1230, 45: m1300 },
+        available: ["15"],
+      }),
+    ).toEqual({ startsIn: "15", pickedAtMs: m1230 })
+  })
+
+  it("moves to the lowest visible chip once the picked mark has passed (boundary or foreground)", () => {
     // Picked 30m at 12:06 (12:30). Back at 12:36: 15m is 12:45, 30m is 13:00.
     // The returned mark must be the NEW chip's, not the old pick's.
     const m1315 = Date.UTC(2026, 8, 26, 13, 15)
