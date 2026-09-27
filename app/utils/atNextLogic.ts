@@ -38,7 +38,10 @@ export function buildStartsAt(now: Date): string {
  * shown as "24h" by MeetingRow): an always-open room has no upcoming start, so
  * it doesn't belong in a "starting soon" list even if the API returns one.
  */
-export function pruneStarted<T extends { millis: number }>(items: readonly T[], nowMs: number): T[] {
+export function pruneStarted<T extends { millis: number }>(
+  items: readonly T[],
+  nowMs: number,
+): T[] {
   return items.filter((i) => i.millis > nowMs)
 }
 
@@ -56,13 +59,4 @@ export function sortByStart<T extends { millis: number }>(items: readonly T[]): 
  */
 export function classifyAtNextProblem(kind: string): "hide-for-session" | "show-error" {
   return kind === "not-found" ? "hide-for-session" : "show-error"
-}
-
-/**
- * True when the Live segment has just come on screen: hidden → visible, or a
- * visible first render (`prev` undefined). Keyed on the edge, never on a store
- * value. See CLAUDE.md "The trap, hit twice".
- */
-export function isShowEdge(prev: boolean | undefined, next: boolean): boolean {
-  return next && prev !== true
 }

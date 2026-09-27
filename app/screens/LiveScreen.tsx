@@ -1,5 +1,13 @@
 import { FC, useCallback, useState, useMemo, useEffect, useRef } from "react"
-import { Pressable, ViewStyle, FlatList, RefreshControl, View, TextStyle } from "react-native"
+import {
+  ActivityIndicator,
+  Pressable,
+  ViewStyle,
+  FlatList,
+  RefreshControl,
+  View,
+  TextStyle,
+} from "react-native"
 import { observer } from "mobx-react-lite"
 import { useTranslation } from "react-i18next"
 
@@ -27,7 +35,7 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { isShowEdge, type StartsIn } from "@/utils/atNextLogic"
+import type { StartsIn } from "@/utils/atNextLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
 import { logger } from "@/utils/logger"
 import { matchesLanguage } from "@/utils/meetingFiltersLogic"
@@ -69,21 +77,46 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
 
   const [startsIn, setStartsIn] = useState<StartsIn>("live")
-  const atNext = useAtNextSchedules(startsInVisible ? startsIn : "live", visible)
-  const showStartsIn = startsInVisible && !atNext.unavailable
+  // Destructured (not held as one `atNext` object) so every effect/callback
+  // below can list exactly the fields it reads — the hook returns a new
+  // object identity every render, so depending on the whole thing would
+  // recreate those callbacks (and trip react-hooks/exhaustive-deps) for no
+  // reason. FIXED 2026-09-26 (review round 1, MINOR fold-in).
+  const {
+    meetings: atNextMeetings,
+    isLoading: atNextLoading,
+    failed: atNextFailed,
+    unavailable: atNextUnavailable,
+    blocked: atNextBlocked,
+    refresh: refreshAtNext,
+  } = useAtNextSchedules(startsInVisible ? startsIn : "live", visible)
+  const showStartsIn = startsInVisible && !atNextUnavailable
 
-  // Reset to Live on every visit. Keyed on the visibility edge, never on a
-  // store value (CLAUDE.md "The trap, hit twice").
+  // Reset to Live when Live goes OFF screen, not when it comes back.
+  // FIXED 2026-09-26 (review round 1, IMPORTANT): this used to fire on the
+  // hidden→visible edge, which is one render too late. `useAtNextSchedules`
+  // is called above this effect, and React runs a component's hooks (and the
+  // effects that follow from them) top-to-bottom within the same commit — so
+  // on a hidden→visible transition, the hook's OWN fetch effect already ran
+  // `refresh()` for whatever `startsIn` was left over from the last visit
+  // (seq++, isLoading true, a real request sent) before this effect had a
+  // chance to reset `startsIn` back to "live". That painted one stale frame
+  // (old selection, old rows, old RefreshControl state) and fired a wasted
+  // request. Resetting on hide instead means `startsIn` is already "live" —
+  // and nothing is fetching, since `visible` is false — for the entire time
+  // Live is off screen, so the next show renders "live" from frame one with
+  // no request in flight. Still keyed on the edge, never on a store value
+  // (CLAUDE.md "The trap, hit twice") — just the other edge.
   const prevVisibleRef = useRef<boolean | undefined>(undefined)
   useEffect(() => {
-    if (isShowEdge(prevVisibleRef.current, visible)) setStartsIn("live")
+    if (prevVisibleRef.current === true && !visible) setStartsIn("live")
     prevVisibleRef.current = visible
   }, [visible])
 
   // Fall back to Live when the endpoint is missing or fetching is blocked.
   useEffect(() => {
-    if (atNext.unavailable || atNext.blocked) setStartsIn("live")
-  }, [atNext.unavailable, atNext.blocked])
+    if (atNextUnavailable || atNextBlocked) setStartsIn("live")
+  }, [atNextUnavailable, atNextBlocked])
 
   const handleStartsInSelect = useCallback((value: StartsIn) => {
     setStartsIn(value)
@@ -141,7 +174,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // minute option is selected, so fellowship/language filtering (and the
   // filter bar's language options via reportMeetings) apply to whichever list
   // is actually on screen.
-  const source = startsIn === "live" ? liveMeetings : atNext.meetings
+  const source = startsIn === "live" ? liveMeetings : atNextMeetings
   const fellowshipMeetings = useMemo(
     () => (fellowship ? source.filter((m) => m.fellowship === fellowship) : source),
     [source, fellowship],
@@ -297,13 +330,28 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // CHANGED 2026-09-26: the at_next branches come first — a failed minute
   // fetch or an empty countdown window need their own copy, ahead of the
   // language-empty-state and plain-empty fallbacks below.
+  // CHANGED 2026-09-26 (review round 1, MINOR fold-in): added the loading
+  // branch — without it, the first fetch for a freshly-selected minute option
+  // rendered "No meetings starting in the next N minutes" for a beat before
+  // any response landed, which reads as a real (if surprising) answer rather
+  // than "still checking". A bare spinner, same pattern as ListingsScreen's
+  // `isLoading && meetings.length === 0` branch, needs no new i18n string.
   const ListEmptyComponent = useCallback(() => {
-    if (startsIn !== "live" && atNext.failed) {
+    if (startsIn !== "live" && atNextLoading) {
+      return (
+        <View style={themed($loadingContainer)}>
+          <ActivityIndicator size="large" color={theme.colors.tint} />
+        </View>
+      )
+    }
+    if (startsIn !== "live" && atNextFailed) {
       return (
         <Pressable
           style={themed($emptyContainer)}
-          onPress={() => void atNext.refresh()}
+          onPress={() => void refreshAtNext()}
+          disabled={atNextLoading}
           accessibilityRole="button"
+          accessibilityState={{ disabled: atNextLoading }}
         >
           <Text style={themed($emptyText)}>{t("liveScreen:atNextError")}</Text>
         </Pressable>
@@ -325,10 +373,12 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     )
   }, [
     themed,
+    theme.colors.tint,
     t,
     startsIn,
-    atNext.failed,
-    atNext.refresh,
+    atNextLoading,
+    atNextFailed,
+    refreshAtNext,
     language,
     fellowshipMeetings.length,
     setLanguage,
@@ -356,11 +406,7 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
           just below the title header. */}
       {showStartsIn && (
         <View style={themed($startsInRow)}>
-          <StartsInPill
-            value={startsIn}
-            disabled={atNext.blocked}
-            onSelect={handleStartsInSelect}
-          />
+          <StartsInPill value={startsIn} disabled={atNextBlocked} onSelect={handleStartsInSelect} />
         </View>
       )}
 
@@ -369,9 +415,32 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         <View style={themed($countContainer)}>
           <Text style={themed($countText)}>
             {t("liveScreen:meetingCount", { count: sortedMeetings.length })}
-            {lastRefresh && ` (${lastRefresh.toLocaleTimeString()})`}
+            {/* CHANGED 2026-09-26 (review round 1, MINOR fold-in): `lastRefresh`
+                is MeetingContext's Live-pipeline timestamp — showing it next to
+                at_next rows implied those rows were as fresh as the last Live
+                poll, which isn't true (at_next has its own 5-min cadence and no
+                exposed last-fetch time worth surfacing). Only show it in Live. */}
+            {lastRefresh && startsIn === "live" && ` (${lastRefresh.toLocaleTimeString()})`}
           </Text>
         </View>
+      )}
+
+      {/* Inline retry banner (ADDED 2026-09-26, review round 1, IMPORTANT —
+          plan-mandated spec: "A failed fetch keeps the last list and surfaces
+          an inline 'Couldn't load — tap to retry'"). Only for the non-empty
+          case: an empty list gets its own retry copy via ListEmptyComponent
+          above, so the two never render at once. */}
+      {startsIn !== "live" && atNextFailed && sortedMeetings.length > 0 && (
+        <Pressable
+          style={themed($retryBanner)}
+          onPress={() => void refreshAtNext()}
+          disabled={atNextLoading}
+          accessibilityRole="button"
+          accessibilityLabel={t("liveScreen:atNextError")}
+          accessibilityState={{ disabled: atNextLoading }}
+        >
+          <Text style={themed($retryBannerText)}>{t("liveScreen:atNextError")}</Text>
+        </Pressable>
       )}
 
       <FlatList
@@ -383,8 +452,8 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
         contentContainerStyle={themed($listContent)}
         refreshControl={
           <RefreshControl
-            refreshing={startsIn === "live" ? isLoading : atNext.isLoading}
-            onRefresh={startsIn === "live" ? refresh : atNext.refresh}
+            refreshing={startsIn === "live" ? isLoading : atNextLoading}
+            onRefresh={startsIn === "live" ? refresh : refreshAtNext}
             tintColor={theme.colors.text}
           />
         }
@@ -447,6 +516,21 @@ const $countText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
+const $retryBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  marginHorizontal: spacing.md,
+  marginBottom: spacing.sm,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  borderRadius: 8,
+  backgroundColor: colors.errorBackground,
+})
+
+const $retryBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.error,
+  fontSize: 13,
+  textAlign: "center",
+})
+
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.md,
   paddingBottom: spacing.xl,
@@ -460,6 +544,15 @@ const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({
 })
 
 const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: spacing.xxl,
+})
+
+// Same shape as ListingsScreen's loading indicator (its `isLoading &&
+// meetings.length === 0` branch) — reused rather than inventing a second
+// "still loading" idiom for the same tab group.
+const $loadingContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignItems: "center",
   justifyContent: "center",
   paddingVertical: spacing.xxl,

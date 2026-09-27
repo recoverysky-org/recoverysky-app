@@ -74,7 +74,12 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
       setUnavailable(true)
       return
     }
-    // Keep the last list; the caller shows a retry prompt only if it is empty.
+    // Keep the last list — a failed refresh must not blank a screen that was
+    // showing real rows a moment ago. CHANGED 2026-09-26 (review round 1, spec
+    // "A failed fetch keeps the last list and surfaces an inline 'Couldn't
+    // load — tap to retry'"): the caller surfaces a retry affordance either
+    // way now — the empty-list branch in ListEmptyComponent, or an inline
+    // banner over the kept rows when the list isn't empty.
     setFailed(true)
   }, [offset, blocked, unavailable])
 

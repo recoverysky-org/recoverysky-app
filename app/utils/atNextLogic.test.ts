@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest"
 import {
   buildStartsAt,
   classifyAtNextProblem,
-  isShowEdge,
   offsetOf,
   pruneStarted,
   sortByStart,
@@ -63,18 +62,5 @@ describe("classifyAtNextProblem", () => {
     for (const kind of ["timeout", "server", "unauthorized", "cannot-connect", "unknown"]) {
       expect(classifyAtNextProblem(kind)).toBe("show-error")
     }
-  })
-})
-
-describe("isShowEdge", () => {
-  it("fires on hidden → visible and on a visible first render", () => {
-    expect(isShowEdge(false, true)).toBe(true)
-    expect(isShowEdge(undefined, true)).toBe(true)
-  })
-
-  it("does not fire while staying visible or when hiding", () => {
-    expect(isShowEdge(true, true)).toBe(false)
-    expect(isShowEdge(true, false)).toBe(false)
-    expect(isShowEdge(false, false)).toBe(false)
   })
 })
