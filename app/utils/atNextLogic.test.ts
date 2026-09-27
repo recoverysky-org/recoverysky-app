@@ -38,19 +38,33 @@ describe("parseAtMillis", () => {
 describe("refetchDelayMs", () => {
   const at = Date.UTC(2026, 8, 26, 19, 15)
 
-  it("waits until just after the mark passes, when the server's answer moves on", () => {
-    expect(refetchDelayMs(at, at - 6 * 60_000)).toBe(6 * 60_000 + REFETCH_GRACE_MS)
+  it("offset 15: waits until just after the mark, the next quarter-hour boundary", () => {
+    expect(refetchDelayMs(at, 15, at - 6 * 60_000)).toBe(6 * 60_000 + REFETCH_GRACE_MS)
   })
 
-  it("falls back to a floor when the mark is already past (device clock ahead of the API)", () => {
+  it("offset 30/45/60: waits for the NEXT quarter-hour boundary, not the mark itself", () => {
+    // The server recomputes every offset's mark at each quarter-hour boundary:
+    // at 12:06 "60" answers for 13:00, at 12:15 it already answers for 13:15.
+    // The boundary is at − (offset − 15) min.
+    const at60 = Date.UTC(2026, 8, 26, 20, 0) // asked at 19:06
+    const now = Date.UTC(2026, 8, 26, 19, 6)
+    expect(refetchDelayMs(at60, 60, now)).toBe(9 * 60_000 + REFETCH_GRACE_MS)
+    const at30 = Date.UTC(2026, 8, 26, 19, 30)
+    expect(refetchDelayMs(at30, 30, now)).toBe(9 * 60_000 + REFETCH_GRACE_MS)
+    const at45 = Date.UTC(2026, 8, 26, 19, 45)
+    expect(refetchDelayMs(at45, 45, now)).toBe(9 * 60_000 + REFETCH_GRACE_MS)
+  })
+
+  it("falls back to a floor when the boundary is already past (device clock ahead of the API)", () => {
     // Without the floor a skewed clock would refetch every few seconds and get
     // the same `at` back each time.
-    expect(refetchDelayMs(at, at)).toBe(REFETCH_SKEW_FLOOR_MS)
-    expect(refetchDelayMs(at, at + 90_000)).toBe(REFETCH_SKEW_FLOOR_MS)
+    expect(refetchDelayMs(at, 15, at)).toBe(REFETCH_SKEW_FLOOR_MS)
+    expect(refetchDelayMs(at, 15, at + 90_000)).toBe(REFETCH_SKEW_FLOOR_MS)
+    expect(refetchDelayMs(at + 45 * 60_000, 60, at)).toBe(REFETCH_SKEW_FLOOR_MS)
   })
 
   it("returns null when there is no mark to schedule against", () => {
-    expect(refetchDelayMs(null, at)).toBeNull()
+    expect(refetchDelayMs(null, 15, at)).toBeNull()
   })
 })
 

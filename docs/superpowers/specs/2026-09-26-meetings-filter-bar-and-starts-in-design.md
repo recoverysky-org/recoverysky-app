@@ -177,10 +177,13 @@ Errors: 400 bad offset / non-boolean starts_at, 401, 500 (404 = older API build)
 Consequences in the app: "Starts In 30" means *starting at the mark after
 next*, so the list is labelled with `at` ("starting at 7:30p", empty state "No
 meetings starting at 7:30p"); rows all share one start, so they are ranked by
-feedback like Live rather than start-sorted; and because each offset's answer
-only changes when its mark passes (the API keeps each offset as a warm cache
-slot rotating at the boundary), the hook refetches once just after `at` instead
-of every 5 min. `buildStartsAt` and `sortByStart` were removed.
+feedback like Live rather than start-sorted; and because the server recomputes
+every offset's mark at each quarter-hour boundary, the hook refetches once just
+after the next boundary (`at` for offset 15, `at − (offset − 15) min` for
+30/45/60) instead of every 5 min. `buildStartsAt` and `sortByStart` were
+removed. Known gap: meetings starting off the quarter hour (7:05, 7:10…) never
+appear under any Starts In option, because `starts_at=true` matches the mark
+exactly.
 
 ### `api.getAtNextSchedules({ offset })` — `app/services/api/index.ts`
 

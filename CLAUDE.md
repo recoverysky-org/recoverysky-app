@@ -298,9 +298,12 @@ CHANGED 2026-09-27: aligned with the deployed API contract (api repo
 picks ONE coming quarter-hour mark (not a window), `starts_at` is a boolean
 the app sends as `true` (only meetings starting exactly at the mark), and the
 response's `at` names that mark. So the list is labelled "starting at 7:30p",
-rows are feedback-ranked like Live, and the hook refetches once just after
-`at` passes (`refetchDelayMs`, with a 60 s floor for a device clock running
-ahead of the API) instead of every 5 min.
+rows are feedback-ranked like Live, and the hook refetches once just after the
+next quarter-hour boundary — `at` for offset 15 but `at − (offset − 15) min`
+for 30/45/60, because the server recomputes every mark at each boundary
+(`refetchDelayMs`, with a 60 s floor for a device clock running ahead of the
+API) — instead of every 5 min. Meetings starting off the quarter hour (7:05…)
+never appear under Starts In; that's the contract, not a bug.
 Spec: `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`.
 
 A `meetingId` route param force-routes to the segment the caller supplied,

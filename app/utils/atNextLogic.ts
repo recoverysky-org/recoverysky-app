@@ -18,6 +18,9 @@
  * by start (every row shares `at` — `sortByStart` is gone), and instead
  * schedules its refetch for just after `at`, when the server's answer moves
  * to the next mark.
+ * Known product gap, not a bug: `starts_at=true` matches `millis === at`
+ * exactly, so a meeting starting off the quarter hour (7:05, 7:10…) never
+ * appears under any Starts In option.
  */
 
 /** Selector values. Strings, because SegmentedPill is typed `T extends string`. */
@@ -47,8 +50,10 @@ export function parseAtMillis(at: string | undefined): number | null {
 }
 
 /**
- * Slack after the mark before refetching, so the API's pre-emptive cache
- * rotation at the boundary has landed and we get the NEXT mark's answer.
+ * Slack after the boundary before refetching: a buffer for the device clock
+ * running slightly behind the API's, so the request lands after the server's
+ * `nextQuarterHour` has moved on. (The API's cache rotation runs minutes
+ * BEFORE the boundary, so it is not what this waits for.)
  */
 export const REFETCH_GRACE_MS = 5_000
 
@@ -61,14 +66,23 @@ export const REFETCH_GRACE_MS = 5_000
 export const REFETCH_SKEW_FLOOR_MS = 60_000
 
 /**
- * How long to wait before refetching. The server's answer for an offset only
- * changes when its quarter-hour mark passes (each offset is a warm cache slot
- * that rotates at the boundary), so polling in between would return the same
- * rows: one request per mark is the whole budget.
+ * How long to wait before refetching. The server recomputes every offset's
+ * mark at each quarter-hour boundary (`nextQuarterHour(now, offset)`), so an
+ * answer is current until the NEXT boundary — `at` for offset 15, but
+ * `at − (offset − 15) min` for 30/45/60 (asked at 12:06, "60" answers for
+ * 13:00 and moves to 13:15 at 12:15). Polling between boundaries would return
+ * the same rows: one request per quarter hour is the whole budget.
+ * FIXED 2026-09-27 (review): this first waited for `at` itself, which left
+ * "60" stale for 45 min per cycle and skipped three of every four marks.
  */
-export function refetchDelayMs(atMs: number | null, nowMs: number): number | null {
+export function refetchDelayMs(
+  atMs: number | null,
+  offset: AtNextOffset,
+  nowMs: number,
+): number | null {
   if (atMs === null) return null
-  return atMs > nowMs ? atMs - nowMs + REFETCH_GRACE_MS : REFETCH_SKEW_FLOOR_MS
+  const boundaryMs = atMs - (offset - 15) * 60_000
+  return boundaryMs > nowMs ? boundaryMs - nowMs + REFETCH_GRACE_MS : REFETCH_SKEW_FLOOR_MS
 }
 
 /**
@@ -76,8 +90,9 @@ export function refetchDelayMs(atMs: number | null, nowMs: number): number | nul
  * Runs on a 60 s tick between fetches, so a 15-minute list never shows a
  * meeting that already began.
  * CHANGED 2026-09-27: with `starts_at=true` every row starts exactly at `at`,
- * so this now empties the list the moment the mark passes; the mark-driven
- * refetch (refetchDelayMs) replaces it with the next mark a few seconds later. Also drops continuous rooms (`millis === 0`,
+ * so for offset 15 this drops the whole list once the mark passes — normally
+ * moot, because the boundary refetch (refetchDelayMs) has already replaced
+ * the rows a few seconds after the mark, before the next 60 s tick. Also drops continuous rooms (`millis === 0`,
  * shown as "24h" by MeetingRow): an always-open room has no upcoming start, so
  * it doesn't belong in a "starting soon" list even if the API returns one.
  */

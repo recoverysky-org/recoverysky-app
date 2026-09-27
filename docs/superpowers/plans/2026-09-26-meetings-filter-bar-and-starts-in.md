@@ -10,6 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-26-meetings-filter-bar-and-starts-in-design.md`
 
+> **SUPERSEDED in part (2026-09-27):** the at_next parts of this plan (the
+> `/schedules/at_next` path, `buildStartsAt`, `tz`, the 5-min interval,
+> `sortByStart`) predate the deployed API contract. See the spec's
+> "SUPERSEDED 2026-09-27" block and commit af3c5cd for what shipped.
+
 ## Global Constraints
 
 - Work on a branch, `feat/meetings-filter-bar`, created from `root`. Other sessions share this checkout, so stage **named paths only**: never `git add -A`, never `git stash`.

@@ -24,8 +24,10 @@
  * - CHANGED 2026-09-27: aligned with the deployed `GET /schedules/at-next`
  *   (see api.getAtNextSchedules). Each offset is one quarter-hour mark whose
  *   answer only changes when that mark passes, so the 5-min interval is gone:
- *   the hook refetches once, just after the response's `at`
- *   (atNextLogic.refetchDelayMs), and re-arms from each successful answer.
+ *   the hook refetches once, just after the next quarter-hour boundary (for
+ *   offset 15 that's `at`; for 30/45/60 it's before `at` — see
+ *   atNextLogic.refetchDelayMs), and re-arms from each successful answer.
+ *   The "every 5 min while shown" bullet above no longer holds.
  *   `atMs` is returned so LiveScreen can say "Starting at 7:30p". Rows are no
  *   longer start-sorted (they all start at `at`); LiveScreen ranks them by
  *   feedback like the Live list.
@@ -159,13 +161,13 @@ export function useAtNextSchedules(startsIn: StartsIn, visible: boolean) {
     // from the answer's `at` by the effect below.
   }, [visible, offset, refresh, isActive])
 
-  // Refetch just after the mark passes (ADDED 2026-09-27). Re-armed by every
+  // Refetch just after the next quarter-hour boundary (ADDED 2026-09-27). Re-armed by every
   // successful answer via `lastFetchMs`; cleared when hidden, backgrounded,
   // or switched back to Live. A failed fetch doesn't re-arm — the retry
   // prompt is the way back, same as before.
   useEffect(() => {
     if (!visible || offset === null || !isActive || lastFetchMs === null) return
-    const delay = refetchDelayMs(atMs, Date.now())
+    const delay = refetchDelayMs(atMs, offset, Date.now())
     if (delay === null) return
     const id = setTimeout(() => void refresh(), delay)
     return () => clearTimeout(id)
