@@ -8,9 +8,11 @@ import {
   Pressable,
   Modal,
   ScrollView,
+  Alert,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
+import { useAuth0 } from "react-native-auth0"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -33,6 +35,7 @@ import { useAuth0Wrapper, type ProviderConnection } from "@/services/auth/useAut
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { devPurgeAllLocalData } from "@/utils/devPurge"
 import { logger } from "@/utils/logger"
 
 import { ChooseStep, CodeStep, EmailStep } from "./login/LoginSteps"
@@ -85,6 +88,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   const { themed, theme } = useAppTheme()
   const { rekeyDb } = useDatabase()
   const authStore = useAuthenticationStore()
+  // Only the DEV purge uses this: the SDK's credential store is reachable
+  // through the hook alone, and useAuth0Wrapper deliberately doesn't expose a
+  // bare clearCredentials() to production code.
+  const { clearCredentials: clearSdkCredentials } = useAuth0()
   const {
     sendCode,
     verifyCode,
@@ -421,6 +428,28 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     setPendingAction(null)
   }, [pendingAction])
 
+  // DEV-ONLY purge — see the button below and utils/devPurge.ts.
+  const handleDevPurge = useCallback(() => {
+    Alert.alert(
+      "Purge all local data?",
+      "Deletes the database and its key, SecureStore (sign-in, device token, attest key), " +
+        "the device owner, the Auth0 SDK session and every MMKV setting, then reloads as a " +
+        "fresh install. Browser sign-in cookies are NOT cleared.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Purge",
+          style: "destructive",
+          onPress: () =>
+            void devPurgeAllLocalData({
+              clearSdkCredentials: clearSdkCredentials,
+              clearOwner: () => authStore.clearOwner(),
+            }),
+        },
+      ],
+    )
+  }, [authStore, clearSdkCredentials])
+
   return (
     // CHANGED 2026-09-28: "auto" → "scroll". The email/code steps put a
     // TextInput on this screen for the first time; on Android the keyboard
@@ -540,6 +569,23 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
         )}
       </View>
+
+      {/* DEV-ONLY (ADDED 2026-09-28): wipe everything local so the next launch
+          is a fresh install — see utils/devPurge.ts for what it clears and
+          why. Hard-coded English on purpose: never rendered in a release
+          build, so it stays out of the nine-locale i18n files. */}
+      {__DEV__ && (
+        <Pressable
+          testID="login-dev-purge"
+          accessibilityRole="button"
+          accessibilityLabel="Dev: purge all local data"
+          accessibilityHint="Deletes the database, secure storage and all settings, then reloads"
+          onPress={handleDevPurge}
+          style={themed($devPurgeButton)}
+        >
+          <Text style={themed($devPurgeText)} text="🧨 DEV: Purge all local data" />
+        </Pressable>
+      )}
 
       {/* EUA Modal */}
       <Modal
@@ -690,6 +736,22 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 1, // CHANGED 2026-09-28 from flex:1 — same reason as $screenContentContainer
   justifyContent: "center",
   gap: spacing.md,
+})
+
+const $devPurgeButton: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
+  alignSelf: "center",
+  marginTop: spacing.lg,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  borderWidth: 1,
+  borderStyle: "dashed",
+  borderColor: colors.error,
+  borderRadius: 8,
+})
+
+const $devPurgeText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.error,
+  fontSize: 13,
 })
 
 const $errorContainer: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
