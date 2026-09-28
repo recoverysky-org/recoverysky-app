@@ -84,7 +84,11 @@ Boundaries that make this acceptable:
    map (Airbnb pattern). The list code is untouched; the map is additive.
    The chosen view persists to MMKV (`inperson.viewMode`) as a display
    preference — same class as the existing `inperson.radius` pref, carries
-   no positional information.
+   no positional information. **CHANGED 2026-09-28:** the default flipped
+   from list to map — an unset key now resolves to `"map"` and only an
+   explicit `"list"` pick keeps the list. The `effectiveViewMode` degrade
+   (no style URLs, web, location off, failed style load, segment hidden)
+   is what makes a map default safe.
 
 4. **The map shows the same result set as the list.** Pins come from the
    venues `useNearbySchedules` already returns — the day-scoped

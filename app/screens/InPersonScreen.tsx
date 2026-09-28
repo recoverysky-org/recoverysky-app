@@ -110,8 +110,15 @@ const SHORT_TIME_TX: Record<ShortTime, string> = {
  * location data — same class as inperson.radius). */
 const VIEW_MODE_STORAGE_KEY = "inperson.viewMode"
 
+// CHANGED 2026-09-28: the map is now the default view. An unset key (a fresh
+// install, or an existing user who never touched the toggle) resolves to "map";
+// only an explicit, persisted "list" pick keeps the list. This is safe to do
+// blindly because `effectiveViewMode` below still degrades to the list whenever
+// the map can't actually show anything — no style URLs yet, web, location off,
+// a failed style load this session, or the segment not being on screen — so a
+// default of "map" never strands anyone on a blank surface.
 const loadViewMode = (): InPersonViewMode =>
-  loadString(VIEW_MODE_STORAGE_KEY) === "map" ? "map" : "list"
+  loadString(VIEW_MODE_STORAGE_KEY) === "list" ? "list" : "map"
 
 /** MMKV key for the persisted Distance / Start list order — same class of
  * display preference as the view mode above, and equally NOT location data. */

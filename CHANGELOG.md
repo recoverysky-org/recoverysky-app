@@ -23,6 +23,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Changed
+- **In-Person now opens on the map by default.** Fresh installs, and anyone
+  who never tapped the list/map toggle, land on the map instead of the list;
+  an explicit list pick is still remembered. The map still steps aside for
+  the list whenever it has nothing to show — Location off in Settings, no map
+  style from the server yet, web, or a tile/style load that failed this
+  session — so nobody lands on a blank surface.
 - **New installs now start in dark mode** instead of following the device's
   light/dark setting. Users can still switch in onboarding or Settings.
   Existing users who never touched the toggle keep the look they have today —
