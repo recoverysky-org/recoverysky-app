@@ -223,6 +223,11 @@ Rules that fall out of the table:
   terminal outcome gets the level the user experiences: a config poll that
   exhausts its ladder and flips `maintenanceMode` is `error`; the same ladder
   giving up while the device is offline is `warn` (nothing we can fix).
+  CHANGED 2026-09-28: so is a ladder where *no attempt got an answer*
+  (every one `cannot-connect` / `timeout`, `maintenanceCause: "network"`).
+  The user sees the "Network issues" banner, but that's their connection, and
+  31 such ERRORs a day from phones on dead Wi-Fi were burying real errors. A
+  ladder the server actually answered (5xx, rejection) stays `error`.
 - **Known-benign storms go to `info`**, not `warn`, with the RS number in the
   code comment — e.g. `upsertToken` before sign-in (RS-012), report-body 404
   backfill (RS-018).

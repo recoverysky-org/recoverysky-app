@@ -37,19 +37,19 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   the OS reachability probe agrees, in the calm offline palette. The
   cold-start outage screen gets the same "Network issues" variant. Amber
   maintenance is now reserved for the server's own `MAINTENANCE_MODE` or a
-  real server error. API features still pause the same way in both cases.
+  real server error. API features still pause the same way in both cases. (RS-052)
 - **Quieter logs for offline phones.** A failed Starts In refresh writes one
   summary line instead of four ERRORs (one per offset), and retry ladders
   that end on no-answer failures log at warn, not error. NetInfo
   reachability changes are now logged so the next report can show whether
-  the OS knew the connection was dead.
+  the OS knew the connection was dead. (RS-052)
 - **Internet oracle.** When our requests get no answer at all, the app now
   asks two independent providers (Cloudflare 1.1.1.1 and Google 8.8.8.8, by
   IP, 3 s budget) whether the internet is reachable. If neither answers, the
   banner says plainly that the connection isn't reaching the internet. If
   either answers, it says only RecoverySky can't be reached. The verdict and
   per-provider timings are logged. It never runs on a healthy session, since
-  it reveals the device IP to those providers.
+  it reveals the device IP to those providers. (RS-052)
 - **Network context on API request logs.** Every request line now carries
   the network it went over (Wi-Fi / cellular, cellular generation and
   carrier, Android Wi-Fi strength) next to its duration. That gives a
