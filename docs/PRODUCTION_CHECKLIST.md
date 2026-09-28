@@ -17,6 +17,18 @@ Step-by-step checklist for preparing and publishing a **native store release**.
   - Run `npm run check:env` to report drift between `.env` and `eas.json`.
   - Sanity-check `EXPO_PUBLIC_API_URL` / `AGENT_URL` point at production, not a
     localhost or dev IP.
+  - **Auth0 must be the production tenant**, not the dev tenant
+    (`bad-bitch-tenant.us.auth0.com`, set up 2026-09-27 for passwordless
+    testing): `EXPO_PUBLIC_AUTH0_DOMAIN=auth.recoverysky.app`, the prod
+    `EXPO_PUBLIC_AUTH0_CLIENT_ID`, and
+    `EXPO_PUBLIC_AUTH0_AUDIENCE=https://api.recoverysky.app` — in `eas.json`,
+    the EAS `production` environment, and your shell/`.env` if you build
+    locally. Since 2026-09-28 the domain is also baked into the **native**
+    Android login-redirect handler (`app.config.ts`), so a store build made
+    with the dev domain breaks Google/Apple sign-in on Android for every user,
+    and no OTA can fix it. The API's `AUTH_ISSUER` / `AUTH_JWKS_URI` /
+    `AUTH_AUDIENCE` / `AUTH_MOBILE_CLIENT_ID` / `AUTH_MGMT_*` must be the
+    prod tenant's too.
 
 - [ ] **3. Commit all feature work and the CHANGELOG**
   - Working tree must be clean before versioning.
