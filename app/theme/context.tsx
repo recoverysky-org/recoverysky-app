@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
 } from "react"
 import { StyleProp, useColorScheme } from "react-native"
 import {
@@ -16,7 +17,7 @@ import {
 import { useMMKVString } from "react-native-mmkv"
 
 import { logger } from "@/utils/logger"
-import { storage } from "@/utils/storage"
+import { load, storage } from "@/utils/storage"
 
 import { setImperativeTheming } from "./context.utils"
 import { darkTheme, lightTheme } from "./theme"
@@ -69,6 +70,27 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   // Custom theme color (tint override)
   const [themeColor, setThemeColorValue] = useMMKVString("ignite.themeColor", storage)
 
+  // ADDED 2026-09-28: new installs default to dark instead of following the OS.
+  // Existing installs that never touched the toggle were following the OS, and
+  // flipping them to dark on an OTA would be jarring — so on the first launch
+  // after this change, an install that has already finished onboarding and has
+  // no saved scheme gets its current OS scheme pinned once. Computed
+  // synchronously at mount so there is no one-frame flash of dark before the
+  // pin lands. Keyed on the persisted `onboardingCompleted` rather than on the
+  // mere presence of the `root-v1` snapshot: setupRootStore's onSnapshot
+  // listener can write `root-v1` during first-launch init, before this provider
+  // mounts, which would misclassify a fresh install as a legacy one.
+  const [legacySystemPin] = useState<ImmutableThemeContextModeT | undefined>(() => {
+    if (themeScheme !== undefined) return undefined
+    const snapshot = load<{ profileStore?: { onboardingCompleted?: boolean } }>("root-v1")
+    if (!snapshot?.profileStore?.onboardingCompleted) return undefined
+    return systemColorScheme === "light" ? "light" : "dark"
+  })
+
+  useEffect(() => {
+    if (legacySystemPin) setThemeScheme(legacySystemPin)
+  }, [legacySystemPin, setThemeScheme])
+
   useEffect(() => {
     log.info("ThemeProvider mounted", {
       systemColorScheme: systemColorScheme ?? "null",
@@ -107,11 +129,15 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
    * initialContext is the theme context passed in from the app.tsx file and always takes precedence.
    * themeScheme is the value from MMKV. If undefined, we fall back to the system theme
    * systemColorScheme is the value from the device. If undefined, we fall back to "dark"
+   * CHANGED 2026-09-28: the system-theme fallback is gone — an unsaved scheme now
+   * means dark (see legacySystemPin above for how pre-existing installs keep their
+   * look). Settings and onboarding only ever write "light"/"dark", so there was
+   * no user-facing "follow system" option to preserve.
    */
   const themeContext: ImmutableThemeContextModeT = useMemo(() => {
-    const t = initialContext || themeScheme || systemColorScheme || "dark"
+    const t = initialContext || themeScheme || legacySystemPin || "dark"
     return t === "dark" ? "dark" : "light"
-  }, [initialContext, themeScheme, systemColorScheme])
+  }, [initialContext, themeScheme, legacySystemPin])
 
   const navigationTheme: NavTheme = useMemo(() => {
     switch (themeContext) {

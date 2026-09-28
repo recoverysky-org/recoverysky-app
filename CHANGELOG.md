@@ -22,6 +22,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **New installs now start in dark mode** instead of following the device's
+  light/dark setting. Users can still switch in onboarding or Settings.
+  Existing users who never touched the toggle keep the look they have today —
+  their current system scheme is pinned once on first launch after the update.
+
 ## [4.10.1-14] — 2026-09-27
 
 Also carries the changes shipped in 4.10.1-11 through 4.10.1-13, which went
