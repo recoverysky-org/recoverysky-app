@@ -111,7 +111,7 @@ Hiding tabs is not enough. These paths reach user data or write it:
 | `InPersonPopup` "I'm Here" presence check | writes attendance | hidden |
 | `ProfileStore.themeColor` | owner's accent color | default theme |
 | Location gate `confirm-in-app` writes `profileStore.locationEnabled` | a device setting, not personal data | unchanged: same as today, writes `locationEnabled` (decided 2026-09-28) |
-| `MeetingFilterBar` / `MeetingFiltersContext` default from `profileStore.fellowship` and the MMKV `meetings.fellowship` / `meetings.language` picks | would show the owner's fellowship and language picks | guest starts on All fellowships / all languages and never reads or writes the owner's picks (decided 2026-09-28) |
+| `MeetingFilterBar` / `MeetingFiltersContext` | fellowship + language pickers | guests get the full filter bar as today, but the fellowship defaults to **AA** instead of the owner's Settings fellowship (`resolveFellowship`'s `saved` input is `"AA"` for a guest). A pick made in the bar is remembered as today. Decided 2026-09-28 |
 | Deep links / notification taps into other tabs | would navigate to screens a guest doesn't have | ignored, or routed to Meetings |
 
 ## App-wide pieces mounted in `app.tsx`
@@ -141,8 +141,7 @@ called, no 401/403 reaches CrowdSec, and no user-lane rejection can drop the dev
 ## Decisions (2026-09-28)
 
 1. **Location permission:** same as today. The location gate writes `profileStore.locationEnabled`.
-2. **Filters:** guests get all filters. They start on All fellowships / all languages and never
-   inherit the owner's fellowship or remembered picks.
+2. **Filters:** guests get the full filter bar, working as today, except that the fellowship defaults to **AA** rather than the owner's Settings fellowship. If a build drops AA, `resolveFellowship` falls back to the build's first fellowship, as it already does.
 3. **Conversion:** no automatic Login prompt. Guests see **house ads**: RecoverySky's own ads
    promoting an account (clean time, attendance reports, reminders and so on). No third-party ad
    network. Placement, content source and rotation are a separate design pass. v1 needs at least
