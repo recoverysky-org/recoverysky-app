@@ -422,8 +422,13 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   }, [pendingAction])
 
   return (
+    // CHANGED 2026-09-28: "auto" → "scroll". The email/code steps put a
+    // TextInput on this screen for the first time; on Android the keyboard
+    // shrinks the view (KeyboardAvoidingView behavior="height"), "auto" then
+    // judged the content to fit and disabled scrolling, and the flex:1 column
+    // was squeezed and clipped — field, button label and Back link vanished.
     <Screen
-      preset="auto"
+      preset="scroll"
       contentContainerStyle={themed($screenContentContainer)}
       safeAreaEdges={["top", "bottom"]}
     >
@@ -658,8 +663,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 // Styles
 // ============================================================================
 
+// flexGrow, not flex: fills the screen when the content is short (so the
+// steps still sit centred) but may grow past it once the keyboard takes half
+// the height — flex:1 pinned it to the shrunken viewport (see <Screen> above).
 const $screenContentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+  flexGrow: 1,
   paddingVertical: spacing.xxl,
   paddingHorizontal: spacing.lg,
 })
@@ -679,7 +687,7 @@ const $enterDetails: ThemedStyle<TextStyle> = ({ spacing }) => ({
 })
 
 const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+  flexGrow: 1, // CHANGED 2026-09-28 from flex:1 — same reason as $screenContentContainer
   justifyContent: "center",
   gap: spacing.md,
 })
