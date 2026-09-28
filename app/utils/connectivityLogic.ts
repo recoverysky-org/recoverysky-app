@@ -14,11 +14,90 @@
  * See docs/superpowers/specs/2026-09-06-network-aware-maintenance-design.md.
  */
 
-/** What the sticky top banner should show. */
-export type BannerState = "none" | "offline" | "connecting" | "maintenance"
+/**
+ * What the sticky top banner should show.
+ * ADDED 2026-09-28 "network" / "no-internet": see `decideBanner`.
+ */
+export type BannerState =
+  | "none"
+  | "offline"
+  | "no-internet"
+  | "network"
+  | "connecting"
+  | "maintenance"
 
-/** Which copy the full-screen cold-start outage screen shows. */
-export type OutageVariant = "offline" | "maintenance"
+/**
+ * Which copy the full-screen cold-start outage screen shows.
+ * ADDED 2026-09-28 "network": the precheck / config fetch failed at the
+ * transport level on a device whose interface is up.
+ */
+export type OutageVariant = "offline" | "network" | "maintenance"
+
+/**
+ * Why `maintenanceMode` / `outageMode` is on. ADDED 2026-09-28.
+ *
+ * - "server" — the server said so (`MAINTENANCE_MODE`), or it answered with
+ *   something other than a transport failure (5xx, bad data, a rejection).
+ * - "network" — every failed attempt was a transport failure
+ *   (`cannot-connect` / `timeout`): no request got an answer at all.
+ *
+ * Why this exists: `isOffline` keys off the network INTERFACE (see
+ * services/network), and a phone on dead-backhaul Wi-Fi, a captive portal or
+ * a one-bar cellular link has an interface that is up. Those devices failed
+ * the /config ladder and were told "Maintenance in progress" while our API was
+ * healthy — 2026-09-27/28 Loki: four sessions, NetInfo `isOffline: false` on
+ * all four, every attempt cannot-connect/timeout, and one of them failed Expo's
+ * OTA server with a TLS error in the same second. A request that never reached
+ * anyone is not evidence about our service.
+ */
+export type MaintenanceCause = "server" | "network"
+
+/**
+ * Problem kinds meaning "no answer arrived" — the request never completed a
+ * round trip, so it says nothing about the server. Deliberately excludes
+ * `unknown`: apisauce's UNKNOWN_ERROR covers odd client states too, and an
+ * unclassified failure keeps the old (server) interpretation rather than
+ * quietly blaming the user's connection.
+ */
+const TRANSPORT_PROBLEMS: readonly string[] = ["cannot-connect", "timeout"]
+
+/** Whether an API problem kind is a transport failure (see TRANSPORT_PROBLEMS). */
+export function isTransportProblem(kind: string | undefined | null): boolean {
+  return kind != null && TRANSPORT_PROBLEMS.includes(kind)
+}
+
+/**
+ * How one internet-oracle probe ended (services/network/oracle.ts). ADDED
+ * 2026-09-28. "answered" = ANY HTTP response, whatever the status — a 404
+ * from 1.1.1.1 still proves packets made the round trip.
+ */
+export type OracleProbeOutcome = "answered" | "timeout" | "failed"
+
+/**
+ * The oracle's verdict: is the public internet reachable from this device?
+ * True when ANY probe answered. False only when EVERY probe failed — both
+ * Cloudflare and Google unreachable inside the budget is as close to "this
+ * device's network is down" as a client can get, since neither is our
+ * infrastructure and both are anycast IP literals (no DNS involved). One
+ * provider can be blocked on its own (8.8.8.8 is, in some countries), which
+ * is why one failure alone never counts. An empty list is "no verdict".
+ */
+export function decideOracleVerdict(outcomes: readonly OracleProbeOutcome[]): boolean | null {
+  if (outcomes.length === 0) return null
+  return outcomes.some((o) => o === "answered")
+}
+
+/**
+ * Classify a failed retry ladder from the problem kind of each failed attempt.
+ * "network" only when there was at least one attempt and EVERY attempt was a
+ * transport failure — a single real server answer (a 502, a 401) means the
+ * server was reachable, so the ladder's failure is ours to own.
+ */
+export function decideMaintenanceCause(
+  failedKinds: readonly (string | undefined | null)[],
+): MaintenanceCause {
+  return failedKinds.length > 0 && failedKinds.every(isTransportProblem) ? "network" : "server"
+}
 
 /**
  * Pick the runtime banner. Offline wins over everything: an offline device
@@ -33,8 +112,36 @@ export function decideBanner(i: {
   isOffline: boolean
   maintenanceMode: boolean
   deviceAuthDegraded: boolean
+  /** ADDED 2026-09-28. Absent/null reads as "server" (the old behavior). */
+  maintenanceCause?: MaintenanceCause | null
+  /** NetInfo's reachability probe; null = not yet known. ADDED 2026-09-28. */
+  isInternetReachable?: boolean | null
+  /**
+   * Our own 1.1.1.1 / 8.8.8.8 oracle verdict from the last failed ladder
+   * (decideOracleVerdict); null = not run. Outranks NetInfo's probe when
+   * present — it ran at the moment of failure, against two independent
+   * providers. ADDED 2026-09-28.
+   */
+  internetOracle?: boolean | null
 }): BannerState {
   if (i.isOffline) return "offline"
+  // ADDED 2026-09-28: a transport-failure "maintenance" is really the
+  // device's connection — say so. Ranks above "connecting" because it is the
+  // root cause: a degraded device lane on a dead link can't re-attest either.
+  // The probe only picks the COPY, never whether we show the network variant:
+  // the probe host is blocked on some national networks (services/network
+  // header), so `false` alone must never classify anyone. When it agrees
+  // with our own failed requests, we can name the connection plainly.
+  // CHANGED 2026-09-28 (later): the internet oracle, when it ran, decides the
+  // copy. false → the device's internet is down for sure; true → the
+  // internet works and only RecoverySky is unreachable from here (a network
+  // that blocks us, or an edge ban). Either way still the network variant —
+  // the oracle refines the wording, it never escalates to amber.
+  if (i.maintenanceMode && i.maintenanceCause === "network") {
+    const internetDown =
+      i.internetOracle != null ? !i.internetOracle : i.isInternetReachable === false
+    return internetDown ? "no-internet" : "network"
+  }
   if (i.deviceAuthDegraded) return "connecting"
   if (i.maintenanceMode) return "maintenance"
   return "none"
@@ -45,8 +152,13 @@ export function decideBanner(i: {
  * device that regains wifi mid-outage flips to the maintenance variant live
  * (correct — at that point the API genuinely still hasn't answered).
  */
-export function decideOutageVariant(i: { isOffline: boolean }): OutageVariant {
-  return i.isOffline ? "offline" : "maintenance"
+export function decideOutageVariant(i: {
+  isOffline: boolean
+  /** ADDED 2026-09-28. Absent/null reads as "server" (the old behavior). */
+  maintenanceCause?: MaintenanceCause | null
+}): OutageVariant {
+  if (i.isOffline) return "offline"
+  return i.maintenanceCause === "network" ? "network" : "maintenance"
 }
 
 /**

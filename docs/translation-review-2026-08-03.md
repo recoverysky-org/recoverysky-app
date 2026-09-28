@@ -830,3 +830,13 @@ it" — not as a scolding and not as a generic error.
 `meetingsScreen.noMeetingsInLanguage` / `showAllLanguages`. Starts In is dev-only
 until `startsInVisible` flips, so these can land with that release. Keep
 `startsInLive` and `title` consistent — they read side by side.
+
+## 2026-09-28 — Network-issues banner + outage screen, 32 strings (8 locales × 4 keys)
+
+`common.networkBanner`, `common.noInternetBanner`, `maintenance.networkTitle`,
+`maintenance.networkSubtitle`: best-effort translations in ar, de, es, fr, pt,
+ru, th, uk. They're shown when the phone's connection is up but no request gets
+an answer. The copy has to put the problem on **the connection**, not on
+RecoverySky and not on the user: "Network issues", not "error" or "you did
+something wrong". The banner strings are long for a one-line strip, so check that
+they wrap acceptably at 13 pt, and tighten any that run past two lines.

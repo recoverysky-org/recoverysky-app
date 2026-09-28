@@ -29,6 +29,10 @@ const es: Translations = {
     ratingContactUs: "Contáctanos",
     maintenanceBanner: "Mantenimiento en curso. Algunas funciones están deshabilitadas.",
     offlineBanner: "Sin conexión. Mostrando datos guardados.",
+    networkBanner:
+      "Problemas de red: no se puede conectar con RecoverySky. Mostrando datos guardados.",
+    noInternetBanner:
+      "Problemas de red: tu conexión no llega a internet. Mostrando datos guardados.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Seleccionar",
     archive: "Archivar",
@@ -768,6 +772,9 @@ const es: Translations = {
     offlineTitle: "Sin conexión",
     offlineSubtitle:
       "Comprueba tu conexión a internet. La aplicación se reconectará automáticamente.",
+    networkTitle: "Problemas de red",
+    networkSubtitle:
+      "No podemos conectar con RecoverySky desde esta conexión. Prueba con Wi-Fi o datos móviles; la app se reconectará automáticamente.",
     checking: "Verificando estado del sistema...",
     support: "Obtener Soporte",
   },

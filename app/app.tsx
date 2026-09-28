@@ -87,6 +87,8 @@ import { clearAuthCredentials } from "./services/auth/secureStorage"
 import { registerUnusableTokenHandler } from "./services/auth/unusableTokenHandler"
 import { setSentryUser } from "./services/crashReporting/sentry"
 import { initNetworkMonitoring } from "./services/network"
+import { getNetworkLogContext } from "./services/network/context"
+import { oracleLogAttributes, probeInternetOracle } from "./services/network/oracle"
 import {
   initializeNotifications,
   loginNotificationUser,
@@ -106,7 +108,7 @@ import { ThemeProvider } from "./theme/context"
 import { customFontsToLoad } from "./theme/typography"
 import { checkForUpdates } from "./utils/checkForUpdates"
 import { decideStartupConfigPath } from "./utils/configCacheLogic"
-import { shouldSkipConfigPoll } from "./utils/connectivityLogic"
+import { decideMaintenanceCause, shouldSkipConfigPoll } from "./utils/connectivityLogic"
 import { parseDeepLinkSegment, pendingTargetForSegment } from "./utils/deepLinkLogic"
 import { getDeviceId, generateSessionId } from "./utils/deviceId"
 import { loadDateFnsLocale } from "./utils/formatDate"
@@ -551,6 +553,9 @@ export function App() {
         const STATUS_TIMEOUT_LADDER_MS = [2500, 4000, 6000]
         const STATUS_RETRY_DELAYS = [1000, 2000]
         let statusOk = false
+        // ADDED 2026-09-28: kinds of the failed attempts, so the outage screen
+        // can say "network issues" when no attempt got an answer at all.
+        const precheckFailedKinds: string[] = []
         for (let attempt = 1; attempt <= STATUS_TIMEOUT_LADDER_MS.length; attempt++) {
           const result = await api.getPublicStatus(STATUS_TIMEOUT_LADDER_MS[attempt - 1])
           if (result.kind === "ok") {
@@ -558,6 +563,7 @@ export function App() {
             if (attempt > 1) log.info("/status/ready precheck recovered", { attempt })
             break
           }
+          precheckFailedKinds.push(result.kind)
           log.warn("/status/ready precheck failed", { attempt, kind: result.kind })
           if (attempt <= STATUS_RETRY_DELAYS.length) {
             await new Promise((r) => setTimeout(r, STATUS_RETRY_DELAYS[attempt - 1]))
@@ -565,8 +571,24 @@ export function App() {
         }
 
         if (!statusOk) {
-          log.warn("/status/ready precheck exhausted retries — entering outage mode")
-          _rootStore.configStore.setOutageMode()
+          const cause = decideMaintenanceCause(precheckFailedKinds)
+          // ADDED 2026-09-28: same oracle as ConfigStore.fetchConfig — no
+          // attempt got an answer, so ask 1.1.1.1 / 8.8.8.8 (≤3 s) before the
+          // outage screen renders. Only its log line matters for the screen
+          // today (it has no no-internet copy); the verdict is recorded so the
+          // runtime banner has it too.
+          let oracleAttrs: Record<string, string | number | boolean> = {}
+          if (cause === "network" && !_rootStore.networkStore.isOffline) {
+            const oracle = await probeInternetOracle()
+            _rootStore.networkStore.setInternetOracle(oracle.reachable)
+            oracleAttrs = { ...oracleLogAttributes(oracle), ...getNetworkLogContext() }
+          }
+          log.warn("/status/ready precheck exhausted retries — entering outage mode", {
+            cause,
+            kinds: precheckFailedKinds.join(","),
+            ...oracleAttrs,
+          })
+          _rootStore.configStore.setOutageMode(cause)
           // Mount the root store so the app shell renders (AppNavigator
           // routes to MaintenanceScreen on outageMode). Skip attestation
           // and fetchConfig — both would fail anyway, and downstream
@@ -636,11 +658,16 @@ export function App() {
               armDegradedStartConfigRecovery(_rootStore)
             } else {
               log.warn("Config fetch exhausted all retries — entering outage mode")
-              _rootStore.configStore.setOutageMode()
+              // CHANGED 2026-09-28: carries the ladder's cause so a phone whose
+              // requests never got an answer sees "network issues", not
+              // "system is offline".
+              _rootStore.configStore.setOutageMode(
+                _rootStore.configStore.lastFetchFailureCause ?? "server",
+              )
             }
           } else if (_rootStore.configStore.maintenanceMode) {
             log.info("Cold start with maintenance active — entering outage mode")
-            _rootStore.configStore.setOutageMode()
+            _rootStore.configStore.setOutageMode("server")
           }
         }
 

@@ -29,6 +29,8 @@ const ar: Translations = {
     ratingContactUs: "تواصل معنا",
     maintenanceBanner: "جارٍ إجراء الصيانة. بعض الميزات معطّلة.",
     offlineBanner: "أنت غير متصل. يتم عرض البيانات المحفوظة.",
+    networkBanner: "مشكلة في الشبكة — تعذّر الوصول إلى RecoverySky. يتم عرض البيانات المحفوظة.",
+    noInternetBanner: "مشكلة في الشبكة — اتصالك لا يصل إلى الإنترنت. يتم عرض البيانات المحفوظة.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "تحديد",
     archive: "أرشفة",
@@ -748,6 +750,9 @@ const ar: Translations = {
     subtitle: "سنعود قريباً. سيتم استئناف التطبيق تلقائياً.",
     offlineTitle: "أنت غير متصل بالإنترنت",
     offlineSubtitle: "تحقق من اتصالك بالإنترنت. سيُعاد الاتصال تلقائيًا.",
+    networkTitle: "مشكلة في الشبكة",
+    networkSubtitle:
+      "تعذّر الوصول إلى RecoverySky من هذا الاتصال. جرّب شبكة Wi-Fi أو بيانات الجوال — سيُعاد الاتصال تلقائيًا.",
     checking: "جارٍ التحقق من حالة النظام...",
     support: "الحصول على الدعم",
   },

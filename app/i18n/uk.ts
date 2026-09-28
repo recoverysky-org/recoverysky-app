@@ -29,6 +29,9 @@ const uk: Translations = {
     ratingContactUs: "Звʼязатися з нами",
     maintenanceBanner: "Тривають технічні роботи. Деякі функції вимкнено.",
     offlineBanner: "Ви офлайн. Показано збережені дані.",
+    networkBanner: "Проблеми з мережею — RecoverySky недоступний. Показано збережені дані.",
+    noInternetBanner:
+      "Проблеми з мережею — з'єднання не має доступу до інтернету. Показано збережені дані.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Вибрати",
     archive: "Архівувати",
@@ -763,6 +766,9 @@ const uk: Translations = {
     offlineTitle: "Ви офлайн",
     offlineSubtitle:
       "Перевірте з'єднання з інтернетом. Застосунок автоматично відновить з'єднання.",
+    networkTitle: "Проблеми з мережею",
+    networkSubtitle:
+      "Через це з'єднання RecoverySky недоступний. Спробуйте Wi-Fi або мобільні дані — застосунок перепідключиться автоматично.",
     checking: "Перевіряємо стан системи...",
     support: "Отримати підтримку",
   },

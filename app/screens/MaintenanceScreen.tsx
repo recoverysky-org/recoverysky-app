@@ -16,6 +16,11 @@
  * device is online but the API isn't answering. Because this is an
  * observer, wifi returning mid-outage flips the copy to the maintenance
  * variant until the recovery poll reloads the app.
+ * CHANGED 2026-09-28: third variant, "Network issues" (wifi/cellular icon,
+ * try-another-connection copy, no support link), when the interface is up
+ * but no precheck / config attempt got an answer — see
+ * `configStore.maintenanceCause`. Those users used to see "The system is
+ * offline" while our API was healthy.
  */
 import { FC } from "react"
 import { View, ViewStyle, TextStyle, ActivityIndicator, Pressable, Linking } from "react-native"
@@ -25,7 +30,7 @@ import { observer } from "mobx-react-lite"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { translate } from "@/i18n"
-import { useNetworkStore } from "@/models"
+import { useConfigStore, useNetworkStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { decideOutageVariant } from "@/utils/connectivityLogic"
@@ -35,8 +40,21 @@ const SUPPORT_URL = "https://www.recoverysky.app/support"
 export const MaintenanceScreen: FC = observer(function MaintenanceScreen() {
   const { themed, theme } = useAppTheme()
   const networkStore = useNetworkStore()
+  const configStore = useConfigStore()
 
-  const offline = decideOutageVariant({ isOffline: networkStore.isOffline }) === "offline"
+  const variant = decideOutageVariant({
+    isOffline: networkStore.isOffline,
+    maintenanceCause: configStore.maintenanceCause,
+  })
+  const offline = variant === "offline"
+  const network = variant === "network"
+  const icon = offline
+    ? "cloud-offline-outline"
+    : network
+      ? networkStore.isCellular
+        ? "cellular-outline"
+        : "wifi-outline"
+      : "construct-outline"
 
   return (
     <Screen
@@ -45,18 +63,26 @@ export const MaintenanceScreen: FC = observer(function MaintenanceScreen() {
       contentContainerStyle={themed($container)}
     >
       <View style={$content}>
-        <Ionicons
-          name={offline ? "cloud-offline-outline" : "construct-outline"}
-          size={80}
-          color={theme.colors.tint}
-        />
+        <Ionicons name={icon} size={80} color={theme.colors.tint} />
         <Text
           style={themed($title)}
-          tx={offline ? "maintenance:offlineTitle" : "maintenance:title"}
+          tx={
+            offline
+              ? "maintenance:offlineTitle"
+              : network
+                ? "maintenance:networkTitle"
+                : "maintenance:title"
+          }
         />
         <Text
           style={themed($subtitle)}
-          tx={offline ? "maintenance:offlineSubtitle" : "maintenance:subtitle"}
+          tx={
+            offline
+              ? "maintenance:offlineSubtitle"
+              : network
+                ? "maintenance:networkSubtitle"
+                : "maintenance:subtitle"
+          }
         />
       </View>
 
@@ -65,8 +91,9 @@ export const MaintenanceScreen: FC = observer(function MaintenanceScreen() {
         <Text style={themed($checkingText)} tx="maintenance:checking" />
 
         {/* Support link only in the maintenance variant — a web link is
-            useless on an offline device. */}
-        {!offline && (
+            useless on an offline device. CHANGED 2026-09-28: and on one
+            whose connection isn't getting through (network variant). */}
+        {variant === "maintenance" && (
           <Pressable
             onPress={() => Linking.openURL(SUPPORT_URL)}
             accessibilityRole="link"

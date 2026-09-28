@@ -27,6 +27,9 @@ const en = {
     ratingContactUs: "Contact us",
     maintenanceBanner: "Maintenance in progress. Some features disabled.",
     offlineBanner: "You're offline. Showing saved data.",
+    networkBanner: "Network issues — can't reach RecoverySky. Showing saved data.",
+    noInternetBanner:
+      "Network issues — your connection isn't reaching the internet. Showing saved data.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Select",
     archive: "Archive",
@@ -811,6 +814,9 @@ const en = {
     subtitle: "We'll be back shortly. The app will resume automatically.",
     offlineTitle: "You're offline",
     offlineSubtitle: "Check your internet connection. The app will reconnect automatically.",
+    networkTitle: "Network issues",
+    networkSubtitle:
+      "We can't reach RecoverySky from this connection. Try Wi-Fi or mobile data — the app will reconnect automatically.",
     checking: "Checking system status...",
     support: "Get Support",
   },

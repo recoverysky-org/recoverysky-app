@@ -21,7 +21,11 @@ import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
 import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { isRetryableProblem } from "@/services/api/contentRetryLogic"
-import { isLiveRefreshBlocked, isServiceRecoveryEdge } from "@/utils/connectivityLogic"
+import {
+  isLiveRefreshBlocked,
+  isServiceRecoveryEdge,
+  isTransportProblem,
+} from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
 
 import { projectOnline } from "./meetingPools"
@@ -63,13 +67,24 @@ function sleep(ms: number): Promise<void> {
  * ends the ladder early, the same way an unretryable problem kind already
  * does. Optional and back-compatible: existing callers that don't pass it
  * behave exactly as before.
+ *
+ * CHANGED 2026-09-28: the 4th parameter is an options object —
+ * `shouldContinue` as above, plus `quiet`, which suppresses the terminal
+ * "failed after N attempts" line for a caller that logs one summary for a
+ * whole batch (useAtNextSchedules fires four ladders per refresh, so one
+ * offline refresh used to write four ERROR lines). The terminal line is
+ * also now a warn, not an error, when the last failure was a transport
+ * problem (no answer arrived): that's the device's connection, and the
+ * ERROR stream on 2026-09-28 was 32 such lines from three phones on dead
+ * links while the API was healthy.
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   isSuccess: (result: T) => boolean,
   label: string,
-  shouldContinue?: () => boolean,
+  opts: { shouldContinue?: () => boolean; quiet?: boolean } = {},
 ): Promise<{ result: T; attempts: number } | { error: string; attempts: number }> {
+  const { shouldContinue, quiet = false } = opts
   const maxAttempts = RETRY_CONFIG.maxAttempts
   let lastResult: T | undefined
   let lastError: string | undefined
@@ -134,9 +149,11 @@ export async function retryWithBackoff<T>(
   }
 
   // All retries exhausted (or the ladder ended early on a rejection)
-  log.error(`${label} failed after ${attemptsMade} attempts`, {
-    error: lastError,
-  })
+  if (!quiet) {
+    const message = `${label} failed after ${attemptsMade} attempts`
+    if (isTransportProblem(lastError)) log.warn(message, { error: lastError })
+    else log.error(message, { error: lastError })
+  }
 
   if (lastResult !== undefined) {
     return { result: lastResult, attempts: attemptsMade }

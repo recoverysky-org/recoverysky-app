@@ -518,6 +518,18 @@ export class Api {
    * The query string is stripped from the url on purpose — DELETE /reminders
    * carries the uid there.
    */
+  /**
+   * ADDED 2026-09-28: extra attributes for the "API request" line, injected
+   * by services/network (which the Api must not import — it stays a
+   * dependency leaf, same reason as registerTokenRefreshers). Empty until
+   * network monitoring starts.
+   */
+  private logContextProvider: () => Record<string, string | number> = () => ({})
+
+  setLogContextProvider(provider: () => Record<string, string | number>): void {
+    this.logContextProvider = provider
+  }
+
   private installRequestTraceMonitor() {
     this.recoverySkyApi.addMonitor((response) => {
       const traceId = traceIdFromTraceparent(
@@ -530,6 +542,9 @@ export class Api {
         durationMs: response.duration,
         ...(response.problem && { problem: response.problem }),
         ...(traceId && { traceId }),
+        // ADDED 2026-09-28: the network this request went over (netType,
+        // cellGen/carrier, wifiStrength) — the per-device latency baseline.
+        ...this.logContextProvider(),
       })
     })
   }

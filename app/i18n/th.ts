@@ -28,6 +28,10 @@ const th: Translations = {
     ratingContactUs: "ติดต่อเรา",
     maintenanceBanner: "กำลังบำรุงรักษา บางคุณสมบัติถูกปิดใช้งาน",
     offlineBanner: "คุณออฟไลน์อยู่ กำลังแสดงข้อมูลที่บันทึกไว้",
+    networkBanner:
+      "ปัญหาเครือข่าย — ไม่สามารถเชื่อมต่อ RecoverySky ได้ กำลังแสดงข้อมูลที่บันทึกไว้",
+    noInternetBanner:
+      "ปัญหาเครือข่าย — การเชื่อมต่อของคุณเข้าถึงอินเทอร์เน็ตไม่ได้ กำลังแสดงข้อมูลที่บันทึกไว้",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "เลือก",
     archive: "เก็บถาวร",
@@ -752,6 +756,9 @@ const th: Translations = {
     subtitle: "เราจะกลับมาเร็ว ๆ นี้ แอปจะกลับมาทำงานโดยอัตโนมัติ",
     offlineTitle: "คุณออฟไลน์อยู่",
     offlineSubtitle: "โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ต แอปจะเชื่อมต่อใหม่โดยอัตโนมัติ",
+    networkTitle: "ปัญหาเครือข่าย",
+    networkSubtitle:
+      "ไม่สามารถเชื่อมต่อ RecoverySky ผ่านการเชื่อมต่อนี้ได้ ลองใช้ Wi-Fi หรืออินเทอร์เน็ตมือถือ แอปจะเชื่อมต่อใหม่โดยอัตโนมัติ",
     checking: "กำลังตรวจสอบสถานะระบบ...",
     support: "รับการสนับสนุน",
   },

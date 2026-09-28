@@ -20,7 +20,10 @@
 import NetInfo, { NetInfoState } from "@react-native-community/netinfo"
 
 import type { RootStore } from "@/models"
+import { api } from "@/services/api"
 import { logger } from "@/utils/logger"
+
+import { getNetworkLogContext, updateNetworkLogContext } from "./context"
 
 const log = logger.child({ module: "NetworkMonitor" })
 
@@ -40,10 +43,19 @@ const TYPE_MAP: Partial<Record<NetInfoState["type"], StoreConnectionType>> = {
 
 export function initNetworkMonitoring(rootStore: RootStore): void {
   let lastOffline: boolean | null = null
+  // ADDED 2026-09-28: last KNOWN probe verdict (null = not yet known).
+  let lastReachable: boolean | null = null
+
+  // ADDED 2026-09-28: every "API request" line carries the current network
+  // (type, cellular generation/carrier, Wi-Fi strength) next to its
+  // durationMs — see ./context. Injected, not imported by the Api, which must
+  // stay a dependency leaf.
+  api.setLogContextProvider(getNetworkLogContext)
 
   // addEventListener fires immediately with the current state on subscribe,
   // so the store is live before the caller's next await completes.
   NetInfo.addEventListener((state: NetInfoState) => {
+    updateNetworkLogContext(state)
     const isConnected = state.isConnected === true
     rootStore.networkStore.setNetworkStatus(
       isConnected,
@@ -53,10 +65,24 @@ export function initNetworkMonitoring(rootStore: RootStore): void {
 
     // Log only offline-state EDGES, not every event — NetInfo emits on any
     // interface detail change and would spam Loki.
+    // CHANGED 2026-09-28: also logs reachability-probe edges. The four
+    // sessions that showed a false "maintenance" banner on 2026-09-27/28 all
+    // logged one `isOffline: false` line and nothing after, so whether NetInfo
+    // knew the connection was dead was unanswerable. Transitions to/from
+    // `null` (probe pending) are skipped — every launch starts there, and
+    // logging it would add a line per session for nothing.
     const isOffline = !isConnected
-    if (isOffline !== lastOffline) {
-      log.info("Device network state changed", { isOffline, type: state.type })
+    const reachable = state.isInternetReachable
+    const reachabilityEdge = reachable !== null && reachable !== lastReachable
+    if (isOffline !== lastOffline || reachabilityEdge) {
+      log.info("Device network state changed", {
+        isOffline,
+        isInternetReachable: reachable ?? "unknown",
+        type: state.type,
+        ...getNetworkLogContext(),
+      })
       lastOffline = isOffline
+      if (reachable !== null) lastReachable = reachable
     }
   })
 }

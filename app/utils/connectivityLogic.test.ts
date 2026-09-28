@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import {
   decideBanner,
+  decideMaintenanceCause,
+  decideOracleVerdict,
   decideOutageVariant,
+  isTransportProblem,
   shouldFlipMaintenanceOnPollFailure,
   shouldSkipConfigPoll,
   isLiveRefreshBlocked,
@@ -53,6 +56,144 @@ describe("decideBanner", () => {
       decideBanner({ isOffline: false, maintenanceMode: true, deviceAuthDegraded: true }),
     ).toBe("connecting")
   })
+
+  // ADDED 2026-09-28: connected-but-not-getting-through devices were shown
+  // amber "Maintenance in progress" while the API was healthy.
+  const netMaint = { isOffline: false, maintenanceMode: true, deviceAuthDegraded: false }
+
+  it("shows network issues when maintenance came from transport failures", () => {
+    expect(decideBanner({ ...netMaint, maintenanceCause: "network" })).toBe("network")
+  })
+
+  it("names the connection when the reachability probe agrees", () => {
+    expect(
+      decideBanner({ ...netMaint, maintenanceCause: "network", isInternetReachable: false }),
+    ).toBe("no-internet")
+  })
+
+  it("keeps the soft network copy while the probe is unknown or says reachable", () => {
+    for (const isInternetReachable of [null, true, undefined]) {
+      expect(decideBanner({ ...netMaint, maintenanceCause: "network", isInternetReachable })).toBe(
+        "network",
+      )
+    }
+  })
+
+  it("never shows a network variant from the probe alone", () => {
+    // The probe host is blocked on some national networks — it may pick the
+    // copy, never decide that there's a problem.
+    expect(
+      decideBanner({
+        isOffline: false,
+        maintenanceMode: false,
+        deviceAuthDegraded: false,
+        isInternetReachable: false,
+      }),
+    ).toBe("none")
+  })
+
+  it("keeps amber maintenance for server-caused (or unlabelled) maintenance", () => {
+    expect(decideBanner({ ...netMaint, maintenanceCause: "server" })).toBe("maintenance")
+    expect(decideBanner({ ...netMaint, maintenanceCause: null })).toBe("maintenance")
+  })
+
+  it("offline still wins over network issues", () => {
+    expect(decideBanner({ ...netMaint, isOffline: true, maintenanceCause: "network" })).toBe(
+      "offline",
+    )
+  })
+
+  it("network issues win over connecting — the dead link is the root cause", () => {
+    expect(
+      decideBanner({ ...netMaint, deviceAuthDegraded: true, maintenanceCause: "network" }),
+    ).toBe("network")
+  })
+})
+
+describe("decideBanner with the internet oracle", () => {
+  const netMaint = {
+    isOffline: false,
+    maintenanceMode: true,
+    deviceAuthDegraded: false,
+    maintenanceCause: "network" as const,
+  }
+
+  it("oracle down means no-internet, even when NetInfo's probe says reachable", () => {
+    expect(decideBanner({ ...netMaint, internetOracle: false, isInternetReachable: true })).toBe(
+      "no-internet",
+    )
+  })
+
+  it("oracle up means the soft network copy, even when NetInfo's probe says unreachable", () => {
+    expect(decideBanner({ ...netMaint, internetOracle: true, isInternetReachable: false })).toBe(
+      "network",
+    )
+  })
+
+  it("falls back to NetInfo's probe when the oracle has not run", () => {
+    expect(decideBanner({ ...netMaint, internetOracle: null, isInternetReachable: false })).toBe(
+      "no-internet",
+    )
+  })
+
+  it("never shows a banner from the oracle alone", () => {
+    expect(
+      decideBanner({
+        isOffline: false,
+        maintenanceMode: false,
+        deviceAuthDegraded: false,
+        internetOracle: false,
+      }),
+    ).toBe("none")
+  })
+
+  it("never escalates a server-caused maintenance to a network variant", () => {
+    expect(decideBanner({ ...netMaint, maintenanceCause: "server", internetOracle: false })).toBe(
+      "maintenance",
+    )
+  })
+})
+
+describe("decideOracleVerdict", () => {
+  it("is reachable when any probe answered", () => {
+    expect(decideOracleVerdict(["answered", "timeout"])).toBe(true)
+    expect(decideOracleVerdict(["failed", "answered"])).toBe(true)
+  })
+
+  it("is unreachable only when every probe failed", () => {
+    expect(decideOracleVerdict(["timeout", "failed"])).toBe(false)
+    expect(decideOracleVerdict(["timeout", "timeout"])).toBe(false)
+  })
+
+  it("gives no verdict without probes", () => {
+    expect(decideOracleVerdict([])).toBe(null)
+  })
+})
+
+describe("isTransportProblem", () => {
+  it("is true only for no-answer kinds", () => {
+    expect(isTransportProblem("cannot-connect")).toBe(true)
+    expect(isTransportProblem("timeout")).toBe(true)
+    for (const kind of ["server", "unknown", "unauthorized", "bad-data", "", null, undefined]) {
+      expect(isTransportProblem(kind)).toBe(false)
+    }
+  })
+})
+
+describe("decideMaintenanceCause", () => {
+  it("is network when every attempt failed at the transport level", () => {
+    expect(decideMaintenanceCause(["timeout", "cannot-connect", "timeout"])).toBe("network")
+  })
+
+  it("is server when any attempt got a real answer", () => {
+    expect(decideMaintenanceCause(["timeout", "server", "timeout"])).toBe("server")
+    expect(decideMaintenanceCause(["unauthorized"])).toBe("server")
+  })
+
+  it("is server for an unclassified failure or no attempts at all", () => {
+    expect(decideMaintenanceCause(["unknown"])).toBe("server")
+    expect(decideMaintenanceCause([])).toBe("server")
+  })
 })
 
 describe("decideOutageVariant", () => {
@@ -62,6 +203,14 @@ describe("decideOutageVariant", () => {
 
   it("blames the service when the device is online", () => {
     expect(decideOutageVariant({ isOffline: false })).toBe("maintenance")
+  })
+
+  it("blames the connection when the outage came from transport failures", () => {
+    expect(decideOutageVariant({ isOffline: false, maintenanceCause: "network" })).toBe("network")
+  })
+
+  it("offline still wins over a network cause", () => {
+    expect(decideOutageVariant({ isOffline: true, maintenanceCause: "network" })).toBe("offline")
   })
 })
 

@@ -499,10 +499,28 @@ in-meeting Zoom timers before.
 
 **The banner** (`app/components/MaintenanceBanner.tsx`) is a sibling of
 `<AppNavigator />` in `app.tsx`, absolutely positioned above every screen and
-modal. It has three variants, in priority order: offline (wins — it's the more
-accurate diagnosis) → "Connecting to RecoverySky…" (`deviceAuthDegraded`) →
-amber maintenance. `MaintenanceScreen` mirrors the offline/maintenance split and
-switches live.
+modal. Variants, in priority order: offline (wins — it's the more accurate
+diagnosis) → "Network issues" → "Connecting to RecoverySky…"
+(`deviceAuthDegraded`) → amber maintenance. `MaintenanceScreen` mirrors the
+offline/network/maintenance split and switches live.
+
+**`configStore.maintenanceCause`** (`"server" | "network"`, ADDED 2026-09-28)
+says why `maintenanceMode` / `outageMode` is on. It is `"network"` when every
+failed attempt was `cannot-connect` / `timeout` (`decideMaintenanceCause`),
+meaning no answer arrived at all. That's the device whose interface is up but
+not getting through (dead Wi-Fi backhaul, captive portal, one bar), which
+`isOffline` can't see because it keys off the interface. The cause picks
+**copy only**. Every feature guard still reads `maintenanceMode` /
+`outageMode`, so API features pause identically either way. NetInfo's
+`isInternetReachable` may only sharpen the network copy ("no-internet"), never
+trigger a banner by itself: the probe host is blocked on some national
+networks. Amber is for the server's own `MAINTENANCE_MODE` or a real server
+error. When a ladder ends with a `"network"` cause, the **internet oracle**
+(`services/network/oracle.ts`) probes 1.1.1.1 and 8.8.8.8 by IP with a 3 s
+budget before the banner flips. Its verdict (`networkStore.internetOracle`)
+outranks NetInfo's probe for the copy. It only runs after such a failure,
+never on a timer, because it reveals the device IP to both providers. Log
+recipes are in `docs/DIAGNOSTICS.md` "Network quality & the internet oracle".
 
 **Features that self-disable under `maintenanceMode`.** Each has its own guard,
 so any new API-dependent feature needs one too:

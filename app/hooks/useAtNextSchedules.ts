@@ -73,7 +73,12 @@ import {
   REFETCH_GRACE_MS,
   type AtNextOffset,
 } from "@/utils/atNextLogic"
-import { isLiveRefreshBlocked } from "@/utils/connectivityLogic"
+import { isLiveRefreshBlocked, isTransportProblem } from "@/utils/connectivityLogic"
+import { logger } from "@/utils/logger"
+
+// Same module label the per-offset lines carried before 2026-09-28, so
+// existing Loki queries on {module="MeetingContext"} keep finding them.
+const log = logger.child({ module: "MeetingContext" })
 
 /** Prune cadence: a minute tick suffices to drop rows once their mark passes. */
 const TICK_MS = 60_000
@@ -138,8 +143,13 @@ export function useAtNextSchedules(active: boolean) {
           () => api.getAtNextSchedules(offset),
           (result) => result.kind === "ok",
           `getAtNextSchedules(${offset})`,
-          // Ends the retry ladder once a newer batch supersedes this one.
-          () => seq === seqRef.current,
+          {
+            // Ends the retry ladder once a newer batch supersedes this one.
+            shouldContinue: () => seq === seqRef.current,
+            // CHANGED 2026-09-28: the batch logs one summary line below
+            // instead of one terminal line per offset (4 per refresh).
+            quiet: true,
+          },
         ),
       ),
     )
@@ -149,6 +159,8 @@ export function useAtNextSchedules(active: boolean) {
     let anyOk = false
     let anyFailed = false
     let missingRoute = false
+    let allTransport = true
+    const failedKinds: string[] = []
     const updates: Partial<AtNextSlots> = {}
     AT_NEXT_OFFSETS.forEach((offset, i) => {
       const outcome = outcomes[i]
@@ -161,9 +173,24 @@ export function useAtNextSchedules(active: boolean) {
         return
       }
       const kind = "result" in outcome ? outcome.result.kind : "unknown"
+      failedKinds.push(`${offset}:${kind}`)
       if (classifyAtNextProblem(kind) === "hide-for-session") missingRoute = true
       else anyFailed = true
+      if (!isTransportProblem(kind)) allTransport = false
     })
+
+    // ADDED 2026-09-28: one line per failed batch (was four ERRORs, one per
+    // offset, via retryWithBackoff). Warn when every failure was a
+    // transport problem — no answer arrived, so it's the device's
+    // connection and the UI already offers tap-to-retry; error otherwise.
+    if (failedKinds.length > 0) {
+      const detail = {
+        failed: failedKinds.join(","),
+        okCount: AT_NEXT_OFFSETS.length - failedKinds.length,
+      }
+      if (allTransport) log.warn("getAtNextSchedules batch failed", detail)
+      else log.error("getAtNextSchedules batch failed", detail)
+    }
 
     if (missingRoute) {
       setUnavailable(true)

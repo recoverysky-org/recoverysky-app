@@ -140,6 +140,55 @@ missing trace is an app bug):
   second derived field with `matcherType: label` on `traceId`. Step 1's copy
   and paste works regardless.
 
+# Network quality & the internet oracle
+
+ADDED 2026-09-28. Three signals answer "is it the phone or is it us?":
+
+1. **`"Device network state changed"`** (module `NetworkMonitor`): logged on
+   an `isOffline` change or a change in NetInfo's reachability probe, with
+   `netType`, and `cellGen` / `carrier` on cellular or `wifiStrength` on
+   Android Wi-Fi.
+2. **The internet oracle**: after a retry ladder ends with *no answer at all*
+   (every attempt `cannot-connect` / `timeout`), the app fetches
+   `https://1.1.1.1/cdn-cgi/trace` and `https://8.8.8.8/resolve?…` in
+   parallel with a 3 s budget (`services/network/oracle.ts`). The result rides
+   on the ladder's terminal line (`Config poll failed … no answer`,
+   `/status/ready precheck exhausted retries`, `Config fetch failed … env var
+   defaults`) as `oracleReachable`, `cloudflareOutcome` / `cloudflareMs`,
+   `googleOutcome` / `googleMs`, plus the network fields. `oracleReachable:
+   false` means neither provider answered, so the device's internet was down.
+   `true` means the internet worked and only we were unreachable from that
+   network, which points at a network that blocks us or an edge (CrowdSec)
+   ban. The oracle never runs on healthy sessions, because it reveals the
+   device IP to Cloudflare and Google.
+3. **`"API request"`** (module `Api`, debug level; production ships
+   `trace`): every request carries `durationMs` and the same network
+   fields. That makes it the per-device latency baseline.
+
+```logql
+# Devices with the worst typical latency to our API (median, last day)
+topk(20, quantile_over_time(0.5,
+  {service_name="recoverysky-app"} | module="Api" |= "API request"
+  | durationMs!="" | unwrap durationMs [1d]) by (deviceId))
+
+# Same, split by network — which users are slow only on cellular?
+quantile_over_time(0.5,
+  {service_name="recoverysky-app"} | module="Api" |= "API request"
+  | durationMs!="" | unwrap durationMs [1d]) by (deviceId, netType, cellGen)
+
+# Oracle verdicts: was the internet down, or only us?
+{service_name="recoverysky-app"} | oracleReachable!=""
+```
+
+Measured 2026-09-28 (6 h window): the slowest devices' MEDIAN API request
+was 1.7–2.0 s. That's why the oracle budget is 3 s and not 2 s. Tune it from
+`cloudflareMs` / `googleMs` once there's data.
+
+We deliberately do **not** log the Wi-Fi name (SSID/BSSID). It needs
+precise-location permission, plus an entitlement on iOS, and an SSID is often
+a family name, which effectively ties a recovery user to a home address.
+`netType` + `cellGen` + time of day is how to tell home from commute.
+
 # Log levels
 
 ADDED 2026-09-21 (RS-039). Before this the app reserved ERROR for a handful

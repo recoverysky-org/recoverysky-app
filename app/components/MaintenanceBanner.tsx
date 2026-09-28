@@ -14,6 +14,13 @@
  *   The original amber strip.
  * - "connecting" — cold-start attestation degraded; app is up on local
  *   data, refresher retrying. Same calm palette as offline. ADDED 2026-09-09.
+ * - "network" / "no-internet" — ADDED 2026-09-28. The device's interface is
+ *   up but no request got an answer (`maintenanceCause === "network"`): dead
+ *   Wi-Fi backhaul, a captive portal, a one-bar cellular link. Those phones
+ *   used to get amber "Maintenance in progress" while the API was healthy.
+ *   "no-internet" is the same state when NetInfo's own probe agrees the
+ *   connection isn't reaching the internet, so the copy can say so plainly.
+ *   Calm palette, with a wifi/cellular icon matching the active interface.
  *
  * Renders above every navigator including modals because it's mounted as an
  * absolutely-positioned overlay outside the navigation tree. Still
@@ -51,24 +58,27 @@ export const MaintenanceBanner: FC = observer(function MaintenanceBanner() {
     isOffline: networkStore.isOffline,
     maintenanceMode: configStore.maintenanceMode,
     deviceAuthDegraded: configStore.deviceAuthDegraded,
+    maintenanceCause: configStore.maintenanceCause,
+    isInternetReachable: networkStore.isInternetReachable,
+    internetOracle: networkStore.internetOracle,
   })
   if (banner === "none") return null
 
   // "connecting" borrows the offline palette on purpose: it is informational
   // (we are working on it), not alarm-amber (something is wrong with us).
-  const calm = banner === "offline" || banner === "connecting"
-  const icon =
-    banner === "offline"
-      ? "cloud-offline-outline"
-      : banner === "connecting"
-        ? "sync-outline"
-        : "warning-outline"
-  const tx =
-    banner === "offline"
-      ? "common:offlineBanner"
-      : banner === "connecting"
-        ? "common:connectingBanner"
-        : "common:maintenanceBanner"
+  // CHANGED 2026-09-28: so do the network variants — amber is now reserved
+  // for a problem the server itself reported.
+  const calm = banner !== "maintenance"
+  const networkIcon = networkStore.isCellular ? "cellular-outline" : "wifi-outline"
+  const { icon, tx } = (
+    {
+      "offline": { icon: "cloud-offline-outline", tx: "common:offlineBanner" },
+      "no-internet": { icon: networkIcon, tx: "common:noInternetBanner" },
+      "network": { icon: networkIcon, tx: "common:networkBanner" },
+      "connecting": { icon: "sync-outline", tx: "common:connectingBanner" },
+      "maintenance": { icon: "warning-outline", tx: "common:maintenanceBanner" },
+    } as const
+  )[banner]
 
   return (
     <View

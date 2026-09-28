@@ -21,6 +21,14 @@ export const NetworkStoreModel = types
   .volatile(() => ({
     // Volatile state is not persisted
     lastChecked: new Date(),
+    /**
+     * ADDED 2026-09-28: verdict of the last internet-oracle run
+     * (services/network/oracle.ts): true = 1.1.1.1 or 8.8.8.8 answered,
+     * false = neither did, null = never run. Only runs after a ladder fails
+     * with no answer, and always BEFORE the banner flips, so the banner never
+     * renders with a stale verdict. Refines the network banner's copy only.
+     */
+    internetOracle: null as boolean | null,
   }))
   .views((self) => ({
     /**
@@ -64,6 +72,11 @@ export const NetworkStoreModel = types
       self.connectionType = connectionType
       self.isInternetReachable = isInternetReachable
       self.lastChecked = new Date()
+    },
+
+    /** Record an internet-oracle verdict. See `internetOracle`. */
+    setInternetOracle(reachable: boolean | null) {
+      self.internetOracle = reachable
     },
 
     /**

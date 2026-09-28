@@ -27,6 +27,35 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   light/dark setting. Users can still switch in onboarding or Settings.
   Existing users who never touched the toggle keep the look they have today —
   their current system scheme is pinned once on first launch after the update.
+- **"Network issues" banner instead of a false "Maintenance in progress."**
+  Phones whose Wi-Fi or cellular link is up but not actually getting through
+  (dead backhaul, captive portal, one bar) used to be told we were in
+  maintenance while the API was healthy — the offline banner only fires when
+  the network interface is down. When no request gets any answer at all
+  (cannot-connect / timeout), the banner now reads "Network issues — can't
+  reach RecoverySky", or "…your connection isn't reaching the internet" when
+  the OS reachability probe agrees, in the calm offline palette. The
+  cold-start outage screen gets the same "Network issues" variant. Amber
+  maintenance is now reserved for the server's own `MAINTENANCE_MODE` or a
+  real server error. API features still pause the same way in both cases.
+- **Quieter logs for offline phones.** A failed Starts In refresh writes one
+  summary line instead of four ERRORs (one per offset), and retry ladders
+  that end on no-answer failures log at warn, not error. NetInfo
+  reachability changes are now logged so the next report can show whether
+  the OS knew the connection was dead.
+- **Internet oracle.** When our requests get no answer at all, the app now
+  asks two independent providers (Cloudflare 1.1.1.1 and Google 8.8.8.8, by
+  IP, 3 s budget) whether the internet is reachable. If neither answers, the
+  banner says plainly that the connection isn't reaching the internet. If
+  either answers, it says only RecoverySky can't be reached. The verdict and
+  per-provider timings are logged. It never runs on a healthy session, since
+  it reveals the device IP to those providers.
+- **Network context on API request logs.** Every request line now carries
+  the network it went over (Wi-Fi / cellular, cellular generation and
+  carrier, Android Wi-Fi strength) next to its duration. That gives a
+  per-device latency baseline for spotting users on chronically poor
+  networks. The Wi-Fi name is deliberately not collected (see
+  `docs/DIAGNOSTICS.md`).
 
 ## [4.10.1-14] — 2026-09-27
 

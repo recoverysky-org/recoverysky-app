@@ -3,7 +3,13 @@ import { flow, getRoot, Instance, SnapshotOut, types } from "mobx-state-tree"
 
 import { api, type ServerConfig } from "@/services/api"
 import { isRetryableProblem } from "@/services/api/contentRetryLogic"
-import { shouldFlipMaintenanceOnPollFailure } from "@/utils/connectivityLogic"
+import { getNetworkLogContext } from "@/services/network/context"
+import { oracleLogAttributes, probeInternetOracle } from "@/services/network/oracle"
+import {
+  decideMaintenanceCause,
+  shouldFlipMaintenanceOnPollFailure,
+  type MaintenanceCause,
+} from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
 import { DEFAULT_PRESENCE_RADIUS_M } from "@/utils/presenceLogic"
 
@@ -74,6 +80,18 @@ export const ConfigStoreModel = types
      * shows the non-blocking banner.
      */
     outageMode: types.optional(types.boolean, false),
+    /**
+     * ADDED 2026-09-28: WHY `maintenanceMode` / `outageMode` is on — "server"
+     * (the server said so, or answered with an error) or "network" (no
+     * request got an answer at all: cannot-connect/timeout on a device whose
+     * interface is up). Drives only the banner / MaintenanceScreen COPY; every
+     * feature guard still reads `maintenanceMode` / `outageMode`, which stay
+     * the single "API features off" gate. null while neither is on.
+     * See MaintenanceCause in utils/connectivityLogic.
+     */
+    maintenanceCause: types.maybeNull(
+      types.enumeration<MaintenanceCause>("MaintenanceCause", ["server", "network"]),
+    ),
     /** Latest native app version available in the App Store / Play Store */
     latestVersion: types.optional(types.string, ""),
     /**
@@ -172,6 +190,13 @@ export const ConfigStoreModel = types
      */
     lastConfigPayload: null as ServerConfig | null,
     lastConfigFetchedAt: 0,
+    /**
+     * ADDED 2026-09-28: cause of the most recent exhausted fetchConfig
+     * ladder. app.tsx reads it on the cold-cache path to hand setOutageMode
+     * the right MaintenanceScreen variant (maintenanceMode never flips
+     * there, so `maintenanceCause` isn't set by the ladder itself).
+     */
+    lastFetchFailureCause: null as MaintenanceCause | null,
   }))
   .actions((store) => {
     /**
@@ -197,6 +222,11 @@ export const ConfigStoreModel = types
       if (config.REVIEW_ENABLED !== undefined) store.reviewEnabled = config.REVIEW_ENABLED
       if (!opts.fromCache) {
         store.maintenanceMode = config.MAINTENANCE_MODE ?? false
+        // ADDED 2026-09-28: a real answer replaces any earlier network cause.
+        // When the server reports maintenance here, it's "server" — and the
+        // outage clear below only runs with maintenance off, so an outage
+        // never survives with a stale cause.
+        store.maintenanceCause = store.maintenanceMode ? "server" : null
         store.maintenanceMessage = config.MAINTENANCE_MESSAGE ?? ""
         store.maintenanceUntil = config.MAINTENANCE_UNTIL ?? ""
       }
@@ -266,6 +296,10 @@ export const ConfigStoreModel = types
         // the top of this flow, so this latch is the backstop, not the only
         // defense.)
         let sawOffline = false
+        // ADDED 2026-09-28: the problem kind of each failed attempt, so an
+        // exhausted ladder can say whether the server answered at all
+        // (decideMaintenanceCause). A thrown attempt records "unknown".
+        const failedKinds: string[] = []
 
         try {
           for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -279,12 +313,14 @@ export const ConfigStoreModel = types
                 // (writes it to the encrypted SQLite config cache).
                 store.lastConfigPayload = config
                 store.lastConfigFetchedAt = Date.now()
+                store.lastFetchFailureCause = null
 
                 log.info("Config loaded from server", { attempt })
                 return // success
               }
 
               sawOffline = sawOffline || readIsOffline()
+              failedKinds.push(result.kind)
               log.warn("Config fetch failed", { attempt, kind: result.kind })
               // ADDED 2026-09-14: a 401/403/404/429 is a verdict, not a blip —
               // an identical request two seconds later gets the identical
@@ -295,6 +331,7 @@ export const ConfigStoreModel = types
               if (!isRetryableProblem(result.kind)) break
             } catch (error) {
               sawOffline = sawOffline || readIsOffline()
+              failedKinds.push("unknown")
               log.error("Config fetch error", {
                 attempt,
                 error: error instanceof Error ? error.message : String(error),
@@ -323,16 +360,54 @@ export const ConfigStoreModel = types
           // point and flip maintenance for what was actually its own dropped
           // connection.
           const isOffline = readIsOffline() || sawOffline
+          // ADDED 2026-09-28: recorded even on the cold-start path, where
+          // app.tsx reads it to pick the MaintenanceScreen variant.
+          const cause = decideMaintenanceCause(failedKinds)
+          store.lastFetchFailureCause = cause
+          // ADDED 2026-09-28: no attempt got an answer — ask 1.1.1.1 / 8.8.8.8
+          // whether the internet itself is reachable (≤3 s), and record it
+          // BEFORE maintenanceMode flips so the banner's first render already
+          // has the verdict. Skipped offline (nothing to learn, and the
+          // offline banner wins anyway) and for server causes (the server
+          // answered, so the internet demonstrably works).
+          let oracleAttrs: Record<string, string | number | boolean> = {}
+          if (cause === "network" && !isOffline) {
+            const oracle: Awaited<ReturnType<typeof probeInternetOracle>> =
+              yield probeInternetOracle()
+            ;(
+              getRoot(store) as {
+                networkStore?: { setInternetOracle?: (v: boolean | null) => void }
+              }
+            )?.networkStore?.setInternetOracle?.(oracle.reachable)
+            oracleAttrs = { ...oracleLogAttributes(oracle), ...getNetworkLogContext() }
+          }
           if (shouldFlipMaintenanceOnPollFailure({ isOffline, isLoaded: store.isLoaded })) {
             // Config was previously loaded (polling failure) — enter maintenance mode
             // so the user sees the maintenance banner instead of stale data.
             // CHANGED 2026-09-21 (RS-039): warn → error. This is the terminal
             // outcome of the ladder and the user sees the maintenance banner
             // with API features disabled — a user-visible failure, not a retry.
-            log.error(
-              "Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode",
-            )
+            // CHANGED 2026-09-28: error only when the server answered. When no
+            // attempt got an answer (cause "network") it's the device's
+            // connection — the banner says "network issues", and 31 such
+            // lines a day from phones on dead Wi-Fi were burying real errors.
+            // maintenanceMode still flips: API features must self-disable
+            // either way; only the copy differs.
+            if (cause === "network") {
+              log.warn(
+                "Config poll failed after " +
+                  MAX_RETRIES +
+                  " attempts with no answer — showing network-issues banner",
+                { kinds: failedKinds.join(","), ...oracleAttrs },
+              )
+            } else {
+              log.error(
+                "Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode",
+                { kinds: failedKinds.join(",") },
+              )
+            }
             store.maintenanceMode = true
+            store.maintenanceCause = cause
             store.maintenanceMessage = ""
             store.maintenanceUntil = ""
           } else if (store.isLoaded) {
@@ -341,6 +416,7 @@ export const ConfigStoreModel = types
             // Initial startup failure — caller (app.tsx) handles via setOutageMode()
             log.warn(
               "Config fetch failed after " + MAX_RETRIES + " attempts, using env var defaults",
+              { kinds: failedKinds.join(","), cause, ...oracleAttrs },
             )
           }
         } finally {
@@ -354,8 +430,12 @@ export const ConfigStoreModel = types
        * only this — to route to the full-screen MaintenanceScreen. Runtime
        * maintenance flips `maintenanceMode` instead and shows a banner.
        */
-      setOutageMode() {
+      setOutageMode(cause: MaintenanceCause = "server") {
         store.outageMode = true
+        // ADDED 2026-09-28: picks the MaintenanceScreen copy. Callers pass
+        // the cause of the failure that tripped the gate; the default keeps
+        // the pre-2026-09-28 "system maintenance" copy.
+        store.maintenanceCause = cause
       },
 
       /** See `deviceAuthDegraded`. Set by app.tsx from establishDeviceToken outcomes. */
@@ -382,6 +462,7 @@ export const ConfigStoreModel = types
         store.maintenanceMode = false
         store.maintenanceMessage = ""
         store.maintenanceUntil = ""
+        store.maintenanceCause = null
         store.mapStyleUrlLight = ""
         store.mapStyleUrlDark = ""
         store.outageMode = false

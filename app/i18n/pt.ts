@@ -29,6 +29,10 @@ const pt: Translations = {
     ratingContactUs: "Fale conosco",
     maintenanceBanner: "Manutenção em andamento. Alguns recursos estão desativados.",
     offlineBanner: "Você está offline. Mostrando dados salvos.",
+    networkBanner:
+      "Problemas de rede — não foi possível acessar o RecoverySky. Mostrando dados salvos.",
+    noInternetBanner:
+      "Problemas de rede — sua conexão não está chegando à internet. Mostrando dados salvos.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Selecionar",
     archive: "Arquivar",
@@ -765,6 +769,9 @@ const pt: Translations = {
     offlineTitle: "Você está offline",
     offlineSubtitle:
       "Verifique sua conexão com a internet. O aplicativo se reconectará automaticamente.",
+    networkTitle: "Problemas de rede",
+    networkSubtitle:
+      "Não conseguimos acessar o RecoverySky por esta conexão. Tente Wi-Fi ou dados móveis — o app vai reconectar automaticamente.",
     checking: "Verificando status do sistema...",
     support: "Obter Suporte",
   },

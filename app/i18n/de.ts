@@ -30,6 +30,10 @@ const de: Translations = {
     ratingContactUs: "Kontaktiere uns",
     maintenanceBanner: "Wartung läuft. Einige Funktionen sind deaktiviert.",
     offlineBanner: "Du bist offline. Gespeicherte Daten werden angezeigt.",
+    networkBanner:
+      "Netzwerkprobleme – RecoverySky ist nicht erreichbar. Gespeicherte Daten werden angezeigt.",
+    noInternetBanner:
+      "Netzwerkprobleme – deine Verbindung erreicht das Internet nicht. Gespeicherte Daten werden angezeigt.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Auswählen",
     archive: "Archivieren",
@@ -772,6 +776,9 @@ const de: Translations = {
     subtitle: "Wir sind bald zurück. Die App wird automatisch fortgesetzt.",
     offlineTitle: "Du bist offline",
     offlineSubtitle: "Überprüfe deine Internetverbindung. Die App verbindet sich automatisch neu.",
+    networkTitle: "Netzwerkprobleme",
+    networkSubtitle:
+      "Über diese Verbindung ist RecoverySky nicht erreichbar. Versuche WLAN oder mobile Daten – die App verbindet sich automatisch neu.",
     checking: "Systemstatus wird geprüft...",
     support: "Support erhalten",
   },

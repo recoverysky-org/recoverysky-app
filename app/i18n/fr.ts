@@ -30,6 +30,10 @@ const fr: Translations = {
     ratingContactUs: "Contacte-nous",
     maintenanceBanner: "Maintenance en cours. Certaines fonctionnalités sont désactivées.",
     offlineBanner: "Vous êtes hors ligne. Affichage des données enregistrées.",
+    networkBanner:
+      "Problème de réseau — impossible de joindre RecoverySky. Affichage des données enregistrées.",
+    noInternetBanner:
+      "Problème de réseau — votre connexion n'accède pas à Internet. Affichage des données enregistrées.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Sélectionner",
     archive: "Archiver",
@@ -773,6 +777,9 @@ const fr: Translations = {
     offlineTitle: "Vous êtes hors ligne",
     offlineSubtitle:
       "Vérifiez votre connexion Internet. L'application se reconnectera automatiquement.",
+    networkTitle: "Problème de réseau",
+    networkSubtitle:
+      "Impossible de joindre RecoverySky depuis cette connexion. Essayez le Wi-Fi ou les données mobiles — l'app se reconnectera automatiquement.",
     checking: "Vérification de l'état du système...",
     support: "Obtenir de l'aide",
   },

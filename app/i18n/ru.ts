@@ -29,6 +29,9 @@ const ru: Translations = {
     ratingContactUs: "Связаться с нами",
     maintenanceBanner: "Идут технические работы. Некоторые функции отключены.",
     offlineBanner: "Вы не в сети. Показаны сохранённые данные.",
+    networkBanner: "Проблемы с сетью — RecoverySky недоступен. Показаны сохранённые данные.",
+    noInternetBanner:
+      "Проблемы с сетью — подключение не выходит в интернет. Показаны сохранённые данные.",
     connectingBanner: "Connecting to RecoverySky… Your saved data is available.",
     select: "Выбрать",
     archive: "Архивировать",
@@ -762,6 +765,9 @@ const ru: Translations = {
     subtitle: "Мы скоро вернёмся. Приложение возобновит работу автоматически.",
     offlineTitle: "Вы не в сети",
     offlineSubtitle: "Проверьте подключение к интернету. Приложение переподключится автоматически.",
+    networkTitle: "Проблемы с сетью",
+    networkSubtitle:
+      "Через это подключение RecoverySky недоступен. Попробуйте Wi-Fi или мобильные данные — приложение переподключится автоматически.",
     checking: "Проверяем состояние системы...",
     support: "Получить поддержку",
   },
