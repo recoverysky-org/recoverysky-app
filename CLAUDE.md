@@ -177,6 +177,11 @@ Anything reaching for `config.expo.version` gets `undefined`.
 **`app.config.ts`** is the dynamic layer. It imports `tsx/cjs` so config plugins
 can be written in TypeScript without a compile step, then spreads the static
 config and appends the iOS privacy manifest plus our three local plugins.
+It also overrides the `react-native-auth0` plugin's `domain` with
+`EXPO_PUBLIC_AUTH0_DOMAIN` (ADDED 2026-09-28): that domain is baked into
+Android's login-redirect intent filter, and it must match the tenant the JS
+talks to or Google/Apple sign-in hangs after the browser step. EAS gets the
+prod domain from `eas.json`; a local build follows `.env`.
 
 **`plugins/`** holds those three, each solving something Expo doesn't:
 - `withDebugNetworkSecurity` — cleartext HTTP in debug builds so Metro can reach

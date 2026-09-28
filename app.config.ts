@@ -15,7 +15,26 @@ import "tsx/cjs"
  * https://docs.expo.dev/workflow/configuration/#configuration-resolution-rules
  */
 module.exports = ({ config }: ConfigContext): Partial<ExpoConfig> => {
-  const existingPlugins = config.plugins ?? []
+  // ADDED 2026-09-28: the react-native-auth0 plugin bakes its `domain` into
+  // the native redirect handler (Android's RedirectActivity intent-filter
+  // host). The browser login's callback is
+  // recoverysky-app://<auth0 domain>/android/<package>/callback, so the baked
+  // host must equal the tenant the JS talks to, or Android never hands the
+  // callback back to the app and the login hangs on Auth0's page (iOS matches
+  // on the scheme alone and doesn't care). Taking it from
+  // EXPO_PUBLIC_AUTH0_DOMAIN keeps native and JS on the same tenant: EAS
+  // builds get auth.recoverysky.app from eas.json (identical output to the
+  // static value), local dev builds get whatever .env points at (the dev
+  // tenant). app.json's value is the fallback when the variable is unset.
+  // Beware: a stale EXPO_PUBLIC_AUTH0_DOMAIN exported in your shell (the
+  // .envrc runs `dotenv`) wins over .env here, same as for the JS bundle.
+  const auth0Domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN
+  const existingPlugins = (config.plugins ?? []).map(
+    (plugin): NonNullable<ExpoConfig["plugins"]>[number] =>
+      auth0Domain && Array.isArray(plugin) && plugin[0] === "react-native-auth0"
+        ? [plugin[0], { ...(plugin[1] as Record<string, unknown>), domain: auth0Domain }]
+        : plugin,
+  )
 
   return {
     ...config,

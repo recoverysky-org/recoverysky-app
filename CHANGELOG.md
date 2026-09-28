@@ -67,6 +67,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   included) ever sees it. `WrongAccountScreen` is the only way out: prove
   ownership, or cancel.
 
+### Build
+- **The Auth0 domain baked into the native redirect handler now follows
+  `EXPO_PUBLIC_AUTH0_DOMAIN`** (`app.config.ts`) instead of being hard-coded
+  to `auth.recoverysky.app` in `app.json`. Android only hands a browser-login
+  callback back to the app when its host matches that baked domain, so a dev
+  build pointed at a different Auth0 tenant hung on Auth0's page after Google
+  or Apple sign-in. Production output is unchanged — EAS builds get
+  `auth.recoverysky.app` from `eas.json`. Native config change: dev clients
+  need `npm run prebuild:clean` and a rebuild.
+
 ## [4.10.1-14] — 2026-09-27
 
 Also carries the changes shipped in 4.10.1-11 through 4.10.1-13, which went
