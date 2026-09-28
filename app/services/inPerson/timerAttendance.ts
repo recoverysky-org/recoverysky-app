@@ -22,6 +22,7 @@ import * as Crypto from "expo-crypto"
 import { attendanceRepo, attendanceEvents, type AttendanceEvent } from "@/db"
 import { meetingEvents } from "@/db/meetingEvents"
 import type { PersistedPresence } from "@/services/attendance"
+import { clampCredit } from "@/services/attendance/creditLogic"
 import { EXTERNAL_MIN_CREDIT_MS } from "@/services/zoom"
 import { logger } from "@/utils/logger"
 
@@ -77,9 +78,25 @@ function buildInPersonEvents(
 export async function saveInPersonTimerAttendance(
   input: InPersonTimerAttendanceInput,
 ): Promise<InPersonTimerAttendanceResult> {
-  const credit = input.endedAt - input.startedAt
+  // CHANGED 2026-09-19 (RS-034): bounded to MAX_CREDIT_MS, same reason and
+  // same shape as saveTimerAttendance — a restored days-old session must not
+  // write a credit the api's int32 column cannot hold.
+  const rawCreditMs = input.endedAt - input.startedAt
+  const { credit, clamped } = clampCredit(rawCreditMs)
   const valid = credit >= EXTERNAL_MIN_CREDIT_MS
   const attendanceId = Crypto.randomUUID()
+
+  if (clamped) {
+    // PRIVACY: same field set as the info line below — no fix, no distance.
+    // CHANGED 2026-09-21 (RS-039): warn → info, same reasoning as the
+    // external-Zoom clamp.
+    log.info("In-person timer credit clamped to the daily maximum", {
+      attendanceId,
+      mid: input.mid,
+      rawCreditMs,
+      creditMs: credit,
+    })
+  }
 
   // PRIVACY: mid/zid/credit only. Never spread `input` — it carries the fix.
   log.info("Saving in-person timer attendance", {

@@ -497,7 +497,17 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             try {
               const uid = authStore.userId
               if (uid) {
-                await Promise.all([reminderRepo.deleteByUserId(uid), api.deleteReminders(uid)])
+                const [, apiResult] = await Promise.all([
+                  reminderRepo.deleteByUserId(uid),
+                  api.deleteReminders(uid),
+                ])
+                // ADDED 2026-09-21 (RS-039): the Api line for this is debug now,
+                // and a non-ok result never threw — so a server that kept the
+                // reminders (and keeps pushing them) went unrecorded while the
+                // success alert showed. ERROR: the user asked for them gone.
+                if (apiResult.kind !== "ok") {
+                  logger.error("Delete-all reminders rejected by API", { kind: apiResult.kind })
+                }
                 // Notify Live/Listings screens to refresh reminder indicators
                 reminderEvents.emit({ type: "deleted", id: "*" })
               }

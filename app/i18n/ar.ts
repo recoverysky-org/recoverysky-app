@@ -81,6 +81,8 @@ const ar: Translations = {
     errorBrowserTerminated:
       "أُغلقت نافذة تسجيل الدخول قبل أن تنتهي. اضغط على الزر مرة أخرى وابقَ في المتصفح حتى يعيدك إلى التطبيق.",
     errorNetwork: "تعذّر الوصول إلى خدمة تسجيل الدخول. تحقق من اتصالك وحاول مرة أخرى.",
+    sessionUnrecoverable:
+      "تم تسجيل خروجك لأنه تعذّر استعادة جلستك على هذا الجهاز. يرجى تسجيل الدخول مرة أخرى.",
     // ADDED 2026-09-17 — passwordless login (spec 1). loginButton/signupButton are retired with the LoginScreen rewrite.
     continueWithEmail: "Continue with Email",
     continueWithApple: "Continue with Apple",
@@ -166,17 +168,26 @@ const ar: Translations = {
   meetingsScreen: {
     title: "الاجتماعات",
     placeholder: "قائمة الاجتماعات قريباً",
-    liveSegment: "مباشر",
+    liveSegment: "عبر الإنترنت",
     inPersonSegment: "حضوريًا",
     // Relabeled from "الدليل" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "بحث",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "الزمالة",
+    filterLang: "اللغة",
+    filterLanguageA11y: "اللغة",
+    allLanguages: "الكل",
+    selectLanguage: "اختر اللغة",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "الجدول",
     placeholder: "عرض الجدول قريباً",
   },
   liveScreen: {
-    title: "مباشر عبر الإنترنت",
+    title: "مباشر الآن",
     noMeetings: "لا توجد اجتماعات مباشرة الآن",
     lastRefresh: "آخر فحص: {{time}}",
     joinMeeting: "انضمام",
@@ -198,7 +209,16 @@ const ar: Translations = {
     fri: "جمع",
     sat: "سبت",
     sun: "أحد",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    // CHANGED 2026-09-27: "Live Now" / "15m" (Jenova); the full phrase is
+    // spoken via startsInMinutesA11y.
+    startsInLive: "Live Now",
+    startsInMinutes: "{{minutes}}m",
+    startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    titleStartsIn: "Starts within {{minutes}}m",
+    startingAt: "starting at {{time}}",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "دليل الاجتماعات" 2026-08-03 — namespace/key unchanged.
@@ -212,8 +232,6 @@ const ar: Translations = {
     emptyNoMatches: "لا توجد اجتماعات تطابق بحثك",
     // Filter labels
     dayLabel: "اليوم",
-    languageLabel: "اللغة",
-    langLabel: "اللغة",
     venueLabel: "المكان",
     venueOnline: "عبر الإنترنت",
     venueInPerson: "حضوري",
@@ -222,13 +240,11 @@ const ar: Translations = {
     radiusOff: "الموقع متوقف",
     emptyNoLocation: "فعّل الموقع للبحث عن اجتماعات حضورية بالقرب منك",
     radiusOnlineNote: "غير متاح للاجتماعات عبر الإنترنت",
-    allLanguages: "الكل",
     startLabel: "البداية",
     endLabel: "النهاية",
     toSeparator: "إلى",
     // Modal titles
     selectDay: "اختر اليوم",
-    selectLanguage: "اختر اللغة",
     startTime: "وقت البداية",
     endTime: "وقت النهاية",
     // Day names
@@ -887,7 +903,6 @@ const ar: Translations = {
   inPersonScreen: {
     title: "حضوريًا",
     withinRadius: "ضمن {{distance}}",
-    fellowshipLabel: "الزمالة",
     selectRadius: "النطاق",
     shortTimeLabel: "الوقت",
     shortTimeAll: "أي وقت",

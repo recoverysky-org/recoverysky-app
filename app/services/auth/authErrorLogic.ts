@@ -68,3 +68,24 @@ export function classifyAuthError(err: unknown): AuthErrorMessageKey | null {
 
   return null
 }
+
+/**
+ * Whether the user walked away from the web-auth flow on purpose: closed the
+ * tab (`USER_CANCELLED`) or reached the consent screen and declined
+ * (`ACCESS_DENIED`). Neither is an error on our side, so callers log at INFO
+ * and show nothing — the user did what they meant to do.
+ *
+ * ADDED 2026-09-19 (RS-022). The decline arrived in production as "An
+ * unexpected error occurred. CAUSE: User did not authorize the request." and
+ * was logged at ERROR twice per tap. The SDK maps Auth0's `access_denied` to
+ * `ACCESS_DENIED`, but the observed text came through the Android module's
+ * generic wrapper, whose type could not be confirmed from the logs, so the
+ * message is matched as well — the same belt-and-braces the network case uses.
+ */
+export function isUserAbandonedAuth(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false
+  const { type, message } = err as AuthErrorLike
+  if (type === "USER_CANCELLED" || type === "ACCESS_DENIED") return true
+  const msg = typeof message === "string" ? message : ""
+  return /did not authorize/i.test(msg)
+}

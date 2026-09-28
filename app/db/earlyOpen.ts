@@ -28,7 +28,7 @@ import { migrations } from "@recoverysky-org/common/sqlite"
 import { logger } from "@/utils/logger"
 
 import { acquireSqliteEncryptionKey } from "./acquireKey"
-import { classifyDbOpenFailure } from "./dbOpenLogic"
+import { classifyDbOpenFailure, errorChainText, rootCauseLine } from "./dbOpenLogic"
 import { closeDb, openDb } from "./provider"
 
 const log = logger.child({ module: "earlyOpen" })
@@ -46,10 +46,12 @@ export async function openDbEarly(): Promise<boolean> {
     // Expected on web if expo-sqlite isn't available there — cold path.
     const message = String(error)
     log.warn("Early DB open failed — config cache unavailable this launch", {
-      kind: classifyDbOpenFailure(message),
+      // CHANGED 2026-09-22 (RS-024): whole cause chain, not just `message`.
+      kind: classifyDbOpenFailure(errorChainText(error)),
       // First line only: the DrizzleError message embeds the whole
       // multi-line migration SQL, which is noise in Loki.
       error: message.split("\n")[0],
+      cause: rootCauseLine(error),
     })
     // Release the singleton so DatabaseProvider opens a fresh connection.
     await closeDb().catch(() => {})

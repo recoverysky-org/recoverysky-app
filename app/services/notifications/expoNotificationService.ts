@@ -57,7 +57,9 @@ async function ensureToken(): Promise<boolean> {
   }
 
   try {
-    log.debug("ensureToken: requesting push token from APNs/FCM", { projectId: projectId.slice(0, 8) + "..." })
+    log.debug("ensureToken: requesting push token from APNs/FCM", {
+      projectId: projectId.slice(0, 8) + "...",
+    })
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId })
     cachedToken = token
     log.info("ensureToken: push token obtained", { token: token.slice(0, 20) + "..." })
@@ -97,9 +99,12 @@ async function upsertToken(overrides?: { enabled?: boolean; language?: string })
     ...overrides,
   }
 
+  // CHANGED 2026-09-22 (RS-043): no `userId` / `deviceId` fields here. They
+  // were `.slice(0, 8)` of the raw Auth0 sub / device id, and because the
+  // keys collide with the logger's identity context they REPLACED the hashed
+  // userId on the line — unattributable, and eight characters of raw sub in
+  // Loki. The logger already stamps the hashed identity on every record.
   log.debug("upsertToken: POST /push-tokens/", {
-    userId: payload.userId.slice(0, 8) + "...",
-    deviceId: payload.deviceId.slice(0, 8) + "...",
     token: payload.token.slice(0, 20) + "...",
     platform: payload.platform,
     ...overrides,
@@ -109,6 +114,12 @@ async function upsertToken(overrides?: { enabled?: boolean; language?: string })
 
   if (result.kind === "ok") {
     log.debug("upsertToken: success")
+  } else if (result.kind === "unauthorized") {
+    // CHANGED 2026-09-21 (RS-039): `unauthorized` is registration firing
+    // before sign-in (RS-012) — 415 WARN lines from 329 devices in a week
+    // for a known, benign ordering. INFO; every other kind stays WARN. The
+    // Api module's "Push token registration failed" line is debug now.
+    log.info("upsertToken: skipped — not signed in yet", { kind: result.kind })
   } else {
     log.warn("upsertToken: failed", { kind: result.kind })
   }
@@ -121,7 +132,8 @@ async function upsertToken(overrides?: { enabled?: boolean; language?: string })
  */
 export function initializeNotifications(): void {
   if (isInitialized) {
-    log.warn("initializeNotifications: already initialized, skipping")
+    // CHANGED 2026-09-21 (RS-039): warn → debug. An idempotency no-op.
+    log.debug("initializeNotifications: already initialized, skipping")
     return
   }
 
@@ -144,10 +156,8 @@ export function initializeNotifications(): void {
  * Call when user authenticates or re-authenticates.
  */
 export async function registerPushToken(userId: string, deviceId: string): Promise<void> {
-  log.debug("registerPushToken: called", {
-    userId: userId.slice(0, 8) + "...",
-    deviceId: deviceId.slice(0, 8) + "...",
-  })
+  // CHANGED 2026-09-22 (RS-043): identity fields removed — see upsertToken.
+  log.debug("registerPushToken: called")
   cachedUserId = userId
   cachedDeviceId = deviceId
 

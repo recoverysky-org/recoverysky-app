@@ -23,6 +23,26 @@ let db: ExpoSQLiteDatabase<typeof schema> | null = null
 let currentEncryptionKey: string | null = null
 
 /**
+ * Listeners told when the singleton connection goes away.
+ *
+ * ADDED 2026-09-19 (Sentry RECOVERYSKY-APP-1X). DatabaseProvider promises its
+ * children that the database is open, but the singleton can be closed
+ * underneath it: reloadApp() closes it BEFORE `Updates.reloadAsync()`, and the
+ * JS runtime stays alive for up to a second after that. Anything that mounts
+ * or queries in that second throws "Database not opened". The provider
+ * subscribes here so it can drop its children the moment the handle is gone.
+ */
+type DbClosedListener = () => void
+const closedListeners = new Set<DbClosedListener>()
+
+export function onDbClosed(listener: DbClosedListener): () => void {
+  closedListeners.add(listener)
+  return () => {
+    closedListeners.delete(listener)
+  }
+}
+
+/**
  * The main database file plus the sidecar files SQLite may leave beside it.
  * Deleting only the main file and leaving a `-wal` / `-journal` behind would
  * let SQLite "recover" pages encrypted under the old key into the new
@@ -153,6 +173,16 @@ export async function closeDb(): Promise<void> {
       currentEncryptionKey = null
     }
     log.debug("Database closed")
+    // After the nulls, so a listener that reads getDb() sees it closed.
+    // Each listener is isolated: a throw in one must not stop the others or
+    // surface from a best-effort close.
+    for (const listener of closedListeners) {
+      try {
+        listener()
+      } catch (error) {
+        log.warn("onDbClosed listener threw", { error: String(error) })
+      }
+    }
   }
 }
 

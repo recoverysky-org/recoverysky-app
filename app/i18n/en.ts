@@ -85,6 +85,8 @@ const en = {
     errorBrowserTerminated:
       "The sign-in window closed before you finished. Tap the button again and stay in the browser until it brings you back to the app.",
     errorNetwork: "We couldn't reach the sign-in service. Check your connection and try again.",
+    sessionUnrecoverable:
+      "You were signed out because your session could not be restored on this device. Please sign in again.",
     // ADDED 2026-09-17 — passwordless login (spec 1). loginButton/signupButton are retired with the LoginScreen rewrite.
     continueWithEmail: "Continue with Email",
     continueWithApple: "Continue with Apple",
@@ -174,10 +176,22 @@ const en = {
   meetingsScreen: {
     title: "Meetings",
     placeholder: "Meeting list coming soon",
-    liveSegment: "Live",
+    // CHANGED 2026-09-27 (Jenova): "Live" → "Online". With Starts In the
+    // segment also lists meetings that haven't started yet, so "Live" no
+    // longer described it; the screen title carries the live/starts-in state.
+    liveSegment: "Online",
     inPersonSegment: "In-Person",
     // Relabeled from "Listings" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Search",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Fellowship",
+    filterLang: "Lang",
+    filterLanguageA11y: "Language",
+    allLanguages: "All",
+    selectLanguage: "Select language",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Schedule",
@@ -187,7 +201,9 @@ const en = {
     // Relabeled 2026-08-04: "Live Meetings" → "Live Online". The screen only
     // ever lists online meetings, and with the In-Person segment beside it
     // "Live" alone read as "live meetings of any kind".
-    title: "Live Online",
+    // CHANGED 2026-09-27 (Jenova): "Live Online" → "Live Now"; the segment
+    // tab now says "Online", and this heading pairs with "Starts within 30m".
+    title: "Live Now",
     noMeetings: "No meetings are live right now",
     lastRefresh: "Last checked: {{time}}",
     joinMeeting: "Join Meeting",
@@ -209,7 +225,19 @@ const en = {
     fri: "FRI",
     sat: "SAT",
     sun: "SUN",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    // CHANGED 2026-09-27: "Live Now" / "15m" (Jenova); the full phrase is
+    // spoken via startsInMinutesA11y.
+    startsInLive: "Live Now",
+    startsInMinutes: "{{minutes}}m",
+    startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    // Screen title while a Starts In chip is selected (ADDED 2026-09-27);
+    // `title` ("Live Now") shows for Live Now.
+    // CHANGED 2026-09-27 (Jenova): "Starts in 30m" → "Starts within 30m".
+    titleStartsIn: "Starts within {{minutes}}m",
+    startingAt: "starting at {{time}}",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Meeting Listings" 2026-08-03 — namespace/key unchanged.
@@ -225,8 +253,6 @@ const en = {
     emptyNoMatches: "No meetings match your search",
     // Filter labels
     dayLabel: "Day",
-    languageLabel: "Language",
-    langLabel: "Lang",
     venueLabel: "Venue",
     venueOnline: "Online",
     venueInPerson: "In-Person",
@@ -235,13 +261,11 @@ const en = {
     radiusOff: "Location off",
     emptyNoLocation: "Turn on location to search for in-person meetings near you",
     radiusOnlineNote: "not available for online meetings",
-    allLanguages: "All",
     startLabel: "Start",
     endLabel: "End",
     toSeparator: "to",
     // Modal titles
     selectDay: "Select Day",
-    selectLanguage: "Select Language",
     startTime: "Start Time",
     endTime: "End Time",
     // "Any day" option on both day pickers (In-Person + Search). `anyDay` is
@@ -953,7 +977,6 @@ const en = {
   inPersonScreen: {
     title: "In-Person",
     withinRadius: "Within {{distance}}",
-    fellowshipLabel: "Fellowship",
     selectRadius: "Radius",
     shortTimeLabel: "Time",
     shortTimeAll: "Any time",

@@ -70,6 +70,11 @@ describe("toServerRecord", () => {
   it("builds a tombstone when deleted=true (hard-delete snapshot path)", () => {
     expect(toServerRecord(localRecord, true).deleted).toBe(true)
   })
+
+  it("clamps a credit that would overflow the api's int32 column (RS-034)", () => {
+    const result = toServerRecord({ ...localRecord, credit: 3_207_443_155 })
+    expect(result.credit).toBe(24 * 60 * 60 * 1000)
+  })
 })
 
 describe("mergePullDecision", () => {

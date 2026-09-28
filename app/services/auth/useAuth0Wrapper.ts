@@ -18,7 +18,7 @@ import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encrypti
 import { hashUserId, logger } from "@/utils/logger"
 
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
-import { classifyAuthError } from "./authErrorLogic"
+import { classifyAuthError, isUserAbandonedAuth } from "./authErrorLogic"
 import {
   decodeJwtPayload,
   extractSqliteKeyFromClaims,
@@ -170,13 +170,14 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   const isLoggingOut = useRef(false)
 
   // Sync Auth0 error to local state (ignore user-cancelled errors)
+  // CHANGED 2026-09-19 (RS-022): "cancelled" now includes declining the
+  // consent screen (ACCESS_DENIED / "User did not authorize the request"),
+  // which was reaching the ERROR line below twice per tap. See
+  // isUserAbandonedAuth.
   useEffect(() => {
     if (auth0Error) {
-      if (
-        auth0Error instanceof WebAuthError &&
-        auth0Error.type === WebAuthErrorCodes.USER_CANCELLED
-      ) {
-        log.info("Auth0 operation cancelled by user")
+      if (isUserAbandonedAuth(auth0Error)) {
+        log.info("Auth0 operation cancelled or declined by user")
         return
       }
       log.error("Auth0 error", { error: auth0Error.message })
@@ -507,8 +508,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         log.info("Provider login flow completed", { connection })
       } catch (err) {
         pendingLoginMethod = undefined
-        if (err instanceof WebAuthError && err.type === WebAuthErrorCodes.USER_CANCELLED) {
-          log.info("Provider login cancelled by user")
+        // CHANGED 2026-09-19 (RS-022): also covers a declined consent screen.
+        if (isUserAbandonedAuth(err)) {
+          log.info("Provider login cancelled or declined by user")
           return
         }
         const message = err instanceof Error ? err.message : "Login failed"

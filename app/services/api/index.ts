@@ -12,6 +12,7 @@ import Config from "@/config"
 import type { AttendanceRecord } from "@/db"
 import type { ServerAttendanceRecord, ServerReportRecord } from "@/services/sync/syncLogic"
 import { trackEvent } from "@/services/tracking"
+import type { AtNextOffset } from "@/utils/atNextLogic"
 import { delay } from "@/utils/delay"
 import { logger } from "@/utils/logger"
 
@@ -25,9 +26,36 @@ import {
   bearerRejectionCode,
   deviceJwtRejected,
   noDeviceCredentialAdapter,
+  readHeader,
 } from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
+import { classifyNewsPayload, type NewsPayloadOutcome } from "./newsLogic"
+import {
+  makeTraceContext,
+  traceIdFromTraceparent,
+  TRACE_CONTEXT_BYTES,
+  TRACEPARENT_HEADER,
+} from "./traceparentLogic"
 import type { ApiConfig, LinkIdentityResponse } from "./types"
+
+/**
+ * A fresh W3C `traceparent` value for one outbound request, or undefined when
+ * no CSPRNG is reachable. `crypto.getRandomValues` is expo-crypto's, installed
+ * by app/utils/cryptoPolyfill.ts as the first import in index.tsx (Hermes has
+ * no global crypto); web has the real thing. Never throws: this runs inside
+ * the async request transform, where a rejection would fail the request
+ * itself — a missing trace id is worth nothing, a failed request is worth
+ * less than nothing.
+ */
+function newTraceparent(): string | undefined {
+  try {
+    const bytes = new Uint8Array(TRACE_CONTEXT_BYTES)
+    globalThis.crypto.getRandomValues(bytes)
+    return makeTraceContext(bytes).traceparent
+  } catch {
+    return undefined
+  }
+}
 
 /**
  * Classifies an api response's problem and tracks an `api_error` analytics
@@ -311,10 +339,27 @@ export interface ContentResult {
 
 // Re-export for convenience
 export type { GeneralApiProblem } from "./apiProblem"
+
+/**
+ * Outcome of `Api.getNews`. `no-content` is the server's idle state (204,
+ * nothing published) — the common case, not a fault. See newsLogic.ts.
+ */
+export type NewsResult = NewsPayloadOutcome | GeneralApiProblem
 export { getGeneralApiProblem }
 export type { ApiConfig } from "./types"
 
 const log = logger.child({ module: "Api" })
+// CHANGED 2026-09-21 (RS-039): every "<thing> failed { problem }" line in this
+// module is now `debug`, not `warn`. This layer only knows a request did not
+// succeed — it cannot know whether the user was waiting on it (a report send)
+// or a background pass will retry (a report-body backfill), so it cannot pick
+// a severity. The caller owns the level and logs one contextual line for every
+// non-ok result that matters; before this both layers logged the same event
+// at WARN and ~2,000 of 4,205 weekly WARN lines were that duplicate. The lines
+// that stay `warn` here are the ones only this module can see: a 2xx with the
+// wrong shape ("Invalid … response format"), the auth gate's own decisions,
+// and getContent's terminal "unavailable after retries" (it owns that ladder).
+// Policy: docs/DIAGNOSTICS.md "Log levels".
 
 /** Default API base URL (used before ConfigStore loads) */
 const DEFAULT_API_URL = "https://api.recoverysky.app"
@@ -453,6 +498,40 @@ export class Api {
 
     this.installAuthGate()
     this.installBearerRejectionMonitor()
+    this.installRequestTraceMonitor()
+  }
+
+  /**
+   * One debug line per RecoverySky response carrying the trace id the auth
+   * gate stamped on the request, so `{module="Api"} | traceId="…"` in Loki
+   * finds the app's side of a Tempo trace and vice versa.
+   *
+   * ADDED 2026-09-21. The id goes on the line as an ordinary attribute, NOT
+   * through `logger.setTraceContext()`: that setter is instance-wide and
+   * requests overlap, so a per-request id set there would be stamped on
+   * whichever unrelated lines happened to be written before the next request
+   * overwrote it. Loki's native OTLP ingestion lands attributes and the OTLP
+   * trace field in structured metadata alike, so nothing is lost query-wise.
+   *
+   * Debug, per the RS-039 policy (transport detail; the caller owns the
+   * user-facing level). Production ships LOG_LEVEL=trace, so it reaches Loki.
+   * The query string is stripped from the url on purpose — DELETE /reminders
+   * carries the uid there.
+   */
+  private installRequestTraceMonitor() {
+    this.recoverySkyApi.addMonitor((response) => {
+      const traceId = traceIdFromTraceparent(
+        readHeader(response.config?.headers, TRACEPARENT_HEADER),
+      )
+      log.debug("API request", {
+        method: response.config?.method?.toUpperCase(),
+        url: response.config?.url?.split("?")[0],
+        status: response.status,
+        durationMs: response.duration,
+        ...(response.problem && { problem: response.problem }),
+        ...(traceId && { traceId }),
+      })
+    })
   }
 
   // ===========================================================================
@@ -491,6 +570,16 @@ export class Api {
       // leak to the wire. Re-verify the header type on upgrade.
       const headers = (request.headers ?? {}) as Record<string, string>
       request.headers = headers as typeof request.headers
+
+      // ADDED 2026-09-21: start a trace for every request, BEFORE the bypass
+      // below so the attest exchanges and the /status/ready probe — the
+      // requests we most often need to see server-side — are traced too. The
+      // API's http instrumentation continues this id into Tempo, and the
+      // response monitor (installRequestTraceMonitor) logs the same id so a
+      // Loki line for this request links to that trace. See
+      // traceparentLogic.ts for why the app starts traces but records no spans.
+      const traceparent = newTraceparent()
+      if (traceparent) headers[TRACEPARENT_HEADER] = traceparent
 
       // Bypass. The three attest exchanges — getAttestChallenge(),
       // verifyAttestation(), assertAttestation() — are called while we are
@@ -613,7 +702,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Attestation verification failed", { problem: problem?.kind })
+      log.debug("Attestation verification failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -642,7 +731,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Attestation challenge failed", { problem: problem?.kind })
+      log.debug("Attestation challenge failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -669,7 +758,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Attestation assert failed", { problem: problem?.kind })
+      log.debug("Attestation assert failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -695,7 +784,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API status check failed", { problem: problem?.kind })
+      log.debug("API status check failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -750,7 +839,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API readiness check failed", {
+      log.debug("API readiness check failed", {
         problem: problem?.kind,
         status: response.status ?? 0,
       })
@@ -791,7 +880,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -833,7 +922,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -849,6 +938,81 @@ export class Api {
       timestamp: response.data.timestamp,
     })
     return { kind: "ok", schedules: response.data.schedules, count: response.data.count }
+  }
+
+  /**
+   * Get online meetings starting within `offset` minutes of `startsAt`.
+   *
+   * ADDED 2026-09-26 for Live's "Starts In" selector. Same response shape as
+   * /schedules/live, but `millis` is each meeting's upcoming start. The API
+   * owns the window math. Fellowship is deliberately NOT sent: the Meetings
+   * filter bar applies it on-device, so switching fellowship never refetches.
+   * Callers gate on `startsInVisible` until the route is deployed; a 404 from
+   * an older API build is the caller's signal to hide the selector.
+   *
+   * CHANGED 2026-09-27: aligned with the deployed contract (api repo
+   * src/openapi.ts, operationId `getAtNextSchedules`). We had coded against
+   * the design draft, which differed in every way that matters:
+   * - the route is `/schedules/at-next` (hyphen); `/schedules/at_next` 404s,
+   *   which would have hidden the selector for the session;
+   * - `starts_at` is a BOOLEAN (default true: only meetings starting exactly
+   *   at the mark), not a reference timestamp — the ISO string we sent was a
+   *   400 — and there is no `tz` param;
+   * - `offset` picks one quarter-hour mark (15 = the next :00/:15/:30/:45
+   *   strictly after now; 30/45/60 = 15/30/45 min past it), and the response
+   *   adds `at` (that mark) and `offset`.
+   * `starts_at=true` is sent explicitly rather than relying on the default,
+   * so a server-side default change can't silently turn "starting at 7:30"
+   * into "in session at 7:30". `at` is returned so the caller can label the
+   * list and refetch when the mark passes (atNextLogic.refetchDelayMs).
+   *
+   * @param offset - 15 | 30 | 45 | 60 — which coming quarter-hour mark
+   */
+  async getAtNextSchedules(
+    offset: AtNextOffset,
+  ): Promise<
+    { kind: "ok"; schedules: LiveSchedule[]; count: number; at: string } | GeneralApiProblem
+  > {
+    log.debug("Fetching at-next schedules from API", { offset })
+
+    const params: Record<string, string | number> = {
+      offset,
+      starts_at: "true",
+      venueType: "online",
+    }
+
+    const response = await this.recoverySkyApi.get<{
+      timestamp: string
+      at: string
+      offset: AtNextOffset
+      count: number
+      schedules: LiveSchedule[]
+    }>("/schedules/at-next", params)
+
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.debug("API request failed", { problem: problem?.kind })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+
+    // `at` is required too: without it the caller can neither label the list
+    // nor know when to refetch, so a response missing it is bad data.
+    if (
+      !response.data ||
+      !Array.isArray(response.data.schedules) ||
+      typeof response.data.at !== "string"
+    ) {
+      log.warn("Invalid at-next response data format")
+      return { kind: "bad-data" }
+    }
+
+    return {
+      kind: "ok",
+      schedules: response.data.schedules,
+      count: response.data.count,
+      at: response.data.at,
+    }
   }
 
   /**
@@ -880,7 +1044,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -942,7 +1106,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("API request failed", { problem: problem?.kind })
+      log.debug("API request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1037,7 +1201,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Zoom JWT request failed", { problem: problem?.kind })
+      log.debug("Zoom JWT request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1065,7 +1229,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Replyke token request failed", { problem: problem?.kind })
+      log.debug("Replyke token request failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1092,7 +1256,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Auth0 profile update failed", { problem: problem?.kind })
+      log.debug("Auth0 profile update failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1112,7 +1276,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Config request failed", {
+      log.debug("Config request failed", {
         problem: problem?.kind,
         url: `${this.recoverySkyApi.getBaseURL()}/config`,
         status: response.status ?? 0,
@@ -1146,7 +1310,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Content fetch failed", { collection, document, problem: problem?.kind })
+      log.debug("Content fetch failed", { collection, document, problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1215,7 +1379,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Delete reminders failed", { problem: problem?.kind })
+      log.debug("Delete reminders failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1283,7 +1447,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Send report failed", {
+      log.debug("Send report failed", {
         reportId: params.id,
         problem: problem?.kind,
         status: response.status,
@@ -1320,7 +1484,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Resend report failed", {
+      log.debug("Resend report failed", {
         reportId: params.id,
         problem: problem?.kind,
         status: response.status,
@@ -1358,7 +1522,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Report status poll failed", { problem: problem?.kind, reportId: params.id })
+      log.debug("Report status poll failed", { problem: problem?.kind, reportId: params.id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1474,7 +1638,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Sync push failed", { problem: problem?.kind, count: records.length })
+      log.debug("Sync push failed", { problem: problem?.kind, count: records.length })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1503,7 +1667,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Sync attendance pull failed", { problem: problem?.kind, since })
+      log.debug("Sync attendance pull failed", { problem: problem?.kind, since })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1532,7 +1696,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Sync reports pull failed", { problem: problem?.kind, since })
+      log.debug("Sync reports pull failed", { problem: problem?.kind, since })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1558,7 +1722,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Report detail fetch failed", { problem: problem?.kind, reportId: params.id })
+      log.debug("Report detail fetch failed", { problem: problem?.kind, reportId: params.id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1595,7 +1759,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Transcription failed", { problem: problem?.kind, status: response.status })
+      log.debug("Transcription failed", { problem: problem?.kind, status: response.status })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1624,7 +1788,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Create reminder failed", { problem: problem?.kind, mid: input.mid })
+      log.debug("Create reminder failed", { problem: problem?.kind, mid: input.mid })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1643,7 +1807,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Update reminder failed", { problem: problem?.kind, id })
+      log.debug("Update reminder failed", { problem: problem?.kind, id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1663,7 +1827,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Delete reminder failed", { problem: problem?.kind, id })
+      log.debug("Delete reminder failed", { problem: problem?.kind, id })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1681,7 +1845,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Fetch reminders failed", { problem: problem?.kind })
+      log.debug("Fetch reminders failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1705,13 +1869,16 @@ export class Api {
     language?: string
     enabled?: boolean
   }): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    log.debug("Registering push token", { userId: input.userId.slice(0, 8) + "..." })
+    // CHANGED 2026-09-22 (RS-043): no `userId` field — it was the first eight
+    // characters of the raw Auth0 sub and overwrote the logger's hashed
+    // userId on this line. The hashed identity is already on every record.
+    log.debug("Registering push token")
 
     const response = await this.recoverySkyApi.post("/push-tokens/", input)
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Push token registration failed", { problem: problem?.kind })
+      log.debug("Push token registration failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1739,7 +1906,7 @@ export class Api {
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("Bug report send failed", { problem: problem?.kind })
+      log.debug("Bug report send failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
@@ -1751,43 +1918,45 @@ export class Api {
   /**
    * Get current news/announcement for the home screen
    * GET /news
+   *
+   * CHANGED 2026-09-26: returns `{ kind: "no-content" }` for the server's idle
+   * state. The API answers `204 No Content` when nothing is published
+   * (api/src/routes/news.ts) — nearly every call in production — and this
+   * used to fold that into `bad-data`, so HomeScreen logged a fault kind on
+   * 144 of 145 loads in a 6h window and a truly malformed payload was
+   * invisible. The split lives in the vitest-covered `classifyNewsPayload`.
    */
-  async getNews(): Promise<{ kind: "ok"; title: string; body: string } | GeneralApiProblem> {
+  async getNews(): Promise<NewsResult> {
     log.debug("Fetching news from API")
 
-    const response = await this.recoverySkyApi.get<{
-      id: string
-      title: string
-      body: string
-      start: number
-      end: number
-    }>("/news")
+    const response = await this.recoverySkyApi.get<unknown>("/news")
 
     if (!response.ok) {
       const problem = getGeneralApiProblem(response)
-      log.warn("News fetch failed", { problem: problem?.kind })
+      log.debug("News fetch failed", { problem: problem?.kind })
       if (problem) return problem
       return { kind: "unknown", temporary: true }
     }
 
-    if (
-      !response.data ||
-      typeof response.data.title !== "string" ||
-      typeof response.data.body !== "string"
-    ) {
-      // DEBUG, not WARN: a 200 without title/body is the normal "no active
-      // announcement" idle state — the server returns an empty payload
-      // outside the news start/end window, and HomeScreen just clears the
-      // banner (treats bad-data as "no news"). It fired on every home load
-      // with nothing scheduled, so it was recurring dashboard noise, not a
-      // fault. Genuinely malformed news is indistinguishable from empty here
-      // without server cooperation (e.g. a 204), so we don't keep a warn arm.
-      log.debug("No active news / empty news response")
-      return { kind: "bad-data" }
+    const outcome = classifyNewsPayload(response.status, response.data)
+
+    if (outcome.kind === "no-content") {
+      // DEBUG: the normal idle state — a 204 (or an empty 200) outside any
+      // news start/end window. HomeScreen just leaves the card hidden.
+      log.debug("No active news")
+      return outcome
     }
 
-    log.debug("News received", { title: response.data.title })
-    return { kind: "ok", title: response.data.title, body: response.data.body }
+    if (outcome.kind === "bad-data") {
+      // WARN, not DEBUG: since 2026-09-26 the idle state is classified
+      // separately above, so reaching here means a 2xx with content that is
+      // not a news item — a server or proxy fault worth seeing in Loki.
+      log.warn("Malformed news payload", { status: response.status })
+      return outcome
+    }
+
+    log.debug("News received", { title: outcome.title })
+    return outcome
   }
 }
 

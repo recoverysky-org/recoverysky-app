@@ -26,6 +26,7 @@ import {
 } from "@/services/ninety/ninetyCertificateService"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { todayLocalISODate } from "@/utils/localDate"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "NinetyInNinetyCard" })
@@ -120,7 +121,11 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
   )
 
   const handleStart = useCallback(() => {
-    const today = new Date().toISOString().split("T")[0]
+    // CHANGED 2026-09-25: was `new Date().toISOString().split("T")[0]`, the
+    // UTC date. useNinetyInNinety parses ninetyStartDate as a LOCAL date, so a
+    // device behind UTC starting in the evening got tomorrow's date — that
+    // night's meetings were filtered out and "Day 1" lasted two days.
+    const today = todayLocalISODate()
     profileStore.setNinetyStartDate(today)
     log.info("90/90 challenge started", { startDate: today })
   }, [profileStore])
@@ -216,7 +221,8 @@ export const NinetyInNinetyCard = observer(function NinetyInNinetyCard() {
       const path = await generateAndStoreCertificate({
         name: profileStore.shortName,
         startDate: profileStore.ninetyStartDate,
-        completionDate: new Date().toISOString().split("T")[0],
+        // Local date, not toISOString() (UTC) — see handleStart.
+        completionDate: todayLocalISODate(),
         meetingsAttended: stats.meetingsAttended,
         totalCreditMs: stats.totalCreditMs,
         strictMode: profileStore.ninetyStrictMode,

@@ -338,8 +338,15 @@ export function App() {
         // can go out regardless of what happens below. Beat two is the actual
         // eject, which we hold while an attendance timer is live.
         const performForcedLogout = () => {
-          log.warn("Performing forced logout after permanent refresh failure")
+          // CHANGED 2026-09-21 (RS-039): warn → error. A session was lost;
+          // that is the definition of ERROR in docs/DIAGNOSTICS.md.
+          log.error("Performing forced logout after permanent refresh failure")
           authStore.logout()
+          // ADDED 2026-09-19 (RS-036): raised AFTER logout(), which resets the
+          // volatile fields. LoginScreen shows the "session could not be
+          // restored" line on mount and clears it, so the eject stops looking
+          // like a fresh install.
+          authStore.setForcedLogoutNotice(true)
           // Both credential stores must go. Clearing only ours leaves the SDK's
           // keychain entry intact and the next useAuth0Wrapper sync would
           // cheerfully re-hydrate the dead session.
@@ -660,8 +667,19 @@ export function App() {
           // launch fired one guaranteed 403 (a rejection the edge counts).
           // Decision in the pure `pushRegistrationUserId`; sign-out lands in
           // the `else` below, which only clears local state.
+          // CHANGED 2026-09-21 (RS-040): also keyed on the store holding a
+          // token. `userId` is MMKV and is back before this runs; the tokens
+          // are SecureStore and were missing on an install whose keychain had
+          // lost them — the request went out with no Bearer, the user lane
+          // answered its code-less 401, and the app dropped a valid device
+          // JWT on every cold start. The value is still the id, so a token
+          // refresh does not re-fire this; only the null↔id edges do.
           const registrableUserId = () =>
-            pushRegistrationUserId({ userId: authStore.userId, isAnonymous: authStore.isAnonymous })
+            pushRegistrationUserId({
+              userId: authStore.userId,
+              isAnonymous: authStore.isAnonymous,
+              hasSession: !!authStore.accessToken || !!authStore.refreshToken,
+            })
           const initialUserId = registrableUserId()
           if (initialUserId && authStore.deviceId) {
             loginNotificationUser(initialUserId, authStore.deviceId).catch(() => {})
@@ -834,7 +852,10 @@ export function App() {
                   log.debug("Auth0 profile synced", { name: value })
                 } else {
                   // Don't update lastSynced on failure — next edit retries.
-                  log.warn("Auth0 profile sync failed", { kind: result.kind })
+                  // CHANGED 2026-09-21 (RS-039): warn → error. The user's name
+                  // save did not reach Auth0 and nothing retries it until they
+                  // edit again (RS-006). The Api module's own line is debug now.
+                  log.error("Auth0 profile sync failed", { kind: result.kind })
                 }
               }, 800)
             },

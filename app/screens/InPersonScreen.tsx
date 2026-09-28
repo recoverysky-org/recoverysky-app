@@ -48,11 +48,13 @@ import { DaySelectorModal } from "@/components/DaySelectorModal"
 import { InPersonListHeader } from "@/components/InPersonListHeader"
 import { InPersonMapView } from "@/components/InPersonMapView"
 import { InPersonPopup } from "@/components/InPersonPopup"
+import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import type { InPersonViewMode } from "@/components/MapListToggle"
 import { MeetingRow } from "@/components/MeetingRow"
 import { Text } from "@/components/Text"
 import { useToast } from "@/components/Toast"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useLocationGate } from "@/hooks/useLocationGate"
@@ -68,7 +70,6 @@ import { api } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
-import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
   ANY_DAY,
   DEFAULT_SHORT_TIME,
@@ -79,6 +80,7 @@ import {
 } from "@/utils/filterLogic"
 import { shouldShowMapToggle } from "@/utils/inPersonMapLogic"
 import { logger } from "@/utils/logger"
+import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 import {
   formatDistance,
   localIsoDow,
@@ -242,69 +244,6 @@ const ShortTimeSelectorModal: FC<ShortTimeSelectorModalProps> = ({
 }
 
 // ============================================================================
-// Fellowship selector modal
-//
-// Mirrors LiveContent's fellowship picker (same options, same "browsing isn't
-// a preference change" semantics) and shares this file's modal chrome. There
-// is deliberately no "All" option — LiveContent's picker has none either, and
-// here it would be worse than cosmetic: the nearby/daily endpoints filter by
-// fellowship server-side, so "all" would mean an unfiltered fetch of every
-// fellowship's meetings rather than a client-side widening.
-// ============================================================================
-
-interface FellowshipSelectorModalProps {
-  visible: boolean
-  /** Undefined when the user has never picked one — no row is checked */
-  selected?: string
-  /** Called with the tapped fellowship; caller owns tracking + state */
-  onSelect: (value: string) => void
-  onClose: () => void
-}
-
-const FellowshipSelectorModal: FC<FellowshipSelectorModalProps> = ({
-  visible,
-  selected,
-  onSelect,
-  onClose,
-}) => {
-  const { t } = useTranslation()
-  const { themed, theme } = useAppTheme()
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={themed($modalOverlay)} onPress={onClose}>
-        <View style={themed($modalContent)} accessibilityViewIsModal>
-          <Text style={themed($modalTitle)}>{t("settingsScreen:selectFellowship")}</Text>
-          {ACTIVE_FELLOWSHIPS.map((value) => {
-            const isSelected = value === selected
-            return (
-              <TouchableOpacity
-                key={value}
-                style={[themed($modalOption), isSelected && themed($modalOptionSelected)]}
-                onPress={() => {
-                  onSelect(value)
-                  onClose()
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={value}
-              >
-                <Text
-                  style={[themed($modalOptionText), isSelected && themed($modalOptionTextSelected)]}
-                >
-                  {value}
-                </Text>
-                {isSelected && <Ionicons name="checkmark" size={18} color={theme.colors.tint} />}
-              </TouchableOpacity>
-            )
-          })}
-        </View>
-      </Pressable>
-    </Modal>
-  )
-}
-
-// ============================================================================
 // Screen
 // ============================================================================
 
@@ -338,11 +277,15 @@ interface InPersonContentProps {
  * `active`; only the map subtree keys off `visible` (see `effectiveViewMode`).
  *
  * `observer()` is LOAD-BEARING and its absence fails silently: `useNearbySchedules`
- * reads `configStore.maintenanceMode` and `profileStore.fellowship` during
- * render specifically so MobX tracks them for this component. Unwrapped, the
- * local controls (day, radius) keep working while the maintenance-exit refetch
- * and the fellowship-change refetch just stop happening — the screen still
- * looks fine, so nobody notices. Do not remove it.
+ * reads `configStore.maintenanceMode` during render specifically so MobX
+ * tracks it for this component. Unwrapped, the local controls (day, radius)
+ * keep working while the maintenance-exit refetch just stops happening — the
+ * screen still looks fine, so nobody notices. Do not remove it.
+ * CHANGED 2026-09-26: this used to also cover `profileStore.fellowship` and a
+ * matching "fellowship-change refetch" — fellowship is now a parameter this
+ * component passes in from `useMeetingFilters()` (MeetingFiltersContext),
+ * which is itself an `observer()`-wrapped provider, so a fellowship change
+ * still refetches; this component just no longer reads the store directly.
  * CHANGED 2026-08-04: this component no longer calls `useProfileStore()` itself
  * (the Fellowship picker reads the effective value off the hook instead), so
  * there is now NO store access visible in this file at all — which makes the
@@ -370,6 +313,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const networkStore = useNetworkStore()
   const profileStore = useProfileStore()
   const { runGate } = useLocationGate()
+  const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
 
   /**
    * True once the gate has run for the current visit; reset on leaving the
@@ -476,8 +420,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     setSelectedDay,
     radiusKm,
     setRadiusKm,
-    fellowship,
-    setFellowship,
     useMiles,
     refresh,
     requestLocation,
@@ -486,7 +428,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // and never called in this file. Calling it here would put a coordinate in
     // a local — see this file's header.
     getCoords,
-  } = useNearbySchedules(active)
+  } = useNearbySchedules(active, fellowship)
 
   /**
    * ADDED 2026-08-09 (whole-branch review, C2): re-acquire when the location
@@ -527,7 +469,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const [dayModalVisible, setDayModalVisible] = useState(false)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
   const [shortTimeModalVisible, setShortTimeModalVisible] = useState(false)
-  const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
   // ADDED 2026-09-05: pull-to-refresh tracked separately from the hook's
   // `isLoading`. RefreshControl's `refreshing` used to be bound to
   // `isLoading && meetings.length > 0`, which ALSO went true on every
@@ -821,10 +762,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // screen reader only (see the grid comment in InPersonListHeader).
   const radiusA11yLabel = t("inPersonScreen:withinRadius", { distance: radiusDistance })
   const shortTimeLabel = t(SHORT_TIME_TX[shortTime])
-  // An em dash, not the ProfileStore default: the user genuinely has no
-  // fellowship set here, and showing "AA" would claim a filter that isn't
-  // applied — the hook fetches nothing at all until one is chosen.
-  const fellowshipLabel = fellowship || "—"
 
   // Client-side only: the time bucket never reaches the API. `/schedules/nearby`
   // returns a whole day (radius-bounded), so narrowing here costs
@@ -859,15 +796,40 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // pill is hidden for it.
   const visibleMeetings = useMemo(() => {
     if (!profileStore.locationEnabled) return []
+    // CHANGED 2026-09-26: + shared language filter, client-side like shortTime.
+    // Applied unconditionally rather than only inside the shortTime-narrowed
+    // branch — `shortTime === DEFAULT_SHORT_TIME` ("Any", the per-visit
+    // default) used to skip this whole filter() call as a no-op perf
+    // shortcut, which would have made a picked language inert on the single
+    // most common time-bucket state.
     const filtered =
       shortTime === DEFAULT_SHORT_TIME
-        ? meetings
-        : meetings.filter((m) => matchesShortTime(m.millis, shortTime))
+        ? meetings.filter((m) => matchesLanguage(m, language))
+        : meetings.filter(
+            (m) => matchesShortTime(m.millis, shortTime) && matchesLanguage(m, language),
+          )
     if (mode !== "nearby") return filtered
     // `localIsoDow` is the weekday reader the rest of this segment uses; Date.now()
     // is never 0, so the null branch is unreachable and the fallback is inert.
     return sortInPerson(filtered, sortOrder, isAnyDay, localIsoDow(Date.now()) ?? 1)
-  }, [meetings, shortTime, profileStore.locationEnabled, mode, sortOrder, isAnyDay])
+  }, [meetings, shortTime, language, profileStore.locationEnabled, mode, sortOrder, isAnyDay])
+
+  // Reports this segment's day list (post-fellowship, pre-language — matches
+  // what the hook fetched for the current fellowship) so the shared filter
+  // bar can offer In-Person's languages too.
+  useEffect(() => {
+    reportMeetings("inperson", meetings)
+  }, [reportMeetings, meetings])
+
+  // ADDED 2026-09-26: true when the time bucket leaves meetings but the
+  // language filter removes them all, so the empty state can blame language.
+  const languageEmptied = useMemo(
+    () =>
+      !!language &&
+      visibleMeetings.length === 0 &&
+      meetings.some((m) => matchesShortTime(m.millis, shortTime)),
+    [language, visibleMeetings.length, meetings, shortTime],
+  )
 
   const handleDaySelect = useCallback(
     (day: number) => {
@@ -893,21 +855,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     trackEvent("inperson_shorttime_changed", { shortTime: value })
   }, [])
 
-  const handleFellowshipSelect = useCallback(
-    (value: string) => {
-      // Browse-only — `setFellowship` writes to the hook's local override, not
-      // to ProfileStore, so Settings and the Live tab are left alone.
-      setFellowship(value)
-      // PRIVACY: a fellowship code is a display preference, not a position.
-      trackEvent("inperson_fellowship_changed", { fellowship: value })
-    },
-    [setFellowship],
-  )
-
   const handleOpenDayModal = useCallback(() => setDayModalVisible(true), [])
   const handleOpenRadiusModal = useCallback(() => setRadiusModalVisible(true), [])
   const handleOpenShortTimeModal = useCallback(() => setShortTimeModalVisible(true), [])
-  const handleOpenFellowshipModal = useCallback(() => setFellowshipModalVisible(true), [])
 
   /**
    * Banner tap routes five ways:
@@ -1058,15 +1008,16 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // message wasn't tappable. Now that the header carries a Fellowship picker,
     // pointing at Settings would route them past the control that's already on
     // screen — so this opens that picker instead.
+    // CHANGED 2026-09-26: no longer tappable — Fellowship lives in the shared
+    // bar below the segment tabs. `fellowship` is now always a member of
+    // ACTIVE_FELLOWSHIPS (MeetingFiltersContext.resolveFellowship), so this is
+    // effectively unreachable, but kept as a defensive fallback rather than
+    // asserted away.
     if (!fellowship) {
       return (
-        <Pressable
-          style={themed($emptyContainer)}
-          onPress={handleOpenFellowshipModal}
-          accessibilityRole="button"
-        >
+        <View style={themed($emptyContainer)}>
           <Text style={themed($emptyText)}>{t("inPersonScreen:selectFellowship")}</Text>
-        </Pressable>
+        </View>
       )
     }
     if (error) {
@@ -1075,6 +1026,19 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           <Text style={themed($errorText)}>{error}</Text>
         </View>
       )
+    }
+    // ADDED 2026-09-26: language emptied the list, so name that rather than
+    // falling into one of the catch-alls below. Must sit HERE, ahead of the
+    // shortTime and mode/bannerReason branches: `languageEmptied` already
+    // requires the time bucket to leave rows (see its definition), so a
+    // time-emptied list still hits the shortTime branch below unaffected —
+    // but `mode === "nearby"` further down is an unconditional catch-all
+    // whenever this renders in nearby mode, and `bannerReason` is always
+    // non-null whenever this renders in fallback mode, so either one would
+    // shadow this branch forever if it were placed after them (dead code —
+    // caught in review round 1, 2026-09-26).
+    if (languageEmptied && language) {
+      return <LanguageEmptyState language={language} onShowAll={() => setLanguage(null)} />
     }
     // The time filter emptied a day that DOES have meetings. This has to
     // outrank both branches below, because their copy blames the radius or the
@@ -1183,11 +1147,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     shortTimeLabel,
     meetings.length,
     handleOpenShortTimeModal,
-    handleOpenFellowshipModal,
     bannerReason,
     handleBannerPress,
     profileStore.locationEnabled,
     runGate,
+    languageEmptied,
+    language,
+    setLanguage,
   ])
 
   // While we're waiting on a permission dialog / GPS fix, or on the very first
@@ -1241,11 +1207,15 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
       {/* The SAME header renders in both modes — deliberately. The filters,
           the day/radius/fellowship selectors and the permission banner all
           stay reachable while the map is up; a map you can't re-filter without
-          switching back to the list would make the toggle a dead end. */}
+          switching back to the list would make the toggle a dead end.
+          CHANGED 2026-09-26: "fellowship selector" is stale — Fellowship
+          moved to the shared filter bar below the segment tabs, so this header's
+          own selectors are Radius/Day/Time. Fellowship (and Language) still
+          stay reachable while the map is up; they just live one level up
+          now, not in this row. */}
       {effectiveViewMode === "map" ? (
         <View style={$screenContainer}>
           <InPersonListHeader
-            fellowshipLabel={fellowshipLabel}
             selectedDayLabel={selectedDayLabel}
             radiusLabel={radiusDistance}
             radiusA11yLabel={radiusA11yLabel}
@@ -1259,7 +1229,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
             locationDisabled={!profileStore.locationEnabled}
             showSpinner={showSpinner}
             isRefetching={isRefetching}
-            onOpenFellowship={handleOpenFellowshipModal}
             onOpenDay={handleOpenDayModal}
             onOpenRadius={handleOpenRadiusModal}
             onOpenShortTime={handleOpenShortTimeModal}
@@ -1295,7 +1264,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           keyExtractor={keyExtractor}
           ListHeaderComponent={
             <InPersonListHeader
-              fellowshipLabel={fellowshipLabel}
               selectedDayLabel={selectedDayLabel}
               radiusLabel={radiusDistance}
               radiusA11yLabel={radiusA11yLabel}
@@ -1305,7 +1273,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               locationDisabled={!profileStore.locationEnabled}
               showSpinner={showSpinner}
               isRefetching={isRefetching}
-              onOpenFellowship={handleOpenFellowshipModal}
               onOpenDay={handleOpenDayModal}
               onOpenRadius={handleOpenRadiusModal}
               onOpenShortTime={handleOpenShortTimeModal}
@@ -1360,13 +1327,6 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         selected={shortTime}
         onSelect={handleShortTimeSelect}
         onClose={() => setShortTimeModalVisible(false)}
-      />
-
-      <FellowshipSelectorModal
-        visible={fellowshipModalVisible}
-        selected={fellowship}
-        onSelect={handleFellowshipSelect}
-        onClose={() => setFellowshipModalVisible(false)}
       />
 
       <InPersonPopup

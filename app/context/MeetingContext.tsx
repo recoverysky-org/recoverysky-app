@@ -19,7 +19,7 @@ import { reaction } from "mobx"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
 import { useConfigStore } from "@/models"
-import { api, type ScheduleDataRow } from "@/services/api"
+import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import { isLiveRefreshBlocked, isServiceRecoveryEdge } from "@/utils/connectivityLogic"
 import { logger } from "@/utils/logger"
@@ -52,11 +52,23 @@ function sleep(ms: number): Promise<void> {
  * CHANGED 2026-09-09: the `maxAttempts` parameter is gone with the
  * in-person live pool it existed for (see the refresh effect below). Every
  * caller now gets the full `RETRY_CONFIG` budget.
+ *
+ * CHANGED 2026-09-26: added the optional `shouldContinue` parameter.
+ * `useAtNextSchedules.refresh()` bumps a sequence ref per call so a slow
+ * response can't land under a newer selection, but that check only fires
+ * *after* the whole ladder (up to 4 attempts, several seconds of backoff)
+ * finishes — a superseded request kept retrying against the network the
+ * whole time. `shouldContinue`, when passed, is checked before every retry
+ * (not the first attempt, which the caller always wants dispatched) and
+ * ends the ladder early, the same way an unretryable problem kind already
+ * does. Optional and back-compatible: existing callers that don't pass it
+ * behave exactly as before.
  */
-async function retryWithBackoff<T>(
+export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   isSuccess: (result: T) => boolean,
   label: string,
+  shouldContinue?: () => boolean,
 ): Promise<{ result: T; attempts: number } | { error: string; attempts: number }> {
   const maxAttempts = RETRY_CONFIG.maxAttempts
   let lastResult: T | undefined
@@ -66,6 +78,12 @@ async function retryWithBackoff<T>(
   let attemptsMade = 0
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // CHANGED 2026-09-26: only gates *retries* — the first attempt always
+    // runs even if the caller's predicate would already say no, since the
+    // caller dispatched this call because it wanted at least one try.
+    if (attempt > 1 && shouldContinue && !shouldContinue()) {
+      break
+    }
     attemptsMade = attempt
     try {
       const result = await fn()
@@ -191,6 +209,26 @@ export function useMeetings(): MeetingContextType {
     throw new Error("useMeetings must be used within a MeetingProvider")
   }
   return context
+}
+
+/**
+ * API schedule entry → the row shape every Meetings surface renders.
+ * EXTRACTED 2026-09-26: this literal was written out twice (here and in
+ * LiveScreen's deep-link slow path), and the at_next hook needed a third copy.
+ * Prefer the schedule-level password over the meeting-level one; the API
+ * provides it per schedule.
+ */
+export function toMeetingWithTrex(s: LiveSchedule): MeetingWithTrex {
+  return {
+    ...s.meeting,
+    password: s.password || s.meeting.password || "",
+    passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
+    feedback: feedbackCache.get(s.meeting.id),
+    sid: s.sid,
+    millis: s.millis,
+    duration_ms: s.duration_ms ?? 0,
+    scheduleData: s.data,
+  }
 }
 
 // ============================================================================
@@ -334,17 +372,7 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       feedbackCache.reconcileSchedules(outcome.result.schedules)
 
       // Convert API schedules to MeetingWithTrex.
-      const meetings: MeetingWithTrex[] = outcome.result.schedules.map((s) => ({
-        ...s.meeting,
-        // Prefer schedule-level password over meeting-level (API provides it per-schedule)
-        password: s.password || s.meeting.password || "",
-        passwordEnc: s.passwordEnc || s.meeting.passwordEnc || "",
-        feedback: feedbackCache.get(s.meeting.id),
-        sid: s.sid,
-        millis: s.millis,
-        duration_ms: s.duration_ms ?? 0,
-        scheduleData: s.data,
-      }))
+      const meetings: MeetingWithTrex[] = outcome.result.schedules.map(toMeetingWithTrex)
 
       // projectOnline stays as a belt-and-braces filter: the server defaults
       // to online and we ask for it explicitly, but a row with a physical

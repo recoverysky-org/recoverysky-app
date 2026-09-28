@@ -326,7 +326,10 @@ export const ConfigStoreModel = types
           if (shouldFlipMaintenanceOnPollFailure({ isOffline, isLoaded: store.isLoaded })) {
             // Config was previously loaded (polling failure) — enter maintenance mode
             // so the user sees the maintenance banner instead of stale data.
-            log.warn(
+            // CHANGED 2026-09-21 (RS-039): warn → error. This is the terminal
+            // outcome of the ladder and the user sees the maintenance banner
+            // with API features disabled — a user-visible failure, not a retry.
+            log.error(
               "Config poll failed after " + MAX_RETRIES + " attempts — entering maintenance mode",
             )
             store.maintenanceMode = true

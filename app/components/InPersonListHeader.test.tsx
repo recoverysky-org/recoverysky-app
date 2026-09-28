@@ -19,7 +19,6 @@ jest.mock("react-i18next", () => {
 })
 
 const baseProps: InPersonListHeaderProps = {
-  fellowshipLabel: "AA",
   selectedDayLabel: "Mon",
   radiusLabel: "25 mi",
   radiusA11yLabel: "Within 25 miles",
@@ -29,7 +28,6 @@ const baseProps: InPersonListHeaderProps = {
   locationDisabled: false,
   showSpinner: false,
   isRefetching: false,
-  onOpenFellowship: jest.fn(),
   onOpenDay: jest.fn(),
   onOpenRadius: jest.fn(),
   onOpenShortTime: jest.fn(),
@@ -75,6 +73,14 @@ describe("InPersonListHeader result-count slot", () => {
     render(<InPersonListHeader {...baseProps} showSpinner />)
     expect(screen.queryByTestId("result-count")).toBeNull()
     expect(screen.queryByTestId("result-count-loading")).toBeNull()
+  })
+})
+
+describe("InPersonListHeader filters", () => {
+  // CHANGED 2026-09-26: Fellowship moved to the shared Meetings filter bar.
+  it("no longer renders its own fellowship cell", () => {
+    render(<InPersonListHeader {...baseProps} />)
+    expect(screen.queryByLabelText(/^Fellowship,/)).toBeNull()
   })
 })
 

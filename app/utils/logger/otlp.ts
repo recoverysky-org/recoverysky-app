@@ -53,24 +53,23 @@ interface OtlpLogsPayload {
 }
 
 /**
- * Build the OTLP Resource attributes array. Context fields are emitted using
- * canonical OpenTelemetry semantic convention names so server-side bridges
- * (e.g. Grafana Alloy's `otelcol.exporter.loki`) can promote them to Loki
- * labels / structured metadata automatically without a custom transform.
+ * Build the OTLP Resource attributes array, using canonical OpenTelemetry
+ * semantic convention names:
  *
- * Mapping:
- *   deviceId   → `device.id`        (OTel "device" namespace)
- *   sessionId  → `session.id`       (OTel "session" namespace)
- *   userId     → `user.id`          (OTel "user" namespace; hashed — see
- *                                    hashUserId.ts)
- *   appVersion → `service.version`  (already present below; context value
- *                                    overrides the static config value)
+ *   serviceName → `service.name`
+ *   appVersion  → `service.version`  (context value overrides the static
+ *                                     config value)
  *
- * We do NOT emit context fields ALSO under the camelCase keys at the resource
- * level — the OTel canonical name is the contract with downstream
- * collectors. They are kept on per-log-record `attributes` (see below) so
- * existing Loki queries that filter on `deviceId` / `sessionId` keep working
- * during the migration window.
+ * CHANGED 2026-09-22 (RS-042): identity used to ride here too, as `device.id`
+ * / `session.id` / `user.id`, with the camelCase copies kept on each record
+ * "during the migration window". Loki surfaced those as a second spelling
+ * (`device_id`, `session_id`, `user_id`), and because the Resource was built
+ * from the context at FLUSH time while records carry the context at LOG time,
+ * every cold-start line had only the snake_case one — ~35 lines per launch,
+ * silently missed by `| userId="<hash>"`. Nothing promoted them to labels.
+ * The logger now late-binds identity onto those records itself
+ * (`resolvePendingContext` in logger.ts), so the per-record camelCase fields
+ * are complete and the only spelling. Don't re-add the identity keys here.
  */
 function buildResourceAttributes(
   config: LoggerConfig,
@@ -83,25 +82,15 @@ function buildResourceAttributes(
       value: { stringValue: context?.appVersion ?? config.serviceVersion },
     },
   ]
-  if (context?.deviceId) {
-    attrs.push({ key: "device.id", value: { stringValue: context.deviceId } })
-  }
-  if (context?.sessionId) {
-    attrs.push({ key: "session.id", value: { stringValue: context.sessionId } })
-  }
-  if (context?.userId) {
-    attrs.push({ key: "user.id", value: { stringValue: context.userId } })
-  }
   return attrs
 }
 
 /**
  * Convert internal log records to OTLP format.
  *
- * `context` is optional and supplies device/session identity that becomes
- * Resource attributes (see `buildResourceAttributes`). The same fields stay
- * on `record.attributes` for backward compatibility with existing log
- * queries during the migration.
+ * `context` is optional and supplies `appVersion` for the Resource's
+ * `service.version` (see `buildResourceAttributes`). Identity lives on
+ * `record.attributes` only (RS-042).
  */
 export function toOtlpPayload(
   records: LogRecord[],

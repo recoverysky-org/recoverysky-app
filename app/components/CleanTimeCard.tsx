@@ -5,7 +5,7 @@
  * total days, clean date, and progress toward the next milestone.
  */
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { Platform, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker"
@@ -18,6 +18,7 @@ import { translate } from "@/i18n"
 import { useProfileStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { getLocalDay } from "@/utils/localDay"
 
 // ============================================================================
 // Milestones — standard 12-step recovery medallions/keytags
@@ -52,9 +53,14 @@ const MILESTONES: Milestone[] = [
 // Date math helpers
 // ============================================================================
 
-function computeBreakdown(recoveryDate: string) {
+// CHANGED 2026-09-22: takes `today` ("YYYY-MM-DD") instead of reading
+// DateTime.now(). The memo below was keyed only on recoveryDate, so the card
+// kept the count from its first render until the app was killed — Home stays
+// mounted behind the other tabs. Midnight-to-midnight also makes the day
+// count exact instead of flooring a fractional diff.
+function computeBreakdown(recoveryDate: string, today: string) {
   const start = DateTime.fromISO(recoveryDate)
-  const now = DateTime.now()
+  const now = DateTime.fromISO(today)
   const diff = now.diff(start, ["years", "months", "days"]).toObject()
 
   return {
@@ -95,7 +101,6 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
   // Inline date editor — mirrors the Settings recovery-date picker so users
   // can adjust their start date directly from the dashboard.
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const endOfYear = useRef(new Date(new Date().getFullYear(), 11, 31)).current
   const isDarkMode = themeContext === "dark"
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -107,9 +112,19 @@ export const CleanTimeCard = observer(function CleanTimeCard() {
     }
   }
 
+  // Read in render so observer() tracks it: the card re-renders when the local
+  // date rolls over (midnight, or foregrounding on a later day).
+  const today = getLocalDay()
+
+  // Picker ceiling: Dec 31 of the current local year.
+  // CHANGED 2026-09-25: was a useRef captured on first render, so an app kept
+  // alive across New Year still capped the picker at last year's Dec 31 and a
+  // January recovery date couldn't be chosen until a cold start.
+  const endOfYear = useMemo(() => new Date(Number(today.slice(0, 4)), 11, 31), [today])
+
   const breakdown = useMemo(
-    () => computeBreakdown(profileStore.recoveryDate),
-    [profileStore.recoveryDate],
+    () => computeBreakdown(profileStore.recoveryDate, today),
+    [profileStore.recoveryDate, today],
   )
 
   const milestone = useMemo(

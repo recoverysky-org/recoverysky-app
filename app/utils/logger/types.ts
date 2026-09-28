@@ -15,6 +15,12 @@ export interface LogRecord {
   attributes: LogAttributes
   traceId?: string
   spanId?: string
+  /**
+   * Context keys that had never been passed to `setContext` when this record
+   * was logged, filled in from the context at flush time and then removed
+   * (RS-042 — see `resolvePendingContext` in logger.ts). Never shipped.
+   */
+  pendingContext?: Array<keyof LoggerContext>
 }
 
 export interface LoggerConfig {

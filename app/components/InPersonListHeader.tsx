@@ -37,8 +37,6 @@ import type { InPersonSortOrder, NearbyBannerReason } from "@/utils/nearbyLogic"
 const BANNER_ACCENT = "#f59e0b"
 
 export interface InPersonListHeaderProps {
-  /** Fellowship code ("AA") for the fellowship selector's value column */
-  fellowshipLabel: string
   /** Translated weekday name for the day selector's value column */
   selectedDayLabel: string
   /** Bare distance ("25 mi") for the radius selector's value column */
@@ -76,7 +74,6 @@ export interface InPersonListHeaderProps {
    * is excluded by the screen so its native spinner isn't doubled here.
    */
   isRefetching: boolean
-  onOpenFellowship: () => void
   onOpenDay: () => void
   onOpenRadius: () => void
   onOpenShortTime: () => void
@@ -114,7 +111,6 @@ export interface InPersonListHeaderProps {
 
 export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
   function InPersonListHeader({
-    fellowshipLabel,
     selectedDayLabel,
     radiusLabel,
     radiusA11yLabel,
@@ -124,7 +120,6 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
     locationDisabled,
     showSpinner,
     isRefetching,
-    onOpenFellowship,
     onOpenDay,
     onOpenRadius,
     onOpenShortTime,
@@ -251,23 +246,21 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           deliberately left free to wrap: at ~160dp per cell the long ones
           (de "Gemeinschaft", ru "Сообщество") can need two lines, and since
           $selectorRow stretches, that just makes the row taller with both
-          cells still matching. Truncating a label would be worse. */}
-        <View style={themed($selectorRow)}>
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={onOpenFellowship}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:fellowshipLabel")}, ${fellowshipLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:fellowshipLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {fellowshipLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+          cells still matching. Truncating a label would be worse.
 
+          CHANGED 2026-09-26: Fellowship left this grid for the shared filter
+          bar below the segment tabs (MeetingFilterBar). The remaining three cells
+          fit one row, which gives the list back a row of height.
+          CHANGED 2026-09-27 (Jenova): each of Radius / Day / Time now gets its
+          own full-width row ($selectorColumn). Three cells abreast left each
+          ~100dp, too tight for a label plus value; stacked, every value has
+          room and the three read as a list of questions.
+          CHANGED 2026-09-27 (Jenova, later the same day): Radius keeps its own
+          full-width row, and Day | Time now share the row below it ($whenRow),
+          matching Search's grid where the two "when" filters sit together.
+          Day ("Mon") and Time (one-word buckets) are short enough for half
+          width; Radius is the "where" question and leads on its own. */}
+        <View style={themed($selectorColumn)}>
           <TouchableOpacity
             style={themed($selectorButton)}
             onPress={onOpenRadius}
@@ -282,38 +275,38 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
               <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
             </View>
           </TouchableOpacity>
-        </View>
 
-        <View style={themed($selectorRow)}>
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={onOpenDay}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {selectedDayLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+          <View style={themed($whenRow)}>
+            <TouchableOpacity
+              style={[themed($selectorButton), $halfCell]}
+              onPress={onOpenDay}
+              accessibilityRole="button"
+              accessibilityLabel={`${t("listingsScreen:dayLabel")}, ${selectedDayLabel}`}
+            >
+              <Text style={themed($selectorLabel)}>{t("listingsScreen:dayLabel")}</Text>
+              <View style={$selectorValueRow}>
+                <Text style={themed($selectorValue)} numberOfLines={1}>
+                  {selectedDayLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={themed($selectorButton)}
-            onPress={onOpenShortTime}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
-          >
-            <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
-            <View style={$selectorValueRow}>
-              <Text style={themed($selectorValue)} numberOfLines={1}>
-                {shortTimeLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
-            </View>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[themed($selectorButton), $halfCell]}
+              onPress={onOpenShortTime}
+              accessibilityRole="button"
+              accessibilityLabel={`${t("inPersonScreen:shortTimeLabel")}, ${shortTimeLabel}`}
+            >
+              <Text style={themed($selectorLabel)}>{t("inPersonScreen:shortTimeLabel")}</Text>
+              <View style={$selectorValueRow}>
+                <Text style={themed($selectorValue)} numberOfLines={1}>
+                  {shortTimeLabel}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={theme.colors.tint} />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Controls row: list/map pill on the left, Distance/Start sort pill on
@@ -328,7 +321,19 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           show — on the map the sort half is empty but the way back to the list
           must still be here, and in fallback mode the sort pill is hidden but
           the map one may not be. The map slot is a plain spacer when
-          hidden so the sort pill still lands under the right column. */}
+          hidden so the sort pill still lands under the right column.
+          CHANGED 2026-09-26: "the grid's two columns" above is stale — the
+          selector grid lost its two-row/two-column shape when Fellowship
+          moved out to the shared filter bar (see the CHANGED note on
+          $selectorRow above); it's a single row of three cells now. This
+          controls row still sits flush underneath it either way, so the
+          layout claim stands even though the grid it's describing changed
+          shape.
+          CHANGED 2026-09-27: the selectors are now a vertical stack of
+          full-width rows ($selectorColumn); the pills still share its
+          horizontal inset, so their outer edges line up with the rows.
+          CHANGED 2026-09-27 (later): Radius full width, then Day | Time
+          ($whenRow) — same inset, so the pills still line up. */}
         {(showMapToggle || showSortToggle) && (
           <View style={themed($controlsRow)}>
             <View>
@@ -420,8 +425,11 @@ const $headerTitleGroup: ViewStyle = {
   flexShrink: 1,
 }
 
-const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
+// CHANGED 2026-09-27: was `$selectorRow` (one row of three cells); now a
+// column so each selector is its own full-width row. `alignItems: "stretch"`
+// is what makes each row span the width now that the cells have no `flex: 1`.
+const $selectorColumn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "column",
   alignItems: "stretch",
   marginHorizontal: spacing.md,
   marginVertical: spacing.sm,
@@ -431,6 +439,13 @@ const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // Same horizontal inset as `$selectorRow` so the two pills sit flush under the
 // grid's two columns. No top margin: the grid row above already carries
 // `marginVertical: spacing.sm`, which is the gap we want.
+// CHANGED 2026-09-26: "the grid's two columns" is stale — Fellowship left the
+// grid for the shared filter bar below the segment tabs, so `$selectorRow` is now
+// one row of three cells (Radius / Day / Time), not a 2×2 grid. The shared
+// horizontal inset is still the point: these two pills line up with that
+// row's left and right edges either way.
+// CHANGED 2026-09-27: `$selectorRow` is now `$selectorColumn` (three stacked
+// full-width rows); same inset, same alignment.
 const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
@@ -439,8 +454,22 @@ const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.sm,
 })
 
+// CHANGED 2026-09-27: dropped `flex: 1`. It split a row between three cells;
+// inside the vertical $selectorColumn it would fight the auto height instead.
+// Day | Time side by side under Radius (ADDED 2026-09-27). Same gap as the
+// column so the half cells line up with the full-width Radius row above.
+const $whenRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "stretch",
+  gap: spacing.sm,
+})
+
+// Each half of $whenRow. `flex: 1` is safe here (a row, width-split) — it was
+// only removed from $selectorButton itself because the column would treat it
+// as a height instruction.
+const $halfCell: ViewStyle = { flex: 1 }
+
 const $selectorButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  flex: 1,
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",

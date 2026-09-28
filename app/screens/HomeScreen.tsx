@@ -154,6 +154,20 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
         setNewsTitle(result.title)
         setNewsBody(result.body)
       } else {
+        // ADDED 2026-09-21 (RS-039): the Api module's "News fetch failed" line
+        // is debug now, so this is the only record. WARN, not ERROR — Home
+        // renders without the card and nothing the user did is lost.
+        // CHANGED 2026-09-22: WARN → DEBUG. A missing news card is routine
+        // (no news published, offline, degraded device lane) and the WARN was
+        // pure noise in Loki; the line stays at debug for when news is
+        // actually being investigated.
+        // CHANGED 2026-09-26: `no-content` is the server's idle state (204,
+        // nothing published) and was the kind on 144 of 145 loads in a 6h
+        // window as `bad-data`. It is not "unavailable", so it no longer logs
+        // here at all — getNews records it at debug. `bad-data` now means a
+        // genuinely malformed payload and getNews warns on it.
+        if (result.kind !== "ok" && result.kind !== "no-content")
+          log.debug("News unavailable — hiding the card", { kind: result.kind })
         setNewsTitle("")
         setNewsBody("")
       }

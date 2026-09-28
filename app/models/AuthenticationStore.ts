@@ -72,6 +72,16 @@ export const AuthenticationStoreModel = types
     pendingLogout: false,
     /** See ForeignSession. Volatile: a cold start re-derives it from the SDK's restored session. */
     foreignSession: undefined as ForeignSession | undefined,
+    /**
+     * Raised by app.tsx's performForcedLogout() AFTER logout() so LoginScreen
+     * can say why the user is looking at it. ADDED 2026-09-19 (RS-036): a
+     * refresh that fails permanently (dead refresh token, DPoP key gone from
+     * the Keychain, an unusable renewed token) ejected the user to Login with
+     * no message at all — indistinguishable from never having signed in, and
+     * the only trace was one ERROR line. LoginScreen reads this on mount and
+     * clears it. Volatile: a cold start has nothing to explain.
+     */
+    forcedLogoutNotice: false,
   }))
   .views((store) => ({
     /**
@@ -203,6 +213,10 @@ export const AuthenticationStoreModel = types
     },
     clearForeignSession() {
       store.foreignSession = undefined
+    },
+    /** See the forcedLogoutNotice volatile field. */
+    setForcedLogoutNotice(value: boolean) {
+      store.forcedLogoutNotice = value
     },
     /**
      * Login as anonymous user

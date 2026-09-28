@@ -409,3 +409,119 @@ their access token expired, until an app restart), not the implementation.
 - DPoP-bound tokens.
 - The unrelated `ReauthBanner` / degraded-mode UI that the rejected option 1
   would have needed.
+
+## Appendix: CLAUDE.md history (moved 2026-09-27)
+
+This is the "Auth, Attestation & Encryption Keys" text from `CLAUDE.md` exactly as it read before it was cut down to current-state rules. It is kept here so the reasoning and change log are not lost.
+
+### Auth, Attestation & Encryption Keys
+
+Three separate trust layers, easy to confuse:
+
+1. **User identity — Auth0** (`app/services/auth/`). Universal Login via
+   `react-native-auth0`, config in `auth0.ts` (`EXPO_PUBLIC_AUTH0_*`,
+   custom scheme `recoverysky-app`, scopes include `offline_access`).
+   `useAuth0Wrapper.ts` is the hook the app consumes. Tokens land in
+   `AuthenticationStore` — only `refreshToken` is persisted (MMKV);
+   `accessToken` / `idToken` / `expiresAt` are volatile by design.
+   `secureStorage.ts` wraps expo-secure-store; `vault.ts` is a **web-only**
+   tweetnacl-obscured storage shim (native uses Keychain/Keystore instead).
+   ADDED 2026-09-10: every access token is shape-checked by the pure
+   `isUsableAccessToken()` (`jwtUtils.ts`) before it enters the store —
+   cold-start hydration, the SDK sync effect, and the refresher all apply
+   it — because an audience-less refresh token renews into an opaque
+   userinfo-only token forever. The user-lane refresher now lives in
+   `userTokenRefresher.ts` with injected I/O (vitest-covered); the API's
+   bearer-rejection codes reach its `markRejected()` through an apisauce
+   monitor (`bearerRejectionLogic.ts`). Spec:
+   `docs/superpowers/specs/2026-09-10-opaque-access-token-after-idle-renewal-design.md`.
+2. **Device trust — attestation** (`app/services/attestation/`). Apple App
+   Attest (iOS 14+) / Google Play Integrity via `@expo/app-integrity`,
+   exchanged with the backend for a device JWT that becomes
+   `X-Device-Token`. CHANGED 2026-09-09: the JWT and the iOS App Attest key
+   id are **persisted in SecureStore** (`device_jwt_v1`,
+   `app_attest_key_id_v1`, per install, untouched by sign-out). Cold start
+   is `hydratePersistedDeviceJwt()` → `establishDeviceToken()`, which asserts
+   against the stored key (`POST /attest/assert`) and only generates a new
+   key when the server rejects it. Decisions live in the pure, vitest-covered
+   `deviceTokenLogic.ts`; the native calls in `index.ts`; the I/O in
+   `deviceToken.ts`. Temporary failures **degrade** (app opens,
+   `configStore.deviceAuthDegraded`, "Connecting…" banner, refresher retries)
+   rather than block; only `unsupported` and a 401/403 on `POST /attest`
+   block (CHANGED 2026-09-09 after final review: a 400 `bad_nonce` and a 429
+   from the routes' per-IP limiter degrade — they are protocol outcomes, not
+   verdicts about the device).
+   Simulators, web, and Android dev builds call `setApiKeyFallback()` to take
+   the `X-API-Key` path instead. Spec:
+   `docs/superpowers/specs/2026-09-09-app-attest-assertions-and-jwt-persistence-design.md`.
+3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
+   Anonymous users get a locally generated 256-bit key in SecureStore
+   (`sqlite_encryption_key_v1`); authenticated users get the key from JWT
+   custom claims. This is what makes ProfileStore's "volatile (encrypted
+   SQLite)" tier actually encrypted.
+
+**Token freshness gate.** Both JWTs are refreshed *proactively*, by a single
+apisauce async request transform installed in the `Api` constructor
+(`installAuthGate`). It awaits two injected refreshers and stamps
+`X-Device-Token` / `Authorization` onto each individual request — there are no
+sticky auth headers any more, and `setDeviceJwt` / `setAuthToken` /
+`updateAuth` / `waitForAttestation` are gone.
+
+- Refreshers are **injected** via `api.registerTokenRefreshers()` from
+  `app.tsx`, never imported. `app/services/api/` must stay a dependency leaf:
+  the direction is `attestation → api`, and importing back would make
+  `depcruise` see a cycle.
+- Bypass is the `X-Skip-Auth-Gate` sentinel header, **not** a URL list —
+  `getPublicStatus()` (now `GET /status/ready`, CHANGED 2026-09-14) and the
+  authenticated `getStatus()` (`GET /status`) share a router, and a URL
+  prefix rule would be fragile. It is also the recursion guard for the
+  device refresher's own `/attest` call.
+- Skews are asymmetric on purpose: 60 s for the Auth0 token (one cheap hop,
+  handed to the SDK as `minTtl`), 5 min for the device token (a server round
+  trip, plus a multi-second Apple/Play round trip only when the stored key
+  was rejected).
+- A refresh failure classified `permanent` (see `tokenFreshnessLogic.ts`)
+  forces a logout — **deferred while `isTimerSessionActive()`**, because the
+  eject swaps the tree above `MainNavigator`'s timer tab-lock and
+  `TimerSessionResumer` would not re-fire after re-login. Unknown error codes
+  default to `transient` deliberately; do not "tidy" that default.
+- Two more things latch the user lane the same way (2026-09-10): a renewed
+  token that fails `isUsableAccessToken()` (thrown as `UnusableTokenError`,
+  classified permanent) and a 401 carrying `token_malformed` /
+  `token_claims` / `token_signature` from the API. `token_expired`,
+  `token_invalid`, a code-less 401 and a 503 `auth_unavailable` never do.
+- There is **no reactive 401 path for the user lane**, and until 2026-09-14
+  there was none for the device lane either (the claim that "both server
+  middlewares return an identical 401 body" was wrong: the device middleware
+  answers a bad `X-Device-Token` with a code-less 401, while every user-lane
+  rejection carries `code: token_*`, and the device check runs first).
+  CORRECTED 2026-09-21 (RS-040): "every user-lane rejection" has one
+  un-coded exception — a request with no `Authorization` header at all gets
+  auth.ts's plain `{ error: "Unauthorized", message: "Missing or invalid
+  authorization header" }`, after the device JWT was verified. That exact
+  body is excluded by `USER_LANE_MISSING_CREDENTIALS_BODY`; every other
+  code-less 401 still drops the JWT.
+  ADDED 2026-09-14: `deviceJwtRejected()` (`bearerRejectionLogic.ts`) reads
+  that asymmetry in the same monitor; a hit calls `markDeviceJwtRejected()`
+  (`deviceToken.ts`, identity-guarded by the pure `shouldDropRejectedJwt`)
+  which clears the JWT from module state and SecureStore, so the next
+  request re-asserts through the single-flight refresher. Before this a JWT
+  the server had stopped honouring was re-sent until its own expiry — up to
+  seven days — and CrowdSec's 401 brute-force scenario banned the device.
+- **No credential → no request** (ADDED 2026-09-14). When the gate has
+  neither a device JWT nor an API key (attestation degraded or backing off,
+  outage mode before a lane is chosen — production has no
+  `EXPO_PUBLIC_AUTH_KEY`), it installs `noDeviceCredentialAdapter` on the
+  request so it resolves as a 401 locally with the `no_device_credential`
+  marker body. Call sites still get `{ kind: "unauthorized" }`; nothing
+  reaches the wire. Don't "restore" the bare send — every one was a
+  guaranteed server 401 counted by the edge.
+- **Retry ladders retry transport failures only.** `ConfigStore.fetchConfig`,
+  `MeetingContext.retryWithBackoff` and the nearby fetch's single retry all
+  go through `isRetryableProblem()` (`contentRetryLogic.ts`, CHANGED
+  2026-09-14): a 401/403/404/429 ends the ladder on the first answer. They
+  used to retry any non-ok kind, which multiplied every rejection three to
+  four times per trigger.
+
+Design + manual test checklist:
+`docs/superpowers/specs/2026-08-06-jwt-refresh-design.md`.

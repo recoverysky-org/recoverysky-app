@@ -12,11 +12,17 @@ export interface SegmentedPillOption<T extends string> {
   value: T
   /** Already-translated noun for the half ("Map", "Distance"). Doubles as its a11y label. */
   label: string
-  icon: IoniconName
+  /** Optional: text-only pills (e.g. Starts In's "15 min") omit it. ADDED 2026-09-26. */
+  icon?: IoniconName
   /** Greys this half out and blocks its press. The ACTIVE half ignores it — see below. */
   disabled?: boolean
   /** Read after the label while the half is disabled, to say why. */
   disabledHint?: string
+  /**
+   * Overrides `label` for screen readers when the visible text is an
+   * abbreviation ("15m" → "Starts in 15 minutes"). ADDED 2026-09-27.
+   */
+  accessibilityLabel?: string
 }
 
 interface SegmentedPillProps<T extends string> {
@@ -101,11 +107,11 @@ export function SegmentedPill<T extends string>({
             // happen.
             activeOpacity={selected ? 1 : 0.2}
             accessibilityRole="tab"
-            accessibilityLabel={option.label}
+            accessibilityLabel={option.accessibilityLabel ?? option.label}
             accessibilityState={{ selected, disabled: isDisabled }}
             accessibilityHint={isDisabled ? option.disabledHint : undefined}
           >
-            <Ionicons name={option.icon} size={15} color={contentColor} />
+            {option.icon && <Ionicons name={option.icon} size={15} color={contentColor} />}
             <Text style={[themed($segmentLabel), { color: contentColor }]} numberOfLines={1}>
               {option.label}
             </Text>

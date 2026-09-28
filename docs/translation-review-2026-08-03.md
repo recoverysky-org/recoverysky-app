@@ -840,3 +840,31 @@ Two new top-level translation objects (`loginScreen` additions and the new `wron
 - **`resendIn` is the only string here with a live numeric interpolation.** `{{seconds}}` arrives as a countdown (60, 59, 58, …). Test on device that the result reads naturally in countdown mode, not just as a static example ("Resend in 60s"). The string updates every second.
 - **`wrongAccountScreen:title` is unusually long for a heading.** It is the modal's title on a fixed-width small sheet; confirm it doesn't wrap awkwardly in your language. If it does, it can be restructured — the rules aren't as tight as a tab bar label.
 - **Term consistency:** `wrongAccountScreen` uses "Google" and "Apple" as bare brand names for the buttons, matching `loginScreen:continueWithGoogle` / `continueWithApple`. Verify all three are translated identically (or intentionally left as bare names in your locale).
+
+## 2026-09-19 — Forced-logout notice (RS-036), 8 strings (8 locales × 1 key)
+
+`loginScreen.sessionUnrecoverable` — best-effort translations in ar, de, es, fr,
+pt, ru, th, uk. Shown on the Login screen after the app had to sign the user out
+because the stored session could not be renewed (dead refresh token, missing
+DPoP key). It must read as "this was done to you, and signing in again fixes
+it" — not as a scolding and not as a generic error.
+
+## 2026-09-27 — Meetings filter bar, Online tab, Live Now / Starts In
+
+**Best-effort translations to check (8 locales each):**
+- `meetingsScreen.liveSegment` → "Online" (was "Live"): es "En línea", ar
+  "عبر الإنترنت", de "Online", fr "En ligne", pt "Online", ru "Онлайн", th
+  "ออนไลน์", uk "Онлайн".
+- `liveScreen.title` → "Live Now" (was "Live Online", the 2026-08-04 retitle
+  row above): es "En vivo ahora", ar "مباشر الآن", de "Jetzt live", fr "En
+  direct maintenant", pt "Ao vivo agora", ru "Сейчас идут", th "สดตอนนี้",
+  uk "Зараз ідуть". It heads the Online segment while "Live Now" is selected,
+  i.e. meetings in progress right now.
+
+**Still English placeholders (need translating):** `liveScreen.startsIn`,
+`startsInLive` ("Live Now"), `startsInMinutes` ("{{minutes}}m"),
+`startsInMinutesA11y` ("Starts in {{minutes}} minutes"), `titleStartsIn`
+("Starts within {{minutes}}m"), `startingAt`, `atNextError`, and
+`meetingsScreen.noMeetingsInLanguage` / `showAllLanguages`. Starts In is dev-only
+until `startsInVisible` flips, so these can land with that release. Keep
+`startsInLive` and `title` consistent — they read side by side.

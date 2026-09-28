@@ -116,7 +116,7 @@ describe("Logger", () => {
         apiKey: "test-key",
       })
 
-      logger.info("Test message", { userId: "123", action: "login" })
+      logger.info("Test message", { requestId: "123", action: "login" })
 
       await logger.flush()
 
@@ -125,7 +125,7 @@ describe("Logger", () => {
       expect(records[0]).toMatchObject({
         level: "info",
         message: "Test message",
-        attributes: { userId: "123", action: "login" },
+        attributes: { requestId: "123", action: "login" },
       })
       expect(records[0].timestamp).toBeTypeOf("number")
 
@@ -373,8 +373,8 @@ describe("Logger", () => {
 
       await logger.flush()
 
-      // Third argument to sendToOtlp is the LoggerContext used to populate
-      // OTLP Resource attributes (device.id, session.id, service.version).
+      // Third argument to sendToOtlp is the LoggerContext; it populates the
+      // OTLP Resource's service.version (identity is per-record — RS-042).
       const call = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
       expect(call[2]).toEqual({
         sessionId: "session-xyz",
@@ -521,8 +521,7 @@ describe("Logger", () => {
         userId: "0123456789abcdef",
         module: "App",
       })
-      // The OTLP Resource (service.version, session.id, device.id, user.id)
-      // is built from the same object at flush time.
+      // The same object reaches sendToOtlp at flush time (service.version).
       expect(context).toEqual({
         sessionId: "session-xyz",
         appVersion: "4.10.1-5",
@@ -554,7 +553,9 @@ describe("Logger", () => {
       logger.destroy()
     })
 
-    it("should prioritize per-call attributes over context", async () => {
+    // CHANGED 2026-09-22 (RS-043): context keys are reserved — per-call values
+    // used to win, which is how a raw-sub prefix replaced the hashed userId.
+    it("should not let per-call attributes override context keys", async () => {
       const logger = createLogger({
         minLevel: "info",
         consoleInDev: false,
@@ -562,13 +563,190 @@ describe("Logger", () => {
         apiKey: "test-key",
       })
 
-      logger.setContext({ sessionId: "context-session" })
-      logger.info("Override test", { sessionId: "override-session" })
+      logger.setContext({ sessionId: "context-session", userId: "0123456789abcdef" })
+      logger.info("Override test", {
+        sessionId: "override-session",
+        userId: "google-o...",
+        user_id: "forged",
+        module: "kept",
+      })
 
       await logger.flush()
 
       const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
-      expect(records[0].attributes.sessionId).toBe("override-session")
+      expect(records[0].attributes).toEqual({
+        sessionId: "context-session",
+        userId: "0123456789abcdef",
+        module: "kept",
+      })
+
+      logger.destroy()
+    })
+
+    it("should drop a per-call context key even when context lacks it", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      // Anonymous user: no userId in context, so there is nothing to win the
+      // spread — the caller's value must still not reach the record.
+      logger.setContext({ deviceId: "device-hash" })
+      logger.info("Anonymous", { userId: "auth0|6a...", deviceId: "raw-dev..." })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ deviceId: "device-hash" })
+
+      logger.destroy()
+    })
+
+    it("should not let child attributes override context keys", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.setContext({ appVersion: "4.10.1-8" })
+      const child = logger.child({ module: "Push", appVersion: "stale" })
+      child.info("From child")
+
+      await child.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ appVersion: "4.10.1-8", module: "Push" })
+
+      logger.destroy()
+    })
+
+    it("should keep traceId as an ordinary per-call attribute", async () => {
+      const logger = createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+      logger.info("API request", { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes.traceId).toBe("4bf92f3577b34da6a3ce929d0e0e4736")
+
+      logger.destroy()
+    })
+  })
+
+  // RS-042: cold-start lines are logged before app.tsx knows deviceId/userId
+  // and held until /config supplies the OTLP key. They used to reach Loki
+  // with identity only as the flush-time Resource (snake_case user_id).
+  describe("late-bound identity", () => {
+    const make = () =>
+      createLogger({
+        minLevel: "info",
+        consoleInDev: false,
+        endpoint: "https://test.example.com",
+        apiKey: "test-key",
+      })
+
+    it("should fill never-set keys from the context at flush", async () => {
+      const logger = make()
+
+      logger.info("App module loaded")
+      logger.setContext({ sessionId: "session-xyz", appVersion: "4.10.1-9" })
+      logger.info("getDeviceId()")
+      logger.setContext({ deviceId: "device-abc" })
+      logger.setContext({ userId: "0123456789abcdef" })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      const full = {
+        sessionId: "session-xyz",
+        appVersion: "4.10.1-9",
+        deviceId: "device-abc",
+        userId: "0123456789abcdef",
+      }
+      expect(records[0].attributes).toEqual(full)
+      expect(records[1].attributes).toEqual(full)
+      expect(records[0].pendingContext).toBeUndefined()
+      expect(records[1].pendingContext).toBeUndefined()
+
+      logger.destroy()
+    })
+
+    it("should not back-fill a key resolved as absent (anonymous user)", async () => {
+      const logger = make()
+
+      // app.tsx writes userId: hashUserId(undefined) === undefined for an
+      // anonymous user — that resolves the key.
+      logger.setContext({ deviceId: "device-abc", userId: undefined })
+      logger.info("Anonymous line")
+      logger.setContext({ userId: "0123456789abcdef" })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes).toEqual({ deviceId: "device-abc" })
+
+      logger.destroy()
+    })
+
+    it("should not give a signed-out line the next sign-in's identity", async () => {
+      const logger = make()
+
+      logger.setContext({ userId: "aaaaaaaaaaaaaaaa" })
+      logger.setContext({ userId: undefined })
+      logger.info("Signed out")
+      logger.setContext({ userId: "bbbbbbbbbbbbbbbb" })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes.userId).toBeUndefined()
+
+      logger.destroy()
+    })
+
+    it("should keep a value the record already carried", async () => {
+      const logger = make()
+
+      logger.setContext({ deviceId: "device-old" })
+      logger.info("Before userId")
+      logger.setContext({ deviceId: "device-new", userId: "0123456789abcdef" })
+
+      await logger.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(records[0].attributes.deviceId).toBe("device-old")
+      expect(records[0].attributes.userId).toBe("0123456789abcdef")
+
+      logger.destroy()
+    })
+
+    it("should share resolved keys with a child created before setContext", async () => {
+      const logger = make()
+      const child = logger.child({ module: "sqliteKey" })
+
+      child.info("loadSqliteEncryptionKey()")
+      logger.setContext({ deviceId: "device-abc", userId: undefined })
+      child.info("After resolution")
+      logger.setContext({ userId: "0123456789abcdef" })
+
+      await child.flush()
+
+      const [records] = (otlp.sendToOtlp as ReturnType<typeof vi.fn>).mock.calls[0]
+      // Logged while userId was unresolved → filled.
+      expect(records[0].attributes.userId).toBe("0123456789abcdef")
+      // Logged after the root resolved userId as absent → not filled.
+      expect(records[1].attributes.userId).toBeUndefined()
+      expect(records[1].attributes.deviceId).toBe("device-abc")
 
       logger.destroy()
     })

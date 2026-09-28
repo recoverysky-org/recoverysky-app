@@ -9,6 +9,7 @@
  * - Subscription management
  */
 
+import { Platform } from "react-native"
 import Purchases, {
   CustomerInfo,
   PurchasesOffering,
@@ -110,6 +111,29 @@ export async function initializeRevenueCat(
     const message = error instanceof Error ? error.message : String(error)
     log.warn("Failed to initialize RevenueCat", { error: message })
     return { ok: false, error: message }
+  }
+}
+
+/**
+ * Whether `Purchases.configure()` has run in this process.
+ *
+ * ADDED 2026-09-19 (RS-029). The SDK is configured from SubscriptionContext's
+ * mount effect, but the attendance-sync gate is wired from app.tsx's RootStore
+ * setup, which runs before any provider mounts. A cold start whose stored
+ * access token had expired refreshed it, fired every sync trigger in the same
+ * second, and each tick reached `hasEntitlement()` before the SDK existed —
+ * five ERROR lines ("There is no singleton instance") per launch on the one
+ * device where the DB open and the token refresh both beat the provider.
+ * Callers that run before React use this the way the gate uses "is the DB
+ * open": as a precondition to skip on, not an error to report. Never throws;
+ * a missing native module (web) reads as not configured.
+ */
+export async function isPurchasesConfigured(): Promise<boolean> {
+  if (Platform.OS === "web") return false
+  try {
+    return await Purchases.isConfigured()
+  } catch {
+    return false
   }
 }
 
@@ -395,7 +419,9 @@ export async function presentPaywallIfNeeded(): Promise<Result<boolean>> {
  */
 export async function loginUser(appUserId: string): Promise<Result<CustomerInfo>> {
   try {
-    log.info("Logging in user to RevenueCat", { appUserId })
+    // No `appUserId` in the line: it is the raw Auth0 sub, and every record
+    // ships to Loki (CLAUDE.md "Logging" — hashed ids only). FIXED 2026-09-18.
+    log.info("Logging in user to RevenueCat")
     const { customerInfo } = await Purchases.logIn(appUserId)
     return { ok: true, value: customerInfo }
   } catch (error) {

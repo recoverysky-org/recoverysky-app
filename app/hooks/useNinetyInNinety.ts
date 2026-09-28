@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 
 import { attendanceRepo, attendanceEvents, type AttendanceRecord } from "@/db"
 import { useAuthenticationStore, useProfileStore } from "@/models"
+import { getLocalDay } from "@/utils/localDay"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "useNinetyInNinety" })
@@ -70,7 +71,10 @@ function daysBetween(startIso: string, endDate: Date): number {
   const start = new Date(startIso + "T00:00:00")
   const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
   const diffMs = end.getTime() - start.getTime()
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  // CHANGED 2026-09-22: was Math.floor. Local midnight to local midnight is
+  // 23 h short of a whole number of days once a spring-forward DST day sits in
+  // between, and flooring dropped a day for the rest of the challenge.
+  return Math.round(diffMs / (1000 * 60 * 60 * 24))
 }
 
 /**
@@ -194,6 +198,13 @@ export function useNinetyInNinety(): NinetyStats {
     })
   }, [refresh])
 
+  // Read in render so the calling observer() re-renders when the local date
+  // rolls over (midnight, or foregrounding on a later day).
+  // ADDED 2026-09-22: the memo read `new Date()` with only [records, startDate]
+  // as deps, so "Day N of 90" froze at the day the card first rendered — same
+  // freeze as the clean-time card (see localDay.ts).
+  const localDay = getLocalDay()
+
   // Compute stats from records
   const stats = useMemo(() => {
     if (!startDate) {
@@ -214,7 +225,7 @@ export function useNinetyInNinety(): NinetyStats {
       }
     }
 
-    const today = new Date()
+    const today = new Date(localDay + "T12:00:00")
     const rawDaysSinceStart = daysBetween(startDate, today)
     // Day 1 = start date, so daysElapsed = daysSinceStart + 1 (capped at 90)
     const daysElapsed = Math.max(Math.min(rawDaysSinceStart + 1, 90), 1)
@@ -248,7 +259,7 @@ export function useNinetyInNinety(): NinetyStats {
       isExpired,
       dailyMinutes,
     }
-  }, [records, startDate])
+  }, [records, startDate, localDay])
 
   return {
     ...stats,

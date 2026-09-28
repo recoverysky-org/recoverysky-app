@@ -84,6 +84,8 @@ const fr: Translations = {
       "La fenêtre de connexion s'est fermée avant la fin. Appuyez de nouveau sur le bouton et restez dans le navigateur jusqu'à ce qu'il vous ramène dans l'application.",
     errorNetwork:
       "Impossible de joindre le service de connexion. Vérifiez votre connexion et réessayez.",
+    sessionUnrecoverable:
+      "Vous avez été déconnecté(e) car votre session n'a pas pu être restaurée sur cet appareil. Veuillez vous reconnecter.",
     // ADDED 2026-09-17 — passwordless login (spec 1). loginButton/signupButton are retired with the LoginScreen rewrite.
     continueWithEmail: "Continue with Email",
     continueWithApple: "Continue with Apple",
@@ -173,17 +175,26 @@ const fr: Translations = {
   meetingsScreen: {
     title: "Réunions",
     placeholder: "Liste des réunions à venir",
-    liveSegment: "En direct",
+    liveSegment: "En ligne",
     inPersonSegment: "En personne",
     // Relabeled from "Répertoire" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Recherche",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Fraternité",
+    filterLang: "Langue",
+    filterLanguageA11y: "Langue",
+    allLanguages: "Toutes",
+    selectLanguage: "Choisir la langue",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Horaire",
     placeholder: "Vue de l'horaire à venir",
   },
   liveScreen: {
-    title: "En direct en ligne",
+    title: "En direct maintenant",
     noMeetings: "Aucune réunion en direct en ce moment",
     lastRefresh: "Dernière vérification : {{time}}",
     joinMeeting: "Joindre",
@@ -205,7 +216,16 @@ const fr: Translations = {
     fri: "VEN",
     sat: "SAM",
     sun: "DIM",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    // CHANGED 2026-09-27: "Live Now" / "15m" (Jenova); the full phrase is
+    // spoken via startsInMinutesA11y.
+    startsInLive: "Live Now",
+    startsInMinutes: "{{minutes}}m",
+    startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    titleStartsIn: "Starts within {{minutes}}m",
+    startingAt: "starting at {{time}}",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Répertoire de réunions" 2026-08-03 — namespace/key unchanged.
@@ -219,8 +239,6 @@ const fr: Translations = {
     emptyNoMatches: "Aucune réunion ne correspond à votre recherche",
     // Filter labels
     dayLabel: "Jour",
-    languageLabel: "Langue",
-    langLabel: "Langue",
     venueLabel: "Lieu",
     venueOnline: "En ligne",
     venueInPerson: "En personne",
@@ -230,13 +248,11 @@ const fr: Translations = {
     emptyNoLocation:
       "Activez la localisation pour rechercher des réunions en présentiel près de vous",
     radiusOnlineNote: "non disponible pour les réunions en ligne",
-    allLanguages: "Toutes",
     startLabel: "Début",
     endLabel: "Fin",
     toSeparator: "à",
     // Modal titles
     selectDay: "Choisir le jour",
-    selectLanguage: "Choisir la langue",
     startTime: "Heure de début",
     endTime: "Heure de fin",
     // Day names
@@ -911,7 +927,6 @@ const fr: Translations = {
   inPersonScreen: {
     title: "En personne",
     withinRadius: "Dans un rayon de {{distance}}",
-    fellowshipLabel: "Fraternité",
     selectRadius: "Rayon",
     shortTimeLabel: "Heure",
     shortTimeAll: "À toute heure",

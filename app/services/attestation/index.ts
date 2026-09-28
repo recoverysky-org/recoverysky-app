@@ -73,13 +73,26 @@ export function isAttestationSupported(): boolean {
 // =============================================================================
 
 let playIntegrityPrepared = false
+// Remembered so generateAttestation() can re-run the prepare lazily.
+// ADDED 2026-09-19 (RS-015): the prepare used to be one shot per process.
+// When it failed — one device hit Play Integrity error -9, CANNOT_BIND_TO_
+// SERVICE, "Binding to the service in the Play Store" (an outdated Play Store
+// or a Play Services that had not finished starting) — every later
+// attestation in that process threw "provider not prepared" and degraded,
+// with no way back to a device token until the next cold start. Google
+// documents -9 as retryable; the device refresher already retries the
+// exchange on a backoff, so giving the prepare another chance on each attempt
+// is all that was missing.
+let playIntegrityProjectNumber: string | null = null
 
 /**
  * Prepare Android Play Integrity token provider. Called once per process
- * from app.tsx; the standard-API provider is the cheap, un-throttled path.
+ * from app.tsx (and again by generateAttestation() when that first call
+ * failed); the standard-API provider is the cheap, un-throttled path.
  */
 export async function preparePlayIntegrity(cloudProjectNumber: string): Promise<boolean> {
   if (Platform.OS !== "android" || !Device.isDevice) return false
+  playIntegrityProjectNumber = cloudProjectNumber
   try {
     log.info("Preparing Play Integrity token provider")
     await AppIntegrity.prepareIntegrityTokenProviderAsync(cloudProjectNumber)
@@ -122,6 +135,13 @@ export async function generateAttestation(
       log.info("Attesting key with Apple servers")
       const token = await AppIntegrity.attestKeyAsync(keyId, challenge)
       return { ok: true, token, keyId }
+    }
+    if (!playIntegrityPrepared && playIntegrityProjectNumber) {
+      // The cold-start prepare failed (see playIntegrityProjectNumber). Try
+      // again here rather than failing every attestation for the rest of the
+      // process; a still-broken Play Store fails the same way and degrades.
+      log.info("Play Integrity provider not ready — preparing again before attesting")
+      await preparePlayIntegrity(playIntegrityProjectNumber)
     }
     if (!playIntegrityPrepared) {
       throw new Error("Play Integrity provider not prepared. Call preparePlayIntegrity() first.")

@@ -18,6 +18,7 @@ import { Text } from "@/components/Text"
 import { useProfileStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { getLocalDay } from "@/utils/localDay"
 
 type DayKey = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun"
 const DAYS: DayKey[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -28,11 +29,14 @@ const DOW_TO_KEY: DayKey[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 /**
  * Count occurrences of each day-of-week from startIso to today (inclusive).
  */
-function countDaysPerDow(startIso: string): Record<DayKey, number> {
+// CHANGED 2026-09-25: takes `todayIso` instead of reading `new Date()`. The
+// savings memo was keyed only on the store fields, so the total froze at the
+// day the card first rendered while Home stayed mounted — the same freeze the
+// clean-time card had (see localDay.ts).
+function countDaysPerDow(startIso: string, todayIso: string): Record<DayKey, number> {
   const counts: Record<DayKey, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 }
   const start = new Date(startIso + "T12:00:00")
-  const today = new Date()
-  today.setHours(12, 0, 0, 0)
+  const today = new Date(todayIso + "T12:00:00")
 
   const current = new Date(start)
   while (current <= today) {
@@ -75,7 +79,9 @@ function MoneyInput({
 }) {
   return (
     <View style={[$inputWrapper, { backgroundColor: bgColor, borderColor }]}>
-      <Text style={[$currencySymbol, { color: dimColor }]} accessible={false}>$</Text>
+      <Text style={[$currencySymbol, { color: dimColor }]} accessible={false}>
+        $
+      </Text>
       <TextInput
         style={[$input, { color: textColor }]}
         value={value}
@@ -160,17 +166,21 @@ export const MoneySavedCard = observer(function MoneySavedCard() {
     setDayInputs((prev) => ({ ...prev, [day]: val }))
   }, [])
 
+  // Read in render so observer() re-renders this card when the local date
+  // rolls over (midnight, or foregrounding on a later day).
+  const today = getLocalDay()
+
   // Calculate savings — always based on the weekly total (detail inputs feed into it via Save)
   const savings = useMemo(() => {
     if (!profileStore.recoveryDate || profileStore.moneySavedWeekly <= 0) return null
 
-    const counts = countDaysPerDow(profileStore.recoveryDate)
+    const counts = countDaysPerDow(profileStore.recoveryDate, today)
     const totalDays = Object.values(counts).reduce((a, b) => a + b, 0)
     const dailyAvg = profileStore.moneySavedWeekly / 7
     const total = totalDays * dailyAvg
 
     return { total, totalDays }
-  }, [profileStore.recoveryDate, profileStore.moneySavedWeekly])
+  }, [profileStore.recoveryDate, profileStore.moneySavedWeekly, today])
 
   return (
     <View style={themed($card)}>

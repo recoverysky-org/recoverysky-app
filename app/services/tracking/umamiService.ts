@@ -26,7 +26,10 @@ let userId: string | undefined
  */
 export function initializeUmami(url: string, id: string, key: string): void {
   if (isInitialized) {
-    log.warn("Umami already initialized, skipping")
+    // CHANGED 2026-09-21 (RS-039): warn → debug. An idempotency no-op. (It
+    // fires alongside the other two "already initialized" lines on the same
+    // devices — see RS-039 finding 2 if that double-init needs chasing.)
+    log.debug("Umami already initialized, skipping")
     return
   }
 
@@ -161,7 +164,9 @@ function send(payload: UmamiPayload): void {
         // bulk of every event line in the Metro log. Failures still log it.
         log.debug("Umami event sent", { event: eventName, status: r.status })
       } else {
-        log.warn("Umami send failed", { event: eventName, status: r.status, body: text })
+        // CHANGED 2026-09-21 (RS-039): warn → debug. Analytics; nothing the
+        // user did is affected.
+        log.debug("Umami send failed", { event: eventName, status: r.status, body: text })
       }
     })
     .catch((err) => {

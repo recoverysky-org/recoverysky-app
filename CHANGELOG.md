@@ -66,6 +66,262 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   identity-driven reaction (the `sync.queueOwnerUid` account-switch clear
   included) ever sees it. `WrongAccountScreen` is the only way out: prove
   ownership, or cancel.
+
+## [4.10.1-14] — 2026-09-27
+
+Also carries the changes shipped in 4.10.1-11 through 4.10.1-13, which went
+out without their own changelog headings.
+
+### Added
+- **Every API request now starts a distributed trace.** The auth gate stamps
+  a W3C `traceparent` header with a fresh random trace id on each request,
+  and a new per-response debug line (`"API request"`, module `Api`) records
+  the method, path, status, duration and that `traceId`. The API's OpenTelemetry
+  instrumentation continues the id rather than minting its own, so the app's
+  Loki line, the API's pino lines and the Tempo trace for one request all
+  share it — the support recipe is in `docs/DIAGNOSTICS.md` "Tracing". The
+  app still records no spans of its own (no tracing SDK, nothing extra on
+  battery or the wire beyond one 55-byte header). Ids are random and carry no
+  identity. Pure logic in `app/services/api/traceparentLogic.ts`, vitest-covered.
+  Nothing shows in Tempo until the API's `API_OTEL_TRACE_EXPORTER` /
+  `API_OTEL_TRACES_ENDPOINT` point at the ingress Alloy (stacks-side, see the
+  same doc section).
+- Language filter on Live and In-Person (Search already had one). A remembered
+  language with no matches shows a "Show all languages" shortcut instead of an
+  empty list.
+- Live: "Live Now · Starts in 15m 30m 45m 60m" selector backed by the new
+  `GET /schedules/at-next` endpoint: each minute chip lists the online
+  meetings starting at one coming quarter-hour mark (15m = the next
+  :00/:15/:30/:45, 30m/45m/60m = the marks after it), labelled with that time
+  ("starting at 7:30p"). The app checks all four marks in the background and
+  only shows chips that have meetings for your fellowship and language, so a
+  chip never opens onto an empty list. Live in production builds from
+  4.10.1-14 (it was dev-only until the API's v1.16.0 deploy).
+
+### Fixed
+- **The Home News card's idle state is no longer logged as a fault.** The API
+  answers `204 No Content` when nothing is published, which is nearly every
+  load, and `getNews` folded that into `bad-data` — so Home logged "News
+  unavailable" with a fault kind on 144 of 145 loads in a 6h window (~450–500
+  a day since 4.10.1-8). A 204 or empty payload is now its own `no-content`
+  outcome (pure, vitest-covered `newsLogic.ts`) that Home does not log, and
+  `bad-data` is reserved for a 2xx with content that isn't a news item, which
+  now warns instead of hiding at debug. (RS-049)
+- **Clean time no longer stays at 0 days if you kept the default recovery
+  date.** The onboarding default ("today") was only saved when the date picker
+  was touched. A user who accepted it had no date stored, so every launch
+  re-read the date as the current day: the counter sat at 0 and the date moved
+  forward each midnight. Onboarding now saves the accepted date, and installs
+  already in this state are repaired on their next launch by backfilling the
+  app's install date (the date they were shown and accepted); web falls back to
+  today. The Firebase import now checks whether the user picked the date,
+  rather than whether it equals today, so a backfilled date can still be
+  replaced by the user's real clean date from the old app.
+- **The `(Nd)` clean-days count no longer reads a day short.** It rounded a
+  noon-to-noon difference down, so across a spring-forward DST change it lost a
+  day for most of the year (US: Jan 1 → Sep 25 showed 266, not 267) and
+  disagreed with the clean-time card. The Money Saved card had the same
+  midnight freeze as the other Home cards and now advances too, and the
+  recovery-date picker's Dec 31 limit follows the year instead of staying on
+  the year the app was launched in.
+- **Starting 90-in-90 in the evening no longer skips that night.** The start
+  date and the certificate's completion date were saved as the UTC date, so a
+  device behind UTC starting at 9pm got tomorrow's date. That evening's meeting
+  didn't count, and Day 1 lasted two days.
+- **A valid device token is no longer thrown away when a signed-in request
+  goes out without a user token.** The server answers a request that carries
+  no `Authorization` header with a plain 401, after it has already accepted
+  the device token. The app read that plain 401 as "the device token was
+  rejected", cleared it, and re-attested on the next request — on one iOS
+  device this happened at every cold start for a day, because its keychain
+  had lost the sign-in credentials while the app still remembered the user,
+  so push-token registration fired with nothing to sign it. Two changes:
+  push-token registration now waits until the app actually holds a session
+  token, not just a remembered user id; and the rejection classifier
+  recognises the server's "missing authorization header" body as the user
+  lane and leaves the device token alone. 19 wasted re-attestations across 5
+  devices in the week before the fix. RS-040.
+- **Reloading the app no longer throws "Database not opened" errors from the
+  screens still on display.** Every app reload closes the encrypted database
+  first (a deliberate guard against a native teardown crash), but the
+  JavaScript runtime keeps running for up to a second afterwards while the
+  screens are still mounted. When the outage-recovery reload and a
+  successful `/config` fetch landed in the same instant, the tree switched to
+  the main tabs and the attendance badge queried a closed database; Sentry
+  recorded it on three devices in two days across 4.8.0 and 4.10.1. The
+  database provider now unmounts its screens the moment the connection is
+  closed underneath it, so nothing can query it before the reload lands. The
+  logger also flushes its pending batch before a reload, which is why those
+  errors had never reached Loki. Sentry RECOVERYSKY-APP-1X.
+- **Cold-start log lines are attributable to their user again.** The first
+  ~35 lines of every launch (`App module loaded`, `getDeviceId()`, `Database
+  opened`, `setTokens()`, …) are logged before `app.tsx` knows the device
+  and user, then held until `/config` supplies the log key. They reached
+  Loki with identity only as `user_id` / `device_id` (the OTLP Resource,
+  stamped at flush time), so a `| userId="<hash>"` lookup silently missed
+  them, roughly 750 lines an hour. The logger now fills in identity keys
+  that had never been set when a line was logged, at flush time. A key
+  set to empty (anonymous user, sign-out) is never filled in, so a
+  signed-out line can't pick up the next sign-in. The Resource no longer
+  carries `device.id` / `session.id` / `user.id`, so camelCase is the only
+  spelling. RS-042.
+- **A wrong-key database now offers "Reset local data" as intended.** The
+  RS-024 fix classified open failures from the error's text, but the
+  wrong-key code (`Error code 7: out of memory`) is on the Drizzle error's
+  `cause`, not in its text, so every real occurrence was labelled `unknown`.
+  For `unknown` the loading overlay offers only Retry, which can never
+  unlock the file. Two devices were stuck behind that screen on 4.10.1-2
+  to 4.10.1-4 until they reinstalled. The classifier now reads the whole
+  cause chain, and the log line carries the root cause. RS-024.
+- Choosing a fellowship in Search no longer changes the fellowship saved in
+  Settings.
+
+### Changed
+- Meetings: the Live segment tab is now **Online** — with Starts In it also
+  lists meetings that haven't begun, so "Live" no longer fit. The screen
+  heading says what you're looking at: "Live Now", or "Starts within 30m" when a
+  Starts In chip is selected (dev builds, with Starts In). If the quarter hour
+  turns over (or you come back to the app later) the selection follows the same
+  meetings to whichever chip now shows them (60m becomes 45m), or moves to the
+  soonest chip once they've started, instead of dropping back to Live Now.
+- **The "New Version Available" prompt no longer has a Cancel button.** A
+  build that is behind the store is also cut off from every over-the-air
+  update, so dismissing the prompt meant staying on that build for good;
+  about 300 sessions a week on 4.8.0 were doing exactly that and still
+  hitting problems fixed months ago. The prompt now offers only Update Now,
+  which opens the store page. The app keeps running after the tap: nobody
+  is locked out, and the prompt simply comes back on the next launch until
+  the store update is installed. RS-035.
+- **The ERROR log level now means a user felt something fail.** The app
+  reserved ERROR for a handful of infrastructure faults and logged the
+  failures users actually hit — a rejected report send, a forced sign-out, the
+  maintenance banner going up, a sign-in error on screen, a profile save that
+  never reached Auth0 — at WARN, so the Errors tile on the app-logs dashboard
+  read 0 for the whole fleet and was right. Those five paths are ERROR now.
+  In the other direction, the API transport layer no longer logs its own WARN
+  for every failed request (it cannot know whether the user was waiting on
+  it; the caller that can judge logs one line instead — that duplicate was
+  about half of all WARN volume), and a handful of known-benign lines
+  (report-body backfill 404s, push-token registration before sign-in, timer
+  credit clamps, "already initialized" no-ops, analytics send failures) are
+  INFO or DEBUG. Reminder create/update/delete and Settings → Delete All
+  Reminders now record a server rejection at ERROR where before only the
+  transport line existed — a rejected reminder never fires. The level policy
+  is written down in `docs/DIAGNOSTICS.md` "Log levels". Nothing changes on
+  screen; Loki volume is unchanged (production ships at `trace`). RS-039.
+- Meetings: Fellowship and Language filters moved out of the individual Live /
+  In-Person / Search segments into one bar directly below the segment tabs.
+  Both are shared across the three segments and remembered across restarts;
+  changing your fellowship in Settings still updates the bar. In-Person's
+  Radius filter now has its own full-width row with Day and Time side by side
+  beneath it, matching Search, so no value is squeezed into a third of the
+  screen.
+
+### Security
+- **Push-token logs no longer carry part of the raw Auth0 sub.** Three
+  push-registration log lines logged `userId` / `deviceId` as their first
+  eight characters (`google-o...`, `apple|00...`). Those keys are the
+  logger's own identity fields, so the truncated raw value replaced the
+  hashed `userId` on the line: about 950 lines a day that couldn't be
+  matched to a user, each carrying a fragment of the identity that
+  `hashUserId` exists to keep out of Loki. The fields are gone, and the
+  logger now removes `sessionId` / `appVersion` / `deviceId` / `userId` /
+  `user_id` from per-call and child attributes, so only the context can set
+  them. `traceId` stays an ordinary attribute. This has to land before
+  RS-042's removal of the snake_case `user_id`. RS-043.
+
+### Build
+- **The Sentry source-map upload no longer warns about a mismatched server
+  URL.** The Sentry plugin entry in `app.json` spelled the server as
+  `https://sentry.io/`; the organization auth token embeds it without the
+  trailing slash, and sentry-cli compares the two literally, so every
+  `npm run update` warned that it was ignoring the configured URL. Same host
+  either way and every upload succeeded. The slash is gone. This is an
+  upload-tool setting that never enters the binary, so no `runtimeVersion`
+  bump; the generated `sentry.properties` files pick it up on the next
+  prebuild and were corrected by hand meanwhile.
+
+## [4.10.1-10] — 2026-09-25
+
+### Fixed
+- **The Home clean-time counter now advances on its own.** It froze at the day
+  the app was last cold-started: the card memoized its breakdown on the
+  recovery date alone and `cleanDays` was a cached computed reading
+  `new Date()`, so neither ever re-ran while Home stayed mounted behind the
+  other tabs. A phone that kept the app alive in the background could show the
+  same count for days, milestones included. Both now read an observable local
+  date that ticks at midnight and on foreground. The `(Nd)` suffix in the
+  display name had the same freeze (plus a UTC off-by-one) and now reuses
+  `cleanDays`. The Home recovery chart (its "today" edge) and the 90-in-90
+  card ("Day N of 90") froze the same way and now follow the same clock. The
+  90-in-90 day count also no longer drops a day for the rest of the challenge
+  once it spans the spring-forward DST change.
+
+## [4.10.1-6] — 2026-09-19
+
+### Fixed
+- **Being signed out because the session could not be renewed now says so.**
+  When a stored session can never be refreshed again (a dead refresh token, or
+  the DPoP key it is bound to gone from the Keychain), the app signs the user
+  out. It did that silently: the Login screen appeared with no explanation, as
+  if they had never signed in. The Login screen now shows a short notice that
+  the session could not be restored on this device and asks them to sign in
+  again. One new i18n key in nine locales (translations queued for review).
+  RS-036.
+- **Declining the Auth0 consent screen is no longer logged as an error.** A
+  user who reached the consent screen and chose not to authorize got the same
+  treatment as a cancelled tab everywhere except in the logs, where the
+  decline arrived as "User did not authorize the request" at ERROR twice per
+  tap. It is classified as the user's choice now, alongside a closed tab.
+  RS-022.
+- **Attendance cloud backup no longer stops for good behind one record the
+  server cannot store.** The push sent the outbox in batches of up to 200 and,
+  when the server answered a batch with a 5xx, backed off and sent the same
+  batch again on the next tick — forever, because a 500 carries no per-record
+  result and the client had no other way to find the bad row. One user has
+  been stuck on exactly this since 2026-09-18: a single attendance record whose
+  duration was 37 days (a timer left running since June, from before the
+  no-staleness-cap change) overflowed the API's 32-bit `credit` column, and
+  the 199 records behind it never reached the server. A 5xx now bisects the
+  batch to the one offending record, quarantines it, and syncs the rest; a
+  real outage still ends the tick after three requests with the usual backoff.
+  Independently, an attended duration is now capped at 24 hours when a timer
+  session is saved (both the external-Zoom and in-person timers) and again in
+  the push payload, so a stale timer can never poison a batch again on any
+  build. The user still trims the duration in the Attendance tab, as the
+  timer modals already say. The 90 vitest cases behind this are in
+  `attendanceSyncService.test.ts`, `syncLogic.test.ts` and the new
+  `creditLogic.test.ts`; `docs/BACKUP.md` "Push" has the design. RS-034.
+
+- **Cloud backup's first sync ticks no longer race the RevenueCat SDK on a
+  cold start.** The sync gate asked RevenueCat for the attendance entitlement
+  before the SDK had been configured, on launches where a stored access token
+  had expired: the refresh landed, every sync trigger fired in the same
+  second, and each one hit "There is no singleton instance" — five ERROR lines
+  per launch on the one device fast enough to lose the race, and a first sync
+  delayed until the next trigger. The gate now checks that the SDK is
+  configured, the same way it already checks that the database is open, and
+  skips the tick quietly; the later triggers run as before. RS-029.
+- **A Play Integrity provider that failed to start is retried on the next
+  attestation instead of failing for the rest of the process.** One Android
+  device's Play Store could not be bound at launch (Play Integrity error -9),
+  and because the provider was prepared exactly once per process, every later
+  attestation in that session threw "provider not prepared" and the app ran
+  without a device token until the next cold start. The prepare is now
+  re-attempted lazily each time an attestation needs it; a Play Store that is
+  still broken degrades the same way it did before. RS-015.
+- **A nearby-meetings location refinement that misses its budget is no
+  longer logged as a failure.** When the In-Person segment already holds a
+  cached position, the list is rendered and sorted from it and the fresh
+  fix only refines the distances — but its 5 s timeout logged the same WARN
+  as "no position at all", so the tracker counted a working segment as a
+  location failure and could not tell the two apart. The refinement miss is
+  now an INFO line of its own; WARN means the segment really has nothing to
+  show. RS-016.
+
+## [4.10.1-5] — 2026-09-18
+
+### Security
 - **The report recipient's email address is no longer sent to diagnostic
   logs.** Six log lines on the attendance-report send path — three in the API
   client (`Sending attendance report`, `Report sent successfully`, and the

@@ -201,14 +201,6 @@ export interface UseNearbySchedulesResult {
   setSelectedDay: (isoDow: number) => void
   radiusKm: number
   setRadiusKm: (km: number) => void
-  /**
-   * Fellowship the list is currently filtered to — the segment's local browse
-   * choice when one has been made, otherwise the saved ProfileStore preference.
-   * Empty/undefined when the user has never picked one.
-   */
-  fellowship?: string
-  /** Browse a different fellowship. Does NOT write to ProfileStore. */
-  setFellowship: (value: string) => void
   useMiles: boolean
   /** Pull-to-refresh: re-fix location (if permitted) then refetch */
   refresh: () => Promise<void>
@@ -227,21 +219,24 @@ export interface UseNearbySchedulesResult {
  * @param active - true once the user has opened the In-Person segment. Stays
  *   true afterwards. Nothing (permission prompt, GPS fix, network call) may
  *   happen before this flips.
+ * @param fellowship - The Meetings filter bar's fellowship (MeetingFiltersContext).
+ *   A fetch param for /schedules/nearby. Changing it refetches.
  */
-export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
+export function useNearbySchedules(active: boolean, fellowship: string): UseNearbySchedulesResult {
   const configStore = useConfigStore()
   const profileStore = useProfileStore()
 
-  // Read both observables during render so MobX tracks them for the consuming
-  // `observer()` component — that is what makes the maintenance-exit refetch
-  // and the fellowship-change refetch fire at all. (ListingsScreen used to
-  // dep its fetch callback on the `configStore` object, whose identity never
-  // changes, so its maintenance-exit refetch never fired; since 2026-09-09 it
-  // reads the primitive the same way.)
+  // Read during render so MobX tracks it for the consuming `observer()`
+  // component — that is what makes the maintenance-exit refetch fire at all.
+  // (ListingsScreen used to dep its fetch callback on the `configStore`
+  // object, whose identity never changes, so its maintenance-exit refetch
+  // never fired; since 2026-09-09 it reads the primitive the same way.)
   // INTEGRATION REQUIREMENT: the component calling this hook MUST be wrapped
-  // in `observer()`, or neither reaction happens.
+  // in `observer()`, or the reaction doesn't happen.
+  // CHANGED 2026-09-26: `savedFellowship` (profileStore.fellowship) used to be
+  // read here too, for the same MobX-tracking reason — `fellowship` is now a
+  // parameter, supplied by the caller from MeetingFiltersContext instead.
   const maintenanceMode = configStore.maintenanceMode
-  const savedFellowship = profileStore.fellowship
 
   const [permission, setPermission] = useState<"undetermined" | "granted" | "denied">(
     "undetermined",
@@ -255,21 +250,9 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
   const [selectedDay, setSelectedDay] = useState(getCurrentIsoDow)
   const [radiusKm, setRadiusKmState] = useState(loadRadius)
 
-  /**
-   * Local override for the segment's Fellowship picker.
-   *
-   * Same semantics as LiveContent's fellowship filter — browsing another
-   * fellowship here is a look-around, not a change to the user's saved
-   * preference, so this deliberately never writes to ProfileStore. It lives in
-   * the hook rather than the screen (where Live keeps its equivalent) because
-   * fellowship is a *fetch* param for the nearby/daily endpoints, not a
-   * client-side pass over already-loaded rows.
-   *
-   * `null` means "follow the saved preference", which is why it isn't seeded
-   * from `savedFellowship`: seeding would freeze the value at mount and a later
-   * Settings change would silently stop reaching this segment.
-   */
-  const [fellowshipOverride, setFellowshipOverride] = useState<string | null>(null)
+  // REMOVED 2026-09-26: the local fellowship override (and its reset on a
+  // Settings change) moved to MeetingFiltersContext, shared by all three
+  // Meetings segments. `fellowship` is now a parameter.
 
   // PRIVACY: coordinates live in this ref only — never state (avoids
   // accidental serialization in devtools snapshots), never MMKV/SQLite,
@@ -299,18 +282,6 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       mountedRef.current = false
     }
   }, [])
-
-  // A Settings change wins over a stale browse choice — the same reset
-  // LiveContent performs on the `preferences_changed` event, minus the event
-  // bus: `savedFellowship` is already observable here, so the store value IS
-  // the signal. Fires a harmless null→null set on mount (React bails out).
-  useEffect(() => {
-    setFellowshipOverride(null)
-  }, [savedFellowship])
-
-  // The value every fetch below uses. Changing it changes `fetchMeetings`'s
-  // identity, which is what makes the driver effect refetch.
-  const fellowship = fellowshipOverride ?? savedFellowship
 
   // Locale measurement system is fixed for the process lifetime; resolve once.
   const useMiles = useMemo(() => getLocales()[0]?.measurementSystem === "us", [])
@@ -448,12 +419,23 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
       // PRIVACY: `String(err)` yields "Name: message" only — an Error's
       // toString never includes a request config or URL, so this cannot leak
       // the coordinates we just asked for. Do not log the error object.
-      log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
+      //
       // A cached position committed earlier in this call is still valid — the
       // fresh fix timing out doesn't make it wrong. Degrading here would throw
       // away the position the list is already sorted by, which is the exact
       // failure this change exists to remove.
-      if (seededFromCache) return true
+      // CHANGED 2026-09-19 (RS-016): that case logs at INFO, not WARN. The
+      // list is rendered and sorted; nothing is "unavailable", the 5 s
+      // refinement just missed its budget. Both outcomes used to share one
+      // WARN line, so the tracker's location fingerprint counted a working
+      // segment as a failure and could not tell the two apart.
+      if (seededFromCache) {
+        log.info("Fresh fix missed its budget; keeping the cached position", {
+          error: String(err),
+        })
+        return true
+      }
+      log.warn("Location unavailable (permission or fix failed)", { error: String(err) })
       coordsRef.current = null
       setNearbyFetchFailed(false)
       setFix("failed")
@@ -706,8 +688,6 @@ export function useNearbySchedules(active: boolean): UseNearbySchedulesResult {
     setSelectedDay,
     radiusKm,
     setRadiusKm,
-    fellowship,
-    setFellowship: setFellowshipOverride,
     useMiles,
     refresh,
     requestLocation,

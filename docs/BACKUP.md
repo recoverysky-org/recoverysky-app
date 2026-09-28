@@ -94,6 +94,10 @@ No sync traffic happens unless *all* of these hold, checked on every tick in
 - not `configStore.maintenanceMode`
 - not `networkStore.isOffline`
 - no queue-ownership clear is pending (see below)
+- the RevenueCat SDK has been configured (`Purchases.isConfigured()`; ADDED
+  2026-09-19, RS-029) — the service is wired before `<SubscriptionContext>`
+  mounts, so a fast cold start used to reach the entitlement check first and
+  log five ERRORs per launch. Skipped, not failed; `SyncResumer` retries.
 
 The entitlement check is `await`ed, so `gate()` re-checks the ownership flag
 *after* that await. A sign-in can land while we're suspended.
@@ -163,6 +167,29 @@ Per-record results:
 
 Failures increment `consecutiveFailures` and arm a backoff of 30 s → 60 s →
 5 min. `getPending()` retries an item until `retryCount >= 3`.
+
+**A 5xx on a batch is bisected, not retried as-is** (ADDED 2026-09-19, RS-034).
+The server returns no per-record result on a 500, so when one record in a batch
+is something it cannot store, the client used to learn nothing, back off, and
+send the identical batch on the next tick — forever. One user's sync stopped
+for good that way behind a single row whose `credit` (a 37-day timer session
+from before the save-time clamp) overflowed the api's int32 column. `pushBatch`
+now hands a `server` result to `isolatePoison`: split the batch, push each half
+(paced, gate re-checked), recurse into the half that still fails, and
+`markFailed` the record left standing alone — it re-offers itself twice more
+(one request each, no bisection for a batch of one) and then drops out of
+`getPending()`. The **two-halves rule** is the outage guard: when both halves
+5xx the tick ends after three requests with the usual backoff, instead of
+walking every record down to a batch of one. Two poison records that land in
+different halves therefore still look like an outage; that is accepted, because
+the only known way a record becomes poison is also fixed at the source.
+
+**`credit` is bounded at both ends** (same change). `clampCredit()` in
+`app/services/attendance/creditLogic.ts` caps it at 24 h; both timer save paths
+apply it when the session closes (WARN when they do, so stale timers are
+countable in Loki), and `toServerRecord()` applies it again to the wire payload
+for rows written before the save-time clamp existed. The local row is not
+rewritten — the server's copy comes back on the next pull and settles it.
 
 ## Pull
 

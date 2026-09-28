@@ -115,6 +115,22 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   // the copy is now tied to the action that actually leaves the app.
   const [inFlight, setInFlight] = useState<ActionKind | null>(null)
 
+  // ADDED 2026-09-19 (RS-036): a forced logout (permanent refresh failure —
+  // see performForcedLogout in app.tsx) used to land here with no explanation.
+  // The flag is read once at mount into local state and cleared from the
+  // store straight away, so a re-render or a later visit never re-shows it;
+  // the notice itself goes away when the user taps a sign-in button.
+  const [showForcedLogoutNotice, setShowForcedLogoutNotice] = useState(
+    () => authStore.forcedLogoutNotice,
+  )
+  useEffect(() => {
+    if (!authStore.forcedLogoutNotice) return
+    log.info("Showing forced-logout notice")
+    authStore.setForcedLogoutNotice(false)
+    // Mount-only by design: the flag is consumed exactly once per visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Agreement modal state
   const [showEuaModal, setShowEuaModal] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
@@ -197,7 +213,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   // Log auth errors when they occur
   useEffect(() => {
     if (error) {
-      log.warn("Auth error displayed to user", { error })
+      // CHANGED 2026-09-21 (RS-039): warn → error. Sign-in is the core flow
+      // and this fires only for real failures — useAuth0Wrapper filters
+      // user-cancelled / declined before `error` is ever set.
+      log.error("Auth error displayed to user", { error })
     }
   }, [error])
 
@@ -313,6 +332,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     async (action: PendingAction) => {
       if (!action) return
       clearError()
+      // RS-036: the forced-logout notice goes away once the user acts on it.
+      // CHANGED 2026-09-27 (merge of root into passwordless): root cleared it
+      // in its old single handler; every sign-in path now funnels through here.
+      setShowForcedLogoutNotice(false)
       setInFlight(action.kind)
       try {
         switch (action.kind) {
@@ -433,6 +456,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             accessibilityLiveRegion="polite"
           >
             <Text style={themed($errorText)}>{error}</Text>
+          </View>
+        )}
+        {!error && showForcedLogoutNotice && (
+          <View style={themed($errorContainer)} accessibilityRole="alert">
+            <Text style={themed($errorText)} tx="loginScreen:sessionUnrecoverable" />
           </View>
         )}
 

@@ -83,6 +83,8 @@ const ru: Translations = {
       "Окно входа закрылось до завершения. Нажмите кнопку ещё раз и оставайтесь в браузере, пока он не вернёт вас в приложение.",
     errorNetwork:
       "Не удалось связаться со службой входа. Проверьте подключение и попробуйте снова.",
+    sessionUnrecoverable:
+      "Вы вышли из аккаунта, потому что сеанс не удалось восстановить на этом устройстве. Пожалуйста, войдите снова.",
     // ADDED 2026-09-17 — passwordless login (spec 1). loginButton/signupButton are retired with the LoginScreen rewrite.
     continueWithEmail: "Continue with Email",
     continueWithApple: "Continue with Apple",
@@ -170,17 +172,26 @@ const ru: Translations = {
   meetingsScreen: {
     title: "Собрания",
     placeholder: "Список собраний скоро появится",
-    liveSegment: "Сейчас",
+    liveSegment: "Онлайн",
     inPersonSegment: "Очно",
     // Relabeled from "Каталог" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "Поиск",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "Сообщество",
+    filterLang: "Язык",
+    filterLanguageA11y: "Язык",
+    allLanguages: "Все",
+    selectLanguage: "Выбрать язык",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "Расписание",
     placeholder: "Расписание скоро появится",
   },
   liveScreen: {
-    title: "Сейчас онлайн",
+    title: "Сейчас идут",
     noMeetings: "Сейчас нет собраний онлайн",
     lastRefresh: "Последняя проверка: {{time}}",
     joinMeeting: "Подключиться",
@@ -202,7 +213,16 @@ const ru: Translations = {
     fri: "ПТ",
     sat: "СБ",
     sun: "ВС",
-    defaultFellowship: "АА",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    // CHANGED 2026-09-27: "Live Now" / "15m" (Jenova); the full phrase is
+    // spoken via startsInMinutesA11y.
+    startsInLive: "Live Now",
+    startsInMinutes: "{{minutes}}m",
+    startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    titleStartsIn: "Starts within {{minutes}}m",
+    startingAt: "starting at {{time}}",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "Каталог собраний" 2026-08-03 — namespace/key unchanged.
@@ -216,8 +236,6 @@ const ru: Translations = {
     emptyNoMatches: "Нет встреч, соответствующих вашему запросу",
     // Filter labels
     dayLabel: "День",
-    languageLabel: "Язык",
-    langLabel: "Язык",
     venueLabel: "Формат",
     venueOnline: "Онлайн",
     venueInPerson: "Очно",
@@ -226,13 +244,11 @@ const ru: Translations = {
     radiusOff: "Геолокация выключена",
     emptyNoLocation: "Включите геолокацию, чтобы искать очные встречи рядом с вами",
     radiusOnlineNote: "недоступно для онлайн-встреч",
-    allLanguages: "Все",
     startLabel: "Начало",
     endLabel: "Конец",
     toSeparator: "до",
     // Modal titles
     selectDay: "Выбрать день",
-    selectLanguage: "Выбрать язык",
     startTime: "Время начала",
     endTime: "Время окончания",
     // Day names
@@ -900,7 +916,6 @@ const ru: Translations = {
   inPersonScreen: {
     title: "Очно",
     withinRadius: "В радиусе {{distance}}",
-    fellowshipLabel: "Сообщество",
     selectRadius: "Радиус",
     shortTimeLabel: "Время",
     shortTimeAll: "Любое время",

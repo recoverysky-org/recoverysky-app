@@ -80,6 +80,8 @@ const th: Translations = {
       "หน้าต่างเข้าสู่ระบบปิดก่อนที่คุณจะทำเสร็จ แตะปุ่มอีกครั้งและอยู่ในเบราว์เซอร์จนกว่าจะพากลับมาที่แอป",
     errorNetwork:
       "ไม่สามารถเชื่อมต่อกับบริการเข้าสู่ระบบได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง",
+    sessionUnrecoverable:
+      "คุณถูกออกจากระบบเนื่องจากไม่สามารถกู้คืนเซสชันบนอุปกรณ์นี้ได้ กรุณาเข้าสู่ระบบอีกครั้ง",
     // ADDED 2026-09-17 — passwordless login (spec 1). loginButton/signupButton are retired with the LoginScreen rewrite.
     continueWithEmail: "Continue with Email",
     continueWithApple: "Continue with Apple",
@@ -165,17 +167,26 @@ const th: Translations = {
   meetingsScreen: {
     title: "ประชุม",
     placeholder: "รายการประชุมกำลังมาเร็วๆ นี้",
-    liveSegment: "สด",
+    liveSegment: "ออนไลน์",
     inPersonSegment: "แบบพบหน้า",
     // Relabeled from "รายการ" 2026-08-03 — segment KEY stays "listings".
     listingsSegment: "ค้นหา",
+    // Shared filter bar above the segments (ADDED 2026-09-26). "Lang" rather
+    // than "Language" for the same half-width reason as Search's old cell.
+    filterFellowship: "กลุ่ม",
+    filterLang: "ภาษา",
+    filterLanguageA11y: "ภาษา",
+    allLanguages: "ทั้งหมด",
+    selectLanguage: "เลือกภาษา",
+    noMeetingsInLanguage: "No {{language}} meetings here",
+    showAllLanguages: "Show all languages",
   },
   scheduleScreen: {
     title: "ตาราง",
     placeholder: "มุมมองตารางกำลังมาเร็วๆ นี้",
   },
   liveScreen: {
-    title: "สดออนไลน์",
+    title: "สดตอนนี้",
     noMeetings: "ตอนนี้ไม่มีประชุมสดนะ",
     lastRefresh: "ตรวจสอบล่าสุด: {{time}}",
     joinMeeting: "เข้าร่วม",
@@ -197,7 +208,16 @@ const th: Translations = {
     fri: "ศ.",
     sat: "ส.",
     sun: "อา.",
-    defaultFellowship: "AA",
+    // Starts In selector (ADDED 2026-09-26). "Live" is today's in-progress list.
+    startsIn: "Starts in",
+    // CHANGED 2026-09-27: "Live Now" / "15m" (Jenova); the full phrase is
+    // spoken via startsInMinutesA11y.
+    startsInLive: "Live Now",
+    startsInMinutes: "{{minutes}}m",
+    startsInMinutesA11y: "Starts in {{minutes}} minutes",
+    titleStartsIn: "Starts within {{minutes}}m",
+    startingAt: "starting at {{time}}",
+    atNextError: "Couldn't load upcoming meetings. Tap to retry.",
   },
   listingsScreen: {
     // Relabeled from "รายการประชุม" 2026-08-03 — namespace/key unchanged.
@@ -211,8 +231,6 @@ const th: Translations = {
     emptyNoMatches: "ไม่มีการประชุมที่ตรงกับการค้นหาของคุณ",
     // Filter labels
     dayLabel: "วัน",
-    languageLabel: "ภาษา",
-    langLabel: "ภาษา",
     venueLabel: "รูปแบบ",
     venueOnline: "ออนไลน์",
     venueInPerson: "พบหน้า",
@@ -221,13 +239,11 @@ const th: Translations = {
     radiusOff: "ปิดตำแหน่งที่ตั้ง",
     emptyNoLocation: "เปิดตำแหน่งที่ตั้งเพื่อค้นหาการประชุมแบบพบหน้าใกล้คุณ",
     radiusOnlineNote: "ใช้ไม่ได้กับการประชุมออนไลน์",
-    allLanguages: "ทั้งหมด",
     startLabel: "เริ่ม",
     endLabel: "สิ้นสุด",
     toSeparator: "ถึง",
     // Modal titles
     selectDay: "เลือกวัน",
-    selectLanguage: "เลือกภาษา",
     startTime: "เวลาเริ่ม",
     endTime: "เวลาสิ้นสุด",
     // Day names
@@ -889,7 +905,6 @@ const th: Translations = {
   inPersonScreen: {
     title: "แบบพบหน้า",
     withinRadius: "ภายใน {{distance}}",
-    fellowshipLabel: "กลุ่ม",
     selectRadius: "รัศมี",
     shortTimeLabel: "เวลา",
     shortTimeAll: "ทุกเวลา",

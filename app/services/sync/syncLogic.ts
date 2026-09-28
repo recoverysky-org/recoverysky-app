@@ -13,6 +13,10 @@ import type {
   AttendanceUpdateInput,
 } from "@recoverysky-org/common/sqlite"
 
+// Relative, not `@/services/attendance` — the barrel pulls in MMKV via
+// timerSession.ts, and this module must stay loadable by vitest.
+import { clampCredit } from "../attendance/creditLogic"
+
 /** Server push batch cap — a larger batch gets 400 badRequest. */
 export const SYNC_PUSH_BATCH_MAX = 200
 
@@ -69,6 +73,14 @@ export interface ServerReportRecord {
  * `deleted: true` builds a tombstone (used for the hard-delete snapshot path —
  * the local row is already gone by push time, so the caller passes the
  * pre-delete snapshot as `record`).
+ *
+ * CHANGED 2026-09-19 (RS-034): `credit` is clamped to MAX_CREDIT_MS on the way
+ * out. The api's `credit` column is int32; a 37-day timer session saved before
+ * the save-time clamp existed overflowed it, the 200-row insert failed as a
+ * whole, and the batch was retried forever. Rows written before this change
+ * still sit in outboxes, so the payload builder bounds the value itself
+ * rather than trusting the save path. The local row is left alone — the
+ * server's copy comes back on the next pull and settles it.
  */
 export function toServerRecord(record: AttendanceRecord, deleted = false): ServerAttendanceRecord {
   return {
@@ -90,7 +102,7 @@ export function toServerRecord(record: AttendanceRecord, deleted = false): Serve
     processed: record.processed,
     start: record.start,
     end: record.end,
-    credit: record.credit,
+    credit: clampCredit(record.credit).credit,
     produced: record.produced,
     arid: record.arid,
     deleted,
