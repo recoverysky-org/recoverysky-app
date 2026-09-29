@@ -803,6 +803,44 @@ its shorter form ("on your device, in transit, and in the cloud") is fine as lon
 as the three places survive. `fr` is inconsistent on purpose: the prompt strings
 use *tu* to match the existing purchase prompt, the hint keeps the existing *vous*.
 
+## 2026-09-17 — Passwordless login and wrong-account recovery (25 new keys × 8 locales)
+
+Two new top-level translation objects (`loginScreen` additions and the new `wrongAccountScreen` block) for the passwordless email-code flow plus device-ownership recovery screen (specs 1–2). Written by an implementer in all nine locales, so `es` carries the same review obligation as the other seven per the 2026-08-04 ruling above.
+
+**Passwordless login is blocking OTA release**, so native-speaker review needed before the go-live OTA.
+
+| Key | Location | English | Notes |
+|---|---|---|---|
+| `continueWithEmail`, `continueWithApple`, `continueWithGoogle` | `loginScreen` | Three auth method buttons | Match existing button register. |
+| `sendCodeTo` | both | "Send code to {{email}}" | Appears twice: once setting the email, once confirming it. Both interpolate the user's chosen address. |
+| `useDifferentEmail` | `loginScreen` | "Use a different email" | Secondary action on the confirmation screen. |
+| `emailLabel`, `emailPlaceholder` | `loginScreen` | "Email address", "you@example.com" | Form field label and placeholder. |
+| `sendCode` | `loginScreen` | "Send Code" | Primary button to trigger the OTP. |
+| `codeSentTo` | `loginScreen` | "We sent a code to {{email}}" | Confirmation message after OTP dispatch. |
+| `codeLabel` | `loginScreen` | "6-digit code" | Form field label for the code entry box. |
+| `verify` | `loginScreen` | "Verify" | Primary button to submit the code. |
+| `resendCode` | `loginScreen` | "Resend code" | Secondary action when the user needs a new code. |
+| `resendIn` | `loginScreen` | "Resend in {{seconds}}s" | Countdown shown while resend is rate-limited. `{{seconds}}` is a live counter. |
+| `wrongEmailGoBack` | `loginScreen` | "Wrong email? Go back" | Link to return to email entry without submitting the code. |
+| `errorWrongCode` | `loginScreen` | "That code didn't match. Check the email and try again." | Inline error under the code field on mismatch. |
+| `errorCodeExpired` | `loginScreen` | "That code has expired. Tap Resend to get a new one." | Inline error when the code has aged out. |
+| `errorTooManyAttempts` | `loginScreen` | "Too many attempts. Please wait a few minutes and try again." | Shown when the user has exhausted per-code attempts. |
+| `errorSendRateLimited` | `loginScreen` | "We've sent several codes to that address recently. Please wait before requesting another." | Shown when the email address has hit the send-rate limit. |
+| `title` | `wrongAccountScreen` | "This device is set up for a different RecoverySky account." | Modal/screen heading explaining the situation. |
+| `body` | `wrongAccountScreen` | "Sign in to that account to continue. Your meetings and records are safe." | Reassurance that the user's data is not lost — they just need to use the right account. |
+| `support` | `wrongAccountScreen` | "If you can't sign in to that account, contact support@recoverysky.app" | Escalation path for users locked out of the original account. |
+| `sendCodeTo` | `wrongAccountScreen` | "Send code to {{email}}" | Same key as above (reused), but context is resetting device ownership. |
+| `signInWithGoogle`, `signInWithApple` | `wrongAccountScreen` | Two auth method buttons | Matching the register of the passwordless buttons above. |
+| `cancel` | `wrongAccountScreen` | "Cancel" | Dismiss the screen (users can sign in to the installed account if they choose not to switch). |
+
+### Reviewer notes worth acting on first
+
+- **All locales** — the two `sendCodeTo` strings are a **reused key** appearing in both `loginScreen` and `wrongAccountScreen` contexts. Both are "send a code to this email"; the interpolation is the same. If your locale has any register nuance between "choose your email and we'll send a code" (passwordless setup) vs "reset device ownership by sending a code to your account" (recovery), you could split the key — **but it's not worth a backend schema change.** Confirm both contexts read naturally with the same string.
+- **`errorWrongCode` and `errorCodeExpired` both reference tapping/actions** ("Check the email", "Tap Resend"). Verify your translations still name the action the user should take, not just the technical failure.
+- **`resendIn` is the only string here with a live numeric interpolation.** `{{seconds}}` arrives as a countdown (60, 59, 58, …). Test on device that the result reads naturally in countdown mode, not just as a static example ("Resend in 60s"). The string updates every second.
+- **`wrongAccountScreen:title` is unusually long for a heading.** It is the modal's title on a fixed-width small sheet; confirm it doesn't wrap awkwardly in your language. If it does, it can be restructured — the rules aren't as tight as a tab bar label.
+- **Term consistency:** `wrongAccountScreen` uses "Google" and "Apple" as bare brand names for the buttons, matching `loginScreen:continueWithGoogle` / `continueWithApple`. Verify all three are translated identically (or intentionally left as bare names in your locale).
+
 ## 2026-09-19 — Forced-logout notice (RS-036), 8 strings (8 locales × 1 key)
 
 `loginScreen.sessionUnrecoverable` — best-effort translations in ar, de, es, fr,

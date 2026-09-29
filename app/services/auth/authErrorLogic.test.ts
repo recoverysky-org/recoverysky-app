@@ -38,6 +38,37 @@ describe("classifyAuthError", () => {
   it("never classifies a user cancel — callers filter that first, but be safe", () => {
     expect(classifyAuthError({ type: "USER_CANCELLED", message: "cancelled" })).toBeNull()
   })
+
+  describe("passwordless outcomes (ADDED 2026-09-17)", () => {
+    it("maps invalid_grant to wrongCode", () => {
+      expect(
+        classifyAuthError({ code: "invalid_grant", message: "Wrong email or verification code." }),
+      ).toBe("wrongCode")
+    })
+    it("maps an expired code, which Auth0 also reports as invalid_grant", () => {
+      expect(
+        classifyAuthError({ code: "invalid_grant", message: "The verification code has expired." }),
+      ).toBe("codeExpired")
+    })
+    it("maps too_many_attempts", () => {
+      expect(classifyAuthError({ code: "too_many_attempts", message: "Too many attempts" })).toBe(
+        "tooManyAttempts",
+      )
+    })
+    it("maps a 429 / too_many_requests on send to sendRateLimited", () => {
+      expect(classifyAuthError({ code: "too_many_requests", message: "..." })).toBe(
+        "sendRateLimited",
+      )
+      expect(classifyAuthError({ status: 429, message: "Too Many Requests" })).toBe(
+        "sendRateLimited",
+      )
+    })
+    it("maps unauthorized_client to passwordlessNotEnabled (tenant runbook not done)", () => {
+      expect(
+        classifyAuthError({ code: "unauthorized_client", message: "Grant type not allowed" }),
+      ).toBe("passwordlessNotEnabled")
+    })
+  })
 })
 
 // RS-022 (2026-09-19): a declined consent screen is the user's decision, not

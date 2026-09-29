@@ -36,7 +36,7 @@ import {
   TRACE_CONTEXT_BYTES,
   TRACEPARENT_HEADER,
 } from "./traceparentLogic"
-import type { ApiConfig } from "./types"
+import type { ApiConfig, LinkIdentityResponse } from "./types"
 
 /**
  * A fresh W3C `traceparent` value for one outbound request, or undefined when
@@ -1401,6 +1401,33 @@ export class Api {
 
     log.info("Remote reminders deleted", { uid })
     return { kind: "ok" }
+  }
+
+  /**
+   * Fold a foreign identity into the signed-in account (spec 2 §3). The body
+   * carries the foreign session's ID token; the server verifies it against the
+   * Native app's client id before touching anything. Goes through the token
+   * freshness gate like every call, so the bearer is the OWNER's.
+   * ADDED 2026-09-17.
+   */
+  async linkIdentity(
+    idToken: string,
+  ): Promise<{ kind: "ok"; data: LinkIdentityResponse } | GeneralApiProblem> {
+    log.info("Linking foreign identity")
+    const response = await this.recoverySkyApi.post<LinkIdentityResponse>("/auth0/link", {
+      linkWith: idToken,
+    })
+    if (!response.ok) {
+      const problem = getGeneralApiProblem(response)
+      log.warn("Link identity failed", { problem: problem?.kind, status: response.status })
+      if (problem) return problem
+      return { kind: "unknown", temporary: true }
+    }
+    if (!response.data || typeof response.data.linked !== "boolean") {
+      log.warn("Invalid link identity response format")
+      return { kind: "bad-data" }
+    }
+    return { kind: "ok", data: response.data }
   }
 
   /**

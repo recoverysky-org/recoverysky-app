@@ -22,7 +22,36 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+> **Deploy order and ship gate.** The API deploys first — the app's
+> wrong-account recovery calls its identity-link endpoint, and an app that
+> reaches a server without it gets a 404 on every link attempt. **Merged to
+> `root` 2026-09-28, so NO OTA can be published from `root` until the Auth0
+> tenant runbook in spec 1 §3 is complete on the production tenant**:
+> passwordless email is off there by default, and shipping ahead of it leaves
+> users with a login screen that can only fail. All of it is JS-only, so it
+> ships as an OTA — no `runtimeVersion` bump (see the Build entry below for
+> the one native-config change, which prod output does not depend on).
+
+### Added
+- **Passwordless email login: type your email, get a six-digit code, done.**
+  No password, no browser — Auth0's Universal Login web screen no longer
+  opens for email sign-in. Login and sign-up are the same path now; the
+  separate Sign Up button is gone. Apple and Google buttons open the
+  provider directly instead of Auth0's hosted login page.
+  (spec: `docs/superpowers/specs/2026-09-12-passwordless-login-design.md`)
+- **Wrong-account recovery.** Signing in with an account that isn't the one
+  this device belongs to now shows a single recovery screen instead of
+  silently switching data: prove you're the device owner (a code to the
+  owner's email, or the owner's Apple/Google button) and the two accounts
+  are linked, so the same wrong tap resolves automatically next time.
+  Cancel is the only other way out, and nothing on this screen can delete,
+  rekey, or read the device owner's local data.
+  (spec: `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
+
 ### Changed
+- Signing out after an email-code login no longer opens a browser, and iOS
+  no longer shows the system "Sign In" dialog on sign-out — an email session
+  never created a browser session to begin with.
 - **In-Person now opens on the map by default.** Fresh installs, and anyone
   who never tapped the list/map toggle, land on the map instead of the list;
   an explicit list pick is still remembered. The map still steps aside for
@@ -62,6 +91,32 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   per-device latency baseline for spotting users on chronically poor
   networks. The Wi-Fi name is deliberately not collected (see
   `docs/DIAGNOSTICS.md`).
+
+### Removed
+- The Sign Up button and the separate signup flow. Passwordless email
+  creates the account on first use, so there was nothing left for it to do.
+
+### Security
+- **A session for a different account can no longer read the device
+  owner's local data, push a stranger's attendance into the sync outbox,
+  or register push/RevenueCat identity under the wrong account.** The
+  ownership gate in `useAuth0Wrapper` (`decideOwnership`) compares every
+  accepted session's sub against the stored device owner before writing
+  anything — a mismatched session gets no token, no `userId`, no
+  SecureStore copy, so `isAuthenticated` stays false and no
+  identity-driven reaction (the `sync.queueOwnerUid` account-switch clear
+  included) ever sees it. `WrongAccountScreen` is the only way out: prove
+  ownership, or cancel.
+
+### Build
+- **The Auth0 domain baked into the native redirect handler now follows
+  `EXPO_PUBLIC_AUTH0_DOMAIN`** (`app.config.ts`) instead of being hard-coded
+  to `auth.recoverysky.app` in `app.json`. Android only hands a browser-login
+  callback back to the app when its host matches that baked domain, so a dev
+  build pointed at a different Auth0 tenant hung on Auth0's page after Google
+  or Apple sign-in. Production output is unchanged — EAS builds get
+  `auth.recoverysky.app` from `eas.json`. Native config change: dev clients
+  need `npm run prebuild:clean` and a rebuild.
 
 ## [4.10.1-14] — 2026-09-27
 

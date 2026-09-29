@@ -31,6 +31,7 @@ import { migrations } from "@recoverysky-org/common/sqlite"
 import type * as schema from "@recoverysky-org/common/sqlite"
 import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
 
+import { useAuthenticationStore } from "@/models"
 import { setSqliteEncryptionKey } from "@/services/encryption/sqliteKey"
 import { logger } from "@/utils/logger"
 
@@ -115,6 +116,12 @@ interface DatabaseProviderProps {
  */
 export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
   log.debug("DatabaseProvider initializing")
+
+  // ADDED 2026-09-17 (spec 2 §1.4): resetLocalDatabase() needs to clear the
+  // device-owner record as part of teardown; passed in as a callback rather
+  // than imported so app/db/ does not grow a runtime dependency on
+  // app/models/ (dependency direction — see lint:deps).
+  const authStore = useAuthenticationStore()
 
   const [status, setStatus] = useState<DbStatus>("closed")
   const [error, setError] = useState<string | null>(null)
@@ -287,7 +294,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     }
     clearRetryTimer()
     try {
-      await resetLocalDatabase()
+      await resetLocalDatabase({ clearOwner: () => authStore.clearOwner() })
     } catch (e) {
       log.error("Local database reset failed", { error: String(e) })
       setError(e instanceof Error ? e.message : String(e))
@@ -295,7 +302,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     }
     attemptRef.current = 0
     await openDb()
-  }, [clearRetryTimer, openDb])
+  }, [authStore, clearRetryTimer, openDb])
 
   // Auto-initialize database on mount — once. `openDb` is stable (no state in
   // its deps), so this effect runs exactly one time per mount.

@@ -16,11 +16,23 @@
  * sentence just reads like something broke on our side.
  */
 
-export type AuthErrorMessageKey = "browserTerminated" | "networkError"
+export type AuthErrorMessageKey =
+  | "browserTerminated"
+  | "networkError"
+  // ADDED 2026-09-17 for the in-app passwordless flow (spec 1 §2.5). These
+  // come from the Authentication API (`AuthError.code`), not the web-auth
+  // `type` field.
+  | "wrongCode"
+  | "codeExpired"
+  | "tooManyAttempts"
+  | "sendRateLimited"
+  | "passwordlessNotEnabled"
 
-/** Shape-only view of a react-native-auth0 `WebAuthError` (or anything thrown). */
+/** Shape-only view of a react-native-auth0 `WebAuthError` / `AuthError` (or anything thrown). */
 interface AuthErrorLike {
   type?: unknown
+  code?: unknown
+  status?: unknown
   message?: unknown
 }
 
@@ -36,6 +48,23 @@ export function classifyAuthError(err: unknown): AuthErrorMessageKey | null {
   // "Failed to execute the network request." — both seen in prod logs on
   // 4.7/4.8 — and the SDK does not always tag them NETWORK_ERROR.
   if (/network (error|request)/i.test(msg)) return "networkError"
+
+  // ADDED 2026-09-17 for the in-app passwordless flow (spec 1 §2.5).
+  const code =
+    typeof (err as AuthErrorLike).code === "string" ? ((err as AuthErrorLike).code as string) : ""
+  const status =
+    typeof (err as AuthErrorLike).status === "number"
+      ? ((err as AuthErrorLike).status as number)
+      : 0
+
+  // Auth0 reports both a wrong and an expired OTP as invalid_grant; only the
+  // description tells them apart. Exact strings to be confirmed against the
+  // tenant (spec 1 §6) — the regex is deliberately loose.
+  if (code === "invalid_grant") return /expir/i.test(msg) ? "codeExpired" : "wrongCode"
+  if (code === "too_many_attempts") return "tooManyAttempts"
+  if (code === "too_many_requests" || status === 429) return "sendRateLimited"
+  // The Passwordless OTP grant is missing on the application — runbook §3.2.
+  if (code === "unauthorized_client") return "passwordlessNotEnabled"
 
   return null
 }
