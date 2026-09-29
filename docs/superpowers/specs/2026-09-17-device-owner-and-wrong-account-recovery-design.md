@@ -358,6 +358,11 @@ linking needs. Nothing new.
   (item 9) records which.
 - That `link_with` accepts an ID token issued to the Native application when the Management call
   is authorised by the M2M client (documented; confirm on the dev tenant).
+  **ANSWERED 2026-09-28 (dev tenant): no.** Auth0 returns 400 "JWT (link_with) contains an
+  invalid aud claim" — `link_with` must have `aud` equal to the Management token's `azp`. The
+  API now links with `{ provider, user_id }` built from the sub its own `verifyIdToken` has
+  already authenticated (api `fix/link-provider-user-id`, 369818b); the ownership proof is
+  unchanged.
 
 ## Non-goals
 
