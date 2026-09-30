@@ -143,6 +143,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - **Search shows its meeting count where Online and In-Person do,** directly
   under the segment title, instead of at the bottom of the filters below the
   search box.
+- **Attendance reports open fitted to the screen.** Viewing a sent
+  report showed the email at 100% zoom, with the header links, the attendance
+  table's Meeting column and the footer cut off at the right edge. The report
+  email's viewport pinned the initial zoom, and Android's WebView honours that
+  pin literally. The viewer now drops it on both platforms so the report zooms
+  out to fit, and pinch-zoom still works.
 
 ### Security
 - **A session for a different account can no longer read the device

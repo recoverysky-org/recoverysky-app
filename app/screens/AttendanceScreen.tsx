@@ -59,6 +59,7 @@ import { attendanceSync } from "@/services/sync"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
+import { prepareReportHtml } from "@/utils/reportHtmlLogic"
 
 // ============================================================================
 // Section definitions
@@ -897,7 +898,12 @@ const ReportsContent: FC = observer(function ReportsContent() {
           </View>
           {selectedReport?.html ? (
             <WebView
-              source={{ html: selectedReport.html.replace(/<img[^>]*>/gi, "") }}
+              // The email template's `initial-scale=1.0` opened the report at
+              // 100% with the table running off-screen (seen on Android).
+              // Fitting is applied on both platforms: a page that already
+              // fits stays at 100%, so it's a no-op where it isn't needed.
+              // See reportHtmlLogic.ts.
+              source={{ html: prepareReportHtml(selectedReport.html, { fitToWidth: true }) }}
               originWhitelist={["*"]}
               style={$webView}
             />
