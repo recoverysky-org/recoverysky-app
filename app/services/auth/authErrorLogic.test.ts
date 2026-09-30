@@ -28,6 +28,29 @@ describe("classifyAuthError", () => {
     )
   })
 
+  it("maps iOS NSURLError transport failures (ADDED 2026-09-30)", () => {
+    expect(
+      classifyAuthError({
+        message:
+          'The credentials renewal failed. CAUSE: Unable to complete the operation. CAUSE: Error Domain=NSURLErrorDomain Code=-1005 "The network connection was lost."',
+      }),
+    ).toBe("networkError")
+    expect(
+      classifyAuthError({
+        message: "The Internet connection appears to be offline.",
+      }),
+    ).toBe("networkError")
+  })
+
+  it("maps the JS HttpClient's network_error and timeout codes (ADDED 2026-09-30)", () => {
+    expect(classifyAuthError({ code: "network_error", message: "Load failed" })).toBe(
+      "networkError",
+    )
+    expect(classifyAuthError({ code: "timeout", message: "Request timed out after 10000ms" })).toBe(
+      "networkError",
+    )
+  })
+
   it("returns null for everything else so the raw SDK message still shows", () => {
     expect(classifyAuthError({ type: "ACCESS_DENIED", message: "access denied" })).toBeNull()
     expect(classifyAuthError({ message: "Something odd" })).toBeNull()

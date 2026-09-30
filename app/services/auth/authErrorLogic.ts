@@ -48,6 +48,18 @@ export function classifyAuthError(err: unknown): AuthErrorMessageKey | null {
   // "Failed to execute the network request." — both seen in prod logs on
   // 4.7/4.8 — and the SDK does not always tag them NETWORK_ERROR.
   if (/network (error|request)/i.test(msg)) return "networkError"
+  // ADDED 2026-09-30: iOS transport failures reach JS as the NSURLError text
+  // wrapped in "The credentials renewal failed. CAUSE: …" — e.g. -1005 "The
+  // network connection was lost." on /oauth/token, seen on a simulator whose
+  // connection to the tenant dropped mid-request. Unmatched, the login screen
+  // showed that whole NSError dump to the user. Also the JS HttpClient's own
+  // codes: `network_error` (fetch threw) and `timeout` (its 10 s abort — the
+  // dev tenant's /passwordless/start takes 5–19 s while it sends the email).
+  if (/NSURLErrorDomain|network connection was lost|appears to be offline/i.test(msg)) {
+    return "networkError"
+  }
+  const rawCode = (err as AuthErrorLike).code
+  if (rawCode === "network_error" || rawCode === "timeout") return "networkError"
 
   // ADDED 2026-09-17 for the in-app passwordless flow (spec 1 §2.5).
   const code =

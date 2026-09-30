@@ -132,6 +132,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   handed the email to its mail provider, which was measured at 5–19 seconds.
   The user got "couldn't reach the sign-in service" while the code was still
   on its way. The timeout is now 30 seconds.
+- **Sign-in network failures on iOS show "check your connection" instead of
+  a raw error dump.** When the connection to the sign-in service dropped (iOS
+  "The network connection was lost", or offline), the login screen displayed
+  the whole NSURLError text. Those, plus the sign-in SDK's own timeout and
+  network-error codes, now get the same friendly copy as other network failures.
 
 ### Security
 - **A session for a different account can no longer read the device
