@@ -405,6 +405,8 @@ const es: Translations = {
     accountHiddenByApple: "Oculto por Apple",
     accountActiveA11y: "Sesión iniciada con {{method}}: {{email}}",
     accountLinkedA11y: "Cuenta de {{method}} vinculada: {{email}}",
+    accountActiveA11yNoEmail: "Sesión iniciada con {{method}}",
+    accountLinkedA11yNoEmail: "Cuenta de {{method}} vinculada",
     deleteAllReminders: "Eliminar Todos los Recordatorios",
     deleteAllRemindersConfirm:
       "¿Estás seguro de que quieres eliminar todos tus recordatorios? Esto no se puede deshacer.",

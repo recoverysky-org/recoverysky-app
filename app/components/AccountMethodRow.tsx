@@ -46,10 +46,17 @@ export const AccountMethodRow: FC<AccountMethodRowProps> = ({ identity, status }
   const email = identity.hiddenByApple
     ? translate("settingsScreen:accountHiddenByApple")
     : (identity.email ?? "")
-  const a11yLabel = translate(
-    status === "active" ? "settingsScreen:accountActiveA11y" : "settingsScreen:accountLinkedA11y",
-    { method, email },
-  )
+  // CHANGED 2026-09-30: a row with no address uses the …NoEmail keys. The
+  // single interpolated key read "Linked Email account:" with a dangling
+  // colon, which screen readers announce as if a value were still coming.
+  const a11yKey: TxKeyPath = email
+    ? status === "active"
+      ? "settingsScreen:accountActiveA11y"
+      : "settingsScreen:accountLinkedA11y"
+    : status === "active"
+      ? "settingsScreen:accountActiveA11yNoEmail"
+      : "settingsScreen:accountLinkedA11yNoEmail"
+  const a11yLabel = translate(a11yKey, { method, email })
 
   return (
     <View

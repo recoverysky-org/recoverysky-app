@@ -112,6 +112,12 @@ export async function setupRootStore(rootStore: RootStore) {
       } else {
         // No ID token on cold start — it is not persisted (see
         // StoredAuthCredentials) and nothing after login needs it.
+        // CHANGED 2026-09-30: Settings → Account now reads authStore.idToken
+        // for its linked-method rows (accountMethodsLogic.ts). Leaving it
+        // undefined here is still right: the SDK restores its own session on
+        // cold start and useAuth0Wrapper's [user] sync writes the fresh ID
+        // token via setTokens, as does every refresh. Until then the screen
+        // shows only the active row. Don't drop idToken from those setTokens calls.
         rootStore.authenticationStore.setTokens(
           creds.accessToken,
           creds.refreshToken,

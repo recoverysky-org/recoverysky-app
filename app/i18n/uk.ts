@@ -403,6 +403,8 @@ const uk: Translations = {
     accountHiddenByApple: "Приховано Apple",
     accountActiveA11y: "Вхід через {{method}}: {{email}}",
     accountLinkedA11y: "Пов'язаний обліковий запис {{method}}: {{email}}",
+    accountActiveA11yNoEmail: "Вхід через {{method}}",
+    accountLinkedA11yNoEmail: "Пов'язаний обліковий запис {{method}}",
     deleteAllReminders: "Видалити всі нагадування",
     deleteAllRemindersConfirm:
       "Ви впевнені, що хочете видалити всі нагадування? Цю дію не можна скасувати.",

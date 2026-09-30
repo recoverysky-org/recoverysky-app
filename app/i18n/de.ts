@@ -407,6 +407,8 @@ const de: Translations = {
     accountHiddenByApple: "Von Apple verborgen",
     accountActiveA11y: "Angemeldet mit {{method}}: {{email}}",
     accountLinkedA11y: "Verknüpftes {{method}}-Konto: {{email}}",
+    accountActiveA11yNoEmail: "Angemeldet mit {{method}}",
+    accountLinkedA11yNoEmail: "Verknüpftes {{method}}-Konto",
     deleteAllReminders: "Alle Erinnerungen Löschen",
     deleteAllRemindersConfirm:
       "Sind Sie sicher, dass Sie alle Erinnerungen löschen möchten? Dies kann nicht rückgängig gemacht werden.",

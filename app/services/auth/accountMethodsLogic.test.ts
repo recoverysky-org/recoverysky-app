@@ -128,11 +128,32 @@ describe("describeAccount", () => {
     expect(result.linked).toEqual([{ method: "apple", email: undefined, hiddenByApple: true }])
   })
 
-  it("prefers the identity whose email matches authEmail when two share the active method", () => {
+  it("uses the Action's current tag when two identities share the active method", () => {
+    // Regression: the old tie-break matched authEmail, which is always the
+    // PRIMARY's email on a linked session, so it picked first@ here.
     const result = describeAccount({
       loginMethod: "google",
       sub: "google-oauth2|1",
-      authEmail: "second@gmail.com",
+      authEmail: "first@gmail.com",
+      idToken: idToken({
+        sub: "google-oauth2|1",
+        [IDENTITIES_CLAIM]: [
+          { provider: "google-oauth2", email: "first@gmail.com" },
+          { provider: "google-oauth2", email: "second@gmail.com", current: true },
+        ],
+      }),
+    })
+    expect(result.active?.email).toBe("second@gmail.com")
+    expect(result.linked).toEqual([
+      { method: "google", email: "first@gmail.com", hiddenByApple: false },
+    ])
+  })
+
+  it("shows no email on the active row when two same-method identities are untagged", () => {
+    const result = describeAccount({
+      loginMethod: "google",
+      sub: "google-oauth2|1",
+      authEmail: "first@gmail.com",
       idToken: idToken({
         sub: "google-oauth2|1",
         [IDENTITIES_CLAIM]: [
@@ -141,10 +162,70 @@ describe("describeAccount", () => {
         ],
       }),
     })
-    expect(result.active?.email).toBe("second@gmail.com")
+    expect(result.active).toEqual({ method: "google", email: undefined, hiddenByApple: false })
+    expect(result.linked.map((id) => id.email)).toEqual(["first@gmail.com", "second@gmail.com"])
+  })
+
+  it("never puts the primary's email on a non-primary active row when the claim is missing", () => {
+    // Email-code sign-in into a Google-primary account on a tenant without the Action.
+    const result = describeAccount({
+      loginMethod: "email",
+      sub: "google-oauth2|111",
+      authEmail: "primary@gmail.com",
+      idToken: idToken({ sub: "google-oauth2|111" }),
+    })
+    expect(result.active).toEqual({ method: "email", email: undefined, hiddenByApple: false })
+    expect(result.linked).toEqual([])
+  })
+
+  it("never puts the primary's email on the active row when the claim predates the link", () => {
+    // Link made during this login: the claim lists only the primary.
+    const result = describeAccount({
+      loginMethod: "email",
+      sub: "google-oauth2|111",
+      authEmail: "primary@gmail.com",
+      idToken: idToken({
+        sub: "google-oauth2|111",
+        [IDENTITIES_CLAIM]: [{ provider: "google-oauth2", email: "primary@gmail.com" }],
+      }),
+    })
+    expect(result.active?.email).toBeUndefined()
     expect(result.linked).toEqual([
-      { method: "google", email: "first@gmail.com", hiddenByApple: false },
+      { method: "google", email: "primary@gmail.com", hiddenByApple: false },
     ])
+  })
+
+  it("does not fall back to authEmail when the active identity has no email", () => {
+    const result = describeAccount({
+      loginMethod: "apple",
+      sub: "google-oauth2|111",
+      authEmail: "primary@gmail.com",
+      idToken: idToken({
+        sub: "google-oauth2|111",
+        [IDENTITIES_CLAIM]: [
+          { provider: "google-oauth2", email: "primary@gmail.com" },
+          { provider: "apple", current: true },
+        ],
+      }),
+    })
+    expect(result.active).toEqual({ method: "apple", email: undefined, hiddenByApple: false })
+  })
+
+  it("keeps two email-less identities of the same method as separate rows", () => {
+    const result = describeAccount({
+      loginMethod: "email",
+      sub: "email|1",
+      authEmail: "me@proton.me",
+      idToken: idToken({
+        sub: "email|1",
+        [IDENTITIES_CLAIM]: [
+          { provider: "email", email: "me@proton.me", current: true },
+          { provider: "apple" },
+          { provider: "apple" },
+        ],
+      }),
+    })
+    expect(result.linked).toHaveLength(2)
   })
 
   it("ignores malformed claim entries and unknown providers", () => {

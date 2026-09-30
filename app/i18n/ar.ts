@@ -398,6 +398,8 @@ const ar: Translations = {
     accountHiddenByApple: "مخفي بواسطة Apple",
     accountActiveA11y: "تم تسجيل الدخول باستخدام {{method}}: {{email}}",
     accountLinkedA11y: "حساب {{method}} مرتبط: {{email}}",
+    accountActiveA11yNoEmail: "تم تسجيل الدخول باستخدام {{method}}",
+    accountLinkedA11yNoEmail: "حساب {{method}} مرتبط",
     deleteAllReminders: "حذف جميع التذكيرات",
     deleteAllRemindersConfirm:
       "هل أنت متأكد أنك تريد حذف جميع التذكيرات؟ لا يمكن التراجع عن هذا الإجراء.",

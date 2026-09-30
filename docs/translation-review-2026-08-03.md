@@ -879,13 +879,15 @@ RecoverySky and not on the user: "Network issues", not "error" or "you did
 something wrong". The banner strings are long for a one-line strip, so check that
 they wrap acceptably at 13 pt, and tighten any that run past two lines.
 
-## 2026-09-29 — Settings → Account sign-in methods, 48 strings (8 locales × 6 keys)
+## 2026-09-29 — Settings → Account sign-in methods, 64 strings (8 locales × 8 keys)
 
 `settingsScreen.accountActive`, `accountLinked`, `accountMethodEmail`,
-`accountHiddenByApple`, `accountActiveA11y`, `accountLinkedA11y`: best-effort
+`accountHiddenByApple`, `accountActiveA11y`, `accountLinkedA11y` (+ their
+`…NoEmail` variants, read when a row has no address): best-effort
 translations in ar, de, es, fr, pt, ru, th, uk (`accountMethodGoogle` /
 `accountMethodApple` are bare brand names everywhere). `accountActive` /
 `accountLinked` are short badges beside an email address. They describe the
 **sign-in method / account**, so check the grammatical gender agrees with whatever
 noun your locale implies ("cuenta" → "Activa"). The two `…A11y` strings are
-screen-reader only.
+screen-reader only; the `…NoEmail` pair must read as complete sentences
+without the address.

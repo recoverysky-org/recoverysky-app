@@ -406,6 +406,8 @@ const pt: Translations = {
     accountHiddenByApple: "Oculto pela Apple",
     accountActiveA11y: "Conectado com {{method}}: {{email}}",
     accountLinkedA11y: "Conta {{method}} vinculada: {{email}}",
+    accountActiveA11yNoEmail: "Conectado com {{method}}",
+    accountLinkedA11yNoEmail: "Conta {{method}} vinculada",
     deleteAllReminders: "Excluir Todos os Lembretes",
     deleteAllRemindersConfirm:
       "Tem certeza de que deseja excluir todos os seus lembretes? Isso não pode ser desfeito.",

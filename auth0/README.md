@@ -28,6 +28,17 @@ check it on a device, then deploy to prod.
    to Loki), and confirm the `https://recoverysky.app/identities` array. On the
    device, Settings → Account should list the linked methods.
 
+The claim is emitted only for accounts with two or more identities, and each
+entry carries `current: true` when its connection is the one this login used.
+That tag tells the app which identity is active, because the token's `email`
+is the primary's on every linked login.
+
+**Known lag:** a link made by the app's wrong-account recovery (`POST
+/auth0/link`, after the owner has already signed in) is not in the current ID
+token, so the new "Linked" row appears on the next token refresh or login. The
+app does not force a refresh for it. That was decided on 2026-09-30: a
+cosmetic row isn't worth touching the token-freshness path.
+
 The app treats a missing claim as "no links", so deploying the app before the
 Action is safe. The Action is safe to deploy before the app, too: older builds
 ignore unknown claims.

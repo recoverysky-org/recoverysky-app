@@ -404,6 +404,8 @@ const ru: Translations = {
     accountHiddenByApple: "Скрыто Apple",
     accountActiveA11y: "Вход через {{method}}: {{email}}",
     accountLinkedA11y: "Связанный аккаунт {{method}}: {{email}}",
+    accountActiveA11yNoEmail: "Вход через {{method}}",
+    accountLinkedA11yNoEmail: "Связанный аккаунт {{method}}",
     deleteAllReminders: "Удалить все напоминания",
     deleteAllRemindersConfirm:
       "Вы уверены, что хотите удалить все напоминания? Это действие нельзя отменить.",

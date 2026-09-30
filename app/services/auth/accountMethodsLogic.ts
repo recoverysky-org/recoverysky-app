@@ -17,9 +17,12 @@
  * 2. Linked identities are invisible to the app except through the
  *    `https://recoverysky.app/identities` ID-token claim, added by the
  *    post-login Action in `auth0/actions/identities-claim.js`. A missing
- *    claim (tenant without the Action, or a token minted before it) is
- *    normal: the screen shows just the active row.
+ *    claim (tenant without the Action, a token minted before it, or an
+ *    unlinked account — the Action omits the claim for a single identity)
+ *    is normal: the screen shows just the active row.
  */
+import type { LoginMethod } from "@/models"
+
 import { decodeJwtPayload } from "./jwtUtils"
 import { ownerProofMethod } from "./ownerLogic"
 
@@ -28,14 +31,15 @@ export const IDENTITIES_CLAIM = "https://recoverysky.app/identities"
 
 /**
  * What the user recognises. `auth0` (password) and `email` (code) are both "Email".
- * Same union as the store's LoginMethod, declared here so services/auth does not
- * depend on models/ (the store already depends on this layer's neighbours).
+ * CHANGED 2026-09-30: an alias of the store's LoginMethod (type-only `@/`
+ * import, erased for vitest) instead of a re-declared union, so a new login
+ * method cannot compile here without also getting an icon and label.
  */
-export type AccountMethod = "email" | "apple" | "google"
+export type AccountMethod = LoginMethod
 
 export interface AccountIdentity {
   method: AccountMethod
-  /** Undefined when the provider gave none, or when it is an Apple relay address. */
+  /** Undefined when the provider gave none, when it is an Apple relay address, or when we can't tell. */
   email?: string
   /** Apple "Hide My Email": the relay address means nothing to the user, so we say so instead. */
   hiddenByApple: boolean
@@ -49,9 +53,20 @@ export interface AccountDescription {
 export interface DescribeAccountInput {
   loginMethod: AccountMethod | undefined
   sub: string | undefined
-  /** The ID token's `email` — for a linked account, the PRIMARY's email. */
+  /**
+   * The ID token's `email` — for a linked account, ALWAYS the PRIMARY's email,
+   * whichever identity signed in. So it only describes the active identity
+   * when the active identity is the primary; see describeAccount.
+   */
   authEmail: string
   idToken: string | undefined
+}
+
+interface ClaimEntry {
+  method: AccountMethod
+  email?: string
+  /** Set by the Action on the identity whose connection this login used. */
+  current: boolean
 }
 
 export function providerToMethod(provider: string | undefined): AccountMethod | null {
@@ -79,17 +94,25 @@ function toIdentity(method: AccountMethod, email: string | undefined): AccountId
 }
 
 /** Read the claim defensively — it arrives from a tenant Action, not from our code. */
-function readClaim(idToken: string | undefined): { method: AccountMethod; email?: string }[] {
+function readClaim(idToken: string | undefined): ClaimEntry[] {
   if (!idToken) return []
   const claim = decodeJwtPayload<Record<string, unknown>>(idToken)?.[IDENTITIES_CLAIM]
   if (!Array.isArray(claim)) return []
-  const out: { method: AccountMethod; email?: string }[] = []
+  const out: ClaimEntry[] = []
   for (const entry of claim) {
     if (!entry || typeof entry !== "object") continue
-    const { provider, email } = entry as { provider?: unknown; email?: unknown }
+    const { provider, email, current } = entry as {
+      provider?: unknown
+      email?: unknown
+      current?: unknown
+    }
     const method = providerToMethod(typeof provider === "string" ? provider : undefined)
     if (!method) continue
-    out.push({ method, email: typeof email === "string" ? email : undefined })
+    out.push({
+      method,
+      email: typeof email === "string" ? email : undefined,
+      current: current === true,
+    })
   }
   return out
 }
@@ -110,22 +133,44 @@ export function describeAccount(input: DescribeAccountInput): AccountDescription
 
   // Dedupe by method + email: a migrated password user carries both `auth0|`
   // and `email|` for the same address (spec 1 §3.5), which is one "Email" to them.
-  const identities: { method: AccountMethod; email?: string }[] = []
+  // CHANGED 2026-09-30: only a MATCHING email is a duplicate. Two same-method
+  // identities that both lack an email used to collapse into one row, hiding
+  // a second linked Apple/Google account — the thing this screen exists to show.
+  const identities: ClaimEntry[] = []
   for (const id of readClaim(input.idToken)) {
-    const dup = identities.some(
-      (seen) =>
-        seen.method === id.method &&
-        (sameEmail(seen.email, id.email) || (!seen.email && !id.email)),
+    const dup = identities.find(
+      (seen) => seen.method === id.method && sameEmail(seen.email, id.email),
     )
-    if (!dup) identities.push(id)
+    if (dup) dup.current = dup.current || id.current
+    else identities.push(id)
   }
 
-  // The active identity: same method, preferring the one whose email is the
-  // token's email when the account holds two of a kind.
+  // Which claim entry is the active identity.
+  // CHANGED 2026-09-30: this used to prefer the entry whose email matched
+  // authEmail — but authEmail is the PRIMARY's email on every linked
+  // session, so with two Googles it always picked the primary, even when the
+  // user signed in with the other one. Now: the one entry the Action tagged
+  // `current`, else the only entry of the active method, else nobody (ambiguous).
   const sameMethod = identities.filter((id) => id.method === activeMethod)
-  const activeEntry = sameMethod.find((id) => sameEmail(id.email, input.authEmail)) ?? sameMethod[0]
+  const tagged = sameMethod.filter((id) => id.current)
+  const activeEntry =
+    tagged.length === 1 ? tagged[0] : sameMethod.length === 1 ? sameMethod[0] : undefined
 
-  const active = toIdentity(activeMethod, activeEntry?.email ?? input.authEmail)
+  // Email for the active row.
+  // CHANGED 2026-09-30: authEmail used to be the blanket fallback, which put
+  // the Google primary's address on an Email-code row whenever the claim was
+  // missing or stale (Action not deployed, or a link made during this login).
+  // It is now trusted only when no claim entry could be matched AND the active
+  // method is the primary's (the sub prefix) — the unlinked case, where it is
+  // exact. Otherwise the row shows the method without an address: honest
+  // beats wrong on a screen whose whole job is "which account am I in?".
+  const email = activeEntry
+    ? activeEntry.email
+    : sameMethod.length === 0 && activeMethod === methodFromSub(input.sub)
+      ? input.authEmail
+      : undefined
+
+  const active = toIdentity(activeMethod, email)
   const linked = identities
     .filter((id) => id !== activeEntry)
     .map((id) => toIdentity(id.method, id.email))

@@ -411,6 +411,8 @@ const fr: Translations = {
     accountHiddenByApple: "Masqué par Apple",
     accountActiveA11y: "Connecté avec {{method}} : {{email}}",
     accountLinkedA11y: "Compte {{method}} associé : {{email}}",
+    accountActiveA11yNoEmail: "Connecté avec {{method}}",
+    accountLinkedA11yNoEmail: "Compte {{method}} associé",
     deleteAllReminders: "Supprimer Tous les Rappels",
     deleteAllRemindersConfirm:
       "Êtes-vous sûr de vouloir supprimer tous vos rappels ? Cette action est irréversible.",

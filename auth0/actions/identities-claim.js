@@ -18,12 +18,30 @@
  * the root user), so its email is `event.user.email`; secondaries carry
  * theirs in `profileData.email`. Providers that give none produce an entry
  * without `email`, which the app renders as a bare method row.
+ *
+ * `current: true` marks the identity whose connection this login used. The
+ * app needs it because the token's `email` is the primary's on every linked
+ * login, so it cannot tell which of two same-provider identities is active.
+ * Two identities on the SAME connection (two Googles) both get tagged; the app
+ * then shows the method without guessing an address.
+ *
+ * Unlinked accounts (one identity) get no claim at all: the app treats a
+ * missing claim as "no links", and this keeps the emails of linked accounts
+ * out of every token that doesn't need them — including the foreign-session
+ * tokens the app hands to POST /auth0/link.
  */
 exports.onExecutePostLogin = async (event, api) => {
-  const identities = (event.user.identities || []).map((identity) => {
+  const identities = event.user.identities || []
+  if (identities.length < 2) return
+
+  const loginConnection = event.connection && event.connection.name
+  const claim = identities.map((identity) => {
     const isPrimary = `${identity.provider}|${identity.user_id}` === event.user.user_id
     const email = isPrimary ? event.user.email : identity.profileData && identity.profileData.email
-    return email ? { provider: identity.provider, email } : { provider: identity.provider }
+    const entry = { provider: identity.provider }
+    if (email) entry.email = email
+    if (identity.connection === loginConnection) entry.current = true
+    return entry
   })
-  api.idToken.setCustomClaim("https://recoverysky.app/identities", identities)
+  api.idToken.setCustomClaim("https://recoverysky.app/identities", claim)
 }

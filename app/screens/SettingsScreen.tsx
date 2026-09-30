@@ -1,4 +1,4 @@
-import { FC, useState, useCallback, useEffect, useRef } from "react"
+import { FC, useState, useCallback, useEffect, useMemo, useRef } from "react"
 import {
   View,
   ViewStyle,
@@ -219,14 +219,18 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const authStore = useAuthenticationStore()
   // Anonymous sessions have no sign-in method to show (userId is the device
   // id there), so they skip straight to the fallback row below.
-  const accountDescription = authStore.isAnonymous
-    ? { active: null, linked: [] }
-    : describeAccount({
-        loginMethod: authStore.loginMethod,
-        sub: authStore.userId,
-        authEmail: authStore.authEmail,
-        idToken: authStore.idToken,
-      })
+  // CHANGED 2026-09-30: memoised — describeAccount decodes the ID token, and
+  // this screen re-renders for every toggle and store tick. The observables
+  // are read here in render, so observer() still re-renders on their change
+  // and the deps below pick up the new values.
+  const { isAnonymous, loginMethod, userId, authEmail, idToken } = authStore
+  const accountDescription = useMemo(
+    () =>
+      isAnonymous
+        ? { active: null, linked: [] }
+        : describeAccount({ loginMethod, sub: userId, authEmail, idToken }),
+    [isAnonymous, loginMethod, userId, authEmail, idToken],
+  )
   const conversationStore = useConversationStore()
   const configStore = useConfigStore()
 

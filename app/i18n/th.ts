@@ -401,6 +401,8 @@ const th: Translations = {
     accountHiddenByApple: "ซ่อนโดย Apple",
     accountActiveA11y: "ลงชื่อเข้าใช้ด้วย {{method}}: {{email}}",
     accountLinkedA11y: "บัญชี {{method}} ที่เชื่อมโยง: {{email}}",
+    accountActiveA11yNoEmail: "ลงชื่อเข้าใช้ด้วย {{method}}",
+    accountLinkedA11yNoEmail: "บัญชี {{method}} ที่เชื่อมโยง",
     deleteAllReminders: "ลบการแจ้งเตือนทั้งหมด",
     deleteAllRemindersConfirm:
       "คุณแน่ใจหรือไม่ว่าต้องการลบการแจ้งเตือนทั้งหมด? การดำเนินการนี้ไม่สามารถย้อนกลับได้",

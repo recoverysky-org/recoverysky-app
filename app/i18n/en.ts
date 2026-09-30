@@ -435,6 +435,8 @@ const en = {
     accountHiddenByApple: "Hidden by Apple",
     accountActiveA11y: "Signed in with {{method}}: {{email}}",
     accountLinkedA11y: "Linked {{method}} account: {{email}}",
+    accountActiveA11yNoEmail: "Signed in with {{method}}",
+    accountLinkedA11yNoEmail: "Linked {{method}} account",
     deleteAllReminders: "Delete All Reminders",
     deleteAllRemindersConfirm:
       "Are you sure you want to delete all your reminders? This cannot be undone.",

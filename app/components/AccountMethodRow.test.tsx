@@ -43,7 +43,8 @@ describe("AccountMethodRow", () => {
       <AccountMethodRow identity={{ method: "email", hiddenByApple: false }} status="linked" />,
     )
     const row = screen.getByTestId("account-method-linked-email")
-    expect(row.props.accessibilityLabel).toContain("settingsScreen:accountLinkedA11y")
+    // No address → the NoEmail key, so there is no dangling "account:" to announce.
+    expect(row.props.accessibilityLabel).toContain("settingsScreen:accountLinkedA11yNoEmail")
     expect(screen.getByText(/settingsScreen:accountMethodEmail/)).toBeTruthy()
   })
 })
