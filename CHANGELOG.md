@@ -33,6 +33,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 > the one native-config change, which prod output does not depend on).
 
 ### Added
+
+- **Settings → Account shows how you're signed in.** The account row now names
+  the sign-in method this session used (Email, Google or Apple) with the full
+  email and an "Active" badge, and lists any other methods linked into the same
+  account as "Linked". Apple "Hide My Email" relay addresses show as "Hidden by
+  Apple". Linked methods come from a new ID-token claim added by the
+  `auth0/actions/identities-claim.js` post-login Action; until that Action is
+  deployed to a tenant, only the active row appears. The active method comes from
+  the recorded login method, not the token's `sub`, because a linked account
+  reports the primary identity's `sub` whichever method you used.
 - **Passwordless email login: type your email, get a six-digit code, done.**
   No password, no browser — Auth0's Universal Login web screen no longer
   opens for email sign-in. Login and sign-up are the same path now; the

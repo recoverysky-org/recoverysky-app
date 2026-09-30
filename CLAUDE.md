@@ -886,6 +886,10 @@ its subsystem:
   eight non-English locales
 - `docs/STORE_LISTING.*.txt` — App Store / Play listing copy drafts
 - `EVENTS.md` — the app's event/pub-sub catalog
+- `auth0/` — source for the tenants' Auth0 Actions (e.g. the `identities` ID-token
+  claim behind Settings → Account's linked-method rows) plus per-Action deploy
+  steps. Tenants are still configured by hand; prod shares one client with every
+  build, so deploy to the dev tenant first.
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
   history, backlog, running work log
 
