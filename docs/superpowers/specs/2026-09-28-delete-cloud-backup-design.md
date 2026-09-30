@@ -6,6 +6,17 @@ plan (`docs/superpowers/plans/2026-09-29-delete-cloud-backup.md`) were written. 
 implemented in `app`, `api` or `common`. To resume: re-read this spec, re-confirm the decisions
 with Jenova, build §2 on the api first, then execute the plan. (Originally: spec approved in chat
 2026-09-28.)
+
+**Open direction (Jenova, 2026-09-30):** instead of a separate Cloud Backup row, consider moving
+all of this under the existing Settings → Account → **"Delete User Data"** action
+(`handleDeleteUserData` in `SettingsScreen.tsx`, which today wipes only this device — RevenueCat
+logout, push opt-out, MMKV, SecureStore, `resetLocalDatabase()`, then `reloadApp()`). Not
+designed yet. If this direction is taken, re-open the brainstorm: §1's separate row and
+three-button dialog go away, and the questions become whether Delete User Data always deletes the
+server backup, whether it still offers a wipe of the user's *other* devices via the §2 marker, and
+the ordering (the server delete must run while the user is still signed in, i.e. before step 7's
+Auth0 logout). §2's server contract and the "reports are never deleted and never re-served" rule
+carry over unchanged.
 **Repos touched:** `app` (this spec's implementation), `api` + `common` (contract in §2 —
 **specified here only; nothing in `../api` is changed by this work**).
 **Origin:** Jenova, 2026-09-28: "we need to add a 'delete my cloud backup' button to Settings
