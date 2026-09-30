@@ -140,6 +140,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   "The network connection was lost", or offline), the login screen displayed
   the whole NSURLError text. Those, plus the sign-in SDK's own timeout and
   network-error codes, now get the same friendly copy as other network failures.
+- **Search shows its meeting count where Online and In-Person do,** directly
+  under the segment title, instead of at the bottom of the filters below the
+  search box.
 
 ### Security
 - **A session for a different account can no longer read the device

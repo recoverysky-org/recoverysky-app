@@ -950,6 +950,18 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           <Text preset="heading" tx="listingsScreen:title" />
         </View>
 
+        {/* Meeting Count
+            MOVED 2026-09-30 (Jenova): from below the search box to directly
+            under the title, where Online and In-Person show theirs, so all
+            three segments put the count in the same place. */}
+        {filteredMeetings.length > 0 && (
+          <View style={themed($countContainer)}>
+            <Text style={themed($countText)}>
+              {t("listingsScreen:meetingCount", { count: filteredMeetings.length })}
+            </Text>
+          </View>
+        )}
+
         {/* Six filters in a 2×3 grid (Jenova, 2026-08-04), matching the
             In-Person segment's grid so the two tabs read the same. Fellowship
             used to own a full-width row of its own; its value is a two-letter
@@ -1103,7 +1115,9 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             explanation and no route back — the option just wasn't there any
             more. Shown whenever the toggle is off, not only right after the
             coercion above: by then the venue reads "Online" and nothing else
-            on screen says why in-person is unavailable. */}
+            on screen says why in-person is unavailable.
+            CHANGED 2026-09-30: "above the count" is stale — the count moved up
+            under the title; the banner still sits right below the filters. */}
         {locationDisabled && (
           <TouchableOpacity
             style={themed($banner)}
@@ -1140,15 +1154,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             RightAccessory={query.length > 0 ? ClearAccessory : undefined}
           />
         </View>
-
-        {/* Meeting Count */}
-        {filteredMeetings.length > 0 && (
-          <View style={themed($countContainer)}>
-            <Text style={themed($countText)}>
-              {t("listingsScreen:meetingCount", { count: filteredMeetings.length })}
-            </Text>
-          </View>
-        )}
 
         {/* Loading Indicator */}
         {isLoading && meetings.length === 0 && (
