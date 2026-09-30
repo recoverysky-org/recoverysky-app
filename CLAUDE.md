@@ -474,8 +474,8 @@ Three separate trust layers, easy to confuse:
    claims. This is what makes ProfileStore's "volatile (encrypted SQLite)" tier
    actually encrypted.
    CHANGED 2026-09-30: the JWT half is dormant. No tenant Action issues
-   `https://recoverysky.app/metadata` (`auth0/actions/` is the source of
-   truth, and it has none), so EVERY device, signed in or not, runs on
+   `https://recoverysky.app/metadata` (`auth0/actions/<tenant>/` is the source of
+   truth, and neither tenant folder has it), so EVERY device, signed in or not, runs on
    its locally generated key. The rekey-on-login path in `useAuth0Wrapper` has
    never run in production, so adding that Action is a new feature, not a
    restore. See `auth0/README.md` "Not implemented".
@@ -892,10 +892,12 @@ its subsystem:
   eight non-English locales
 - `docs/STORE_LISTING.*.txt` — App Store / Play listing copy drafts
 - `EVENTS.md` — the app's event/pub-sub catalog
-- `auth0/` — source for the tenants' Auth0 Actions (e.g. the `identities` ID-token
-  claim behind Settings → Account's linked-method rows) plus per-Action deploy
-  steps. Tenants are still configured by hand; prod shares one client with every
-  build, so deploy to the dev tenant first.
+- `auth0/` — source for the tenants' Auth0 Actions, one folder per tenant:
+  `actions/meetingmaker/` (prod, `auth.recoverysky.app`) and
+  `actions/bad-bitch-tenant/` (dev). A file in a tenant's folder = deployed and
+  bound there; absent = doesn't exist there. The `identities` ID-token claim
+  behind Settings → Account's linked-method rows lives here. Prod shares one
+  client with every build, so deploy to dev first and promote by copying the file.
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
   history, backlog, running work log
 

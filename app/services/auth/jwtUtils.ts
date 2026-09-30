@@ -134,7 +134,7 @@ export interface IdTokenClaims {
  * Extract SQLite encryption key from JWT custom claims.
  *
  * Looks for `sqliteKey` in the Auth0 custom metadata namespace.
- * CHANGED 2026-09-30: no such Action exists (auth0/actions/ is the source of
+ * CHANGED 2026-09-30: no such Action exists (auth0/actions/<tenant>/ is the source of
  * truth), so this returns null for every real token today.
  * Requires an Auth0 Action to inject `https://recoverysky.app/metadata`
  * into the ID token with the user's sqliteKey.

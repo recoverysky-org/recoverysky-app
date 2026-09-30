@@ -16,7 +16,7 @@
  *
  * 2. Linked identities are invisible to the app except through the
  *    `https://recoverysky.app/identities` ID-token claim, added by the
- *    post-login Action in `auth0/actions/identities-claim.js`. A missing
+ *    post-login Action in `auth0/actions/<tenant>/identities-claim.js`. A missing
  *    claim (tenant without the Action, a token minted before it, or an
  *    unlinked account — the Action omits the claim for a single identity)
  *    is normal: the screen shows just the active row.
@@ -26,7 +26,7 @@ import type { LoginMethod } from "@/models"
 import { decodeJwtPayload } from "./jwtUtils"
 import { ownerProofMethod } from "./ownerLogic"
 
-/** Namespace must match `auth0/actions/identities-claim.js`. */
+/** Namespace must match `auth0/actions/<tenant>/identities-claim.js`. */
 export const IDENTITIES_CLAIM = "https://recoverysky.app/identities"
 
 /**

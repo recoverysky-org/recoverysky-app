@@ -39,7 +39,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   email and an "Active" badge, and lists any other methods linked into the same
   account as "Linked". Apple "Hide My Email" relay addresses show as "Hidden by
   Apple". Linked methods come from a new ID-token claim added by the
-  `auth0/actions/identities-claim.js` post-login Action; until that Action is
+  `auth0/actions/<tenant>/identities-claim.js` post-login Action; until that Action is
   deployed to a tenant, only the active row appears. The active method comes from
   the recorded login method, not the token's `sub`, because a linked account
   reports the primary identity's `sub` whichever method you used.
