@@ -93,6 +93,10 @@ const AUTH_CREDENTIALS_KEY = "auth_credentials_v1"
  * login, and the refresher never consults an ID token. Old records that
  * still carry `idToken` parse fine — the extra property is ignored — and are
  * rewritten without it on the next refresh.
+ * CHANGED 2026-09-30: "nothing reads it" now means nothing reads the
+ * PERSISTED copy. The in-memory authStore.idToken does have a reader —
+ * Settings → Account's linked-method rows — and it is fed by the SDK sync and
+ * the refresher, not by this record, so it still does not belong here.
  */
 export interface StoredAuthCredentials {
   accessToken: string

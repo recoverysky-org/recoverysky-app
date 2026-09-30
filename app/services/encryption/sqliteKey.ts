@@ -4,6 +4,9 @@
  * Manages the encryption key for SQLite database:
  * - Anonymous users: Generate and store a local key in SecureStore
  * - Authenticated users: Use key from JWT custom claims
+ *   CHANGED 2026-09-30: dormant — no Auth0 Action issues that claim (see
+ *   auth0/README.md "Not implemented"), so in practice every device uses
+ *   its local key and the JWT rekey path has never run.
  *
  * The key is stored in SecureStore which uses:
  * - iOS: Keychain (hardware-backed)

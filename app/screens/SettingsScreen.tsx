@@ -1,4 +1,4 @@
-import { FC, useState, useCallback, useEffect, useRef } from "react"
+import { FC, useState, useCallback, useEffect, useMemo, useRef } from "react"
 import {
   View,
   ViewStyle,
@@ -20,6 +20,7 @@ import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/dat
 import { Fellowship } from "@recoverysky-org/common/browser"
 import { observer } from "mobx-react-lite"
 
+import { AccountMethodRow } from "@/components/AccountMethodRow"
 import { Icon } from "@/components/Icon"
 import { PermissionsSection } from "@/components/PermissionsSection"
 import { Screen } from "@/components/Screen"
@@ -50,6 +51,7 @@ import {
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { setPendingMeetingId } from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
+import { describeAccount } from "@/services/auth/accountMethodsLogic"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import {
@@ -215,6 +217,20 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const profileStore = useProfileStore()
   const { promptCloudBackup } = useCloudBackupPrompt()
   const authStore = useAuthenticationStore()
+  // Anonymous sessions have no sign-in method to show (userId is the device
+  // id there), so they skip straight to the fallback row below.
+  // CHANGED 2026-09-30: memoised — describeAccount decodes the ID token, and
+  // this screen re-renders for every toggle and store tick. The observables
+  // are read here in render, so observer() still re-renders on their change
+  // and the deps below pick up the new values.
+  const { isAnonymous, loginMethod, userId, authEmail, idToken } = authStore
+  const accountDescription = useMemo(
+    () =>
+      isAnonymous
+        ? { active: null, linked: [] }
+        : describeAccount({ loginMethod, sub: userId, authEmail, idToken }),
+    [isAnonymous, loginMethod, userId, authEmail, idToken],
+  )
   const conversationStore = useConversationStore()
   const configStore = useConfigStore()
 
@@ -1412,14 +1428,35 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           />
           <Text style={themed($sectionTitle)} tx="settingsScreen:accountSection" />
         </View>
-        <SettingsRow
-          label={translate("settingsScreen:userId")}
-          value={
-            authStore.isAnonymous
-              ? translate("settingsScreen:anonymousUser")
-              : authStore.authEmail || authStore.userId || translate("settingsScreen:notLoggedIn")
-          }
-        />
+        {/*
+          ADDED 2026-09-29: one row per sign-in method — the one this session
+          used ("Active") and any identities linked into the same account
+          ("Linked"). The decision lives in accountMethodsLogic.ts; see its
+          header for why the active method comes from loginMethod and not the
+          sub prefix. The old single "User ID" row is still the fallback for
+          anonymous sessions and for a session whose method can't be derived.
+        */}
+        {accountDescription.active ? (
+          <>
+            <AccountMethodRow identity={accountDescription.active} status="active" />
+            {accountDescription.linked.map((identity, index) => (
+              <AccountMethodRow
+                key={`${identity.method}-${identity.email ?? index}`}
+                identity={identity}
+                status="linked"
+              />
+            ))}
+          </>
+        ) : (
+          <SettingsRow
+            label={translate("settingsScreen:userId")}
+            value={
+              authStore.isAnonymous
+                ? translate("settingsScreen:anonymousUser")
+                : authStore.authEmail || authStore.userId || translate("settingsScreen:notLoggedIn")
+            }
+          />
+        )}
         <TouchableOpacity
           style={themed($deleteRow)}
           onPress={handleDeleteReminders}
