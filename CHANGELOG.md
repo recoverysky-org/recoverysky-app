@@ -204,6 +204,13 @@ out without their own changelog headings.
   4.10.1-14 (it was dev-only until the API's v1.16.0 deploy).
 
 ### Fixed
+- **Attendance reports: the first tap on Send is no longer eaten by the
+  keyboard.** With the keyboard up after typing the report email, tapping Send
+  only dismissed the keyboard and the report was never sent; it took a second
+  tap. The email field and the Send button live inside the Attendance list's
+  header, and that list used React Native's default tap handling, which
+  consumes the tap that closes the keyboard. Both the New tab's send list and
+  the Reports tab's resend panel now let the tap through on the first try.
 - **The Home News card's idle state is no longer logged as a fault.** The API
   answers `204 No Content` when nothing is published, which is nearly every
   load, and `getNews` folded that into `bad-data` — so Home logged "News

@@ -320,10 +320,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
         logger.info("Attendance duration updated", { id: record.id, newDurationMinutes })
       } catch (error) {
         logger.error("Error updating attendance duration", { error: String(error) })
-        Alert.alert(
-          translate("attendanceScreen:errorTitle"),
-          translate("attendanceEdit:saveError"),
-        )
+        Alert.alert(translate("attendanceScreen:errorTitle"), translate("attendanceEdit:saveError"))
       }
     },
     [],
@@ -373,6 +370,11 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
   return (
     <>
       <FlatList
+        // "handled" lets the first tap reach the Send button while the keyboard
+        // is up. The RN default ("never") swallows that tap to dismiss the
+        // keyboard, so the user typed an email, tapped Send, and nothing was
+        // sent — the header's TextField + button live inside this list.
+        keyboardShouldPersistTaps="handled"
         data={records}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -745,6 +747,10 @@ const ReportsContent: FC = observer(function ReportsContent() {
   return (
     <>
       <FlatList
+        // Same reason as the New tab list: the resend panel's email TextField and
+        // Resend button sit in this header, and without "handled" the first tap
+        // after typing only closes the keyboard.
+        keyboardShouldPersistTaps="handled"
         data={reports}
         extraData={reports}
         renderItem={renderItem}
