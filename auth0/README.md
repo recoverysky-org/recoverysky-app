@@ -5,6 +5,13 @@ tenants themselves are still configured by hand (dashboard or Management API);
 this folder holds the code so it is reviewed, versioned, and identical on the
 dev tenant (`bad-bitch-tenant.us.auth0.com`) and prod (`auth.recoverysky.app`).
 
+**If an Action is not in `actions/`, it does not exist on any tenant.** No
+Action gets written straight into the dashboard. Any claim the app reads that
+has no Action here is never issued. In particular there is no
+`https://recoverysky.app/metadata` Action, so the `sqliteKey` claim that
+`jwtUtils.extractSqliteKeyFromClaims()` looks for never arrives (see
+"Not implemented" below).
+
 **Prod and every app build share one Auth0 client, so a prod Action change reaches
 live users on their next login or token refresh.** Deploy to the dev tenant first,
 check it on a device, then deploy to prod.
@@ -14,6 +21,19 @@ check it on a device, then deploy to prod.
 | File | Trigger | Secrets | Consumed by |
 |---|---|---|---|
 | `actions/identities-claim.js` | Login / Post Login | none | `app/services/auth/accountMethodsLogic.ts` (Settings → Account) |
+
+### Not implemented
+
+- **Metadata claim** (`https://recoverysky.app/metadata`, carrying `sqliteKey`).
+  The app reads it (`useAuth0Wrapper` → `handleSqliteKeyFromJwt`) and rekeys
+  the local database when it differs from the device key. No Action has ever
+  issued it, so every signed-in device runs on its own locally generated key,
+  and the rekey-on-login path has **never run in production**. Writing this
+  Action would switch that path on for every user at their next login.
+  Treat it as a new feature with its own spec (RS-024 is what a wrong key
+  does), not as a copy job. Nothing creates a per-user key server-side today.
+- **Passwordless linking** (spec 1 §3.5). Designed, not written. It is part of the
+  prod ship gate.
 
 ### Where each Action is live
 
