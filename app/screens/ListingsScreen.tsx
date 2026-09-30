@@ -939,7 +939,16 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             comment only. `listingsScreen:title` is now unreferenced (the
             segment label is `meetingsScreen`'s own key); it stays in i18n
             because deleting it is a nine-locale edit for no user-visible
-            gain. */}
+            gain.
+            RESTORED 2026-09-30 (Jenova): the heading is back. Live and
+            In-Person both open with one, so Search was the only segment
+            starting cold on a filter row — the duplication the 2026-09-05
+            note worried about reads as a page title above a labelled field,
+            not as the same word twice. `listingsScreen:title` is referenced
+            again; same key, same "Search" copy in all nine locales. */}
+        <View style={themed($header)}>
+          <Text preset="heading" tx="listingsScreen:title" />
+        </View>
 
         {/* Six filters in a 2×3 grid (Jenova, 2026-08-04), matching the
             In-Person segment's grid so the two tabs read the same. Fellowship
@@ -1120,7 +1129,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
             value={query}
             onChangeText={setQuery}
             placeholderTx="listingsScreen:searchPlaceholder"
-            containerStyle={themed($searchField)}
             inputWrapperStyle={themed($searchInputWrapper)}
             autoCapitalize="none"
             autoCorrect={false}
@@ -1471,9 +1479,11 @@ const $searchArea: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingBottom: spacing.xs,
 })
 
-const $searchField: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  marginHorizontal: spacing.md,
-})
+// REMOVED 2026-09-30 (Jenova): $searchField. Its only job was
+// `marginHorizontal: spacing.md`, which double-inset the box (see
+// $selectorRow); with that gone the style held nothing, so the TextField's
+// `containerStyle` went with it. The box still lines up with the filter cells
+// — both take their inset from $listContent now.
 
 const $searchInputWrapper: ThemedStyle<ViewStyle> = ({ colors }) => ({
   backgroundColor: colors.card,
@@ -1495,16 +1505,32 @@ const $clearButton: ViewStyle = {
 // REMOVED 2026-09-05: $header / $title. The heading they styled is gone (see
 // the list header comment); the segment control's own bottom spacing and the
 // first filter row carry the top of the header now.
+// RESTORED 2026-09-30 (Jenova): $header is back with the heading. Same metrics
+// as LiveScreen's and InPersonListHeader's $header so all three segments open
+// on an identically-placed title — minus the horizontal inset, which comes
+// from $listContent here (see $selectorRow).
+const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  paddingTop: spacing.md,
+  paddingBottom: spacing.sm,
+})
 
 // REMOVED 2026-08-04: $fellowshipSelector / $fellowshipLabel. Fellowship had
 // its own full-width row; it's a half-width grid cell now and reuses
 // $selectorButton / $selectorLabel, which were already identical apart from
 // the missing `flex: 1`.
 
+// CHANGED 2026-09-30 (Jenova): dropped `marginHorizontal: spacing.md`, as did
+// $timeRangeRow / $banner / $searchField / $countContainer below. This whole
+// header is FlatList's ListHeaderComponent, so it already sits inside
+// $listContent's `paddingHorizontal: spacing.md`; the row's own inset stacked
+// on top of it and left the Venue/Radius/Day/Time cells indented a full
+// spacing.md past the shared Fellowship/Lang filter bar above them.
 const $selectorRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "stretch",
-  marginHorizontal: spacing.md,
   marginVertical: spacing.sm,
   gap: spacing.sm,
 })
@@ -1557,11 +1583,11 @@ const $selectorValueDisabled: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 // Time range styles
+// CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $selectorRow.
 const $timeRangeRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
-  marginHorizontal: spacing.md,
   marginBottom: spacing.sm,
   gap: spacing.sm,
 })
@@ -1665,15 +1691,16 @@ const $modalOptionTextSelected: ThemedStyle<TextStyle> = ({ colors }) => ({
 })
 
 /* Location banner — deliberately a copy of the In-Person segment's $banner /
-   $bannerText (same accent, same metrics, same marginHorizontal as
-   $selectorRow above so it lines up with the filter cells). Not imported:
+   $bannerText (same accent, same metrics, and — since 2026-09-30 — the same
+   absent horizontal inset as $selectorRow above, both now inheriting
+   $listContent's padding, so it still lines up with the filter cells). Not imported:
    InPersonScreen doesn't export its styles, and the two screens' style blocks
    are independent by convention. If you restyle one banner, restyle both. */
+// CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $selectorRow.
 const $banner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
-  marginHorizontal: spacing.md,
   marginBottom: spacing.sm,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
@@ -1689,8 +1716,8 @@ const $bannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
+// CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $selectorRow.
 const $countContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  paddingHorizontal: spacing.md,
   paddingBottom: spacing.sm,
 })
 

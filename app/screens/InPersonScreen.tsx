@@ -1222,39 +1222,47 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           now, not in this row. */}
       {effectiveViewMode === "map" ? (
         <View style={$screenContainer}>
-          <InPersonListHeader
-            selectedDayLabel={selectedDayLabel}
-            radiusLabel={radiusDistance}
-            radiusA11yLabel={radiusA11yLabel}
-            shortTimeLabel={shortTimeLabel}
-            bannerReason={bannerReason}
-            canAskAgain={canAskAgain}
-            // See the prop's doc comment on InPersonListHeaderProps: this is
-            // the app-level gate, not the OS permission state `bannerReason`
-            // already encodes, and it overrides the banner copy the same way
-            // in both branches.
-            locationDisabled={!profileStore.locationEnabled}
-            showSpinner={showSpinner}
-            isRefetching={isRefetching}
-            onOpenDay={handleOpenDayModal}
-            onOpenRadius={handleOpenRadiusModal}
-            onOpenShortTime={handleOpenShortTimeModal}
-            onBannerPress={handleBannerPress}
-            // Same array the map plots and the list renders, so the count can
-            // never disagree with what's actually on screen in either mode.
-            resultCount={visibleMeetings.length}
-            // See showMapToggleNow definition above — always true here since
-            // effectiveViewMode can only be "map" when location is on.
-            showMapToggle={showMapToggleNow}
-            viewMode={effectiveViewMode}
-            // See mapToggleDisabled definition above — always false here
-            // since effectiveViewMode is narrowed to "map" in this branch.
-            mapToggleDisabled={mapToggleDisabled}
-            onToggleView={handleToggleView}
-            showSortToggle={showSortToggle}
-            sortOrder={sortOrder}
-            onSelectSort={handleSelectSort}
-          />
+          {/* ADDED 2026-09-30 (Jenova): the header's own horizontal inset moved
+              out of InPersonListHeader (see the CHANGED note on its $header) —
+              in list mode it doubled up with $listContent's padding. The map
+              branch renders the header outside any list, so it supplies the
+              single spacing.md inset here instead. The map itself stays
+              full-bleed, hence the wrapper around the header only. */}
+          <View style={themed($mapHeaderInset)}>
+            <InPersonListHeader
+              selectedDayLabel={selectedDayLabel}
+              radiusLabel={radiusDistance}
+              radiusA11yLabel={radiusA11yLabel}
+              shortTimeLabel={shortTimeLabel}
+              bannerReason={bannerReason}
+              canAskAgain={canAskAgain}
+              // See the prop's doc comment on InPersonListHeaderProps: this is
+              // the app-level gate, not the OS permission state `bannerReason`
+              // already encodes, and it overrides the banner copy the same way
+              // in both branches.
+              locationDisabled={!profileStore.locationEnabled}
+              showSpinner={showSpinner}
+              isRefetching={isRefetching}
+              onOpenDay={handleOpenDayModal}
+              onOpenRadius={handleOpenRadiusModal}
+              onOpenShortTime={handleOpenShortTimeModal}
+              onBannerPress={handleBannerPress}
+              // Same array the map plots and the list renders, so the count can
+              // never disagree with what's actually on screen in either mode.
+              resultCount={visibleMeetings.length}
+              // See showMapToggleNow definition above — always true here since
+              // effectiveViewMode can only be "map" when location is on.
+              showMapToggle={showMapToggleNow}
+              viewMode={effectiveViewMode}
+              // See mapToggleDisabled definition above — always false here
+              // since effectiveViewMode is narrowed to "map" in this branch.
+              mapToggleDisabled={mapToggleDisabled}
+              onToggleView={handleToggleView}
+              showSortToggle={showSortToggle}
+              sortOrder={sortOrder}
+              onSelectSort={handleSelectSort}
+            />
+          </View>
           <InPersonMapView
             meetings={visibleMeetings}
             mapStyleUrl={mapStyleUrl}
@@ -1417,6 +1425,14 @@ const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   paddingHorizontal: spacing.md,
   paddingBottom: spacing.xl,
   flexGrow: 1,
+})
+
+// ADDED 2026-09-30 (Jenova): the map branch's stand-in for $listContent's
+// horizontal padding. InPersonListHeader no longer carries its own inset (it
+// doubled up inside the list), so the branch that renders it outside a list
+// has to supply the single spacing.md itself. The map below stays full-bleed.
+const $mapHeaderInset: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingHorizontal: spacing.md,
 })
 
 const $separator: ThemedStyle<ViewStyle> = ({ colors }) => ({

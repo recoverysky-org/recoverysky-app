@@ -59,6 +59,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   (spec: `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
 
 ### Changed
+- **Meetings tab filters line up again.** On the In-Person list and on Search,
+  the segment title and the Radius / Day / Time (and Venue) cells sat one
+  step further in than the Fellowship / Lang bar above them — those headers
+  carried their own side inset on top of the list's, so everything in them was
+  indented twice. In-Person's map view was never affected, which is why only
+  the list looked off. The filters, banners, pills and search box now share
+  one inset with the rows below and the filter bar above.
+- **The Search segment has its page title back.** "Search" reads above the
+  filters, matching the headings Online and In-Person already open with; it was
+  dropped in 4.9.0 as a near-duplicate of the search box's own label.
 - Signing out after an email-code login no longer opens a browser, and iOS
   no longer shows the system "Sign In" dialog on sign-out — an email session
   never created a browser session to begin with.

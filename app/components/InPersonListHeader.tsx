@@ -410,11 +410,19 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
   },
 )
 
+// CHANGED 2026-09-30 (Jenova): dropped `paddingHorizontal: spacing.md`, along
+// with the matching inset on $selectorColumn / $controlsRow / $banner below.
+// In list mode this header is FlatList's ListHeaderComponent, so it already
+// sits inside `$listContent`'s `paddingHorizontal: spacing.md` — the header's
+// own inset stacked on top of it and pushed the title, the Radius/Day/Time
+// cells and the pills a whole spacing.md further in than the shared
+// Fellowship/Lang filter bar above them. The map branch renders this header
+// OUTSIDE the list (which is why only the list view looked wrong), so
+// InPersonScreen wraps it there in a View carrying the same inset.
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingHorizontal: spacing.md,
   paddingTop: spacing.md,
   paddingBottom: spacing.sm,
 })
@@ -428,10 +436,10 @@ const $headerTitleGroup: ViewStyle = {
 // CHANGED 2026-09-27: was `$selectorRow` (one row of three cells); now a
 // column so each selector is its own full-width row. `alignItems: "stretch"`
 // is what makes each row span the width now that the cells have no `flex: 1`.
+// CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $header above.
 const $selectorColumn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "column",
   alignItems: "stretch",
-  marginHorizontal: spacing.md,
   marginVertical: spacing.sm,
   gap: spacing.sm,
 })
@@ -446,11 +454,13 @@ const $selectorColumn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // row's left and right edges either way.
 // CHANGED 2026-09-27: `$selectorRow` is now `$selectorColumn` (three stacked
 // full-width rows); same inset, same alignment.
+// CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $header above.
+// The pills still line up with the selector rows because both now inherit the
+// one inset from the list's content container (or the map branch's wrapper).
 const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
-  marginHorizontal: spacing.md,
   marginBottom: spacing.sm,
 })
 
@@ -516,11 +526,11 @@ const $selectorValue: ThemedStyle<TextStyle> = ({ colors }) => ({
   flexShrink: 1,
 })
 
+// CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $header above.
 const $banner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   gap: spacing.xs,
-  marginHorizontal: spacing.md,
   marginBottom: spacing.sm,
   paddingHorizontal: spacing.sm,
   paddingVertical: spacing.xs,
