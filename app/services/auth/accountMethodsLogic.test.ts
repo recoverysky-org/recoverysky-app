@@ -166,6 +166,51 @@ describe("describeAccount", () => {
     expect(result.linked.map((id) => id.email)).toEqual(["first@gmail.com", "second@gmail.com"])
   })
 
+  it("picks the typed address among email identities the Action tagged alike", () => {
+    // Code sign-in with the secondary address: every code identity is on the one
+    // `email` connection, so the Action tags them all current.
+    const result = describeAccount({
+      loginMethod: "email",
+      sub: "email|1",
+      authEmail: "primary@gmail.com",
+      codeEmail: "Second@Proton.me",
+      idToken: idToken({
+        sub: "email|1",
+        [IDENTITIES_CLAIM]: [
+          { provider: "email", email: "primary@gmail.com", current: true },
+          { provider: "google-oauth2", email: "primary@gmail.com" },
+          { provider: "email", email: "second@proton.me", current: true },
+        ],
+      }),
+    })
+    expect(result.active).toEqual({
+      method: "email",
+      email: "second@proton.me",
+      hiddenByApple: false,
+    })
+    expect(result.linked.map((id) => `${id.method}:${id.email}`)).toEqual([
+      "email:primary@gmail.com",
+      "google:primary@gmail.com",
+    ])
+  })
+
+  it("ignores codeEmail for a non-email session", () => {
+    const result = describeAccount({
+      loginMethod: "google",
+      sub: "google-oauth2|1",
+      authEmail: "first@gmail.com",
+      codeEmail: "first@gmail.com",
+      idToken: idToken({
+        sub: "google-oauth2|1",
+        [IDENTITIES_CLAIM]: [
+          { provider: "google-oauth2", email: "first@gmail.com" },
+          { provider: "google-oauth2", email: "second@gmail.com" },
+        ],
+      }),
+    })
+    expect(result.active?.email).toBeUndefined()
+  })
+
   it("never puts the primary's email on a non-primary active row when the claim is missing", () => {
     // Email-code sign-in into a Google-primary account on a tenant without the Action.
     const result = describeAccount({

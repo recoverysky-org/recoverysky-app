@@ -223,13 +223,20 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   // this screen re-renders for every toggle and store tick. The observables
   // are read here in render, so observer() still re-renders on their change
   // and the deps below pick up the new values.
-  const { isAnonymous, loginMethod, userId, authEmail, idToken } = authStore
+  const { isAnonymous, loginMethod, userId, authEmail, idToken, ownerEmail } = authStore
   const accountDescription = useMemo(
     () =>
       isAnonymous
         ? { active: null, linked: [] }
-        : describeAccount({ loginMethod, sub: userId, authEmail, idToken }),
-    [isAnonymous, loginMethod, userId, authEmail, idToken],
+        : describeAccount({
+            loginMethod,
+            sub: userId,
+            authEmail,
+            idToken,
+            // ADDED 2026-09-30: only a code session has a typed address to match.
+            codeEmail: loginMethod === "email" ? ownerEmail : undefined,
+          }),
+    [isAnonymous, loginMethod, userId, authEmail, idToken, ownerEmail],
   )
   const conversationStore = useConversationStore()
   const configStore = useConfigStore()

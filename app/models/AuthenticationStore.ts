@@ -198,6 +198,14 @@ export const AuthenticationStoreModel = types
       store.ownerSub = sub
       store.ownerEmail = email
     },
+    /**
+     * Update only the address offered as "Send code to …" (ADDED 2026-09-30,
+     * see ownerEmailAfterLogin). The owner's sub never changes here.
+     */
+    setOwnerEmail(email?: string) {
+      log.debug("setOwnerEmail()", { hasEmail: !!email })
+      store.ownerEmail = email
+    },
     /** Only resetLocalDatabase() calls this — the record and the data are one unit. */
     clearOwner() {
       log.warn("clearOwner()")

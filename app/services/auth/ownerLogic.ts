@@ -47,3 +47,30 @@ export function ownerProofMethod(sub: string | undefined): ProofMethod {
   if (sub.startsWith("apple|")) return "apple"
   return "unknown"
 }
+
+/**
+ * The address the Login screen offers as "Send code to …" after a sign-in.
+ *
+ * ADDED 2026-09-30. It used to be the ID token's `email`, stamped only at
+ * adoption. For a linked account that is the PRIMARY identity's address, not
+ * the one the user typed: a code sent to jenova-marie@proton.me signs into an
+ * account whose primary is a gmail identity, so the button came back as
+ * "Send code to m***@gmail.com". Either address reaches the same account, but
+ * offering one the user never typed reads as the wrong account.
+ *
+ * - A code sign-in (by the owner, or the one that adopts the device) → the
+ *   address the user typed, which is proven by the code they just entered.
+ * - Adoption by any other method → the token's email, as before.
+ * - The owner signing in by Apple/Google → keep what is stored.
+ */
+export function ownerEmailAfterLogin(input: {
+  decision: "adopt" | "match"
+  loginMethod: "email" | "apple" | "google" | undefined
+  typedEmail: string | undefined
+  tokenEmail: string | undefined
+  currentOwnerEmail: string | undefined
+}): string | undefined {
+  if (input.loginMethod === "email" && input.typedEmail) return input.typedEmail
+  if (input.decision === "adopt") return input.tokenEmail
+  return input.currentOwnerEmail
+}

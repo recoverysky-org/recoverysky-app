@@ -42,7 +42,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `auth0/actions/<tenant>/identities-claim.js` post-login Action; until that Action is
   deployed to a tenant, only the active row appears. The active method comes from
   the recorded login method, not the token's `sub`, because a linked account
-  reports the primary identity's `sub` whichever method you used.
+  reports the primary identity's `sub` whichever method you used. When an
+  account has more than one email-code address, the Active row is the one you
+  typed, since Auth0 puts every code address on the same connection and the
+  token alone can't tell them apart.
 - **Passwordless email login: type your email, get a six-digit code, done.**
   No password, no browser — Auth0's Universal Login web screen no longer
   opens for email sign-in. Login and sign-up are the same path now; the
@@ -115,6 +118,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Removed
 - The Sign Up button and the separate signup flow. Passwordless email
   creates the account on first use, so there was nothing left for it to do.
+
+### Fixed
+- **The Login screen offers the email you actually sign in with.** After
+  signing out, "Send code to …" showed the account's primary address, not the
+  one the user typed. With linked sign-in methods, a code sent to one address
+  signs into an account whose primary identity has another, e.g. "m***@gmail.com"
+  after signing in as a proton address. It now remembers the address used for
+  the last code sign-in. A stale address corrects itself on the next code
+  sign-in.
 
 ### Security
 - **A session for a different account can no longer read the device

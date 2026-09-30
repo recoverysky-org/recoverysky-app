@@ -26,7 +26,7 @@ import {
   type IdTokenClaims,
 } from "./jwtUtils"
 import { linkForeignIdentity } from "./linkForeignIdentity"
-import { decideOwnership } from "./ownerLogic"
+import { decideOwnership, ownerEmailAfterLogin } from "./ownerLogic"
 import { saveAuthCredentials, clearAuthCredentials } from "./secureStorage"
 import { reportUnusableToken } from "./unusableTokenHandler"
 
@@ -57,6 +57,17 @@ const log = logger.child({ module: "useAuth0Wrapper" })
  * and abandonForeignSession() clear it instead.
  */
 let pendingLoginMethod: LoginMethod | undefined
+
+/**
+ * The address typed for the code sign-in in flight — normalised, the same
+ * string sendCode/verifyCode hand to the SDK. ADDED 2026-09-30: the ID token's
+ * email is the linked account's PRIMARY address, which need not be the one the
+ * user typed, and the Login screen offered that one back ("Send code to
+ * m***@gmail.com" after signing in as jenova-marie@proton.me). See
+ * ownerEmailAfterLogin. Module-scoped and cleared for the same reasons, and at
+ * the same sites, as pendingLoginMethod above.
+ */
+let pendingLoginEmail: string | undefined
 
 /**
  * Pick what the login screen shows for a failed auth call. Classified cases
@@ -279,9 +290,23 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               })
               return
             }
+            // CHANGED 2026-09-30: the owner email is the address the user
+            // typed for a code sign-in, not the token's (a linked account's
+            // primary) — see ownerEmailAfterLogin. It is also refreshed on the
+            // owner's later code sign-ins, so the Login screen offers the last
+            // address actually used.
+            const ownerEmail = ownerEmailAfterLogin({
+              decision,
+              loginMethod: pendingLoginMethod,
+              typedEmail: pendingLoginEmail,
+              tokenEmail: user.email,
+              currentOwnerEmail: authStore.ownerEmail,
+            })
             if (decision === "adopt") {
-              authStore.setOwner(user.sub, user.email)
+              authStore.setOwner(user.sub, ownerEmail)
               log.info("Device owner adopted", { ownerId: hashUserId(user.sub) })
+            } else if (ownerEmail !== authStore.ownerEmail) {
+              authStore.setOwnerEmail(ownerEmail)
             }
 
             // Auth0 SDK returns expiresAt as UNIX timestamp (seconds)
@@ -421,6 +446,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       try {
         await sendEmailCode({ email: email.trim().toLowerCase(), send: "code" })
         pendingLoginMethod = "email"
+        pendingLoginEmail = email.trim().toLowerCase()
       } finally {
         setLocalLoading(false)
       }
@@ -438,6 +464,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       setError(null)
       setLocalLoading(true)
       pendingLoginMethod = "email"
+      pendingLoginEmail = email.trim().toLowerCase()
       try {
         await authorizeWithEmail({
           email: email.trim().toLowerCase(),
@@ -451,6 +478,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         })
       } catch (err) {
         pendingLoginMethod = undefined
+        pendingLoginEmail = undefined
         throw err
       } finally {
         setLocalLoading(false)
@@ -473,6 +501,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       })
       setError(null)
       pendingLoginMethod = METHOD_FOR_CONNECTION[connection]
+      pendingLoginEmail = undefined
 
       try {
         // Cancel any stale/interrupted login transactions (iOS only)
@@ -508,6 +537,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         log.info("Provider login flow completed", { connection })
       } catch (err) {
         pendingLoginMethod = undefined
+        pendingLoginEmail = undefined
         // CHANGED 2026-09-19 (RS-022): also covers a declined consent screen.
         if (isUserAbandonedAuth(err)) {
           log.info("Provider login cancelled or declined by user")
@@ -571,6 +601,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       // Nothing is in flight any more; a later cold-start restore must read
       // undefined here (see pendingLoginMethod).
       pendingLoginMethod = undefined
+      pendingLoginEmail = undefined
       isLoggingOut.current = false
     }
   }, [authStore, clearSession, clearCredentials])
@@ -648,6 +679,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       // leaves authStore.loginMethod intact, which is what the logout branch
       // actually reads.
       pendingLoginMethod = undefined
+      pendingLoginEmail = undefined
       isLoggingOut.current = false
     }
   }, [user, authStore, clearSession, clearCredentials])

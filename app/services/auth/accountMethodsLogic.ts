@@ -60,6 +60,13 @@ export interface DescribeAccountInput {
    */
   authEmail: string
   idToken: string | undefined
+  /**
+   * ADDED 2026-09-30: the address the user typed for an email-code session
+   * (the store's ownerEmail — see ownerEmailAfterLogin). Undefined for
+   * Apple/Google sessions. Only ever used to pick among claim entries, never
+   * shown on its own.
+   */
+  codeEmail?: string
 }
 
 interface ClaimEntry {
@@ -151,10 +158,24 @@ export function describeAccount(input: DescribeAccountInput): AccountDescription
   // session, so with two Googles it always picked the primary, even when the
   // user signed in with the other one. Now: the one entry the Action tagged
   // `current`, else the only entry of the active method, else nobody (ambiguous).
+  //
+  // CHANGED 2026-09-30: an email-code session first matches on the address the
+  // user typed. Every code identity shares Auth0's one `email` connection, so
+  // the Action tags ALL of them `current` and the rules below find nobody — a
+  // proton code sign-in into an account with a gmail code identity showed an
+  // address-less active row with proton listed as merely "linked".
   const sameMethod = identities.filter((id) => id.method === activeMethod)
+  const typed =
+    activeMethod === "email" ? sameMethod.filter((id) => sameEmail(id.email, input.codeEmail)) : []
   const tagged = sameMethod.filter((id) => id.current)
   const activeEntry =
-    tagged.length === 1 ? tagged[0] : sameMethod.length === 1 ? sameMethod[0] : undefined
+    typed.length === 1
+      ? typed[0]
+      : tagged.length === 1
+        ? tagged[0]
+        : sameMethod.length === 1
+          ? sameMethod[0]
+          : undefined
 
   // Email for the active row.
   // CHANGED 2026-09-30: authEmail used to be the blanket fallback, which put
