@@ -15,6 +15,16 @@ check it on a device, then deploy to prod.
 |---|---|---|---|
 | `actions/identities-claim.js` | Login / Post Login | none | `app/services/auth/accountMethodsLogic.ts` (Settings → Account) |
 
+### Where each Action is live
+
+| Action | dev (`bad-bitch-tenant`) | prod (`auth.recoverysky.app`) |
+|---|---|---|
+| Identities claim | v1, bound to post-login — 2026-09-30 (id `6d745790-f4db-479d-b1d0-0422c354c86b`) | not deployed |
+
+Update this table in the same commit as any deploy, and diff the tenant's
+deployed code against the file first: `GET /api/v2/actions/actions/{id}` →
+`deployed_version.code`.
+
 ### identities-claim.js — deploy
 
 1. Actions → Library → Create Action → "Identities claim", trigger **Login / Post
