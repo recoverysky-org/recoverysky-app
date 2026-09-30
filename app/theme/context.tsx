@@ -80,10 +80,17 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   // mere presence of the `root-v1` snapshot: setupRootStore's onSnapshot
   // listener can write `root-v1` during first-launch init, before this provider
   // mounts, which would misclassify a fresh install as a legacy one.
+  //
+  // CHANGED 2026-09-30: a fresh install now gets "dark" WRITTEN, not merely
+  // defaulted. Leaving the scheme unsaved made the install look legacy on its
+  // first relaunch after onboarding (unsaved scheme + onboardingCompleted), so
+  // the pin above fired then and flipped a light-OS device from dark to light
+  // on an ordinary reload. Saving on the first launch means the legacy branch
+  // can only ever see a real pre-dark-default install.
   const [legacySystemPin] = useState<ImmutableThemeContextModeT | undefined>(() => {
     if (themeScheme !== undefined) return undefined
     const snapshot = load<{ profileStore?: { onboardingCompleted?: boolean } }>("root-v1")
-    if (!snapshot?.profileStore?.onboardingCompleted) return undefined
+    if (!snapshot?.profileStore?.onboardingCompleted) return "dark"
     return systemColorScheme === "light" ? "light" : "dark"
   })
 

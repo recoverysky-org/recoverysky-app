@@ -85,6 +85,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   light/dark setting. Users can still switch in onboarding or Settings.
   Existing users who never touched the toggle keep the look they have today —
   their current system scheme is pinned once on first launch after the update.
+  A new install saves dark on its first launch, so an ordinary relaunch after
+  onboarding can't mistake it for an existing user and flip it to the phone's
+  light setting.
 - **"Network issues" banner instead of a false "Maintenance in progress."**
   Phones whose Wi-Fi or cellular link is up but not actually getting through
   (dead backhaul, captive portal, one bar) used to be told we were in
