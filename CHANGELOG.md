@@ -127,6 +127,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   after signing in as a proton address. It now remembers the address used for
   the last code sign-in. A stale address corrects itself on the next code
   sign-in.
+- **Sending an email sign-in code no longer fails when Auth0 is slow.** The
+  sign-in SDK gave up after 10 seconds, but Auth0 only answers once it has
+  handed the email to its mail provider, which was measured at 5–19 seconds.
+  The user got "couldn't reach the sign-in service" while the code was still
+  on its way. The timeout is now 30 seconds.
 
 ### Security
 - **A session for a different account can no longer read the device

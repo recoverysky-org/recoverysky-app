@@ -1238,7 +1238,12 @@ export function App() {
 
   // otherwise, we're ready to render the app
   return (
-    <Auth0Provider domain={AUTH0_CONFIG.domain} clientId={AUTH0_CONFIG.clientId}>
+    <Auth0Provider
+      domain={AUTH0_CONFIG.domain}
+      clientId={AUTH0_CONFIG.clientId}
+      // See AUTH0_CONFIG.timeoutMs: the 10 s SDK default aborted slow code sends.
+      timeout={AUTH0_CONFIG.timeoutMs}
+    >
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         {/* preload={false}: KeyboardProvider's default preload=true calls
             KeyboardController.preload() on mount, which on iOS spins up a
