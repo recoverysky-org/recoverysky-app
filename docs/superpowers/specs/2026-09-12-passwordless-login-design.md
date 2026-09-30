@@ -44,6 +44,11 @@ written separately.
   reset was rejected as a one-time-migration aggravation the user does not deserve. We judge the
   trap far-fetched for this app. Mitigation (§3.5): the Action sets a random password on the
   linked database account, which evicts anyone else who knew it.
+  CHANGED 2026-09-30 (Jenova): **no password randomisation, for now.** Old native builds and
+  first-launch embedded bundles still sign in with a password through Universal Login on the
+  shared prod client, so randomising would lock those users out. That removes the mitigation
+  above: until randomisation returns, a squatter who knows the password keeps access. Revisit
+  once old builds have aged out (the same gate as §3.7).
 - **The Action links the NEW identity into exactly one existing account** (the oldest match) and
   never links two pre-existing accounts to each other — that would change a sub some device
   already treats as its owner.
@@ -241,6 +246,9 @@ first, verify the manual checklist (§4.3), then repeat on production.
    - If `primary` is a database user: `PATCH /api/v2/users/{primary.user_id}` with a random
      32-character password (see ACCEPTED RISK in Decisions). Passwords are being retired; the user
      never types it again.
+     CHANGED 2026-09-30: **skip this step for now.** Old builds still use password login on the
+     shared prod client (see Decisions). Without the PATCH, the Action needs only `read:users` +
+     `update:users` for the link itself.
    - `api.authentication.setPrimaryUser(primary.user_id)` so the token for **this** login carries
      the primary's sub.
    - On any Management API failure: log and return without linking (the user gets a fresh account

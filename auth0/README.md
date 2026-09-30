@@ -46,7 +46,9 @@ claim. Linking runs first because it changes which identity is primary.
   Treat it as a new feature with its own spec (RS-024 is what a wrong key
   does), not as a copy job. Nothing creates a per-user key server-side today.
 - **Passwordless linking** (spec 1 §3.5). Designed, not written. It is part of the
-  prod ship gate.
+  prod ship gate. Decided 2026-09-30: it does **not** randomise the linked database
+  user's password (for now), because old builds still sign in with passwords on
+  the shared prod client.
 
 ## identities-claim.js
 
