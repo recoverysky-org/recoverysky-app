@@ -1,7 +1,11 @@
 # Delete my cloud backup
 
 **Date:** 2026-09-28
-**Status:** Spec approved in chat 2026-09-28; written, awaiting review. Not started.
+**Status:** **TABLED 2026-09-30 — not started.** Jenova parked the feature after the spec and
+plan (`docs/superpowers/plans/2026-09-29-delete-cloud-backup.md`) were written. Nothing is
+implemented in `app`, `api` or `common`. To resume: re-read this spec, re-confirm the decisions
+with Jenova, build §2 on the api first, then execute the plan. (Originally: spec approved in chat
+2026-09-28.)
 **Repos touched:** `app` (this spec's implementation), `api` + `common` (contract in §2 —
 **specified here only; nothing in `../api` is changed by this work**).
 **Origin:** Jenova, 2026-09-28: "we need to add a 'delete my cloud backup' button to Settings

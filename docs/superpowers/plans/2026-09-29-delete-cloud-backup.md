@@ -1,5 +1,9 @@
 # Delete Cloud Backup Implementation Plan
 
+> **⏸ TABLED 2026-09-30 — do not execute.** The feature is parked; see the spec's Status line.
+> Before resuming, re-verify every file path and line reference below against the then-current
+> tree — the code this plan was written against will have moved.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A "Delete cloud backup" row in Settings → Cloud Backup that deletes the user's server-side attendance backup, optionally erases local attendance + reports on every one of their devices, and turns backup off everywhere — driven by a server deletion marker (epoch) every device applies.
