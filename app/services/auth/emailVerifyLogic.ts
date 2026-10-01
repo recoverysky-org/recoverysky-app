@@ -46,6 +46,13 @@ export const EMPTY_VERIFY_STATE: VerifyState = { count: 0, lastDay: null, verifi
  *   someone who verified seconds ago.
  * - A missing claim counts as unverified: asking once too often is cheap, and
  *   never asking a locked-out-to-be user is not.
+ *
+ * CHANGED 2026-10-01 (final review): only a session with NO recorded
+ * `loginMethod` is asked — a password sign-in, or a session restored from a
+ * build that never recorded one. A Google or Apple session into a linked
+ * `auth0|` account carries the password identity's unverified flag too, but
+ * linking required the provider's verified email to equal the account's, so
+ * the mailbox is already proven (spec §3: "Google and Apple never see it").
  */
 export function needsEmailVerification(input: {
   sub: string | undefined
@@ -55,7 +62,7 @@ export function needsEmailVerification(input: {
 }): boolean {
   if (!input.sub?.startsWith("auth0|")) return false
   if (input.locallyVerified) return false
-  if (input.loginMethod === "email") return false
+  if (input.loginMethod !== undefined) return false
   return input.emailVerifiedClaim !== true
 }
 
@@ -90,6 +97,11 @@ export function recordShowing(state: VerifyState, today: string): VerifyState {
  * the API can't send a code offline or in maintenance, and a mandatory screen
  * with no way to pass would lock a user out of meetings. A running attendance
  * timer and onboarding are work in progress we never interrupt.
+ *
+ * CHANGED 2026-10-01 (final review): a degraded device lane blocks too. While
+ * `configStore.deviceAuthDegraded` is set, every API send is refused locally
+ * and answers "unavailable", so a mandatory screen would have no way to pass —
+ * the same lock-out as offline.
  */
 export function verifyGateBlocked(input: {
   isAuthenticated: boolean
@@ -99,6 +111,7 @@ export function verifyGateBlocked(input: {
   maintenanceMode: boolean
   outageMode: boolean
   timerSessionActive: boolean
+  deviceAuthDegraded: boolean
 }): boolean {
   return (
     !input.isAuthenticated ||
@@ -107,7 +120,8 @@ export function verifyGateBlocked(input: {
     input.offline ||
     input.maintenanceMode ||
     input.outageMode ||
-    input.timerSessionActive
+    input.timerSessionActive ||
+    input.deviceAuthDegraded
   )
 }
 
@@ -136,7 +150,8 @@ export function emailChanged(verifiedEmail: string, accountEmail: string | undef
 /**
  * Whether a screen that is already up must close (ADDED 2026-10-01).
  * - Account gone (signed out or switched): close, in either mode.
- * - MANDATORY and blocked (offline, maintenance, outage, a timer): close,
+ * - MANDATORY and blocked (offline, maintenance, outage, a timer, a degraded
+ *   device lane): close,
  *   because the user could neither send a code nor leave. It re-shows by
  *   itself once unblocked, since a mandatory showing latches.
  * - SKIPPABLE stays up when blocked: "Not now" is always there, and closing

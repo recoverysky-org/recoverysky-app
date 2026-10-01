@@ -39,6 +39,25 @@ export async function getFreshCredentials(minTtlSec: number) {
 }
 
 /**
+ * Renew the stored credentials NOW, whatever their remaining lifetime
+ * (ADDED 2026-10-01, legacy email verification). Used after the API changed
+ * or verified the account's email: the cached ID token still carries the old
+ * address and `email_verified: false`, and a cold start would restore it.
+ *
+ * Same scope and parameters as getFreshCredentials (none: the refresh token
+ * is bound to the login's audience, so the renewed access token keeps it).
+ * Deliberately on this standalone client, not the hook's getCredentials: the
+ * hook dispatches ERROR into the provider on failure, which every mounted
+ * useAuth0Wrapper logs at error level and a later Login screen would show.
+ * Both clients share the one native credentials manager, which serialises
+ * renewals, so this cannot race the user-token refresher on the refresh token.
+ * Throws CredentialsManagerError.
+ */
+export async function renewStoredCredentials() {
+  return getAuth0Client().credentialsManager.getCredentials(undefined, undefined, undefined, true)
+}
+
+/**
  * Drop the SDK's own stored credentials.
  *
  * Required on forced logout IN ADDITION to clearAuthCredentials(): that only

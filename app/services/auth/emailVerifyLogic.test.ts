@@ -39,6 +39,15 @@ describe("needsEmailVerification", () => {
   it("does not ask a session started by an email code (Review Focus 2)", () => {
     expect(needsEmailVerification({ ...base, loginMethod: "email" })).toBe(false)
   })
+  it("does not ask a Google session into a linked password account", () => {
+    expect(needsEmailVerification({ ...base, loginMethod: "google" })).toBe(false)
+  })
+  it("does not ask an Apple session into a linked password account", () => {
+    expect(needsEmailVerification({ ...base, loginMethod: "apple" })).toBe(false)
+  })
+  it("asks a session with no recorded login method (password, or an old build's)", () => {
+    expect(needsEmailVerification({ ...base, loginMethod: undefined })).toBe(true)
+  })
 })
 
 describe("decideVerifyPrompt", () => {
@@ -114,6 +123,7 @@ describe("verifyGateBlocked (Review Focus 5)", () => {
     maintenanceMode: false,
     outageMode: false,
     timerSessionActive: false,
+    deviceAuthDegraded: false,
   }
   it("is open for a signed-in user with nothing in the way", () => {
     expect(verifyGateBlocked(clear)).toBe(false)
@@ -126,6 +136,7 @@ describe("verifyGateBlocked (Review Focus 5)", () => {
     ["maintenance", { maintenanceMode: true }],
     ["outage", { outageMode: true }],
     ["a running timer", { timerSessionActive: true }],
+    ["a degraded device lane", { deviceAuthDegraded: true }],
   ])("is blocked when %s", (_name, over) => {
     expect(verifyGateBlocked({ ...clear, ...over })).toBe(true)
   })

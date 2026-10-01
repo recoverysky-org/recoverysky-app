@@ -16,14 +16,15 @@
  * functions in services/auth/emailVerifyLogic.ts (vitest-covered).
  */
 import { FC, useCallback, useEffect, useState } from "react"
-import { AppState, Linking, Modal, View, type ViewStyle } from "react-native"
+import { AppState, Linking, Modal, Platform, View, type ViewStyle } from "react-native"
 import { observer } from "mobx-react-lite"
-import { SafeAreaView } from "react-native-safe-area-context"
+import { useAuth0 } from "react-native-auth0"
 
 import { useAuthenticationStore, useConfigStore, useNetworkStore, useProfileStore } from "@/models"
 import { api } from "@/services/api"
 import type { EmailVerifyProblem } from "@/services/api/emailVerifyProblem"
 import { isTimerSessionActive } from "@/services/attendance/timerSession"
+import { renewStoredCredentials } from "@/services/auth/auth0Client"
 import {
   SUPPORT_EMAIL,
   VERIFY_RESEND_COOLDOWN_MS,
@@ -46,6 +47,7 @@ import { todayLocalISODate } from "@/utils/localDate"
 import { logger } from "@/utils/logger"
 import { claimOverlay, overlayOwner, releaseOverlay } from "@/utils/overlayGate"
 
+import { Screen } from "./Screen"
 import { VerifyEmailView, type VerifyStep } from "./VerifyEmailView"
 
 const log = logger.child({ module: "VerifyEmailGate" })
@@ -60,6 +62,10 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
   const configStore = useConfigStore()
   const networkStore = useNetworkStore()
   const { themed } = useAppTheme()
+  // The SDK hook directly, NOT useAuth0Wrapper: that hook registers the [user]
+  // sync effect and already has five mount sites (see its pendingLoginMethod
+  // comment). Only getCredentials is used, to publish a renewal (verify below).
+  const { getCredentials } = useAuth0()
 
   const [shown, setShown] = useState<Shown | null>(null)
   const [step, setStep] = useState<VerifyStep>("review")
@@ -87,6 +93,9 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
     maintenanceMode: configStore.maintenanceMode,
     outageMode: configStore.outageMode,
     timerSessionActive: isTimerSessionActive(),
+    // ADDED 2026-10-01: every send is refused locally while the lane is
+    // degraded, so a mandatory screen there could not be passed.
+    deviceAuthDegraded: configStore.deviceAuthDegraded,
   })
   const overlay = overlayOwner()
 
@@ -137,6 +146,7 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
   // and has no "Not now", which would lock the user out of meetings. It
   // re-shows by itself once unblocked because mandatory latches. A SKIPPABLE
   // one stays, since it has "Not now" and its day is already counted.
+  // (A degraded device lane joined the blocked list 2026-10-01.)
   useEffect(() => {
     if (shown && mustCloseShownGate({ mode: shown.mode, hasAccount: !!sub, blocked })) {
       releaseOverlay(OVERLAY)
@@ -212,8 +222,37 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
     // Never the address.
     log.info("Email verified", { changed })
     trackEvent("verify_email_done", { changed })
+    // ADDED 2026-10-01 (final review I1): renew the SDK's credentials now. The
+    // cached ID token still carries the OLD address, and on the next cold
+    // start the [user] sync effect in useAuth0Wrapper would write it back
+    // over authEmail (Settings, report sends and RevenueCat's $email would all
+    // revert to the typo). The forced renewal stores a fresh ID token; the
+    // hook's plain getCredentials() then dispatches SET_USER from it, and the
+    // existing [user] effect writes the new address and email_verified: true
+    // by itself. That effect sees the same sub (ownership "match") and the
+    // same loginMethod inputs, so it cannot change loginMethod, re-run
+    // onboarding, or open the wrong-account screen.
+    // Fire-and-forget: the modal closes regardless, and a failure is logged
+    // and nothing else (the local record above already stops a re-ask; the
+    // address is fixed for good at the next natural renewal). The renewal is
+    // on the standalone client so a failed one never reaches the provider's
+    // error state (see renewStoredCredentials); the publish step only reads
+    // the keychain entry the renewal just wrote. Never the
+    // address or a token in the log. Native only: on web the SDK's cache is
+    // memory-only, so a reload fetches the current profile anyway, and the
+    // standalone client there is a separate cache that the provider never reads.
+    if (Platform.OS !== "web") {
+      void renewStoredCredentials()
+        .then(() => getCredentials())
+        .catch((err: unknown) => {
+          const errCode = (err as { code?: unknown } | null)?.code
+          log.warn("Credential renewal after verify failed", {
+            code: typeof errCode === "string" ? errCode : "unknown",
+          })
+        })
+    }
     close()
-  }, [sub, busy, code, target, accountEmail, authStore, close])
+  }, [sub, busy, code, target, accountEmail, authStore, close, getCredentials])
 
   // Auto-submit on six digits, as on Login. Keyed on `code` alone: `verify`
   // changes identity with every keystroke.
@@ -237,8 +276,20 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
       // Android back: "Not now" while skippable, nothing once mandatory.
       onRequestClose={shown.mode === "skippable" ? handleNotNow : () => undefined}
     >
-      <SafeAreaView style={themed($screen)} accessibilityViewIsModal>
-        <View style={themed($inner)}>
+      {/* CHANGED 2026-10-01 (final review I3): was a fixed SafeAreaView + View.
+          The code step raises the keyboard and the change step's Send sits
+          under the field, so on a small phone or at large text sizes a
+          control — on the mandatory showing, the only ways forward — could
+          sit off screen or under the keyboard. Screen's scroll preset
+          (keyboard-aware scroll view, as on LoginScreen) fixes both; its
+          safeAreaEdges replace the SafeAreaView. The outer View only carries
+          accessibilityViewIsModal, which Screen does not take. */}
+      <View style={$fill} accessibilityViewIsModal>
+        <Screen
+          preset="scroll"
+          safeAreaEdges={["top", "bottom"]}
+          contentContainerStyle={themed($content)}
+        >
           <VerifyEmailView
             mode={shown.mode}
             skipsLeft={shown.mode === "skippable" ? shown.skipsLeft : undefined}
@@ -268,19 +319,19 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
             onWhy={() => void Linking.openURL(WHY_VERIFY_URL)}
             onSupport={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
           />
-        </View>
-      </SafeAreaView>
+        </Screen>
+      </View>
     </Modal>
   )
 })
 
-const $screen: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  flex: 1,
-  backgroundColor: colors.background,
-})
+const $fill: ViewStyle = { flex: 1 }
 
-const $inner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+// flexGrow, not flex: fills the viewport so a short screen stays centred, but
+// may grow past it so the scroll view can reach every control (LoginScreen's
+// $screenContentContainer, same reason). Screen paints the background.
+const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexGrow: 1,
   paddingVertical: spacing.xxl,
   paddingHorizontal: spacing.lg,
 })
