@@ -18,6 +18,48 @@ describe("decideOwnership", () => {
       decideOwnership({ ownerSub: "auth0|a", sessionSub: "google-oauth2|b", isAnonymous: false }),
     ).toBe("mismatch")
   })
+  // ADDED 2026-09-30 (spec 2 §7): the owner's identity was linked into another
+  // account from a different device, so Auth0 now answers with the primary's sub.
+  it("recognises the owner inside a linked account as relinked", () => {
+    expect(
+      decideOwnership({
+        ownerSub: "email|jm",
+        sessionSub: "google-oauth2|mm",
+        isAnonymous: false,
+        linkedSubs: ["google-oauth2|mm", "email|jm"],
+      }),
+    ).toBe("relinked")
+  })
+  it("still flags a stranger whose account has other links", () => {
+    expect(
+      decideOwnership({
+        ownerSub: "email|jm",
+        sessionSub: "google-oauth2|mm",
+        isAnonymous: false,
+        linkedSubs: ["google-oauth2|mm", "email|someone-else"],
+      }),
+    ).toBe("mismatch")
+  })
+  it("is a plain match, not relinked, when the owner is the primary", () => {
+    expect(
+      decideOwnership({
+        ownerSub: "google-oauth2|mm",
+        sessionSub: "google-oauth2|mm",
+        isAnonymous: false,
+        linkedSubs: ["google-oauth2|mm", "email|jm"],
+      }),
+    ).toBe("match")
+  })
+  it("adopts, not relinked, on a device with no owner", () => {
+    expect(
+      decideOwnership({
+        ownerSub: undefined,
+        sessionSub: "google-oauth2|mm",
+        isAnonymous: false,
+        linkedSubs: ["google-oauth2|mm", "email|jm"],
+      }),
+    ).toBe("adopt")
+  })
   it("never stamps or blocks an anonymous session", () => {
     expect(
       decideOwnership({ ownerSub: undefined, sessionSub: "device-1", isAnonymous: true }),

@@ -31,6 +31,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 > users with a login screen that can only fail. All of it is JS-only, so it
 > ships as an OTA — no `runtimeVersion` bump (see the Build entry below for
 > the one native-config change, which prod output does not depend on).
+>
+> **Also before that OTA:** deploy the Link passwordless identity Action to
+> prod (`auth0/actions/bad-bitch-tenant/link-passwordless-identity.js`; first
+> deploy needs its three secrets created in the dashboard — `auth0/README.md`).
+> Without it every existing password / Google / Apple user who signs in with
+> an email code lands in a new, empty account. Then deploy the Identities claim Action to prod —
+> copy `auth0/actions/bad-bitch-tenant/identities-claim.js` into
+> `auth0/actions/meetingmaker/` (same commit as the deploy), then
+> `ENV_FILE=<prod mgmt env> auth0/scripts/deploy-actions.sh meetingmaker`
+> (dry run; check its drift list) and again with `--apply --prod`. The env
+> file needs the prod Management API client with `read:`/`create:`/`update:actions`
+> and `AUTH_MGMT_DOMAIN=meetingmaker.us.auth0.com` (`api/.env` is the dev
+> tenant). Without it Settings → Account shows no linked methods and a device
+> whose owner was linked in from another phone loops on the wrong-account
+> screen. In the prod Post Login flow, drag Link passwordless identity ABOVE
+> Identities claim — the script only appends. Verified end to end on dev
+> 2026-09-30 with `docs/AUTH_LINKING_TESTS.md`.
 
 ### Added
 
@@ -123,6 +140,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   creates the account on first use, so there was nothing left for it to do.
 
 ### Fixed
+- **A device whose owner was linked into another account from a different
+  device no longer loops on the wrong-account screen.** Signing in as the
+  owner now returns the linked account's id, and the app used to refuse that
+  and ask for the owner's address — which returned the same id again. The app
+  now recognises the owner inside the linked account, moves the device owner
+  there, and carries the local attendance, reports, reminders and unsynced
+  cloud-backup edits across instead of dropping them. Needs the identities
+  Action v2 (`sub` per entry) on the tenant; without it the old behaviour
+  stands. See spec 2 §7.
 - **The Login screen offers the email you actually sign in with.** After
   signing out, "Send code to …" showed the account's primary address, not the
   one the user typed. With linked sign-in methods, a code sent to one address

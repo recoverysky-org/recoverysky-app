@@ -16,6 +16,8 @@ RecoverySky Hybrid is a React Native app built with Ignite v11.3.2 template, tar
 # Development
 npm start              # Start Expo dev client
 npm start -- --clear   # Start with Metro cache cleared (use after config changes)
+npm run dev-log        # npm start, also saved to /tmp/rs-metro.log (macOS `script`; read by
+                       # Claude in docs/AUTH_LINKING_TESTS.md checkpoints)
 npm run ios            # Run on iOS (reuses existing ios/ — see prebuild below)
 npm run android        # Run on Android
 npm run web            # Run web version
@@ -236,7 +238,9 @@ MST with MMKV persistence in `app/models/`:
     "google"`; drives the logout branch, see "Auth, Attestation & Encryption
     Keys" §1), `ownerSub` / `ownerEmail` (the device owner — the one account
     whose local data this install holds; survives logout, cleared only by
-    `resetLocalDatabase()`, see "Database Layer")
+    `resetLocalDatabase()`, see "Database Layer"), `previousOwnerSubs` (the
+    owner's subs from before their identity was linked into another account;
+    see "Auth, Attestation & Encryption Keys" §1)
   - **Volatile** (memory only): `accessToken`, `idToken`, `expiresAt` — never
     persisted to MMKV; `foreignSession` (a session the ownership gate refused
     — sub/email/idToken/loginMethod, held only while `WrongAccountScreen` is
@@ -440,6 +444,17 @@ Three separate trust layers, easy to confuse:
    "Attendance Cloud Backup & Sync" below for what it protects. The
    password migration for pre-passwordless accounts is entirely an Auth0
    post-login Action, not app code — see spec 1 §3.5.
+
+   ADDED 2026-09-30 (spec 2 §7): the gate has a fourth outcome, `relinked`.
+   When the owner's identity is linked into another account from a
+   DIFFERENT device, Auth0 answers the owner with the primary's sub. The
+   gate finds `ownerSub` among the identities claim's `sub` fields, moves
+   the owner there (`relinkOwner`, old sub kept in `previousOwnerSubs`),
+   and rewrites local `uid` columns (`app/db/rewriteOwnerUid.ts`, raw SQL so
+   nothing re-enqueues; `OwnerRelinkMigrator` repeats it on each DB open).
+   The sync service then restamps the outbox instead of clearing it. Without
+   the claim's `sub` (Action v1, or prod today) the device loops on the
+   wrong-account screen.
 
    CHANGED 2026-09-18: the pending login method — which of
    `sendCode`/`verifyCode`/`loginWithProvider` is in flight, read by the
@@ -898,6 +913,7 @@ its subsystem:
   bound there; absent = doesn't exist there. The `identities` ID-token claim
   behind Settings → Account's linked-method rows lives here. Prod shares one
   client with every build, so deploy to dev first and promote by copying the file.
+  Deploy with `auth0/scripts/deploy-actions.sh <tenant> [--apply]` (idempotent, dry run by default).
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
   history, backlog, running work log
 

@@ -48,6 +48,16 @@ export const AuthenticationStoreModel = types
     ownerSub: types.maybe(types.string),
     /** Owner's email at stamping time. Shown masked, only for the code path; login_hint otherwise. Never logged. */
     ownerEmail: types.maybe(types.string),
+    /**
+     * ADDED 2026-09-30 (spec 2 §7). Subs this device's owner had before their
+     * identity was linked into the account `ownerSub` now names (a
+     * `relinked` decision). Local rows and the sync outbox may still carry
+     * them; rewriteOwnerUid() and the sync service's queue handover read this
+     * list to move them to `ownerSub` instead of treating them as a stranger's.
+     * Only ever appended from the signed ID token's identities claim, and
+     * cleared with the owner record. Never logged raw.
+     */
+    previousOwnerSubs: types.optional(types.array(types.string), []),
   })
   .volatile(() => ({
     /** OAuth refresh token — persisted to SecureStore, never MMKV */
@@ -197,6 +207,21 @@ export const AuthenticationStoreModel = types
       log.info("setOwner()", { ownerId: hashUserId(sub) })
       store.ownerSub = sub
       store.ownerEmail = email
+      // A new owner inherits nothing from the previous one's relinks.
+      store.previousOwnerSubs.clear()
+    },
+    /**
+     * ADDED 2026-09-30 (spec 2 §7): the owner's identity is now inside the
+     * account `sub` names. Move the owner record there and remember the old
+     * sub so its rows follow. Called only on a `relinked` decision.
+     */
+    relinkOwner(sub: string) {
+      const previous = store.ownerSub
+      log.info("relinkOwner()", { ownerId: hashUserId(sub), previousId: hashUserId(previous) })
+      if (previous && previous !== sub && !store.previousOwnerSubs.includes(previous)) {
+        store.previousOwnerSubs.push(previous)
+      }
+      store.ownerSub = sub
     },
     /**
      * Update only the address offered as "Send code to …" (ADDED 2026-09-30,
@@ -211,6 +236,7 @@ export const AuthenticationStoreModel = types
       log.warn("clearOwner()")
       store.ownerSub = undefined
       store.ownerEmail = undefined
+      store.previousOwnerSubs.clear()
     },
     setForeignSession(session: ForeignSession) {
       log.warn("setForeignSession()", {

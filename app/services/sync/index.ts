@@ -28,7 +28,7 @@ import type { RootStore } from "@/models"
 import { api } from "@/services/api"
 import { ENTITLEMENTS } from "@/services/purchases/config"
 import { hasEntitlement, isPurchasesConfigured } from "@/services/purchases/revenueCatService"
-import { logger, type LogAttributes } from "@/utils/logger"
+import { hashUserId, logger, type LogAttributes } from "@/utils/logger"
 import { loadString, saveString } from "@/utils/storage"
 
 import {
@@ -209,8 +209,27 @@ async function enqueueAttendance(entry: {
  */
 function takeQueueOwnership(uid: string): void {
   const owner = loadString(QUEUE_OWNER_KEY)
-  const action = ownershipAction(owner, uid)
+  // ADDED 2026-09-30 (spec 2 §7): the device owner's previous subs — from
+  // before their identity was linked into this account — are the same
+  // person, so their queued rows are handed over instead of cleared. Passed
+  // ONLY when `uid` is the device owner: ownershipAction trusts the list.
+  const auth = rootStoreRef?.authenticationStore
+  const aliases = auth && auth.ownerSub === uid ? [...auth.previousOwnerSubs] : []
+  const action = ownershipAction(owner, uid, aliases)
   if (action === "noop") return
+  if (action === "restamp") {
+    // No clear, so nothing to wait for and no gate to close: the rows are
+    // this account's own unpushed edits. A link made by POST /auth0/link
+    // also moved the old sub's server rows here; one made outside the app
+    // (dashboard, Management API) did not, and those pushes then create
+    // rows here — still the same person's attendance.
+    log.info("Relinked owner — keeping the outbox under the new account", {
+      previousOwner: hashUserId(owner ?? undefined),
+      uid: hashUserId(uid),
+    })
+    saveString(QUEUE_OWNER_KEY, uid)
+    return
+  }
   if (action === "clear-then-stamp") {
     ownerClearPending = true
     // `owner` is non-null on this branch by ownershipAction's contract; the

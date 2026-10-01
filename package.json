@@ -9,6 +9,7 @@
     "eas-build-pre-install": "node scripts/eas-pre-install.js",
     "postinstall": "patch-package",
     "start": "expo start --dev-client",
+    "dev-log": "script -q /tmp/rs-metro.log expo start --dev-client",
     "android": "expo run:android",
     "prebuild:ios:clean": "npx expo prebuild --platform ios --clean",
     "prebuild:android:clean": "npx expo prebuild --platform android --clean && npm run patch:android",

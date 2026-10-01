@@ -1,6 +1,10 @@
 /**
  * Auth0 post-login Action: "Identities claim".
  *
+ * @auth0-action Identities claim
+ * @auth0-trigger post-login
+ * @auth0-runtime node22
+ *
  * Adds `https://recoverysky.app/identities` to the ID token — one
  * `{ provider, email }` per identity on the account, the primary included —
  * so Settings → Account can show the sign-in methods linked into this
@@ -25,6 +29,12 @@
  * Two identities on the SAME connection (two Googles) both get tagged; the app
  * then shows the method without guessing an address.
  *
+ * `sub` (ADDED 2026-09-30, spec 2 §7) is `provider|user_id` — the sub that
+ * identity had as a standalone user. A device whose owner's identity was
+ * linked in from ANOTHER device still records that old sub; the app's
+ * ownership gate finds it here and moves the owner to this account
+ * (`relinked`) instead of looping on the wrong-account screen.
+ *
  * Unlinked accounts (one identity) get no claim at all: the app treats a
  * missing claim as "no links", and this keeps the emails of linked accounts
  * out of every token that doesn't need them — including the foreign-session
@@ -38,7 +48,7 @@ exports.onExecutePostLogin = async (event, api) => {
   const claim = identities.map((identity) => {
     const isPrimary = `${identity.provider}|${identity.user_id}` === event.user.user_id
     const email = isPrimary ? event.user.email : identity.profileData && identity.profileData.email
-    const entry = { provider: identity.provider }
+    const entry = { provider: identity.provider, sub: `${identity.provider}|${identity.user_id}` }
     if (email) entry.email = email
     if (identity.connection === loginConnection) entry.current = true
     return entry

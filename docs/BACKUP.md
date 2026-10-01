@@ -333,6 +333,17 @@ broken the other during development.
   to clear. See the ownership gate in "Auth, Attestation & Encryption Keys"
   §1 of `CLAUDE.md`.
 
+- **Relinked owner keeps the outbox (2026-09-30, spec 2 §7).** Device X owned
+  by A (email code), Cloud Backup on. Offline, create an attendance record on
+  X and send a report that stays Pending. On device Y, sign in as B and link A
+  in through the wrong-account screen. On X, sign out and sign in as A again
+  (the dev tenant must run identities-claim v2). Expect: no wrong-account
+  screen; the log shows "Device owner relinked into a linked account" and
+  "Relinked owner — keeping the outbox under the new account", and NEVER
+  "Account switch — clearing the previous owner's outbox"; the offline record
+  pushes under B's account; the Pending report resumes polling
+  ("Moved local rows to the relinked owner" with a non-zero count).
+
 ## The one-off backup pass
 
 ADDED 2026-09-14. `app/db/BackupPassRunner.tsx` (I/O) + the pure, vitest-covered

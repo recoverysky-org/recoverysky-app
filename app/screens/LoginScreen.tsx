@@ -31,7 +31,11 @@ import {
 } from "@/services/auth/loginFlowLogic"
 import { ownerProofMethod } from "@/services/auth/ownerLogic"
 import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
-import { useAuth0Wrapper, type ProviderConnection } from "@/services/auth/useAuth0Wrapper"
+import {
+  DEV_PASSWORD_CONNECTION,
+  useAuth0Wrapper,
+  type BrowserConnection,
+} from "@/services/auth/useAuth0Wrapper"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -67,7 +71,9 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 type PendingAction =
   | { kind: "email" }
   | { kind: "ownerEmail" }
-  | { kind: "provider"; connection: ProviderConnection }
+  // BrowserConnection, not ProviderConnection: also carries the __DEV__
+  // password button's connection (ADDED 2026-09-30).
+  | { kind: "provider"; connection: BrowserConnection }
   | { kind: "anonymous" }
   | null
 
@@ -359,7 +365,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           case "provider":
             await loginWithProvider(action.connection)
             trackEvent("login_completed", {
-              method: action.connection === "apple" ? "apple" : "google",
+              method:
+                action.connection === "apple"
+                  ? "apple"
+                  : action.connection === DEV_PASSWORD_CONNECTION
+                    ? "password"
+                    : "google",
             })
             return
           case "anonymous":
@@ -427,6 +438,13 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     setShowEuaModal(false)
     setPendingAction(null)
   }, [pendingAction])
+
+  // DEV-ONLY password sign-in — see DEV_PASSWORD_CONNECTION in useAuth0Wrapper.
+  // Through `gated` like every other entry point, so the legal gate still applies.
+  const handleDevPassword = useCallback(
+    () => gated({ kind: "provider", connection: DEV_PASSWORD_CONNECTION }),
+    [gated],
+  )
 
   // DEV-ONLY purge — see the button below and utils/devPurge.ts.
   const handleDevPurge = useCallback(() => {
@@ -569,6 +587,23 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
         )}
       </View>
+
+      {/* DEV-ONLY (ADDED 2026-09-30): sign in as a legacy password user via
+          Universal Login, to test the "Link passwordless identity" Action.
+          Hard-coded English for the same reason as the purge button below. */}
+      {__DEV__ && (
+        <Pressable
+          testID="login-dev-password"
+          accessibilityRole="button"
+          accessibilityLabel="Dev: sign in with password"
+          accessibilityHint="Opens the Auth0 password form in a browser"
+          onPress={handleDevPassword}
+          disabled={isLoading}
+          style={themed($devPurgeButton)}
+        >
+          <Text style={themed($devPurgeText)} text="🔑 DEV: Sign in with password" />
+        </Pressable>
+      )}
 
       {/* DEV-ONLY (ADDED 2026-09-28): wipe everything local so the next launch
           is a fresh install — see utils/devPurge.ts for what it clears and

@@ -57,6 +57,9 @@ import {
   SyncResumer,
   BackupPassRunner,
 } from "./db"
+// Imported directly, not via the db barrel: it reads @/models, and the barrel
+// is on the models → api → db import path (depcruise no-circular).
+import { OwnerRelinkMigrator } from "./db/OwnerRelinkMigrator"
 import { initI18n, translate } from "./i18n"
 import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
@@ -1261,6 +1264,8 @@ export function App() {
               <DatabaseProvider>
                 <ProfileHydrator />
                 <ChatHydrator />
+                {/* Before ReportPollingResumer: its rewrite must land first (spec 2 §7). */}
+                <OwnerRelinkMigrator />
                 <ReportPollingResumer />
                 <TimerSessionResumer />
                 <SyncResumer />

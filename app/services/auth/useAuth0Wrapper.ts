@@ -12,11 +12,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useAuth0, WebAuthError, WebAuthErrorCodes } from "react-native-auth0"
 
+import { rewriteOwnerUid } from "@/db/rewriteOwnerUid"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, type LoginMethod } from "@/models"
 import { setSqliteEncryptionKey, getCurrentSqliteKey } from "@/services/encryption/sqliteKey"
 import { hashUserId, logger } from "@/utils/logger"
 
+import { linkedSubsFromIdToken } from "./accountMethodsLogic"
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
 import { classifyAuthError, isUserAbandonedAuth } from "./authErrorLogic"
 import {
@@ -112,9 +114,28 @@ export interface ProviderLoginOptions {
   clearBrowserSessionFirst?: boolean
 }
 
-const METHOD_FOR_CONNECTION: Record<ProviderConnection, LoginMethod> = {
+/**
+ * DEV-ONLY (ADDED 2026-09-30): Universal Login's password form, for signing in
+ * as a legacy `auth0|` password user to test the "Link passwordless identity"
+ * Action (create data as the password user, then sign in by email code and
+ * land in the same account). Only LoginScreen's `__DEV__` button passes it;
+ * passwordless removed password login on purpose (spec 1), so never surface
+ * this in a release build.
+ */
+export const DEV_PASSWORD_CONNECTION = "Username-Password-Authentication"
+
+/** What loginWithProvider accepts: the real providers plus the dev password form. */
+export type BrowserConnection = ProviderConnection | typeof DEV_PASSWORD_CONNECTION
+
+// The password form records NO loginMethod — there is no "password" member,
+// and adding one to a persisted MST enum for a dev button isn't worth it.
+// Undefined is correct where it matters: logout takes the clearSession()
+// branch (anything but "email"), which this browser session needs, and
+// Settings → Account derives the row from the `auth0|` sub ("Email").
+const METHOD_FOR_CONNECTION: Record<BrowserConnection, LoginMethod | undefined> = {
   "apple": "apple",
   "google-oauth2": "google",
+  [DEV_PASSWORD_CONNECTION]: undefined,
 }
 
 export interface UseAuth0WrapperOptions {
@@ -127,9 +148,12 @@ export interface UseAuth0WrapperResult {
   sendCode: (email: string) => Promise<void>
   /** Exchange the code for a session. Rejects with the raw SDK error. */
   verifyCode: (email: string, code: string) => Promise<void>
-  /** Browser login straight to Apple/Google — Universal Login never shows. */
+  /**
+   * Browser login straight to Apple/Google — Universal Login never shows.
+   * (DEV_PASSWORD_CONNECTION shows its password form; dev builds only.)
+   */
   loginWithProvider: (
-    connection: ProviderConnection,
+    connection: BrowserConnection,
     options?: ProviderLoginOptions,
   ) => Promise<void>
   /** Cancel on WrongAccountScreen: drop the foreign session and return to Login. */
@@ -263,6 +287,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               // passing it here let any account through on a device whose flag
               // had not been reset yet.
               isAnonymous: false,
+              // ADDED 2026-09-30 (spec 2 §7): lets the gate recognise an owner
+              // whose identity was linked into this account from another device.
+              linkedSubs: linkedSubsFromIdToken(credentials.idToken ?? undefined),
             })
             if (decision === "mismatch") {
               // CHANGED 2026-09-18: setForeignSession replaces the whole
@@ -305,8 +332,31 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             if (decision === "adopt") {
               authStore.setOwner(user.sub, ownerEmail)
               log.info("Device owner adopted", { ownerId: hashUserId(user.sub) })
-            } else if (ownerEmail !== authStore.ownerEmail) {
-              authStore.setOwnerEmail(ownerEmail)
+            } else {
+              if (decision === "relinked") {
+                // ADDED 2026-09-30 (spec 2 §7). Order matters, and every step is
+                // safe to repeat after a crash: move the local rows first (when
+                // the database is open — OwnerRelinkMigrator covers the rest on
+                // the next open), then the owner record, and only after that
+                // setUserId() below, whose sync reaction reads the owner's
+                // previous subs to hand the outbox over instead of clearing it.
+                const previousSub = authStore.ownerSub
+                if (previousSub) {
+                  try {
+                    rewriteOwnerUid([previousSub, ...authStore.previousOwnerSubs], user.sub)
+                  } catch (err) {
+                    log.error("Relinked owner: row rewrite failed; retried on next open", {
+                      error: String(err),
+                    })
+                  }
+                }
+                authStore.relinkOwner(user.sub)
+                log.info("Device owner relinked into a linked account", {
+                  ownerId: hashUserId(user.sub),
+                  previousId: hashUserId(previousSub),
+                })
+              }
+              if (ownerEmail !== authStore.ownerEmail) authStore.setOwnerEmail(ownerEmail)
             }
 
             // Auth0 SDK returns expiresAt as UNIX timestamp (seconds)
@@ -494,7 +544,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
    * account picker (spec 1 §2.3).
    */
   const loginWithProvider = useCallback(
-    async (connection: ProviderConnection, options: ProviderLoginOptions = {}) => {
+    async (connection: BrowserConnection, options: ProviderLoginOptions = {}) => {
       log.info("Starting provider login", {
         connection,
         clearFirst: !!options.clearBrowserSessionFirst,

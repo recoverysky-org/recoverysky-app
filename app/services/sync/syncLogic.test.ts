@@ -162,6 +162,21 @@ describe("chunk", () => {
 })
 
 describe("ownershipAction", () => {
+  // ADDED 2026-09-30 (spec 2 §7): the owner's identity was linked into another
+  // account, so the SAME person now arrives with the primary's sub.
+  it("restamps, keeping unpushed edits, when the previous owner was relinked into this account", () => {
+    expect(ownershipAction("email|jm", "google-oauth2|mm", ["email|jm"])).toBe("restamp")
+  })
+
+  it("still clears for a different account when aliases name someone else", () => {
+    expect(ownershipAction("auth0|alice", "auth0|bob", ["email|jm"])).toBe("clear-then-stamp")
+  })
+
+  it("aliases never change the same-owner or fresh-install answers", () => {
+    expect(ownershipAction("auth0|alice", "auth0|alice", ["auth0|alice"])).toBe("noop")
+    expect(ownershipAction(null, "auth0|alice", ["email|jm"])).toBe("stamp")
+  })
+
   it("clears when a DIFFERENT account signs in — the cross-account leak guard", () => {
     expect(ownershipAction("auth0|alice", "auth0|bob")).toBe("clear-then-stamp")
   })

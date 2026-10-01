@@ -7,7 +7,7 @@
  * AppNavigator.tsx.
  */
 
-export type OwnershipDecision = "adopt" | "match" | "mismatch"
+export type OwnershipDecision = "adopt" | "match" | "relinked" | "mismatch"
 
 /**
  * One device, one owner. Anonymous sessions never own a device and are never
@@ -24,10 +24,25 @@ export function decideOwnership(input: {
   sessionSub: string
   /** True only when the session being decided is itself anonymous (never for an Auth0 session). */
   isAnonymous: boolean
+  /**
+   * Every identity's standalone sub from the ID token's identities claim
+   * (linkedSubsFromIdToken). Empty for an unlinked account or a tenant
+   * without the Action.
+   */
+  linkedSubs?: readonly string[]
 }): OwnershipDecision {
   if (input.isAnonymous) return "match"
   if (!input.ownerSub) return "adopt"
-  return input.ownerSub === input.sessionSub ? "match" : "mismatch"
+  if (input.ownerSub === input.sessionSub) return "match"
+  // ADDED 2026-09-30 (spec 2 §7): the owner's identity was linked into another
+  // account — from ANOTHER device, so this one's ownerSub still names the
+  // identity as it was when standalone — and Auth0 now answers every sign-in
+  // on it with the primary's sub. Same person, new sub. Without this the
+  // wrong-account screen asked for the owner's address, which produced the
+  // same sub again: a loop only Delete User Data could break. The claim is in
+  // the signed ID token, the same source as sessionSub itself.
+  if (input.linkedSubs?.includes(input.ownerSub)) return "relinked"
+  return "mismatch"
 }
 
 export type ProofMethod = "code" | "google" | "apple" | "unknown"
@@ -64,7 +79,7 @@ export function ownerProofMethod(sub: string | undefined): ProofMethod {
  * - The owner signing in by Apple/Google → keep what is stored.
  */
 export function ownerEmailAfterLogin(input: {
-  decision: "adopt" | "match"
+  decision: "adopt" | "match" | "relinked"
   loginMethod: "email" | "apple" | "google" | undefined
   typedEmail: string | undefined
   tokenEmail: string | undefined

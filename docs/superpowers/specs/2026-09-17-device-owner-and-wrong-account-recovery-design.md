@@ -93,6 +93,10 @@ present and otherwise only Cancel — it should never happen and is logged at `w
 
 `match` is also the outcome after a successful link: Auth0 returns the primary's sub for either
 identity from then on.
+**CHANGED 2026-09-30:** only on the device whose owner IS the primary. A device owned by the
+identity that got linked in (the secondary) sees the primary's sub on its next sign-in, which is
+a `mismatch` — and the wrong-account screen asks for the owner's address, which returns the same
+sub again: a loop. See §7.
 
 ### 1.3 Stamping
 
@@ -363,6 +367,61 @@ linking needs. Nothing new.
   API now links with `{ provider, user_id }` built from the sub its own `verifyIdToken` has
   already authenticated (api `fix/link-provider-user-id`, 369818b); the ownership proof is
   unchanged.
+
+## 7. Addendum 2026-09-30 — the relinked owner
+
+**Found on the dev tenant.** iOS owned by `jm@pm` (email code); Android signed in as `mm@gm`
+(Google) hit the wrong-account screen with `jm@pm` and linked it (`POST /auth0/link`, 200, server
+rows moved). The iOS device, signed in again as `jm@pm`, now received `mm@gm`'s sub. Its gate
+said `mismatch`, and the screen's "Send code to jm@pm" produced the same sub — a loop with no exit
+short of Delete User Data. §6's "both are fine" was wrong for this case.
+
+**Decision: a fourth outcome, `relinked`.**
+
+- The identities claim (`auth0/actions/<tenant>/identities-claim.js`) gains a `sub` per entry
+  (`provider|user_id`, the id the identity had as a standalone user). It is in the signed ID
+  token, so it is as trustworthy as `sub` itself.
+- `decideOwnership` returns `relinked` when `ownerSub !== sessionSub` but `ownerSub` is one of
+  the session's claim subs. The device owner has not changed people — the owner's identity now
+  lives inside another account. Anything else is still `mismatch`. A missing claim (tenant
+  without the Action, unlinked account) is still `mismatch`, which is the pre-2026-09-30
+  behaviour.
+- On `relinked` the gate calls `authStore.relinkOwner(newSub)`: `ownerSub` becomes the primary's
+  sub and the old one is appended to `previousOwnerSubs` (MMKV-persisted). The list is cleared
+  only with the owner record (`clearOwner`, `setOwner` on adopt).
+
+**Local data follows the owner.** Rows carry the owner's sub in `uid`:
+
+| Where | Without the rewrite |
+|---|---|
+| `attendances.uid` | stale only — push ignores it (the server stamps the token's sub) |
+| `attendance_reports.uid` | report polling skips them as foreign → Pending forever |
+| `reminders.uid` | orphaned on a sub that no longer exists |
+| `sync.queueOwnerUid` (MMKV) | the queue reads as an account switch and **clears unpushed edits** |
+
+- `rewriteOwnerUid(fromSubs, toSub)` (`app/db/`) updates the three tables in one transaction with
+  raw SQL — never through the repositories, whose mutation hook would re-enqueue every row. It is
+  idempotent (`WHERE uid IN (...)`), so it runs (a) inside the gate on `relinked` when the
+  database is open, and (b) on every database open while `previousOwnerSubs` is non-empty
+  (`OwnerRelinkMigrator`, mounted before `ReportPollingResumer` so the resume pass sees the new
+  uid). A crash between steps re-runs cleanly.
+- Sync: `ownershipAction(owner, uid, aliases)` returns `restamp` when the stored queue owner is in
+  `aliases` — `previousOwnerSubs`, passed only when `uid === ownerSub`. `restamp` rewrites the MMKV
+  owner and keeps the queue; unpushed edits push under the primary, where the link already moved
+  the server rows. Every other owner change still clears, fail-closed, exactly as before.
+- Order in the gate: rewrite (if open) → `relinkOwner` → `setUserId`. The sync reaction fires on
+  `setUserId` and already sees the aliases.
+
+**Trust assumption, inherited from §2.5.** `relinked` treats every identity in the account as the
+owner. That is the same assumption §2.5 already makes when it links a foreign session into the
+owner's account ("the wrong-account screen **is** that proof"). If that assumption is wrong —
+someone else's identity got linked in because they tapped sign-in on the owner's device — the link
+already moved their server rows at link time. `relinked` then also moves their other device's
+local rows and unpushed outbox into the same account, instead of leaving that device stuck on the
+wrong-account screen. Tightening this belongs in §2.5, the linking step, not here.
+
+**Prod dependency.** Until the prod tenant runs the identities Action with `sub`, a relinked
+device there still loops. The Action is on the prod ship gate already (auth0/README.md).
 
 ## Non-goals
 

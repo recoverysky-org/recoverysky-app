@@ -4,6 +4,7 @@ import {
   IDENTITIES_CLAIM,
   describeAccount,
   isApplePrivateRelay,
+  linkedSubsFromIdToken,
   providerToMethod,
 } from "./accountMethodsLogic"
 
@@ -304,5 +305,34 @@ describe("describeAccount", () => {
       idToken: undefined,
     })
     expect(result).toEqual({ active: null, linked: [] })
+  })
+})
+
+describe("linkedSubsFromIdToken (ADDED 2026-09-30, spec 2 §7)", () => {
+  it("returns every identity's standalone sub from the claim", () => {
+    const token = idToken({
+      sub: "google-oauth2|mm",
+      [IDENTITIES_CLAIM]: [
+        { provider: "google-oauth2", sub: "google-oauth2|mm", current: true },
+        { provider: "email", email: "jm@pm.me", sub: "email|jm" },
+      ],
+    })
+    expect(linkedSubsFromIdToken(token)).toEqual(["google-oauth2|mm", "email|jm"])
+  })
+  it("skips entries without a usable sub (an Action deployed before the field existed)", () => {
+    const token = idToken({
+      [IDENTITIES_CLAIM]: [
+        { provider: "google-oauth2" },
+        { provider: "email", sub: 42 },
+        { provider: "email", sub: "no-separator" },
+        { provider: "email", sub: "email|jm" },
+      ],
+    })
+    expect(linkedSubsFromIdToken(token)).toEqual(["email|jm"])
+  })
+  it("is empty without a token or a claim", () => {
+    expect(linkedSubsFromIdToken(undefined)).toEqual([])
+    expect(linkedSubsFromIdToken(idToken({ sub: "email|jm" }))).toEqual([])
+    expect(linkedSubsFromIdToken("not-a-jwt")).toEqual([])
   })
 })

@@ -230,7 +230,7 @@ export function chunk<T>(items: T[], size: number): T[][] {
 }
 
 /** What to do with the outbox when `uid` takes ownership of it. */
-export type OwnershipAction = "clear-then-stamp" | "stamp" | "noop"
+export type OwnershipAction = "clear-then-stamp" | "restamp" | "stamp" | "noop"
 
 /**
  * Decide what happens to the outbox when `uid` signs in, given the uid recorded
@@ -250,9 +250,22 @@ export type OwnershipAction = "clear-then-stamp" | "stamp" | "noop"
  * - `"stamp"` — nobody owns the queue yet (fresh install / first enqueue).
  * - `"noop"` — the same user already owns it. Their offline edits survive a
  *   sign-out / sign-in round trip, which is the whole point.
+ * - `"restamp"` (ADDED 2026-09-30, spec 2 §7) — the recorded owner is one of
+ *   `aliases`: the device owner's previous subs, from before their identity
+ *   was linked into the account `uid` names. Same person, so the queue is
+ *   kept and only the stamp moves. Pushing is safe: the rows are the same
+ *   person's, and a link made through POST /auth0/link has already moved that
+ *   sub's server rows into `uid`. The caller must pass aliases ONLY when
+ *   `uid` is the device owner (they come from the ID token's identities
+ *   claim via the ownership gate), never for an arbitrary sign-in.
  */
-export function ownershipAction(owner: string | null | undefined, uid: string): OwnershipAction {
+export function ownershipAction(
+  owner: string | null | undefined,
+  uid: string,
+  aliases: readonly string[] = [],
+): OwnershipAction {
   if (!uid) return "noop" // signed out: the gate blocks pushes, leave the rows be
   if (!owner) return "stamp"
-  return owner === uid ? "noop" : "clear-then-stamp"
+  if (owner === uid) return "noop"
+  return aliases.includes(owner) ? "restamp" : "clear-then-stamp"
 }

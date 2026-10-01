@@ -124,6 +124,27 @@ function readClaim(idToken: string | undefined): ClaimEntry[] {
   return out
 }
 
+/**
+ * Every identity's standalone sub (`provider|user_id`) from the identities
+ * claim — the ids those identities had before they were linked in.
+ *
+ * ADDED 2026-09-30 (spec 2 §7). The ownership gate uses it to recognise a
+ * device owner whose identity was linked into another account from a
+ * different device. Entries without a `sub` (the Action before this field)
+ * are skipped, which leaves the gate at its old answer, `mismatch`.
+ */
+export function linkedSubsFromIdToken(idToken: string | undefined): string[] {
+  if (!idToken) return []
+  const claim = decodeJwtPayload<Record<string, unknown>>(idToken)?.[IDENTITIES_CLAIM]
+  if (!Array.isArray(claim)) return []
+  const out: string[] = []
+  for (const entry of claim) {
+    const sub = entry && typeof entry === "object" ? (entry as { sub?: unknown }).sub : undefined
+    if (typeof sub === "string" && sub.includes("|")) out.push(sub)
+  }
+  return out
+}
+
 function methodFromSub(sub: string | undefined): AccountMethod | null {
   const proof = ownerProofMethod(sub)
   if (proof === "code") return "email"
