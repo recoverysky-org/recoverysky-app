@@ -1,0 +1,18 @@
+{
+  "_comment": "Source of truth for the passwordless email connection on every tenant (auth0/scripts/provision-passwordless.mjs). email.from is NOT here: the script derives it from the tenant SMTP provider default address, falling back to Auth0 built-in sender.",
+  "name": "email",
+  "strategy": "email",
+  "options": {
+    "totp": {
+      "length": 6,
+      "time_step": 180
+    },
+    "disable_signup": false,
+    "brute_force_protection": true,
+    "email": {
+      "syntax": "liquid",
+      "subject": "{{ code }} is your RecoverySky sign-in code",
+      "body": "<html><body><p>Your RecoverySky sign-in code is:</p><p style=\"font-size:28px;font-weight:bold;letter-spacing:4px\">{{ code }}</p><p>It expires in 3 minutes. If you did not ask for it, you can ignore this email.</p></body></html>"
+    }
+  }
+}

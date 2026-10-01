@@ -32,22 +32,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 > ships as an OTA — no `runtimeVersion` bump (see the Build entry below for
 > the one native-config change, which prod output does not depend on).
 >
-> **Also before that OTA:** deploy the Link passwordless identity Action to
-> prod (`auth0/actions/bad-bitch-tenant/link-passwordless-identity.js`; first
-> deploy needs its three secrets created in the dashboard — `auth0/README.md`).
-> Without it every existing password / Google / Apple user who signs in with
-> an email code lands in a new, empty account. Then deploy the Identities claim Action to prod —
-> copy `auth0/actions/bad-bitch-tenant/identities-claim.js` into
-> `auth0/actions/meetingmaker/` (same commit as the deploy), then
-> `ENV_FILE=<prod mgmt env> auth0/scripts/deploy-actions.sh meetingmaker`
-> (dry run; check its drift list) and again with `--apply --prod`. The env
-> file needs the prod Management API client with `read:`/`create:`/`update:actions`
-> and `AUTH_MGMT_DOMAIN=meetingmaker.us.auth0.com` (`api/.env` is the dev
-> tenant). Without it Settings → Account shows no linked methods and a device
-> whose owner was linked in from another phone loops on the wrong-account
-> screen. In the prod Post Login flow, drag Link passwordless identity ABOVE
-> Identities claim — the script only appends. Verified end to end on dev
-> 2026-09-30 with `docs/AUTH_LINKING_TESTS.md`.
+> **Also before that OTA — prod tenant DONE 2026-09-30.** The prod Auth0
+> tenant (meetingmaker) now has the `email` passwordless connection (enabled
+> for RecoverySky App only; the live Universal Login page was checked and is
+> unchanged), the passwordless code grant on that client, and the Link
+> passwordless identity → Identities claim Actions in Post Login. The legacy
+> Create Firebase User Actions were unbound (code kept in
+> `auth0/retired/meetingmaker/`). Still to do before the OTA: one email-code
+> round trip on a dev build pointed at prod — see `docs/PROD_AUTH0_ROLLOUT.md`.
 
 ### Added
 

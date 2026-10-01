@@ -73,12 +73,32 @@ change reaches live users on their next login or token refresh.** Deploy to
 Before redeploying, diff the tenant's deployed code against the file:
 `GET /api/v2/actions/actions/{id}` → `deployed_version.code`.
 
+## Passwordless connection — `connections/email.json`
+
+ADDED 2026-09-30. The `email` connection's settings (6-digit code, 180 s, sign-ups on,
+brute-force protection, the Liquid subject/body) live in `connections/email.json`.
+`scripts/provision-passwordless.mjs <tenant> [--apply [--prod] --only conn,clients,grant,order]`
+makes a tenant match: creates or patches the connection, enables it for the app client (never
+disables it for another), adds the `passwordless/otp` grant to that client, and puts the Post
+Login bindings in the order below. On prod, `--apply` needs `--only`, so each live change is one
+deliberate step. `email.from` is derived, not stored: the tenant's SMTP default address
+(prod), else Auth0's built-in sender (dev). Both tenants were in sync on 2026-09-30.
+
+Enabling the connection for the shared prod client did NOT change the Universal Login page
+live builds use (checked 2026-09-30, before/after): the new app reaches it only by naming the
+connection.
+
+**Retired:** `scripts/retire-action.mjs <tenant> "<name>" [--apply] [--prod]` saves an
+Action's deployed code to `retired/<tenant>/` (secret names only), unbinds and deletes it.
+Prod's legacy Create Firebase User Actions were unbound 2026-09-30; their code is in
+`retired/meetingmaker/`. (They may still sit in the dashboard Library, unbound — inert.)
+
 ## Actions
 
 | Action | File | Trigger | Secrets | Consumed by | dev | prod |
 |---|---|---|---|---|---|---|
-| Link passwordless identity | `link-passwordless-identity.js` | Login / Post Login | `MGMT_DOMAIN`, `MGMT_CLIENT_ID`, `MGMT_CLIENT_SECRET` | nothing in the app — it makes an email-code login land in the user's existing account | deployed + bound 2026-09-30 (v2; own M2M app "Action: Link passwordless identity") | — |
-| Identities claim | `identities-claim.js` | Login / Post Login | none | `app/services/auth/accountMethodsLogic.ts` (Settings → Account; the ownership gate's `relinked` check) | v2 (adds `sub` per entry), deployed 2026-09-30 via `deploy-actions.sh`; bound (id `6d745790-f4db-479d-b1d0-0422c354c86b`) | — |
+| Link passwordless identity | `link-passwordless-identity.js` | Login / Post Login | `MGMT_DOMAIN`, `MGMT_CLIENT_ID`, `MGMT_CLIENT_SECRET` | nothing in the app — it makes an email-code login land in the user's existing account | deployed + bound 2026-09-30 (v2; own M2M app "Action: Link passwordless identity") | deployed + bound 2026-09-30 (own M2M app, same name) |
+| Identities claim | `identities-claim.js` | Login / Post Login | none | `app/services/auth/accountMethodsLogic.ts` (Settings → Account; the ownership gate's `relinked` check) | v2 (adds `sub` per entry), deployed 2026-09-30 via `deploy-actions.sh`; bound (id `6d745790-f4db-479d-b1d0-0422c354c86b`) | v2, deployed + bound 2026-09-30 |
 
 Post-login order: passwordless linking → identities claim. Linking runs first because it
 changes which identity is primary. In practice the order can't change a token today: the

@@ -1,5 +1,19 @@
 # Prod Auth0 rollout (meetingmaker): where it stands
 
+> **UPDATE 2026-09-30, later the same night: the tenant steps are DONE.** In order:
+> - The Firebase Actions were unbound (code in `auth0/retired/meetingmaker/`).
+> - The Link Action was provisioned (its own M2M app, secrets written in memory).
+> - Both Actions were deployed.
+> - The Post Login order was set to Link → Identities claim.
+> - The `email` connection was created from `auth0/connections/email.json` and enabled for
+>   RecoverySky App only. The Universal Login page was unchanged before/after.
+> - The `passwordless/otp` grant was added.
+>
+> `provision-passwordless.mjs` and `deploy-actions.sh` both report prod "in sync".
+>
+> **Left before the OTA:** step 6 below, an email-code round trip on a dev build pointed at prod.
+> The table and steps that follow are the pre-rollout record.
+
 Written 2026-09-30 and paused there, so a bug in the linking flow could be chased first. Resume from
 here. The app's passwordless build **must not ship as an OTA** until every step below is done.
 
