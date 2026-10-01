@@ -30,6 +30,7 @@ import {
   WHY_VERIFY_URL,
   decideVerifyPrompt,
   emailChanged,
+  mustCloseShownGate,
   needsEmailVerification,
   recordShowing,
   stepAfterVerifyProblem,
@@ -131,12 +132,17 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
   }, [evaluate])
 
   // The account signed out (or was switched) underneath the modal: close it.
+  // CHANGED 2026-10-01: a MANDATORY screen also closes when the gate becomes
+  // blocked (offline, maintenance, outage, a timer): it could not send a code
+  // and has no "Not now", which would lock the user out of meetings. It
+  // re-shows by itself once unblocked because mandatory latches. A SKIPPABLE
+  // one stays, since it has "Not now" and its day is already counted.
   useEffect(() => {
-    if (shown && !sub) {
+    if (shown && mustCloseShownGate({ mode: shown.mode, hasAccount: !!sub, blocked })) {
       releaseOverlay(OVERLAY)
       setShown(null)
     }
-  }, [shown, sub])
+  }, [shown, sub, blocked])
 
   // ADDED 2026-10-01: an unmounted gate must not hold the overlay forever, or
   // the announcement gate would wait on it for the rest of the session. A

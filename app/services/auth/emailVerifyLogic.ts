@@ -132,3 +132,21 @@ export function stepAfterVerifyProblem(problem: EmailVerifyProblem): "review" | 
 export function emailChanged(verifiedEmail: string, accountEmail: string | undefined): boolean {
   return verifiedEmail.trim().toLowerCase() !== (accountEmail ?? "").trim().toLowerCase()
 }
+
+/**
+ * Whether a screen that is already up must close (ADDED 2026-10-01).
+ * - Account gone (signed out or switched): close, in either mode.
+ * - MANDATORY and blocked (offline, maintenance, outage, a timer): close,
+ *   because the user could neither send a code nor leave. It re-shows by
+ *   itself once unblocked, since a mandatory showing latches.
+ * - SKIPPABLE stays up when blocked: "Not now" is always there, and closing
+ *   would burn the day's already-counted showing on a network blip.
+ */
+export function mustCloseShownGate(input: {
+  mode: "skippable" | "mandatory"
+  hasAccount: boolean
+  blocked: boolean
+}): boolean {
+  if (!input.hasAccount) return true
+  return input.mode === "mandatory" && input.blocked
+}

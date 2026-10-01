@@ -5,6 +5,7 @@ import {
   MAX_SKIPS,
   decideVerifyPrompt,
   emailChanged,
+  mustCloseShownGate,
   needsEmailVerification,
   recordShowing,
   stepAfterVerifyProblem,
@@ -163,5 +164,22 @@ describe("emailChanged", () => {
   it("counts an empty or missing account email as changed", () => {
     expect(emailChanged("me@example.com", "")).toBe(true)
     expect(emailChanged("me@example.com", undefined)).toBe(true)
+  })
+})
+
+describe("mustCloseShownGate", () => {
+  it("closes in both modes when the account is gone", () => {
+    expect(mustCloseShownGate({ mode: "skippable", hasAccount: false, blocked: false })).toBe(true)
+    expect(mustCloseShownGate({ mode: "mandatory", hasAccount: false, blocked: false })).toBe(true)
+  })
+  it("closes a mandatory screen that is blocked (it cannot send a code)", () => {
+    expect(mustCloseShownGate({ mode: "mandatory", hasAccount: true, blocked: true })).toBe(true)
+  })
+  it("keeps a mandatory screen that is not blocked", () => {
+    expect(mustCloseShownGate({ mode: "mandatory", hasAccount: true, blocked: false })).toBe(false)
+  })
+  it("keeps a skippable screen even when blocked (it has Not now)", () => {
+    expect(mustCloseShownGate({ mode: "skippable", hasAccount: true, blocked: true })).toBe(false)
+    expect(mustCloseShownGate({ mode: "skippable", hasAccount: true, blocked: false })).toBe(false)
   })
 })
