@@ -28,7 +28,7 @@ import {
   type IdTokenClaims,
 } from "./jwtUtils"
 import { linkForeignIdentity } from "./linkForeignIdentity"
-import { decideOwnership, ownerEmailAfterLogin } from "./ownerLogic"
+import { decideForeignLink, decideOwnership, ownerEmailAfterLogin } from "./ownerLogic"
 import { saveAuthCredentials, clearAuthCredentials } from "./secureStorage"
 import { reportUnusableToken } from "./unusableTokenHandler"
 
@@ -423,11 +423,31 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             // in the one case where the accepted session IS the recorded one.
             // Only the link call needs the comparison: linking an identity to
             // itself is meaningless.
+            //
+            // CHANGED 2026-09-30: linked only when the foreign address is the
+            // owner account's own email (decideForeignLink). A different
+            // address, once linked, can never sign in again — Auth0 finds
+            // email-code users by the root account's email — so each later
+            // code login made a fresh orphan user and the device looped back
+            // to WrongAccountScreen. The screen's job is "sign into your
+            // original account"; the user is told nothing, the skip is logged.
             const foreign = authStore.foreignSession
             if (foreign) {
               authStore.clearForeignSession()
-              if (foreign.sub === user.sub) {
+              const decision = decideForeignLink({
+                foreignSub: foreign.sub,
+                foreignEmail: foreign.email,
+                acceptedSub: user.sub,
+                acceptedEmail: user.email,
+              })
+              if (decision === "same-session") {
                 log.info("Accepted session matches the recorded foreign one — record dropped")
+              } else if (decision === "skip-email-mismatch") {
+                // Never the addresses or subs: hashes and the provider only.
+                log.info("Foreign identity not linked — address differs from the account's", {
+                  foreignId: hashUserId(foreign.sub),
+                  foreignProvider: foreign.sub.split("|")[0],
+                })
               } else if (foreign.idToken) {
                 void linkForeignIdentity(foreign.idToken)
               } else {

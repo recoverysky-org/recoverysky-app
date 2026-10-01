@@ -72,6 +72,11 @@ export function ownerProofMethod(sub: string | undefined): ProofMethod {
  * account whose primary is a gmail identity, so the button came back as
  * "Send code to m***@gmail.com". Either address reaches the same account, but
  * offering one the user never typed reads as the wrong account.
+ * CHANGED 2026-09-30: "either address reaches the same account" holds only
+ * while the typed address is that account's own email or was linked by the
+ * Link passwordless identity Action. A different address linked from
+ * WrongAccountScreen never signs in again (see decideForeignLink), so that
+ * link is no longer made.
  *
  * - A code sign-in (by the owner, or the one that adopts the device) → the
  *   address the user typed, which is proven by the code they just entered.
@@ -88,4 +93,36 @@ export function ownerEmailAfterLogin(input: {
   if (input.loginMethod === "email" && input.typedEmail) return input.typedEmail
   if (input.decision === "adopt") return input.tokenEmail
   return input.currentOwnerEmail
+}
+
+export type ForeignLinkDecision = "same-session" | "link" | "skip-email-mismatch"
+
+/**
+ * After the owner proves themselves on WrongAccountScreen, whether to link the
+ * foreign session's identity into the owner's account (spec 2 §2.5).
+ *
+ * ADDED 2026-09-30. The wrong-account screen exists for "I forgot which login
+ * is mine": send the user back to the original sign-in. Linking is a side
+ * benefit, and only safe when the foreign identity's address IS the owner
+ * account's email. Auth0 finds email-code users by the ROOT account's email
+ * only (verified on the dev tenant 2026-09-30: users-by-email and user search
+ * never see a linked identity's address). So a linked email identity on a
+ * DIFFERENT address can never sign in again — the next code login for it
+ * creates a fresh, unlinked `email|` user, and the device lands back on this
+ * screen while Settings shows the dead identity as "Linked". Matching
+ * addresses are fine: Auth0 finds the account by its own email.
+ *
+ * Compared case-insensitively; a missing address on either side never links.
+ * The user is told nothing either way — the caller only logs the outcome.
+ */
+export function decideForeignLink(input: {
+  foreignSub: string
+  foreignEmail: string | undefined
+  acceptedSub: string
+  acceptedEmail: string | undefined
+}): ForeignLinkDecision {
+  if (input.foreignSub === input.acceptedSub) return "same-session"
+  const a = input.foreignEmail?.trim().toLowerCase()
+  const b = input.acceptedEmail?.trim().toLowerCase()
+  return a && b && a === b ? "link" : "skip-email-mismatch"
 }

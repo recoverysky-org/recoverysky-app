@@ -37,13 +37,14 @@
  * run unless AUTH_MGMT_DOMAIN names the tenant given on the command line.
  * Never prints the secret or the token.
  */
-import { Buffer } from "node:buffer"
 import { spawnSync } from "node:child_process"
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { setTimeout as sleep } from "node:timers/promises"
 import { fileURLToPath } from "node:url"
+
+import { getMgmtCredentials } from "./mgmt-auth.mjs"
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ACTIONS_DIR = resolve(HERE, "../actions")
@@ -67,47 +68,17 @@ if (!existsSync(folder)) die(`no folder ${folder}`)
 if (apply && PROD_TENANTS.has(tenant) && !prodOk) die(`${tenant} is PROD — add --prod to apply`)
 
 // ── credentials ─────────────────────────────────────────────────────────────
-function readEnv(file) {
-  if (!existsSync(file)) die(`env file not found: ${file} (set ENV_FILE=…)`)
-  const env = {}
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    const m = line.match(/^(AUTH_MGMT_[A-Z_]+)=(.*)$/)
-    if (m) env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "")
-  }
-  return env
-}
-const env = readEnv(ENV_FILE)
-const {
-  AUTH_MGMT_DOMAIN: domain,
-  AUTH_MGMT_CLIENT_ID: clientId,
-  AUTH_MGMT_CLIENT_SECRET: secret,
-} = env
-if (!domain || !clientId || !secret)
-  die(`AUTH_MGMT_DOMAIN/_CLIENT_ID/_CLIENT_SECRET missing in ${ENV_FILE}`)
-// Hard guard: the credentials must belong to the tenant named on the command line.
-if (!domain.startsWith(`${tenant}.`)) die(`AUTH_MGMT_DOMAIN is ${domain}, not the ${tenant} tenant`)
-console.log(
-  `Tenant: ${domain}${PROD_TENANTS.has(tenant) ? " (PROD)" : ""} — ${apply ? "APPLY" : "dry run"}`,
-)
-
-// ── Management API ──────────────────────────────────────────────────────────
-const tokenRes = await fetch(`https://${domain}/oauth/token`, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({
-    grant_type: "client_credentials",
-    client_id: clientId,
-    client_secret: secret,
-    audience: `https://${domain}/api/v2/`,
-  }),
+// CHANGED 2026-09-30: shared with the other scripts in mgmt-auth.mjs, which
+// also accepts a ready-made AUTH0_MGMT_API_TOKEN_PROD/_DEV token.
+const { domain, token, source } = await getMgmtCredentials({
+  tenant,
+  defaultEnvFile: ENV_FILE,
+  requiredScopes: REQUIRED_SCOPES,
+  die,
 })
-if (!tokenRes.ok) die(`token request failed: ${tokenRes.status}`)
-const token = (await tokenRes.json()).access_token
-const scopes =
-  JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString()).scope?.split(" ") ?? []
-const missing = REQUIRED_SCOPES.filter((s) => !scopes.includes(s))
-if (missing.length)
-  die(`client lacks ${missing.join(", ")} — grant under Auth0 Management API → Application Access`)
+console.log(
+  `Tenant: ${domain}${PROD_TENANTS.has(tenant) ? " (PROD)" : ""} — ${apply ? "APPLY" : "dry run"} (via ${source})`,
+)
 
 async function mgmt(method, path, body) {
   for (let attempt = 0; ; attempt++) {

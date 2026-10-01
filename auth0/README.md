@@ -50,8 +50,11 @@ Each Action file names itself in its header, and the script reads only these tag
 - **Secrets:** values never live in git. An Action that declares a secret the tenant lacks is
   skipped with an error. Set the value in the dashboard, then re-run.
 
-Credentials come from the Management API client in `AUTH_MGMT_*` (default `../api/.env`;
-override with `ENV_FILE=…`). The script refuses unless `AUTH_MGMT_DOMAIN` starts with the
+Credentials (`scripts/mgmt-auth.mjs`, shared by the deploy and provision scripts): a ready-made
+API Explorer token in `AUTH0_MGMT_API_TOKEN_PROD` (meetingmaker) or `AUTH0_MGMT_API_TOKEN_DEV`
+(bad-bitch-tenant) when it's set (ADDED 2026-09-30; the tenant is read from the token's `aud`,
+and an expired token stops with the refresh steps), otherwise the Management API client in
+`AUTH_MGMT_*` (default `../api/.env`; override with `ENV_FILE=…`, which also forces this source). The script refuses unless `AUTH_MGMT_DOMAIN` starts with the
 tenant's name, and needs `read:actions`, `create:actions` and `update:actions` on that client.
 It never prints the secret or the token.
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { decideOwnership, ownerEmailAfterLogin, ownerProofMethod } from "./ownerLogic"
+import {
+  decideForeignLink,
+  decideOwnership,
+  ownerEmailAfterLogin,
+  ownerProofMethod,
+} from "./ownerLogic"
 
 describe("decideOwnership", () => {
   it("adopts when the device has no owner yet", () => {
@@ -124,5 +129,27 @@ describe("ownerEmailAfterLogin (ADDED 2026-09-30)", () => {
         loginMethod: undefined,
       }),
     ).toBe("primary@gmail.com")
+  })
+})
+
+describe("decideForeignLink (ADDED 2026-09-30)", () => {
+  const base = {
+    foreignSub: "email|other",
+    foreignEmail: "Me@Gmail.com",
+    acceptedSub: "google-oauth2|owner",
+    acceptedEmail: "me@gmail.com",
+  }
+  it("links when the foreign address is the owner account's email (case-insensitive)", () => {
+    expect(decideForeignLink(base)).toBe("link")
+  })
+  it("skips a different address — Auth0 could never sign that identity in again", () => {
+    expect(decideForeignLink({ ...base, foreignEmail: "me@proton.me" })).toBe("skip-email-mismatch")
+  })
+  it("skips when either address is missing", () => {
+    expect(decideForeignLink({ ...base, foreignEmail: undefined })).toBe("skip-email-mismatch")
+    expect(decideForeignLink({ ...base, acceptedEmail: undefined })).toBe("skip-email-mismatch")
+  })
+  it("reports the same session when the owner signed in as the foreign sub", () => {
+    expect(decideForeignLink({ ...base, foreignSub: base.acceptedSub })).toBe("same-session")
   })
 })

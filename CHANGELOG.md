@@ -140,6 +140,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   creates the account on first use, so there was nothing left for it to do.
 
 ### Fixed
+- **Signing in with the wrong email no longer leaves a dead "Linked" email
+  behind.** After the wrong-account screen sent someone back to their own
+  sign-in, the app linked the other email into their account. Auth0 can only
+  find an email-code user by the account's own address, so that linked email
+  could never sign in again: each later attempt made a fresh empty account and
+  landed on the wrong-account screen, while Settings showed the address as
+  "Linked". The app now links only when the address is the account's own, and
+  otherwise just logs the skip.
 - **A device whose owner was linked into another account from a different
   device no longer loops on the wrong-account screen.** Signing in as the
   owner now returns the linked account's id, and the app used to refuse that

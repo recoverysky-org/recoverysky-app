@@ -914,6 +914,18 @@ its subsystem:
   behind Settings → Account's linked-method rows lives here. Prod shares one
   client with every build, so deploy to dev first and promote by copying the file.
   Deploy with `auth0/scripts/deploy-actions.sh <tenant> [--apply]` (idempotent, dry run by default).
+  **Management API tokens (ADDED 2026-09-30):** Jenova's shell exports
+  `AUTH0_MGMT_API_TOKEN_DEV` (bad-bitch-tenant) and `AUTH0_MGMT_API_TOKEN_PROD`
+  (meetingmaker), so Claude can call `https://<tenant>.us.auth0.com/api/v2/`
+  directly with `Authorization: Bearer $AUTH0_MGMT_API_TOKEN_<ENV>`. They are
+  broad-scope API Explorer tokens and they expire (dev was minted for 24 h, prod
+  for ~30 days). On a 401, ask Jenova to refresh one from Dashboard →
+  Applications → APIs → Auth0 Management API → API Explorer, then re-export it.
+  Never print a token. Check a token's expiry by decoding only its `exp`
+  field. Treat PROD as read-only unless Jenova approves the specific write.
+  `deploy-actions.sh` and `provision-link-client.mjs` pick the token up by
+  themselves (`auth0/scripts/mgmt-auth.mjs`; the tenant comes from the
+  token's `aud`). Set `ENV_FILE=` to use the `AUTH_MGMT_*` client instead.
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
   history, backlog, running work log
 
