@@ -456,6 +456,20 @@ Three separate trust layers, easy to confuse:
    the claim's `sub` (Action v1, or prod today) the device loops on the
    wrong-account screen.
 
+   ADDED 2026-10-01 (spec `2026-09-30-legacy-email-verification-design.md`):
+   `VerifyEmailGate` (a modal beside `AnnouncementGate` in `app.tsx`, sharing
+   `utils/overlayGate.ts` so the two never present together) asks a signed-in
+   `auth0|` account whose `email_verified` claim is false to confirm or change
+   its email with a code the API sends (`POST /auth0/email/start` / `/verify`).
+   Six skippable showings, one per local day, then mandatory (day seven). It is hidden,
+   and not counted, offline, in maintenance, during onboarding and while an
+   attendance timer runs. A mandatory showing that is already up closes when one of those blocks begins and returns when it clears (`mustCloseShownGate`); a skippable one stays, since it has "Not now". A session started by an email code is never asked,
+   and this install's own "verified" record (MMKV `emailVerify.<hash>`) wins
+   over the claim, because a cold start can restore a stale ID token.
+   Decisions: `emailVerifyLogic.ts` (vitest). The password form
+   (`PASSWORD_CONNECTION`) is no longer dev-only: Login and the wrong-account
+   screen link to it for accounts that cannot receive a code.
+
    CHANGED 2026-09-18: the pending login method — which of
    `sendCode`/`verifyCode`/`loginWithProvider` is in flight, read by the
    `[user]` sync effect once the SDK sets `user` — is a MODULE-SCOPED

@@ -131,6 +131,26 @@ does **not** move server rows (only the API's `POST /auth0/link` does, via `reas
 Android would never see it. That's a known gap for email-first users who later sign up with
 Google/Apple, and it isn't part of this basic run.
 
+## Part 3: Legacy email verification
+
+Needs the local API with Postmark configured. Wipe users first.
+
+| # | Device | Do | Expect | ✓ |
+|---|---|---|---|---|
+| 3.1 | iOS | 🧨 Purge → **Can't get a code? Sign in with your password** → **Sign up** with a mistyped address (e.g. your Gmail + `f`). Finish onboarding. | The verify screen: heading "Please review and verify your email address", the mistyped address in full, "Skips left: 6". | |
+| 3.2 | iOS | Tap **Why is verification required?** | The browser opens the RecoverySky post. | |
+| 3.3 | iOS | Tap **Not now**. Background and foreground the app. | Into the app. The screen does not return today. | |
+| 3.4 | iOS | Set the phone's date forward one day, foreground the app. | The screen returns with "Skips left: 5". | |
+| 3.5 | iOS | **Not my email? Change it** → type E1 → **Send Code** → enter the code from E1's inbox. | Into the app. Settings → Account shows E1. | |
+| 🔎 | Claude | diag | One `auth0|` user whose email is now E1 (masked), verified. API log: `email verified` with `changed: true`, and no address in any line. Metro: `Email verified {"changed":true}`. | |
+| 3.6 | iOS | Force-quit and reopen. | No verify screen (this install's record wins over the cached token). | |
+| 3.7 | iOS | Sign out → **Continue with Email** → E1 → code. | Same account (the hash matches 3.1), attendance intact, no verify screen. | |
+| 3.8 | Android | 🧨 Purge → sign in with the password link as a second mistyped account. Skip on six different days (move the date each time). | Day 7: no "Not now", the support line instead. Android's back button does nothing. | |
+| 3.9 | Android | Turn on airplane mode, relaunch. | No verify screen while offline; it returns when back online. | |
+| 3.10 | Android | With the mandatory screen from 3.8 showing, turn on airplane mode. Then turn it off. | The screen closes while offline (the app is usable) and returns once back online. | |
+
+Put the phone's date back to automatic afterwards.
+
 ## Not covered here
 
 - **Apple**: linking needs the Apple account's real address. With "Hide My Email" Apple sends a
