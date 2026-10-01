@@ -47,6 +47,11 @@ describe("resendWaitSeconds", () => {
   it("is 0 at exactly the cooldown boundary", () => {
     expect(resendWaitSeconds(0, RESEND_COOLDOWN_MS)).toBe(0)
   })
+  it("takes a longer cooldown when one is passed", () => {
+    expect(resendWaitSeconds(1_000, 31_000)).toBe(0)
+    expect(resendWaitSeconds(1_000, 31_000, 60_000)).toBe(30)
+    expect(resendWaitSeconds(1_000, 61_000, 60_000)).toBe(0)
+  })
 })
 
 describe("nextStep", () => {
