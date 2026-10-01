@@ -42,6 +42,7 @@ import { AnnouncementGate } from "./components/AnnouncementGate"
 import { MaintenanceBanner } from "./components/MaintenanceBanner"
 import { TimerRecoveryGate } from "./components/TimerRecoveryGate"
 import { ToastProvider } from "./components/Toast"
+import { VerifyEmailGate } from "./components/VerifyEmailGate"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import {
@@ -1293,6 +1294,10 @@ export function App() {
                           by TimerSessionResumer via the recovery
                           channel in services/attendance/timerRecovery. */}
                       <TimerRecoveryGate />
+                      {/* ADDED 2026-10-01: before AnnouncementGate so its
+                          mount effect runs first and takes the overlay when
+                          both are due (see utils/overlayGate.ts). */}
+                      <VerifyEmailGate />
                       <AnnouncementGate />
                     </ToastProvider>
                   </ThemeProvider>

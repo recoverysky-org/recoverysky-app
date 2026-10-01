@@ -10,6 +10,9 @@
  * found, so its owner must fix the address while still signed in.
  */
 
+// Type-only and relative: erased at runtime, so vitest can still load this module.
+import type { EmailVerifyProblem } from "../api/emailVerifyProblem"
+
 /**
  * Six skippable showings; the seventh is mandatory (decided 2026-10-01). One
  * showing a day, so a user gets a full week of use before it is required.
@@ -106,4 +109,26 @@ export function verifyGateBlocked(input: {
     input.outageMode ||
     input.timerSessionActive
   )
+}
+
+/**
+ * Where the verify screen goes after the API refused a code (ADDED 2026-10-01).
+ * `null` means stay on the current step and show the problem there.
+ * - A dead code (expired, or killed by too many wrong tries) goes back to
+ *   review, where a new one can be sent.
+ * - An address already in use goes to the change step, to pick another.
+ */
+export function stepAfterVerifyProblem(problem: EmailVerifyProblem): "review" | "change" | null {
+  if (problem === "code_expired" || problem === "too_many_attempts") return "review"
+  if (problem === "email_in_use") return "change"
+  return null
+}
+
+/**
+ * Whether the address that got verified differs from the one the account
+ * carried (ADDED 2026-10-01). Case and surrounding whitespace don't count; an
+ * empty or missing account email always counts as changed.
+ */
+export function emailChanged(verifiedEmail: string, accountEmail: string | undefined): boolean {
+  return verifiedEmail.trim().toLowerCase() !== (accountEmail ?? "").trim().toLowerCase()
 }

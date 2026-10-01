@@ -70,6 +70,11 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
     return () => sub.remove()
   }, [evaluate])
 
+  // ADDED 2026-10-01: an unmounted gate must not hold the overlay forever, or
+  // the verify-email gate would wait on it for the rest of the session. A
+  // release by a non-owner is a no-op, so this is safe when nothing is shown.
+  useEffect(() => () => releaseOverlay("announcement"), [])
+
   const dismiss = useCallback(() => {
     if (active) profileStore.markAnnouncementSeen(active.id)
     releaseOverlay("announcement")

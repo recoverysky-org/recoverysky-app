@@ -4,8 +4,10 @@ import {
   EMPTY_VERIFY_STATE,
   MAX_SKIPS,
   decideVerifyPrompt,
+  emailChanged,
   needsEmailVerification,
   recordShowing,
+  stepAfterVerifyProblem,
   verifyGateBlocked,
 } from "./emailVerifyLogic"
 
@@ -125,5 +127,41 @@ describe("verifyGateBlocked (Review Focus 5)", () => {
     ["a running timer", { timerSessionActive: true }],
   ])("is blocked when %s", (_name, over) => {
     expect(verifyGateBlocked({ ...clear, ...over })).toBe(true)
+  })
+})
+
+describe("stepAfterVerifyProblem", () => {
+  it("sends a dead code back to review, where a new one can be sent", () => {
+    expect(stepAfterVerifyProblem("code_expired")).toBe("review")
+    expect(stepAfterVerifyProblem("too_many_attempts")).toBe("review")
+  })
+  it("sends an address already in use to the change step", () => {
+    expect(stepAfterVerifyProblem("email_in_use")).toBe("change")
+  })
+  it.each([
+    "invalid_code",
+    "rate_limited",
+    "inactive_recipient",
+    "not_password_account",
+    "unavailable",
+  ] as const)("stays on the current step for %s", (problem) => {
+    expect(stepAfterVerifyProblem(problem)).toBeNull()
+  })
+})
+
+describe("emailChanged", () => {
+  it("is false for the same address", () => {
+    expect(emailChanged("me@example.com", "me@example.com")).toBe(false)
+  })
+  it("ignores case and surrounding whitespace", () => {
+    expect(emailChanged(" Me@Example.com ", "me@example.com")).toBe(false)
+    expect(emailChanged("me@example.com", " ME@example.COM ")).toBe(false)
+  })
+  it("is true for a different address", () => {
+    expect(emailChanged("new@example.com", "me@example.com")).toBe(true)
+  })
+  it("counts an empty or missing account email as changed", () => {
+    expect(emailChanged("me@example.com", "")).toBe(true)
+    expect(emailChanged("me@example.com", undefined)).toBe(true)
   })
 })
