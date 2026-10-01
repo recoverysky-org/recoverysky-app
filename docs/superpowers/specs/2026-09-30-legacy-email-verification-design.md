@@ -46,6 +46,8 @@ All of these must hold (pure `needsEmailVerification`, `emailVerifyLogic.ts`):
 - The session was **not** started by an email code (`loginMethod !== "email"`). Someone who signed
   in with a code has just proved the inbox, even though the token for a linked password account
   still carries the password identity's unverified flag (decided 2026-10-01).
+  Revised 2026-10-01 (final review): a Google or Apple session into a linked password account is
+  exempt too; only a session with no recorded `loginMethod` is asked.
 
 Verified password accounts, Google and Apple never see it (decided 2026-09-30: a verified address
 has access, even though a verified mailbox can later go dead; those users have the password link
@@ -85,6 +87,9 @@ It never interrupts work in progress:
   onboarding.
 - It is not shown, and not counted, while offline, in maintenance or in outage mode. The API can't
   send a code then, and a mandatory screen with no way to pass would lock a user out of meetings.
+- Added 2026-10-01 (final review): a mandatory showing already up closes when one of these blocks
+  begins (and returns when it clears), and a degraded device lane (`deviceAuthDegraded`) blocks too,
+  since every send is refused locally while it lasts.
 
 ## 5. The screen
 
