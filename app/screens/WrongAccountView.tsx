@@ -41,6 +41,11 @@ export interface WrongAccountViewProps {
   onVerify: () => void
   onResend: () => void
   onProvider: () => void
+  /**
+   * ADDED 2026-10-01: given only when the owner is a legacy password account
+   * (ownerHasPassword). Such an owner may be unable to receive the code.
+   */
+  onPassword?: () => void
   onCancel: () => void
 }
 
@@ -108,6 +113,18 @@ export function WrongAccountView(props: WrongAccountViewProps) {
                   tx="wrongAccountScreen:sendCodeTo"
                   txOptions={{ email: emailMasked }}
                 />
+              </Pressable>
+            )}
+            {showCode && props.onPassword && (
+              <Pressable
+                testID="wrong-account-password"
+                accessibilityRole="link"
+                accessibilityLabel={translate("wrongAccountScreen:passwordSignIn")}
+                accessibilityState={{ disabled: isBusy }}
+                onPress={props.onPassword}
+                disabled={isBusy}
+              >
+                <Text style={themed($cancelText)} tx="wrongAccountScreen:passwordSignIn" />
               </Pressable>
             )}
             {showProvider && (

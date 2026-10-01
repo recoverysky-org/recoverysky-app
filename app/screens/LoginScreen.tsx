@@ -32,7 +32,7 @@ import {
 import { ownerProofMethod } from "@/services/auth/ownerLogic"
 import { hasAcceptedTerms, setTermsAccepted } from "@/services/auth/secureStorage"
 import {
-  DEV_PASSWORD_CONNECTION,
+  PASSWORD_CONNECTION,
   useAuth0Wrapper,
   type BrowserConnection,
 } from "@/services/auth/useAuth0Wrapper"
@@ -71,8 +71,9 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 type PendingAction =
   | { kind: "email" }
   | { kind: "ownerEmail" }
-  // BrowserConnection, not ProviderConnection: also carries the __DEV__
-  // password button's connection (ADDED 2026-09-30).
+  // BrowserConnection, not ProviderConnection: also carries the password
+  // link's connection (ADDED 2026-09-30).
+  // CHANGED 2026-10-01: was the __DEV__ password button's; now every build.
   | { kind: "provider"; connection: BrowserConnection }
   | { kind: "anonymous" }
   | null
@@ -368,7 +369,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
               method:
                 action.connection === "apple"
                   ? "apple"
-                  : action.connection === DEV_PASSWORD_CONNECTION
+                  : action.connection === PASSWORD_CONNECTION
                     ? "password"
                     : "google",
             })
@@ -439,10 +440,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     setPendingAction(null)
   }, [pendingAction])
 
-  // DEV-ONLY password sign-in — see DEV_PASSWORD_CONNECTION in useAuth0Wrapper.
+  // Legacy password sign-in (spec 2026-09-30-legacy-email-verification §7).
   // Through `gated` like every other entry point, so the legal gate still applies.
-  const handleDevPassword = useCallback(
-    () => gated({ kind: "provider", connection: DEV_PASSWORD_CONNECTION }),
+  // CHANGED 2026-10-01: was DEV-ONLY (handleDevPassword).
+  const handlePassword = useCallback(
+    () => gated({ kind: "provider", connection: PASSWORD_CONNECTION }),
     [gated],
   )
 
@@ -588,22 +590,24 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         )}
       </View>
 
-      {/* DEV-ONLY (ADDED 2026-09-30): sign in as a legacy password user via
-          Universal Login, to test the "Link passwordless identity" Action.
-          Hard-coded English for the same reason as the purge button below. */}
-      {__DEV__ && (
-        <Pressable
-          testID="login-dev-password"
-          accessibilityRole="button"
-          accessibilityLabel="Dev: sign in with password"
-          accessibilityHint="Opens the Auth0 password form in a browser"
-          onPress={handleDevPassword}
-          disabled={isLoading}
-          style={themed($devPurgeButton)}
-        >
-          <Text style={themed($devPurgeText)} text="🔑 DEV: Sign in with password" />
-        </Pressable>
-      )}
+      {/* ADDED 2026-09-30 as a DEV-only button: sign in as a legacy password
+          user via Universal Login, to test the "Link passwordless identity"
+          Action.
+          CHANGED 2026-10-01: was DEV-only. A legacy password account
+          whose email is wrong can't get a code, so every build now offers the
+          password form — small, below the real options, because it is a
+          rescue path and not a fourth way to sign up. */}
+      <Pressable
+        testID="login-password"
+        accessibilityRole="link"
+        accessibilityLabel={translate("loginScreen:passwordSignIn")}
+        accessibilityHint={translate("loginScreen:passwordSignInHint")}
+        onPress={handlePassword}
+        disabled={isLoading}
+        style={themed($passwordLink)}
+      >
+        <Text style={themed($passwordLinkText)} tx="loginScreen:passwordSignIn" />
+      </Pressable>
 
       {/* DEV-ONLY (ADDED 2026-09-28): wipe everything local so the next launch
           is a fresh install — see utils/devPurge.ts for what it clears and
@@ -771,6 +775,18 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 1, // CHANGED 2026-09-28 from flex:1 — same reason as $screenContentContainer
   justifyContent: "center",
   gap: spacing.md,
+})
+
+const $passwordLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignSelf: "center",
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+})
+
+const $passwordLinkText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 14,
+  textDecorationLine: "underline",
 })
 
 const $devPurgeButton: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({

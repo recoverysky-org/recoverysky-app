@@ -27,8 +27,12 @@ import { useAuthenticationStore } from "@/models"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { classifyAuthError } from "@/services/auth/authErrorLogic"
 import { maskEmail, resendWaitSeconds } from "@/services/auth/loginFlowLogic"
-import { ownerProofMethod } from "@/services/auth/ownerLogic"
-import { useAuth0Wrapper, type ProviderConnection } from "@/services/auth/useAuth0Wrapper"
+import { ownerHasPassword, ownerProofMethod } from "@/services/auth/ownerLogic"
+import {
+  PASSWORD_CONNECTION,
+  useAuth0Wrapper,
+  type ProviderConnection,
+} from "@/services/auth/useAuth0Wrapper"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -186,6 +190,17 @@ export const WrongAccountScreen: FC<WrongAccountScreenProps> = observer(
       })
     }, [proofMethod, ownerEmail, foreignMethod, loginWithProvider, clearError])
 
+    // ADDED 2026-10-01 (legacy email verification spec §7): a password owner
+    // whose address is wrong can't receive the code above. Same cookie-trap rule
+    // as handleProvider.
+    const handlePassword = useCallback(() => {
+      clearError()
+      void loginWithProvider(PASSWORD_CONNECTION, {
+        loginHint: ownerEmail,
+        clearBrowserSessionFirst: foreignMethod !== "email",
+      })
+    }, [ownerEmail, foreignMethod, loginWithProvider, clearError])
+
     const handleCancel = useCallback(() => {
       trackEvent("wrong_account_cancelled")
       // Drops the foreign session and the SDK's credentials, plus Auth0's
@@ -234,6 +249,7 @@ export const WrongAccountScreen: FC<WrongAccountScreenProps> = observer(
           onVerify={() => void handleVerify()}
           onResend={() => void handleSendCode()}
           onProvider={handleProvider}
+          onPassword={ownerHasPassword(authStore.ownerSub) ? handlePassword : undefined}
           onCancel={handleCancel}
         />
       </Screen>

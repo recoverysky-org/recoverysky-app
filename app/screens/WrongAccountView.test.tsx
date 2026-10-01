@@ -152,3 +152,25 @@ describe("WrongAccountView", () => {
     expect(renderedStrings().some((s) => /wrongAccountScreen:(reset|delete)/.test(s))).toBe(false)
   })
 })
+
+describe("WrongAccountView — password link (ADDED 2026-10-01)", () => {
+  it("shows the password link for a code owner when a handler is given", () => {
+    const onPassword = jest.fn()
+    render(
+      <WrongAccountView
+        {...base}
+        proofMethod="code"
+        ownerEmailMasked="j***@proton.me"
+        onPassword={onPassword}
+      />,
+    )
+    fireEvent.press(screen.getByTestId("wrong-account-password"))
+    expect(onPassword).toHaveBeenCalledTimes(1)
+  })
+  it("has no password link without a handler, or for a social owner", () => {
+    render(<WrongAccountView {...base} proofMethod="code" ownerEmailMasked="j***@proton.me" />)
+    expect(screen.queryByTestId("wrong-account-password")).toBeNull()
+    render(<WrongAccountView {...base} proofMethod="google" onPassword={jest.fn()} />)
+    expect(screen.queryByTestId("wrong-account-password")).toBeNull()
+  })
+})

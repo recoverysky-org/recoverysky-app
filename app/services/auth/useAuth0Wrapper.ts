@@ -115,27 +115,32 @@ export interface ProviderLoginOptions {
 }
 
 /**
- * DEV-ONLY (ADDED 2026-09-30): Universal Login's password form, for signing in
- * as a legacy `auth0|` password user to test the "Link passwordless identity"
- * Action (create data as the password user, then sign in by email code and
- * land in the same account). Only LoginScreen's `__DEV__` button passes it;
- * passwordless removed password login on purpose (spec 1), so never surface
- * this in a release build.
+ * Universal Login's password form for legacy `auth0|` accounts.
+ *
+ * ADDED 2026-09-30 as a DEV-only button for testing the "Link passwordless
+ * identity" Action.
+ * CHANGED 2026-10-01 (legacy email verification spec §7): now offered to
+ * everyone as a small link on Login and on the wrong-account screen. A
+ * password account whose email is a typo or a dead mailbox can never receive
+ * a code, so the password is the only proof its owner has left. Once in, an
+ * unverified account is taken to VerifyEmailGate to fix the address.
  */
-export const DEV_PASSWORD_CONNECTION = "Username-Password-Authentication"
+export const PASSWORD_CONNECTION = "Username-Password-Authentication"
 
-/** What loginWithProvider accepts: the real providers plus the dev password form. */
-export type BrowserConnection = ProviderConnection | typeof DEV_PASSWORD_CONNECTION
+/** What loginWithProvider accepts: the real providers plus the legacy password form. */
+export type BrowserConnection = ProviderConnection | typeof PASSWORD_CONNECTION
 
 // The password form records NO loginMethod — there is no "password" member,
-// and adding one to a persisted MST enum for a dev button isn't worth it.
+// and adding one to a persisted MST enum for the legacy password form isn't
+// worth it. (CHANGED 2026-10-01: was "for a dev button"; the form is now
+// offered in every build.)
 // Undefined is correct where it matters: logout takes the clearSession()
 // branch (anything but "email"), which this browser session needs, and
 // Settings → Account derives the row from the `auth0|` sub ("Email").
 const METHOD_FOR_CONNECTION: Record<BrowserConnection, LoginMethod | undefined> = {
   "apple": "apple",
   "google-oauth2": "google",
-  [DEV_PASSWORD_CONNECTION]: undefined,
+  [PASSWORD_CONNECTION]: undefined,
 }
 
 export interface UseAuth0WrapperOptions {
@@ -150,7 +155,7 @@ export interface UseAuth0WrapperResult {
   verifyCode: (email: string, code: string) => Promise<void>
   /**
    * Browser login straight to Apple/Google — Universal Login never shows.
-   * (DEV_PASSWORD_CONNECTION shows its password form; dev builds only.)
+   * (PASSWORD_CONNECTION shows the legacy password form.)
    */
   loginWithProvider: (
     connection: BrowserConnection,

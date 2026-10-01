@@ -69,6 +69,9 @@ const uk: Translations = {
       "Локальну базу даних на цьому пристрої буде видалено. Цю дію не можна скасувати.",
   },
   loginScreen: {
+    // ADDED 2026-10-01 — legacy password accounts that cannot receive a code.
+    passwordSignIn: "Can't get a code? Sign in with your password",
+    passwordSignInHint: "Opens the password sign-in page in a browser",
     logIn: "Увійти",
     enterDetails:
       "Увійди, щоб отримати доступ до підписок і преміум-функцій. Apple вимагає обліковий запис для додатків з інтерактивними сервісами, як-от відеоконференції.",
@@ -110,6 +113,8 @@ const uk: Translations = {
       "We've sent several codes to that address recently. Please wait before requesting another.",
   },
   wrongAccountScreen: {
+    // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
+    passwordSignIn: "Sign in with your password instead",
     title: "This device is set up for a different RecoverySky account.",
     body: "Sign in to that account to continue. Your meetings and records are safe.",
     support: "If you can't sign in to that account, contact support@recoverysky.app",

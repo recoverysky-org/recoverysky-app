@@ -71,6 +71,9 @@ const de: Translations = {
       "Dadurch wird die lokale Datenbank auf diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen.",
   },
   loginScreen: {
+    // ADDED 2026-10-01 — legacy password accounts that cannot receive a code.
+    passwordSignIn: "Can't get a code? Sign in with your password",
+    passwordSignInHint: "Opens the password sign-in page in a browser",
     logIn: "Anmelden",
     enterDetails:
       "Melde dich an, um auf Abonnements und Premium-Funktionen zuzugreifen. Apple verlangt ein Konto für Apps mit interaktiven Diensten wie Videokonferenzen.",
@@ -112,6 +115,8 @@ const de: Translations = {
       "We've sent several codes to that address recently. Please wait before requesting another.",
   },
   wrongAccountScreen: {
+    // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
+    passwordSignIn: "Sign in with your password instead",
     title: "This device is set up for a different RecoverySky account.",
     body: "Sign in to that account to continue. Your meetings and records are safe.",
     support: "If you can't sign in to that account, contact support@recoverysky.app",

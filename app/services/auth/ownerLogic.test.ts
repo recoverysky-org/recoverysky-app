@@ -4,6 +4,7 @@ import {
   decideForeignLink,
   decideOwnership,
   ownerEmailAfterLogin,
+  ownerHasPassword,
   ownerProofMethod,
 } from "./ownerLogic"
 
@@ -151,5 +152,14 @@ describe("decideForeignLink (ADDED 2026-09-30)", () => {
   })
   it("reports the same session when the owner signed in as the foreign sub", () => {
     expect(decideForeignLink({ ...base, foreignSub: base.acceptedSub })).toBe("same-session")
+  })
+})
+
+describe("ownerHasPassword (ADDED 2026-10-01)", () => {
+  it("is true only for a legacy password account", () => {
+    expect(ownerHasPassword("auth0|abc")).toBe(true)
+    for (const sub of ["email|abc", "google-oauth2|1", "apple|1", "weird|1", undefined]) {
+      expect(ownerHasPassword(sub)).toBe(false)
+    }
   })
 })
