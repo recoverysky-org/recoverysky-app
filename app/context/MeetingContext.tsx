@@ -151,8 +151,11 @@ export async function retryWithBackoff<T>(
   // All retries exhausted (or the ladder ended early on a rejection)
   if (!quiet) {
     const message = `${label} failed after ${attemptsMade} attempts`
-    if (isTransportProblem(lastError)) log.warn(message, { error: lastError })
-    else log.error(message, { error: lastError })
+    // CHANGED 2026-10-01: a 5xx carries `detail` (subsystem, code — see
+    // describeServerFailure) so this line says WHAT failed behind the API.
+    const detail = (lastResult as { detail?: Record<string, unknown> } | undefined)?.detail
+    if (isTransportProblem(lastError)) log.warn(message, { error: lastError, ...detail })
+    else log.error(message, { error: lastError, ...detail })
   }
 
   if (lastResult !== undefined) {
@@ -340,6 +343,9 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         })
       ) {
         log.debug("Skipping live meetings refresh — maintenance/outage mode")
+        // ADDED 2026-10-01: drop any earlier failure so LiveScreen's retry
+        // banner doesn't stack on the MaintenanceBanner, which owns this state.
+        setError(null)
         setIsLoading(false)
         return
       }
@@ -370,6 +376,9 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
         // transport-level error string retryWithBackoff carries when every
         // attempt threw. No consumer reads `error` today, but the field
         // should carry the actual failure, not a generic string.
+        // CHANGED 2026-10-01: LiveScreen now reads it (non-null → the amber
+        // "tap to retry" banner over the kept list), so it must stay null on
+        // success and on a maintenance/outage skip — those have their own UI.
         const kind = "result" in outcome ? outcome.result.kind : outcome.error
         setError(`Network error: live schedules unavailable (${kind})`)
         // CHANGED 2026-09-14: a failed refresh no longer clears `liveMeetings`.

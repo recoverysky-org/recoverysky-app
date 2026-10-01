@@ -132,6 +132,22 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   creates the account on first use, so there was nothing left for it to do.
 
 ### Fixed
+
+- **Live and Search now say when meetings failed to load.** When the API is up
+  but can't serve schedules (2026-10-01: TREX down, `/status/ready` still
+  `ready`, every `/schedules/*` route a 500), Live kept showing its last good
+  list as "Live Now", 12 hours old, with no hint. Search printed the raw
+  `Error: server` as its empty state. Both now show the In-Person segment's
+  amber "Couldn't load … — tap to retry" banner: Live above the kept list,
+  Search under its filters, and a tappable empty state when there are no rows.
+  Search also flags a partial failure, when one venue pool failed and the
+  other served rows. A successful empty answer still shows the normal
+  "No meetings" copy. The Starts In retry banner moved from red to the same
+  amber look. Every 5xx now also logs (and tags `api_error` with) sanitized
+  identifiers from the error body: `status`, `error`, `code`, `subsystem`,
+  and `upstreamCode` (e.g. `ECONNREFUSED`). Loki can then tell a dependency
+  outage behind a "ready" API from the API itself failing. The body's
+  message, URLs and request bodies are never logged.
 - **Signing in with the wrong email no longer leaves a dead "Linked" email
   behind.** After the wrong-account screen sent someone back to their own
   sign-in, the app linked the other email into their account. Auth0 can only

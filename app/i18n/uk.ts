@@ -225,6 +225,8 @@ const uk: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "Не вдалося завантажити поточні зустрічі — торкніться, щоб повторити",
   },
   listingsScreen: {
     // Relabeled from "Каталог зустрічей" 2026-08-03 — namespace/key unchanged.
@@ -236,6 +238,9 @@ const uk: Translations = {
     searchPlaceholder: "Пошук зустрічей",
     clearSearch: "Очистити пошук",
     emptyNoMatches: "Немає зустрічей, що відповідають вашому запиту",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "Не вдалося завантажити зустрічі — торкніться, щоб повторити",
+    partialFailedBanner: "Деякі зустрічі не завантажилися — торкніться, щоб повторити",
     // Filter labels
     dayLabel: "День",
     venueLabel: "Формат",

@@ -241,6 +241,8 @@ const en = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "Couldn't load live meetings — tap to retry",
   },
   listingsScreen: {
     // Relabeled from "Meeting Listings" 2026-08-03 — namespace/key unchanged.
@@ -254,6 +256,9 @@ const en = {
     searchPlaceholder: "Search meetings",
     clearSearch: "Clear search",
     emptyNoMatches: "No meetings match your search",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "Couldn't load meetings — tap to retry",
+    partialFailedBanner: "Some meetings couldn't load — tap to retry",
     // Filter labels
     dayLabel: "Day",
     venueLabel: "Venue",

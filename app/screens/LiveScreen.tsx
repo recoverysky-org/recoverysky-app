@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next"
 
 import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import { MeetingRow } from "@/components/MeetingRow"
+import { RetryBanner } from "@/components/RetryBanner"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { StartsInPill } from "@/components/StartsInPill"
@@ -85,7 +86,12 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
-  const { liveMeetings, isLoading, lastRefresh, refresh } = useMeetings()
+  const { liveMeetings, isLoading, lastRefresh, refresh, error } = useMeetings()
+  // ADDED 2026-10-01: MeetingContext keeps the last good list when a refresh
+  // comes back non-ok (2026-09-14) and records the failure in `error` — which
+  // nothing read, so a TREX outage left a 1:31 AM "Live Now" list on screen at
+  // 2 PM with no hint. Live Now mode only: Starts In has its own `atNextFailed`.
+  const liveFailed = error !== null
   const reminderLookup = useReminderLookup()
   const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
 
@@ -433,6 +439,16 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   // The pick now holds through a batch (see followStartsIn above), and after
   // a return from background its slot can be empty until the batch lands.
   const ListEmptyComponent = useCallback(() => {
+    // ADDED 2026-10-01: a failed refresh with nothing kept says so, tappably —
+    // "No meetings are live" would claim an empty answer the server never
+    // gave. Same copy as the banner above the list (In-Person pattern).
+    if (startsIn === "live" && liveFailed) {
+      return (
+        <Pressable style={themed($emptyContainer)} onPress={refresh} accessibilityRole="button">
+          <Text style={themed($emptyText)}>{t("liveScreen:loadFailedBanner")}</Text>
+        </Pressable>
+      )
+    }
     if (startsIn !== "live" && atNextLoading) {
       return (
         <View style={themed($loadingContainer)}>
@@ -452,8 +468,11 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
     )
   }, [
     themed,
+    t,
     theme.colors.tint,
     startsIn,
+    liveFailed,
+    refresh,
     atNextLoading,
     language,
     fellowshipMeetings.length,
@@ -551,17 +570,29 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
           an inline 'Couldn't load — tap to retry'"). Only for the non-empty
           case: an empty list gets its own retry copy via ListEmptyComponent
           above, so the two never render at once. */}
+      {/* CHANGED 2026-10-01 (Jenova): restyled from the red errorBackground
+          box to the shared amber RetryBanner, the In-Person look. */}
       {startsIn !== "live" && atNextFailed && sortedMeetings.length > 0 && (
-        <Pressable
+        <RetryBanner
           style={themed($retryBanner)}
+          text={t("liveScreen:atNextError")}
           onPress={() => void refreshAtNext()}
           disabled={atNextLoading}
-          accessibilityRole="button"
-          accessibilityLabel={t("liveScreen:atNextError")}
-          accessibilityState={{ disabled: atNextLoading }}
-        >
-          <Text style={themed($retryBannerText)}>{t("liveScreen:atNextError")}</Text>
-        </Pressable>
+        />
+      )}
+
+      {/* ADDED 2026-10-01: Live Now's failed refresh over a KEPT list. The
+          rows below are the last good answer and may be hours old (they were
+          during the 2026-10-01 TREX outage), so say the refresh failed rather
+          than let them pass as current. Empty-list failures get the tappable
+          empty state instead, so the two never render at once. */}
+      {startsIn === "live" && liveFailed && sortedMeetings.length > 0 && (
+        <RetryBanner
+          style={themed($retryBanner)}
+          text={t("liveScreen:loadFailedBanner")}
+          onPress={refresh}
+          disabled={isLoading}
+        />
       )}
 
       <FlatList
@@ -646,19 +677,10 @@ const $countText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
 })
 
-const $retryBanner: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+// Inset only — the banner sits outside the FlatList here, so it doesn't
+// inherit $listContent's padding the way Search's header banner does.
+const $retryBanner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginHorizontal: spacing.md,
-  marginBottom: spacing.sm,
-  paddingVertical: spacing.sm,
-  paddingHorizontal: spacing.md,
-  borderRadius: 8,
-  backgroundColor: colors.errorBackground,
-})
-
-const $retryBannerText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.error,
-  fontSize: 13,
-  textAlign: "center",
 })
 
 const $listContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({

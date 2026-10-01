@@ -46,6 +46,7 @@ import { DaySelectorModal } from "@/components/DaySelectorModal"
 import { InPersonPopup } from "@/components/InPersonPopup"
 import { LanguageEmptyState } from "@/components/LanguageEmptyState"
 import { MeetingRow } from "@/components/MeetingRow"
+import { RetryBanner } from "@/components/RetryBanner"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -65,6 +66,7 @@ import { useReminderLookup, meetingHasReminder } from "@/hooks/useReminders"
 import { useConfigStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api, LiveSchedule } from "@/services/api"
+import { prefixServerFailure } from "@/services/api/apiProblem"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -275,6 +277,10 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
   )
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // ADDED 2026-10-01: one venue leg came back non-ok while the other served
+  // rows. Used to be a log line only; now it raises the amber retry banner,
+  // since the list on screen is missing a whole pool.
+  const [partialFailed, setPartialFailed] = useState(false)
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
 
   // Live feedback state for display updates
@@ -473,6 +479,10 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     // too. We just stop the spinner and leave the list as-is.
     if (maintenanceMode) {
       log.debug("Skipping daily schedules fetch — maintenance mode")
+      // ADDED 2026-10-01: the MaintenanceBanner owns this state; don't leave
+      // an earlier retry banner stacked under it.
+      setError(null)
+      setPartialFailed(false)
       setIsLoading(false)
       return
     }
@@ -484,11 +494,13 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
     if (!fellowship) {
       setAllMeetings([])
       setError(null)
+      setPartialFailed(false)
       return
     }
 
     setIsLoading(true)
     setError(null)
+    setPartialFailed(false)
 
     try {
       // Which pools this venue choice actually needs. Skipping one is the
@@ -571,6 +583,10 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // the field is indistinguishable from one where the field was dropped.
       const onlineKind = onlineResult ? onlineResult.kind : "skipped"
       const inPersonKind = inPersonResult ? inPersonResult.kind : "skipped"
+      // ADDED 2026-10-01: which subsystem failed behind a 5xx (sanitized —
+      // see describeServerFailure). Undefined for every other outcome.
+      const onlineDetail = onlineResult?.kind === "server" ? onlineResult.detail : undefined
+      const inPersonDetail = inPersonResult?.kind === "server" ? inPersonResult.detail : undefined
 
       // Only a total failure is an error; one pool failing degrades to the
       // other (spec decision 4). `bothFailed` can no longer fire when a leg
@@ -583,6 +599,8 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         log.error("API schedule fetch failed for both venue pools", {
           onlineKind,
           inPersonKind,
+          ...prefixServerFailure("online", onlineDetail),
+          ...prefixServerFailure("inPerson", inPersonDetail),
           venue,
         })
         setError(`Error: ${onlineKind}`)
@@ -590,11 +608,14 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         return
       }
       if (merged.onlineFailed || merged.inPersonFailed) {
+        setPartialFailed(true)
         log.warn("One venue pool failed for daily schedules; serving partial data", {
           onlineFailed: merged.onlineFailed,
           inPersonFailed: merged.inPersonFailed,
           onlineKind: merged.onlineFailed ? onlineKind : undefined,
           inPersonKind: merged.inPersonFailed ? inPersonKind : undefined,
+          ...prefixServerFailure("online", onlineDetail),
+          ...prefixServerFailure("inPerson", inPersonDetail),
         })
       }
 
@@ -875,7 +896,19 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // hold no position, an In-Person search with location off empties the
       // list entirely — and "No meetings for AA" would blame the fellowship
       // for it. Tapping opens the radius picker, which is what prompts.
-      needsLocation && !error && fellowship ? (
+      // ADDED 2026-10-01: a failed fetch is tappable and says so in the
+      // In-Person banner's words. It used to render the raw problem kind
+      // ("Error: timeout") as dim text with no way to retry but a pull.
+      // Checked first: a failure must never read as "no meetings".
+      fellowship && error ? (
+        <Pressable
+          style={themed($emptyContainer)}
+          onPress={fetchDailySchedules}
+          accessibilityRole="button"
+        >
+          <Text style={themed($emptyText)}>{t("listingsScreen:loadFailedBanner")}</Text>
+        </Pressable>
+      ) : needsLocation && !error && fellowship ? (
         <Pressable
           style={themed($emptyContainer)}
           onPress={handleOpenRadiusModal}
@@ -888,8 +921,6 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
         <View style={themed($emptyContainer)}>
           {!fellowship ? (
             <Text style={themed($emptyText)}>{t("listingsScreen:selectFellowship")}</Text>
-          ) : error ? (
-            <Text style={themed($errorText)}>{error}</Text>
           ) : languageEmptied && language ? (
             // ADDED 2026-09-26: must sit ahead of `searchNarrowedToNothing`.
             // That check is a broader catch-all (any text query over a
@@ -914,6 +945,7 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       t,
       fellowship,
       error,
+      fetchDailySchedules,
       needsLocation,
       handleOpenRadiusModal,
       languageEmptied,
@@ -1131,6 +1163,21 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
           </TouchableOpacity>
         )}
 
+        {/* Retry banner (ADDED 2026-10-01, Jenova) — the In-Person segment's
+            amber strip, for a schedule fetch that came back non-ok: every leg
+            failed (`error`; the empty state repeats it, as In-Person's does)
+            or one leg did (`partialFailed`; the rows below are only half the
+            answer). A 200 with zero rows is not a failure and shows nothing
+            here. Hidden while a retry is in flight. */}
+        {!isLoading && (!!error || partialFailed) && (
+          <RetryBanner
+            text={t(
+              error ? "listingsScreen:loadFailedBanner" : "listingsScreen:partialFailedBanner",
+            )}
+            onPress={fetchDailySchedules}
+          />
+        )}
+
         {/* Search box — below the filter grid (Jenova, 2026-09-07; it started
             out pinned above the grid). It is INSIDE the list header, which
             CLAUDE.md warns loses TextInput focus on every keystroke — but only
@@ -1197,6 +1244,10 @@ export const ListingsContent: FC<ListingsContentProps> = observer(function Listi
       // header is memoized.
       locationDisabled,
       handleBannerPress,
+      // Retry banner: must appear/disappear with the fetch outcome.
+      error,
+      partialFailed,
+      fetchDailySchedules,
     ],
   )
 
@@ -1752,12 +1803,6 @@ const $emptyContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $emptyText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,
-  fontSize: 16,
-  textAlign: "center",
-})
-
-const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.error,
   fontSize: 16,
   textAlign: "center",
 })

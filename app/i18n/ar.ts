@@ -221,6 +221,8 @@ const ar: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "تعذّر تحميل الاجتماعات المباشرة — اضغط لإعادة المحاولة",
   },
   listingsScreen: {
     // Relabeled from "دليل الاجتماعات" 2026-08-03 — namespace/key unchanged.
@@ -232,6 +234,9 @@ const ar: Translations = {
     searchPlaceholder: "البحث عن اجتماعات",
     clearSearch: "مسح البحث",
     emptyNoMatches: "لا توجد اجتماعات تطابق بحثك",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "تعذّر تحميل الاجتماعات — اضغط لإعادة المحاولة",
+    partialFailedBanner: "تعذّر تحميل بعض الاجتماعات — اضغط لإعادة المحاولة",
     // Filter labels
     dayLabel: "اليوم",
     venueLabel: "المكان",

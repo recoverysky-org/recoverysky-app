@@ -1,7 +1,13 @@
 import { ApiErrorResponse } from "apisauce"
 import { expect, test } from "vitest"
 
-import { getGeneralApiProblem, isReadyBody, shouldTrackApiProblem } from "./apiProblem"
+import {
+  describeServerFailure,
+  getGeneralApiProblem,
+  isReadyBody,
+  prefixServerFailure,
+  shouldTrackApiProblem,
+} from "./apiProblem"
 
 test("handles connection errors", () => {
   expect(getGeneralApiProblem({ problem: "CONNECTION_ERROR" } as ApiErrorResponse<null>)).toEqual({
@@ -103,4 +109,62 @@ test("isReadyBody: accepts exactly the readiness payload", () => {
   expect(isReadyBody(undefined)).toBe(false)
   expect(isReadyBody("ready")).toBe(false)
   expect(isReadyBody("<html>captive portal</html>")).toBe(false)
+})
+
+// ADDED 2026-10-01: 5xx detail extraction (describeServerFailure).
+test("server errors carry sanitized detail from the body", () => {
+  expect(
+    getGeneralApiProblem({
+      problem: "SERVER_ERROR",
+      status: 503,
+      data: { error: "ServiceUnavailable", code: "upstream_unavailable", subsystem: "trex" },
+    } as ApiErrorResponse<unknown>),
+  ).toEqual({
+    kind: "server",
+    detail: {
+      status: 503,
+      error: "ServiceUnavailable",
+      code: "upstream_unavailable",
+      subsystem: "trex",
+    },
+  })
+})
+
+test("describeServerFailure: takes only the upstream code out of a JSON message, never the URL", () => {
+  // The exact body a pre-503 API sent with TREX down (2026-10-01, local).
+  const message = JSON.stringify({
+    error: "",
+    code: "ECONNREFUSED",
+    method: "POST",
+    url: "http://localhost:7631/db/search/live",
+    body: { now_datetime: "2026-10-01T19:16:04.569Z" },
+  })
+  const detail = describeServerFailure(500, { error: "InternalError", message })
+  expect(detail).toEqual({ status: 500, error: "InternalError", upstreamCode: "ECONNREFUSED" })
+  expect(JSON.stringify(detail)).not.toContain("localhost")
+})
+
+test("describeServerFailure: drops non-token values instead of truncating them", () => {
+  expect(
+    describeServerFailure(500, {
+      error: "Internal Error with spaces",
+      code: "x".repeat(65),
+      subsystem: "http://10.0.0.1:7631",
+      message: "Failed to fetch daily schedules",
+    }),
+  ).toEqual({ status: 500 })
+})
+
+test("describeServerFailure: nothing to report → undefined", () => {
+  expect(describeServerFailure(undefined, null)).toBeUndefined()
+  expect(describeServerFailure(undefined, "<html>")).toBeUndefined()
+  expect(describeServerFailure(undefined, { message: "{not json" })).toBeUndefined()
+})
+
+test("prefixServerFailure flattens under a prefix for multi-request log lines", () => {
+  expect(prefixServerFailure("online", { status: 503, subsystem: "trex" })).toEqual({
+    onlineStatus: 503,
+    onlineSubsystem: "trex",
+  })
+  expect(prefixServerFailure("inPerson", undefined)).toEqual({})
 })

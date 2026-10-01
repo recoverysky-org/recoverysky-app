@@ -222,6 +222,8 @@ const th: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "โหลดการประชุมที่กำลังจัดอยู่ไม่สำเร็จ — แตะเพื่อลองอีกครั้ง",
   },
   listingsScreen: {
     // Relabeled from "รายการประชุม" 2026-08-03 — namespace/key unchanged.
@@ -233,6 +235,9 @@ const th: Translations = {
     searchPlaceholder: "ค้นหาการประชุม",
     clearSearch: "ล้างการค้นหา",
     emptyNoMatches: "ไม่มีการประชุมที่ตรงกับการค้นหาของคุณ",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "โหลดการประชุมไม่สำเร็จ — แตะเพื่อลองอีกครั้ง",
+    partialFailedBanner: "โหลดการประชุมบางรายการไม่สำเร็จ — แตะเพื่อลองอีกครั้ง",
     // Filter labels
     dayLabel: "วัน",
     venueLabel: "รูปแบบ",

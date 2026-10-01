@@ -15,8 +15,10 @@ export type GeneralApiProblem =
   | { kind: "cannot-connect"; temporary: true }
   /**
    * The server experienced a problem. Any 5xx error.
+   * CHANGED 2026-10-01: may carry `detail` — sanitized identifiers from the
+   * error body that say WHICH part failed (see describeServerFailure).
    */
-  | { kind: "server" }
+  | { kind: "server"; detail?: ServerFailureDetail }
   /**
    * We're not allowed because we haven't identified ourself. This is 401.
    */
@@ -60,9 +62,11 @@ export function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProb
     case "TIMEOUT_ERROR":
       problem = { kind: "timeout", temporary: true }
       break
-    case "SERVER_ERROR":
-      problem = { kind: "server" }
+    case "SERVER_ERROR": {
+      const detail = describeServerFailure(response.status, response.data)
+      problem = detail ? { kind: "server", detail } : { kind: "server" }
       break
+    }
     case "UNKNOWN_ERROR":
       problem = { kind: "unknown", temporary: true }
       break
@@ -117,4 +121,90 @@ export function shouldTrackApiProblem(problem: GeneralApiProblem): boolean {
 export function isReadyBody(data: unknown): boolean {
   if (typeof data !== "object" || data === null) return false
   return (data as { status?: unknown }).status === "ready"
+}
+
+/**
+ * Identifiers pulled from a 5xx error body — enough to tell "the API is up
+ * but a subsystem it depends on is down" from "the API itself broke".
+ *
+ * ADDED 2026-10-01 (Jenova): during a local TREX + Redis outage,
+ * `/status/ready` answered 200 `ready` while every `/schedules/*` route 500'd,
+ * and the app's logs said only `kind: "server"`. Every field here is
+ * optional: the API is moving to a structured 503 (`error`, `code`,
+ * `subsystem`), and older builds send only `error` plus a `message`.
+ */
+export interface ServerFailureDetail {
+  status?: number
+  /** Body `error`, e.g. "InternalError" / "ServiceUnavailable". */
+  error?: string
+  /** Body `code`, e.g. "upstream_unavailable". */
+  code?: string
+  /** Body `subsystem` — the failed dependency, e.g. "trex" / "redis". */
+  subsystem?: string
+  /**
+   * `code` from a JSON object embedded in the body's `message` string, e.g.
+   * "ECONNREFUSED". Older API builds pass a failed upstream call through
+   * that way; this is the only field we take out of it.
+   */
+  upstreamCode?: string
+}
+
+/**
+ * A short identifier-shaped string, or undefined. The whitelist is the
+ * privacy guard: these values go to Loki and to analytics, and the API's 500
+ * bodies have carried internal URLs and request bodies in `message`, so
+ * anything that isn't plainly a token is dropped, never truncated.
+ */
+function token(value: unknown): string | undefined {
+  return typeof value === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(value) ? value : undefined
+}
+
+/**
+ * Sanitized summary of a 5xx body, or undefined when there is nothing to
+ * report. Never returns `message` or any URL — only whitelisted tokens.
+ */
+export function describeServerFailure(
+  status: number | undefined,
+  data: unknown,
+): ServerFailureDetail | undefined {
+  const detail: ServerFailureDetail = {}
+  if (typeof status === "number") detail.status = status
+
+  if (typeof data === "object" && data !== null) {
+    const body = data as Record<string, unknown>
+    detail.error = token(body.error)
+    detail.code = token(body.code)
+    detail.subsystem = token(body.subsystem)
+    if (typeof body.message === "string" && body.message.startsWith("{")) {
+      try {
+        const inner: unknown = JSON.parse(body.message)
+        if (typeof inner === "object" && inner !== null) {
+          detail.upstreamCode = token((inner as Record<string, unknown>).code)
+        }
+      } catch {
+        // Not JSON after all — a plain message, which we never log.
+      }
+    }
+  }
+
+  // Drop unset keys so log lines and analytics props stay compact.
+  const entries = Object.entries(detail).filter(([, v]) => v !== undefined)
+  return entries.length > 0 ? (Object.fromEntries(entries) as ServerFailureDetail) : undefined
+}
+
+/**
+ * `detail` flattened under a prefix (`online` + `subsystem` →
+ * `onlineSubsystem`), for log lines that report more than one request — the
+ * logger takes flat attributes only. Empty object when there is no detail.
+ */
+export function prefixServerFailure(
+  prefix: string,
+  detail: ServerFailureDetail | undefined,
+): Record<string, string | number> {
+  const out: Record<string, string | number> = {}
+  if (!detail) return out
+  for (const [key, value] of Object.entries(detail)) {
+    if (value !== undefined) out[prefix + key[0].toUpperCase() + key.slice(1)] = value
+  }
+  return out
 }

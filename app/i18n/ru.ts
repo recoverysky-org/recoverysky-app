@@ -226,6 +226,8 @@ const ru: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "Не удалось загрузить текущие встречи — нажмите, чтобы повторить",
   },
   listingsScreen: {
     // Relabeled from "Каталог собраний" 2026-08-03 — namespace/key unchanged.
@@ -237,6 +239,9 @@ const ru: Translations = {
     searchPlaceholder: "Поиск встреч",
     clearSearch: "Очистить поиск",
     emptyNoMatches: "Нет встреч, соответствующих вашему запросу",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "Не удалось загрузить встречи — нажмите, чтобы повторить",
+    partialFailedBanner: "Некоторые встречи не загрузились — нажмите, чтобы повторить",
     // Filter labels
     dayLabel: "День",
     venueLabel: "Формат",

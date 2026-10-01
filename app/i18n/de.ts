@@ -228,6 +228,8 @@ const de: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "Live-Meetings konnten nicht geladen werden — zum Wiederholen tippen",
   },
   listingsScreen: {
     // Relabeled from "Meeting-Verzeichnis" 2026-08-03 — namespace/key unchanged.
@@ -239,6 +241,9 @@ const de: Translations = {
     searchPlaceholder: "Meetings suchen",
     clearSearch: "Suche löschen",
     emptyNoMatches: "Keine Meetings entsprechen deiner Suche",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "Meetings konnten nicht geladen werden — zum Wiederholen tippen",
+    partialFailedBanner: "Einige Meetings konnten nicht geladen werden — zum Wiederholen tippen",
     // Filter labels
     dayLabel: "Tag",
     venueLabel: "Ort",

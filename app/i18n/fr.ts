@@ -230,6 +230,8 @@ const fr: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "Impossible de charger les réunions en direct — touchez pour réessayer",
   },
   listingsScreen: {
     // Relabeled from "Répertoire de réunions" 2026-08-03 — namespace/key unchanged.
@@ -241,6 +243,9 @@ const fr: Translations = {
     searchPlaceholder: "Rechercher des réunions",
     clearSearch: "Effacer la recherche",
     emptyNoMatches: "Aucune réunion ne correspond à votre recherche",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "Impossible de charger les réunions — touchez pour réessayer",
+    partialFailedBanner: "Certaines réunions n'ont pas pu être chargées — touchez pour réessayer",
     // Filter labels
     dayLabel: "Jour",
     venueLabel: "Lieu",

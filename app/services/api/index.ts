@@ -73,10 +73,16 @@ function getGeneralApiProblem(response: ApiResponse<any>): GeneralApiProblem | n
   const problem = classifyApiProblem(response)
 
   if (problem && shouldTrackApiProblem(problem)) {
-    trackEvent("api_error", {
-      kind: problem.kind,
-      endpoint: response.config?.url || "",
-    })
+    // CHANGED 2026-10-01: carries the sanitized failure detail (status,
+    // error, code, subsystem, upstreamCode — see describeServerFailure) so a
+    // dependency outage (TREX/Redis down behind a "ready" API) is
+    // distinguishable from the API itself failing, in analytics AND in Loki.
+    // One warn per 5xx response: these are rare outside an outage, and in one
+    // they're exactly the signal we want.
+    const detail = problem.kind === "server" ? problem.detail : undefined
+    const endpoint = response.config?.url || ""
+    trackEvent("api_error", { kind: problem.kind, endpoint, ...detail })
+    log.warn("API server error", { endpoint, ...detail })
   }
 
   return problem

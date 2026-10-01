@@ -226,6 +226,8 @@ const pt: Translations = {
     titleStartsIn: "Starts within {{minutes}}m",
     startingAt: "starting at {{time}}",
     atNextError: "Couldn't load upcoming meetings. Tap to retry.",
+    // ADDED 2026-10-01: a non-ok /schedules/live answer — same amber banner as In-Person.
+    loadFailedBanner: "Não foi possível carregar as reuniões ao vivo — toque para tentar novamente",
   },
   listingsScreen: {
     // Relabeled from "Lista de Reuniões" 2026-08-03 — namespace/key unchanged.
@@ -237,6 +239,10 @@ const pt: Translations = {
     searchPlaceholder: "Buscar reuniões",
     clearSearch: "Limpar busca",
     emptyNoMatches: "Nenhuma reunião corresponde à sua busca",
+    // ADDED 2026-10-01: non-ok schedule fetches (all legs / one leg) — amber retry banner.
+    loadFailedBanner: "Não foi possível carregar as reuniões — toque para tentar novamente",
+    partialFailedBanner:
+      "Algumas reuniões não puderam ser carregadas — toque para tentar novamente",
     // Filter labels
     dayLabel: "Dia",
     venueLabel: "Local",
