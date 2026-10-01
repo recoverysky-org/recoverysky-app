@@ -58,6 +58,13 @@ export const AuthenticationStoreModel = types
      * cleared with the owner record. Never logged raw.
      */
     previousOwnerSubs: types.optional(types.array(types.string), []),
+    /**
+     * ADDED 2026-10-01 (legacy email verification spec §3). The signed-in
+     * account's `email_verified` ID-token claim, kept because the token itself
+     * is volatile. Read only by VerifyEmailGate, and only for `auth0|`
+     * (password) accounts. Undefined = not read yet, treated as unverified.
+     */
+    emailVerified: types.maybe(types.boolean),
   })
   .volatile(() => ({
     /** OAuth refresh token — persisted to SecureStore, never MMKV */
@@ -231,6 +238,11 @@ export const AuthenticationStoreModel = types
       log.debug("setOwnerEmail()", { hasEmail: !!email })
       store.ownerEmail = email
     },
+    /** See the `emailVerified` prop. Set from the ID token, or true after the API confirms a code. */
+    setEmailVerified(value?: boolean) {
+      log.debug("setEmailVerified()", { value })
+      store.emailVerified = value
+    },
     /** Only resetLocalDatabase() calls this — the record and the data are one unit. */
     clearOwner() {
       log.warn("clearOwner()")
@@ -277,6 +289,8 @@ export const AuthenticationStoreModel = types
       // ADDED 2026-09-17: the session's method goes with the session; the
       // owner record does NOT — it protects the data that stays on disk.
       store.loginMethod = undefined
+      // ADDED 2026-10-01: describes the session's account, so it goes with it.
+      store.emailVerified = undefined
       store.foreignSession = undefined
       // Note: deviceId is NOT cleared - it persists across sessions
     },

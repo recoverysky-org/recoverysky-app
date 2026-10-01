@@ -25,6 +25,7 @@ import { loadTimerSession } from "@/services/attendance"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { selectPendingAnnouncement, shouldShowCta } from "@/utils/announcementLogic"
+import { claimOverlay, overlayOwner, releaseOverlay } from "@/utils/overlayGate"
 
 export const AnnouncementGate: FC = observer(function AnnouncementGate() {
   const profileStore = useProfileStore()
@@ -35,9 +36,18 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
 
   const [active, setActive] = useState<Announcement | null>(null)
 
+  // ADDED 2026-10-01: one full-screen modal at a time (see overlayGate.ts).
+  // Read in render so this observer re-renders, and re-checks, when the
+  // verify-email gate lets go of the overlay.
+  const overlay = overlayOwner()
+
   const evaluate = useCallback(() => {
     // A modal is already up — don't stack a second one.
     if (active) return
+    // Another gate holds the overlay. Reading `overlay` here (not just in the
+    // deps) is what makes it a legitimate dep, so a release re-runs this check;
+    // claimOverlay below remains the authoritative test.
+    if (overlay !== null && overlay !== "announcement") return
     const pending = selectPendingAnnouncement({
       announcements: ANNOUNCEMENTS,
       seenIds: profileStore.seenAnnouncementIds.slice(),
@@ -49,8 +59,8 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       // suppressed but a later clean foreground still shows the popup.
       timerSessionActive: loadTimerSession() !== null,
     })
-    if (pending) setActive(pending)
-  }, [active, profileStore, authStore, configStore])
+    if (pending && claimOverlay("announcement")) setActive(pending)
+  }, [active, profileStore, authStore, configStore, overlay])
 
   useEffect(() => {
     evaluate()
@@ -62,6 +72,7 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
 
   const dismiss = useCallback(() => {
     if (active) profileStore.markAnnouncementSeen(active.id)
+    releaseOverlay("announcement")
     setActive(null)
   }, [active, profileStore])
 
@@ -79,6 +90,7 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       // user on Live and show them nothing the announcement just described.
       navigate("Meetings", { segment: "inperson" })
     }
+    releaseOverlay("announcement")
     setActive(null)
   }, [active, profileStore])
 

@@ -363,6 +363,16 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             // Convert to milliseconds for JavaScript Date compatibility
             const expiresAt = credentials.expiresAt * 1000
 
+            // ADDED 2026-10-01 (legacy email verification spec §3): keep the
+            // ID token's `email_verified` claim for VerifyEmailGate. Written
+            // BEFORE setTokens so the gate never sees an authenticated session
+            // with last session's value. Only `=== true` counts as verified.
+            authStore.setEmailVerified(
+              credentials.idToken
+                ? decodeJwtPayload<IdTokenClaims>(credentials.idToken)?.email_verified === true
+                : undefined,
+            )
+
             // Update MST store with tokens
             // Auth0 SDK may return null for optional fields; coerce to undefined for MST
             authStore.setTokens(
