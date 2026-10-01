@@ -61,6 +61,12 @@ const PROBLEM_TX: Record<EmailVerifyProblem, TxKeyPath> = {
   unavailable: "verifyEmailScreen:errorUnavailable",
 }
 
+/**
+ * The text-only links are one line of text tall, well under the 44 pt touch
+ * target; the slop makes up the difference without moving the layout.
+ */
+const LINK_HIT_SLOP = { top: 12, bottom: 12, left: 12, right: 12 }
+
 export function VerifyEmailView(props: VerifyEmailViewProps) {
   const { themed } = useAppTheme()
   const { mode, step, isBusy, problem } = props
@@ -110,6 +116,10 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
             testID="verify-email-change"
             accessibilityRole="link"
             accessibilityLabel={translate("verifyEmailScreen:changeEmail")}
+            // Explicit even though Pressable derives it from `disabled`: it is
+            // the a11y contract this screen promises, and it matches its siblings.
+            accessibilityState={{ disabled: isBusy }}
+            hitSlop={LINK_HIT_SLOP}
             onPress={props.onGoToChange}
             disabled={isBusy}
           >
@@ -147,6 +157,8 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
           testID="verify-email-why"
           accessibilityRole="link"
           accessibilityLabel={translate("verifyEmailScreen:why")}
+          accessibilityHint={translate("verifyEmailScreen:whyHint")}
+          hitSlop={LINK_HIT_SLOP}
           onPress={props.onWhy}
         >
           <Text style={themed($link)} tx="verifyEmailScreen:why" />
@@ -164,6 +176,7 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
               accessibilityRole="button"
               accessibilityLabel={translate("verifyEmailScreen:notNow")}
               accessibilityState={{ disabled: isBusy }}
+              hitSlop={LINK_HIT_SLOP}
               onPress={props.onNotNow}
               disabled={isBusy}
             >
@@ -177,6 +190,8 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
               testID="verify-email-support"
               accessibilityRole="link"
               accessibilityLabel={translate("verifyEmailScreen:contactSupport")}
+              accessibilityHint={translate("verifyEmailScreen:contactSupportHint")}
+              hitSlop={LINK_HIT_SLOP}
               onPress={props.onSupport}
             >
               <Text style={themed($link)} tx="verifyEmailScreen:contactSupport" />
@@ -188,8 +203,13 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
   )
 }
 
+// CHANGED 2026-10-01: flexGrow, not flex. The gate now renders this inside a
+// scrolling Screen; flexGrow still fills and centres when the content fits,
+// but lets it grow past the viewport (small phone, large text, keyboard up)
+// so the scroll view can reach every control — flex:1 would pin it to the
+// viewport and clip it, as LoginScreen learned (see its $screenContentContainer).
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flex: 1,
+  flexGrow: 1,
   justifyContent: "center",
   gap: spacing.lg,
 })

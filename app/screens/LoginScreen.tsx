@@ -602,6 +602,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         accessibilityRole="link"
         accessibilityLabel={translate("loginScreen:passwordSignIn")}
         accessibilityHint={translate("loginScreen:passwordSignInHint")}
+        accessibilityState={{ disabled: isLoading }}
+        // ADDED 2026-10-01: the padding alone leaves this link short of 44 pt.
+        hitSlop={8}
         onPress={handlePassword}
         disabled={isLoading}
         style={themed($passwordLink)}

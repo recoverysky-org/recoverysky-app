@@ -80,6 +80,14 @@ describe("VerifyEmailView — review step", () => {
     expect(base.onSendToAccount).not.toHaveBeenCalled()
     expect(base.onNotNow).not.toHaveBeenCalled()
   })
+
+  it("disables the change link while busy, for touch and for screen readers", () => {
+    render(<VerifyEmailView {...base} isBusy />)
+    const change = screen.getByTestId("verify-email-change")
+    fireEvent.press(change)
+    expect(base.onGoToChange).not.toHaveBeenCalled()
+    expect(change.props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }))
+  })
 })
 
 describe("VerifyEmailView — other steps", () => {

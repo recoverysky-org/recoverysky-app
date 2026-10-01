@@ -117,6 +117,7 @@ const fr: Translations = {
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
     passwordSignIn: "Sign in with your password instead",
+    passwordSignInHint: "Opens the password sign-in page in a browser",
     title: "This device is set up for a different RecoverySky account.",
     body: "Sign in to that account to continue. Your meetings and records are safe.",
     support: "If you can't sign in to that account, contact support@recoverysky.app",
@@ -136,7 +137,9 @@ const fr: Translations = {
     mandatory:
       "Email verification is now required to keep using your account. Need help? Contact support@recoverysky.app",
     contactSupport: "Contact support",
+    contactSupportHint: "Opens your email app",
     why: "Why is verification required?",
+    whyHint: "Opens a web page in your browser",
     errorEmailInUse: "This email is already in use. Contact support@recoverysky.app.",
     errorInvalidCode: "That code isn't right. Check it and try again.",
     errorCodeExpired: "That code has expired. Send a new one.",

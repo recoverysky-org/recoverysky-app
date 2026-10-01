@@ -120,7 +120,11 @@ export function WrongAccountView(props: WrongAccountViewProps) {
                 testID="wrong-account-password"
                 accessibilityRole="link"
                 accessibilityLabel={translate("wrongAccountScreen:passwordSignIn")}
+                // ADDED 2026-10-01: it leaves the app for the browser; say so.
+                accessibilityHint={translate("wrongAccountScreen:passwordSignInHint")}
                 accessibilityState={{ disabled: isBusy }}
+                // A one-line text link is well under the 44 pt touch target.
+                hitSlop={12}
                 onPress={props.onPassword}
                 disabled={isBusy}
               >
