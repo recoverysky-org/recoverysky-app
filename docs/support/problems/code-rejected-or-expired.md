@@ -23,7 +23,7 @@ Two systems, two sets of messages. The copy tells you which: "Tap Resend" is the
    {service_name="recoverysky-app", module="LoginScreen"} |= "Verify code failed"
    ```
    `Verify code failed` carries `key`: `wrongCode`, `codeExpired`, `tooManyAttempts`, `networkError`, `unclassified`. (On the wrong-account screen the module is `WrongAccountScreen`; it does not log `Auth error displayed to user`.) Add `| userId="<hash>"` if the user was signed in on this install before; a signed-out user has no `userId`, so use `deviceId` or the time window.
-2. **Auth0 dashboard, Monitoring, Logs**, same time. A failed code exchange shows as `feacft` or `fcoa` (our labels; confirm the official meaning in Auth0's log event list). The description holds Auth0's reason. Compare with `cls` (code sent) to see how many codes were sent and when.
+2. **Auth0 dashboard, Monitoring, Logs**, same time. A successful code login is `sepft` (connection `email`) followed by `s`; a refresh is `sertft`; a code send is `cls`. No failed code-login event has been observed, so do not look for a specific code: filter the tenant log to the user (or `connection=email`) around the time and read any event whose type starts with `f`, using its description text. The repo script's `fcoa`/`feacft` labels are unverified guesses (`fcoa` is likely Auth0's cross-origin-auth failure). Record the real code after reproducing one wrong code on the dev tenant. Compare with `cls` (code sent) to see how many codes were sent and when.
 3. Read the `key`:
    - `wrongCode`: Cause 1 or 2.
    - `codeExpired`: Cause 2 or 3.
@@ -43,7 +43,7 @@ Ambiguity: Auth0 reports "wrong" and "expired" the same way (`invalid_grant`); t
    {service_name="app_api"} |= "POST /auth0/email/verify" |= "<hash>"
    ```
    - `POST /auth0/email/verify: too many wrong codes` (WARN): the fifth wrong try (Cause 4).
-   - `Per-minute rate limit exceeded` with `bucket=auth0-email-verify`: Cause 5.
+   - `Per-minute rate limit exceeded`, `Per-hour rate limit exceeded` or `Concurrency limit exceeded` (search `limit exceeded`) with `bucket=auth0-email-verify`: Cause 5. A double-tapped Verify gives a concurrency 429.
    - `POST /auth0/email/verify: Auth0 refused the update` (ERROR, `status`): Cause 6.
    - **A wrong code writes no API log line at all**, so absence of a line is consistent with `invalid_code`.
    - `POST /auth0/email/start: code sent` shortly before shows how many codes were requested.
@@ -75,14 +75,14 @@ Verification: 429, no `code` on the wire; the app labels it `rate_limited` and s
 2. **Cause 4:** login: wait a few minutes (the app says so) before asking for a new code. Verification: tap "Send code" for a fresh one. If Auth0 locked the user out (`too_many_attempts` repeatedly), wait; no support action clears it.
 3. **Cause 5:** wait a minute (verification) or a few minutes (login). Tell the user to tap once.
 4. **Cause 6:** the fix is always "send a new one". If a fresh code fails immediately more than once, escalate with the details below (suspect Redis / multi-replica).
-5. For `update_failed` / `unavailable` on verify: the code is kept (update_failed); retry once. If it repeats, check the Auth0 tenant log for the update reason at that time and escalate.
+5. For `update_failed` on verify: the code is kept server-side, but the app clears the field, so the user must re-enter the **same** code from the same mail and it will work (no new mail needed). For `unavailable`, retry once. If it repeats, check the Auth0 tenant log for the update reason at that time and escalate.
 6. If the user's mail is slow so that the first code expires before they see it, see [no-code-email](no-code-email.md).
 
 **Old app versions.** Builds that have not applied the passwordless OTA have no code entry; a "code" complaint from such a build is not this problem. Ask for `appVersion`.
 
 ## Escalate
 
-When a fresh verification code fails immediately more than once with `code_expired` and the user did nothing unusual, when `update_failed` or `unavailable` repeats, or when the tenant log shows `feacft` with a description that is not wrong/expired/limit. Attach: hash, `appVersion`, platform, timestamps (timezone), the app log `code` and `status`, the `traceId` from `Api` `API request` lines, the API `requestId`, the Auth0 event code and time. Never attach the address or the code.
+When a fresh verification code fails immediately more than once with `code_expired` and the user did nothing unusual, when `update_failed` or `unavailable` repeats, or when a tenant log `f*` event for the login has a description that is not wrong/expired/limit. Attach: hash, `appVersion`, platform, timestamps (timezone), the app log `code` and `status`, the `traceId` from `Api` `API request` lines, the API `requestId`, the Auth0 event type and time. Never attach the address or the code.
 
 ## Reply
 

@@ -59,10 +59,10 @@ Ask: "Were you signed in already, or signing in?" If the user is on the wrong-ac
    ```
    - `POST /auth0/email/start: code sent`: our API handed it to Postmark. Go to step 4.
    - `POST /auth0/email/start: provider refuses that recipient`: Cause B2.
-   - `POST /auth0/email/start: send failed` (ERROR, `kind`): Cause B3.
+   - `POST /auth0/email/start: send failed` (ERROR, `kind`), `POST /auth0/email/start: address lookup failed` or `POST /auth0/email/start: failed` (all 503 `unavailable`): Cause B3.
    - `POST /auth0/email/start: mailer not configured` (ERROR): Cause B3 (configuration; escalate).
    - `POST /auth0/email/start: address belongs to another account`: `email_in_use`, not a delivery problem.
-   - `Per-minute rate limit exceeded` with `bucket=auth0-email-start`: Cause B4.
+   - `Per-minute rate limit exceeded`, `Per-hour rate limit exceeded` or `Concurrency limit exceeded` (search `limit exceeded`) with `bucket=auth0-email-start`: Cause B4. A double-tapped Send gives a concurrency 429.
 4. **Postmark Activity.** Server shared with another RecoverySky product. Filter stream `outbound`, tag `email-verify`, search the recipient and the time. Subject `<code> is your RecoverySky verification code`. The code is visible there: do not copy it.
    - Delivered: Cause B1 (user's side: spam folder, wrong mailbox, typo that is a real mailbox).
    - Bounced / not delivered: Cause B2. **The bounce is invisible to the app and the user** (the bounce webhook ignores `email-verify` mail), so only Postmark shows it.
@@ -102,7 +102,7 @@ HTTP 429 (no `code` on the wire; the app labels it `rate_limited`). The user see
 
 ## Solution
 
-**A1, B1:** have the user check spam and promotions and search for "RecoverySky" (verification) or the sign-in mail. Confirm the exact address with the user in the masked form. If it was a typo, go back and send a new code (login: "Wrong email? Go back"; verification: "Wrong email? Go back", which returns to the change step).
+**A1, B1:** have the user check spam and promotions and search for "RecoverySky" (verification) or the sign-in mail. Confirm the exact address with the user (login code step: masked, ask them to read it back; verification code step: the full address, or masked on a build before commit `42f989f`). If it was a typo, go back and send a new code (login: "Wrong email? Go back"; verification: "Wrong email? Go back", which returns to the change step).
 
 **A2, A6:** ask the user to wait a few minutes, tap Resend **once**, and use only the newest mail. Do not tell them to keep tapping.
 

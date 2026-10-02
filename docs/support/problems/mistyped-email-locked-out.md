@@ -33,7 +33,8 @@ Background: [email verification](../reference/email-verification.md#the-mistyped
    - A Google or Apple account of theirs on that address.
    - A different person's account (rare; do not touch it).
    Note each row's `user_id` prefix, `created_at` and whether it is the one with data. The one the user actually uses (the one they sign in to with the password, or the one the device owns) is the account to keep.
-6. **Does the device own the typo account?** Loki `Device owner adopted` / `Foreign session on an owned device` with the hash. If the user also sees the wrong-account screen, read [wrong-account-screen](wrong-account-screen.md).
+6. **Check the stray holder before touching it.** Compute the stray account's hash locally from its dashboard `user_id`. Search Loki for it as `ownerId` (`Device owner adopted`, `Foreign session on an owned device`, `Device owner relinked into a linked account`). If any device owns the stray, do **not** delete it (the device would land on the wrong-account screen with only a reinstall as exit): escalate. In the dashboard read the stray's `created_at`, `last_login` and `logins_count`. If it has been used beyond creation, or the user had Cloud Backup or a purchase on it, treat it as holding data (rows under an `email|` sub do not follow a link) and escalate.
+7. **Does the device own the typo account?** Loki `Device owner adopted` / `Foreign session on an owned device` with the hash. If the user also sees the wrong-account screen, read [wrong-account-screen](wrong-account-screen.md).
 
 ## Causes
 
@@ -60,7 +61,7 @@ Tell the user to use "Not my email? Change it", type the correct address and ent
 
 1. Read the user: `GET /api/v2/users/{sub}` for the typo account. Keep the before-state (email, `email_verified`, identities).
 2. Confirm with the user which account is theirs and which holder of the corrected address (the stray account) can be abandoned. **Never edit or delete account A because B asked.** Confirm the user controls the stray account (they should be able to open it with a code to the corrected address) before removing it, and confirm it holds no data they want.
-3. Free the corrected address: if the stray `email|` account is empty and the user agrees, delete it (`DELETE /api/v2/users/{stray_sub}`; irreversible, deletes no server data or RevenueCat customer; see [tools: delete a user](../reference/tools.md#delete-a-user)). If it holds data or is a real account, **stop and escalate**; do not choose for the user.
+3. Free the corrected address. Prefer the **non-destructive** route: escalate for engineering to decide, or have the user keep the stray as their account if it is the one they want. Only if **all** hold, delete the stray (`DELETE /api/v2/users/{stray_sub}`; irreversible, deletes no server data or RevenueCat customer; see [tools: delete a user](../reference/tools.md#delete-a-user)): no device owns it (Diagnose 6), it has never been used beyond creation (`logins_count`, `last_login`), the user had no Cloud Backup or purchase on it, and the user agrees. Otherwise **stop and escalate**; do not choose for the user.
 4. Check nothing else holds the corrected address: `GET /api/v2/users-by-email?email=user@example.com`.
 5. Correct the typo account. Use the body from [tools](../reference/tools.md#update-an-email-or-set-email_verified-password-users-only), with `connection`:
    ```json
@@ -73,7 +74,7 @@ Tell the user to use "Not my email? Change it", type the correct address and ent
    ```
    `email_verified: true` is correct **only** if you have confirmed the user can read that inbox (a code to that address works, or they replied from it). `verify_email: false` stops Auth0 sending its own mail; leave it out and the user gets one. `PATCH /api/v2/users/{sub}` on `auth0|` accounts only. The sub does **not** change, so no server rows and no RevenueCat customer move.
 6. Tell the user what to do **on the device**:
-   1. Open the app. The mandatory screen may still show because the phone holds a token that says unverified. Sign out if possible, then sign in again with the **password** (this gets a fresh token carrying the corrected address and `email_verified: true`).
+   1. Open the app. The mandatory screen may still show because the phone holds a token that says unverified, and **it has no sign-out**. Try force-quit and reopen first. If it persists, switch on airplane mode: a mandatory screen closes while the device is offline, so Settings is reachable; sign out, reconnect, then sign in again with the **password** (fresh token carrying the corrected address and `email_verified: true`). Last resort: reinstall (loses unsynced local data).
    2. Alternatively, on the Login screen choose "Continue with Email" and enter the corrected address: the code login links into the password account through the automatic link (same sub, same data), and the screen stops asking because code sessions are never asked.
    3. If the phone shows the wrong-account screen afterwards (because the owner record is the stray account), see [wrong-account-screen](wrong-account-screen.md).
    4. Settings and report addresses may keep the old address until the next token renewal: see [email-change-not-showing](email-change-not-showing.md).

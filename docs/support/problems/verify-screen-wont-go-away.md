@@ -27,7 +27,7 @@ The user sees a full-screen modal titled **"Please review and verify your email 
    3. No `loginMethod` is recorded: the session came from a **password** sign-in, or was restored by an old build.
    4. The ID token's `email_verified` is not `true`.
    Look at the user in the Auth0 dashboard ([find a user](../reference/tools.md#find-a-user-by-email)): sub prefix, identities, **Email verified**.
-4. **How did the user sign in on this phone?** Ask: "password in the browser page, or the code/Google/Apple button?" Only a password session is asked. Email-code, Google and Apple sessions are **never** asked, even into a linked `auth0|` account. Loki: `Sending passwordless code` / `Provider login` lines for the user show the method.
+4. **How did the user sign in on this phone?** Ask: "password in the browser page, or the code/Google/Apple button?" Only a password session is asked. Email-code, Google and Apple sessions are **never** asked, even into a linked `auth0|` account. Loki cannot tell you reliably (`Sending passwordless code` is logged while signed out, so it carries no `userId`). Use the Auth0 tenant log instead: a code login is `cls` then `sepft`/`s` with `connection=email`; a password login has a `Username-Password-Authentication` connection.
 5. **Did they verify?**
    ```
    {service_name="recoverysky-app", module="VerifyEmailGate"} |= "Email verified" | userId="<hash>"
@@ -58,6 +58,8 @@ The local record is per install and per account, and the skip count is independe
 Not asked: the gate looks at `loginMethod` first. If the user says they are being asked, check how they signed in (Diagnose 4). A session restored by an **old build** records no `loginMethod` and counts as a password session.
 
 ### 6. The verify itself keeps failing
+Includes `not_password_account` ("This account doesn't need email verification."): the sub is not `auth0|`, which the gate should not allow; a stale session or mixed-up account. Escalate if seen.
+
 A different problem, listed here so you recognise it: `email_in_use` (the corrected address belongs to another account: [mistyped-email-locked-out](mistyped-email-locked-out.md)), codes not arriving or failing ([no-code-email](no-code-email.md), [code-rejected-or-expired](code-rejected-or-expired.md)).
 
 ## Solution
@@ -67,8 +69,9 @@ A different problem, listed here so you recognise it: `email_in_use` (the correc
 3. **Mandatory and the user cannot get a code:** do not ask them to skip (they cannot). Use [mistyped-email-locked-out](mistyped-email-locked-out.md) (Auth0 dashboard fix) or [no-code-email](no-code-email.md).
 4. **Cause 2, 3, 4 (Auth0 says verified):**
    1. Confirm **Email verified** in the Auth0 dashboard. If it is false and the address is right and readable by the user, you may set it: `PATCH /api/v2/users/{sub}` with `{ "email_verified": true }` ([tools](../reference/tools.md#update-an-email-or-set-email_verified-password-users-only)); keep the before-state; password (`auth0|`) accounts only. Only do this when you are sure the user controls the inbox.
-   2. Ask the user to sign out and sign in again with the password on that phone, so the token carries the new claim. A code sign-in does **not** help: code sessions are never asked.
-   3. Tell the user that phone A verifying does not stop phone B asking until B's token refreshes or B signs in again.
+   2. The phone needs a fresh token. On a **skippable** screen the user taps "Not now", opens Settings and signs out, then signs in again with the password (the new token carries the new claim). A code sign-in also stops the prompt, because code sessions are never asked (`needsEmailVerification` returns false for any recorded `loginMethod`); it just does not refresh the password session's claim. Use it when the corrected address already exists on the account (the automatic link joins it to the same sub and data).
+   3. On the **mandatory** screen there is no sign-out: the modal covers the app and Settings is unreachable. Options, in order: (a) force-quit and reopen, once the token has renewed (the local record or a renewed claim stops the prompt; this works only if Auth0 already says verified); (b) a mandatory screen closes while the device is offline or the app is in maintenance/outage (`mustCloseShownGate`), so turning on airplane mode lets the user reach Settings, sign out, then reconnect and sign in by password, or by code to the corrected address (a password sign-out opens a browser session clear, which may need a connection; hedge: not device-tested); (c) last resort, reinstall (loses unsynced local data, and Delete User Data is unreachable anyway).
+   4. Tell the user that phone A verifying does not stop phone B asking until B's token refreshes or B signs in again.
 5. **Cause 5:** if the session is a code/Google/Apple session and the screen still appears, it is a bug: escalate with the hash, `appVersion`, `loginMethod` evidence and the `Verify email shown` lines.
 6. **Last resort for a user stuck on a mandatory screen who cannot verify:** support can fix the address or set `email_verified` in Auth0 as above. Do **not** advise Delete User Data: it resets the skip count but also erases the device's local data, and the claim will still decide.
 
