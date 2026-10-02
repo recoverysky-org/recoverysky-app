@@ -4,7 +4,7 @@ This knowledge base is for technical support staff. It covers the problems peopl
 
 It describes the world **after** the production rollout (passwordless email code, password form, Google, Apple, email verification, automatic and explicit account linking all live on prod). Users on old store builds behave differently; each doc has a short "Old app versions" note where it matters.
 
-**Pending decision (D5).** For a user who mistyped their address and now hits `email_in_use` on the mandatory verify screen, the support fix is to correct the address in the Auth0 dashboard. That is marked "Pending Jenova's decision on the in-app path" because decision 1 of the email-verification device pass is still open.
+**Pending decision (D5).** For a user who mistyped their address and now hits `email_in_use` on the mandatory verify screen, the support fix is to correct the address in the Auth0 dashboard. That is marked "Pending Jenova's decision on the in-app path" because decision 1 of the email-verification device pass (see `docs/superpowers/specs/2026-09-30-legacy-email-verification-design.md`) is still open.
 
 ## How to use these docs
 

@@ -12,7 +12,7 @@ Two tenants: `meetingmaker` (prod, domain `auth.recoverysky.app`, one client sha
 2. The same address can map to several rows before linking (`auth0|`, `google-oauth2|`, `email|`, `apple|`). After linking there is one user, and the others sit under its Identities.
 3. Open the user. The user's `user_id` is the **primary sub**. Copy it only to hash it (see below).
 4. Read **Identities**: `identities[0]` is the root identity; a linked `email` secondary shows provider `email`.
-5. Read the **Email verified** flag. Caution: a password account that later signed in by code can still show `email_verified: false` (the token keeps the password identity's flag). That does not mean the app will ask for verification: the verify screen is only shown to sessions with no `loginMethod` (see [email verification](email-verification.md)).
+5. Read the **Email verified** flag. Caution (from the verification spec, not independently verified): a password account that later signed in by code likely still shows `email_verified: false`, because the token keeps the password identity's flag. That does not mean the app will ask for verification: the verify screen is only shown to sessions with no `loginMethod` (see [email verification](email-verification.md)).
 
 ### Tenant log event codes
 
@@ -43,14 +43,15 @@ A login with `connection=email` whose `user_id` is **not** `email|...` means the
 
 ### Action execution results
 
-Open the login event, then Action Details (Actions executions). Two post-login Actions run, in this order: **Link passwordless identity**, then **Identities claim**. Strings you can find:
+Two post-login Actions run, in this order: **Link passwordless identity**, then **Identities claim**.
 
-- Success: `linked email identity into <provider> primary` where `<provider>` is `auth0`, `google-oauth2` or `apple`.
-- Failure: `link skipped: <reason>`, for example `token grant <status>` or `GET /users-by-email 429`. The login still succeeds, unlinked; the next code login retries.
-- Nothing is logged for the silent early returns (not an `email` login, already linked, a refresh exchange, no matching account). "No match" and "already linked" look the same: the absence of both lines.
-- The Identities claim Action writes no log line; only its execution result (success or error) is visible.
+- Open the login event, then Action Details (Actions executions). As far as our tooling shows, this gives only a per-Action result: `ok` or an `ERROR` with its error. That is all `diagnose-linking.mjs` reads from it.
+- The Link Action's own `console.log` strings are `linked email identity into <provider> primary` (`<provider>` is `auth0`, `google-oauth2` or `apple`) and `link skipped: <reason>` (for example `token grant <status>` or `GET /users-by-email 429`). Auth0 sends Action console output to Actions Real-time Logs or a log stream while it runs; whether the login event keeps it is not confirmed (unverified), so do not rely on finding these strings after the fact.
+- Durable check that a link happened: compare the login event's `connection` with the sub it was issued for. A login with `connection=email` whose `user_id` starts with `auth0|`, `google-oauth2|` or `apple|` (not `email|`) means the identity was linked and the other account is primary. If an `email` login keeps issuing an `email|` sub for a user who should have linked, the Action did not link (it failed, or no account matched).
+- The Link Action logs nothing for its silent early returns (not an `email` login, already linked, a refresh exchange, no matching account), so "no match" and "already linked" look the same.
+- The Identities claim Action writes no log line; only its result (ok or ERROR) exists.
 
-Logins never carry an email in these lines.
+Logs never carry an email in these lines.
 
 ## Management API (support is trusted to write on prod)
 
@@ -188,7 +189,7 @@ Every app request carries a random W3C `traceparent`, and the app logs one debug
 1. Loki: `{service_name="recoverysky-app"} | module="Api" | status="401" | userId="<hash>"` and copy the `traceId`.
 2. Tempo: `GET http://tempo.rso/api/traces/<32-hex traceId>` (plain http from a workstation). 404 means not found: older than 72 hours, or the route is ignored (`/config` and `/status` are never traced, by design).
 3. Search: `http://tempo.rso/api/search?tags=service.name%3Drecoverysky-api&limit=8&start=<unix>&end=<unix>`.
-4. A healthy trace has a server root span (for example `GET /schedules/live`) whose parent is the app's span id.
+4. Spans exist only if the API's OTLP trace exporter is configured; a 404 for a recent trace can mean that too. A healthy trace has a server root span (for example `GET /schedules/live`) whose parent is the app's span id.
 
 The API's own log lines do not carry `traceId`; use `requestId` there.
 
@@ -221,5 +222,7 @@ Exceptions: Sentry and Umami do receive the raw sub (their UIs group by it, so i
 - `app/services/api/emailVerifyProblem.ts`
 - `api:src/routes/auth0Email.ts` (PATCH body, `PASSWORD_CONNECTION`, log lines)
 - `api:src/routes/auth0.ts` (`linkIdentityFromSub`, `attemptLink`)
+- `api:src/middleware/rate-limit.ts` (rate-limit log lines)
+- `docs/superpowers/specs/2026-09-30-legacy-email-verification-design.md` (the `email_verified` claim behaviour)
 - `api:src/routes/reports.ts` (confirmation webhook)
 - `api:src/services/email.ts` (Postmark stream and tags)
