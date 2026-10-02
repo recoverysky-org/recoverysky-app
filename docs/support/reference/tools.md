@@ -28,14 +28,15 @@ Monitoring, Logs. Open an event for `connection`, `user_id`, and `description` (
 | `fs` | signup FAILED | Signup failed. |
 | `cls` | code sent | A login code (Continue with Email) was mailed by Auth0. Proves the send reached Auth0 even if the app timed out. |
 | `fcls` | code send FAILED | Auth0 could not send the code. |
-| `fcoa` | code wrong/expired | Our label. Check Auth0's list; the official meaning may differ. |
+| `sepft` | password grant OK | **A successful email-code login** (seen on the dev tenant 2026-10-02: description "Successful exchange of Password for Access Token", connection `email`; Auth0 records the passwordless code grant under this type). Usually followed by `s`. |
+| `seacft` | (none) | Successful exchange of authorization code for access token: the browser-based logins (password form, Google, Apple). |
+| `sce` | (none) | Successful email change, e.g. after a verify-email change of address ("You can now login to the application with the new email."). |
 | `sertft` | refresh OK | A refresh-token exchange worked. |
 | `fertft` | refresh FAILED | A refresh failed. The app only signs out on permanent failures. |
 | `slo` | logout | Logout. |
-| `scoa` | code exchange OK | Our label. Check Auth0's list. |
-| `sepft` | password grant OK | Our label. Check Auth0's list. |
-| `feacft` | code exchange FAILED | Our label. Check Auth0's list. |
 | `sdu` | user deleted | A user was deleted. |
+
+**Failed code logins:** no failed email-code event has been observed on our tenants, so we cannot name its type code. Filter the log to the user (or connection `email`) around the time and read any event whose type starts with `f`, using its description text. Our script also labels `fcoa`, `scoa` and `feacft` as code events; those labels are unverified guesses (`fcoa` is most likely Auth0's cross-origin-authentication failure). Check Auth0's official log event type list before relying on them.
 
 Our script hides `sapi`, `seccft`, `mgmt_api_read` and `fapi` as machine noise (our own Management calls and the Action's token mint). Do not treat them as user activity.
 
