@@ -47,7 +47,7 @@ import { todayLocalISODate } from "@/utils/localDate"
 import { logger } from "@/utils/logger"
 import { claimOverlay, overlayOwner, releaseOverlay } from "@/utils/overlayGate"
 
-import { Screen } from "./Screen"
+import { RootModalScroll } from "./RootModalScroll"
 import { VerifyEmailView, type VerifyStep } from "./VerifyEmailView"
 
 const log = logger.child({ module: "VerifyEmailGate" })
@@ -283,13 +283,15 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
           sit off screen or under the keyboard. Screen's scroll preset
           (keyboard-aware scroll view, as on LoginScreen) fixes both; its
           safeAreaEdges replace the SafeAreaView. The outer View only carries
-          accessibilityViewIsModal, which Screen does not take. */}
+          accessibilityViewIsModal, which Screen does not take.
+          CHANGED 2026-10-01 (device pass): <Screen preset="scroll"> crashed
+          here — its useScrollToTop() needs a navigator screen above it, and
+          this gate sits BESIDE <AppNavigator /> in app.tsx ("Couldn't find a
+          route object"). RootModalScroll is the same scroll + keyboard +
+          safe-area frame without the navigation hook. Never put <Screen>
+          back in this Modal. */}
       <View style={$fill} accessibilityViewIsModal>
-        <Screen
-          preset="scroll"
-          safeAreaEdges={["top", "bottom"]}
-          contentContainerStyle={themed($content)}
-        >
+        <RootModalScroll contentContainerStyle={themed($content)}>
           <VerifyEmailView
             mode={shown.mode}
             skipsLeft={shown.mode === "skippable" ? shown.skipsLeft : undefined}
@@ -319,7 +321,7 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
             onWhy={() => void Linking.openURL(WHY_VERIFY_URL)}
             onSupport={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
           />
-        </Screen>
+        </RootModalScroll>
       </View>
     </Modal>
   )
@@ -329,7 +331,7 @@ const $fill: ViewStyle = { flex: 1 }
 
 // flexGrow, not flex: fills the viewport so a short screen stays centred, but
 // may grow past it so the scroll view can reach every control (LoginScreen's
-// $screenContentContainer, same reason). Screen paints the background.
+// $screenContentContainer, same reason). RootModalScroll paints the background.
 const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 1,
   paddingVertical: spacing.xxl,
