@@ -135,7 +135,7 @@ describe("EmailStep", () => {
 
 describe("CodeStep", () => {
   const props = {
-    emailMasked: "j***@proton.me",
+    email: "j***@proton.me",
     code: "",
     onChangeCode: jest.fn(),
     isVerifying: false,

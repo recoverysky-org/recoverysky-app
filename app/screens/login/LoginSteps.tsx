@@ -190,7 +190,13 @@ export function EmailStep({ email, onChangeEmail, isSending, onSend, onBack }: E
 }
 
 export interface CodeStepProps {
-  emailMasked: string
+  /**
+   * The address shown in "We sent a code to …", exactly as the caller wants it
+   * shown. Login and the wrong-account screen pass it masked; the verify-email
+   * flow passes it in full. CHANGED 2026-10-02: was `emailMasked`, renamed when
+   * the verify flow stopped masking (catching a typo is its whole job).
+   */
+  email: string
   code: string
   onChangeCode: (value: string) => void
   isVerifying: boolean
@@ -202,7 +208,7 @@ export interface CodeStepProps {
 }
 
 export function CodeStep({
-  emailMasked,
+  email,
   code,
   onChangeCode,
   isVerifying,
@@ -218,12 +224,16 @@ export function CodeStep({
   return (
     <View style={themed($stack)}>
       {/* Masked, never the full address: this screen is often read over a
-          shoulder, and the user only needs to recognise their own inbox. */}
+          shoulder, and the user only needs to recognise their own inbox.
+          CHANGED 2026-10-02: the masking now happens at the sign-in call sites
+          (LoginScreen, WrongAccountView), which still pass a masked address.
+          The verify-email flow passes the full one: there the user is checking
+          the address for a typo, and a mask hides exactly that. */}
       <Text
         preset="subheading"
         style={themed($centered)}
         tx="loginScreen:codeSentTo"
-        txOptions={{ email: emailMasked }}
+        txOptions={{ email }}
       />
       <TextField
         testID="login-code-field"

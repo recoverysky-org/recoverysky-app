@@ -30,8 +30,12 @@ export interface VerifyEmailViewProps {
   step: VerifyStep
   /** The address on the account, in full. */
   accountEmail: string
-  /** The address a code was last sent to (masked on the code step). */
-  targetEmailMasked: string
+  /**
+   * The address a code was last sent to, in full. CHANGED 2026-10-02: was
+   * `targetEmailMasked`; the device pass showed "We sent a code to j***@…",
+   * which hides the very typo this screen exists to catch.
+   */
+  targetEmail: string
   newEmail: string
   onChangeNewEmail: (value: string) => void
   code: string
@@ -140,7 +144,7 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
 
       {step === "code" && (
         <CodeStep
-          emailMasked={props.targetEmailMasked}
+          email={props.targetEmail}
           code={props.code}
           onChangeCode={props.onChangeCode}
           isVerifying={isBusy}

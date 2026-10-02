@@ -5,18 +5,13 @@ import { VerifyEmailView, type VerifyEmailViewProps } from "./VerifyEmailView"
 type TreeNode = { type: unknown; props: Record<string, unknown> }
 const txCount = (key: string) =>
   screen.UNSAFE_root.findAll((node: TreeNode) => node.props?.tx === key).length
-const renderedStrings = () =>
-  screen.UNSAFE_root.findAll((node: TreeNode) => typeof node.type === "string").flatMap(
-    (node: TreeNode) =>
-      Object.values(node.props ?? {}).filter((v): v is string => typeof v === "string"),
-  )
 
 const base: VerifyEmailViewProps = {
   mode: "skippable",
   skipsLeft: 6,
   step: "review",
   accountEmail: "typo@gmail.comf",
-  targetEmailMasked: "t***@gmail.comf",
+  targetEmail: "typo@gmail.comf",
   newEmail: "",
   onChangeNewEmail: jest.fn(),
   code: "",
@@ -101,8 +96,19 @@ describe("VerifyEmailView — other steps", () => {
     render(<VerifyEmailView {...base} step="code" />)
     expect(screen.getByTestId("login-code-field")).toBeTruthy()
     expect(screen.getByTestId("verify-email-why")).toBeTruthy()
-    // The full address is not repeated on the code step: only the masked one.
-    expect(renderedStrings().join(" ")).not.toContain("typo@gmail.comf")
+  })
+
+  // CHANGED 2026-10-02 (device pass): this used to assert the code step showed
+  // only a masked address. That mask was inherited from Login's CodeStep, but
+  // here the whole point is catching a typo, so "We sent a code to j***@…"
+  // hid exactly the part the user needed to check.
+  it("code step names the address the code went to, in full", () => {
+    render(<VerifyEmailView {...base} step="code" targetEmail="right@gmail.com" />)
+    const sentTo = screen.UNSAFE_root.findAll(
+      (node: TreeNode) => node.props?.tx === "loginScreen:codeSentTo",
+    )
+    expect(sentTo.length).toBeGreaterThan(0)
+    expect(sentTo[0].props.txOptions).toEqual({ email: "right@gmail.com" })
   })
 })
 

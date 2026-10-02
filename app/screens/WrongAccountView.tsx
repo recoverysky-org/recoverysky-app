@@ -83,7 +83,7 @@ export function WrongAccountView(props: WrongAccountViewProps) {
       <View style={themed($controls)}>
         {step === "code" && emailMasked ? (
           <CodeStep
-            emailMasked={emailMasked}
+            email={emailMasked}
             code={props.code}
             onChangeCode={props.onChangeCode}
             isVerifying={isBusy}

@@ -38,7 +38,7 @@ import {
   verifyGateBlocked,
 } from "@/services/auth/emailVerifyLogic"
 import { loadVerifyState, saveVerifyState } from "@/services/auth/emailVerifyState"
-import { maskEmail, resendWaitSeconds } from "@/services/auth/loginFlowLogic"
+import { resendWaitSeconds } from "@/services/auth/loginFlowLogic"
 import { setUserEmail } from "@/services/purchases/revenueCatService"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
@@ -297,7 +297,7 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
             skipsLeft={shown.mode === "skippable" ? shown.skipsLeft : undefined}
             step={step}
             accountEmail={accountEmail}
-            targetEmailMasked={maskEmail(target)}
+            targetEmail={target}
             newEmail={newEmail}
             onChangeNewEmail={setNewEmail}
             code={code}

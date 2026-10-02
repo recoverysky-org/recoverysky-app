@@ -547,7 +547,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
 
         {step === "code" && (
           <CodeStep
-            emailMasked={maskEmail(email)}
+            email={maskEmail(email)}
             code={code}
             onChangeCode={setCode}
             isVerifying={isLoading}
