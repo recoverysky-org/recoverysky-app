@@ -23,7 +23,7 @@ The user taps "Continue with Google" or "Continue with Apple" (a browser sheet o
    - Nothing at all: the user cancelled or declined (Cause 3) or the app never got the callback (Cause 1, 2).
 3. **Loki: how far did the app get?** These lines come from the user **while signed out**, so they carry no `userId`. Narrow with `appVersion` and a short time window around the report, and with `deviceId` or `sessionId` if you have one from an earlier line of the same user:
    ```
-   {service_name="recoverysky-app", module="useAuth0Wrapper"} |~ "Starting provider login|Provider login flow completed|Provider login cancelled or declined by user|Provider login failed|Browser session clear" | appVersion="<version-update>"
+   {service_name="recoverysky-app", module="useAuth0Wrapper", appVersion="<version-update>"} |~ "Starting provider login|Provider login flow completed|Provider login cancelled or declined by user|Provider login failed|Browser session clear"
    ```
    (Filter on `| connection="google-oauth2"` or `"apple"` — `connection` is structured metadata.)
    | Sequence | Meaning |

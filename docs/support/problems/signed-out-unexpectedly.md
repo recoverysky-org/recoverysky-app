@@ -27,12 +27,13 @@ Background: [sign-in methods: signed out unexpectedly](../reference/sign-in-meth
    ```
    {service_name="recoverysky-app", module="App"} |= "Performing forced logout after permanent refresh failure" | userId="<hash>"
    {service_name="recoverysky-app", module="tokenFreshness"} |= "forcing logout"
-   {service_name="recoverysky-app", module="tokenFreshness"} |= "unusable access token"
+   {service_name="recoverysky-app", module="tokenFreshness"} |= "renewed into an unusable access token"
+   {service_name="recoverysky-app", module="useAuth0Wrapper"} |= "returned unusable access token"
    {service_name="recoverysky-app", module="Api"} |= "Server rejected the bearer as unusable"
    {service_name="recoverysky-app", module="App"} |= "deferring logout"
    {service_name="recoverysky-app", module="LoginScreen"} |= "Showing forced-logout notice"
    ```
-   Add `| userId="<hash>"` to each. The ERROR `Performing forced logout...` is the one definitive line; expect duplicates in a burst. What the nearby lines tell you:
+   Add `| userId="<hash>"` to each except `Showing forced-logout notice`, which is logged while signed out and carries no `userId` (match it by time window and `appVersion`). The ERROR `Performing forced logout...` is the one definitive line; expect duplicates in a burst. What the nearby lines tell you:
    | Line (level) | Attribute | Meaning |
    | --- | --- | --- |
    | `Access token refresh failed permanently — forcing logout` (ERROR) | `error` | A credentials-manager error in the permanent list: `NO_REFRESH_TOKEN`, `NO_CREDENTIALS`, `INVALID_CREDENTIALS`, `DPOP_KEY_MISSING`, `DPOP_KEY_MISMATCH`. Cause 1 |

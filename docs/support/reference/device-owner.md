@@ -152,7 +152,7 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 | Cloud backup (server attendance rows) | **No server call is made by this handler**, so rows already pushed stay on the server and a later sign-in with Cloud Backup on can pull them back. Reports are never deleted server-side. A "delete cloud backup" feature is not built. | Handler verified; the survival of server rows follows from there being no delete call, and was not checked on the API |
 | Subscription | RevenueCat is logged out locally. The entitlement belongs to the RevenueCat customer for the Auth0 user id, so it should return on sign-in. | Inferred, not tested |
 
-The user-facing consequence is that Delete User Data is the only in-app way out of a stuck wrong-account loop, and it discards unsynced local data. Advise it only after confirming nothing unsynced matters, or after trying the owner's original sign-in method.
+The user-facing consequence is that Delete User Data is the only in-app way out of a stuck wrong-account loop, but it is reachable only after the owner's own sign-in succeeds (for a code owner: "Send code to {{email}}" on the wrong-account screen, then Settings, Delete User Data; code-derived, not device-tested). It discards unsynced local data. Advise it only after confirming nothing unsynced matters, or after trying the owner's original sign-in method.
 
 ## Log recipes
 
