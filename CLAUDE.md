@@ -916,6 +916,9 @@ its subsystem:
 - `docs/BACKUP.md` — attendance cloud backup/sync design + manual test checklist
   (**required reading** before editing `app/services/sync/`)
 - `docs/MEETING_ATTENDANCE_FLOW.md` — end-to-end attendance capture flow
+- `docs/support/` — support knowledge base for sign-in, email verification and account linking:
+  reference, problems (Diagnose / Cause / Solution) and separate user replies. Update it in the
+  same commit as any auth behaviour change.
 - `docs/DIAGNOSTICS.md` — logging/telemetry troubleshooting (`docs/grafana/`
   holds the dashboard JSON)
 - `docs/PRODUCTION_CHECKLIST.md` — pre-release verification
