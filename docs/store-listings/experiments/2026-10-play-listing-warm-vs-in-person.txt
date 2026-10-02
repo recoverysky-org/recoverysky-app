@@ -1,0 +1,216 @@
+========================================================
+RECOVERYSKY — GOOGLE PLAY STORE LISTING EXPERIMENT
+VARIANT B: "WARM" EDITION (plain text, paste-ready)
+========================================================
+
+Voice: warm, plain, addict-to-addict. Say the outcome, never the mechanism
+(we promise "the link works" — we never mention the verification bot).
+Do NOT advertise unreleased features (Sky AI, Social, passwordless sign-in).
+
+REVISION 2026-10-01: rewritten as Variant B of a Google Play store listing
+experiment. Control (A) is the live default listing in
+../STORE_LISTING.in-person.txt (friendly-technical voice). Variant B's copy
+carries the SAME facts as A
+— in-person meetings, Recovery Dharma, GPS-verified check-in, free-text
+search, the "Any" day, the Distance / Start sort, schedule-wide favorites —
+told in the warm voice. See "EXPERIMENT SETUP" below for why the facts must
+match. Do not run this against a build older than 4.10.1.
+
+
+========================================================
+EXPERIMENT SETUP (Play Console → Grow → Store presence →
+Store listing experiments → Create experiment)
+========================================================
+
+- Type: default graphics + text experiment on the main store listing,
+  language en-US only. The es-US localization is untouched and keeps
+  showing A's (older) Spanish copy to Spanish visitors.
+- Fields under test: SHORT DESCRIPTION and FULL DESCRIPTION only. Leave the
+  icon, feature graphic, and screenshots identical to the control — if they
+  differ too, a win can't be attributed to the copy.
+- App title is NOT changed in the variant (stays "RecoverySky AA NA CMA
+  Meetings"). Keeping it fixed means the experiment measures voice, not name.
+- Audience: 50% (one variant vs control).
+- Target metric: Retained first-time installers (not plain installers — the
+  question is whether warm copy brings people who stay, not just people who
+  tap Install).
+- Run it at least 7 days so both weekend and weekday traffic is in it, and
+  let it go until Play reports a result outside the confidence interval.
+  At our traffic that can take several weeks; don't call it early off a
+  first-week lead.
+- What a result means: B changes the short and full descriptions together,
+  so a B win says "the warm package converts better," not which field did
+  it. If B wins, a follow-up experiment can split short vs full.
+- Experiment variants are NOT indexed for search — Google ranks off the
+  default listing only. So B is free to drop keyword-stuffing for
+  readability; A's keyword coverage keeps working the whole time. If B wins
+  and becomes the default, re-check that "meeting finder", "near you",
+  "Recovery Dharma", "GPS-verified", and "drug court" still appear in it
+  (they do, as written below).
+- Don't edit the default listing (A) while the experiment runs — Play
+  restarts or invalidates the comparison.
+
+
+========================================================
+GOOGLE PLAY — VARIANT B
+========================================================
+
+--- TITLE (30 / 30 — unchanged, not part of the test) ---
+
+RecoverySky AA NA CMA Meetings
+
+
+--- SHORT DESCRIPTION (78 / 80) ---
+
+A meeting is on right now. AA, NA, CMA & Recovery Dharma — online or near you.
+
+(Control A, for comparison — 80 / 80:
+AA, NA, CMA & Recovery Dharma meeting finder — online now or in person near you.)
+
+
+--- FULL DESCRIPTION (3,862 / 4,000 — paste everything below, through the subscription block) ---
+
+Reaching out is the hard part. Finding the meeting shouldn't be.
+
+RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma — more than 130,000 meetings, online right now and in person near you. Join from your phone and, like a lot of us started, just listen. Or walk in and take a seat in the back.
+
+The trick to recovery is simple, even when it's hard: you have to want it. And wanting it starts small — wanting to find an app that helps, wanting to find a meeting, wanting to show up, wanting to hear someone who started right where you are and found what you're looking for. RecoverySky exists to make that first step the easy one.
+
+Find a meeting online, right now
+• See AA, NA, CMA, and Recovery Dharma meetings that are live right now
+• One tap takes you straight into the meeting
+• Every meeting's full weekly schedule
+• Filter by program, day, and time — or just type a meeting name, a city, or a word you remember
+
+Meetings that actually open
+Broken links. Wrong passwords. "This meeting has ended." RecoverySky keeps meeting details current and every live listing verified — so when you tap to join, you get a room, not a dead end. (Meetings open in Zoom Workplace — free, just have it installed.)
+
+Find a meeting near you
+• In-person meetings near you, closest first
+• See how far away each one is, or sort by start time — and pick how far you're willing to go
+• One day or the whole week at once — morning, afternoon, evening, or late night
+• Every venue shows the address, directions, contacts, and its weekly schedule
+• We only use your location while you're looking for a meeting or checking in at one — never when the app opens — and we never store or log where you browse from
+
+Your recovery, in one place
+• Heart and star the meetings you love — they rise to the top of every list, every day they meet
+• Clean-time tracker and milestones
+• Money-saved tracker
+• The 90-in-90 challenge, with a certificate when you finish
+• Meeting history and a simple picture of your progress
+Your recovery is personal, so it stays that way — your data lives encrypted on your device.
+
+The easiest way to meet a supervision requirement
+If someone needs proof that you're showing up — drug court, DFS, probation, parole, a sponsor, or a treatment team — RecoverySky makes it simple, online or in person:
+• Online, your attendance records the real time you spent in the meeting
+• In person, it's GPS-verified: tap "I'm Here" when you arrive, the app confirms you're really there, then times your visit
+• Either way, you get a clean, digitally-verifiable PDF, emailed to whoever's asking — or to you
+Unlimited reports with RecoverySky Premium ($6.99/mo). Premium also unlocks:
+• Meeting reminders, so you don't miss the one you meant to make
+• Secure cloud backup
+• Sync across all your devices
+• And it keeps RecoverySky alive and growing
+
+Built by someone who needed it
+RecoverySky was made in recovery, for people in recovery — by someone who found a room full of strangers online and slowly felt human again. Log on or walk in, and listen. That's the whole idea.
+
+A nonprofit you can trust
+RecoverySky is a 501(c)(3) nonprofit organization. We don't track you, and we don't sell your data — the only thing we'll ever sell is the subscription that keeps the app running. That will never change. Our platform is built and operated on HIPAA-compliant AWS infrastructure.
+
+You don't have to have it all figured out. You just have to want it, a little. Open the app and find a meeting — online right now, or just around the corner. We'll be here.
+
+Learn more at recoverysky.app
+
+RecoverySky Premium is $6.99/month. Payment is charged to your Google Play account at confirmation. Your subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Google Play account settings.
+
+
+========================================================
+NOT PART OF THE EXPERIMENT
+========================================================
+
+- WHAT'S NEW / release notes are per-release, not per-variant — both arms
+  see the same notes. Use the 4.10.x notes in ../STORE_LISTING.in-person.txt.
+- APPLE: App Store Product Page Optimization can test only the icon,
+  screenshots, and app previews — never the description, subtitle, or
+  promotional text. So there's no Apple arm of this experiment. The full
+  warm listing for both stores lives in ../STORE_LISTING.warm.txt; its
+  short and full descriptions are this variant's copy word for word. If
+  B's copy changes, change it there too.
+
+
+========================================================
+DECISIONS & RATIONALE
+========================================================
+
+- THE HYPOTHESIS: the friendly-technical voice (A) won the 4.8.0 rewrite on
+  judgment, not data. B tests whether the warm, addict-to-addict voice —
+  "just listen", "you have to want it", "built by someone who needed it" —
+  converts and retains first-time visitors better, particularly people
+  arriving early in recovery rather than with a court requirement.
+- SAME FACTS AS A, ON PURPOSE. Every feature A claims, B claims (130,000+
+  meetings, in-person, RD, live online, one-tap join, weekly schedules, search,
+  whole-week browse, distance/start sort, venue pages, location disclosure,
+  favorites/ratings, trackers, 90-in-90 certificate, online + GPS-verified
+  attendance, PDF reports, Premium price and perks, nonprofit, encryption,
+  HIPAA-compliant AWS). If B carried fewer features the test would measure
+  "fewer features" instead of "warmer voice." Don't add a claim to one arm
+  without the other.
+- ORDER DIFFERS FROM A, on purpose — it's part of the voice. A leads with
+  attendance proof in the opening line; B leads with emotion ("Reaching
+  out is the hard part. Finding the meeting shouldn't be."), then finding
+  a meeting, then trust
+  ("Meetings that actually open"), and saves supervision for later. The
+  supervision section keeps its own heading so court-driven visitors who
+  scan still find it.
+- Hugo (the verification bot) stays invisible. The old warm copy said we
+  "constantly check that live meetings are really live" — CHANGED
+  2026-10-01 to "every live listing verified" (A's wording). "Constantly
+  checks" is monitoring-flavored: it implies a presence inside the room and
+  spooks meeting hosts and attendees. State, not activity.
+- LOCATION CLAIM carries both reads, same as A: "while you're looking for a
+  meeting or checking in at one". The verified check-in fix IS saved to the
+  attendance record (that's what makes the report verifiable), so we say
+  "we never store or log where you browse from" — never a blanket "your
+  location never leaves your device."
+- SEARCH CLAIM: "type a meeting name, a city, or a word you remember" —
+  matches what the search box does (filters already-fetched results by
+  name, city, venue, notes, etc.). Never "search every meeting."
+- "THE WHOLE WEEK AT ONCE" sits in the in-person section only, same reason
+  as A: the "Any" day is offered for in-person, not online.
+- OPENING LINE — CHANGED 2026-10-01 from "There's a meeting happening
+  right now — and someone in it is exactly where you are." That line
+  presumed the reader's state, was live-only, and repeated the short
+  description's "right now". The new line names the reader's real hurdle
+  and sets up both "you have to want it" and "Meetings that actually
+  open". It's what most visitors read before "more", so it carries the
+  experiment more than any other line.
+- "late night" replaces A's "overnight" — warmer, same time bucket.
+- "GPS-verified" kept even in the warm voice: it's the phrase the
+  supervision audience searches and the one a caseworker recognises. Warm
+  doesn't mean vague where vagueness costs trust.
+- SHORT DESCRIPTION: leads with the feeling ("A meeting is on right now.")
+  and still names all four fellowships plus "online or near you", so a
+  visitor scanning the short line learns the same scope as A's. No emoji —
+  Google's metadata policy discourages them in the short description.
+- No "no account / no setup" claims. The app requires an account, and
+  joining needs the free Zoom Workplace app installed. Both stated plainly
+  (Zoom here; the account is implied by Premium/sync and disclosed on the
+  Data Safety form).
+- "We don't track you / don't sell your data" — never "we collect nothing"
+  (account, cloud backup, and location features are all disclosed on
+  Google's Data Safety form).
+- "130,000+ MEETINGS" — CHANGED 2026-10-01 from "55,000+ in-person". One
+  headline number for online + in person together; we deliberately don't
+  quote an in-person-only count any more. Counted on prod (recoverysky DB,
+  `meetings` where status = 'ACTIVE' and not closed): 131,655 active weekly
+  meetings (123,630 in person). One row = one weekly meeting time
+  (a group meeting Mon/Wed/Fri counts 3), the same convention as Meeting
+  Guide / TSML; distinct groups would be 73,255 / 70,863. The raw 169,027
+  row count includes deleted, paused and closed rows — never quote it.
+  Not de-duplicated across sources. Re-count before each submission and
+  round DOWN; keep A (../STORE_LISTING.in-person.txt), B
+  (this file), and ../STORE_LISTING.warm.txt identical.
+- Sky AI, Social, and passwordless email sign-in are NOT advertised — the
+  first two are hidden, the third is merged but not yet shipped to stores.
+- Dropped "Find your pink cloud" as a slogan long ago — the top competitor
+  is literally named "Pink Cloud."

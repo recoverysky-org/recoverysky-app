@@ -1,0 +1,227 @@
+========================================================
+RECOVERYSKY — APP STORE LISTINGS (plain text, paste-ready)
+"WARM" EDITION — addict-to-addict voice
+========================================================
+
+Voice: warm, plain, addict-to-addict. Say the outcome, never the mechanism
+(we promise "the link works" — we never mention the verification bot).
+Do NOT advertise unreleased features (Sky AI, Social, passwordless sign-in).
+
+REVISION 2026-10-01: brought up to the facts of STORE_LISTING.in-person.txt
+(the 4.10.x listing) and a fresh prod meeting count. The old copy was
+online-only AA / NA / CMA; it now covers Recovery Dharma, in-person
+meetings, GPS-verified check-in, free-text search, the "Any" day, the
+Distance / Start sort, schedule-wide favorites, and "130,000+ meetings".
+The Google Play short + full descriptions are also Variant B of the Play
+listing experiment in experiments/2026-10-play-listing-warm-vs-in-person.txt
+— word for word. Change one, change the other. Do not publish against a
+build older than 4.10.1.
+
+
+========================================================
+GOOGLE PLAY
+========================================================
+
+--- TITLE (30 / 30) ---
+
+RecoverySky AA NA CMA Meetings
+
+
+--- SHORT DESCRIPTION (78 / 80) ---
+
+A meeting is on right now. AA, NA, CMA & Recovery Dharma — online or near you.
+
+
+--- FULL DESCRIPTION (3,862 / 4,000 — paste everything below, through the subscription block) ---
+
+Reaching out is the hard part. Finding the meeting shouldn't be.
+
+RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma — more than 130,000 meetings, online right now and in person near you. Join from your phone and, like a lot of us started, just listen. Or walk in and take a seat in the back.
+
+The trick to recovery is simple, even when it's hard: you have to want it. And wanting it starts small — wanting to find an app that helps, wanting to find a meeting, wanting to show up, wanting to hear someone who started right where you are and found what you're looking for. RecoverySky exists to make that first step the easy one.
+
+Find a meeting online, right now
+• See AA, NA, CMA, and Recovery Dharma meetings that are live right now
+• One tap takes you straight into the meeting
+• Every meeting's full weekly schedule
+• Filter by program, day, and time — or just type a meeting name, a city, or a word you remember
+
+Meetings that actually open
+Broken links. Wrong passwords. "This meeting has ended." RecoverySky keeps meeting details current and every live listing verified — so when you tap to join, you get a room, not a dead end. (Meetings open in Zoom Workplace — free, just have it installed.)
+
+Find a meeting near you
+• In-person meetings near you, closest first
+• See how far away each one is, or sort by start time — and pick how far you're willing to go
+• One day or the whole week at once — morning, afternoon, evening, or late night
+• Every venue shows the address, directions, contacts, and its weekly schedule
+• We only use your location while you're looking for a meeting or checking in at one — never when the app opens — and we never store or log where you browse from
+
+Your recovery, in one place
+• Heart and star the meetings you love — they rise to the top of every list, every day they meet
+• Clean-time tracker and milestones
+• Money-saved tracker
+• The 90-in-90 challenge, with a certificate when you finish
+• Meeting history and a simple picture of your progress
+Your recovery is personal, so it stays that way — your data lives encrypted on your device.
+
+The easiest way to meet a supervision requirement
+If someone needs proof that you're showing up — drug court, DFS, probation, parole, a sponsor, or a treatment team — RecoverySky makes it simple, online or in person:
+• Online, your attendance records the real time you spent in the meeting
+• In person, it's GPS-verified: tap "I'm Here" when you arrive, the app confirms you're really there, then times your visit
+• Either way, you get a clean, digitally-verifiable PDF, emailed to whoever's asking — or to you
+Unlimited reports with RecoverySky Premium ($6.99/mo). Premium also unlocks:
+• Meeting reminders, so you don't miss the one you meant to make
+• Secure cloud backup
+• Sync across all your devices
+• And it keeps RecoverySky alive and growing
+
+Built by someone who needed it
+RecoverySky was made in recovery, for people in recovery — by someone who found a room full of strangers online and slowly felt human again. Log on or walk in, and listen. That's the whole idea.
+
+A nonprofit you can trust
+RecoverySky is a 501(c)(3) nonprofit organization. We don't track you, and we don't sell your data — the only thing we'll ever sell is the subscription that keeps the app running. That will never change. Our platform is built and operated on HIPAA-compliant AWS infrastructure.
+
+You don't have to have it all figured out. You just have to want it, a little. Open the app and find a meeting — online right now, or just around the corner. We'll be here.
+
+Learn more at recoverysky.app
+
+RecoverySky Premium is $6.99/month. Payment is charged to your Google Play account at confirmation. Your subscription renews automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Google Play account settings.
+
+
+--- KEYWORDS ---
+
+Google Play has no keyword field. It reads the title + short + full
+description — "meeting finder", "near you", "Recovery Dharma",
+"GPS-verified", and "drug court" all appear in the text above.
+
+
+========================================================
+APPLE APP STORE
+========================================================
+
+--- APP NAME (30 / 30) ---
+
+RecoverySky AA NA CMA Meetings
+
+
+--- SUBTITLE (26 / 30) ---
+
+Meetings online & near you
+
+(Replaces "Live recovery meeting finder": the app isn't live-only any more.
+"near" pairs with "me" in the keywords for "near me" searches.)
+
+
+--- PROMOTIONAL TEXT (142 / 170 — updatable without review) ---
+
+A meeting is on right now: 130,000+ AA, NA, CMA & Recovery Dharma meetings, online or near you. The link works, the room is real. Just listen.
+
+
+--- KEYWORDS (100-char field, comma-separated, NO spaces) ---
+
+Optimized (97 / 100) — drops words already in the name/subtitle
+(meetings, online, near, AA/NA/CMA):
+recovery,meeting,finder,me,dharma,addiction,attendance,court,sober,alcohol,narcotics,meth,zoom,rd
+
+Alternate (93 / 100) — trades "sober,zoom,rd" for the competitor-capture
+token, same as the in-person listing's alternate:
+recovery,meeting,finder,me,dharma,addiction,attendance,court,alcohol,narcotics,meth,pinkcloud
+
+
+--- DESCRIPTION ---
+
+Same as the Google Play FULL DESCRIPTION above, through "Learn more at
+recoverysky.app", then replace the final subscription block with:
+
+RecoverySky Premium is $6.99/month. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple Account settings.
+Terms of Use: https://www.recoverysky.app/terms
+Privacy Policy: https://www.recoverysky.app/privacy
+
+(^ VERIFY these two URLs are live before submitting — Apple rejects dead links.)
+(Apple total with this block: 3,967 / 4,000 — any addition to the shared
+copy has to come out somewhere else.)
+
+
+========================================================
+WHAT'S NEW / RELEASE NOTES — 4.10.x
+========================================================
+
+Release notes don't depend on voice — same as STORE_LISTING.in-person.txt.
+Google Play limit: 500 chars.
+
+--- FULL (bulleted, 488 / 500) ---
+
+Finding a meeting just got easier:
+
+• Search by name, city, venue, or keyword — online and in person.
+• Pick "Any" day to search the whole week at once.
+• Sort nearby meetings by distance or start time.
+• Favorites and star ratings now cover every day a meeting meets, and respond the instant you tap.
+• Faster launch, and a clear "you're offline" notice.
+• Recovery Dharma is back in every fellowship picker.
+• Fixed a sign-in issue that could block report sending.
+
+Keep coming back. 🌤️
+
+--- SHORT (268 / 500) ---
+
+New in RecoverySky:
+• Search meetings by name, city, venue, or keyword
+• "Any" day: search the whole week at once
+• Sort nearby meetings by distance or start time
+• Favorites and ratings cover every day a meeting meets
+• Faster launch, plus fixes
+
+Keep coming back. 🌤️
+
+
+========================================================
+DECISIONS & RATIONALE
+========================================================
+
+- SAME FACTS AS THE IN-PERSON LISTING. Every feature claimed there is
+  claimed here; only the voice and order differ. The wording rules for
+  each claim (location disclosure, search, "Any" day, sort, favorites,
+  GPS-verified) are explained in STORE_LISTING.in-person.txt and apply
+  here unchanged. Don't loosen a claim here that's pinned there.
+- "130,000+ MEETINGS" — CHANGED 2026-10-01 from no count (online-only copy)
+  / "55,000+ in-person" (in-person listing). One headline number, online +
+  in person together; no in-person-only figure. Counted on prod
+  (recoverysky DB, `meetings` where status = 'ACTIVE' and not closed):
+  131,655 active weekly meetings — 123,630 in person, 8,025 online; by
+  fellowship AA 103,706, NA 26,068, RD 983, CMA 898. One row = one weekly
+  meeting time (a group meeting Mon/Wed/Fri counts 3), the Meeting Guide /
+  TSML convention. The raw 169,027 row count includes deleted, paused and
+  closed rows — never quote it. Not de-duplicated across sources. Re-count
+  before each submission and round DOWN.
+- OPENING LINE — CHANGED 2026-10-01 to "Reaching out is the hard part.
+  Finding the meeting shouldn't be." The old "There's a meeting happening
+  right now — and someone in it is exactly where you are" presumed the
+  reader's state and was live-only. Keep it identical in the experiment
+  file's Variant B.
+- RECOVERY DHARMA added everywhere the fellowships are listed — it's a
+  selectable fellowship as of 4.10.0 (see the in-person file's RD note).
+- Dropped "Find your pink cloud" as the slogan — the top competitor is
+  literally named "Pink Cloud." "pinkcloud" survives only in the alternate
+  Apple keyword list.
+- Hugo (the verification bot) stays invisible. Promise the outcome, not the
+  method. CHANGED 2026-10-01: the old copy said we "constantly check that
+  live meetings are really live" — now "every live listing verified".
+  "Constantly checks" implies a presence inside the room and spooks hosts
+  and attendees. State, not activity.
+- No "no account / no setup" claims. The app requires an account, and
+  joining needs the free Zoom Workplace app installed. Both are stated
+  plainly.
+- "We don't track you / don't sell your data" — chosen over "we collect no
+  information," because the app requires an account and offers cloud
+  backup/sync and location features, which Google's Data Safety form
+  discloses. A blanket "we collect nothing" would contradict that form and
+  risk rejection.
+- Sky AI + Social feed are NOT advertised — built but hidden pending
+  content. Passwordless sign-in is merged but not in a store build yet.
+- "court" kept in keyword lists (high-intent for the supervision audience).
+- NO emoji or exotic Unicode in the Apple Description field — App Store
+  Connect rejects them ("This field contains one or more invalid
+  characters"). The 🌤️ and the old "⸻" divider both tripped it. Em dashes
+  and • bullets are fine. Emoji is fine in Google Play's description and
+  in the "What's New" notes on both stores.

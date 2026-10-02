@@ -926,7 +926,8 @@ its subsystem:
   link routing
 - `docs/translation-review-2026-08-03.md` — native-speaker review queue for the
   eight non-English locales
-- `docs/STORE_LISTING.*.txt` — App Store / Play listing copy drafts
+- `docs/store-listings/` — App Store / Play listing copy (`STORE_LISTING.*.txt`);
+  `experiments/` holds Play store listing experiment variants
 - `EVENTS.md` — the app's event/pub-sub catalog
 - `auth0/` — source for the tenants' Auth0 Actions, one folder per tenant:
   `actions/meetingmaker/` (prod, `auth.recoverysky.app`) and

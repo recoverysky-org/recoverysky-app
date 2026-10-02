@@ -45,7 +45,7 @@ AA, NA, CMA & Recovery Dharma meeting finder — online now or in person near yo
 
 Find a meeting. Online, in person, happening right now, or any day this week. Then prove you were there, with verified attendance reports.
 
-RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma. It tracks live online meetings you can join in one tap, and more than 55,000 in-person meetings you can walk into — searchable by name, fellowship, day, time of day, and distance from you.
+RecoverySky is a meeting finder for AA, NA, CMA, and Recovery Dharma. It tracks more than 130,000 meetings — live online meetings you can join in one tap, and in-person meetings you can walk into — searchable by name, fellowship, day, time of day, and distance from you.
 
 FIND A MEETING ONLINE
 • See AA, NA, CMA, and Recovery Dharma meetings that are live right now
@@ -56,7 +56,7 @@ FIND A MEETING ONLINE
 We keep the listings honest: meeting details are kept current, and every live listing is verified. When you tap Join, you get a room with others — not a broken link or a wrong password.
 
 FIND A MEETING NEAR YOU
-• 55,000+ in-person meetings across AA, NA, CMA, and Recovery Dharma
+• In-person AA, NA, CMA, and Recovery Dharma meetings near you
 • Sorted nearest first or by start time, with the distance on every row — pick your own search radius
 • Browse one day or the whole week at once, and narrow to morning, afternoon, evening, or overnight
 • Every venue has a detail page: address, one-tap directions in your maps app, published contacts, and the full weekly schedule
@@ -211,10 +211,18 @@ DECISIONS & RATIONALE
 - TITLE/NAME unchanged (30/30): already max-length with the top fellowship
   tokens. The ASO pivot to "meeting finder" lives in the Apple subtitle,
   Google short description, and keywords instead.
-- "55,000+" is a real number: 55,617 active in-person meetings measured live
-  across all sources (2026-08, see CLAUDE.md "In-Person segment" note).
-  Re-verify the count is still ≥ 55,000 before each store submission; round
-  DOWN to whatever the data supports.
+- "130,000+ MEETINGS" — CHANGED 2026-10-01 from "55,000+ in-person". One
+  headline number for online + in person together; we deliberately don't
+  quote an in-person-only count any more. Counted on prod (recoverysky DB,
+  `meetings` where status = 'ACTIVE' and not closed): 131,655 active weekly
+  meetings (123,630 in person). One row = one weekly meeting time
+  (a group meeting Mon/Wed/Fri counts 3), the same convention as Meeting
+  Guide / TSML; distinct groups would be 73,255 / 70,863. The raw 169,027
+  row count includes deleted, paused and closed rows — never quote it.
+  Not de-duplicated across sources. Re-count before each submission and
+  round DOWN; keep this file, the Play experiment's Variant B
+  (experiments/2026-10-play-listing-warm-vs-in-person.txt), and
+  STORE_LISTING.warm.txt identical.
 - RD (Recovery Dharma) claims are live as of 2026-08-04 — RD is a selectable
   fellowship in Settings/onboarding and the Live / Search / In-Person
   filters (`EXPO_PUBLIC_FELLOWSHIPS="AA,NA,CMA,RD"` in .env + eas.json).
@@ -290,8 +298,10 @@ DECISIONS & RATIONALE
 - NO emoji or exotic Unicode in the Apple Description field — App Store
   Connect rejects them. Emoji is fine in Google Play's description and in
   "What's New" on both stores.
-- This file coexists with STORE_LISTING.warm.txt (the warm-voice
-  alternative) and STORE_LISTING.in-person.ES.txt (the es-US localization,
-  which still reflects the 4.8.0 copy and needs the same refresh before
-  the Spanish listing is updated). Whichever ships, keep the others for
+- This file is Control (A) of the Google Play listing experiment in
+  experiments/2026-10-play-listing-warm-vs-in-person.txt. It coexists with
+  STORE_LISTING.warm.txt (the warm-voice listing for both stores) and
+  STORE_LISTING.in-person.ES.txt (the es-US localization, which still
+  reflects the 4.8.0 copy and needs the same refresh before the Spanish
+  listing is updated). Whichever ships, keep the others for
   reference.
