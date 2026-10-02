@@ -153,6 +153,14 @@ export interface ScheduleFeedbackPlan {
  * is then a no-op. It also covers a meeting added upstream to an
  * already-loved schedule, which is what "schedule-wide" should mean.
  *
+ * NOTE 2026-10-02: that second case is the lasting job, not the legacy one.
+ * The scraper can re-import a schedule with some meetings under new ids
+ * (source edits, re-parsed times, a re-keyed upstream record); one loved
+ * sibling is proof the user loves the schedule, so the new ids are loved
+ * too. It needs at least one id to survive — a schedule re-keyed whole has
+ * no loved sibling to find. Every fetch site that maps schedules to rows
+ * must call `feedbackCache.reconcileSchedules` first, list or single lookup.
+ *
  * Pure: `lookup` is the cache read, the result is the list of writes. The
  * I/O half is `feedbackCache.reconcileSchedules`. Uniform schedules produce
  * nothing, so calling this on every fetch costs one Map lookup per cell.

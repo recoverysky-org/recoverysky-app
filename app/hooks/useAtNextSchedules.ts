@@ -60,6 +60,7 @@ import { AppState, type AppStateStatus } from "react-native"
 
 import { retryWithBackoff, toMeetingWithTrex, type MeetingWithTrex } from "@/context/MeetingContext"
 import { projectOnline } from "@/context/meetingPools"
+import { feedbackCache } from "@/db"
 import { useConfigStore } from "@/models"
 import { api } from "@/services/api"
 import {
@@ -166,6 +167,11 @@ export function useAtNextSchedules(active: boolean) {
       const outcome = outcomes[i]
       if ("result" in outcome && outcome.result.kind === "ok") {
         anyOk = true
+        // Schedule-wide hearts/stars, before toMeetingWithTrex snapshots
+        // `feedback`. ADDED 2026-10-02: this was the one list fetch that
+        // skipped it, so a schedule the scraper re-imported with a fresh mid
+        // showed that day unloved under Starts In (see feedbackCache).
+        feedbackCache.reconcileSchedules(outcome.result.schedules)
         updates[offset] = {
           meetings: projectOnline(outcome.result.schedules.map(toMeetingWithTrex)),
           atMs: parseAtMillis(outcome.result.at),

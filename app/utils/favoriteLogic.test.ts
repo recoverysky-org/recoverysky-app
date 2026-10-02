@@ -126,6 +126,16 @@ describe("reconcileScheduleFeedback", () => {
     expect(plan.ratingWrites).toEqual([])
   })
 
+  it("favorites a scraper re-import's new mids when any surviving sibling is loved", () => {
+    // The scraper re-imported the schedule: Tue and Wed came back with fresh
+    // ids no feedback record has ever seen, Mon kept its loved id.
+    const plan = reconcileScheduleFeedback(
+      [schedule("tue2", "mon", "tue2", "wed2")],
+      lookup({ mon: { loves: true }, tue: { loves: true }, wed: { loves: true } }),
+    )
+    expect(plan.loveMids).toEqual([["tue2", "mon", "wed2"]])
+  })
+
   it("leaves a schedule alone when every sibling agrees, loved or not", () => {
     const allLoved = reconcileScheduleFeedback(
       [schedule("mon", "mon", "tue")],

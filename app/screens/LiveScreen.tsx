@@ -371,6 +371,9 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
             consumePendingMeetingId()
             return
           }
+          // ADDED 2026-10-02: schedule-wide hearts/stars for a deep-linked
+          // schedule that isn't in any list, before the snapshot below.
+          feedbackCache.reconcileSchedules([s])
           const meetingWithTrex = toMeetingWithTrex(s)
           consumedMeetingIdRef.current = targetId
           consumePendingMeetingId()

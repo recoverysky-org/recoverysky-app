@@ -729,6 +729,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         // there is no distance to report. It's optional on MeetingWithTrex and
         // `formatDistance(undefined)` returns "", so the badge simply doesn't
         // render — do NOT synthesize one from the user's current position.
+        // ADDED 2026-10-02: schedule-wide hearts/stars first, so the
+        // `feedback` snapshot below already carries them (see feedbackCache).
+        feedbackCache.reconcileSchedules([s])
         const meetingWithTrex: MeetingWithTrex = {
           ...s.meeting,
           feedback: feedbackCache.get(s.meeting.id),

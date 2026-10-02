@@ -143,6 +143,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Fixed
 
+- **Favorites follow the schedule through a scraper re-import.** A
+  favorited schedule stays favorited on every day after the scraper
+  re-imports some of its meetings under new ids. If any meeting in an
+  arriving schedule is loved, the app now hearts all of them (stars work
+  the same way, using the highest rating). Live, Search and In-Person
+  already did this. Three places did not: the Starts In chips, a meeting
+  opened from a notification or deep link, and the first Live load after a
+  cold start, which could arrive before the local favorites finished
+  loading.
 - **Live and Search now say when meetings failed to load.** When the API is up
   but can't serve schedules (2026-10-01: TREX down, `/status/ready` still
   `ready`, every `/schedules/*` route a 500), Live kept showing its last good

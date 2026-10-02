@@ -28,6 +28,15 @@ const log = logger.child({ module: "feedbackCache" })
 let cache = new Map<string, FeedbackRecord>()
 let loaded = false
 
+// Schedule payloads that arrived before `loadAll()` finished, replayed through
+// `reconcileSchedules` once it does. ADDED 2026-10-02: MeetingProvider mounts
+// in the same commit that starts `loadAll()` and child effects flush first, so
+// the first Live fetch races the SQLite load. When the network won, the
+// payload hit `if (!loaded) return` and its schedules went unreconciled until
+// the next quarter-hour poll. Cleared on load, so it holds at most the few
+// payloads of a cold start.
+let pendingReconcile: (readonly ScheduleRowLike[])[] = []
+
 // Listeners for reactive updates
 type FeedbackListener = (mid: string, feedback: FeedbackRecord) => void
 const listeners = new Set<FeedbackListener>()
@@ -159,6 +168,9 @@ export const feedbackCache = {
       cache = new Map()
       loaded = true
     }
+    const queued = pendingReconcile
+    pendingReconcile = []
+    for (const schedules of queued) this.reconcileSchedules(schedules)
   },
 
   /**
@@ -296,7 +308,13 @@ export const feedbackCache = {
    * per cell and produce no writes.
    */
   reconcileSchedules(schedules: readonly ScheduleRowLike[]): void {
-    if (!loaded) return
+    // CHANGED 2026-10-02: queued instead of dropped before the cache loads
+    // (see `pendingReconcile`). Planning against an empty cache would see no
+    // loved sibling and write nothing, so it has to wait for the real one.
+    if (!loaded) {
+      pendingReconcile.push(schedules)
+      return
+    }
     const plan = reconcileScheduleFeedback(schedules, (mid) => cache.get(mid) ?? null)
     if (plan.loveMids.length === 0 && plan.ratingWrites.length === 0) return
     log.info("Reconciling legacy per-meeting feedback to schedule-wide", {
@@ -381,6 +399,7 @@ export const feedbackCache = {
    */
   clear(): void {
     cache.clear()
+    pendingReconcile = []
     loaded = false
   },
 
