@@ -11,7 +11,8 @@ Thanks for writing. First, your records are safe. The app is showing this screen
 To continue:
 
 1. Sign in the same way you did when you first used the app on this phone: Apple, Google or an email code. The screen shows the option that fits.
-2. If you aren't sure which way that was, tap "Cancel" first. It's safe and changes nothing.
+2. If you chose Apple's Hide My Email, tap "Sign in with Apple". Typing your real address starts a new account.
+3. If you aren't sure which way it was, tap "Cancel" to go back. It's safe and changes nothing, and you can reply to us for help.
 
 Please use the same method on every phone. Reply if you're not sure which one you used.
 
@@ -28,7 +29,7 @@ Please try this:
 
 1. On the screen, tap "Send code to [the address shown on screen]".
 2. Check your email and enter the six-digit code.
-3. If the screen returns once, don't worry. Ask for one more code and enter it. The second one normally lets you in.
+3. If the screen returns once, don't worry. Ask for one more code and enter it. The second one may let you in. Tell us what you see.
 
 Afterwards, please check that your records and subscription are all there, and reply to tell us.
 

@@ -156,7 +156,7 @@ Put the phone's date back to automatic afterwards.
 - **Apple "Hide My Email"**: these accounts link by neither path. The automatic email-match link
   can't match the `privaterelay` address, and the wrong-account rescue only links when both
   accounts have the same address (`decideForeignLink` in `app/services/auth/ownerLogic.ts`). Such a
-  user must always use Sign in with Apple. See
+  user must always use Continue with Apple on the Login screen. See
   [account linking](support/reference/account-linking.md#apple-hide-my-email).
 - Wrong-account screen → link from Settings (`POST /auth0/link`), failure paths, and two-candidate
   ordering: plan Task 18 Step 4 and `docs/BACKUP.md`.

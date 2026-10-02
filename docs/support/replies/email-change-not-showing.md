@@ -28,7 +28,7 @@ Thanks for your message. Looking at your account, the confirmation step only ver
 
 We can change it for you. Please reply with:
 
-1. The address you want to use: [the address you used]
+1. The address you want to use: [new address]
 2. Confirmation that you can open that mailbox today
 
 Once we've made the change, we'll let you know. Then sign out of the app and sign in again so your phone picks it up.
@@ -60,7 +60,7 @@ Thanks for writing. When Settings shows "Hidden by Apple", that is expected and 
 
 A few helpful notes:
 
-1. Always use "Sign in with Apple" to get into this account, on every phone.
+1. Always tap "Continue with Apple" on the sign-in screen to get into this account, on every phone.
 2. Typing your real address into "Continue with Email" starts a separate account, which won't have your records.
 
 Reply if you'd like help with anything else.

@@ -13,7 +13,7 @@ To get back to them:
 1. Sign out in Settings by tapping "Log Out".
 2. Sign in the way you first did: Google, Apple, or an email code with the same address as before.
 
-If you used Apple's Hide My Email, always use "Sign in with Apple". Typing your real address starts a new account. Reply if you aren't sure which method was yours.
+If you used Apple's Hide My Email, always tap "Continue with Apple" on the sign-in screen. Typing your real address starts a new account. Reply if you aren't sure which method was yours.
 
 Warmly,
 RecoverySky Support
@@ -29,7 +29,7 @@ Before anything else, please check that the Attendance tab and Settings have not
 1. Open Settings and tap "Delete User Data". It clears this phone only. Your accounts are not touched.
 2. Sign in again the way you normally do.
 
-Only do this if the phone holds no records of yours. Reply first if you're unsure.
+If the app shows a screen asking for a code to a different address instead, tell us what you see before you do anything. Only do this if the phone holds no records of yours. Reply first if you're unsure.
 
 Warmly,
 RecoverySky Support

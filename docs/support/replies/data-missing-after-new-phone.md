@@ -29,7 +29,7 @@ Please try this:
 1. Open Settings and tap "Log Out".
 2. Sign in the way you did on your old phone: Google, Apple, or an email code with your usual address.
 
-Backed-up records belong to the account that saved them, so signing in the same way matters. If you used Apple's Hide My Email, always use "Sign in with Apple". Reply if you aren't sure which one you used.
+Backed-up records belong to the account that saved them, so signing in the same way matters. If you used Apple's Hide My Email, always tap "Continue with Apple" on the sign-in screen. Reply if you aren't sure which one you used.
 
 Warmly,
 RecoverySky Support
@@ -38,12 +38,14 @@ RecoverySky Support
 
 Hi [first name],
 
-Thank you for writing, and I'm sorry to be the bearer of difficult news. We looked into it, and your records were only stored on your old phone. Cloud Backup wasn't switched on there, so we have no copy to give back.
+Thank you for writing, and I'm sorry. From what we can see, your records were only stored on your old phone, because Cloud Backup wasn't switched on there. That means we have no copy to give back.
 
 What you can do:
 
 1. If your old phone still works, don't erase it. Sign in on it, and turn on "Back up attendance" in Settings if it's offered. Wait for "All backed up", then sign in on the new phone with the same account.
-2. If you used our older app, Settings has an Import option for that data.
+2. If your data came from our older app, Settings has an Import option.
+
+If the new phone says "Can't unlock your local data" (this can happen after a phone restore), tap "Reset local data" and confirm. It only clears what was already unreadable. Then sign in, and anything backed up returns once Cloud Backup is on.
 
 I'm truly sorry we can't do more if the old phone is gone.
 
@@ -54,7 +56,7 @@ RecoverySky Support
 
 Hi [first name],
 
-Thanks for your patience. Your records are not lost, and there's nothing you need to fix. They seem to be saved under a sign-in that doesn't line up with your current one, and we need to sort that out on our side.
+Thanks for your patience. We don't think anything is lost, and there's nothing you need to fix. They seem to be saved under a sign-in that doesn't line up with your current one, and we need to sort that out on our side.
 
 Please don't delete anything or uninstall the app. To help us, reply with:
 

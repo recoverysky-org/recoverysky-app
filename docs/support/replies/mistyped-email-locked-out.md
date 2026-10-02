@@ -26,7 +26,7 @@ Good news: we've corrected the email address on your account to [the address you
 To get back in:
 
 1. Close the app completely and open it again.
-2. If you still see the confirmation screen, try signing in again once you can. You can either use your password, or choose "Continue with Email" and use a code sent to the corrected address.
+2. If the confirmation screen still shows and you can't get past it, reply and we'll walk you through the next step. Once you are on the sign-in screen, you can use your password, or choose "Continue with Email" and use a code sent to the corrected address.
 
 The address shown in Settings may take until your next sign-in to update. Reply if anything looks off.
 

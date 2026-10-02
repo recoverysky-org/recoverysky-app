@@ -25,7 +25,7 @@ Sorry you're locked out. Let's get you back in.
 
 The quickest way is a code, with no password needed. Tap "Continue with Email", type [the address you used], tap "Send Code" and enter the six digits.
 
-If you'd rather have your password back, tap "Can't get a code? Sign in with your password" on the sign-in screen and look for a reset option on the page that opens. If there isn't one, reply to this email and we'll send you a reset link to your address.
+If you'd rather have your password back, tap "Can't get a code? Sign in with your password" on the sign-in screen and look for a reset option on the page that opens. If there isn't one, reply to this email. We can help you set a new password, and once we've confirmed the account is yours, we'll send a secure link to the address on your account.
 
 Warmly,
 RecoverySky Support

@@ -14,7 +14,7 @@ Please try this:
 2. Stay in the sign-in window until it takes you back to the app. Please don't switch to other apps.
 3. If you're on a weak connection, move to a steadier one first.
 
-If it still won't work, tap "Continue with Email" instead. It doesn't need a browser. If your Google or Apple account uses the same address, it will lead to the same records. Apple's Hide My Email is the exception: use the Apple button.
+If it still won't work, tap "Continue with Email" instead. It doesn't need a browser. If your Google or Apple account uses the same address, it will lead to the same records. Apple's Hide My Email is the exception: tap "Continue with Apple".
 
 Warmly,
 RecoverySky Support
