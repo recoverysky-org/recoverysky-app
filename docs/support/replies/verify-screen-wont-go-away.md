@@ -27,7 +27,7 @@ Thanks for your patience, and sorry for the repeated screen. Your email address 
 
 Please:
 
-1. If you see "Not now" on the screen, tap it. Then open Settings and tap "Log Out".
+1. If you see "Not now" on the screen, tap it. Then open Settings and tap "Logout".
 2. Sign in again with the same method as before.
 
 That gives your phone fresh details and the screen should stop appearing. If you can't tap "Not now", reply and let us know. We'll help you from our end.
@@ -43,7 +43,7 @@ I'm sorry you're stuck on this screen. We can fix it from our side, and you don'
 
 Please reply with:
 
-1. The email address you want on your account: [the address you used]
+1. The email address you want on your account
 2. Confirmation that you can open that mailbox today
 
 We'll update the account. Once we tell you it's done, close the app completely and open it again. If the screen still shows, reply and we'll keep going with you.

@@ -33,7 +33,7 @@ Background: [email verification](../reference/email-verification.md#the-mistyped
    - A Google or Apple account of theirs on that address.
    - A different person's account (rare; do not touch it).
    Note each row's `user_id` prefix, `created_at` and whether it is the one with data. The one the user actually uses (the one they sign in to with the password, or the one the device owns) is the account to keep.
-6. **Check the stray holder before touching it.** Compute the stray account's hash locally from its dashboard `user_id`. Search Loki for it as `ownerId` (`Device owner adopted`, `Foreign session on an owned device`, `Device owner relinked into a linked account`). If any device owns the stray, do **not** delete it (the device would land on the wrong-account screen with only a reinstall as exit): escalate. In the dashboard read the stray's `created_at`, `last_login` and `logins_count`. If it has been used beyond creation, or the user had Cloud Backup or a purchase on it, treat it as holding data (rows under an `email|` sub do not follow a link) and escalate.
+6. **Check the stray holder.** The default fix leaves the stray in place; these checks decide whether its data needs engineering and whether the deletion exception is open. Compute the stray account's hash locally from its dashboard `user_id`. Search Loki for it as `ownerId` (`Device owner adopted`, `Foreign session on an owned device`, `Device owner relinked into a linked account`). If any device owns the stray, never delete it (that device would land on the wrong-account screen with only a reinstall as exit). In the dashboard read the stray's `created_at`, `last_login` and `logins_count`. If it has been used beyond creation, or the user had Cloud Backup or a purchase on it, treat it as holding data: rows under an `email|` sub do not follow a link, so escalate that part.
 7. **Does the device own the typo account?** Loki `Device owner adopted` / `Foreign session on an owned device` with the hash. If the user also sees the wrong-account screen, read [wrong-account-screen](wrong-account-screen.md).
 
 ## Causes
@@ -55,15 +55,16 @@ Treat as a possible account takeover or typo into someone else's address. Do not
 ### Cause 3
 Tell the user to use "Not my email? Change it", type the correct address and enter the code sent there.
 
-### Cause 1 and 2: correct the address in Auth0 (support-trusted prod write)
+### Cause 1: correct the address in Auth0 and leave the stray (default)
 
 **Pending Jenova's decision on the in-app path.** This is the support fix today.
 
-1. Read the user: `GET /api/v2/users/{sub}` for the typo account. Keep the before-state (email, `email_verified`, identities).
-2. Confirm with the user which account is theirs and which holder of the corrected address (the stray account) can be abandoned. **Never edit or delete account A because B asked.** Confirm the user controls the stray account (they should be able to open it with a code to the corrected address) before removing it, and confirm it holds no data they want.
-3. Free the corrected address. Prefer the **non-destructive** route: escalate for engineering to decide, or have the user keep the stray as their account if it is the one they want. Only if **all** hold, delete the stray (`DELETE /api/v2/users/{stray_sub}`; irreversible, deletes no server data or RevenueCat customer; see [tools: delete a user](../reference/tools.md#delete-a-user)): no device owns it (Diagnose 6), it has never been used beyond creation (`logins_count`, `last_login`), the user had no Cloud Backup or purchase on it, and the user agrees. Otherwise **stop and escalate**; do not choose for the user.
-4. Check nothing else holds the corrected address: `GET /api/v2/users-by-email?email=user@example.com`.
-5. Correct the typo account. Use the body from [tools](../reference/tools.md#update-an-email-or-set-email_verified-password-users-only), with `connection`:
+1. **Read the typo account:** `GET /api/v2/users/{sub}`. Keep the before-state (email, `email_verified`, identities).
+2. **Confirm ownership.** Confirm with the user which account is theirs. **Never edit or delete account A because B asked.** Before you set `email_verified: true`, confirm the user can read the corrected inbox: ask them to reply **from** that address.
+3. **List the holders of the corrected address:** `GET /api/v2/users-by-email?email=user@example.com`. Expected in Cause 1: the stray `email|` account and nothing else.
+   - Another `auth0|` (password) account holds it: Auth0 refuses a duplicate inside one connection. Stop and escalate.
+   - A Google or Apple account holds it: that is Cause 2.
+4. **Correct the typo account and leave the stray where it is.** Use the body from [tools](../reference/tools.md#update-an-email-or-set-email_verified-password-users-only), with `connection`:
    ```json
    {
      "email": "user@example.com",
@@ -72,13 +73,29 @@ Tell the user to use "Not my email? Change it", type the correct address and ent
      "connection": "Username-Password-Authentication"
    }
    ```
-   `email_verified: true` is correct **only** if you have confirmed the user can read that inbox (a code to that address works, or they replied from it). `verify_email: false` stops Auth0 sending its own mail; leave it out and the user gets one. `PATCH /api/v2/users/{sub}` on `auth0|` accounts only. The sub does **not** change, so no server rows and no RevenueCat customer move.
-6. Tell the user what to do **on the device**:
-   1. Open the app. The mandatory screen may still show because the phone holds a token that says unverified, and **it has no sign-out**. Try force-quit and reopen first. If it persists, switch on airplane mode: a mandatory screen closes while the device is offline, so Settings is reachable; sign out, reconnect, then sign in again with the **password** (fresh token carrying the corrected address and `email_verified: true`). Last resort: reinstall (loses unsynced local data).
-   2. Alternatively, on the Login screen choose "Continue with Email" and enter the corrected address: the code login links into the password account through the automatic link (same sub, same data), and the screen stops asking because code sessions are never asked.
-   3. If the phone shows the wrong-account screen afterwards (because the owner record is the stray account), see [wrong-account-screen](wrong-account-screen.md).
-   4. Settings and report addresses may keep the old address until the next token renewal: see [email-change-not-showing](email-change-not-showing.md).
-7. Re-check: the Auth0 user's email and **Email verified**; Loki `Verify email shown` stops for the hash.
+   `PATCH /api/v2/users/{sub}` on `auth0|` accounts only. Our API's `email_in_use` refuses an address that any other user holds; Auth0 documents email uniqueness per connection only, so this PATCH should succeed while the stray (connection `email`) holds the same address. **Confirm that once on `bad-bitch-tenant` before first use on prod.** If Auth0 refuses, stop and escalate. `email_verified: true` only after step 2's check. `verify_email: false` stops Auth0 sending its own mail. The sub does **not** change, so no server rows and no RevenueCat customer move.
+5. **What happens to the stray: nothing, until its next code login.** It has exactly one identity, so at its next code login the Link Action looks up every account on the address, skips the stray itself, keeps the ones whose root identity is `auth0`, `google-oauth2` or `apple`, and links into the **oldest**. In Cause 1 that is the corrected password account: it becomes the primary, and the login lands in the user's real account with their data (`link-passwordless-identity.js`). If a device owns the stray, that device shows the wrong-account screen once and then relinks on the next code entry (the same sequence as the [code-owner wrong tap](../reference/account-linking.md#code-owner-and-a-googleapple-wrong-tap-inferred-from-code); inferred from code, not device-tested). Rows the stray pushed to the server stay under its sub (none expected for an unused stray).
+6. **Trade-off of leaving the stray:** while it exists, the in-app verify on the corrected address still answers `email_in_use`, so device step (a) below is not available. The user relies on step (b), or on a code sign-in once they reach the Login screen.
+7. **Exception: delete the stray** only to unlock device step (a), and only if **all** hold: no device owns it (Diagnose 6), `logins_count` and `last_login` show it was never used beyond creation, the user had no Cloud Backup or purchase on it, the user controls it and agrees. `DELETE /api/v2/users/{stray_sub}` is irreversible and deletes no server data or RevenueCat customer ([tools: delete a user](../reference/tools.md#delete-a-user)). If any check fails, leave it.
+
+### Cause 2: the other holder has data, decide first
+
+The PATCH in Cause 1 step 4 would succeed here too (different connections), but then two real accounts share the address. The next code login on that address links into the **oldest** of them: if the Google or Apple account is older than the password account, it becomes the primary and code logins land there, not in the password account. Provider logins never link, so the two accounts' data stay apart either way, and no link moves server rows. Agree with the user which account is canonical before editing anything. If both hold data the user wants, escalate.
+
+### Device steps after the fix (Causes 1 and 2)
+
+Tell the user what to do **on the device**, in this order:
+
+1. **(a) Confirm in the app, when no other user holds the corrected address** (the stray was deleted under the exception, or never existed). On the verify screen: "Not my email? Change it", type the corrected address, "Send code", enter the code. The API finds no other holder, sets `email_verified`, and the app closes the screen, updates the account address **and** the device owner's "Send code to {{email}}" address, and renews the token (`VerifyEmailGate.tsx`; code-derived, not device-tested). It also proves the inbox.
+2. **(b) Force-quit and reopen, once the phone's token has renewed.** Only works when Auth0 says `email_verified: true`. When the renewal happens depends on the tenant's token lifetimes, so it may take hours; ask the user to try again later rather than repeatedly.
+3. **(c) Airplane mode, likely to fail for this user.** A mandatory screen closes while the device is offline, so Settings is reachable. But only password sessions see this screen, and a password session's "Logout" opens a browser to clear the Auth0 session, which cannot load offline. Closing that browser most likely aborts the logout (`Logout cancelled by user`), and the screen returns once online. Not device-tested; try it only before a reinstall.
+4. **(d) Reinstall, last.** Loses unsynced local data. A reinstall also clears the device owner, so the next sign-in adopts.
+
+**At the Login screen afterwards.** For a password owner the Login screen shows "Send code to {{email}}" with the **old (typo) address**, a "Use a different email" link and "Can't get a code? Sign in with your password". A dashboard edit and a password sign-in do not change that stored address (only a code sign-in or an in-app verify does). Tell the user: sign in with the password, or tap **"Use a different email"** and type the corrected address. Do **not** tap "Send code to …": that code goes to the typo. A code to the corrected address signs in to the password account (through the automatic link, same sub, same data), and code sessions are never asked to verify.
+
+If the phone shows the wrong-account screen afterwards (the device owns the stray), see [wrong-account-screen](wrong-account-screen.md). Settings and report addresses may keep the old address until the next token renewal: see [email-change-not-showing](email-change-not-showing.md).
+
+Re-check: the Auth0 user's email and **Email verified**; Loki `Verify email shown` stops for the hash.
 
 ### Cause 4
 Do not edit anything. Escalate.
@@ -94,7 +111,8 @@ When the stray holder has data, when the corrected address belongs to another pe
 See [../replies/mistyped-email-locked-out.md](../replies/mistyped-email-locked-out.md). Expected variants:
 
 - `fix-in-app`: Cause 3; change the address on the screen.
-- `we-fixed-it-sign-in-again`: Causes 1 and 2 after the Auth0 fix; sign in with your password or a code to the corrected address.
+- `we-fixed-it-confirm-in-app`: Causes 1 and 2 after the Auth0 fix, when no other user holds the corrected address (device step a).
+- `we-fixed-it-sign-in-again`: Causes 1 and 2 after the Auth0 fix, with the stray left in place (device step b, then the Login screen).
 - `need-to-confirm-which-account`: before editing; asks the user to confirm which account is theirs.
 - `cannot-change-this-address`: Google/Apple address, or Cause 4.
 

@@ -117,7 +117,7 @@ If the rewrite cannot run (database not yet open), ERROR `Relinked owner: row re
 
 **What the user sees: nothing special.** They sign in and land in the main app. Settings, Account then shows the new primary's identity plus the linked identities.
 
-**Dependency.** `relinked` needs the identities-claim Action to emit a per-identity `sub`. The deployed prod and dev Action files do. A tenant on an older version of the Action returns `mismatch`, and the user loops on the wrong-account screen (the code goes to the owner's address, returns the same primary sub, and is refused again); only Delete User Data or a reinstall breaks that loop. If a ticket shows that loop, check the identities-claim Action is deployed on the tenant ([tools](tools.md#action-execution-results)).
+**Dependency.** `relinked` needs the identities-claim Action to emit a per-identity `sub`. The deployed prod and dev Action files do. A tenant on an older version of the Action returns `mismatch`, and the user loops on the wrong-account screen (the code goes to the owner's address, returns the same primary sub, and is refused again); Delete User Data cannot break it, because it needs the owner's sign-in, which is the one being refused; only a reinstall does (loses unsynced local data). If a ticket shows that loop, check the identities-claim Action is deployed on the tenant ([tools](tools.md#action-execution-results)).
 
 Trust assumption: `relinked` treats every identity inside the account as the owner.
 

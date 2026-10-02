@@ -23,7 +23,7 @@ Background: [sign-in methods: signed out unexpectedly](../reference/sign-in-meth
    | A red banner, "You're offline...", "Network issues...", "Connecting to RecoverySky...", "Maintenance in progress..." | Not a sign-out: Cause 7 |
    | "This device is set up for a different RecoverySky account." | Not a sign-out: [wrong-account-screen](wrong-account-screen.md) |
    | Signed in, but nothing loads | Cause 5 |
-2. **Loki: was it a forced logout?** Use the user's `userId` hash (computed locally, [tools](../reference/tools.md#hash-an-auth0-sub-into-the-log-userid)). Module-level lines carry `userId` only on builds from 4.10.1-9 ([note](../reference/tools.md#auth-queries-replace-hash-and-deviceid)); on older builds find any line with their hash and pivot on `sessionId`.
+2. **Loki: was it a forced logout?** Use the user's `userId` hash (computed locally, [tools](../reference/tools.md#hash-an-auth0-sub-into-the-log-userid)). Module-level lines (`Api`, `AuthStore`, `ConfigStore`, `sqliteKey`, `App`) carry no `userId` on builds up to 4.10.1-4; judge coverage on 4.10.1-5 and later, and for windows that include builds before 4.10.1-9 match `| userId="<hash>" or user_id="<hash>"` ([tools](../reference/tools.md#auth-queries-replace-hash)); on those older builds find any line with their hash and pivot on `sessionId`.
    ```
    {service_name="recoverysky-app", module="App"} |= "Performing forced logout after permanent refresh failure" | userId="<hash>"
    {service_name="recoverysky-app", module="tokenFreshness"} |= "forcing logout"

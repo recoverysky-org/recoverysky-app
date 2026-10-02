@@ -32,6 +32,7 @@ Logs carry `hashUserId(sub)` only. **Never paste a user's email address or raw A
 | "I forgot my password" / "I'm on an old version of the app" | [forgot-password-or-old-app](problems/forgot-password-or-old-app.md) |
 | "The app signed me out by itself" | [signed-out-unexpectedly](problems/signed-out-unexpectedly.md) |
 | "Google or Apple sign-in just hangs" | [sign-in-hangs-google-apple](problems/sign-in-hangs-google-apple.md) |
+| "Delete my account" / "delete my data from your servers" | [delete-my-account](problems/delete-my-account.md) |
 
 ## Reference
 
@@ -46,10 +47,10 @@ Logs carry `hashUserId(sub)` only. **Never paste a user's email address or raw A
 | Term | Meaning |
 | --- | --- |
 | sub | Auth0's user id, written `provider\|id` (for example `auth0\|65f0000000000000000000aa`). The provider is `auth0` (password), `email` (code), `google-oauth2` or `apple`. Personal data: do not paste it. |
-| primary account | After linking, one Auth0 user holds several identities. The primary is the user whose sub every login now returns. The automatic link picks the oldest same-email account whose root identity is `auth0`, `google-oauth2` or `apple`. |
+| primary account | After linking, one Auth0 user holds several identities. The primary is the user whose sub every login now returns. The automatic link picks the oldest same-email account whose root identity is `auth0`, `google-oauth2` or `apple`. After the wrong-account rescue link, the primary is the device owner's account. |
 | identity | One sign-in method attached to an Auth0 user (its `identities` array). `identities[0]` is the root identity. |
 | connection | The Auth0 connection a login came through: `Username-Password-Authentication`, `email`, `google-oauth2`, `apple`. |
-| owner | The one account whose local data an app install holds (`ownerSub`). It survives sign-out and is cleared only by Delete User Data. A different account signing in gets the wrong-account screen. |
+| owner | The one account whose local data an app install holds (`ownerSub`). It survives sign-out and is cleared only by Settings, Delete User Data or the "Reset local data" button on the "Can't unlock your local data" screen (a reinstall starts a new install with no owner). A different account signing in gets the wrong-account screen. |
 | hash | The first 16 hex characters of the SHA-512 of the sub. This is the `userId` on every log line. |
 | `loginMethod` | How the current app session was established: `email`, `apple` or `google`. It is **undefined** for a password sign-in and for a session restored by an old build. The verify-email screen is only shown to sessions with no `loginMethod`. |
 | Hide My Email | Apple's relay address (`...@privaterelay.appleid.com`). It never matches the user's real address, so automatic linking cannot match it. |

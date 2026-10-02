@@ -27,7 +27,7 @@ Monitoring, Logs. Open an event for `connection`, `user_id`, and `description` (
 | `ss` | signup OK | An account was created. |
 | `fs` | signup FAILED | Signup failed. |
 | `cls` | code sent | A login code (Continue with Email) was mailed by Auth0. Proves the send reached Auth0 even if the app timed out. |
-| `fcls` | code send FAILED | Auth0 could not send the code. |
+| `fcls` | code send FAILED | Auth0 could not send the code. (Label from our script; not observed on our tenants. Check Auth0's official list.) |
 | `sepft` | password grant OK | **A successful email-code login** (seen on the dev tenant 2026-10-02: description "Successful exchange of Password for Access Token", connection `email`; Auth0 records the passwordless code grant under this type). Usually followed by `s`. |
 | `seacft` | (none) | Successful exchange of authorization code for access token: the browser-based logins (password form, Google, Apple). |
 | `sce` | (none) | Successful email change, e.g. after a verify-email change of address ("You can now login to the application with the new email."). |
@@ -36,7 +36,7 @@ Monitoring, Logs. Open an event for `connection`, `user_id`, and `description` (
 | `slo` | logout | Logout. |
 | `sdu` | user deleted | A user was deleted. |
 
-**Failed code logins:** no failed email-code event has been observed on our tenants, so we cannot name its type code. Filter the log to the user (or connection `email`) around the time and read any event whose type starts with `f`, using its description text. Our script also labels `fcoa`, `scoa` and `feacft` as code events; those labels are unverified guesses (`fcoa` is most likely Auth0's cross-origin-authentication failure). Check Auth0's official log event type list before relying on them.
+**Failed code logins:** no failed email-code event has been observed on our tenants, so we cannot name its type code. A likely lead, unverified: since a successful code login is logged as `sepft`, a failed one is probably Auth0's `fepft` (failed exchange of password for access token). Do not rely on it until one is seen. Filter the log to the user (or connection `email`) around the time and read any event whose type starts with `f`, using its description text. Our script also labels `fcoa`, `scoa` and `feacft` as code events; those labels are unverified guesses (`fcoa` is most likely Auth0's cross-origin-authentication failure). Check Auth0's official log event type list before relying on them.
 
 Our script hides `sapi`, `seccft`, `mgmt_api_read` and `fapi` as machine noise (our own Management calls and the Action's token mint). Do not treat them as user activity.
 
@@ -85,9 +85,13 @@ Warnings:
 
 - Password (`auth0|`) accounts only. Auth0 cannot change a Google or Apple address.
 - `verify_email: false` stops Auth0 sending its own verification mail. Leave it out and the user gets one.
-- Check first with `GET /api/v2/users-by-email?email=<address>` that no other user holds the new address. If one does, a change collides; that is the `email_in_use` case.
+- Check first with `GET /api/v2/users-by-email?email=<address>` who else holds the new address. Two different rules apply:
+  - **Our API** refuses an address that **any** other Auth0 user holds, on any connection. That is the in-app `email_in_use` ("This email is already in use. Contact support@recoverysky.app.").
+  - **Auth0** documents email uniqueness per connection only. A support PATCH on a password (`Username-Password-Authentication`) account should therefore succeed even when an `email|`, Google or Apple user holds the same address. **Not yet confirmed on our tenants: try it once on `bad-bitch-tenant` before first use on prod.** If Auth0 refuses the PATCH, stop and escalate.
+  - Another **password** account on the same address does collide in Auth0. Do not touch it; escalate.
 - The sub does not change, so no server rows and no RevenueCat customer move.
-- After the address is right, the user must sign in again so the token claim updates. A code sign-in with the corrected address links into the password account.
+- After the address is right, the phone needs a fresh token before the claim updates (see [mistyped-email-locked-out](../problems/mistyped-email-locked-out.md#solution) for the device steps). A code sign-in with the corrected address links into the password account, through the automatic link, as long as the password account is the oldest linkable account on that address.
+- The device owner's stored address ("Send code to {{email}}" on Login and the wrong-account screen) is **not** changed by this PATCH. It changes only on a code sign-in or an in-app verify on that phone.
 
 ### Link two accounts
 
@@ -121,6 +125,8 @@ Warnings:
 - Irreversible. The Auth0 account, its identities and its login history are gone. It does not delete server data (attendance, reports) or the RevenueCat customer.
 - Never delete account A because account B asked. Confirm the user controls the account being deleted.
 - Deleting a primary removes its linked identities with it.
+- **Device-owner check first.** If an app install owns this account, that install's owner record keeps pointing at a sub that can never sign in again (a new code login creates a new `email|` sub). The install is then stuck on the wrong-account screen, and only a reinstall gets it out (unsynced local data is lost). Before deleting, compute the account's hash locally and search Loki: `{service_name="recoverysky-app", module="useAuth0Wrapper"} |= "Device owner adopted" | ownerId="<hash>"`, and the same with `Foreign session on an owned device` and `Device owner relinked into a linked account`. If any install owns it, the user runs Settings, "Delete User Data" on that install first (while signed in), or you escalate.
+- Delete only after anything engineering needs from the account (server rows, RevenueCat) is handed over: once the user is gone, the dashboard can no longer map the address to the sub. See [delete-my-account](../problems/delete-my-account.md).
 - The log event is `sdu` (user deleted).
 
 ## Hash an Auth0 sub into the log `userId`
@@ -149,14 +155,14 @@ Index labels only: `service_name="recoverysky-app"`, `module`, `appVersion` (`{v
 
 API logs are `{service_name="app_api"}`: pino text with ANSI colour codes, one `container` label per replica. Postgres is `{service_name="databases_postgres"}`.
 
-### Auth queries (replace `<hash>` and `<deviceId>`)
+### Auth queries (replace `<hash>`)
 
 ```
 {service_name="recoverysky-app"} | userId="<hash>"
 {service_name="recoverysky-app", module="VerifyEmailGate"} | userId="<hash>"
 {service_name="recoverysky-app", module="Api"} |= "Email verification" | userId="<hash>"
 {service_name="recoverysky-app", module="useAuth0Wrapper"} | userId="<hash>"
-{service_name="recoverysky-app"} |= "Foreign session on an owned device" | deviceId="<deviceId>"
+{service_name="recoverysky-app", module="useAuth0Wrapper"} |= "Foreign session on an owned device" | ownerId="<hash>"
 {service_name="recoverysky-app", module="linkForeignIdentity"} | userId="<hash>"
 ```
 

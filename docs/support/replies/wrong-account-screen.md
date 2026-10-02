@@ -19,6 +19,24 @@ Please use the same method on every phone. Reply if you're not sure which one yo
 Warmly,
 RecoverySky Support
 
+## fresh-phone-empty-account
+
+Hi [first name],
+
+Thanks for writing. Your records are safe. On this phone, the first sign-in was with your typed email address, which made a new, empty account, and the app has kept the phone for it. Your records are in your Apple account.
+
+Here's how to switch:
+
+1. On the screen, tap "Send code to [the address shown on screen]" and enter the six-digit code from the email.
+2. Check that the Attendance tab and Settings have nothing you made on this phone. If you see your records, stop and reply to us.
+3. If it's empty, open Settings, tap "Delete User Data", then "OK!". It clears this phone only.
+4. On the sign-in screen, tap "Continue with Apple".
+
+Please use "Continue with Apple" on every phone from now on.
+
+Warmly,
+RecoverySky Support
+
 ## code-owner-wrong-tap
 
 Hi [first name],
@@ -45,7 +63,7 @@ Thank you for telling us, and I'm sorry you're stuck. Your records are safe on t
 Here is what happens next:
 
 1. If the account has a password, you can tap "Sign in with your password instead" on that screen.
-2. If you can't get into the original account, please reply with what you remember about how you first signed in on this phone, and the address: [the address you used].
+2. If you can't get into the original account, please reply with what you remember about how you first signed in on this phone, and the email address you used.
 
 We'll check what we can do on our side. Please don't uninstall the app, as that would remove records that aren't backed up.
 

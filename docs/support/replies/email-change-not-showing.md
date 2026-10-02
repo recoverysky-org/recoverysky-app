@@ -10,8 +10,8 @@ Thanks for writing. Your email address is updated on our side. Your phone just h
 
 To refresh it:
 
-1. Open Settings and tap "Log Out".
-2. Sign in again the same way as before, with your password or a code sent to [the address you used].
+1. Open Settings and tap "Logout".
+2. Sign in again the same way as before, with your password or a code sent to [the corrected address]. For a code, tap "Continue with Email", or "Use a different email" if the screen offers "Send code to" your old address, and type the new address. Don't use the "Send code to" button in that case: the code would go to the old address.
 
 After that, your new address should show up. Your records stay on your phone throughout, so nothing is lost. If you use more than one phone, do the same on each.
 
@@ -28,7 +28,7 @@ Thanks for your message. Looking at your account, the confirmation step only ver
 
 We can change it for you. Please reply with:
 
-1. The address you want to use: [new address]
+1. The address you want to use
 2. Confirmation that you can open that mailbox today
 
 Once we've made the change, we'll let you know. Then sign out of the app and sign in again so your phone picks it up.

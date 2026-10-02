@@ -9,10 +9,27 @@ Hi [first name],
 Thanks for writing. You can correct the address right on the screen, so you're not locked out.
 
 1. On the email confirmation screen, tap "Not my email? Change it".
-2. Type the correct address: [the address you used].
+2. Type the correct address.
 3. Tap "Send code" and enter the six-digit code from the email we send there.
 
 If no email arrives, check your spam folder and tap "Wrong email? Go back" to make sure the address has no typo. Reply if you're still stuck and we'll help.
+
+Warmly,
+RecoverySky Support
+
+## we-fixed-it-confirm-in-app
+
+Hi [first name],
+
+Good news: we've corrected the email address on your account to [the corrected address]. Your records are safe and nothing was removed.
+
+One last step on your phone:
+
+1. On the email confirmation screen, tap "Not my email? Change it".
+2. Type [the corrected address] and tap "Send code".
+3. Enter the six-digit code from the email. The screen then closes.
+
+From then on, the sign-in screen offers a code to your corrected address. Reply if anything looks off.
 
 Warmly,
 RecoverySky Support
@@ -21,14 +38,13 @@ RecoverySky Support
 
 Hi [first name],
 
-Good news: we've corrected the email address on your account to [the address you used]. Your records are still safe and nothing was removed.
+Good news: we've corrected the email address on your account to [the corrected address]. Your records are safe and nothing was removed.
 
 To get back in:
 
-1. Close the app completely and open it again.
-2. If the confirmation screen still shows and you can't get past it, reply and we'll walk you through the next step. Once you are on the sign-in screen, you can use your password, or choose "Continue with Email" and use a code sent to the corrected address.
-
-The address shown in Settings may take until your next sign-in to update. Reply if anything looks off.
+1. Close the app completely and open it again. Your phone can take a few hours to notice the change, so if the confirmation screen is still there, try again later.
+2. If it still won't go away by tomorrow, reply and we'll take the next step with you. Please don't uninstall the app.
+3. Next time you sign in, use your password, or tap "Use a different email" and type [the corrected address] to get a code. If you see a "Send code to" button with your old address, don't tap it: that code would go to the old address.
 
 Warmly,
 RecoverySky Support
@@ -42,9 +58,9 @@ Thanks for getting in touch. Before we change anything, we want to be sure we fi
 Could you reply with:
 
 1. The address that is mistyped (as you think you typed it)
-2. The address you meant to use: [the address you used]
+2. The address you meant to use
 3. Whether you have since signed in with the correct address and found an empty account
-4. Confirmation that you can read email at the correct address
+4. Please send your reply from the correct address, so we know you can read email there
 
 Please don't send a password or a code. Once we hear back, we'll fix it and let you know.
 

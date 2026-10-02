@@ -22,14 +22,14 @@ RecoverySky Support
 
 Hi [first name],
 
-Thank you for your message. Your records are very likely safe, but under the account you used before. This phone is signed in with a different one (a different method or address), so it looks empty.
+Thank you for your message. Your records are very likely safe, but under the account you used before. This phone signed in with a different one (a different method or address), and the app now treats the phone as belonging to it.
 
 Please try this:
 
-1. Open Settings and tap "Log Out".
-2. Sign in the way you did on your old phone: Google, Apple, or an email code with your usual address.
-
-Backed-up records belong to the account that saved them, so signing in the same way matters. If you used Apple's Hide My Email, always tap "Continue with Apple" on the sign-in screen. Reply if you aren't sure which one you used.
+1. Check that the Attendance tab and Settings have nothing you made on this phone. If you see your records, stop and reply to us.
+2. If it's empty, open Settings, tap "Delete User Data", then "OK!". It clears this phone only. If your iPhone shows a "Sign In" message, go through it.
+3. Sign in the way you did on your old phone: [Google / Apple / an email code to your usual address]. With Apple's Hide My Email, tap "Continue with Apple".
+4. Turn on "Back up attendance" in Settings.
 
 Warmly,
 RecoverySky Support
@@ -61,7 +61,7 @@ Thanks for your patience. We don't think anything is lost, and there's nothing y
 Please don't delete anything or uninstall the app. To help us, reply with:
 
 1. How you signed in on your old phone (Apple, Google, an email code or a password)
-2. The address you used: [the address you used]
+2. The email address you used
 3. Roughly when you last saw your records
 
 We'll write back as soon as we know more.

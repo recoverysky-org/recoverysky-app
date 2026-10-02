@@ -8,12 +8,11 @@ Hi [first name],
 
 Thanks for writing, and please don't worry. Nothing has been deleted. This sign-in created a separate, empty account, because it wasn't the same way you signed in before. Your records are still in your original account.
 
-To get back to them:
+This phone now belongs to the empty account, so signing out alone won't get you back. Here's how:
 
-1. Sign out in Settings by tapping "Log Out".
-2. Sign in the way you first did: Google, Apple, or an email code with the same address as before.
-
-If you used Apple's Hide My Email, always tap "Continue with Apple" on the sign-in screen. Typing your real address starts a new account. Reply if you aren't sure which method was yours.
+1. Check that the Attendance tab and Settings have nothing you made on this phone. If you see your records, stop and reply to us.
+2. If it's empty, open Settings, tap "Delete User Data", then "OK!". It clears this phone only; your accounts are not touched. If your iPhone shows a "Sign In" message, go through it rather than cancelling.
+3. Sign in the way you first did: [Google / Apple / an email code to your usual address]. With Apple's Hide My Email, tap "Continue with Apple".
 
 Warmly,
 RecoverySky Support
@@ -26,10 +25,10 @@ Thanks for getting in touch. Your records are safe. On this new phone the first 
 
 Before anything else, please check that the Attendance tab and Settings have nothing you made on this phone. If they're empty, here is how to start over:
 
-1. Open Settings and tap "Delete User Data". It clears this phone only. Your accounts are not touched.
-2. Sign in again the way you normally do.
+1. Open Settings, tap "Delete User Data", then "OK!". It clears this phone only. Your accounts are not touched. If your iPhone shows a "Sign In" message, go through it rather than cancelling.
+2. Sign in again the way you normally do: [Google / Apple / an email code to your usual address]. If you use Apple's Hide My Email, tap "Continue with Apple".
 
-If the app shows a screen asking for a code to a different address instead, tell us what you see before you do anything. Only do this if the phone holds no records of yours. Reply first if you're unsure.
+If the app instead asks for a code to a different address, tell us what you see before doing anything.
 
 Warmly,
 RecoverySky Support
@@ -45,7 +44,7 @@ Some records or a subscription saved online may be sitting under a different sig
 To help us, please reply with:
 
 1. How you signed in before (Apple, Google, an email code or a password)
-2. The address you used: [the address you used]
+2. The email address you used
 3. What looks missing (records, reports or subscription)
 
 In the meantime, you can try Settings, then "Restore Purchases" if your subscription is missing. We'll write back as soon as we know more.

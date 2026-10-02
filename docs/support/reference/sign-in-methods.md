@@ -42,7 +42,7 @@ Two caveats apply to the "Sub prefix" column:
 
 - The app calls the Auth0 SDK `sendEmailCode` (`send: "code"`) and then `authorizeWithEmail` with the app's `audience` and `scope`. The address is normalised with `trim().toLowerCase()`. No browser opens. Logs: `Sending passwordless code`, `Verifying passwordless code` (neither carries the address or the code).
 - The code is a **6-digit** number. The field accepts 6 digits and **auto-submits** the moment 6 digits are present.
-- **Who sends the email.** Auth0's own email provider (SMTP), not Postmark. Diagnose a missing code in the Auth0 tenant log (`cls` = code sent, `fcls` = send failed; see [tools](tools.md#tenant-log-event-codes)). The verification codes on the verify-email screen are a different thing and do go through Postmark.
+- **Who sends the email.** Auth0's own email provider (SMTP), not Postmark. Diagnose a missing code in the Auth0 tenant log (`cls` = code sent; `fcls` = send failed, a label from our script that has not been observed on our tenants; see [tools](tools.md#tenant-log-event-codes)). The verification codes on the verify-email screen are a different thing and do go through Postmark.
 - **Sub.** First use creates an `email|` user. If another account with the same address already exists and is linkable, the post-login Action links the new identity into it and the token carries that account's sub (see [account linking](account-linking.md)).
 - **Logout.** Clears credentials only; logs `Email session credentials cleared`. No browser and no iOS "Sign In" system dialog, because no browser session was ever created.
 

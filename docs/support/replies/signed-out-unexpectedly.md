@@ -21,7 +21,7 @@ Hi [first name],
 
 Thanks for writing. It looks like you may never have been signed out. On iPhone, when you log out, the phone can show its own "Sign In" message. If that is cancelled, the log-out stops and you stay signed in.
 
-To log out, tap "Log Out" in Settings again and go through the iPhone message instead of cancelling it.
+To log out, tap "Logout" in Settings again and go through the iPhone message instead of cancelling it.
 
 Please don't use "Delete User Data" for this. It erases records on your phone that may not be backed up.
 
@@ -40,7 +40,7 @@ Please try this:
 
 1. Check that your phone is online. Try mobile data if you were on Wi-Fi, or the other way round.
 2. Close the app completely and open it again.
-3. If requests still fail, tap "Log Out" in Settings and sign in again.
+3. If requests still fail, tap "Logout" in Settings and sign in again.
 
 Your records stay safe on the phone. Reply if the problem continues.
 

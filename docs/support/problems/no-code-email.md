@@ -19,7 +19,7 @@ Two different mails, sent by two different systems. Treat them as two problems.
 | --- | --- | --- |
 | Screen | The **Login** screen: "Continue with Email", then "We sent a code to {{email}}" with the field "6-digit code". The user is signed out. | The **modal** titled "Please review and verify your email address", then its code step. The user is signed in with a password. |
 | Sent by | Auth0's own email provider (SMTP) | Our API, through Postmark (stream `outbound`, tag `email-verify`) |
-| Where to look | Auth0 tenant log (`cls`, `fcls`) | Postmark Activity and the API log |
+| Where to look | Auth0 tenant log (`cls`; `fcls`, label from our script, not observed) | Postmark Activity and the API log |
 | Subject | Set by the Auth0 email template (not in our repo) | `<code> is your RecoverySky verification code` |
 | Resend cooldown | 30 s | 60 s |
 
@@ -27,11 +27,11 @@ Ask: "Were you signed in already, or signing in?" If the user is on the wrong-ac
 
 ### A. Login code
 
-1. **Auth0 dashboard, Monitoring, Logs.** Search around the time the user tapped Send. Look for `cls` (code sent) or `fcls` (code send failed) on connection `email`.
+1. **Auth0 dashboard, Monitoring, Logs.** Search around the time the user tapped Send. Look for `cls` (code sent) or `fcls` (code send failed; the label is from our script and has not been observed on our tenants, so also read any `f…` event near the time) on connection `email`.
    - `cls` present: Auth0 handed the mail to its mailer. Go to Cause A1 or A2 (delivery).
    - `fcls` present: read the description. Go to Cause A3.
    - Neither: the request never reached Auth0. Go to step 2.
-2. **Loki, the app side.** Compute the hash for the user. If you do not know the sub (the user never signed in), you cannot hash it; use the `deviceId` or ask the user for the approximate time and look for `Send code failed` lines near it.
+2. **Loki, the app side.** Compute the hash for the user. If you do not know the sub (the user never signed in), you cannot hash it, and a signed-out device carries no `userId`. Ask the user for the approximate time and timezone and look for `Send code failed` lines near it. If the install has an owner, the owner's hash (`| ownerId="<hash>"` on `Device owner adopted` or `Foreign session on an owned device`) finds lines that show the install's `deviceId`; then `| deviceId="<deviceId>"` narrows the window.
    ```
    {service_name="recoverysky-app", module="LoginScreen"} |= "Send code failed"
    {service_name="recoverysky-app", module="LoginScreen"} |= "Auth error displayed to user"
@@ -77,7 +77,7 @@ Ask: "Were you signed in already, or signing in?" If the user is on the wrong-ac
 `cls` present and the user waited. Auth0's own send limit is stricter than the app's 30 s cooldown, so repeated Resend taps can make later mails slower or refused. Only the **latest** code matters; an earlier one may be dead.
 
 ### A3. Auth0 could not send the login code (`fcls`)
-Read the log description. Typical: the recipient is refused by the mail provider, or the tenant's email provider is not configured or is down (the dev tenant has no email provider; prod does).
+(`fcls` is our script's label, not yet observed on our tenants; treat any failure event about the send the same way.) Read the log description. Typical: the recipient is refused by the mail provider, or the tenant's email provider is not configured or is down (the dev tenant has no email provider; prod does).
 
 ### A4. The app timed out before Auth0 answered
 `/passwordless/start` answers only after Auth0 hands the mail to its mailer. The SDK timeout is 30 s since 2026-09-30; older builds aborted at 10 s and showed "We couldn't reach the sign-in service" while the code was already on its way (`cls` in the log). Or the device really has no route to the sign-in service (dead Wi-Fi, captive portal, VPN).
