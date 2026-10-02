@@ -24,10 +24,10 @@ Hi [first name],
 Thanks for your message. We can delete your account. A few steps first, so nothing is left behind:
 
 1. Please send your reply from the email address on your account, so we know it's yours.
-2. On every phone where you use RecoverySky, open the app, go to Settings, tap "Delete User Data" and confirm. Do this before we delete the account, or that phone may get stuck on a sign-in screen.
+2. On every phone where you use RecoverySky, open the app, go to Settings, tap "Delete User Data" and confirm. This erases everything the app keeps on that phone, including anything that wasn't backed up. Do this before we delete the account, or that phone may get stuck on a sign-in screen.
 3. If you have a subscription, cancel it in your App Store or Google Play settings. Deleting the account doesn't stop billing.
 
-Once you reply, we'll delete your sign-in account and ask our team to remove your data from our servers.
+Once you reply, we'll delete your sign-in account and pass your request to remove your data from our servers to our team.
 
 Warmly,
 RecoverySky Support
@@ -38,7 +38,7 @@ Hi [first name],
 
 Your RecoverySky sign-in account has been deleted. You won't be able to sign in to it again.
 
-Our team is now removing the data stored on our servers for your account. That part takes longer, and we'll write again when it's done.
+We've passed your request to remove the data stored on our servers to our team. That part is handled separately, and we'll let you know if we need anything else from you.
 
 If a phone still shows a sign-in screen for the old account, removing and reinstalling the app clears it.
 
