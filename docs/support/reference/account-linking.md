@@ -16,7 +16,7 @@ Privacy rule (see the [README](../README.md#privacy-rule-for-support)): logs car
 | `email_verified` | Ignored | Not consulted |
 | Moves server rows (attendance, reports, ...) | **No** | **Yes**, in one database transaction |
 | Tells the user | No | No |
-| On failure | Login continues unlinked; the next code login retries | Logged; nothing is retried or persisted; see [partial failure](#partial-failure-auth0-linked-rows-not-moved) |
+| On failure | Login continues unlinked; the next code login retries | Logged; transport failures are retried 3 times, nothing is persisted; see [partial failure](#partial-failure-auth0-linked-rows-not-moved) |
 
 After either path, Auth0 answers every login for the account with the **primary's sub**, whichever method was used. Do not infer the sign-in method from the sub prefix on a linked account.
 
@@ -29,7 +29,7 @@ Action file: `auth0/actions/meetingmaker/link-passwordless-identity.js` (identic
 It returns silently, in this order, if any of these hold:
 
 1. The login did not come through the `email` connection. Google, Apple and password logins never run it.
-2. The user already has more than one identity. This is also the idempotency check: an already-linked user arrives with two or more.
+2. The user has anything other than exactly one identity. This is also the idempotency check: an already-linked user arrives with two or more.
 3. The login is a refresh-token exchange (`oauth2-refresh-token`). Linking mid-session would swap the sub under a running app; the next real login retries.
 4. The user has no email.
 
@@ -50,7 +50,7 @@ Properties that matter in tickets:
 - **It never links two pre-existing accounts to each other.** Only the new `email` identity goes into one existing account. A person with a Google account and a separate password account on the same address keeps two accounts; a code login joins the older.
 - **It never denies access.** Any exception (Management API 4xx, 5xx or timeout, token grant failure) is caught, logged as `link skipped: <reason>`, and the login completes unlinked.
 - **Matching is on the root account's email only.** Auth0 finds a code user by the root account's address; it never sees a linked identity's address. That is why a link between *different* addresses cannot work (see [path (b)](#path-b-explicit-linking-from-the-wrong-account-rescue)).
-- The identities claim on the linking login itself does not show the new link; it appears at the next refresh or login.
+- The identities claim on the linking login itself does not show the new link (the claim Action reads the event as it was before the link); it appears at the next refresh or login. On a device whose owner is an `email|` account this has a side effect: see [the code-owner wrong tap](#code-owner-and-a-googleapple-wrong-tap-inferred-from-code).
 
 ### How to tell in the tenant log that a login was linked
 
@@ -60,12 +60,12 @@ Auth0 Dashboard, Monitoring, Logs. See [tools: event codes](tools.md#tenant-log-
 - **If it should have linked and did not.** A code login that keeps issuing an `email|` sub for a person with an older same-address account means no link happened: the Action failed or no candidate matched. Check that the older account's root provider is `auth0`, `google-oauth2` or `apple`, and that the address is identical (case aside).
 - **Action console lines**, when you can see them (Actions real-time logs or a log stream while it runs; whether the login event keeps them is unverified):
   - success: `linked email identity into <provider> primary` (`<provider>` is `auth0`, `google-oauth2` or `apple`)
-  - failure: `link skipped: <reason>`, for example `token grant <status>`, `GET /users-by-email 429` or `POST /users/<id>/identities 400`
+  - failure: `link skipped: <reason>`, for example `token grant <status>`, `GET /users-by-email 429` or `POST /users/<id>/identities 400` (in the real line `<id>` is the URL-encoded **primary sub**, so do not paste that line into a ticket)
 - The Action's own Management API calls appear as `sapi` / `fapi` events. Our tooling hides them as noise; do not read them as user activity.
 
 ### What data follows an automatic link
 
-An automatic link changes the **sub the user signs in with**; it does not move any server rows. This is an open product decision (R-D), not a bug in the Action.
+An automatic link changes the **sub the user signs in with**; it does not move any server rows. This is an open product decision, not a bug in the Action.
 
 | Data | Under an automatic link |
 | --- | --- |
@@ -74,7 +74,7 @@ An automatic link changes the **sub the user signs in with**; it does not move a
 | RevenueCat subscription bought under the `email|` sub | Does **not** follow by itself. The app's RevenueCat identity is the Auth0 sub, so after a link it is the primary's. The app syncs store receipts once per identity per install, which has moved stranded subscriptions before (restore behaviour: transfer; verified 2026-09-17). Treat a missing subscription as "check, then escalate". |
 | Local data on the device | See [relink](#relink-on-other-devices-relinked). |
 
-How big is the gap in practice? A brand-new `email|` user is linked at its first login, before it has any data, so the common case (legacy account first, code login later) loses nothing. Rows end up under an `email|` sub when the person used the code login first (creating the `email|` user and pushing data), and **later** an older-style account with the same address becomes a link candidate (for example they add Google or create a password account on that address) and a later code login links the `email|` user into it. Then their cloud rows sit under the old `email|` sub and the new sub looks empty. This is a "data missing after sign-in" ticket; see [escalation](#escalate). The local copy on the device is not lost.
+How big is the gap in practice? A brand-new `email|` user is linked at its first login, before it has any data, so the common case (legacy account first, code login later) loses nothing. Rows end up under an `email|` sub when the person used the code login first (creating the `email|` user and pushing data), and **later** an older-style account with the same address becomes a link candidate (for example they add Google or create a password account on that address) and a later code login links the `email|` user into it. Then their cloud rows sit under the old `email|` sub and the new sub looks empty. This is a "data missing after sign-in" ticket; see [escalation](#escalate). The local copy on the device is not lost. The same gap appears in the [code-owner wrong tap](#code-owner-and-a-googleapple-wrong-tap-inferred-from-code) below.
 
 ## Path (b): explicit linking from the wrong-account rescue
 
@@ -96,12 +96,25 @@ Why the rule exists (code comment, 2026-09-30): Auth0 finds code users by the ro
 
 ### When (b) actually does something
 
-Because (a) already links same-address code logins, (b) matters mainly when the foreign sign-in did **not** go through the Link Action:
+Because (a) already links same-address code logins, (b) matters mainly when the owner proves themselves **without** a Link Action run:
 
-- The foreign session is **Google** or **Apple** (sharing the real address) and the owner's account is a code or password account with that same address. Google and Apple logins never run the Action, so this is the main real case.
+- The owner is a **password** (`auth0|`) account and proves themselves with the **password form** ("Sign in with your password instead"). Password logins never run the Action. If the foreign session is **Google** or **Apple** sharing the same address (those logins never run the Action either), the addresses match and (b) links the foreign identity into the password account. This is the main real case.
+- An `auth0|` owner who proves themselves by code, when the owner's password account is older than the foreign Google or Apple account: the Action picks the oldest candidate, so the owner's code identity joins the password account, the sub matches, and (b) then runs as above.
 - A code login whose Action run failed (`link skipped`), so the foreign `email|` user stayed separate.
 
 Foreign **password** (`auth0|`) sessions are refused by the API (`unsupported_identity`, below).
+
+### Code owner and a Google/Apple wrong tap (inferred from code)
+
+Inferred from code (`link-passwordless-identity.js` lines 107-145, `identities-claim.js` lines 44-45, `decideOwnership`, `useAuth0Wrapper.ts` lines 284-323); not device-tested.
+
+The device owner is a code (`email|`) account and the user tapped Google or Apple with the same address, creating a newer Google or Apple account. The wrong-account screen offers only "Send code to {{email}}". That code login runs the Link Action, which sees the Google or Apple account as the oldest linkable match and **links the owner's `email` identity into it**, making the Google or Apple account the primary. What follows:
+
+1. That rescue login returns the **foreign** sub, with no identities claim yet (the claim Action reads the pre-link event), so the ownership gate says `mismatch` and the wrong-account screen comes straight back once.
+2. The next code entry skips the Action (two identities now), the claim lists the owner's old `email|` sub, and the gate returns `relinked`. The foreign record equals the accepted session, so the app logs `Accepted session matches the recorded foreign one — record dropped`.
+3. **`POST /auth0/link` is never called.** There is no `Foreign identity linked` line and no `moved` counts. The owner's server rows (and any RevenueCat purchase) stay under the old `email|` sub; the new primary starts empty on the server. This is the same gap as [an automatic link](#what-data-follows-an-automatic-link). Route it to [Escalate](#escalate).
+
+Look for the tenant log pattern from path (a) (a `connection` `email` login whose `user_id` is `google-oauth2|` or `apple|`), not for path (b) lines.
 
 ### What the app sends
 
@@ -158,13 +171,20 @@ The app logs only `problem` (a coarse kind, such as `rejected` for a 4xx); the H
 - `POST /auth0/link: foreign identity cannot be linked by provider/user_id`
 - `POST /auth0/link: Auth0 refused the link — sweep rolled back`
 - `POST /auth0/link: sweep failed — rolled back`
+- `POST /auth0/link: validation failed` (WARN) and `POST /auth0/link: unexpected failure` (ERROR, 500)
+- `POST /auth0/link: identities lookup failed` (ERROR, 502 `link_failed`; carries `status` and `auth0Error`)
+- `POST /auth0/link: link confirmed via identities re-check after a failed response` (INFO; a success: Auth0 had linked despite the failed response)
+- `POST /auth0/link: identities re-check threw after a failed link call — sweep rolled back; Auth0 may have linked the identity` (ERROR, 500; outcome in Auth0 unknown, see below)
 - `POST /auth0/link: sweep/COMMIT failed while Auth0 already had the identity linked — rows may not have moved` (the bad one, below)
 
 ### Partial failure: Auth0 linked, rows not moved
 
-Signal: ERROR `POST /auth0/link: sweep/COMMIT failed while Auth0 already had the identity linked — rows may not have moved` (attributes `userId`, `foreignUserId`, `error`).
+Two signals, both ERROR with `userId`, `foreignUserId`, `error`:
 
-What it means: the database step failed but Auth0 holds the link. A retry would normally heal this (the call is idempotent and sweeps stragglers), but a retry needs the foreign ID token to still be inside its 5-minute window. After that the foreign sub can no longer sign in on its own (it is now a linked identity), so there is no way to mint a fresh token, and its rows stay under the foreign sub.
+- `POST /auth0/link: sweep/COMMIT failed while Auth0 already had the identity linked — rows may not have moved`. Auth0 holds the link; rows did not move.
+- `POST /auth0/link: identities re-check threw after a failed link call — sweep rolled back; Auth0 may have linked the identity`. The sweep was rolled back and the outcome in Auth0 is unknown. **Check the dashboard first.** If the foreign identity now sits under the owner's user, this is the same stranded state as the first signal: escalate exactly as below. If it does not, nothing moved and nothing is linked; the user can simply try again.
+
+What the first signal means: the database step failed but Auth0 holds the link. A retry would normally heal this (the call is idempotent and sweeps stragglers), but a retry needs the foreign ID token to still be inside its 5-minute window. After that the foreign sub can no longer sign in on its own (it is now a linked identity), so there is no way to mint a fresh token, and its rows stay under the foreign sub.
 
 There is **no support procedure in the repo** for this. Do not hand-edit rows and do not unlink to "retry". **Escalate to engineering** with:
 
@@ -234,8 +254,9 @@ Tooling for support-initiated links, unlinks and deletes is in [tools: Managemen
 
 Hand to engineering when:
 
-- the partial failure above (`sweep/COMMIT failed while Auth0 already had the identity linked`);
+- the partial failure above (`sweep/COMMIT failed while Auth0 already had the identity linked`, or `identities re-check threw ...` when the dashboard shows the identity linked);
 - the user lost cloud-backed data after a link and the sub they sign in with changed (automatic link, rows under the old `email|` sub);
+- the [code-owner wrong tap](#code-owner-and-a-googleapple-wrong-tap-inferred-from-code) with cloud data missing;
 - a subscription did not follow a link;
 - a device loops on the wrong-account screen after a link (suspect the identities-claim Action).
 

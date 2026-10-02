@@ -78,7 +78,7 @@ Both routes need a signed-in user's bearer (not an API key) and answer 400 `not_
 Code properties (`api:src/services/emailVerifyCode.ts`):
 
 - Six digits, valid for **10 minutes**. The mail says "It expires in 10 minutes."
-- **Five wrong tries** kill the code. A right code sent with a different address counts as a wrong try.
+- **Five wrong tries** kill the code (per replica: with several API replicas on a shared store the real bound is about five times the replica count). A right code sent with a different address counts as a wrong try.
 - **One live code per user** (per sub, not per address). A new `start` replaces the old one and resets the counter, so only the latest mail works.
 - The code is stored hashed in Redis, or in process memory if `REDIS_URL` is unset. With memory storage and several API replicas, a code started on one replica fails with `code_expired` on another.
 - Addresses are trimmed and lower-cased.
@@ -96,10 +96,10 @@ The app maps an API answer to one of eight problems (`app/services/api/emailVeri
 | start, 400 | `invalid_email` | `inactive_recipient` | "We can't deliver email to that address. Try a different one." | stays | The API's own stricter email check refused the address. **Shows the "can't deliver" copy**, so this copy does not prove a Postmark bounce. |
 | start, 400 | `inactive_recipient` | `inactive_recipient` | same | stays | Postmark refused the recipient as inactive (hard bounce or spam complaint). The stored code is deleted. |
 | start/verify, 409 | `email_in_use` | `email_in_use` | "This email is already in use. Contact support@recoverysky.app." | **change** | Another Auth0 user, on any connection, holds that address. No auto-merge. See [the lock-out](#the-mistyped-address-lock-out-d5). At `verify` the code is kept. |
-| verify, 400 | `invalid_code` | `invalid_code` | "That code isn't right. Check it and try again." | stays | Wrong code, or the right code with a different address (counts toward the five). Also a code that is not exactly six digits (API text "Enter the six-digit code"); that one is **not** counted. |
+| verify, 400 | `invalid_code` | `invalid_code` | "That code isn't right. Check it and try again." | stays | Wrong code, or the right code with a different address (counts toward the five). The API also answers `invalid_code` (text "Enter the six-digit code", not counted) for a malformed code or address, but the current app never sends one. |
 | verify, 400 | `code_expired` | `code_expired` | "That code has expired. Send a new one." | **review** | **Ambiguous.** Any of: older than 10 minutes; never requested; already used; locked out after five wrong tries and cleared; the earlier send failed; or the request reached another API replica that has no copy (memory store). |
 | verify, 400 | `too_many_attempts` | `too_many_attempts` | "Too many wrong codes. Send a new one." | **review** | The fifth wrong try; the code is deleted. API WARN `POST /auth0/email/verify: too many wrong codes`. |
-| start or verify, **429** | none | `rate_limited` (invented by the app from the status) | "Too many requests. Wait a minute and try again." | stays | Per-user limiter. The API never sends a `rate_limited` code; do not search for one. The Resend cooldown restarts. |
+| start or verify, **429** | none | `rate_limited` (invented by the app from the status) | "Too many requests. Wait a minute and try again." | stays | Per-user limiter. The API never sends a `rate_limited` code; do not search for one. On a `start` refusal the Resend cooldown restarts; a 429 on `verify` only clears the typed code. |
 | start/verify, 503 | `unavailable` | `unavailable` | "We couldn't reach the server. Please try again." | stays | Mailer not configured; address lookup failed; mail send failed; Redis or Auth0 token trouble; verify failed unexpectedly. The showing still counts for the day. |
 | verify, **502** | `update_failed` | `unavailable` (not recognised) | same as above | stays | Auth0 refused the profile update. The code is **kept** so a retry needs no new mail. Only the HTTP status is logged, not Auth0's reason. |
 | any other 5xx, no connection, unrecognised body, or a 200 without a string `email` | | `unavailable` | same | stays | The app also logs WARN `Invalid email verification response format` for the last case. |
@@ -156,7 +156,7 @@ Umami events: `verify_email_shown` (`mode`), `verify_email_done` (`changed`), `v
 
 Afterwards, a code sign-in with the corrected address links into the password account through the [automatic link](account-linking.md#path-a-automatic-linking-on-an-email-code-login), so the same sub and the same data.
 
-Verifying on phone A does not stop phone B asking until B's next token refresh carries `email_verified: true` (B has no local record; its skip count is independent).
+Verifying on phone A likely does not stop phone B asking until B's next token refresh carries `email_verified: true` (B has no local record; its skip count is independent).
 
 ## Postmark
 
@@ -177,7 +177,7 @@ Situation: the account carries a mistyped address (for example `typo@exmaple.com
 Current support fix: **correct the address by hand in the Auth0 dashboard.**
 
 1. Find the user in the dashboard (User Management, Users) by the old address, and check the `user_id` starts with `auth0|`. Auth0 cannot change a Google or Apple address, and the routes refuse non-`auth0|` subs.
-2. Search the corrected address too. If another user holds it, the change will collide; decide with the user which account is theirs before touching either (never delete or edit account A because B asked).
+2. Search the corrected address too. If another user holds it, the change will collide; decide with the user which account is theirs before touching either (the commonest holder of the corrected address is the stray empty `email|` account the user created by typing the real address at Login) (never delete or edit account A because B asked).
 3. Edit the email on the user (or `PATCH /api/v2/users/{sub}`, see [tools](tools.md#update-an-email-or-set-email_verified-password-users-only)). Set `email_verified: true` and `verify_email: false` so Auth0 does not send a verification mail. Keep the before-state.
 4. Ask the user to sign in again (password link, or a code to the corrected address) so the token claim updates and the screen stops asking.
 
