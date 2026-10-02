@@ -134,6 +134,8 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 5. Clear all MMKV storage (every persisted snapshot, including the auth store props, the owner record's MMKV copy, sync queue ownership and the local `emailVerify.*` records).
 6. Clear SecureStore auth credentials and the stored terms acceptance (`clearAllSecureData`: these two keys only).
 7. Auth0 `logout()` (clears the Auth0 browser session unless the login method is `email`, then the auth state). If anything in steps 1 to 7 throws, the handler falls back to `authStore.logout()`.
+
+   Caveat: on iOS, if the user cancels the system "Sign In" dialog, `logout()` returns without throwing (log `Logout cancelled by user`) and clears no auth state, and it clears nothing if the SDK has no `user`. The handler still goes on to wipe the database and reload. Likely result: the SDK keychain session is restored on restart and adopted into the empty database, so the user reports "I deleted my data but I'm still signed in".
 8. Outside that try: `resetLocalDatabase({ clearOwner })`: close the database, delete the encrypted SQLite file and its `-wal`, `-shm` and `-journal`, clear the SQLite key, then clear `ownerSub` and `ownerEmail`. A failure logs ERROR `Delete User Data: local database reset failed`.
 9. `reloadApp()`.
 

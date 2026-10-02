@@ -69,7 +69,7 @@ The 30 s timeout exists because `/passwordless/start` answers only after Auth0 h
 - Sub prefix `auth0|`.
 - **`loginMethod` is not recorded.** Consequences: logout takes the browser branch (`clearSession`); Settings, Account derives the row from the `auth0|` prefix and shows "Email"; the verify-email screen is eligible to ask an unverified `auth0|` account (see [email verification](email-verification.md)).
 - If the stored owner sub is `auth0|`, the wrong-account screen shows both "Send code to {{email}}" and the password link. `email|` owners get no password link.
-- Telemetry: the Umami `login_completed` event carries `method: "password"`.
+- Telemetry: the Umami `login_completed` event carries `method: "password"`. It fires after the provider login call returns, even if the user cancelled or the login failed (that call swallows errors), so it over-counts password sign-ins.
 - Password accounts keep working after the user later signs in by code and gets linked: the link Action deliberately does not randomise the password, because old app builds still sign in with it.
 
 ## Google
@@ -87,7 +87,7 @@ The 30 s timeout exists because `/passwordless/start` answers only after Auth0 h
 
 ## Login error messages
 
-All shown in one red strip at the top of the Login screen and the wrong-account screen. Mapping: `classifyAuthError` (`app/services/auth/authErrorLogic.ts`) decides the class, `authErrorMessage` picks the copy. `Auth error displayed to user` (Loki, module `LoginScreen`) carries the exact text shown, and is the best single query for "what error did they see". It is logged by the Login screen only, not by the wrong-account screen. The `Send code failed` and `Verify code failed` warnings carry a `key` (classification) and never the address or the code.
+All shown in one red strip at the top of the Login screen and the wrong-account screen. Mapping: `classifyAuthError` (`app/services/auth/authErrorLogic.ts`) decides the class, `authErrorMessage` picks the copy. `Auth error displayed to user` (Loki, module `LoginScreen`) carries the exact text shown, and (level ERROR) is the best single query for "what error did they see". It is logged by the Login screen only, not by the wrong-account screen. The `Send code failed` and `Verify code failed` warnings carry a `key` (classification) and never the address or the code.
 
 | Shown text (verbatim) | Trigger | Notes |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ Every unexpected sign-out goes through one function, `performForcedLogout`. It l
 The user lane (the token refresher in `app/services/auth/userTokenRefresher.ts`) classifies a refresh failure as **permanent** in exactly these cases. Anything else is treated as transient.
 
 1. **A credentials-manager error type in the permanent list:** `NO_REFRESH_TOKEN`, `NO_CREDENTIALS`, `INVALID_CREDENTIALS`, `DPOP_KEY_MISSING`, `DPOP_KEY_MISMATCH`. A DPoP key that is gone from the Keychain after a restore or device transfer is one real-world cause.
-2. **An unusable renewed token.** The SDK renewed into an access token that fails the shape check (reasons `not-jwt`, `wrong-audience`, `no-expiry`). Typical cause: an audience-less login (the 3.12.1 to 4.1.6 TestFlight builds shipped without the audience). Logs: ERROR `Auth0 SDK renewed into an unusable access token` (refresh path) or `Auth0 SDK returned unusable access token — signing out` (sign-in sync path), each with `reason`.
+2. **An unusable renewed token.** The SDK renewed into an access token that fails the shape check (reasons `not-jwt`, `wrong-audience`, `no-expiry`). Typical cause: an audience-less login (builds 3.12.1 to 4.1.6 shipped without the audience). Logs: ERROR `Auth0 SDK renewed into an unusable access token` (refresh path) or `Auth0 SDK returned unusable access token — signing out` (sign-in sync path), each with `reason`.
 3. **A server 401 whose body code is `token_malformed`, `token_claims` or `token_signature`.** Log: ERROR `Server rejected the bearer as unusable` with `source: "server-401"`.
 
 Logs for the decision itself: ERROR `Access token refresh failed permanently — forcing logout`. Duplicate ERROR lines are expected in the immediate-logout path.
@@ -131,7 +131,7 @@ If an attendance timer session is running (`isTimerSessionActive()`), the eject 
 ### Other ways a session ends
 
 - The user taps Logout (confirmation "Are you sure you want to log out?"), or Delete User Data (see [device owner](device-owner.md#delete-user-data)).
-- `isAuthenticated` also turns false when the stored access token's expiry passes; the first gated request refreshes it and turns it back on. A lasting Login screen is not expected from this.
+- `isAuthenticated` also turns false when the stored access token's expiry passes; the app is designed to refresh on the next gated request, which would turn it back on (inferred from a setup comment, not observed).
 - Android clearing app data, or the DPoP key being lost, can end a session with no log. (Inferred.)
 
 ### Banners that are NOT sign-outs
