@@ -69,6 +69,9 @@ const ru: Translations = {
       "Локальная база данных на этом устройстве будет удалена. Это действие нельзя отменить.",
   },
   loginScreen: {
+    // ADDED 2026-10-01 — legacy password accounts that cannot receive a code.
+    passwordSignIn: "Can't get a code? Sign in with your password",
+    passwordSignInHint: "Opens the password sign-in page in a browser",
     logIn: "Войти",
     enterDetails:
       "Войди, чтобы получить доступ к подпискам и премиум-функциям. Apple требует аккаунт для приложений с интерактивными сервисами, такими как видеоконференции.",
@@ -110,6 +113,9 @@ const ru: Translations = {
       "We've sent several codes to that address recently. Please wait before requesting another.",
   },
   wrongAccountScreen: {
+    // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
+    passwordSignIn: "Sign in with your password instead",
+    passwordSignInHint: "Opens the password sign-in page in a browser",
     title: "This device is set up for a different RecoverySky account.",
     body: "Sign in to that account to continue. Your meetings and records are safe.",
     support: "If you can't sign in to that account, contact support@recoverysky.app",
@@ -117,6 +123,29 @@ const ru: Translations = {
     signInWithGoogle: "Sign in with Google",
     signInWithApple: "Sign in with Apple",
     cancel: "Cancel",
+  },
+  // ADDED 2026-10-01 — legacy email verification (spec 2026-09-30-legacy-email-verification).
+  verifyEmailScreen: {
+    title: "Please review and verify your email address",
+    body: "RecoverySky now signs you in with a code sent to your email. Check that this is an address you can read.",
+    sendCode: "Send code",
+    changeEmail: "Not my email? Change it",
+    notNow: "Not now",
+    requiredWarning: "Verification is required. Skips left: {{count}}",
+    mandatory:
+      "Email verification is now required to keep using your account. Need help? Contact support@recoverysky.app",
+    contactSupport: "Contact support",
+    contactSupportHint: "Opens your email app",
+    why: "Why is verification required?",
+    whyHint: "Opens a web page in your browser",
+    errorEmailInUse: "This email is already in use. Contact support@recoverysky.app.",
+    errorInvalidCode: "That code isn't right. Check it and try again.",
+    errorCodeExpired: "That code has expired. Send a new one.",
+    errorTooManyAttempts: "Too many wrong codes. Send a new one.",
+    errorRateLimited: "Too many requests. Wait a minute and try again.",
+    errorInactiveRecipient: "We can't deliver email to that address. Try a different one.",
+    errorNotPasswordAccount: "This account doesn't need email verification.",
+    errorUnavailable: "We couldn't reach the server. Please try again.",
   },
   mainNavigator: {
     homeTab: "Главная",

@@ -46,10 +46,18 @@ export function isPlausibleEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
 
-/** Seconds left before Resend is allowed again; 0 means allowed now. */
-export function resendWaitSeconds(lastSentAt: number | null, now: number): number {
+/**
+ * Seconds left before Resend is allowed again; 0 means allowed now.
+ * CHANGED 2026-10-01: the cooldown is a parameter (default unchanged) so the
+ * verify-email screen can use 60 s without a second copy of this function.
+ */
+export function resendWaitSeconds(
+  lastSentAt: number | null,
+  now: number,
+  cooldownMs: number = RESEND_COOLDOWN_MS,
+): number {
   if (lastSentAt === null) return 0
-  const remainingMs = lastSentAt + RESEND_COOLDOWN_MS - now
+  const remainingMs = lastSentAt + cooldownMs - now
   if (remainingMs <= 0) return 0
   return Math.ceil(remainingMs / 1000)
 }

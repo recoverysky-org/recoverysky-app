@@ -41,6 +41,11 @@ export interface WrongAccountViewProps {
   onVerify: () => void
   onResend: () => void
   onProvider: () => void
+  /**
+   * ADDED 2026-10-01: given only when the owner is a legacy password account
+   * (ownerHasPassword). Such an owner may be unable to receive the code.
+   */
+  onPassword?: () => void
   onCancel: () => void
 }
 
@@ -108,6 +113,22 @@ export function WrongAccountView(props: WrongAccountViewProps) {
                   tx="wrongAccountScreen:sendCodeTo"
                   txOptions={{ email: emailMasked }}
                 />
+              </Pressable>
+            )}
+            {showCode && props.onPassword && (
+              <Pressable
+                testID="wrong-account-password"
+                accessibilityRole="link"
+                accessibilityLabel={translate("wrongAccountScreen:passwordSignIn")}
+                // ADDED 2026-10-01: it leaves the app for the browser; say so.
+                accessibilityHint={translate("wrongAccountScreen:passwordSignInHint")}
+                accessibilityState={{ disabled: isBusy }}
+                // A one-line text link is well under the 44 pt touch target.
+                hitSlop={12}
+                onPress={props.onPassword}
+                disabled={isBusy}
+              >
+                <Text style={themed($cancelText)} tx="wrongAccountScreen:passwordSignIn" />
               </Pressable>
             )}
             {showProvider && (

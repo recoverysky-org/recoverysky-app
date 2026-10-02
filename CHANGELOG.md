@@ -43,6 +43,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Added
 
+- **Legacy password accounts are asked to verify their email.** Passwordless
+  sign-in finds an account by its address, so a password account with a typo'd
+  or dead address could never be reached again after a sign-out. An unverified
+  password account now sees "Please review and verify your email address" at
+  app start and on returning to the app: confirm the address with a code, or
+  change it to one that works. It can be skipped six times, once a day (the
+  screen shows the skips left), so it becomes required on the seventh day of use. Login and the wrong-account screen
+  also gain "Sign in with your password" for people already locked out.
+  **Needs the API's `/auth0/email/start` and `/verify` deployed first.**
+
 - **Settings → Account shows how you're signed in.** The account row now names
   the sign-in method this session used (Email, Google or Apple) with the full
   email and an "Active" badge, and lists any other methods linked into the same

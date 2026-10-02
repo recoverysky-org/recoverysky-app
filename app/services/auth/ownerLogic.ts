@@ -126,3 +126,13 @@ export function decideForeignLink(input: {
   const b = input.acceptedEmail?.trim().toLowerCase()
   return a && b && a === b ? "link" : "skip-email-mismatch"
 }
+
+/**
+ * ADDED 2026-10-01 (legacy email verification spec §7). True for a legacy
+ * password account. Such an owner may be unable to receive a code (a typo'd
+ * or dead address on the account), so the wrong-account screen also offers
+ * the password form. An `email|` owner has no password to offer.
+ */
+export function ownerHasPassword(sub: string | undefined): boolean {
+  return !!sub?.startsWith("auth0|")
+}

@@ -29,6 +29,7 @@ import {
   readHeader,
 } from "./bearerRejectionLogic"
 import { fetchWithContentRetry } from "./contentRetryLogic"
+import { emailVerifyProblemFrom, type EmailVerifyProblem } from "./emailVerifyProblem"
 import { classifyNewsPayload, type NewsPayloadOutcome } from "./newsLogic"
 import {
   makeTraceContext,
@@ -1434,6 +1435,55 @@ export class Api {
       return { kind: "bad-data" }
     }
     return { kind: "ok", data: response.data }
+  }
+
+  /**
+   * POST /auth0/email/start — email a verification code to `email` for the
+   * signed-in password account (legacy email verification spec §6). The
+   * address is NEVER logged.
+   * ADDED 2026-10-01.
+   */
+  async startEmailVerification(
+    email: string,
+  ): Promise<{ kind: "ok" } | { kind: "problem"; code: EmailVerifyProblem }> {
+    log.info("Starting email verification")
+    const response = await this.recoverySkyApi.post<{ sent?: boolean; code?: unknown }>(
+      "/auth0/email/start",
+      { email },
+    )
+    if (!response.ok) {
+      const code = emailVerifyProblemFrom(response.status, response.data?.code)
+      log.warn("Email verification start failed", { code, status: response.status })
+      return { kind: "problem", code }
+    }
+    return { kind: "ok" }
+  }
+
+  /**
+   * POST /auth0/email/verify — on a matching code the API sets the account's
+   * email and marks it verified. Returns the address as Auth0 now stores it.
+   * Neither the address nor the code is logged.
+   * ADDED 2026-10-01.
+   */
+  async confirmEmailVerification(
+    email: string,
+    code: string,
+  ): Promise<{ kind: "ok"; email: string } | { kind: "problem"; code: EmailVerifyProblem }> {
+    log.info("Confirming email verification")
+    const response = await this.recoverySkyApi.post<{ email?: unknown; code?: unknown }>(
+      "/auth0/email/verify",
+      { email, code },
+    )
+    if (!response.ok) {
+      const problem = emailVerifyProblemFrom(response.status, response.data?.code)
+      log.warn("Email verification confirm failed", { code: problem, status: response.status })
+      return { kind: "problem", code: problem }
+    }
+    if (typeof response.data?.email !== "string") {
+      log.warn("Invalid email verification response format")
+      return { kind: "problem", code: "unavailable" }
+    }
+    return { kind: "ok", email: response.data.email }
   }
 
   /**

@@ -891,3 +891,5 @@ translations in ar, de, es, fr, pt, ru, th, uk (`accountMethodGoogle` /
 noun your locale implies ("cuenta" → "Activa"). The two `…A11y` strings are
 screen-reader only; the `…NoEmail` pair must read as complete sentences
 without the address.
+
+- `verifyEmailScreen.*` (added 2026-10-01): English placeholders in all eight locales.

@@ -14,6 +14,11 @@
 > **Left before the OTA:** step 6 below, an email-code round trip on a dev build pointed at prod.
 > The table and steps that follow are the pre-rollout record.
 
+> **ADDED 2026-10-01:** the OTA also carries legacy email verification
+> (`docs/superpowers/specs/2026-09-30-legacy-email-verification-design.md`).
+> Deploy the API with `/auth0/email/start` and `/verify` to prod **before**
+> the OTA, and confirm prod's API has Postmark and Redis configured.
+
 Written 2026-09-30 and paused there, so a bug in the linking flow could be chased first. Resume from
 here. The app's passwordless build **must not ship as an OTA** until every step below is done.
 
