@@ -213,6 +213,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   identity-driven reaction (the `sync.queueOwnerUid` account-switch clear
   included) ever sees it. `WrongAccountScreen` is the only way out: prove
   ownership, or cancel.
+- **Six log lines no longer send a raw Auth0 account id to Loki.** The
+  cloud-backup account-switch lines ("Account switch — clearing the previous
+  owner's outbox" and its failure line) and four Api lines (fetching and
+  deleting reminders, resending a report) attached the signed-in user's raw
+  `sub`, which embeds the Google/Apple account id, under `uid` /
+  `previousOwner`. They now carry `hashUserId()` like every other line. A new
+  vitest guard (`app/utils/logger/noRawSubInLogs.test.ts`) scans every app log
+  call and fails on an unhashed sub-like attribute.
 
 ### Build
 - **The Auth0 domain baked into the native redirect handler now follows

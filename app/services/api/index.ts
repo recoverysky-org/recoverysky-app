@@ -14,7 +14,7 @@ import type { ServerAttendanceRecord, ServerReportRecord } from "@/services/sync
 import { trackEvent } from "@/services/tracking"
 import type { AtNextOffset } from "@/utils/atNextLogic"
 import { delay } from "@/utils/delay"
-import { logger } from "@/utils/logger"
+import { hashUserId, logger } from "@/utils/logger"
 
 import {
   getGeneralApiProblem as classifyApiProblem,
@@ -1395,7 +1395,9 @@ export class Api {
    * DELETE /reminders?uid=...
    */
   async deleteReminders(uid: string): Promise<{ kind: "ok" } | GeneralApiProblem> {
-    log.debug("Deleting remote reminders", { uid })
+    // CHANGED 2026-10-02: hashed — `uid` is authStore.userId, the raw Auth0
+    // sub, and only the logger's own userId field is hashed for us.
+    log.debug("Deleting remote reminders", { uid: hashUserId(uid) })
 
     const response = await this.recoverySkyApi.delete(`/reminders?uid=${encodeURIComponent(uid)}`)
 
@@ -1406,7 +1408,7 @@ export class Api {
       return { kind: "unknown", temporary: true }
     }
 
-    log.info("Remote reminders deleted", { uid })
+    log.info("Remote reminders deleted", { uid: hashUserId(uid) })
     return { kind: "ok" }
   }
 
@@ -1549,7 +1551,9 @@ export class Api {
     id: string
     uid: string
   }): Promise<{ kind: "ok"; data: SendReportResponse } | GeneralApiProblem> {
-    log.info("Resending attendance report", { reportId: params.id, uid: params.uid })
+    // CHANGED 2026-10-02: hashed — `uid` is authStore.userId, the raw Auth0
+    // sub, and only the logger's own userId field is hashed for us.
+    log.info("Resending attendance report", { reportId: params.id, uid: hashUserId(params.uid) })
 
     const response = await this.recoverySkyApi.post<SendReportResponse>("/reports", params)
 
@@ -1910,7 +1914,9 @@ export class Api {
   async getReminders(
     uid: string,
   ): Promise<{ kind: "ok"; reminders: ReminderApiResponse[] } | GeneralApiProblem> {
-    log.debug("Fetching reminders", { uid })
+    // CHANGED 2026-10-02: hashed — `uid` is authStore.userId, the raw Auth0
+    // sub, and only the logger's own userId field is hashed for us.
+    log.debug("Fetching reminders", { uid: hashUserId(uid) })
 
     const response = await this.recoverySkyApi.get<ReminderApiResponse[]>("/reminders", { uid })
 

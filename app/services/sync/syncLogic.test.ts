@@ -9,10 +9,12 @@ import {
   toLocalCreate,
   toLocalUpdate,
   ownershipAction,
+  ownerSwitchLogAttributes,
   toServerRecord,
   type ServerAttendanceRecord,
   type ServerReportRecord,
 } from "./syncLogic"
+import { hashUserId } from "../../utils/logger/hashUserId"
 
 const localRecord = {
   id: "att-1",
@@ -195,5 +197,33 @@ describe("ownershipAction", () => {
     // Regression: clearing here discarded every unpushed edit on an ordinary
     // sign-out, since AuthenticationStore.logout() sets userId = undefined.
     expect(ownershipAction("auth0|alice", "")).toBe("noop")
+  })
+})
+
+// ADDED 2026-10-02: the "Account switch — clearing the previous owner's
+// outbox" line shipped the two RAW Auth0 subs to Loki (found while writing
+// docs/support/). A sub embeds the Google/Apple account id; logs carry
+// hashUserId() only. Both owner-switch log lines now build their attributes
+// here, so one branch can't hash and the other forget again.
+describe("ownerSwitchLogAttributes", () => {
+  const OLD = "google-oauth2|100000000000000000001"
+  const NEW = "auth0|65f0000000000000000000aa"
+
+  it("hashes both subs", () => {
+    expect(ownerSwitchLogAttributes(OLD, NEW)).toEqual({
+      previousOwner: hashUserId(OLD),
+      uid: hashUserId(NEW),
+    })
+  })
+
+  it("never carries a raw sub or any part of one", () => {
+    const text = JSON.stringify(ownerSwitchLogAttributes(OLD, NEW))
+    expect(text).not.toContain("|")
+    expect(text).not.toContain("100000000000000000001")
+    expect(text).not.toContain("65f0000000000000000000aa")
+  })
+
+  it("leaves a missing previous owner out instead of logging a placeholder", () => {
+    expect(ownerSwitchLogAttributes(null, NEW)).toEqual({ uid: hashUserId(NEW) })
   })
 })

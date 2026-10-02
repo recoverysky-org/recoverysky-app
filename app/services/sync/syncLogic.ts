@@ -15,7 +15,10 @@ import type {
 
 // Relative, not `@/services/attendance` — the barrel pulls in MMKV via
 // timerSession.ts, and this module must stay loadable by vitest.
+import { hashUserId } from "../../utils/logger/hashUserId"
 import { clampCredit } from "../attendance/creditLogic"
+// Relative for the same reason: `@/utils/logger` pulls in the logger's
+// transports. hashUserId.ts itself is pure JS (tweetnacl).
 
 /** Server push batch cap — a larger batch gets 400 badRequest. */
 export const SYNC_PUSH_BATCH_MAX = 200
@@ -268,4 +271,23 @@ export function ownershipAction(
   if (!owner) return "stamp"
   if (owner === uid) return "noop"
   return aliases.includes(owner) ? "restamp" : "clear-then-stamp"
+}
+
+/**
+ * The attributes for the two owner-switch log lines in `takeQueueOwnership`
+ * ("Relinked owner — …" and "Account switch — …"): both subs, HASHED.
+ *
+ * ADDED 2026-10-02. The account-switch line used to log the raw `previousOwner`
+ * and `uid` subs while the relinked line beside it hashed them, so a Google or
+ * Apple account id reached Loki on every account switch (found while writing
+ * docs/support/). Logs carry `hashUserId(sub)` only — see "Logging" in
+ * CLAUDE.md. Both lines build their attributes here so they cannot drift apart
+ * again. A missing previous owner is left out rather than logged as "".
+ */
+export function ownerSwitchLogAttributes(
+  owner: string | null | undefined,
+  uid: string,
+): { previousOwner?: string; uid?: string } {
+  const previousOwner = hashUserId(owner ?? undefined)
+  return previousOwner ? { previousOwner, uid: hashUserId(uid) } : { uid: hashUserId(uid) }
 }

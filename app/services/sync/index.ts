@@ -28,7 +28,7 @@ import type { RootStore } from "@/models"
 import { api } from "@/services/api"
 import { ENTITLEMENTS } from "@/services/purchases/config"
 import { hasEntitlement, isPurchasesConfigured } from "@/services/purchases/revenueCatService"
-import { hashUserId, logger, type LogAttributes } from "@/utils/logger"
+import { logger, type LogAttributes } from "@/utils/logger"
 import { loadString, saveString } from "@/utils/storage"
 
 import {
@@ -38,6 +38,7 @@ import {
 } from "./attendanceSyncService"
 import {
   ownershipAction,
+  ownerSwitchLogAttributes,
   reportToLocalCreate,
   reportToLocalUpdate,
   toLocalCreate,
@@ -223,19 +224,25 @@ function takeQueueOwnership(uid: string): void {
     // also moved the old sub's server rows here; one made outside the app
     // (dashboard, Management API) did not, and those pushes then create
     // rows here — still the same person's attendance.
-    log.info("Relinked owner — keeping the outbox under the new account", {
-      previousOwner: hashUserId(owner ?? undefined),
-      uid: hashUserId(uid),
-    })
+    log.info(
+      "Relinked owner — keeping the outbox under the new account",
+      ownerSwitchLogAttributes(owner, uid),
+    )
     saveString(QUEUE_OWNER_KEY, uid)
     return
   }
   if (action === "clear-then-stamp") {
     ownerClearPending = true
-    // `owner` is non-null on this branch by ownershipAction's contract; the
-    // ?? "" only satisfies the logger's attribute type.
-    const previousOwner = owner ?? ""
-    log.info("Account switch — clearing the previous owner's outbox", { previousOwner, uid })
+    // CHANGED 2026-10-02: this line logged both subs RAW (`previousOwner`,
+    // `uid`) while the relinked line above hashed them — a Google/Apple
+    // account id reached Loki on every account switch. Both lines now take
+    // their attributes from ownerSwitchLogAttributes (syncLogic.ts, vitest),
+    // which hashes. (The old `owner ?? ""` workaround for the logger's
+    // attribute type went with it.)
+    log.info(
+      "Account switch — clearing the previous owner's outbox",
+      ownerSwitchLogAttributes(owner, uid),
+    )
 
     // Published so enqueueAttendance() can await it. On success the stamp
     // advances and the gate reopens; on failure the promise stays rejected, so
@@ -252,9 +259,10 @@ function takeQueueOwnership(uid: string): void {
     // must still throw. No `finally`: resetting unconditionally would reopen the
     // gate over a queue that still holds foreign rows.
     clear.catch((err) => {
+      // CHANGED 2026-10-02: hashed, like the line above (this one leaked
+      // the raw subs too).
       log.error("Failed to clear foreign outbox — sync stays disabled until relaunch", {
-        previousOwner,
-        uid,
+        ...ownerSwitchLogAttributes(owner, uid),
         error: String(err),
       })
     })
