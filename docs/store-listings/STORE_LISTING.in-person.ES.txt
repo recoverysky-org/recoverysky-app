@@ -45,7 +45,7 @@ Busca reuniones AA, NA, CMA y Recovery Dharma en línea o en persona cerca de ti
 
 Encuentra una reunión. En línea, en persona, en vivo en este momento o cualquier día de esta semana. Y después demuestra que estuviste ahí, con reportes de asistencia verificados.
 
-RecoverySky es un buscador de reuniones de AA, NA, CMA y Recovery Dharma. Sigue las reuniones en línea que están en vivo para que te unas con un solo toque, y más de 55,000 reuniones en persona a las que puedes llegar — con búsqueda por confraternidad, día, hora del día y distancia.
+RecoverySky es un buscador de reuniones de AA, NA, CMA y Recovery Dharma. Sigue más de 130,000 reuniones — reuniones en línea en vivo a las que te unes con un solo toque, y reuniones en persona a las que puedes llegar — con búsqueda por confraternidad, día, hora del día y distancia.
 
 ENCUENTRA UNA REUNIÓN EN LÍNEA
 • Ve las reuniones de AA, NA, CMA y Recovery Dharma que están en vivo en este momento
@@ -56,7 +56,7 @@ ENCUENTRA UNA REUNIÓN EN LÍNEA
 Mantenemos las listas honestas: los datos de cada reunión se mantienen al día, y cada reunión en vivo está verificada. Cuando tocas Unirse, llegas a una sala con gente — no a un enlace roto ni a una contraseña equivocada.
 
 ENCUENTRA UNA REUNIÓN CERCA DE TI
-• Más de 55,000 reuniones en persona de AA, NA, CMA y Recovery Dharma
+• Reuniones en persona de AA, NA, CMA y Recovery Dharma cerca de ti
 • Ordenadas de la más cercana a la más lejana, con la distancia en cada fila — tú eliges el radio de búsqueda
 • Explora cualquier día de la semana, o filtra por mañana, tarde, noche o madrugada
 • Cada lugar tiene su página de detalle: dirección, indicaciones con un toque en tu app de mapas, contactos publicados y el horario semanal completo
@@ -113,9 +113,9 @@ Reuniones en línea y cerca
 "reuniones" here — plus the online/near-you pivot in one line.)
 
 
---- PROMOTIONAL TEXT (168 / 170 — updatable without review) ---
+--- PROMOTIONAL TEXT (160 / 170 — updatable without review) ---
 
-Nuevo: reuniones en persona. Busca 55,000+ reuniones de AA, NA, CMA y Recovery Dharma cerca de ti, con indicaciones y asistencia verificada por GPS — más salas en vivo.
+Nuevo: reuniones en persona. Busca reuniones de AA, NA, CMA y Recovery Dharma cerca de ti, con indicaciones y asistencia verificada por GPS — más salas en vivo.
 
 
 --- KEYWORDS (100-char field, comma-separated, NO spaces) ---
@@ -153,21 +153,21 @@ Covers the in-person release (In-Person tab, searchable in-person listings,
 GPS-verified attendance, RD's return, unified meeting card, accessibility).
 Google Play limit: 500 chars.
 
---- FULL (bulleted, 497 / 500) ---
+--- FULL (bulleted, 489 / 500) ---
 
 RecoverySky ahora encuentra reuniones en el mundo real:
 
-• Nueva pestaña En persona: 55,000+ reuniones de AA, NA, CMA y Recovery Dharma, ordenadas por cercanía, con distancia, indicaciones, contactos y horarios.
+• Nueva pestaña En persona: reuniones de AA, NA, CMA y Recovery Dharma, ordenadas por cercanía, con distancia, indicaciones, contactos y horarios.
 • La búsqueda ahora cubre en línea Y en persona, con filtros de confraternidad, día, hora y radio.
 • Asistencia en persona verificada por GPS: toca «Estoy aquí» en el lugar y tu visita cronometrada y verificada va a tu reporte PDF.
 • Recovery Dharma está de vuelta.
 
 Sigue viniendo. 🌤️
 
---- SHORT (256 / 500) ---
+--- SHORT (248 / 500) ---
 
 Nuevo en RecoverySky:
-• Pestaña En persona: 55,000+ reuniones cerca de ti, con indicaciones y horarios
+• Pestaña En persona: reuniones cerca de ti, con indicaciones y horarios
 • Busca reuniones en línea y en persona
 • Asistencia en persona verificada por GPS para tus reportes
 • Recovery Dharma está de vuelta
@@ -196,11 +196,13 @@ DECISIONS & RATIONALE
   name, "reuniones" in subtitle/short description). The ASO pivot to
   "meeting finder" lives in the Apple subtitle, Google short description,
   and keywords, same as the English listing.
-- "55,000+" is a real number: 55,617 active in-person meetings measured live
-  across all sources (2026-08, see CLAUDE.md "In-Person segment" note).
-  Re-verify the count is still ≥ 55,000 before each store submission; round
-  DOWN to whatever the data supports. Numbers keep the US-style comma
-  separator (55,000) — this is es-US, not es-ES.
+- "más de 130,000 reuniones" — CHANGED 2026-10-01 from "55,000+ in-person",
+  the same change as the English listing: one headline number for online +
+  in person together, no in-person-only figure. 131,655 active weekly
+  meetings counted on prod; full counting note in
+  STORE_LISTING.in-person.txt. Re-count and round DOWN before each
+  submission. Numbers keep the US-style comma separator (130,000) — this is
+  es-US, not es-ES.
 - RD (Recovery Dharma) claims are live as of 2026-08-04 — RD is a selectable
   fellowship in Settings/onboarding and the Live / Search / In-Person
   filters (`EXPO_PUBLIC_FELLOWSHIPS="AA,NA,CMA,RD"` in .env + eas.json).
