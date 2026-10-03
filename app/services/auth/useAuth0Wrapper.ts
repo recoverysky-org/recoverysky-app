@@ -20,7 +20,7 @@ import { hashUserId, logger } from "@/utils/logger"
 
 import { linkedSubsFromIdToken } from "./accountMethodsLogic"
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
-import { classifyAuthError, isUserAbandonedAuth } from "./authErrorLogic"
+import { classifyAuthError, isUserAbandonedAuth, isUserSideAuthError } from "./authErrorLogic"
 import {
   decodeJwtPayload,
   extractSqliteKeyFromClaims,
@@ -220,7 +220,14 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         log.info("Auth0 operation cancelled or declined by user")
         return
       }
-      log.error("Auth0 error", { error: auth0Error.message })
+      // CHANGED 2026-10-02: a wrong/expired/over-tried code, a too-fast
+      // resend, or the user's own dead connection is not an app fault — warn,
+      // not error (isUserSideAuthError). Everything else stays at error.
+      if (isUserSideAuthError(auth0Error)) {
+        log.warn("Auth0 error", { error: auth0Error.message })
+      } else {
+        log.error("Auth0 error", { error: auth0Error.message })
+      }
       // ADDED 2026-09-17: a missing OTP grant is a tenant misconfiguration, not
       // a user error — the user sees the generic network copy, we get this.
       if (classifyAuthError(auth0Error) === "passwordlessNotEnabled") {
@@ -631,7 +638,13 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         const message = err instanceof Error ? err.message : "Login failed"
         // CHANGED 2026-09-12: the log keeps the raw SDK message; the user sees
         // the friendlier mapped copy when we have one (see authErrorMessage).
-        log.error("Provider login failed", { connection, error: message })
+        // CHANGED 2026-10-02: the user's own connection failing is warn, not
+        // error (isUserSideAuthError) — same rule as the "Auth0 error" line.
+        if (isUserSideAuthError(err)) {
+          log.warn("Provider login failed", { connection, error: message })
+        } else {
+          log.error("Provider login failed", { connection, error: message })
+        }
         setError(authErrorMessage(err, message))
       }
     },

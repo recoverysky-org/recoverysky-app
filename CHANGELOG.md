@@ -81,6 +81,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   (spec: `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
 
 ### Changed
+
+- **Sign-in mistakes no longer log as app errors.** A wrong, expired or
+  over-tried code, resending too fast, or the device's own network failing
+  now logs the underlying `Auth0 error` / `Provider login failed` /
+  foreign-identity-link lines at WARN instead of ERROR, so the ERROR query
+  shows real faults. `Auth error displayed to user` deliberately stays ERROR
+  as the one record of what the user saw. Policy in `docs/DIAGNOSTICS.md`
+  "Log levels". (RS-039)
 - **Meetings tab filters line up again.** On the In-Person list and on Search,
   the segment title and the Radius / Day / Time (and Venue) cells sat one
   step further in than the Fellowship / Lang bar above them — those headers

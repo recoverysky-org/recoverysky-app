@@ -230,6 +230,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
       // CHANGED 2026-09-21 (RS-039): warn → error. Sign-in is the core flow
       // and this fires only for real failures — useAuth0Wrapper filters
       // user-cancelled / declined before `error` is ever set.
+      // CHANGED 2026-10-02: kept at error on purpose even for user-side
+      // failures (wrong/expired code, dead connection). Those log at warn on
+      // useAuth0Wrapper's "Auth0 error" line; this one stays the single ERROR
+      // record of what the user actually saw, so support can find it by level.
       log.error("Auth error displayed to user", { error })
     }
   }, [error])

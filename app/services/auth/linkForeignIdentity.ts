@@ -30,6 +30,13 @@ export async function linkForeignIdentity(idToken: string): Promise<boolean> {
     })
     return true
   }
-  log.error("Foreign identity link failed", { problem: result.kind })
+  // CHANGED 2026-10-02: when no attempt got an answer (the device's own
+  // connection), warn — nothing we can fix, and the next mismatch retries.
+  // A server answer (4xx/5xx) is still an error.
+  if (result.kind === "cannot-connect" || result.kind === "timeout") {
+    log.warn("Foreign identity link failed", { problem: result.kind })
+  } else {
+    log.error("Foreign identity link failed", { problem: result.kind })
+  }
   return false
 }

@@ -255,6 +255,14 @@ Rules that fall out of the table:
   The user sees the "Network issues" banner, but that's their connection, and
   31 such ERRORs a day from phones on dead Wi-Fi were burying real errors. A
   ladder the server actually answered (5xx, rejection) stays `error`.
+- **A sign-in failure on the user's side is `warn`** (ADDED 2026-10-02):
+  a wrong, expired or over-tried code, a resend rate limit, or the device's
+  own network (`isUserSideAuthError`, `authErrorLogic.ts`). That's the
+  passwordless flow working as designed, not something we can fix. The
+  `Auth0 error` and `Provider login failed` lines follow it; anything else on
+  them stays `error`. The exception is `Auth error displayed to user`
+  (LoginScreen): it stays `error` for every message, as the one ERROR record
+  of what the user saw on the sign-in screen.
 - **Known-benign storms go to `info`**, not `warn`, with the RS number in the
   code comment — e.g. `upsertToken` before sign-in (RS-012), report-body 404
   backfill (RS-018).

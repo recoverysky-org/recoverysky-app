@@ -101,3 +101,28 @@ export function isUserAbandonedAuth(err: unknown): boolean {
   const msg = typeof message === "string" ? message : ""
   return /did not authorize/i.test(msg)
 }
+
+/**
+ * Whether a failure is on the user's side rather than an app fault: their own
+ * input (a wrong, expired or over-tried code, or resending too fast) or their
+ * own connection (`networkError` — no answer arrived, the same rule
+ * docs/DIAGNOSTICS.md "Log levels" applies to the config ladder). Callers log
+ * these at WARN, not ERROR: at ERROR every mistyped code raised a red-box
+ * console error in dev and buried real faults in the ERROR query.
+ *
+ * ADDED 2026-10-02. Browser-terminated (Android relaunch quirk), the missing
+ * OTP grant (tenant config) and anything unclassified are NOT included and
+ * stay at ERROR (RS-039).
+ */
+export function isUserSideAuthError(err: unknown): boolean {
+  switch (classifyAuthError(err)) {
+    case "networkError":
+    case "wrongCode":
+    case "codeExpired":
+    case "tooManyAttempts":
+    case "sendRateLimited":
+      return true
+    default:
+      return false
+  }
+}

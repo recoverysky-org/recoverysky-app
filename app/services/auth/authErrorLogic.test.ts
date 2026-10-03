@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { classifyAuthError, isUserAbandonedAuth } from "./authErrorLogic"
+import { classifyAuthError, isUserAbandonedAuth, isUserSideAuthError } from "./authErrorLogic"
 
 describe("classifyAuthError", () => {
   it("maps the SDK's BROWSER_TERMINATED type", () => {
@@ -117,5 +117,33 @@ describe("isUserAbandonedAuth", () => {
     expect(isUserAbandonedAuth({ message: "Something odd" })).toBe(false)
     expect(isUserAbandonedAuth(null)).toBe(false)
     expect(isUserAbandonedAuth("string error")).toBe(false)
+  })
+})
+
+describe("isUserSideAuthError", () => {
+  it("is true for the user's own code mistakes and rate limits", () => {
+    expect(
+      isUserSideAuthError({ code: "invalid_grant", message: "Wrong email or verification code." }),
+    ).toBe(true)
+    expect(
+      isUserSideAuthError({
+        code: "invalid_grant",
+        message: "The verification code has expired. Please try to login again.",
+      }),
+    ).toBe(true)
+    expect(isUserSideAuthError({ code: "too_many_attempts" })).toBe(true)
+    expect(isUserSideAuthError({ status: 429 })).toBe(true)
+  })
+
+  it("is true for the user's own connection", () => {
+    expect(isUserSideAuthError({ type: "NETWORK_ERROR" })).toBe(true)
+    expect(isUserSideAuthError({ code: "timeout" })).toBe(true)
+  })
+
+  it("is false for faults on our side and anything unclassified", () => {
+    expect(isUserSideAuthError({ type: "BROWSER_TERMINATED" })).toBe(false)
+    expect(isUserSideAuthError({ code: "unauthorized_client" })).toBe(false)
+    expect(isUserSideAuthError({ message: "Something odd" })).toBe(false)
+    expect(isUserSideAuthError(null)).toBe(false)
   })
 })

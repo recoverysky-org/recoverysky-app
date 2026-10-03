@@ -87,7 +87,7 @@ The 30 s timeout exists because `/passwordless/start` answers only after Auth0 h
 
 ## Login error messages
 
-All shown in one red strip at the top of the Login screen and the wrong-account screen. Mapping: `classifyAuthError` (`app/services/auth/authErrorLogic.ts`) decides the class, `authErrorMessage` picks the copy. `Auth error displayed to user` (Loki, module `LoginScreen`) carries the exact text shown, and (level ERROR) is the best single query for "what error did they see". It is logged by the Login screen only, not by the wrong-account screen. The `Send code failed` and `Verify code failed` warnings carry a `key` (classification) and never the address or the code.
+All shown in one red strip at the top of the Login screen and the wrong-account screen. Mapping: `classifyAuthError` (`app/services/auth/authErrorLogic.ts`) decides the class, `authErrorMessage` picks the copy. `Auth error displayed to user` (Loki, module `LoginScreen`) carries the exact text shown and is the best single query for "what error did they see". It is always ERROR, including for a wrong or expired code, so it stays the one ERROR-level record of what the user saw. (The underlying `Auth0 error` / `Provider login failed` lines drop to WARN for user-side failures.) It is logged by the Login screen only, not by the wrong-account screen. The `Send code failed` and `Verify code failed` warnings carry a `key` (classification) and never the address or the code.
 
 | Shown text (verbatim) | Trigger | Notes |
 | --- | --- | --- |
