@@ -18,26 +18,42 @@ match. Do not run this against a build older than 4.10.1.
 
 
 ========================================================
-EXPERIMENT SETUP (Play Console → Grow → Store presence →
-Store listing experiments → Create experiment)
+EXPERIMENT SETUP (Play Console → Grow users → Store presence → Store
+listings → Default store listing → "Set up experiment")
 ========================================================
 
-- Type: default graphics + text experiment on the main store listing,
-  language en-US only. The es-US localization is untouched and keeps
-  showing A's (older) Spanish copy to Spanish visitors.
-- Fields under test: SHORT DESCRIPTION and FULL DESCRIPTION only. Leave the
-  icon, feature graphic, and screenshots identical to the control — if they
+STATUS 2026-10-02: created and submitted for Google review by Jenova.
+Name "Warm voice vs in-person (2026-10)" (can't be renamed), variant
+"B: Warm voice". Submitted while A's 130,000+ description change (en-US
+and es-US) was still in review, so the control's full description flips
+from "55,000+" to "130,000+" early in the run.
+
+As configured (Play's current form, which differs from the plan above it
+was written against):
+- Type: "Experiment on a localized listing", en-US only. The es-US
+  listing is untouched; Spanish-language devices are ~0 of our installs
+  anyway (2 active devices, Sep 2026 bulk reports).
+- Fields under test: SHORT DESCRIPTION and FULL DESCRIPTION only. Icon,
+  feature graphic, and screenshots stay identical to the control — if they
   differ too, a win can't be attributed to the copy.
 - App title is NOT changed in the variant (stays "RecoverySky AA NA CMA
   Meetings"). Keeping it fixed means the experiment measures voice, not name.
-- Audience: 50% (one variant vs control).
-- Target metric: Retained first-time installers (not plain installers — the
-  question is whether warm copy brings people who stay, not just people who
-  tap Install).
-- Run it at least 7 days so both weekend and weekday traffic is in it, and
-  let it go until Play reports a result outside the confidence interval.
-  At our traffic that can take several weeks; don't call it early off a
-  first-week lead.
+- 1 variant, audience 50% (Play's maximum for this form).
+- Target metric: "Unique user install clicks". CHANGED from the planned
+  "Retained first-time installers": Play no longer offers it — the only
+  choices are install clicks and open clicks.
+- Minimum detectable effect 6% (the largest offered; default 2.5%) and
+  confidence 90% (the lowest offered). Play's estimate even at these
+  loosest settings: 8,173 install clicks, ~390 days. At the 2.5% default
+  it was 47,071 clicks and 140+ days. Our listing sees ~1,000 visitors and
+  ~500–600 install clicks a month at ~50% conversion (Jul–Sep 2026: 59%,
+  54%, 50%).
+- So this is a DIRECTIONAL test, by choice (2026-10-02): it costs nothing
+  and only half the traffic sees B. Read Play's running numbers and
+  intervals after ~2 months. A large effect in either direction will show;
+  a small one never will, and then voice probably doesn't matter much.
+  Bigger-effect assets (icon, screenshots, short description alone) are
+  the better next test if this one stays flat.
 - What a result means: B changes the short and full descriptions together,
   so a B win says "the warm package converts better," not which field did
   it. If B wins, a follow-up experiment can split short vs full.
@@ -49,6 +65,9 @@ Store listing experiments → Create experiment)
   (they do, as written below).
 - Don't edit the default listing (A) while the experiment runs — Play
   restarts or invalidates the comparison.
+- Entering the 3,862-char full description by simulated keystrokes froze
+  the Play Console tab (2026-10-02). Paste it instead (pbcopy the text from
+  this file, then ⌘V into the field).
 
 
 ========================================================
