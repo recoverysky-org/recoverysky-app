@@ -137,17 +137,17 @@ Needs the local API with Postmark configured. Wipe users first.
 
 | # | Device | Do | Expect | ✓ |
 |---|---|---|---|---|
-| 3.1 | iOS | 🧨 Purge → **Can't get a code? Sign in with your password** → **Sign up** with a mistyped address (e.g. your Gmail + `f`). Finish onboarding. | The verify screen: heading "Please review and verify your email address", the mistyped address in full, "Skips left: 6". | |
-| 3.2 | iOS | Tap **Why is verification required?** | The browser opens the RecoverySky post. | |
-| 3.3 | iOS | Tap **Not now**. Background and foreground the app. | Into the app. The screen does not return today. | |
-| 3.4 | iOS | Set the phone's date forward one day, foreground the app. | The screen returns with "Skips left: 5". | |
-| 3.5 | iOS | **Not my email? Change it** → type E1 → **Send Code** → enter the code from E1's inbox. | Into the app. Settings → Account shows E1. | |
-| 🔎 | Claude | diag | One `auth0|` user whose email is now E1 (masked), verified. API log: `email verified` with `changed: true`, and no address in any line. Metro: `Email verified {"changed":true}`. | |
-| 3.6 | iOS | Force-quit and reopen. | No verify screen (this install's record wins over the cached token). | |
-| 3.7 | iOS | Sign out → **Continue with Email** → E1 → code. | Same account (the hash matches 3.1), attendance intact, no verify screen. | |
-| 3.8 | Android | 🧨 Purge → sign in with the password link as a second mistyped account. Skip on six different days (move the date each time). | Day 7: no "Not now", the support line instead. Android's back button does nothing. | |
-| 3.9 | Android | Turn on airplane mode, relaunch. | No verify screen while offline; it returns when back online. | |
-| 3.10 | Android | With the mandatory screen from 3.8 showing, turn on airplane mode. Then turn it off. | The screen closes while offline (the app is usable) and returns once back online. | |
+| 3.1 | iOS | 🧨 Purge → **Can't get a code? Sign in with your password** → **Sign up** with a mistyped address (e.g. your Gmail + `f`). Finish onboarding. | The verify screen: heading "Please review and verify your email address", the mistyped address in full, "Skips left: 6". | ✅ |
+| 3.2 | iOS | Tap **Why is verification required?** | The browser opens the RecoverySky post. | — |
+| 3.3 | iOS | Tap **Not now**. Background and foreground the app. | Into the app. The screen does not return today. | ✅ (Android, in 3.8) |
+| 3.4 | iOS | Set the phone's date forward one day, foreground the app. | The screen returns with "Skips left: 5". | ✅ (Android, in 3.8) |
+| 3.5 | iOS | **Not my email? Change it** → type E1 → **Send Code** → enter the code from E1's inbox. | Into the app. Settings → Account shows E1. | ✅ |
+| 🔎 | Claude | diag | One `auth0|` user whose email is now E1 (masked), verified. API log: `email verified` with `changed: true`, and no address in any line. Metro: `Email verified {"changed":true}`. | ✅ (email_verified not read) |
+| 3.6 | iOS | Force-quit and reopen. | No verify screen (this install's record wins over the cached token). | ✅ |
+| 3.7 | iOS | Sign out → **Continue with Email** → E1 → code. | Same account (the hash matches 3.1), attendance intact, no verify screen. | ✅ (attendance not tested) |
+| 3.8 | Android | 🧨 Purge → sign in with the password link as a second mistyped account. Skip on six different days (move the date each time). | Day 7: no "Not now", the support line instead. Android's back button does nothing. | ✅ |
+| 3.9 | Android | Turn on airplane mode, relaunch. | No verify screen while offline; it returns when back online. | not run |
+| 3.10 | Android | With the mandatory screen from 3.8 showing, turn on airplane mode. Then turn it off. | The screen closes while offline (the app is usable) and returns once back online. | ⚠️ unverified |
 
 Put the phone's date back to automatic afterwards.
 
@@ -166,3 +166,4 @@ Put the phone's date back to automatic afterwards.
 | Run date | Build | Part 1 | Part 2 | Notes |
 |---|---|---|---|---|
 | 2026-09-30 | dev 4.10.1-15 | ✅ (1.1 on Android, devices swapped) | ✅ | Test Store subscription expired mid-run (bought again for 1.4). 2.7: both rows on both devices. Relink moved 1 row; the 2.5 push landed under HY (accepted 2), none ever under HX. |
+| 2026-10-02 | dev 4.10.1-15, API 1.18.0 | — | — | **Part 3 only.** 3.1 passes on device: the RootModalScroll fix holds, and there was no route-object crash. 3.5–3.6: the change-address verify landed (`changed: true`). The cold start showed no verify screen and Settings kept the new address. The API logs hold no address and no code. 3.7: the email-code login linked `email|` into the password primary, one user. 3.8: six skippable days, then mandatory on day 7 with no Not now; it verified with a Postmark code. **3.10 unverified:** offline, the screen stayed up for 36 s while `isOffline` was true. The log doesn't say whether that showing was mandatory or skippable, so this needs a recheck. 3.9, 3.2, layout and VoiceOver rows: not run. |
