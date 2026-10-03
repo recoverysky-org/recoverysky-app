@@ -42,7 +42,7 @@ Ask: "Were you signed in already, or signing in?" If the user is on the wrong-ac
    - "We couldn't reach the sign-in service. Check your connection and try again." with `key=networkError`: Cause A4 (and see the old-build note if `cls` exists).
    - Same text with `key=passwordlessNotEnabled`, plus ERROR `Passwordless OTP grant missing on the Auth0 application — see spec 1 §3.2`: Cause A5.
    - "We've sent several codes to that address recently. Please wait before requesting another." with `key=sendRateLimited`: Cause A6.
-4. **Is the address right?** The user types it; there is no "no such account" check and no format error beyond the button being disabled. In the Auth0 dashboard, search the address the user says they typed. The code step shows the address masked (`u***@example.com`); ask the user to read the masked form back to you.
+4. **Is the address right?** The user types it; there is no "no such account" check and no format error beyond the button being disabled. In the Auth0 dashboard, search the address the user says they typed. The code step shows the full address (since 2026-10-03; older builds mask it as `u***@example.com`); ask the user to read it back to you.
 
 ### B. Verification code
 
@@ -102,7 +102,7 @@ HTTP 429 (no `code` on the wire; the app labels it `rate_limited`). The user see
 
 ## Solution
 
-**A1, B1:** have the user check spam and promotions and search for "RecoverySky" (verification) or the sign-in mail. Confirm the exact address with the user (login code step: masked, ask them to read it back; verification code step: the full address, or masked on a build before commit `42f989f`). If it was a typo, go back and send a new code (login: "Wrong email? Go back"; verification: "Wrong email? Go back", which returns to the change step).
+**A1, B1:** have the user check spam and promotions and search for "RecoverySky" (verification) or the sign-in mail. Confirm the exact address with the user (login code step: the full address since 2026-10-03, masked before, ask them to read it back; verification code step: the full address, or masked on a build before commit `42f989f`). If it was a typo, go back and send a new code (login: "Wrong email? Go back"; verification: "Wrong email? Go back", which returns to the change step).
 
 **A2, A6:** ask the user to wait a few minutes, tap Resend **once**, and use only the newest mail. Do not tell them to keep tapping.
 

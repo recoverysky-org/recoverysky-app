@@ -36,6 +36,11 @@ const ZOOM_APP_STORE_URL = "https://apps.apple.com/us/app/zoom-workplace/id54650
 const ZOOM_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=us.zoom.videomeetings"
 
 const ZOOM_BENEFITS = [
+  // ADDED 2026-10-03: recovery users worry that Zoom means an account with
+  // their real name on it. The app only opens a join link, which the Zoom app
+  // accepts without signing in. First in the list on purpose: it is the
+  // objection that stops people installing.
+  { icon: "eye-off-outline", txKey: "zoomBenefitNoLogin" },
   { icon: "cloud-download-outline", txKey: "zoomBenefitFree" },
   { icon: "videocam-outline", txKey: "zoomBenefitRequired" },
   { icon: "checkmark-circle-outline", txKey: "zoomBenefitAlready" },

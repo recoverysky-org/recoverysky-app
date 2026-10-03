@@ -9,6 +9,7 @@ import {
   Modal,
   ScrollView,
   Alert,
+  StyleSheet,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
@@ -150,6 +151,16 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [termsAlreadyAccepted, setTermsAlreadyAccepted] = useState(false)
   const [activeTab, setActiveTab] = useState<"disclaimer" | "eula">("disclaimer")
+  // ADDED 2026-10-03: the footer button is "Next" on the Disclaimer tab and
+  // only becomes "Accept" on the EULA tab, so nobody accepts without both
+  // documents having been on screen. Each tab change scrolls back to the top:
+  // the two documents share one ScrollView, and the EULA would otherwise open
+  // wherever the Disclaimer was left.
+  const legalScrollRef = useRef<ScrollView>(null)
+  const showLegalTab = useCallback((tab: "disclaimer" | "eula") => {
+    setActiveTab(tab)
+    legalScrollRef.current?.scrollTo({ y: 0, animated: false })
+  }, [])
 
   // Dynamic content from API
   const [disclaimerContent, setDisclaimerContent] = useState("")
@@ -362,8 +373,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             return
           case "ownerEmail":
             if (!ownerEmail) return
-            // Seed the field too: the code step masks it, and "Wrong email?"
-            // drops the user onto the email step with it already filled in.
+            // Seed the field too: the code step shows it (in full since
+            // 2026-10-03, masked before), and "Wrong email?" drops the user
+            // onto the email step with it already filled in.
             setEmail(ownerEmail)
             await runSend(ownerEmail, "chooseOwnerEmail")
             return
@@ -404,6 +416,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
         // first thing the user sees again after accepting.
         clearError()
         setPendingAction(action)
+        // ADDED 2026-10-03: always open on the Disclaimer. The tab is screen
+        // state and outlives the modal, so a cancel on the EULA tab would
+        // reopen straight onto "Accept" and skip the first document.
+        setActiveTab("disclaimer")
         setShowEuaModal(true)
       }
     },
@@ -474,100 +490,115 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     )
   }, [authStore, clearSdkCredentials])
 
-  return (
-    // CHANGED 2026-09-28: "auto" → "scroll". The email/code steps put a
-    // TextInput on this screen for the first time; on Android the keyboard
-    // shrinks the view (KeyboardAvoidingView behavior="height"), "auto" then
-    // judged the content to fit and disabled scrolling, and the flex:1 column
-    // was squeezed and clipped — field, button label and Back link vanished.
-    <Screen
-      preset="scroll"
-      contentContainerStyle={themed($screenContentContainer)}
-      safeAreaEdges={["top", "bottom"]}
-    >
-      <View style={themed($headerContainer)}>
-        <Text
-          testID="login-heading"
-          tx="loginScreen:logIn"
-          preset="heading"
-          style={themed($logIn)}
-        />
-        <Text
-          tx={
-            Platform.OS === "ios" ? "loginScreen:enterDetails" : "loginScreen:enterDetailsAndroid"
-          }
-          preset="subheading"
-          style={themed($enterDetails)}
-        />
-      </View>
+  // ADDED 2026-10-03: true for the whole browser sign-in (Apple / Google / the
+  // password form), from the tap until loginWithProvider() settles. See the
+  // overlay at the bottom of the render.
+  const providerBusy = inFlight === "provider"
 
-      <View style={themed($contentContainer)}>
-        {/* CHANGED 2026-09-18: given live-region semantics. This strip is now
+  return (
+    <>
+      {/* CHANGED 2026-09-28: "auto" → "scroll". The email/code steps put a
+          TextInput on this screen for the first time; on Android the keyboard
+          shrinks the view (KeyboardAvoidingView behavior="height"), "auto" then
+          judged the content to fit and disabled scrolling, and the flex:1 column
+          was squeezed and clipped — field, button label and Back link vanished. */}
+      <Screen
+        preset="scroll"
+        contentContainerStyle={themed($screenContentContainer)}
+        safeAreaEdges={["top", "bottom"]}
+      >
+        <View style={themed($headerContainer)}>
+          <Text
+            testID="login-heading"
+            tx="loginScreen:logIn"
+            preset="heading"
+            style={themed($logIn)}
+          />
+          <Text
+            tx={
+              Platform.OS === "ios" ? "loginScreen:enterDetails" : "loginScreen:enterDetailsAndroid"
+            }
+            preset="subheading"
+            style={themed($enterDetails)}
+          />
+        </View>
+
+        <View style={themed($contentContainer)}>
+          {/* CHANGED 2026-09-18: given live-region semantics. This strip is now
             the ONLY error surface for all three steps (see runSend), and it
             appears without any focus change — a screen-reader user would
             otherwise never learn that the code was rejected. `alert` is what
             iOS announces; `accessibilityLiveRegion` is the Android half. */}
-        {error && (
-          <View
-            style={themed($errorContainer)}
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-          >
-            <Text style={themed($errorText)}>{error}</Text>
-          </View>
-        )}
-        {!error && showForcedLogoutNotice && (
-          <View style={themed($errorContainer)} accessibilityRole="alert">
-            <Text style={themed($errorText)} tx="loginScreen:sessionUnrecoverable" />
-          </View>
-        )}
+          {error && (
+            <View
+              style={themed($errorContainer)}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <Text style={themed($errorText)}>{error}</Text>
+            </View>
+          )}
+          {!error && showForcedLogoutNotice && (
+            <View style={themed($errorContainer)} accessibilityRole="alert">
+              <Text style={themed($errorText)} tx="loginScreen:sessionUnrecoverable" />
+            </View>
+          )}
 
-        {/* REMOVED 2026-08-09: the "This is the updated AA/NA Live app" notice banner.
+          {/* REMOVED 2026-08-09: the "This is the updated AA/NA Live app" notice banner.
             It announced the AA/NA Live → RecoverySky rename to migrating users and has
             outlived that transition — same reason the matching HomeScreen card is gone. */}
 
-        {step === "choose" && (
-          <ChooseStep
-            ownerEmailMasked={ownerEmail ? maskEmail(ownerEmail) : undefined}
-            isLoading={isLoading}
-            onEmail={() => gated({ kind: "email" })}
-            onOwnerEmail={() => gated({ kind: "ownerEmail" })}
-            onProvider={(connection) => gated({ kind: "provider", connection })}
-          />
-        )}
+          {step === "choose" && (
+            <ChooseStep
+              ownerEmailMasked={ownerEmail ? maskEmail(ownerEmail) : undefined}
+              // CHANGED 2026-10-03: `|| providerBusy`. The SDK's `isLoading` is
+              // not reliably true during authorize(), which left every button
+              // live behind the browser.
+              isLoading={isLoading || providerBusy}
+              onEmail={() => gated({ kind: "email" })}
+              onOwnerEmail={() => gated({ kind: "ownerEmail" })}
+              onProvider={(connection) => gated({ kind: "provider", connection })}
+            />
+          )}
 
-        {step === "email" && (
-          <EmailStep
-            email={email}
-            onChangeEmail={setEmail}
-            isSending={isLoading}
-            onSend={() => void runSend(email, "codeSent")}
-            onBack={() => {
-              clearError()
-              setStep((s) => nextStep(s, "back"))
-            }}
-          />
-        )}
+          {step === "email" && (
+            <EmailStep
+              email={email}
+              onChangeEmail={setEmail}
+              isSending={isLoading}
+              onSend={() => void runSend(email, "codeSent")}
+              onBack={() => {
+                clearError()
+                setStep((s) => nextStep(s, "back"))
+              }}
+            />
+          )}
 
-        {step === "code" && (
-          <CodeStep
-            email={maskEmail(email)}
-            code={code}
-            onChangeCode={setCode}
-            isVerifying={isLoading}
-            onVerify={() => void handleVerify()}
-            resendWaitSeconds={resendWaitSeconds(lastSentAt, now)}
-            onResend={() => void runSend(email, "codeSent")}
-            onWrongEmail={() => {
-              clearError()
-              // Drop the code with the address: it was issued for the old one.
-              setCode("")
-              setStep((s) => nextStep(s, "wrongEmail"))
-            }}
-          />
-        )}
+          {step === "code" && (
+            <CodeStep
+              // CHANGED 2026-10-03: the full address, was `maskEmail(email)`. The
+              // user typed it one screen ago, and a mask hid the typo that
+              // explains a code that never arrives. Trimmed + lowercased to
+              // match what the mask used to show. The choose step's "Send code
+              // to …" button and the wrong-account screen still mask: there the
+              // address is shown before anyone has typed it.
+              email={email.trim().toLowerCase()}
+              code={code}
+              onChangeCode={setCode}
+              isVerifying={isLoading}
+              onVerify={() => void handleVerify()}
+              resendWaitSeconds={resendWaitSeconds(lastSentAt, now)}
+              onResend={() => void runSend(email, "codeSent")}
+              onWrongEmail={() => {
+                clearError()
+                // Drop the code with the address: it was issued for the old one.
+                setCode("")
+                setStep((s) => nextStep(s, "wrongEmail"))
+              }}
+            />
+          )}
 
-        {/* Anonymous login intentionally disabled in the UI. We're keeping the
+          {/* Anonymous login intentionally disabled in the UI. We're keeping the
             handler + state plumbing (handleAnonymousPress, loginAnonymously,
             the "anonymous" PendingAction) so re-enabling is a one-block
             uncomment. Hidden because the anonymous-user experience doesn't
@@ -575,7 +606,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             paired with a clear upgrade path.
             CHANGED 2026-09-17: also gated on the choose step, so re-enabling
             it cannot put an anonymous button under the code field. */}
-        {/* {Platform.OS !== "ios" && step === "choose" && (
+          {/* {Platform.OS !== "ios" && step === "choose" && (
           <Pressable
             testID="anonymous-button"
             accessibilityRole="button"
@@ -587,167 +618,209 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           </Pressable>
         )} */}
 
-        {/* Only the provider path leaves the app, so only it gets this copy —
-            an email code never opens a browser. */}
-        {isLoading && inFlight === "provider" && (
-          <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
-        )}
-      </View>
+          {/* Only the provider path leaves the app, so only it gets this copy —
+            an email code never opens a browser.
+            CHANGED 2026-10-03: gated on `inFlight` alone, was
+            `isLoading && inFlight === "provider"`. The SDK's `isLoading` is
+            not reliably true while `authorize()` runs, so the line (and the
+            buttons' disabled state) could be missing for the whole browser
+            round trip. The overlay below now covers this line while it is up;
+            it stays as the fallback copy underneath. */}
+          {inFlight === "provider" && (
+            <Text style={themed($loadingText)} tx="loginScreen:openingBrowser" />
+          )}
+        </View>
 
-      {/* ADDED 2026-09-30 as a DEV-only button: sign in as a legacy password
+        {/* ADDED 2026-09-30 as a DEV-only button: sign in as a legacy password
           user via Universal Login, to test the "Link passwordless identity"
           Action.
           CHANGED 2026-10-01: was DEV-only. A legacy password account
           whose email is wrong can't get a code, so every build now offers the
           password form — small, below the real options, because it is a
           rescue path and not a fourth way to sign up. */}
-      <Pressable
-        testID="login-password"
-        accessibilityRole="link"
-        accessibilityLabel={translate("loginScreen:passwordSignIn")}
-        accessibilityHint={translate("loginScreen:passwordSignInHint")}
-        accessibilityState={{ disabled: isLoading }}
-        // ADDED 2026-10-01: the padding alone leaves this link short of 44 pt.
-        hitSlop={8}
-        onPress={handlePassword}
-        disabled={isLoading}
-        style={themed($passwordLink)}
-      >
-        <Text style={themed($passwordLinkText)} tx="loginScreen:passwordSignIn" />
-      </Pressable>
+        <Pressable
+          testID="login-password"
+          accessibilityRole="link"
+          accessibilityLabel={translate("loginScreen:passwordSignIn")}
+          accessibilityHint={translate("loginScreen:passwordSignInHint")}
+          accessibilityState={{ disabled: isLoading || providerBusy }}
+          // ADDED 2026-10-01: the padding alone leaves this link short of 44 pt.
+          hitSlop={8}
+          onPress={handlePassword}
+          disabled={isLoading || providerBusy}
+          style={themed($passwordLink)}
+        >
+          <Text style={themed($passwordLinkText)} tx="loginScreen:passwordSignIn" />
+        </Pressable>
 
-      {/* DEV-ONLY (ADDED 2026-09-28): wipe everything local so the next launch
+        {/* DEV-ONLY (ADDED 2026-09-28): wipe everything local so the next launch
           is a fresh install — see utils/devPurge.ts for what it clears and
           why. Hard-coded English on purpose: never rendered in a release
           build, so it stays out of the nine-locale i18n files. */}
-      {__DEV__ && (
-        <Pressable
-          testID="login-dev-purge"
-          accessibilityRole="button"
-          accessibilityLabel="Dev: purge all local data"
-          accessibilityHint="Deletes the database, secure storage and all settings, then reloads"
-          onPress={handleDevPurge}
-          style={themed($devPurgeButton)}
-        >
-          <Text style={themed($devPurgeText)} text="🧨 DEV: Purge all local data" />
-        </Pressable>
-      )}
-
-      {/* EUA Modal */}
-      <Modal
-        visible={showEuaModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleEuaCancel}
-      >
-        <View style={themed($modalContainer)} accessibilityViewIsModal>
-          {/* Modal Header */}
-          <View style={themed($modalHeader)}>
-            <Text style={themed($modalTitle)} tx="loginScreen:euaTitle" />
-            <Pressable
-              onPress={handleEuaCancel}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={translate("common:close")}
-            >
-              <Ionicons name="close" size={24} color={theme.colors.text} />
-            </Pressable>
-          </View>
-
-          {/* Tabs */}
-          <View style={themed($tabBar)}>
-            <Pressable
-              style={[themed($tab), activeTab === "disclaimer" && themed($tabActive)]}
-              onPress={() => setActiveTab("disclaimer")}
-            >
-              <Text
-                style={[
-                  themed($tabText),
-                  activeTab === "disclaimer" && { color: theme.colors.tint },
-                ]}
-              >
-                Disclaimer
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[themed($tab), activeTab === "eula" && themed($tabActive)]}
-              onPress={() => setActiveTab("eula")}
-            >
-              <Text
-                style={[themed($tabText), activeTab === "eula" && { color: theme.colors.tint }]}
-              >
-                EULA
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Agreement Content */}
-          <ScrollView
-            style={themed($modalContentScroll)}
-            contentContainerStyle={themed($modalContentInner)}
-            showsVerticalScrollIndicator
+        {__DEV__ && (
+          <Pressable
+            testID="login-dev-purge"
+            accessibilityRole="button"
+            accessibilityLabel="Dev: purge all local data"
+            accessibilityHint="Deletes the database, secure storage and all settings, then reloads"
+            onPress={handleDevPurge}
+            style={themed($devPurgeButton)}
           >
-            {contentLoading ? (
-              <ActivityIndicator size="large" color={theme.colors.tint} style={$contentSpinner} />
-            ) : canAgree ? (
-              <Text style={themed($agreementText)}>
-                {activeTab === "disclaimer" ? disclaimerContent : eulaContent}
-              </Text>
-            ) : (
-              // A blank panel reads as "this agreement is empty" and invites a
-              // blind Accept. Say the documents are missing and offer a way out.
-              <View style={themed($contentErrorContainer)}>
-                <Text style={themed($errorText)} tx="loginScreen:euaLoadFailed" />
-                <Pressable
-                  style={[themed($retryButton), { borderColor: theme.colors.tint }]}
-                  onPress={loadLegalContent}
-                  accessibilityRole="button"
-                  accessibilityLabel={translate("loginScreen:euaRetry")}
-                >
-                  <Text
-                    style={[themed($agreeButtonText), { color: theme.colors.tint }]}
-                    tx="loginScreen:euaRetry"
-                  />
-                </Pressable>
-              </View>
-            )}
-          </ScrollView>
+            <Text style={themed($devPurgeText)} text="🧨 DEV: Purge all local data" />
+          </Pressable>
+        )}
 
-          {/* Modal Footer */}
-          <View style={themed($modalFooter)}>
-            <Pressable
-              style={themed($cancelButton)}
-              onPress={handleEuaCancel}
-              accessibilityRole="button"
-              accessibilityLabel={translate("loginScreen:euaCancel")}
+        {/* EUA Modal */}
+        <Modal
+          visible={showEuaModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={handleEuaCancel}
+        >
+          <View style={themed($modalContainer)} accessibilityViewIsModal>
+            {/* Modal Header */}
+            <View style={themed($modalHeader)}>
+              <Text style={themed($modalTitle)} tx="loginScreen:euaTitle" />
+              <Pressable
+                onPress={handleEuaCancel}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={translate("common:close")}
+              >
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </Pressable>
+            </View>
+
+            {/* Tabs */}
+            <View style={themed($tabBar)}>
+              <Pressable
+                style={[themed($tab), activeTab === "disclaimer" && themed($tabActive)]}
+                onPress={() => showLegalTab("disclaimer")}
+              >
+                <Text
+                  style={[
+                    themed($tabText),
+                    activeTab === "disclaimer" && { color: theme.colors.tint },
+                  ]}
+                >
+                  Disclaimer
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[themed($tab), activeTab === "eula" && themed($tabActive)]}
+                onPress={() => showLegalTab("eula")}
+              >
+                <Text
+                  style={[themed($tabText), activeTab === "eula" && { color: theme.colors.tint }]}
+                >
+                  EULA
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Agreement Content */}
+            <ScrollView
+              ref={legalScrollRef}
+              style={themed($modalContentScroll)}
+              contentContainerStyle={themed($modalContentInner)}
+              showsVerticalScrollIndicator
             >
-              <Text style={themed($cancelButtonText)} tx="loginScreen:euaCancel" />
-            </Pressable>
-            <Pressable
-              style={[
-                themed($agreeButton),
-                { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
-                // Accepting an agreement the app never managed to display is not
-                // a valid acceptance, so the button is inert until both
-                // documents are on screen. Greyed rather than hidden so the
-                // reason stays visible next to the error above.
-                !canAgree && $disabledButton,
-              ]}
-              onPress={handleEuaAgree}
-              disabled={!canAgree}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !canAgree }}
-              accessibilityLabel={translate("loginScreen:euaAgree")}
-            >
-              <Text
-                style={[themed($agreeButtonText), { color: theme.colors.tint }]}
-                tx="loginScreen:euaAgree"
-              />
-            </Pressable>
+              {contentLoading ? (
+                <ActivityIndicator size="large" color={theme.colors.tint} style={$contentSpinner} />
+              ) : canAgree ? (
+                <Text style={themed($agreementText)}>
+                  {activeTab === "disclaimer" ? disclaimerContent : eulaContent}
+                </Text>
+              ) : (
+                // A blank panel reads as "this agreement is empty" and invites a
+                // blind Accept. Say the documents are missing and offer a way out.
+                <View style={themed($contentErrorContainer)}>
+                  <Text style={themed($errorText)} tx="loginScreen:euaLoadFailed" />
+                  <Pressable
+                    style={[themed($retryButton), { borderColor: theme.colors.tint }]}
+                    onPress={loadLegalContent}
+                    accessibilityRole="button"
+                    accessibilityLabel={translate("loginScreen:euaRetry")}
+                  >
+                    <Text
+                      style={[themed($agreeButtonText), { color: theme.colors.tint }]}
+                      tx="loginScreen:euaRetry"
+                    />
+                  </Pressable>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Footer */}
+            <View style={themed($modalFooter)}>
+              <Pressable
+                style={themed($cancelButton)}
+                onPress={handleEuaCancel}
+                accessibilityRole="button"
+                accessibilityLabel={translate("loginScreen:euaCancel")}
+              >
+                <Text style={themed($cancelButtonText)} tx="loginScreen:euaCancel" />
+              </Pressable>
+              <Pressable
+                style={[
+                  themed($agreeButton),
+                  { borderColor: theme.colors.tint, shadowColor: theme.colors.tint },
+                  // Accepting an agreement the app never managed to display is not
+                  // a valid acceptance, so the button is inert until both
+                  // documents are on screen. Greyed rather than hidden so the
+                  // reason stays visible next to the error above.
+                  !canAgree && $disabledButton,
+                ]}
+                // CHANGED 2026-10-03: was always Accept. On the Disclaimer tab
+                // it is now "Next" and moves to the EULA; Accept exists only on
+                // the EULA tab, which the modal can only reach after opening on
+                // the Disclaimer. Same disabled rule for both labels.
+                testID={activeTab === "disclaimer" ? "eua-next" : "eua-accept"}
+                onPress={activeTab === "disclaimer" ? () => showLegalTab("eula") : handleEuaAgree}
+                disabled={!canAgree}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !canAgree }}
+                accessibilityLabel={translate(
+                  activeTab === "disclaimer" ? "onboarding:next" : "loginScreen:euaAgree",
+                )}
+              >
+                <Text
+                  style={[themed($agreeButtonText), { color: theme.colors.tint }]}
+                  tx={activeTab === "disclaimer" ? "onboarding:next" : "loginScreen:euaAgree"}
+                />
+              </Pressable>
+            </View>
           </View>
+        </Modal>
+      </Screen>
+
+      {/* ADDED 2026-10-03: busy overlay for the browser sign-in. When the
+          browser closes, the SDK still has to exchange the code and the
+          wrapper has to sync the session into the store — about a second in
+          which the user was looking at an idle Login screen and could not
+          tell the sign-in was still running. It goes up at the tap, so it is
+          already in place behind the browser when the browser closes, and
+          comes down when loginWithProvider() settles (success, cancel or
+          error; the error strip is underneath).
+          A sibling View, NOT a <Modal>: on iOS a Modal presented while the
+          ASWebAuthenticationSession sheet is going up or coming down fights
+          it for the presenting view controller. Opaque on purpose — a
+          translucent scrim over live-looking buttons reads as a frozen
+          screen. */}
+      {providerBusy && (
+        <View
+          testID="login-busy-overlay"
+          style={themed($busyOverlay)}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={translate("loginScreen:signingIn")}
+          accessibilityLiveRegion="polite"
+        >
+          <ActivityIndicator size="large" color={theme.colors.tint} />
+          <Text style={themed($busyText)} tx="loginScreen:signingIn" />
         </View>
-      </Modal>
-    </Screen>
+      )}
+    </>
   )
 })
 
@@ -833,6 +906,22 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
 const $contentSpinner: ViewStyle = {
   marginTop: 40,
 }
+
+// Covers the whole Login screen, safe areas included (see the overlay's
+// comment in the render).
+const $busyOverlay: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  ...StyleSheet.absoluteFillObject,
+  backgroundColor: colors.background,
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.md,
+})
+
+const $busyText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  textAlign: "center",
+  fontSize: 16,
+})
 
 const $loadingText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.textDim,

@@ -22,24 +22,70 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
-> **Deploy order and ship gate.** The API deploys first — the app's
-> wrong-account recovery calls its identity-link endpoint, and an app that
-> reaches a server without it gets a 404 on every link attempt. **Merged to
-> `root` 2026-09-28, so NO OTA can be published from `root` until the Auth0
-> tenant runbook in spec 1 §3 is complete on the production tenant**:
-> passwordless email is off there by default, and shipping ahead of it leaves
-> users with a login screen that can only fail. All of it is JS-only, so it
-> ships as an OTA — no `runtimeVersion` bump (see the Build entry below for
-> the one native-config change, which prod output does not depend on).
->
-> **Also before that OTA — prod tenant DONE 2026-09-30.** The prod Auth0
-> tenant (meetingmaker) now has the `email` passwordless connection (enabled
-> for RecoverySky App only; the live Universal Login page was checked and is
-> unchanged), the passwordless code grant on that client, and the Link
-> passwordless identity → Identities claim Actions in Post Login. The legacy
-> Create Firebase User Actions were unbound (code kept in
-> `auth0/retired/meetingmaker/`). Still to do before the OTA: one email-code
-> round trip on a dev build pointed at prod — see `docs/PROD_AUTH0_ROLLOUT.md`.
+### Changed
+
+- **Log In code step shows the full email address.** "We sent a code to …" used
+  to mask it (`j***@proton.me`), which hid a mistyped address, the usual reason
+  a code never arrives. The returning-owner "Send code to …" button and the
+  wrong-account screen still mask theirs.
+
+- **Google, Apple and password sign-in now show a full-screen "Signing you
+  in..." indicator.** After the browser closed, the app spent about a second
+  finishing the sign-in while the Login screen sat there looking idle, with
+  its buttons still tappable. The indicator goes up at the tap and stays until
+  the sign-in settles. One new i18n key in nine locales (translations queued
+  for review).
+
+- **The legal agreements popup now walks through both documents.** The button
+  on the Disclaimer tab reads "Next" and moves to the EULA; "Accept" appears
+  only on the EULA tab. Before, Accept sat under the Disclaimer and a user
+  could agree without ever opening the EULA. The popup always opens on the
+  Disclaimer, and each tab starts at the top.
+
+- **The "Customize Your App" onboarding step now covers the settings people
+  go looking for on day one.** Language and Enable Attendance sit alongside
+  dark mode and theme colour, wired to the same settings as the Settings tab.
+  With attendance on, the step also asks for the "Reporting Short Name"
+  printed on reports and certificates. One new i18n key in nine locales
+  (translations queued for review).
+
+- **The "Your Privacy Matters" onboarding step says what is actually true.**
+  It used to promise "Your data never leaves your device", "100% local"
+  storage and "anonymity". Reports and cloud backup do send data, and users
+  sign in with an account. The step is now four cards: private and secure,
+  always encrypted (on the device, in transit and in storage), you decide
+  what leaves (only a sent report or cloud backup), and HIPAA compliant app,
+  network, servers and storage. Five old strings removed and eight added, in nine locales
+  (translations queued for review).
+
+- **The Open Source onboarding step says more about why it matters.** A short
+  statement that we are proud to build RecoverySky in the open now sits above
+  the list, and the list gains a third benefit: privacy promises that can be
+  checked in the code. Two new i18n keys in nine locales (translations queued
+  for review).
+
+- **The Recovery onboarding step no longer asks for a Short Name.** The "Tell us about yourself"
+  step is titled "Your Recovery" again and its picker is labelled "Primary
+  Fellowship", with a new line under the title saying what the two fields
+  are for and that they can be changed in Settings. The name moved to the
+  "Customize Your App" step (above) and can still be set in Settings; reports and the 90-in-90 certificate still ask for it when
+  it is missing.
+
+- **The Install Zoom onboarding step no longer says the app hosts meetings.**
+  The line now reads "RecoverySky uses Zoom Workplace to join online
+  meetings." English only; the other eight locales never said "host".
+  The step also gains a bullet saying no Zoom login is needed and the user
+  will join anonymously (one new i18n key in nine locales, translations queued
+  for review).
+
+## [4.10.1-16] — 2026-10-02
+
+> **Deploy order held.** API 1.18.0 (identity link, `/auth0/email/start` and
+> `/verify`) and the prod Auth0 tenant (meetingmaker: `email` passwordless
+> connection, passwordless code grant, Link passwordless identity → Identities
+> claim Actions) were live before this OTA — see `docs/PROD_AUTH0_ROLLOUT.md`.
+> JS-only, no `runtimeVersion` bump: the one native-config change (Build entry
+> below) leaves production output unchanged.
 
 ### Added
 

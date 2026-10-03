@@ -78,6 +78,7 @@ const th: Translations = {
       "เข้าสู่ระบบเพื่อใช้งานการสมัครสมาชิกและฟีเจอร์พรีเมียม การสมัครสมาชิกต้องใช้บัญชี\n\nสามารถเข้าและออกจากระบบได้ตลอดเวลาในการตั้งค่า",
     continueAnonymously: "",
     openingBrowser: "กำลังเปิดเบราว์เซอร์เพื่อยืนยันตัวตน...",
+    signingIn: "กำลังเข้าสู่ระบบ...",
     euaTitle: "ข้อตกลงทางกฎหมาย",
     euaAgree: "ยอมรับ",
     euaCancel: "ยกเลิก",
@@ -460,8 +461,8 @@ const th: Translations = {
     permissionsSection: "Permissions",
     enableNotifications: "การแจ้งเตือนแบบพุช",
     notificationsHint: "รับข่าวสารเกี่ยวกับการประชุมและชุมชนการฟื้นตัว",
-    enableLocation: "Location",
-    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
+    enableLocation: "ตำแหน่งที่ตั้ง",
+    locationHint: "ค้นหาการประชุมใกล้คุณ และยืนยันว่าคุณอยู่ที่นั่นเมื่อบันทึกการเข้าร่วม",
     notificationsDisabledTitle: "การแจ้งเตือนถูกปิด",
     notificationsDisabledMessage:
       "การแจ้งเตือนแบบพุชถูกปิดในการตั้งค่าอุปกรณ์ของคุณ คุณต้องการเปิดการตั้งค่าเพื่อเปิดใช้งานหรือไม่?",
@@ -543,8 +544,9 @@ const th: Translations = {
     selectPronouns: "เลือกสรรพนาม",
     // Screen 2: Recovery
     recoveryTitle: "การฟื้นตัวของคุณ",
-    recoverySubtitle: "ใช้เพื่อกรองการประชุมตามกลุ่มของคุณ และปรับแต่งบันทึกการเข้าร่วมของคุณ",
-    fellowship: "กลุ่ม",
+    recoverySubtitle:
+      "ช่วยแสดงการประชุมที่เหมาะกับคุณและนับเวลาที่คุณเลิกได้ คุณเปลี่ยนได้ทุกเมื่อในการตั้งค่า",
+    fellowship: "กลุ่มหลัก",
     selectFellowship: "เลือกกลุ่มของคุณ",
     recoveryDate: "วันที่เริ่มฟื้นตัว",
     otherFellowship: "อื่นๆ / ไม่ระบุ",
@@ -553,11 +555,13 @@ const th: Translations = {
     zoomSubtitle: "RecoverySky ใช้ Zoom Workplace สำหรับการเข้าร่วมประชุมสด",
     zoomBenefitFree: "แอป Zoom ใช้ฟรีจาก App Store หรือ Play Store",
     zoomBenefitRequired: "จำเป็นสำหรับการเข้าร่วมประชุมสด",
+    zoomBenefitNoLogin: "ไม่จำเป็นต้องเข้าสู่ระบบ Zoom คุณจะเข้าร่วมแบบไม่ระบุตัวตน",
     zoomBenefitAlready: "ติดตั้งแล้ว? แตะ ถัดไป เพื่อดำเนินการต่อ",
     installZoom: "ติดตั้ง Zoom",
     // Screen 4: Theme
     themeTitle: "ปรับแต่งแอปของคุณ",
-    themeSubtitle: "ทำให้เป็นของคุณ",
+    themeSubtitle: "ตัวเลือกที่สำคัญที่สุดจากการตั้งค่า",
+    reportingShortName: "ชื่อย่อสำหรับรายงาน",
     darkMode: "โหมดมืด",
     themeColor: "สีธีม",
     // Screen 4: Attendance
@@ -570,19 +574,28 @@ const th: Translations = {
     enableAttendanceHint: "เปลี่ยนได้ตลอดเวลาในการตั้งค่านะ",
     // Screen 5: Privacy
     privacyTitle: "ความเป็นส่วนตัวของคุณสำคัญ",
-    privacySubtitle: "เราให้ความสำคัญกับความเป็นส่วนตัวของคุณจริงๆ",
-    dataOnDevice: "ข้อมูลของคุณไม่ออกจากอุปกรณ์เลย",
+    privacySecureTitle: "เป็นส่วนตัวและปลอดภัย",
+    privacySecureBody:
+      "การฟื้นตัวของคุณเป็นเรื่องของคุณ สิ่งที่คุณบันทึกที่นี่ได้รับการปกป้องในทุกขั้นตอน",
+    privacyEncryptedTitle: "เข้ารหัสเสมอ",
+    privacyEncryptedBody: "ข้อมูลของคุณถูกเข้ารหัสทั้งบนอุปกรณ์ ระหว่างการส่ง และในที่จัดเก็บ",
+    privacyControlTitle: "คุณเป็นผู้ตัดสินใจว่าอะไรออกจากเครื่อง",
+    privacyControlBody:
+      "บันทึกของคุณอยู่บนอุปกรณ์นี้ เว้นแต่คุณจะส่งรายงานหรือเปิดการสำรองข้อมูลบนคลาวด์",
+    privacyHipaaTitle: "เป็นไปตามมาตรฐาน HIPAA",
+    privacyHipaaBody: "แอป เครือข่าย เซิร์ฟเวอร์ และที่จัดเก็บข้อมูลเป็นไปตามมาตรฐาน HIPAA",
     noTracking: "ไม่มี Google Analytics ไม่มีการติดตาม",
-    totalAnonymity: "ความเป็นส่วนตัวและการไม่ระบุตัวตนอย่างสมบูรณ์",
     minimalNetwork: "ทราฟฟิกเครือข่ายคือสำหรับรายชื่อประชุมสด",
-    encryptedStorage: "จัดเก็บ SQL แบบเข้ารหัสบนเครื่อง 100%",
-    hipaaCompliant: "เครือข่ายและการจัดเก็บเป็นไปตามมาตรฐาน HIPAA",
     openSource: "โอเพนซอร์ส — พร้อมให้ตรวจสอบและทดสอบความปลอดภัย",
     privacyPolicy: "นโยบายความเป็นส่วนตัว",
     termsOfService: "เงื่อนไขการให้บริการ",
     // Screen 6: Open Source
     ossTitle: "โอเพนซอร์ส",
     ossSubtitle: "สร้างด้วยความโปร่งใสและความไว้วางใจ",
+    ossProud:
+      "เราภูมิใจที่สร้าง RecoverySky อย่างเปิดเผย การฟื้นตัวตั้งอยู่บนความซื่อสัตย์ และแอปนี้ก็เช่นกัน",
+    ossAccountable:
+      "คำสัญญาที่ตรวจสอบได้: การรับรองความเป็นส่วนตัวของเราอยู่ในโค้ด ไม่ใช่แค่ในหน้านี้",
     ossTransparency: "โปร่งใสอย่างเต็มที่ — ดูได้เลยว่าแอปทำงานอย่างไร",
     ossSecurity: "ปลอดภัยด้วยความเปิดเผย — ใครก็สามารถตรวจสอบโค้ดได้",
     ossCommunity: "พัฒนาและปรับปรุงโดยชุมชน",

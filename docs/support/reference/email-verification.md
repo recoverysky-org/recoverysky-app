@@ -60,7 +60,7 @@ Screen steps: `review`, `change`, `code`.
 
 1. **Review.** Title "Please review and verify your email address". Body "RecoverySky now signs you in with a code sent to your email. Check that this is an address you can read." The account address is shown in full. Button "Send code"; link "Not my email? Change it".
 2. **Change.** One address field. Sending goes to the new address and then to the code step.
-3. **Code.** Heading "We sent a code to {{email}}". As of commit `42f989f` (2026-10-02) the address shown is the **full** address the code went to; before that it was masked (`j***@...`), which hid the typo the screen exists to catch. Login and the wrong-account screen still mask the address. Six digits, verifies automatically at the sixth digit. "Resend code" returns after a 60 s cooldown ("Resend in {{seconds}}s" while waiting). "Wrong email? Go back" returns to the change step.
+3. **Code.** Heading "We sent a code to {{email}}". As of commit `42f989f` (2026-10-02) the address shown is the **full** address the code went to; before that it was masked (`j***@...`), which hid the typo the screen exists to catch. The wrong-account screen still masks the address; the Login code step shows it in full since 2026-10-03. Six digits, verifies automatically at the sixth digit. "Resend code" returns after a 60 s cooldown ("Resend in {{seconds}}s" while waiting). "Wrong email? Go back" returns to the change step.
 
 Every step has a footer link "Why is verification required?" that opens `https://www.recoverysky.org/post/8/recoverysky-required-email-verification`.
 

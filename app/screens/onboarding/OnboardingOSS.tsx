@@ -26,6 +26,10 @@ const ossImage = require("@assets/images/OSS.png")
 const OSS_BENEFITS = [
   { icon: "eye-outline", txKey: "ossTransparency" },
   { icon: "shield-checkmark-outline", txKey: "ossSecurity" },
+  // ADDED 2026-10-03: one more, and the pride callout above the list.
+  // ossAccountable ties this step to the privacy step before it: the claims
+  // made there can be checked in the source.
+  { icon: "checkmark-done-outline", txKey: "ossAccountable" },
   // { icon: "code-slash-outline", txKey: "ossReview" },
 ] as const
 
@@ -65,6 +69,11 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
 
           <Text style={themed($title)} tx="onboarding:ossTitle" />
           <Text style={themed($subtitle)} tx="onboarding:ossSubtitle" />
+
+          {/* Why we do it, in our own voice, before the list of benefits. */}
+          <View style={[themed($proudCard), { borderColor: theme.colors.tint }]}>
+            <Text style={themed($proudText)} tx="onboarding:ossProud" />
+          </View>
 
           {/* OSS benefits */}
           <View style={themed($benefitsList)}>
@@ -208,6 +217,22 @@ const $linkText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 15,
   fontWeight: "500",
   color: colors.tint,
+})
+
+const $proudCard: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  backgroundColor: colors.card,
+  borderLeftWidth: 3,
+  borderRadius: 10,
+  paddingVertical: spacing.sm,
+  paddingHorizontal: spacing.md,
+  marginBottom: spacing.md,
+})
+
+const $proudText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 15,
+  lineHeight: 22,
+  fontStyle: "italic",
+  color: colors.text,
 })
 
 const $footer: ThemedStyle<ViewStyle> = ({ spacing }) => ({

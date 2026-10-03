@@ -81,6 +81,7 @@ const fr: Translations = {
       "Connecte-toi pour accéder aux abonnements et aux fonctions premium. Les abonnements nécessitent un compte.\n\nTu peux te connecter et te déconnecter en tout temps dans les Réglages.",
     continueAnonymously: "",
     openingBrowser: "Ouverture du navigateur pour l'authentification...",
+    signingIn: "Connexion en cours...",
     euaTitle: "Accords Juridiques",
     euaAgree: "Accepter",
     euaCancel: "Annuler",
@@ -472,8 +473,9 @@ const fr: Translations = {
     enableNotifications: "Notifications push",
     notificationsHint:
       "Reçois des mises à jour sur les réunions et la communauté de rétablissement",
-    enableLocation: "Location",
-    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
+    enableLocation: "Localisation",
+    locationHint:
+      "Trouve des réunions près de toi et confirme ta présence sur place quand tu enregistres ta participation",
     notificationsDisabledTitle: "Notifications désactivées",
     notificationsDisabledMessage:
       "Les notifications push sont désactivées dans les réglages de ton appareil. Veux-tu ouvrir les Réglages pour les activer?",
@@ -557,8 +559,8 @@ const fr: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Ton rétablissement",
     recoverySubtitle:
-      "Sert à filtrer les réunions selon votre fraternité et à personnaliser vos relevés de présence.",
-    fellowship: "Fraternité",
+      "Cela aide à afficher les bonnes réunions et à compter ton temps d'abstinence. Tu peux modifier cela à tout moment dans les Réglages.",
+    fellowship: "Fraternité principale",
     selectFellowship: "Choisis ta fraternité",
     recoveryDate: "Date de rétablissement",
     otherFellowship: "Autre / Aucune",
@@ -567,11 +569,13 @@ const fr: Translations = {
     zoomSubtitle: "RecoverySky utilise Zoom Workplace pour assister aux réunions en direct.",
     zoomBenefitFree: "L'application Zoom est gratuite sur l'App Store et le Play Store",
     zoomBenefitRequired: "Requise pour rejoindre les réunions en direct",
+    zoomBenefitNoLogin: "Connexion à Zoom non requise. Tu participeras anonymement.",
     zoomBenefitAlready: "Déjà installée ? Appuie sur Suivant pour continuer.",
     installZoom: "Installer Zoom",
     // Screen 4: Theme
     themeTitle: "Personnalise ton app",
-    themeSubtitle: "Fais-en la tienne",
+    themeSubtitle: "Les options les plus importantes des Réglages",
+    reportingShortName: "Nom court pour les rapports",
     darkMode: "Mode sombre",
     themeColor: "Couleur du thème",
     // Screen 4: Attendance
@@ -588,19 +592,30 @@ const fr: Translations = {
     enableAttendanceHint: "Tu peux changer ça en tout temps dans les Réglages",
     // Screen 5: Privacy
     privacyTitle: "Ta vie privée compte",
-    privacySubtitle: "On prend ta vie privée au sérieux",
-    dataOnDevice: "Tes données ne quittent jamais ton appareil",
+    privacySecureTitle: "Privée et sécurisée",
+    privacySecureBody:
+      "Ton rétablissement ne regarde que toi. Ce que tu enregistres ici est protégé à chaque étape.",
+    privacyEncryptedTitle: "Toujours chiffré",
+    privacyEncryptedBody:
+      "Tes données sont chiffrées sur ton appareil, en transit et dans le stockage.",
+    privacyControlTitle: "Tu décides de ce qui sort",
+    privacyControlBody:
+      "Tes données restent sur cet appareil, sauf si tu envoies un rapport ou actives la sauvegarde cloud.",
+    privacyHipaaTitle: "Conforme HIPAA",
+    privacyHipaaBody:
+      "L'application, le réseau, les serveurs et le stockage respectent les normes HIPAA.",
     noTracking: "Pas de Google Analytics, pas de pistage",
-    totalAnonymity: "Confidentialité et anonymat complets",
     minimalNetwork: "Le trafic réseau est pour les listes de réunions en direct",
-    encryptedStorage: "Stockage SQL local chiffré à 100%",
-    hipaaCompliant: "Réseau et stockage conformes HIPAA",
     openSource: "Code source ouvert — disponible pour révision et tests de sécurité",
     privacyPolicy: "Politique de confidentialité",
     termsOfService: "Conditions d'utilisation",
     // Screen 6: Open Source
     ossTitle: "Code source ouvert",
     ossSubtitle: "Bâti avec transparence et confiance",
+    ossProud:
+      "Nous sommes fiers de construire RecoverySky au grand jour. Le rétablissement repose sur l'honnêteté, et cette application aussi.",
+    ossAccountable:
+      "Des promesses vérifiables : nos engagements de confidentialité sont dans le code, pas seulement sur cette page",
     ossTransparency: "Transparence totale — vois exactement comment l'app fonctionne",
     ossSecurity: "Sécurité par l'ouverture — n'importe qui peut auditer le code",
     ossCommunity: "Développement et améliorations propulsés par la communauté",

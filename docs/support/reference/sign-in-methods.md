@@ -34,7 +34,7 @@ Two caveats apply to the "Sub prefix" column:
 
 1. Choose step: "Continue with Email".
 2. Email step: label "Email address", placeholder "you@example.com", button "Send Code", link "Back". The button is disabled until the address looks like `x@y.z`. There is no error text for a malformed address; a mistyped address simply never receives a code.
-3. Code step: header "We sent a code to {{email}}" (the address is masked, for example `u***@example.com`), field "6-digit code", button "Verify", link "Resend code" (or "Resend in {{seconds}}s" while it cools down), link "Wrong email? Go back".
+3. Code step: header "We sent a code to {{email}}" (the full address since 2026-10-03; masked, for example `u***@example.com`, on builds before that), field "6-digit code", button "Verify", link "Resend code" (or "Resend in {{seconds}}s" while it cools down), link "Wrong email? Go back".
 
 **Returning owner.** If the device owner's sub starts with `email|` or `auth0|`, the Email button is replaced by "Send code to {{email}}" (masked) plus a link "Use a different email". Tapping the first sends a code to the stored owner address and goes straight to the code step. Owners who signed in with Apple or Google get the plain buttons.
 

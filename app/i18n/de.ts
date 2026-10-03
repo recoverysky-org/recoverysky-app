@@ -81,6 +81,7 @@ const de: Translations = {
       "Melde dich an, um auf Abonnements und Premium-Funktionen zuzugreifen. Für Abonnements ist ein Konto erforderlich.\n\nDu kannst dich jederzeit in den Einstellungen an- und abmelden.",
     continueAnonymously: "",
     openingBrowser: "Browser wird für die Anmeldung geöffnet...",
+    signingIn: "Du wirst angemeldet...",
     euaTitle: "Rechtliche Vereinbarungen",
     euaAgree: "Akzeptieren",
     euaCancel: "Abbrechen",
@@ -467,8 +468,9 @@ const de: Translations = {
     permissionsSection: "Permissions",
     enableNotifications: "Push-Benachrichtigungen",
     notificationsHint: "Erhalte Updates zu Meetings und der Genesungsgemeinschaft",
-    enableLocation: "Location",
-    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
+    enableLocation: "Standort",
+    locationHint:
+      "Finde Meetings in deiner Nähe und bestätige, dass du vor Ort bist, wenn du deine Teilnahme erfasst",
     notificationsDisabledTitle: "Benachrichtigungen deaktiviert",
     notificationsDisabledMessage:
       "Push-Benachrichtigungen sind in deinen Geräteeinstellungen deaktiviert. Möchtest du die Einstellungen öffnen, um sie zu aktivieren?",
@@ -552,8 +554,8 @@ const de: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Deine Genesung",
     recoverySubtitle:
-      "Filtert Meetings nach deiner Gemeinschaft und personalisiert deine Anwesenheitsnachweise.",
-    fellowship: "Gemeinschaft",
+      "Hilft, die passenden Meetings zu zeigen und deine cleane Zeit zu zählen. Du kannst das jederzeit in den Einstellungen ändern.",
+    fellowship: "Hauptgemeinschaft",
     selectFellowship: "Wähle deine Gemeinschaft",
     recoveryDate: "Genesungsdatum",
     otherFellowship: "Andere / Keine",
@@ -562,11 +564,13 @@ const de: Translations = {
     zoomSubtitle: "RecoverySky nutzt Zoom Workplace für Live-Meetings.",
     zoomBenefitFree: "Die Zoom-App ist kostenlos im App Store und Play Store",
     zoomBenefitRequired: "Erforderlich für die Teilnahme an Live-Meetings",
+    zoomBenefitNoLogin: "Keine Zoom-Anmeldung erforderlich. Du nimmst anonym teil.",
     zoomBenefitAlready: "Bereits installiert? Tippe auf Weiter, um fortzufahren.",
     installZoom: "Zoom installieren",
     // Screen 4: Theme
     themeTitle: "App anpassen",
-    themeSubtitle: "Mach sie zu deiner",
+    themeSubtitle: "Die wichtigsten Optionen aus den Einstellungen",
+    reportingShortName: "Kurzname für Berichte",
     darkMode: "Dunkelmodus",
     themeColor: "Designfarbe",
     // Screen 4: Attendance
@@ -583,19 +587,29 @@ const de: Translations = {
     enableAttendanceHint: "Du kannst das jederzeit in den Einstellungen ändern",
     // Screen 5: Privacy
     privacyTitle: "Deine Privatsphäre zählt",
-    privacySubtitle: "Wir nehmen deinen Datenschutz ernst",
-    dataOnDevice: "Deine Daten verlassen nie dein Gerät",
+    privacySecureTitle: "Privat und sicher",
+    privacySecureBody:
+      "Deine Genesung ist deine Sache. Was du hier festhältst, ist bei jedem Schritt geschützt.",
+    privacyEncryptedTitle: "Immer verschlüsselt",
+    privacyEncryptedBody:
+      "Deine Daten sind auf deinem Gerät, bei der Übertragung und im Speicher verschlüsselt.",
+    privacyControlTitle: "Du entscheidest, was das Gerät verlässt",
+    privacyControlBody:
+      "Deine Einträge bleiben auf diesem Gerät, außer du sendest einen Bericht oder aktivierst das Cloud-Backup.",
+    privacyHipaaTitle: "HIPAA-konform",
+    privacyHipaaBody: "App, Netzwerk, Server und Speicher erfüllen die HIPAA-Standards.",
     noTracking: "Kein Google Analytics, kein Tracking",
-    totalAnonymity: "Vollständige Privatsphäre und Anonymität",
     minimalNetwork: "Netzwerkverkehr ist für Live-Meeting-Listen",
-    encryptedStorage: "100% lokale verschlüsselte SQL-Speicherung",
-    hipaaCompliant: "HIPAA-konforme Netzwerk- und Datenspeicherung",
     openSource: "Open Source — verfügbar zur Überprüfung und Sicherheitstests",
     privacyPolicy: "Datenschutzrichtlinie",
     termsOfService: "Nutzungsbedingungen",
     // Screen 6: Open Source
     ossTitle: "Open Source",
     ossSubtitle: "Gebaut mit Transparenz und Vertrauen",
+    ossProud:
+      "Wir sind stolz darauf, RecoverySky offen zu entwickeln. Genesung beruht auf Ehrlichkeit, und diese App auch.",
+    ossAccountable:
+      "Versprechen, die du prüfen kannst: Unsere Datenschutzzusagen stehen im Code, nicht nur auf dieser Seite",
     ossTransparency: "Vollständige Transparenz — sieh genau, wie die App funktioniert",
     ossSecurity: "Sicherheit durch Offenheit — jeder kann den Code prüfen",
     ossCommunity: "Entwicklung und Verbesserungen durch die Gemeinschaft",

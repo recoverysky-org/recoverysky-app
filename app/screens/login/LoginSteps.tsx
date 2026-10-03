@@ -195,6 +195,8 @@ export interface CodeStepProps {
    * shown. Login and the wrong-account screen pass it masked; the verify-email
    * flow passes it in full. CHANGED 2026-10-02: was `emailMasked`, renamed when
    * the verify flow stopped masking (catching a typo is its whole job).
+   * CHANGED 2026-10-03: Login passes it in full too; only the wrong-account
+   * screen still masks.
    */
   email: string
   code: string
@@ -228,7 +230,10 @@ export function CodeStep({
           CHANGED 2026-10-02: the masking now happens at the sign-in call sites
           (LoginScreen, WrongAccountView), which still pass a masked address.
           The verify-email flow passes the full one: there the user is checking
-          the address for a typo, and a mask hides exactly that. */}
+          the address for a typo, and a mask hides exactly that.
+          CHANGED 2026-10-03: LoginScreen passes the full address as well, for
+          the same reason. WrongAccountView is the one caller left that masks
+          (it shows the owner's address, which nobody typed). */}
       <Text
         preset="subheading"
         style={themed($centered)}

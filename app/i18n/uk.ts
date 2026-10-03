@@ -79,6 +79,7 @@ const uk: Translations = {
       "Увійди, щоб отримати доступ до підписок і преміум-функцій. Для підписок потрібен обліковий запис.\n\nТи можеш увійти та вийти будь-коли в Налаштуваннях.",
     continueAnonymously: "",
     openingBrowser: "Відкриваємо браузер для авторизації...",
+    signingIn: "Виконуємо вхід...",
     euaTitle: "Юридичні угоди",
     euaAgree: "Прийняти",
     euaCancel: "Скасувати",
@@ -463,8 +464,9 @@ const uk: Translations = {
     permissionsSection: "Permissions",
     enableNotifications: "Push-сповіщення",
     notificationsHint: "Отримуй оновлення про зустрічі та спільноту одужання",
-    enableLocation: "Location",
-    locationHint: "Find meetings near you, and confirm you're there when you log attendance",
+    enableLocation: "Геолокація",
+    locationHint:
+      "Знаходьте зустрічі поруч і підтверджуйте, що ви на місці, коли відмічаєте відвідування",
     notificationsDisabledTitle: "Сповіщення вимкнено",
     notificationsDisabledMessage:
       "Push-сповіщення вимкнено в налаштуваннях пристрою. Бажаєш відкрити Налаштування, щоб увімкнути їх?",
@@ -547,8 +549,8 @@ const uk: Translations = {
     // Screen 2: Recovery
     recoveryTitle: "Твоє одужання",
     recoverySubtitle:
-      "Використовується для фільтрації зустрічей за вашою спільнотою та персоналізації звітів про відвідування.",
-    fellowship: "Спільнота",
+      "Це допомагає показувати відповідні зустрічі та рахувати твій чистий час. Змінити можна будь-коли в налаштуваннях.",
+    fellowship: "Основна спільнота",
     selectFellowship: "Обери свою спільноту",
     recoveryDate: "Дата одужання",
     otherFellowship: "Інше / Немає",
@@ -557,11 +559,13 @@ const uk: Translations = {
     zoomSubtitle: "RecoverySky використовує Zoom Workplace для участі в живих зустрічах.",
     zoomBenefitFree: "Додаток Zoom безкоштовний у App Store та Play Store",
     zoomBenefitRequired: "Потрібен для приєднання до живих зустрічей",
+    zoomBenefitNoLogin: "Вхід у Zoom не потрібен. Ти береш участь анонімно.",
     zoomBenefitAlready: "Вже встановлено? Натисни «Далі», щоб продовжити.",
     installZoom: "Встановити Zoom",
     // Screen 4: Theme
     themeTitle: "Налаштуй додаток",
-    themeSubtitle: "Зроби його своїм",
+    themeSubtitle: "Найважливіші параметри з налаштувань",
+    reportingShortName: "Коротке ім'я для звітів",
     darkMode: "Темна тема",
     themeColor: "Колір теми",
     // Screen 4: Attendance
@@ -577,19 +581,28 @@ const uk: Translations = {
     enableAttendanceHint: "Це можна змінити будь-коли в Налаштуваннях",
     // Screen 5: Privacy
     privacyTitle: "Твоя приватність важлива",
-    privacySubtitle: "Ми серйозно ставимося до твоєї конфіденційності",
-    dataOnDevice: "Твої дані ніколи не залишають пристрій",
+    privacySecureTitle: "Приватно й безпечно",
+    privacySecureBody:
+      "Твоє одужання стосується лише тебе. Усе, що ти записуєш тут, захищено на кожному кроці.",
+    privacyEncryptedTitle: "Завжди зашифровано",
+    privacyEncryptedBody: "Твої дані зашифровані на пристрої, під час передавання та зберігання.",
+    privacyControlTitle: "Ти вирішуєш, що залишає пристрій",
+    privacyControlBody:
+      "Записи залишаються на цьому пристрої, доки ти не надішлеш звіт або не ввімкнеш хмарну копію.",
+    privacyHipaaTitle: "Відповідає HIPAA",
+    privacyHipaaBody: "Застосунок, мережа, сервери та сховище відповідають стандартам HIPAA.",
     noTracking: "Без Google Analytics, без відстеження",
-    totalAnonymity: "Повна конфіденційність та анонімність",
     minimalNetwork: "Мережевий трафік — для списків зустрічей онлайн",
-    encryptedStorage: "100% локальне зашифроване SQL-сховище",
-    hipaaCompliant: "Мережа та сховище відповідають стандартам HIPAA",
     openSource: "Відкритий код — доступний для перевірки та тестування безпеки",
     privacyPolicy: "Політика конфіденційності",
     termsOfService: "Умови використання",
     // Screen 6: Open Source
     ossTitle: "Відкритий код",
     ossSubtitle: "Створено з прозорістю та довірою",
+    ossProud:
+      "Ми пишаємося тим, що створюємо RecoverySky відкрито. Одужання будується на чесності, і цей застосунок теж.",
+    ossAccountable:
+      "Обіцянки, які можна перевірити: наші гарантії приватності є в коді, а не лише на цій сторінці",
     ossTransparency: "Повна прозорість — дивись, як саме працює додаток",
     ossSecurity: "Безпека через відкритість — будь-хто може перевірити код",
     ossCommunity: "Розробка та покращення силами спільноти",

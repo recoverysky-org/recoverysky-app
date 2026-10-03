@@ -12,6 +12,11 @@
  * moved to the top of this screen rather than disappearing with the rest.
  * OnboardingProfile.tsx is parked, not deleted — profile comes back with the
  * community features.
+ *
+ * CHANGED 2026-10-03: the Short Name field is hidden (`shortNameVisible`
+ * below) and the title is back to "Your Recovery". The field, its strings and
+ * the store plumbing all stay; Settings still collects the name, and the
+ * report and certificate flows still ask for it when it is missing.
  */
 import { FC, useState } from "react"
 import {
@@ -44,6 +49,12 @@ import { ProgressDots } from "./ProgressDots"
 // truth across all four pickers). Enum values are strings, so the existing
 // string-keyed map/label code below works unchanged.
 const FELLOWSHIPS = ACTIVE_FELLOWSHIPS
+
+// ADDED 2026-10-03: Short Name is hidden from onboarding, not removed. Flip to
+// true to bring the field back (and consider the profileTitle heading again).
+// The name is now asked on OnboardingTheme, under Enable Attendance.
+// Typed `boolean` so the hidden branch isn't flagged as unreachable.
+const shortNameVisible: boolean = false
 type _Fellowship = (typeof FELLOWSHIPS)[number]
 
 const getFellowshipLabel = (f: string): string => {
@@ -106,24 +117,28 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
         {/* Content */}
         <View style={$content}>
           {/* Title is the old profileTitle ("Tell us about yourself") — this
-              screen now covers identity + recovery, not recovery alone. */}
-          <Text style={themed($title)} tx="onboarding:profileTitle" />
+              screen now covers identity + recovery, not recovery alone.
+              CHANGED 2026-10-03: back to recoveryTitle ("Your Recovery"). With
+              Short Name hidden the screen is recovery alone again. */}
+          <Text style={themed($title)} tx="onboarding:recoveryTitle" />
           <Text style={themed($subtitle)} tx="onboarding:recoverySubtitle" />
 
           {/* Short Name Input — first, because it's the one field that names
               the person on their reports and certificate. */}
-          <View style={themed($inputSection)}>
-            <Text style={themed($label)} tx="onboarding:shortName" />
-            <TextField
-              value={profileStore.shortName}
-              onChangeText={profileStore.setShortName}
-              placeholderTx="onboarding:shortNamePlaceholder"
-              autoCapitalize="words"
-              autoCorrect={false}
-              spellCheck={false}
-              inputWrapperStyle={themed($inputWrapper)}
-            />
-          </View>
+          {shortNameVisible && (
+            <View style={themed($inputSection)}>
+              <Text style={themed($label)} tx="onboarding:shortName" />
+              <TextField
+                value={profileStore.shortName}
+                onChangeText={profileStore.setShortName}
+                placeholderTx="onboarding:shortNamePlaceholder"
+                autoCapitalize="words"
+                autoCorrect={false}
+                spellCheck={false}
+                inputWrapperStyle={themed($inputWrapper)}
+              />
+            </View>
+          )}
 
           {/* Fellowship Picker */}
           <View style={themed($inputSection)}>

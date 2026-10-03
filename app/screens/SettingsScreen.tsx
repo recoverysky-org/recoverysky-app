@@ -32,7 +32,7 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
 import { resetLocalDatabase } from "@/db/resetLocalDatabase"
 import { RESTORE_BACKUP_PROMPT_COPY, useCloudBackupPrompt } from "@/hooks/useCloudBackupPrompt"
-import { showLocationDeniedAlert } from "@/hooks/useLocationGate"
+import { usePermissionToggles } from "@/hooks/usePermissionToggles"
 import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
 import {
   translate,
@@ -54,13 +54,7 @@ import { api } from "@/services/api"
 import { describeAccount } from "@/services/auth/accountMethodsLogic"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
-import {
-  loginNotificationUser,
-  logoutNotificationUser,
-  optInNotifications,
-  optOutNotifications,
-  requestNotificationPermission,
-} from "@/services/notifications"
+import { logoutNotificationUser, optOutNotifications } from "@/services/notifications"
 import { billingUnresponsiveCopy } from "@/services/purchases"
 import { requestRatingFromSettings } from "@/services/rating"
 import { attendanceSync } from "@/services/sync"
@@ -71,7 +65,7 @@ import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
 import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
-import { decideLocationGate, shouldRevokeLocationFlag, toOsStatus } from "@/utils/locationGateLogic"
+import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import { reloadApp } from "@/utils/reloadApp"
 import { parseReturnTo } from "@/utils/returnToLogic"
@@ -402,85 +396,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     trackEvent("dark_mode_toggle", { enabled: value })
   }
 
-  const handleNotificationsToggle = useCallback(
-    async (value: boolean) => {
-      profileStore.setNotificationsEnabled(value)
-      trackEvent("notification_toggle", { enabled: value })
-      if (value) {
-        const granted = await requestNotificationPermission()
-        if (!granted) {
-          profileStore.setNotificationsEnabled(false)
-          return
-        }
-        // Ensure push token is registered with backend (fetches token if needed)
-        if (authStore.userIdentifier && authStore.deviceId) {
-          loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
-        }
-        optInNotifications()
-      } else {
-        optOutNotifications()
-      }
-    },
-    [profileStore, authStore],
-  )
-
-  /**
-   * Escalate only as far as the OS actually requires. Turning the toggle on
-   * when permission is already granted must NOT re-prompt or deep-link —
-   * there is nothing to ask, and sending the user to device settings would
-   * land them on a screen with nothing to change.
-   *
-   * Same request-then-revert shape as handleNotificationsToggle above: if the
-   * OS refuses, the switch goes back to off rather than lying.
-   */
-  const handleLocationToggle = useCallback(
-    async (value: boolean) => {
-      trackEvent("location_toggle", { enabled: value })
-
-      if (!value) {
-        profileStore.setLocationEnabled(false)
-        return
-      }
-
-      // ADDED 2026-08-09 (whole-branch review, I2): both `Location.*` calls
-      // below are unguarded, and this handler is passed to
-      // `PermissionsSection` as `(value: boolean) => void` — nothing in that
-      // chain attaches a `.catch`, so a rejection here used to become an
-      // unhandled promise rejection and a bogus Sentry/Loki error. Same
-      // invariant `useLocationGate.runGate` already holds (see its own
-      // try/catch) and `InPersonScreen.handleBannerPress` guards for its
-      // `Linking.openSettings()` call — the Settings copy of this toggle had
-      // just diverged. On failure, leave the switch truthful: never call
-      // `setLocationEnabled(true)` off the back of an OS call that didn't
-      // actually resolve granted.
-      try {
-        const current = await Location.getForegroundPermissionsAsync()
-        const action = decideLocationGate({
-          locationEnabled: false,
-          osStatus: toOsStatus(current),
-        })
-
-        if (action === "confirm-in-app") {
-          // OS already granted — the boolean is the only thing standing in the
-          // way, and the user just asked for it by flipping the switch.
-          profileStore.setLocationEnabled(true)
-          return
-        }
-
-        if (action === "open-settings") {
-          showLocationDeniedAlert()
-          return
-        }
-
-        // action === "prompt-os"
-        const granted = await Location.requestForegroundPermissionsAsync()
-        profileStore.setLocationEnabled(granted.granted)
-      } catch (err) {
-        logger.warn("Location toggle failed", { error: String(err) })
-      }
-    },
-    [profileStore],
-  )
+  // MOVED 2026-10-03: both handlers live in usePermissionToggles now, shared
+  // with the onboarding "Customize Your App" step.
+  const { handleNotificationsToggle, handleLocationToggle } = usePermissionToggles()
 
   const handleSyncToggle = useCallback(
     (value: boolean) => {

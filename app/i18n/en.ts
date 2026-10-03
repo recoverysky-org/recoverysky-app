@@ -82,6 +82,7 @@ const en = {
       "Log in to access app subscriptions and premium features. Subscriptions require a logged in account.\n\nYou may login and logout at any time in Settings.",
     continueAnonymously: "",
     openingBrowser: "Opening browser for authentication...",
+    signingIn: "Signing you in...",
     euaTitle: "Legal Agreements",
     euaAgree: "Accept",
     euaCancel: "Cancel",
@@ -581,21 +582,23 @@ const en = {
     // Screen 2: Recovery
     recoveryTitle: "Your Recovery",
     recoverySubtitle:
-      "Used to filter meetings to your fellowship and to personalize your attendance records.",
-    fellowship: "Fellowship",
+      "Helps to show the right meetings and count your clean time. You can change these anytime in Settings.",
+    fellowship: "Primary Fellowship",
     selectFellowship: "Select your fellowship",
     recoveryDate: "Recovery Date",
     otherFellowship: "Other / None",
     // Screen 3: Zoom (install requirement)
     zoomTitle: "Install Zoom",
-    zoomSubtitle: "RecoverySky uses Zoom Workplace to host and attend meetings.",
+    zoomSubtitle: "RecoverySky uses Zoom Workplace to join online meetings.",
     zoomBenefitFree: "The Zoom app is free from the App Store or Play Store",
     zoomBenefitRequired: "Required to join live meetings",
+    zoomBenefitNoLogin: "Zoom login not required. You will join anonymously.",
     zoomBenefitAlready: "Already installed? Tap Next to continue.",
     installZoom: "Install Zoom",
     // Screen 4: Theme
     themeTitle: "Customize Your App",
-    themeSubtitle: "Make it yours",
+    themeSubtitle: "The most important ones found in Settings",
+    reportingShortName: "Reporting Short Name",
     darkMode: "Dark Mode",
     themeColor: "Theme Color",
     // Screen 5: Attendance
@@ -611,19 +614,28 @@ const en = {
     enableAttendanceHint: "You can change this anytime in Settings",
     // Screen 6: Privacy
     privacyTitle: "Your Privacy Matters",
-    privacySubtitle: "We take your privacy seriously",
-    dataOnDevice: "Your data never leaves your device",
+    privacySecureTitle: "Private and secure",
+    privacySecureBody:
+      "Your recovery is your business. What you record here is protected at every step.",
+    privacyEncryptedTitle: "Always encrypted",
+    privacyEncryptedBody: "Your data is encrypted on your device, in transit and in storage.",
+    privacyControlTitle: "You decide what leaves",
+    privacyControlBody:
+      "Your records stay on this device unless you send a report or turn on cloud backup.",
+    privacyHipaaTitle: "HIPAA compliant",
+    privacyHipaaBody: "The app, network, servers and storage all meet HIPAA standards.",
     noTracking: "No Google analytics, no tracking",
-    totalAnonymity: "Complete privacy and anonymity",
     minimalNetwork: "Network traffic is for live meeting lists",
-    encryptedStorage: "100% local encrypted SQL storage",
-    hipaaCompliant: "HIPAA compliant network and storage",
     openSource: "Open source - available for review and security testing",
     privacyPolicy: "Privacy Policy",
     termsOfService: "Terms of Service",
     // Screen 7: Open Source
     ossTitle: "Open Source",
     ossSubtitle: "Built with transparency and trust",
+    ossProud:
+      "We're proud to build RecoverySky in the open. Recovery is built on honesty, and so is this app.",
+    ossAccountable:
+      "Promises you can check - our privacy claims are in the code, not just on this page",
     ossTransparency: "Complete transparency - see exactly how the app works",
     ossSecurity: "Security through openness - anyone can audit the code",
     ossCommunity: "Community-driven development and improvements",
