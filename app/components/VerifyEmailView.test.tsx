@@ -53,16 +53,18 @@ describe("VerifyEmailView — review step", () => {
     render(<VerifyEmailView {...base} skipsLeft={3} />)
     fireEvent.press(screen.getByTestId("verify-email-not-now"))
     expect(base.onNotNow).toHaveBeenCalledTimes(1)
-    const warning = screen.UNSAFE_root.findAll(
-      (node: TreeNode) => node.props?.tx === "verifyEmailScreen:requiredWarning",
+    expect(txCount("verifyEmailScreen:requiredWarning")).toBeGreaterThan(0)
+    const skips = screen.UNSAFE_root.findAll(
+      (node: TreeNode) => node.props?.tx === "verifyEmailScreen:skipsLeft",
     )[0]
-    expect(warning.props.txOptions).toEqual({ count: 3 })
+    expect(skips.props.txOptions).toEqual({ count: 3 })
   })
 
   it("has no Not now on the mandatory showing, and offers support instead", () => {
     render(<VerifyEmailView {...base} mode="mandatory" skipsLeft={undefined} />)
     expect(screen.queryByTestId("verify-email-not-now")).toBeNull()
     expect(txCount("verifyEmailScreen:requiredWarning")).toBe(0)
+    expect(txCount("verifyEmailScreen:skipsLeft")).toBe(0)
     expect(txCount("verifyEmailScreen:mandatory")).toBe(1)
     fireEvent.press(screen.getByTestId("verify-email-support"))
     expect(base.onSupport).toHaveBeenCalledTimes(1)

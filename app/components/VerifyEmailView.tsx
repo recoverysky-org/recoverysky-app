@@ -85,6 +85,20 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
         tx="verifyEmailScreen:title"
       />
 
+      {/* CHANGED 2026-10-02: moved up from the footer to sit right under the
+          title. Device pass: at the bottom it read as fine print, and "why do
+          I have to do this?" is the first question the screen raises. */}
+      <Pressable
+        testID="verify-email-why"
+        accessibilityRole="link"
+        accessibilityLabel={translate("verifyEmailScreen:why")}
+        accessibilityHint={translate("verifyEmailScreen:whyHint")}
+        hitSlop={LINK_HIT_SLOP}
+        onPress={props.onWhy}
+      >
+        <Text style={themed($link)} tx="verifyEmailScreen:why" />
+      </Pressable>
+
       {/* The only error surface. Live-region for the same reason as Login's
           strip: it appears with no focus change, so a screen-reader user would
           otherwise never learn the code was refused. */}
@@ -105,17 +119,9 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
           <Text testID="verify-email-address" style={themed($address)} selectable>
             {props.accountEmail}
           </Text>
-          <Pressable
-            testID="verify-email-send"
-            accessibilityRole="button"
-            accessibilityLabel={translate("verifyEmailScreen:sendCode")}
-            accessibilityState={{ disabled: isBusy }}
-            style={[themed($button), isBusy && themed($disabled)]}
-            onPress={props.onSendToAccount}
-            disabled={isBusy}
-          >
-            <Text style={themed($buttonText)} tx="verifyEmailScreen:sendCode" />
-          </Pressable>
+          {/* CHANGED 2026-10-02: the change link sits directly under the
+              address it corrects, ahead of Send code, so someone who spots a
+              typo reaches the fix before the button that would mail the typo. */}
           <Pressable
             testID="verify-email-change"
             accessibilityRole="link"
@@ -128,6 +134,17 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
             disabled={isBusy}
           >
             <Text style={themed($link)} tx="verifyEmailScreen:changeEmail" />
+          </Pressable>
+          <Pressable
+            testID="verify-email-send"
+            accessibilityRole="button"
+            accessibilityLabel={translate("verifyEmailScreen:sendCode")}
+            accessibilityState={{ disabled: isBusy }}
+            style={[themed($button), isBusy && themed($disabled)]}
+            onPress={props.onSendToAccount}
+            disabled={isBusy}
+          >
+            <Text style={themed($buttonText)} tx="verifyEmailScreen:sendCode" />
           </Pressable>
         </View>
       )}
@@ -157,24 +174,20 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
       )}
 
       <View style={themed($footer)}>
-        <Pressable
-          testID="verify-email-why"
-          accessibilityRole="link"
-          accessibilityLabel={translate("verifyEmailScreen:why")}
-          accessibilityHint={translate("verifyEmailScreen:whyHint")}
-          hitSlop={LINK_HIT_SLOP}
-          onPress={props.onWhy}
-        >
-          <Text style={themed($link)} tx="verifyEmailScreen:why" />
-        </Pressable>
-
         {mode === "skippable" ? (
           <>
-            <Text
-              style={themed($note)}
-              tx="verifyEmailScreen:requiredWarning"
-              txOptions={{ count: props.skipsLeft ?? 0 }}
-            />
+            {/* CHANGED 2026-10-02: split into two keys (requiredWarning +
+                skipsLeft). They were briefly red and green; Jenova found it
+                clashed, so both are dim again. Nested Text keeps them on one
+                line and one screen-reader utterance. */}
+            <Text style={themed($note)}>
+              <Text style={themed($note)} tx="verifyEmailScreen:requiredWarning" />{" "}
+              <Text
+                style={themed($note)}
+                tx="verifyEmailScreen:skipsLeft"
+                txOptions={{ count: props.skipsLeft ?? 0 }}
+              />
+            </Text>
             <Pressable
               testID="verify-email-not-now"
               accessibilityRole="button"

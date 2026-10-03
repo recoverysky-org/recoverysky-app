@@ -130,8 +130,9 @@ const ru: Translations = {
     body: "RecoverySky now signs you in with a code sent to your email. Check that this is an address you can read.",
     sendCode: "Send code",
     changeEmail: "Not my email? Change it",
-    notNow: "Not now",
-    requiredWarning: "Verification is required. Skips left: {{count}}",
+    notNow: "Not now - skip",
+    requiredWarning: "Verification is required.",
+    skipsLeft: "Skips left: {{count}}",
     mandatory:
       "Email verification is now required to keep using your account. Need help? Contact support@recoverysky.app",
     contactSupport: "Contact support",
