@@ -22,6 +22,54 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.1-16] — 2026-10-03
+
+> **Deploy order held.** API 1.18.0 (identity link, `/auth0/email/start` and
+> `/verify`) and the prod Auth0 tenant (meetingmaker: `email` passwordless
+> connection, passwordless code grant, Link passwordless identity → Identities
+> claim Actions) were live before this OTA — see `docs/PROD_AUTH0_ROLLOUT.md`.
+> JS-only, no `runtimeVersion` bump: the one native-config change (Build entry
+> below) leaves production output unchanged.
+
+### Added
+
+- **Legacy password accounts are asked to verify their email.** Passwordless
+  sign-in finds an account by its address, so a password account with a typo'd
+  or dead address could never be reached again after a sign-out. An unverified
+  password account now sees "Please review and verify your email address" at
+  app start and on returning to the app: confirm the address with a code, or
+  change it to one that works. It can be skipped six times, once a day (the
+  screen shows the skips left), so it becomes required on the seventh day of use. Login and the wrong-account screen
+  also gain "Sign in with your password" for people already locked out.
+  **Needs the API's `/auth0/email/start` and `/verify` deployed first.**
+
+- **Settings → Account shows how you're signed in.** The account row now names
+  the sign-in method this session used (Email, Google or Apple) with the full
+  email and an "Active" badge, and lists any other methods linked into the same
+  account as "Linked". Apple "Hide My Email" relay addresses show as "Hidden by
+  Apple". Linked methods come from a new ID-token claim added by the
+  `auth0/actions/<tenant>/identities-claim.js` post-login Action; until that Action is
+  deployed to a tenant, only the active row appears. The active method comes from
+  the recorded login method, not the token's `sub`, because a linked account
+  reports the primary identity's `sub` whichever method you used. When an
+  account has more than one email-code address, the Active row is the one you
+  typed, since Auth0 puts every code address on the same connection and the
+  token alone can't tell them apart.
+- **Passwordless email login: type your email, get a six-digit code, done.**
+  No password, no browser — Auth0's Universal Login web screen no longer
+  opens for email sign-in. Login and sign-up are the same path now; the
+  separate Sign Up button is gone. Apple and Google buttons open the
+  provider directly instead of Auth0's hosted login page.
+  (spec: `docs/superpowers/specs/2026-09-12-passwordless-login-design.md`)
+- **Wrong-account recovery.** Signing in with an account that isn't the one
+  this device belongs to now shows a single recovery screen instead of
+  silently switching data: prove you're the device owner (a code to the
+  owner's email, or the owner's Apple/Google button) and the two accounts
+  are linked, so the same wrong tap resolves automatically next time.
+  Cancel is the only other way out, and nothing on this screen can delete,
+  rekey, or read the device owner's local data.
+  (spec: `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
+
 ### Changed
 
 - **Log In code step shows the full email address.** "We sent a code to …" used
@@ -77,56 +125,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   The step also gains a bullet saying no Zoom login is needed and the user
   will join anonymously (one new i18n key in nine locales, translations queued
   for review).
-
-## [4.10.1-16] — 2026-10-02
-
-> **Deploy order held.** API 1.18.0 (identity link, `/auth0/email/start` and
-> `/verify`) and the prod Auth0 tenant (meetingmaker: `email` passwordless
-> connection, passwordless code grant, Link passwordless identity → Identities
-> claim Actions) were live before this OTA — see `docs/PROD_AUTH0_ROLLOUT.md`.
-> JS-only, no `runtimeVersion` bump: the one native-config change (Build entry
-> below) leaves production output unchanged.
-
-### Added
-
-- **Legacy password accounts are asked to verify their email.** Passwordless
-  sign-in finds an account by its address, so a password account with a typo'd
-  or dead address could never be reached again after a sign-out. An unverified
-  password account now sees "Please review and verify your email address" at
-  app start and on returning to the app: confirm the address with a code, or
-  change it to one that works. It can be skipped six times, once a day (the
-  screen shows the skips left), so it becomes required on the seventh day of use. Login and the wrong-account screen
-  also gain "Sign in with your password" for people already locked out.
-  **Needs the API's `/auth0/email/start` and `/verify` deployed first.**
-
-- **Settings → Account shows how you're signed in.** The account row now names
-  the sign-in method this session used (Email, Google or Apple) with the full
-  email and an "Active" badge, and lists any other methods linked into the same
-  account as "Linked". Apple "Hide My Email" relay addresses show as "Hidden by
-  Apple". Linked methods come from a new ID-token claim added by the
-  `auth0/actions/<tenant>/identities-claim.js` post-login Action; until that Action is
-  deployed to a tenant, only the active row appears. The active method comes from
-  the recorded login method, not the token's `sub`, because a linked account
-  reports the primary identity's `sub` whichever method you used. When an
-  account has more than one email-code address, the Active row is the one you
-  typed, since Auth0 puts every code address on the same connection and the
-  token alone can't tell them apart.
-- **Passwordless email login: type your email, get a six-digit code, done.**
-  No password, no browser — Auth0's Universal Login web screen no longer
-  opens for email sign-in. Login and sign-up are the same path now; the
-  separate Sign Up button is gone. Apple and Google buttons open the
-  provider directly instead of Auth0's hosted login page.
-  (spec: `docs/superpowers/specs/2026-09-12-passwordless-login-design.md`)
-- **Wrong-account recovery.** Signing in with an account that isn't the one
-  this device belongs to now shows a single recovery screen instead of
-  silently switching data: prove you're the device owner (a code to the
-  owner's email, or the owner's Apple/Google button) and the two accounts
-  are linked, so the same wrong tap resolves automatically next time.
-  Cancel is the only other way out, and nothing on this screen can delete,
-  rekey, or read the device owner's local data.
-  (spec: `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
-
-### Changed
 
 - **Sign-in mistakes no longer log as app errors.** A wrong, expired or
   over-tried code, resending too fast, or the device's own network failing
