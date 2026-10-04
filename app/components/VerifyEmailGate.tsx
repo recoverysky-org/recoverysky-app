@@ -147,12 +147,23 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
   // re-shows by itself once unblocked because mandatory latches. A SKIPPABLE
   // one stays, since it has "Not now" and its day is already counted.
   // (A degraded device lane joined the blocked list 2026-10-01.)
+  // CHANGED 2026-10-04 (RS-054): it also closes once the claim reads verified
+  // (a persisted `false` corrected by this launch's ID token). After our own
+  // verify() this is a no-op: close() has already cleared `shown`.
   useEffect(() => {
-    if (shown && mustCloseShownGate({ mode: shown.mode, hasAccount: !!sub, blocked })) {
+    if (
+      shown &&
+      mustCloseShownGate({
+        mode: shown.mode,
+        hasAccount: !!sub,
+        blocked,
+        claimVerified: claim === true,
+      })
+    ) {
       releaseOverlay(OVERLAY)
       setShown(null)
     }
-  }, [shown, sub, blocked])
+  }, [shown, sub, blocked, claim])
 
   // ADDED 2026-10-01: an unmounted gate must not hold the overlay forever, or
   // the announcement gate would wait on it for the rest of the session. A

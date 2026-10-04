@@ -62,7 +62,9 @@ export const AuthenticationStoreModel = types
      * ADDED 2026-10-01 (legacy email verification spec §3). The signed-in
      * account's `email_verified` ID-token claim, kept because the token itself
      * is volatile. Read only by VerifyEmailGate, and only for `auth0|`
-     * (password) accounts. Undefined = not read yet, treated as unverified.
+     * (password) accounts. Undefined = not read yet: the gate waits
+     * for a value rather than asking (CHANGED 2026-10-04, RS-054 — it used to
+     * count as unverified, which prompted verified accounts on a cold start).
      */
     emailVerified: types.maybe(types.boolean),
   })

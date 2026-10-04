@@ -22,6 +22,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+
+- **Email verification no longer asks accounts that are already verified.** On
+  a cold start the verify screen could appear a fraction of a second before
+  the app had read the account's verified status, so a legacy password account
+  with a confirmed address was asked to confirm it again (11 of the first 21
+  showings on 4.10.1-16). Sending a code from there could then be refused with
+  "This email is already in use". The screen now waits until the status is
+  known, and closes by itself if the status turns out to be verified. (RS-054)
+
 ## [4.10.1-16] — 2026-10-03
 
 > **Deploy order held.** API 1.18.0 (identity link, `/auth0/email/start` and

@@ -13,7 +13,7 @@ The verification code mail is sent by **our API through Postmark**. Login codes 
 1. The sub starts with `auth0|` (a password-type account).
 2. This install has no local "verified" record for that sub.
 3. `loginMethod` is undefined: a password sign-in, or a session restored by an old build that recorded none.
-4. The ID token's `email_verified` claim is not `true`. A missing claim counts as unverified.
+4. The ID token's `email_verified` claim has been read and is not `true`. A token without the claim counts as unverified; a claim not read yet (the first moments of a cold start) is waited for, never asked on (RS-054, changed 2026-10-04).
 
 Never asked:
 

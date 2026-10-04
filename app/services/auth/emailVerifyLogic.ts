@@ -47,6 +47,16 @@ export const EMPTY_VERIFY_STATE: VerifyState = { count: 0, lastDay: null, verifi
  * - A missing claim counts as unverified: asking once too often is cheap, and
  *   never asking a locked-out-to-be user is not.
  *
+ * CHANGED 2026-10-04 (RS-054): `undefined` now means "not read yet" and WAITS;
+ * only an explicit `false` asks. A cold start hydrates tokens from SecureStore
+ * (setupRootStore) before useAuth0Wrapper's [user] sync has read the ID token,
+ * so `isAuthenticated` was true while the claim was still undefined. On the
+ * first launch of the build that added the claim, 18 of 21 showings fired
+ * 0.05–0.7 s before the claim arrived, and 11 of those went to accounts Auth0
+ * already had as verified. The rule above still holds where it matters: the
+ * sync writes `claim === true`, so a token WITHOUT the claim stores `false`
+ * and is asked. Only a session with no ID token at all is never asked.
+ *
  * CHANGED 2026-10-01 (final review): only a session with NO recorded
  * `loginMethod` is asked — a password sign-in, or a session restored from a
  * build that never recorded one. A Google or Apple session into a linked
@@ -63,7 +73,7 @@ export function needsEmailVerification(input: {
   if (!input.sub?.startsWith("auth0|")) return false
   if (input.locallyVerified) return false
   if (input.loginMethod !== undefined) return false
-  return input.emailVerifiedClaim !== true
+  return input.emailVerifiedClaim === false
 }
 
 export type VerifyPrompt =
@@ -156,12 +166,17 @@ export function emailChanged(verifiedEmail: string, accountEmail: string | undef
  *   itself once unblocked, since a mandatory showing latches.
  * - SKIPPABLE stays up when blocked: "Not now" is always there, and closing
  *   would burn the day's already-counted showing on a network blip.
+ * - ADDED 2026-10-04 (RS-054): the claim now reads verified: close, in either
+ *   mode. The store's value is persisted, so a cold start can show the screen
+ *   on yesterday's `false` moments before the sync reads a token that says
+ *   `true` (the address was verified on another device). Nothing is left to ask.
  */
 export function mustCloseShownGate(input: {
   mode: "skippable" | "mandatory"
   hasAccount: boolean
   blocked: boolean
+  claimVerified: boolean
 }): boolean {
-  if (!input.hasAccount) return true
+  if (!input.hasAccount || input.claimVerified) return true
   return input.mode === "mandatory" && input.blocked
 }

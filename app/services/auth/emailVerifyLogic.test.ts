@@ -22,8 +22,11 @@ describe("needsEmailVerification", () => {
   it("asks an unverified password account", () => {
     expect(needsEmailVerification(base)).toBe(true)
   })
-  it("asks when the claim is missing altogether", () => {
-    expect(needsEmailVerification({ ...base, emailVerifiedClaim: undefined })).toBe(true)
+  // CHANGED 2026-10-04 (RS-054): undefined means "not read yet", not "missing".
+  // A cold start hydrates tokens before the ID token is read, and asking in
+  // that window prompted accounts Auth0 already had as verified.
+  it("waits while the claim has not been read yet", () => {
+    expect(needsEmailVerification({ ...base, emailVerifiedClaim: undefined })).toBe(false)
   })
   it("leaves a verified password account alone", () => {
     expect(needsEmailVerification({ ...base, emailVerifiedClaim: true })).toBe(false)
@@ -180,17 +183,66 @@ describe("emailChanged", () => {
 
 describe("mustCloseShownGate", () => {
   it("closes in both modes when the account is gone", () => {
-    expect(mustCloseShownGate({ mode: "skippable", hasAccount: false, blocked: false })).toBe(true)
-    expect(mustCloseShownGate({ mode: "mandatory", hasAccount: false, blocked: false })).toBe(true)
+    expect(
+      mustCloseShownGate({
+        mode: "skippable",
+        hasAccount: false,
+        blocked: false,
+        claimVerified: false,
+      }),
+    ).toBe(true)
+    expect(
+      mustCloseShownGate({
+        mode: "mandatory",
+        hasAccount: false,
+        blocked: false,
+        claimVerified: false,
+      }),
+    ).toBe(true)
   })
   it("closes a mandatory screen that is blocked (it cannot send a code)", () => {
-    expect(mustCloseShownGate({ mode: "mandatory", hasAccount: true, blocked: true })).toBe(true)
+    expect(
+      mustCloseShownGate({
+        mode: "mandatory",
+        hasAccount: true,
+        blocked: true,
+        claimVerified: false,
+      }),
+    ).toBe(true)
   })
   it("keeps a mandatory screen that is not blocked", () => {
-    expect(mustCloseShownGate({ mode: "mandatory", hasAccount: true, blocked: false })).toBe(false)
+    expect(
+      mustCloseShownGate({
+        mode: "mandatory",
+        hasAccount: true,
+        blocked: false,
+        claimVerified: false,
+      }),
+    ).toBe(false)
+  })
+  it("closes in both modes once the claim reads verified (RS-054)", () => {
+    for (const mode of ["skippable", "mandatory"] as const) {
+      expect(
+        mustCloseShownGate({ mode, hasAccount: true, blocked: false, claimVerified: true }),
+      ).toBe(true)
+    }
   })
   it("keeps a skippable screen even when blocked (it has Not now)", () => {
-    expect(mustCloseShownGate({ mode: "skippable", hasAccount: true, blocked: true })).toBe(false)
-    expect(mustCloseShownGate({ mode: "skippable", hasAccount: true, blocked: false })).toBe(false)
+    expect(
+      mustCloseShownGate({
+        mode: "skippable",
+        hasAccount: true,
+        blocked: true,
+        claimVerified: false,
+      }),
+    ).toBe(false)
+    expect(
+      mustCloseShownGate({
+        mode: "skippable",
+        hasAccount: true,
+        blocked: false,
+        claimVerified: false,
+      }),
+    ).toBe(false)
   })
 })
