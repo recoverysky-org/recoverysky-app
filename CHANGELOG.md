@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.1-17] — 2026-10-04
+
 ### Fixed
 
 - **Email verification no longer asks accounts that are already verified.** On
