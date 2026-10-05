@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.10.1-18] — 2026-10-04
+
 ### Removed
 
 - **The app no longer copies your display name to Auth0.** Editing your name
