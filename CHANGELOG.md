@@ -22,6 +22,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Removed
+
+- **The app no longer copies your display name to Auth0.** Editing your name
+  used to send it to the sign-in provider (`POST /auth0/profile`) so the
+  community site could read it there. The community site stopped reading it
+  long ago and nothing else ever did, so the name now stays on the device.
+  This also ends the "Auth0 profile sync failed" errors, which were Auth0
+  refusing the write for Google accounts. The API route is still there for
+  older builds. (RS-046)
+
 ## [4.10.1-17] — 2026-10-04
 
 ### Fixed

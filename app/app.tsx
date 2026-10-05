@@ -847,51 +847,14 @@ export function App() {
 
         initRatingEngine(_rootStore.configStore)
 
-        // Sync shortName → Auth0 profile, debounced.
-        // Mounted once here so it covers every edit site (onboarding, settings,
-        // import, etc.) without per-screen wiring. Skips the first emission
-        // after hydration so we don't re-POST the existing value on cold start.
-        {
-          const profileStore = _rootStore.profileStore
-          let debounceTimer: ReturnType<typeof setTimeout> | undefined
-          let lastSynced: string | undefined
-
-          reaction(
-            () => ({
-              name: profileStore.shortName,
-              hydrated: profileStore.isHydrated,
-              isAnonymous: authStore.isAnonymous,
-            }),
-            ({ name, hydrated, isAnonymous }) => {
-              if (!hydrated) return
-              if (isAnonymous) return
-              if (lastSynced === undefined) {
-                // First emission after hydration — prime the cache, don't POST.
-                lastSynced = name
-                return
-              }
-              if (name === lastSynced) return
-
-              if (debounceTimer) clearTimeout(debounceTimer)
-              debounceTimer = setTimeout(async () => {
-                // Backend constraint: trimmed, 1–300 chars.
-                const value = name.trim().slice(0, 300)
-                if (!value) return
-                const result = await api.updateAuth0Profile({ name: value })
-                if (result.kind === "ok") {
-                  lastSynced = name
-                  log.debug("Auth0 profile synced", { name: value })
-                } else {
-                  // Don't update lastSynced on failure — next edit retries.
-                  // CHANGED 2026-09-21 (RS-039): warn → error. The user's name
-                  // save did not reach Auth0 and nothing retries it until they
-                  // edit again (RS-006). The Api module's own line is debug now.
-                  log.error("Auth0 profile sync failed", { kind: result.kind })
-                }
-              }, 800)
-            },
-          )
-        }
+        // REMOVED 2026-10-04: the debounced shortName → Auth0 profile sync
+        // (POST /auth0/profile) that used to be mounted here. It existed so
+        // Replyke could read the display name from Auth0, but the API's
+        // Replyke token has carried email only for a long time and nothing
+        // else ever read the Auth0 `name`. It sent a sensitive, encrypted-tier
+        // field to a third party for no consumer, and Auth0 refused the write
+        // outright for Google accounts (RS-046). Don't bring it back without a
+        // reader.
 
         setRootStore(_rootStore)
         trackEvent("app_initialized", { sessionId })
