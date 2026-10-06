@@ -23,13 +23,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Added
-- **Android users are told the app icon is changing in the next store
-  update.** A notice shows the current icon beside the new RecoverySky icon
-  so nobody thinks the app vanished from their home screen after updating.
-  Unlike other announcements it is Android-only and shows on every app start
-  until the phone is on the 4.11.0 build, then stops by itself. Announcements
-  can now target one platform and repeat until a given native version
-  (announcement popup).
+- **Android: a sign-in the phone interrupted is no longer lost.** If Android
+  closes RecoverySky while you finish signing in with Google, Apple or a
+  password in the browser (common on Samsung and Xiaomi, and when switching to
+  another app), the sign-in is now picked up the next time the app opens
+  instead of sending you back to the login screen.
+
+### Build
+- **Sign-in library refreshed (react-native-auth0 5.11.1)**, picking up the
+  vendor's security fixes and the process-death recovery above.
+- **Expo SDK 54 patch alignment.** Fixes an Android race that could deliver
+  the start of a streamed response out of order, and hardens how app updates
+  are downloaded.
+- **Map library refreshed (MapLibre 11.3.10)**, fixing two Android freezes and
+  several iOS crashes on the In-Person map's list/map toggle.
 
 ### Fixed
 - **Android: tapping the app icon while the sign-in browser tab is open no
@@ -41,6 +48,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   ships with the next store build (4.11.0) and needs the `runtimeVersion`
   bump; see spec §D for the launcher-intent audit and device checklist.
   (RS-005)
+
+## [4.10.1-19] — 2026-10-06
+
+### Added
+- **Android users are told the app icon is changing in the next store
+  update.** A notice shows the current icon beside the new RecoverySky icon
+  so nobody thinks the app vanished from their home screen after updating.
+  Unlike other announcements it is Android-only and shows on every app start
+  until the phone is on the 4.11.0 build, then stops by itself. Announcements
+  can now target one platform and repeat until a given native version
+  (announcement popup).
 
 ## [4.10.1-18] — 2026-10-04
 

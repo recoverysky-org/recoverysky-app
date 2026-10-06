@@ -72,6 +72,16 @@ let pendingLoginMethod: LoginMethod | undefined
 let pendingLoginEmail: string | undefined
 
 /**
+ * Whether this JS session has already asked the SDK for a login that Android
+ * process death interrupted (resumeSession, spec 2026-09-12 §A2). ADDED
+ * 2026-10-06. Module-scoped for the same five-mount-sites reason as
+ * pendingLoginMethod: the native buffer is drained by the first call, so one
+ * call per process is the whole job and the other four mounts must not fire
+ * their own. An OTA reload resets it, which is harmless — the buffer is empty.
+ */
+let resumeSessionAttempted = false
+
+/**
  * Pick what the login screen shows for a failed auth call. Classified cases
  * get an i18n string; everything else keeps the SDK's message so the raw
  * diagnostic still reaches us via the "Auth error displayed to user" log line.
@@ -200,6 +210,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     error: auth0Error,
     getCredentials,
     cancelWebAuth,
+    resumeSession,
   } = useAuth0()
 
   // Track our own loading state for anonymous login
@@ -238,6 +249,32 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
       setError(authErrorMessage(auth0Error, "Authentication failed"))
     }
   }, [auth0Error])
+
+  // Recover a web login that Android process death interrupted. The native SDK
+  // finishes the code exchange on restart and buffers the result; this drains
+  // it. Android-only in effect — resolves null on iOS/web, so it is called
+  // unconditionally. ADDED 2026-10-06: see
+  // docs/superpowers/specs/2026-09-12-next-native-build-design.md §A2.
+  // On success the SDK saves the credentials and sets `user`, and the [user]
+  // sync effect below does everything else (ownership gate, token shape check,
+  // store writes) — no parallel plumbing here. pendingLoginMethod is empty for
+  // a recovered login (process death wiped it), so the sync effect records no
+  // method; that is the safe default, since logout then takes the browser
+  // clearSession() branch this browser login needs. Failure is logged and
+  // swallowed: cold start must never depend on it, and authReady is
+  // deliberately not held for it (a hung native promise would hold the splash).
+  useEffect(() => {
+    if (resumeSessionAttempted) return
+    resumeSessionAttempted = true
+    resumeSession()
+      .then((credentials) => {
+        // Never log the credentials themselves — only that a recovery happened.
+        if (credentials) log.info("Recovered login interrupted by process death")
+      })
+      .catch((err) => log.warn("resumeSession failed", { error: String(err) }))
+    // Runs once per process (see resumeSessionAttempted), not once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync Auth0 user state to MST store
   // Note: We intentionally only depend on `user` - other deps are stable refs

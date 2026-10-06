@@ -74,32 +74,35 @@ Everything JS-only from the same 2026-09-12 review already shipped on
 `chore/deps-2026-09-12` (commit `7c76118`); this list is what it left behind.
 
 **§A — `react-native-auth0` 5.6.0 → 5.11.1**
-- [ ] **Bump `react-native-auth0` to 5.11.1.** Four minors behind; 5.11.1 lists
+- [x] **Bump `react-native-auth0` to 5.11.1.** DONE 2026-10-06 on `release/4.11.0`. Four minors behind; 5.11.1 lists
       unspecified "security fixes" and moves Auth0.Android 3.15 → 3.21 and
       Auth0.swift 2.19 → 2.25. Config plugin is byte-identical across the range, so
       prebuild output should not change — diff the generated manifest anyway.
-- [ ] **Wire `resumeSession()` into `useAuth0Wrapper` cold start.** Recovers an
+- [x] **Wire `resumeSession()` into `useAuth0Wrapper` cold start.** DONE 2026-10-06
+      (once per process via a module-scoped flag — the hook has five mount sites). Recovers an
       Android login the OS killed mid-Custom-Tab (Samsung/Xiaomi, mail-app switch for
       a verification code). One effect, no new store plumbing — the existing `user`
       sync effect does the rest. Android-only in effect; safe to call everywhere.
-- [ ] **Confirm the Auth0 tenant does not set IPSIE `session_expiry`.** 5.11.0 adds a
+- [x] **Confirm the Auth0 tenant does not set IPSIE `session_expiry`.** CHECKED 2026-10-06
+      via the prod Management API: no session-lifetime overrides on the tenant, and the app
+      client's refresh tokens are non-expiring / non-rotating. No mapping added. 5.11.0 adds a
       `SESSION_EXPIRED` credentials error; our refresher treats unknown codes as
       transient, so if the tenant ever sets it, map it to `permanent` in
       `tokenFreshnessLogic.ts` (with a vitest case). Not speculatively.
 
 **§B — Expo SDK 54 patch alignment** (`npx expo install --check` has asked since 2026-09-12)
-- [ ] **`expo` 54.0.36 → 54.0.37.** Android `expo-fetch` first-chunk ordering race
+- [x] **`expo` 54.0.36 → 54.0.37.** Android `expo-fetch` first-chunk ordering race
       (Sky agent stream + OTLP logger both go through `expo/fetch`); faster `TextDecoder`.
-- [ ] **`expo-updates` 29.0.19 → 29.0.20.** Rejects update assets whose key or
+- [x] **`expo-updates` 29.0.19 → 29.0.20.** Rejects update assets whose key or
       extension carries a path separator — OTA-path hardening. After the store build is
       live, publish a trivial OTA first to prove the new client still takes our bundles.
-- [ ] **`expo-file-system` 19.0.23 → 19.0.24.** Alignment only; its one fix (iOS
+- [x] **`expo-file-system` 19.0.23 → 19.0.24.** Alignment only; its one fix (iOS
       `copyAsync` on edited `ph://` assets) is a path we never use.
-- [ ] Use `npx expo install <pkg>@~x.y.z` so the tilde ranges land the way Expo
+- [x] Use `npx expo install <pkg>@~x.y.z` so the tilde ranges land the way Expo
       expects; `npx expo install --check` must come back clean afterwards.
 
 **§C — `@maplibre/maplibre-react-native` 11.3.6 → 11.3.10**
-- [ ] **Bump to 11.3.10.** Android: two map ANR deadlocks + camera NPE (11.3.8).
+- [x] **Bump to 11.3.10.** Android: two map ANR deadlocks + camera NPE (11.3.8).
       iOS: heap corruption in style-image loading (11.3.9), `GeoJSONSource` recycling
       (11.3.10), NaN edge insets on a zero-sized map view (11.3.8). All lifecycle bugs
       on exactly the mount/unmount path the In-Person map's list/map toggle exercises.
