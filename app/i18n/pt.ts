@@ -939,11 +939,6 @@ const pt: Translations = {
     inPersonBody:
       "A aba Reuniões agora tem a seção Presencial. Encontre reuniões perto de você em lista ou no mapa, veja como chegar e toque em “Estou aqui” ao chegar para registrar sua presença. A localização será solicitada na primeira vez que você abrir.",
     inPersonCta: "Encontrar uma reunião perto",
-    androidIconTitle: "O ícone do app vai mudar",
-    androidIconBody:
-      "Na próxima atualização, o ícone do RecoverySky na sua tela inicial vai mudar para o nosso novo visual. É o mesmo app com todos os seus dados, então procure o novo ícone depois de atualizar.",
-    artBefore: "Agora",
-    artAfter: "Próxima atualização",
     dismiss: "Entendi",
   },
   inPersonPopup: {

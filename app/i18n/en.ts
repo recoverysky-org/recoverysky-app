@@ -994,11 +994,6 @@ const en = {
     inPersonBody:
       "The Meetings tab now has an In-Person segment. Find meetings near you as a list or on a map, get directions, and tap “I'm Here” when you arrive to log your attendance. You'll be asked for location the first time you open it.",
     inPersonCta: "Find a Meeting Near Me",
-    androidIconTitle: "Your App Icon Is Changing",
-    androidIconBody:
-      "In the next app update, the RecoverySky icon on your home screen will change to our new look. It's the same app with all your data, so look for the new icon after you update.",
-    artBefore: "Now",
-    artAfter: "Next update",
     dismiss: "Got it",
   },
   inPersonPopup: {

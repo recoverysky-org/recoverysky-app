@@ -942,11 +942,6 @@ const es: Translations = {
     inPersonBody:
       "La pestaña Reuniones ahora tiene una sección En persona. Encuentra reuniones cerca de ti en una lista o en el mapa, obtén indicaciones para llegar y toca «Estoy aquí» al llegar para registrar tu asistencia. Se te pedirá la ubicación la primera vez que la abras.",
     inPersonCta: "Buscar una reunión cerca",
-    androidIconTitle: "El ícono de la app va a cambiar",
-    androidIconBody:
-      "En la próxima actualización, el ícono de RecoverySky en tu pantalla de inicio cambiará a nuestro nuevo diseño. Es la misma app con todos tus datos, así que busca el nuevo ícono después de actualizar.",
-    artBefore: "Ahora",
-    artAfter: "Próxima actualización",
     dismiss: "Entendido",
   },
   inPersonPopup: {

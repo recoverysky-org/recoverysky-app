@@ -22,6 +22,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **New Android app icon.** The home-screen icon is now the RecoverySky
+  sky monogram, matching iOS and the store listing. The "your app icon is
+  changing" notice that 4.10.1-19 showed Android users is not part of this
+  build.
+
 ### Added
 - **Android: a sign-in the phone interrupted is no longer lost.** If Android
   closes RecoverySky while you finish signing in with Google, Apple or a

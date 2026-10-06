@@ -17,9 +17,6 @@
 import { FC, useCallback, useEffect, useState } from "react"
 import {
   AppState,
-  Image,
-  ImageSourcePropType,
-  ImageStyle,
   Modal,
   Platform,
   Pressable,
@@ -35,7 +32,6 @@ import { observer } from "mobx-react-lite"
 import { Text } from "@/components/Text"
 import { ANNOUNCEMENTS, type Announcement } from "@/config/announcements"
 import { useSubscription } from "@/context/SubscriptionContext"
-import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { loadTimerSession } from "@/services/attendance"
@@ -43,22 +39,6 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { selectPendingAnnouncement, shouldShowCta } from "@/utils/announcementLogic"
 import { claimOverlay, overlayOwner, releaseOverlay } from "@/utils/overlayGate"
-
-/**
- * ADDED 2026-10-06: before/after artwork named by `Announcement.art`. Lives
- * here, not in the registry, because the registry is vitest-imported and
- * vitest can't load PNGs. Both images are 512 px with the icon drawn as the
- * same-size circle, so they line up side by side.
- */
-const ART: Record<
-  NonNullable<Announcement["art"]>,
-  { before: ImageSourcePropType; after: ImageSourcePropType }
-> = {
-  androidIconChange: {
-    before: require("@assets/images/announcements/android-icon-old.png"),
-    after: require("@assets/images/app-icon-all.512.png"),
-  },
-}
 
 /**
  * ADDED 2026-10-06: ids of repeating announcements (`repeatUntilNativeVersion`)
@@ -155,7 +135,6 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
   if (!active) return null
 
   const showCta = shouldShowCta(active, hasAttendance)
-  const art = active.art ? ART[active.art] : null
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={dismiss} statusBarTranslucent>
@@ -175,34 +154,6 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
           </View>
 
           <Text style={themed($body)} tx={active.bodyTx} />
-
-          {art && (
-            <View style={themed($artRow)}>
-              <View style={themed($artItem)}>
-                <Image
-                  source={art.before}
-                  style={$artImage}
-                  accessibilityLabel={translate("announcements:artBefore")}
-                />
-                <Text style={themed($artCaption)} tx="announcements:artBefore" />
-              </View>
-              <Ionicons
-                name="arrow-forward"
-                size={22}
-                color={theme.colors.textDim}
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
-              <View style={themed($artItem)}>
-                <Image
-                  source={art.after}
-                  style={$artImage}
-                  accessibilityLabel={translate("announcements:artAfter")}
-                />
-                <Text style={themed($artCaption)} tx="announcements:artAfter" />
-              </View>
-            </View>
-          )}
 
           {showCta && active.cta && (
             <Pressable onPress={handleCta} style={themed($ctaButton)} accessibilityRole="button">
@@ -255,27 +206,6 @@ const $body: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   lineHeight: 20,
   color: colors.text,
-})
-
-const $artRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: spacing.md,
-  marginVertical: spacing.xs,
-})
-
-const $artItem: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "center",
-  gap: spacing.xxs,
-})
-
-const $artImage: ImageStyle = { width: 88, height: 88 }
-
-const $artCaption: ThemedStyle<TextStyle> = ({ colors }) => ({
-  fontSize: 13,
-  fontWeight: "600",
-  color: colors.textDim,
 })
 
 const $ctaButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
