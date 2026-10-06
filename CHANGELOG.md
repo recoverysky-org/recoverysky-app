@@ -22,6 +22,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **Android users are told the app icon is changing in the next store
+  update.** A notice shows the current icon beside the new RecoverySky icon
+  so nobody thinks the app vanished from their home screen after updating.
+  Unlike other announcements it is Android-only and shows on every app start
+  until the phone is on the 4.11.0 build, then stops by itself. Announcements
+  can now target one platform and repeat until a given native version
+  (announcement popup).
+
 ## [4.10.1-18] — 2026-10-04
 
 ### Removed

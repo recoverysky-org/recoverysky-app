@@ -45,6 +45,27 @@ export interface Announcement {
   /** Ionicons glyph name for the header icon. Defaults to "megaphone-outline". */
   icon?: string
   cta?: AnnouncementCta
+  /**
+   * ADDED 2026-10-06: show only on this platform (`Platform.OS`). Omitted =
+   * every platform.
+   */
+  platform?: "android" | "ios" | "web"
+  /**
+   * ADDED 2026-10-06: a repeating notice. Instead of showing once, it shows on
+   * every cold start (once per JS session) while the installed store build is
+   * below this version, and stops by itself once the user installs it, so it
+   * needs no cleanup even if the entry is still in that build's embedded bundle.
+   * Dismissing it is NOT recorded as seen. Because it is never seen, an entry
+   * appended after it waits behind it until it expires: keep these short-lived.
+   */
+  repeatUntilNativeVersion?: string
+  /**
+   * ADDED 2026-10-06: a named before/after artwork pair rendered under the
+   * body. A name rather than `require()`d images, because this module is
+   * imported by vitest, which can't load PNGs; the gate maps the name to the
+   * assets. Every value needs a matching entry in AnnouncementGate's ART map.
+   */
+  art?: "androidIconChange"
 }
 
 export const ANNOUNCEMENTS: readonly Announcement[] = [
@@ -72,5 +93,18 @@ export const ANNOUNCEMENTS: readonly Announcement[] = [
       requiresAttendance: false,
       target: "inPersonMeetings",
     },
+  },
+  {
+    // Android installs show the pink meeting-circle adaptive icon; the 4.11.0
+    // store build replaces it with the RecoverySky sky icon. Shown on every
+    // cold start until the user is on 4.11.0 so nobody goes hunting for a
+    // "missing" app after the update.
+    id: "android-icon-change-4.11.0",
+    titleTx: "announcements:androidIconTitle",
+    bodyTx: "announcements:androidIconBody",
+    icon: "phone-portrait-outline",
+    platform: "android",
+    repeatUntilNativeVersion: "4.11.0",
+    art: "androidIconChange",
   },
 ] as const

@@ -6,19 +6,36 @@
  * announcement that passes all display gates (see selectPendingAnnouncement)
  * and renders it. Dismiss or CTA both persist the id via markAnnouncementSeen,
  * so each announcement shows exactly once.
+ * CHANGED 2026-10-06: except a repeating notice (`repeatUntilNativeVersion`),
+ * which is never persisted as seen and shows once per cold start until the
+ * installed build reaches that version; entries can also target one platform.
  *
  * Mounted as a sibling to the app's other overlays in app.tsx. It reads only
  * MMKV-backed stores (no SQLite), so it has no DB-ready dependency and is safe
  * to fire on any foreground.
  */
 import { FC, useCallback, useEffect, useState } from "react"
-import { AppState, Modal, Pressable, StyleSheet, TextStyle, View, ViewStyle } from "react-native"
+import {
+  AppState,
+  Image,
+  ImageSourcePropType,
+  ImageStyle,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native"
+import * as Application from "expo-application"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
 
 import { Text } from "@/components/Text"
 import { ANNOUNCEMENTS, type Announcement } from "@/config/announcements"
 import { useSubscription } from "@/context/SubscriptionContext"
+import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { loadTimerSession } from "@/services/attendance"
@@ -26,6 +43,31 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { selectPendingAnnouncement, shouldShowCta } from "@/utils/announcementLogic"
 import { claimOverlay, overlayOwner, releaseOverlay } from "@/utils/overlayGate"
+
+/**
+ * ADDED 2026-10-06: before/after artwork named by `Announcement.art`. Lives
+ * here, not in the registry, because the registry is vitest-imported and
+ * vitest can't load PNGs. Both images are 512 px with the icon drawn as the
+ * same-size circle, so they line up side by side.
+ */
+const ART: Record<
+  NonNullable<Announcement["art"]>,
+  { before: ImageSourcePropType; after: ImageSourcePropType }
+> = {
+  androidIconChange: {
+    before: require("@assets/images/announcements/android-icon-old.png"),
+    after: require("@assets/images/app-icon-all.512.png"),
+  },
+}
+
+/**
+ * ADDED 2026-10-06: ids of repeating announcements (`repeatUntilNativeVersion`)
+ * already shown in this JS session. Module scope on purpose: it resets on a
+ * cold start or OTA reload — which is exactly "every time they start the
+ * app" — but survives foregrounds and remounts, so the notice doesn't
+ * re-pop on every return from the background.
+ */
+const shownThisSession: string[] = []
 
 export const AnnouncementGate: FC = observer(function AnnouncementGate() {
   const profileStore = useProfileStore()
@@ -58,8 +100,17 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       // cover it. Re-read on each evaluation so a mid-timer foreground is
       // suppressed but a later clean foreground still shows the popup.
       timerSessionActive: loadTimerSession() !== null,
+      platform: Platform.OS,
+      nativeVersion: Application.nativeApplicationVersion,
+      shownThisSession,
     })
-    if (pending && claimOverlay("announcement")) setActive(pending)
+    if (pending && claimOverlay("announcement")) {
+      // A repeating notice counts as shown the moment it appears, not on
+      // dismiss: a backgrounded-then-killed app must not re-show it on the
+      // same session's next foreground either.
+      if (pending.repeatUntilNativeVersion) shownThisSession.push(pending.id)
+      setActive(pending)
+    }
   }, [active, profileStore, authStore, configStore, overlay])
 
   useEffect(() => {
@@ -76,7 +127,9 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
   useEffect(() => () => releaseOverlay("announcement"), [])
 
   const dismiss = useCallback(() => {
-    if (active) profileStore.markAnnouncementSeen(active.id)
+    // CHANGED 2026-10-06: a repeating notice is never recorded as seen; its
+    // per-session record above is what stops it re-showing until next start.
+    if (active && !active.repeatUntilNativeVersion) profileStore.markAnnouncementSeen(active.id)
     releaseOverlay("announcement")
     setActive(null)
   }, [active, profileStore])
@@ -102,6 +155,7 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
   if (!active) return null
 
   const showCta = shouldShowCta(active, hasAttendance)
+  const art = active.art ? ART[active.art] : null
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={dismiss} statusBarTranslucent>
@@ -121,6 +175,34 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
           </View>
 
           <Text style={themed($body)} tx={active.bodyTx} />
+
+          {art && (
+            <View style={themed($artRow)}>
+              <View style={themed($artItem)}>
+                <Image
+                  source={art.before}
+                  style={$artImage}
+                  accessibilityLabel={translate("announcements:artBefore")}
+                />
+                <Text style={themed($artCaption)} tx="announcements:artBefore" />
+              </View>
+              <Ionicons
+                name="arrow-forward"
+                size={22}
+                color={theme.colors.textDim}
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+              />
+              <View style={themed($artItem)}>
+                <Image
+                  source={art.after}
+                  style={$artImage}
+                  accessibilityLabel={translate("announcements:artAfter")}
+                />
+                <Text style={themed($artCaption)} tx="announcements:artAfter" />
+              </View>
+            </View>
+          )}
 
           {showCta && active.cta && (
             <Pressable onPress={handleCta} style={themed($ctaButton)} accessibilityRole="button">
@@ -173,6 +255,27 @@ const $body: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 14,
   lineHeight: 20,
   color: colors.text,
+})
+
+const $artRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: spacing.md,
+  marginVertical: spacing.xs,
+})
+
+const $artItem: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "center",
+  gap: spacing.xxs,
+})
+
+const $artImage: ImageStyle = { width: 88, height: 88 }
+
+const $artCaption: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  fontWeight: "600",
+  color: colors.textDim,
 })
 
 const $ctaButton: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

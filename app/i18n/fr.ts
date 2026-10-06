@@ -947,6 +947,11 @@ const fr: Translations = {
     inPersonBody:
       "L'onglet Réunions comporte désormais une section En personne. Trouvez des réunions près de chez vous sous forme de liste ou sur la carte, obtenez l'itinéraire et appuyez sur « Je suis ici » à votre arrivée pour enregistrer votre présence. La localisation vous sera demandée à la première ouverture.",
     inPersonCta: "Trouver une réunion près de moi",
+    androidIconTitle: "L'icône de l'app change",
+    androidIconBody:
+      "Lors de la prochaine mise à jour, l'icône RecoverySky sur votre écran d'accueil adoptera notre nouveau look. C'est la même app avec toutes vos données : cherchez simplement la nouvelle icône après la mise à jour.",
+    artBefore: "Maintenant",
+    artAfter: "Prochaine mise à jour",
     dismiss: "Compris",
   },
   inPersonPopup: {

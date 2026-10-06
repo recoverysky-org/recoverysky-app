@@ -945,6 +945,11 @@ const de: Translations = {
     inPersonBody:
       "Der Tab „Meetings“ hat jetzt den Bereich „Vor Ort“. Finde Meetings in deiner Nähe als Liste oder auf der Karte, lass dir den Weg anzeigen und tippe bei der Ankunft auf „Ich bin hier“, um deine Teilnahme zu erfassen. Beim ersten Öffnen wirst du nach dem Standort gefragt.",
     inPersonCta: "Meeting in der Nähe finden",
+    androidIconTitle: "Dein App-Symbol ändert sich",
+    androidIconBody:
+      "Mit dem nächsten App-Update erhält das RecoverySky-Symbol auf deinem Startbildschirm unser neues Aussehen. Es ist dieselbe App mit all deinen Daten – halte nach dem Update einfach nach dem neuen Symbol Ausschau.",
+    artBefore: "Jetzt",
+    artAfter: "Nächstes Update",
     dismiss: "Verstanden",
   },
   inPersonPopup: {
