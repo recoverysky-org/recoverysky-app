@@ -242,11 +242,14 @@ dependencies" with `ENOTFOUND git.rso`. `@recoverysky-org/common` and its two
 private deps (`@trex-ts/core`, `@jenova-marie/ts-rust-result`) are now
 `npm pack` tarballs in `vendor/`: common as a `file:` dependency, the other two
 as `file:` **overrides** (the app imports neither; `@trex-ts/core` was a
-leftover direct dep from the symlink era). To bump common:
-`npm pack @recoverysky-org/common@<v> --pack-destination vendor` (repack the
-other two if its deps moved), point `package.json` at the new file, delete the
-old `.tgz`, `npm install`, and confirm `grep -c git.rso package-lock.json` is 0.
-A non-zero count breaks every cloud build.
+leftover direct dep from the symlink era). To bump common, run
+`npm run vendor:update [-- <version>]` (`scripts/vendor-update.js`, needs the
+intranet). Don't hand-edit the tarballs. The overrides force the vendored
+versions **silently**, so a hand bump that misses a moved `@trex-ts/core`
+range installs the old one with no error. The script checks every private
+range and repacks what no longer satisfies it, and it fails if
+`package-lock.json` still mentions `git.rso` (a non-zero count breaks every
+cloud build).
 
 ### State Management (MobX-State-Tree)
 MST with MMKV persistence in `app/models/`:

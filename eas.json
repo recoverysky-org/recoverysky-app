@@ -5,6 +5,7 @@
   },
   "build": {
     "base": {
+      "node": "24.21.0",
       "env": {
         "EXPO_NO_CAPABILITY_SYNC": "1",
         "EXPO_PUBLIC_RESEED_DB": "false",

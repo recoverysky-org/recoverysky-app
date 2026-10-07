@@ -183,12 +183,12 @@ npm run build:ios:preview:device   # Physical device (release mode, ad-hoc)
 Produces a signed `.ipa` for App Store / TestFlight. Uses the `production` EAS profile with production API URLs, `LOG_LEVEL=warn`, and auto-incrementing version number.
 
 ```bash
-# Build locally, then submit separately
+# Standard: build on EAS cloud + submit in one step
+npm run release:ios
+
+# Fallback: build locally, then submit separately
 npm run build:ios:prod
 npm run submit:ios            # Submits the most recent .ipa to App Store Connect
-
-# Build remotely on EAS + submit in one step
-npm run release:ios
 ```
 
 ---
@@ -230,12 +230,12 @@ See [Deploying to Devices & Simulators](#deploying-to-devices--simulators) for i
 Produces a signed `.aab` (Android App Bundle) via the `production` EAS profile. Uses production API URLs, local signing credentials, and auto-incrementing version.
 
 ```bash
-# Build locally, then submit separately
+# Standard: build on EAS cloud + submit in one step
+npm run release:android
+
+# Fallback: build locally, then submit separately
 npm run build:android:prod
 npm run submit:android        # Submits the most recent .aab to Google Play Console
-
-# Build remotely on EAS + submit in one step
-npm run release:android
 ```
 
 > **AAB vs APK:** Production builds output `.aab` files, which cannot be installed directly via `adb`. AABs are optimized for Play Store delivery. For local production testing on a physical device, use `npm run build:android:device:release` instead (produces an installable APK).
@@ -432,6 +432,15 @@ exports — imported directly, with no `@common`/`@sqlite` alias involved:
 | `@recoverysky-org/common/browser` | Data models, validation |
 | `@recoverysky-org/common/sqlite` | Drizzle schemas, migrations |
 
+It is published to a private, intranet-only registry, so it is **vendored** as a tarball in `vendor/`. Its private dependencies `@trex-ts/core` and `@jenova-marie/ts-rust-result` are vendored too, via `overrides`. That is what lets EAS cloud builds install dependencies. To bump it:
+
+```bash
+npm run vendor:update              # latest published version (needs the intranet)
+npm run vendor:update -- 2.14.0    # or a specific version
+```
+
+`scripts/vendor-update.js` packs common and repacks any private dependency whose vendored version no longer satisfies common's range. It also rewrites `package.json` (the dependency plus the `overrides`), deletes stale tarballs and runs `npm install`. It fails if `package-lock.json` still mentions `git.rso`, which would break every cloud build. It commits nothing: run `npm run compile && npm test`, add a CHANGELOG Build entry, then commit `package.json`, `package-lock.json` and `vendor/`. A common bump is JS-only, so it ships as an OTA.
+
 ---
 
 ## 🧪 Quality Checks
@@ -453,7 +462,34 @@ See [`CHANGELOG.md`](CHANGELOG.md) for the full release history. Versioning uses
 - `[X.Y.Z]` — native release (matching `version` and `runtimeVersion` in `app.json`); requires a new App Store / Play Store / TestFlight install.
 - `[X.Y.Z-N]` — OTA release on top of the `X.Y.Z` native build, where `N` is the `update` counter in `package.json`. Reaches every user already on a matching `runtimeVersion`. Visible in Settings as `v{version}-{update}`.
 
-Native releases are cut with `npm run patch` / `minor` / `major`; OTA releases with `npm run update` (which bumps the counter, tags, pushes, and runs `eas update --branch production --auto`).
+### Shipping a release
+
+Three commands ship everything:
+
+```bash
+npm run release:android   # EAS cloud build + submit to Google Play
+npm run release:ios       # EAS cloud build + submit to App Store Connect
+npm run update            # OTA: bump counter, commit, tag, push, eas update, Sentry source maps
+```
+
+**Native release** (any change to native code, `app.json` native config, `plugins/`, or the Expo SDK):
+
+1. `npm run patch` (or `minor` / `major`) bumps `version`, resets the OTA counter to `0`, then commits, tags and pushes.
+2. Bump `runtimeVersion` in `app.json` **by hand** to match the new `version`.
+3. Move `CHANGELOG.md` `[Unreleased]` entries under the new `[X.Y.Z]` heading.
+4. Commit. EAS cloud builds from git, so an uncommitted change is not in the build.
+5. `npm run release:android` and `npm run release:ios`.
+
+**OTA release** (JS-only changes: screens, logic, styles, i18n, assets):
+
+1. Move `CHANGELOG.md` `[Unreleased]` entries under the new `[X.Y.Z-N]` heading and commit with your feature work.
+2. `npm run update`.
+
+If `runtimeVersion` needed a bump, do a native release instead. An OTA published under a new runtime reaches no one.
+
+**Already built in the cloud?** Submit the finished builds without rebuilding: `npx eas submit --platform android --latest` / `npx eas submit --platform ios --latest`.
+
+**Fallback (cloud unavailable):** build on this Mac and submit the newest local artifact: `npm run build:android:prod && npm run submit:android`, `npm run build:ios:prod && npm run submit:ios`.
 
 ---
 
