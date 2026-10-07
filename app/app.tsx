@@ -104,6 +104,7 @@ import {
   getLastNotificationResponse,
   setNotificationLanguage,
 } from "./services/notifications"
+import { registerTestPushDevMenu } from "./services/notifications/devTestPush"
 import { pushRegistrationUserId } from "./services/notifications/pushRegistrationLogic"
 import { initRatingEngine } from "./services/rating"
 import { initAttendanceSync } from "./services/sync"
@@ -689,6 +690,9 @@ export function App() {
         // Initialize push notifications (non-fatal)
         if (Platform.OS !== "web") {
           initializeNotifications()
+          // ADDED 2026-10-06: dev-menu "Test push → <tab>" items for the
+          // 4.11.0 push-tap checks. __DEV__ only; see devTestPush.ts.
+          if (__DEV__) registerTestPushDevMenu()
 
           // Register push token with backend.
           // CHANGED 2026-09-14: keyed on a SIGNED-IN identity, not

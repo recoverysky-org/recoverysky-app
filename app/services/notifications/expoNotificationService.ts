@@ -25,8 +25,9 @@ let cachedDeviceId: string | null = null
 
 /**
  * Get the Expo project ID from app config.
+ * CHANGED 2026-10-06: exported for the dev-only test-push menu (devTestPush.ts).
  */
-function getProjectId(): string {
+export function getProjectId(): string {
   return Constants.expoConfig?.extra?.eas?.projectId ?? ""
 }
 
