@@ -128,9 +128,16 @@ npm run update
 ```bash
 npm run patch            # or: npm run minor / npm run major
 # then MANUALLY bump `runtimeVersion` in app.json to match the new version
-npm run release:ios      # eas build --profile production + eas submit --latest
-npm run release:android  # eas build --profile production + eas submit --latest
+npm run release:ios      # EAS CLOUD build --profile production + eas submit --latest
+npm run release:android  # EAS CLOUD build --profile production + eas submit --latest
+# or build on this Mac, then submit the newest local artifact:
+npm run build:ios:prod && npm run submit:ios
+npm run build:android:prod && npm run submit:android
 ```
+
+Cloud builds need every dependency reachable from the internet. The private
+packages are vendored for exactly that reason (see "Linked Packages").
+`build:ios:cloud` / `build:android:cloud` build in the cloud without submitting.
 
 `scripts/bump-version.sh` bumps `version` in `package.json` / `app.json` /
 `package-lock.json`, **resets the `update` counter to `0`** (each native build
@@ -228,6 +235,18 @@ output. That setup is gone: the package is now a plain registry dependency
 `watchFolders`/`nodeModulesPaths` entries and no sibling directory exists on
 disk. Bumping the version is a normal `npm install` + `package.json` edit —
 see the Build entries in `CHANGELOG.md` for recent bumps.
+
+CHANGED 2026-10-07: **vendored, not fetched.** The private Forgejo registry
+(`git.rso`) is intranet-only, so EAS cloud builds died in "Install
+dependencies" with `ENOTFOUND git.rso`. `@recoverysky-org/common` and its two
+private deps (`@trex-ts/core`, `@jenova-marie/ts-rust-result`) are now
+`npm pack` tarballs in `vendor/`: common as a `file:` dependency, the other two
+as `file:` **overrides** (the app imports neither; `@trex-ts/core` was a
+leftover direct dep from the symlink era). To bump common:
+`npm pack @recoverysky-org/common@<v> --pack-destination vendor` (repack the
+other two if its deps moved), point `package.json` at the new file, delete the
+old `.tgz`, `npm install`, and confirm `grep -c git.rso package-lock.json` is 0.
+A non-zero count breaks every cloud build.
 
 ### State Management (MobX-State-Tree)
 MST with MMKV persistence in `app/models/`:

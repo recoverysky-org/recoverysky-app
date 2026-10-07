@@ -22,6 +22,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Build
+- EAS cloud builds work again. They failed in "Install dependencies" because the private
+  packages (`@recoverysky-org/common`, `@trex-ts/core`, `@jenova-marie/ts-rust-result`) were
+  locked to the intranet-only Forgejo registry. They are now vendored as tarballs in `vendor/`
+  (same versions, same integrity hashes), and the unused direct `@trex-ts/core` dependency is gone.
+
 ## [4.11.0] — 2026-10-06
 
 ### Changed
