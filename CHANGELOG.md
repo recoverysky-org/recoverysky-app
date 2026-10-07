@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.11.0] — 2026-10-06
+
 ### Changed
 - **New Android app icon.** The home-screen icon is now the RecoverySky
   sky monogram, matching iOS and the store listing. The "your app icon is
@@ -50,10 +52,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `LaunchActivity` trampoline (new config plugin `withAuth0LaunchTrampoline`)
   instead of the single-task main activity, so returning to the app from the
   home screen mid-sign-in reveals the Auth0 tab rather than clearing it and
-  handing the SDK a "browser window was closed" error. Native-shape change:
-  ships with the next store build (4.11.0) and needs the `runtimeVersion`
-  bump; see spec §D for the launcher-intent audit and device checklist.
-  (RS-005)
+  handing the SDK a "browser window was closed" error. Verified on device,
+  including after Android kills the app mid-sign-in and on cold and warm
+  notification taps, which also pass through the trampoline. (RS-005)
 
 ## [4.10.1-19] — 2026-10-06
 

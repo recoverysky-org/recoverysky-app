@@ -107,8 +107,10 @@ Everything JS-only from the same 2026-09-12 review already shipped on
       (11.3.10), NaN edge insets on a zero-sized map view (11.3.8). All lifecycle bugs
       on exactly the mount/unmount path the In-Person map's list/map toggle exercises.
       No JS API change; `InPersonMapView.web.tsx` stub still required.
-- [ ] Recheck the privacy invariant after the bump: `NativeUserLocation` for the puck,
+- [x] Recheck the privacy invariant after the bump: `NativeUserLocation` for the puck,
       never `UserLocation`; `getSearchCenter` is still the only `coordsRef` reader.
+      CHECKED 2026-10-06: puck is `NativeUserLocation`; raw coordinates live only in
+      `useDeviceLocation`'s ref (the ref moved there from `useNearbySchedules`).
 
 **§D — `withAuth0LaunchTrampoline` config plugin (RS-005)** — added 2026-09-15
 - [x] **Write `plugins/withAuth0LaunchTrampoline.ts`** and register it in `app.config.ts`.
@@ -124,22 +126,26 @@ Everything JS-only from the same 2026-09-12 review already shipped on
       spec §D. Root cause: `A0Auth0Module.onNewIntent` rejects the pending login on
       *any* new intent to the `singleTask` `MainActivity`; a launcher tap mid-Custom-Tab
       is that intent.
-- [ ] **Why this stopped being a non-goal:** passwordless email sign-in sends every
+- [x] **Why this stopped being a non-goal:** passwordless email sign-in sends every
       user to their mail app for a code; the ones who come back via the app icon
       hit this every time. Has to be in the binary before passwordless ships as
       an OTA on top of it.
-- [ ] `prebuild:clean` and diff the manifest: exactly one `LAUNCHER` filter, on
+- [x] `prebuild:clean` and diff the manifest: exactly one `LAUNCHER` filter, on
       `.LaunchActivity`; `.MainActivity` keeps `VIEW exp+recoverysky-app`;
-      `RedirectActivity` unchanged.
-- [ ] Device checks in the spec's "§D — trampoline" list — especially the two push-tap
+      `RedirectActivity` unchanged. DONE 2026-10-06, exactly that diff.
+- [x] Device checks in the spec's "§D — trampoline" list — especially the two push-tap
       cases (cold: extras forwarded; backgrounded: nothing above `MainActivity` cleared).
-- [ ] Issues MCP: RS-005 is `fix-proposed`; move to `fix-committed` with
-      `fix_release app 4.11.0` when the plugin merges. Separately (recoverysky-loki repo):
+      PASSED 2026-10-06 on a Pixel 7 (4.11.0 debug): icon tap mid-sign-in keeps the tab;
+      process killed mid-sign-in + icon tap + finish → signed in; warm and cold push taps
+      route via NotificationForwarderActivity → LaunchActivity (dev-menu "Test push").
+- [x] Issues MCP: RS-005 is `fix-proposed`; move to `fix-committed` with
+      `fix_release app 4.11.0` when the plugin merges. DONE 2026-10-06. Separately (recoverysky-loki repo):
       re-point the RS-005 fingerprint to `module="useAuth0Wrapper"` — the `LoginScreen`
       one has been blind since 4.10.1-1 because it logs the friendly copy.
 
 **Gate**
-- [ ] Run the spec's manual checklist on **both** platforms before `release:*`.
+- [x] Run the spec's manual checklist on **both** platforms before `release:*`.
+      PASSED 2026-10-06 on Android (Pixel 7) and iOS (iPhone SE 3).
       Nothing in CI exercises auth, OTA download, or the map.
 
 _Not in scope (see spec): ~~the `LaunchActivity` trampoline~~ (moved into §D above on
