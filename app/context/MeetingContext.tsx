@@ -77,6 +77,10 @@ function sleep(ms: number): Promise<void> {
  * problem (no answer arrived): that's the device's connection, and the
  * ERROR stream on 2026-09-28 was 32 such lines from three phones on dead
  * links while the API was healthy.
+ *
+ * CHANGED 2026-10-07: and a warn whenever the ladder ended before its full
+ * budget (unretryable kind, or `shouldContinue` said stop) — ERROR now means
+ * "every retry was spent and the server still failed".
  */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
@@ -154,8 +158,16 @@ export async function retryWithBackoff<T>(
     // CHANGED 2026-10-01: a 5xx carries `detail` (subsystem, code — see
     // describeServerFailure) so this line says WHAT failed behind the API.
     const detail = (lastResult as { detail?: Record<string, unknown> } | undefined)?.detail
-    if (isTransportProblem(lastError)) log.warn(message, { error: lastError, ...detail })
-    else log.error(message, { error: lastError, ...detail })
+    // CHANGED 2026-10-07: ERROR is reserved for a ladder that ran its full
+    // budget and still got a server-side failure. A ladder that ended early —
+    // an unretryable kind (401/403/404/429) after one attempt, or the caller's
+    // `shouldContinue` superseding it — logged "failed after 1 attempts" at
+    // ERROR, which read as "retries gave up" when none were ever made. Those
+    // are warns now; the caller still sees the failure in the return value.
+    const exhausted = attemptsMade >= maxAttempts
+    if (exhausted && !isTransportProblem(lastError))
+      log.error(message, { error: lastError, ...detail })
+    else log.warn(message, { error: lastError, ...detail })
   }
 
   if (lastResult !== undefined) {
