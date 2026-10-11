@@ -27,7 +27,9 @@ Android users open the app, find a meeting, and join it without signing in.
   agreements were accepted. Logs and analytics carry no user id. CHANGED 2026-10-11: this said
   "Nothing about them is stored or tracked", which the persisted flag and those settings contradict.
 - **On a borrowed or shared phone the app shows meetings and nothing else.** No data belonging to the
-  device owner is visible.
+  device owner is visible. ADDED 2026-10-11: device settings are shared (the Meetings filter picks,
+  the In-Person view, sort order and radius, the location permission), so per Decision 2 a guest can
+  see the device's last bar pick. Nothing personal of the owner's is shown.
 - **The mode persists across relaunches.** A guest lands on Meetings until they choose to
   sign in.
 - **Android only.** iOS requires an authenticated account, so the entry point is never rendered on iOS.
@@ -116,7 +118,7 @@ Hiding tabs is not enough. These paths reach user data or write it:
 
 | Where | Problem | Guest behavior |
 |---|---|---|
-| `useZoomMeeting.ts:170` `userName: config.userName ?? profileStore.displayName` | `?un=` prefill joins the Zoom meeting under the device owner's name | no name sent |
+| `useZoomMeeting.ts:170` `userName: config.userName ?? profileStore.displayName` | `?un=` prefill joins the Zoom meeting under the device owner's name | removed 2026-10-11: no join link carries a name |
 | `SchedulePopup.handleJoin` (`:421`, `:468`) | shows `ExternalZoomTimerModal` when `attendanceEnabled` | open Zoom directly, no timer |
 | `SchedulePopup` / `InPersonPopup` reminder cells | reminders need a user | hidden |
 | `InPersonPopup` "I'm Here" presence check | writes attendance | hidden |
@@ -150,8 +152,10 @@ Each runs regardless of tab. Verify each one's guest behavior; none may write or
   its own. An owner's profile hydrated earlier in the session stays in memory when the owner signs
   out and taps "Just join meetings", and `displayName` adds the owner's saved clean-time and
   pronoun toggles (MMKV props) even with no name. So the filter pins "AA" for a guest
-  (`savedFellowshipInput`), and every Zoom join path applies `zoomPrefillName`. The skip still
+  (`savedFellowshipInput`), and every Zoom join path applied `zoomPrefillName`. The skip still
   keeps a cold-started guest session free of the owner's name, recovery date and language.
+  CHANGED 2026-10-11: the `un=` prefill itself is removed, for everyone (Zoom never applied it), so
+  no join link carries a name and `zoomPrefillName` is gone.
 
 The other rulings made during implementation are in the plan's "Execution notes (2026-10-11)".
 

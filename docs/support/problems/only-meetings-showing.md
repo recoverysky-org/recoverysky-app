@@ -13,7 +13,7 @@ They say:
 - "My clean time, attendance and Settings are gone."
 - "There's no Settings, so I can't log out or change anything."
 - "My favourite meetings and my colours are gone." Meeting popups show no heart, stars or visit count, and the app has the default look: dark, with the default colour.
-- "Zoom didn't use my name." A guest's join sends no name to Zoom.
+- "Zoom didn't use my name." Not a sign of guest mode: the app sends no name to Zoom, for anyone. Zoom uses the name saved in the Zoom app, or asks for one.
 
 ## Diagnose
 

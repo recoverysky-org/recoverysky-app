@@ -52,6 +52,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   four i18n keys (in all nine locales) are gone. The device id is no longer a
   user identity anywhere: it still identifies the install (device attestation,
   log lines, push tokens), never a person.
+- **Zoom join links no longer carry a display-name hint (`un=`).** Zoom never
+  applied it, so joining looks the same, and no join link can carry a name.
 
 ### Fixed
 - **RevenueCat no longer logs in as a device id left by the old device-id

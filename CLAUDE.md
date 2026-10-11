@@ -461,9 +461,9 @@ builds restore it.
     and InPersonPopup's "I'm Here". `attendanceEnabled` alone is not a gate:
     it defaults to true, and the owner's setting persists into guest mode. The
     resumer rule above relies on a guest never persisting a timer session.
-  - Zoom `un=`: `zoomPrefillName()` (`app/services/zoom/zoomNameLogic.ts`,
-    vitest) wraps whichever name wins on all three join paths, so a guest
-    sends none.
+  - Zoom name: nothing to guard. Join links never carry a name, for anyone
+    (the `un=` prefill was removed 2026-10-11), so a guest's join cannot
+    name the device owner.
   - Fellowship filter: `savedFellowshipInput()` (`app/utils/meetingFiltersLogic.ts`)
     makes a guest's `saved` input "AA". The bar's remembered picks (MMKV
     `meetings.fellowship` / `meetings.language`) belong to the device, so a
@@ -477,10 +477,9 @@ builds restore it.
     switch.
 - **Why per-surface guards.** A cold-started guest never hydrates the profile,
   but an owner's profile hydrated earlier in the session stays in memory when
-  the owner signs out and taps "Just join meetings". `displayName` also
-  carries the owner's saved clean-time and pronoun toggles (MMKV props) even
-  with no name. So the filter and the Zoom name have guards of their own
-  rather than trusting the skipped hydrator.
+  the owner signs out and taps "Just join meetings". So the fellowship filter
+  has a guard of its own rather than trusting the skipped hydrator. (The Zoom
+  name had one too until 2026-10-11, when join links stopped carrying a name.)
 - **The rule:** any new Meetings-tab feature that reads or writes local user
   data needs an `isGuest` guard.
 
@@ -1376,10 +1375,11 @@ through the installed Zoom app via `Linking.openURL`.
 What's left in `app/services/zoom/`:
 - **`useZoomMeeting`** — hook returning `{ joinMeeting, openInZoomApp,
   isJoining, state, error, reset }`. `joinMeeting()` opens
-  `https://zoom.us/j/<zid>?pwd=<encrypted|plaintext>&un=<base64name>` via
+  `https://zoom.us/j/<zid>?pwd=<encrypted|plaintext>` via
   `Linking.openURL`. The pure `buildExternalZoomUrl()` helper prefers
-  `passwordEnc` (encrypted share-link pwd) over plaintext `password`, and
-  best-effort prefills the display name as `?un=<base64>`.
+  `passwordEnc` (encrypted share-link pwd) over plaintext `password`. No
+  display name is sent: the `?un=<base64>` prefill was removed 2026-10-11
+  because Zoom never applied it, so no join link carries a name.
 - **`externalAttendance.saveTimerAttendance()`** — writes an attendance
   record from a user-confirmed timer modal. Events are JSON-tagged
   `source: "external-zoom-timer"` so timer-sourced records are

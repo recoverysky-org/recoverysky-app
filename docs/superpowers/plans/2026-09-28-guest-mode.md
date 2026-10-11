@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Let Android users skip sign-in with "Just join meetings". They land in a Meetings-only app that stores nothing about them and shows nothing belonging to the device owner. Along the way, remove the dead device-id login.
+**Goal:** Let Android users skip sign-in with "Just join meetings". They land in a Meetings-only app that stores nothing about them (superseded: see Execution notes R32) and shows nothing belonging to the device owner. Along the way, remove the dead device-id login.
 
 **Architecture:** Part A deletes the old device-id login (`isAnonymous` / `loginAnonymously` / `userIdentifier`) and migrates the leftover `userId === deviceId` snapshots. Part B adds:
 - a persisted `isGuest` flag;
@@ -1278,7 +1278,7 @@ git commit -m "🔒 feat(guest): meeting popups join-only for guests, no name pr
 
 - [ ] **Step 1b: Support knowledge base and event catalog** (ADDED to this plan 2026-10-11; CLAUDE.md asks for `docs/support/` in the same change as any auth behaviour change)
 
-- `docs/support/reference/sign-in-methods.md`: replace the "No guest button on the login screen" bullet with a **Guest mode (Android only)** bullet: the choose step offers "Just join meetings", which opens a Meetings-only guest mode with no account, nothing stored and the device owner's data hidden. "Sign in" on the Meetings screen returns to the login screen. iOS has no guest mode.
+- `docs/support/reference/sign-in-methods.md`: replace the "No guest button on the login screen" bullet with a **Guest mode (Android only)** bullet: the choose step offers "Just join meetings", which opens a Meetings-only guest mode with no account, nothing stored (superseded: see Execution notes R32) and the device owner's data hidden. "Sign in" on the Meetings screen returns to the login screen. iOS has no guest mode.
 - `docs/support/reference/email-verification.md`: the "Anonymous (guest) session" row becomes "Guest mode (Android)": no account at all, so nothing to verify.
 - New problem doc `docs/support/problems/only-meetings-showing.md` and reply `docs/support/replies/only-meetings-showing.md`. Copy the section structure of an existing pair (`problems/signed-out-unexpectedly.md` and its reply). Symptom: "I only see Meetings" / "my clean time, attendance and Settings are gone". Cause: the user tapped "Just join meetings", so the app is in guest mode. Solution: tap Sign in on the Meetings screen and sign in the way they did before; their data never left the phone. Diagnose from what the user describes (no tab bar, the promo card with Sign in). Guests carry no user id, so Loki has no hash to search.
 - `docs/support/README.md`: add that symptom row to the table, and a **guest mode** row to the glossary.
@@ -1290,6 +1290,7 @@ Under `[Unreleased]` `### Added`:
 ```markdown
 - Android: "Just join meetings" on the Login screen opens a Meetings-only guest mode — browse Online, In-Person and Search and join, with no account. Nothing about a guest is stored, the device owner's name, favorites, theme and attendance never show, and a house ad plus Sign in button invite them to create an account. iOS still requires an account.
 ```
+(The snippet's "Nothing about a guest is stored" is superseded: see Execution notes R32.)
 
 - [ ] **Step 3: Update the spec**
 
@@ -1359,6 +1360,9 @@ The rulings made while this plan was executed on `feat/guest-mode`, in order: wh
 - **R29.** The guest attendance gate got an automated pin: a pure `canLogAttendance({ attendanceEnabled, isGuest })` in `app/services/attendance/attendanceGateLogic.ts`, written test-first and used by SchedulePopup's timer and InPersonPopup's "I'm Here". Why: R27 relies on a guest never persisting a timer session, `attendanceEnabled` defaults to true and carries the owner's setting into guest mode, and Jenova asked for TDD. Supersedes Task 8 Steps 1 and 2's inline `attendanceEnabled && !isGuest` checks.
 - **R30.** `useZoomMeeting.joinMeeting` applies `zoomPrefillName` to whichever name wins (`config.userName ?? profileStore.displayName`), its false comments were corrected, and its log line records `hasUserName` instead of the name. Why: `ZoomJoinConfig.userName` is a required string, so the plan's `config.userName ?? zoomPrefillName(…)` never reached the guest rule; its "displayName is "" anyway" comment was false, because `displayName` carries the owner's clean-time and pronoun toggles even with no name; and CLAUDE.md forbids names in logs. Supersedes Task 8 Step 3's snippet and its comment.
 - **R31.** SchedulePopup's dead `const password = …` and its stale "SDK expects the plaintext passcode" comment were deleted. Why: the bundled Zoom SDK was removed in 4.5.0, and the touched-file eslint run must pass.
+- **R32.** The claim that nothing about a guest is stored was false. The device keeps the persisted `isGuest` flag and shared device settings: the Meetings filter and view picks, the location choice, and the legal acceptance. Every doc now states exactly that, and the spec's "Nothing about them is stored or tracked" was corrected the same way (guest sessions still log by device id). Why: a privacy claim in the release notes of a recovery app must be literally true, and support repeats it. Supersedes the claim in the Goal line, Task 9 Step 1b's sign-in-methods bullet and Task 9 Step 2's CHANGELOG snippet.
+- **R33.** Jenova's directive: Zoom join links no longer carry the `un=` display-name prefill, for anyone ("doesn't work anyway and should be removed"). `buildExternalZoomUrl` takes no name, `ZoomJoinConfig.userName` is gone, and `zoomNameLogic.ts` and its test are deleted, because a link that never carries a name needs no guest name rule. It ran as a new Task 10. Why: Zoom never applied the name. Supersedes R9 and R30, and the name parts of Task 8 Steps 0, 1 and 3 (and the Zoom-name guard that the Architecture list and Task 9 Step 1 mention). Task 9 Step 4 item 3's Zoom-name check still holds, now for everyone.
+- **R34.** Task 10 also carried three R32 follow-ups, because it edits the same files: a qualifier on the spec's "No data belonging to the device owner is visible" (device settings are shared, so per Decision 2 a guest can see the device's last bar pick), R32's entry here with pointers at the old claim, and an `isGuest` comment in `AuthenticationStore` that says what guest mode keeps. Why: the same files, and wording only.
 
 Also out of date in the plan text, though not set by a ruling:
 
