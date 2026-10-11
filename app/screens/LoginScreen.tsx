@@ -43,6 +43,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { devPurgeAllLocalData } from "@/utils/devPurge"
 import { logger } from "@/utils/logger"
 
+import { decideGuestEntry } from "./login/guestEntryLogic"
 import { ChooseStep, CodeStep, EmailStep } from "./login/LoginSteps"
 
 const log = logger.child({ module: "LoginScreen" })
@@ -389,7 +390,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             // ADDED 2026-10-11 (spec 2026-09-27): no Auth0 call, no userId —
             // just the flag. Through the legal gate like every entry point.
             authStore.enterGuest()
-            trackEvent("guest_mode_entered")
+            // CHANGED 2026-10-11: counted only when guest mode began.
+            // enterGuest() refuses while a userId is present. The link is
+            // hidden then, but a userId recorded between the tap and this
+            // line (the legal modal can sit open) would still reach here.
+            if (authStore.isGuest) trackEvent("guest_mode_entered")
             return
         }
       } finally {
@@ -596,8 +601,16 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
           {/* ADDED 2026-10-11: guest entry. Android only — iOS requires an
             authenticated account, and the string itself is absent from the iOS
             bundle (platformStrings.ios.ts). Choose step only, so it never sits
-            under the code field. */}
-          {Platform.OS === "android" && step === "choose" && (
+            under the code field.
+            CHANGED 2026-10-11: also hidden while a userId is present, through
+            decideGuestEntry (login/guestEntryLogic.ts, vitest). Login shows
+            with a userId for a signed-in owner whose token is renewing at cold
+            start, and while a forced logout is deferred for a persisted timer;
+            a tap there put the owner's own session in guest mode, where Join
+            opens Zoom with no attendance timer. `authStore.userId` is read here
+            in render, so this observer re-renders when it changes. The store's
+            enterGuest() refuses in that state too. */}
+          {decideGuestEntry({ platform: Platform.OS, step, hasUserId: !!authStore.userId }) && (
             <Pressable
               testID="guest-button"
               accessibilityRole="button"

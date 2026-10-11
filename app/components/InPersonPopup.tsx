@@ -448,6 +448,13 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // attendance they are standing in the room for because a server is down.
   // Do not "restore consistency" by adding one.
   const handleImHere = useCallback(async () => {
+    // ADDED 2026-10-11: the same canLogAttendance() rule the button renders
+    // on, checked again where the timer starts. Defense in depth: the button
+    // is hidden for a guest, but canLogAttendance's JSDoc requires every
+    // place that starts a timer to gate on it, TimerSessionResumer relies on
+    // a guest never persisting a timer session, and SchedulePopup gates
+    // inside its handler the same way.
+    if (!canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest })) return
     if (!meeting || isChecking) return
 
     // Self-heal, deliberately silent. The only way to reach this with the
@@ -568,7 +575,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     }
     // The popup stays open in every rejection case above so the user can
     // retry without re-navigating.
-  }, [meeting, isChecking, check, useMiles, profileStore])
+  }, [meeting, isChecking, check, useMiles, profileStore, isGuest])
 
   // Copy wrinkle accepted, not fixed: formatDistance renders the 150 m radius
   // as "0.1 mi" for US users, which reads oddly for a threshold. It's the same

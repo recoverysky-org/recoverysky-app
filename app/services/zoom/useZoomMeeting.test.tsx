@@ -121,8 +121,7 @@ describe("useZoomMeeting.joinMeeting", () => {
       )
     })
 
-    // With no passcode, a meeting number wins over meetingUrl. That order came
-    // in with the name prefill (April 2026) and the removal keeps it; preferring
+    // With no passcode, a meeting number wins over meetingUrl. Preferring
     // meetingUrl here would change which link opens (see buildExternalZoomUrl).
     it("opens the bare join URL, not meetingUrl, when there is a meeting number but no passcode", async () => {
       const meetingUrl = "https://us02web.zoom.us/j/123456789"

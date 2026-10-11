@@ -1,11 +1,18 @@
 /**
  * TimerSessionResumer Component
  *
- * Headless. On app startup (once the database is ready), check MMKV for an
- * External Zoom attendance timer that was running when the process was last
- * killed. If one is found and is recent enough, surface it to the recovery
- * channel so TimerRecoveryGate can remount the running modal pre-seeded with
- * the persisted session.
+ * Headless. Once the database is ready and the device owner's identity
+ * (`userId`) is present, check MMKV for an External Zoom attendance timer
+ * that was running when the process was last killed. If one is found,
+ * surface it to the recovery channel so TimerRecoveryGate can remount the
+ * running modal pre-seeded with the persisted session.
+ *
+ * CHANGED 2026-10-11: this said the check runs "on app startup (once the
+ * database is ready)" and restores a session that "is recent enough". It
+ * also waits for `userId` now, which a sign-in can record long after
+ * startup, and runs once per mount, the first time both hold (the gate in
+ * the effect says why it keys on `userId`). "Recent enough" went with the
+ * staleness cap, removed 2026-09-12 (see below).
  *
  * CHANGED 2026-05-11: previously this fired a destructive Alert.alert with
  * only Save / Discard options. That UX was actively harmful — customers

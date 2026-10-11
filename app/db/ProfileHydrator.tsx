@@ -57,16 +57,13 @@ export const ProfileHydrator = observer(function ProfileHydrator(): null {
   useEffect(() => {
     // Only hydrate once, when database is ready
     // CHANGED 2026-10-11: skip while a guest (spec 2026-09-27). The profile
-    // row is the device owner's — name, fellowship (Meetings filter default),
-    // recovery date, language. Left un-hydrated, a guest's fellowship is the
-    // store default "AA", which is the decided guest filter default. Sign in →
-    // exitGuest() re-runs this effect.
-    // CHANGED 2026-10-11: the Meetings filter now pins "AA" for a guest itself
-    // (savedFellowshipInput in utils/meetingFiltersLogic.ts). A profile
-    // hydrated earlier in the session can still reach guest mode (owner signs
-    // out, or Sign in → Login → back to guest), and this skip cannot undo
-    // that. The skip still keeps a cold-started guest session free of the
-    // owner's name, recovery date and language.
+    // row is the device owner's (name, fellowship, recovery date, language),
+    // so a cold-started guest session never loads it; Sign in → exitGuest()
+    // re-runs this effect. The skip is not what gives a guest the "AA" filter
+    // default. A profile hydrated before guest mode began (the owner signs
+    // out, or Sign in → Login → back to guest) stays in memory, and this skip
+    // cannot undo that, so the Meetings filter gives a guest "AA" itself
+    // (savedFellowshipInput in utils/meetingFiltersLogic.ts).
     if (authenticationStore.isGuest) return
     if ((status === "open" || status === "seeded") && !hasHydrated.current) {
       hasHydrated.current = true

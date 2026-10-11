@@ -40,6 +40,11 @@ export const AuthenticationStoreModel = types
      * device keeps only this flag and shared device settings: the Meetings
      * filter and view picks, the location choice and the legal acceptance
      * (CLAUDE.md "Guest mode (Android)" lists them).
+     * CHANGED 2026-10-11: "no userId" is now enforced, not only stated.
+     * This flag is true only while userId is undefined: enterGuest() refuses
+     * while a userId is present (see there for the two Login states that
+     * carry one), because guest mode over a signed-in owner's session ran the
+     * owner's Join with no attendance timer.
      */
     isGuest: types.optional(types.boolean, false),
     /**
@@ -268,8 +273,31 @@ export const AuthenticationStoreModel = types
     setForcedLogoutNotice(value: boolean) {
       store.forcedLogoutNotice = value
     },
-    /** Enter guest mode (LoginScreen "Just join meetings"). Never sets userId. */
+    /**
+     * Enter guest mode (LoginScreen "Just join meetings"). Never sets userId.
+     * Does nothing (and logs a warning) while a userId is present.
+     */
     enterGuest() {
+      // ADDED 2026-10-11: refuse while a userId is present, so a guest
+      // never has one. Login shows with a userId in two states:
+      // - a signed-in owner whose access token is renewing at cold start: the
+      //   persisted userId comes back beside an expired token, and Login stays
+      //   up until a renewal lands, which offline can be the whole session;
+      // - a forced logout deferred for a persisted attendance timer: the eject
+      //   waits for the timer's Save or Cancel, and userId stays until then.
+      // Guest mode over either is the owner's own session with every guest
+      // guard on: no hearts or stars, a read-only reminder grid, and Join
+      // opening Zoom with no attendance timer (canLogAttendance is false), so
+      // the meeting earns no credit and nothing says why. Login hides the
+      // link in both states (decideGuestEntry, screens/login/guestEntryLogic.ts);
+      // this guard keeps the invariant whatever the caller. The sign-in path
+      // clears the flag before it sets userId (useAuth0Wrapper), so the two
+      // are never set together.
+      if (store.userId) {
+        // No identity on this line: the reason is enough to diagnose.
+        log.warn("enterGuest() refused: a signed-in identity is present")
+        return
+      }
       log.info("enterGuest()")
       store.isGuest = true
     },

@@ -54,13 +54,11 @@ export function extractZoomPassword(url: string): string | null {
  * `passwordEnc` (the encrypted share-link pwd) when present; otherwise falls
  * back to the plaintext `password`. Either is appended as `?pwd=<value>` on a
  * freshly-constructed join URL so it matches what Zoom's own share links
- * look like. If neither is available, falls back to the stored meetingUrl,
- * then to a bare join URL.
- * CORRECTED 2026-10-11: with no passcode, a meeting number wins. The result is
- * the bare join URL, and meetingUrl is used only when there is no meeting
- * number. That order came in with the name prefill (April 2026). Removing the
- * prefill keeps it, because changing it would change which link opens for a
- * meeting with no passcode.
+ * look like. If neither is available, a bare join URL is used when there is
+ * a meeting number, and the stored meetingUrl otherwise; changing that order
+ * would change which link opens for a meeting with no passcode.
+ * (CORRECTED 2026-10-11: this said meetingUrl came first, which the code
+ * below does not do.)
  *
  * CHANGED 2026-10-11: the display-name prefill (Zoom's `un` query parameter)
  * is removed (Zoom never applied it). No join link carries a name, so guest
@@ -77,8 +75,8 @@ export function buildExternalZoomUrl(opts: {
   if (pwd && opts.meetingNumber) {
     return `https://zoom.us/j/${opts.meetingNumber}?pwd=${encodeURIComponent(pwd)}`
   }
-  // No passcode: a meeting number still wins over meetingUrl (see the
-  // CORRECTED note above).
+  // No passcode: a meeting number still wins over meetingUrl (see the doc
+  // comment above).
   if (opts.meetingNumber) {
     return `https://zoom.us/j/${opts.meetingNumber}`
   }
