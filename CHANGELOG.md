@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.11.0-1] — 2026-10-11
+
 ### Added
 - **Android: "Just join meetings" opens a Meetings-only guest mode.** The button
   sits with the sign-in options on the Login screen and lets someone browse
