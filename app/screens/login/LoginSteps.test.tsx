@@ -120,6 +120,17 @@ describe("ChooseStep", () => {
       }
     })
 
+    it("comes last on the owner's remembered-email variant too", () => {
+      render(<ChooseStep {...props} ownerEmailMasked="j***@proton.me" onJustJoin={jest.fn()} />)
+
+      const order = testIdOrder()
+      const guest = order.indexOf("login-guest")
+      for (const id of ["login-owner-email", "login-use-different-email"]) {
+        expect(order.indexOf(id)).toBeGreaterThan(-1)
+        expect(order.indexOf(id)).toBeLessThan(guest)
+      }
+    })
+
     it("is absent when the screen passes no handler (iOS, or a signed-in owner)", () => {
       render(<ChooseStep {...props} />)
 

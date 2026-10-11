@@ -63,7 +63,8 @@ See [../replies/only-meetings-showing.md](../replies/only-meetings-showing.md). 
 
 ## Sources
 
-- `app/screens/LoginScreen.tsx` (the guest entry, Umami `guest_mode_entered`)
+- `app/screens/LoginScreen.tsx` (the guest entry's wiring, Umami `guest_mode_entered`)
+- `app/screens/login/LoginSteps.tsx` (`ChooseStep`, which renders the "Just join meetings" button)
 - `app/models/AuthenticationStore.ts` (`isGuest`, `enterGuest()`, `exitGuest()`, `logout()`)
 - `app/navigators/appRouteLogic.ts`, `app/navigators/GuestNavigator.tsx`
 - `app/components/GuestPromoBar.tsx`, `app/screens/MeetingsScreen.tsx`

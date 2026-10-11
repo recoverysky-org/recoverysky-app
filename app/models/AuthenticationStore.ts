@@ -289,7 +289,7 @@ export const AuthenticationStoreModel = types
       // guard on: no hearts or stars, a read-only reminder grid, and Join
       // opening Zoom with no attendance timer (canLogAttendance is false), so
       // the meeting earns no credit and nothing says why. Login hides the
-      // link in both states (decideGuestEntry, screens/login/guestEntryLogic.ts);
+      // button in both states (decideGuestEntry, screens/login/guestEntryLogic.ts);
       // this guard keeps the invariant whatever the caller. The sign-in path
       // clears the flag before it sets userId (useAuth0Wrapper), so the two
       // are never set together.

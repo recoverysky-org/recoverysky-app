@@ -861,8 +861,14 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.md,
 })
 
+// CHANGED 2026-10-11: marginTop keeps this link's 8 dp hitSlop off the
+// bottom of the last ChooseStep button, now "Just join meetings". Android's
+// TouchTargetHelper lets a later sibling's slop claim touches, and on a short
+// screen or at large font scale the column has no free space between them, so
+// a tap near that button's lower edge would open the password sign-in.
 const $passwordLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   alignSelf: "center",
+  marginTop: spacing.xs,
   paddingVertical: spacing.sm,
   paddingHorizontal: spacing.md,
 })
