@@ -422,6 +422,11 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               expiresAt,
             )
 
+            // ADDED 2026-10-11: a real session ends guest mode. The Sign-in
+            // action already cleared it; this covers a session restored or
+            // completed any other way, so no stale flag outlives a sign-in.
+            authStore.exitGuest()
+
             // Set user info
             authStore.setUserId(user.sub)
 

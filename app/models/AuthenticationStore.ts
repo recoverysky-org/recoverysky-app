@@ -31,6 +31,13 @@ export const AuthenticationStoreModel = types
     /** Unique device identifier, captured on app start */
     deviceId: types.maybe(types.string),
     /**
+     * ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md).
+     * Android-only "Just join meetings" mode: Meetings tab only, no userId, no
+     * stored data. Persisted so a guest relaunches straight into meetings.
+     * Never implies an identity — isAuthenticated stays false for a guest.
+     */
+    isGuest: types.optional(types.boolean, false),
+    /**
      * ADDED 2026-09-17 (spec 1 §2.4). Written only when a session is ACCEPTED
      * by the ownership gate — a foreign session must not leave this behind.
      */
@@ -256,6 +263,17 @@ export const AuthenticationStoreModel = types
     setForcedLogoutNotice(value: boolean) {
       store.forcedLogoutNotice = value
     },
+    /** Enter guest mode (LoginScreen "Just join meetings"). Never sets userId. */
+    enterGuest() {
+      log.info("enterGuest()")
+      store.isGuest = true
+    },
+    /** Leave guest mode — the Sign-in action, or any accepted real session. */
+    exitGuest() {
+      if (!store.isGuest) return
+      log.info("exitGuest()")
+      store.isGuest = false
+    },
     /**
      * Logout - clear all auth state
      */
@@ -267,6 +285,12 @@ export const AuthenticationStoreModel = types
       store.expiresAt = undefined
       store.authEmail = ""
       store.userId = undefined
+      // ADDED 2026-10-11: guest mode is auth state too, so a sign-out never
+      // leaves a stale flag that would route the next launch into guest
+      // browsing instead of Login. Every logout() caller is a deliberate
+      // sign-out or a lost session, never a plain cold start, so this cannot
+      // wipe a guest's persisted flag on relaunch.
+      store.isGuest = false
       store.pendingLogout = false
       // ADDED 2026-09-17: the session's method goes with the session; the
       // owner record does NOT — it protects the data that stays on disk.
