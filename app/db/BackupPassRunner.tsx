@@ -74,7 +74,6 @@ export const BackupPassRunner = observer(function BackupPassRunner(): null {
     const action = decideBackupPass({
       donePassId: loadString(BACKUP_PASS_DONE_KEY) ?? null,
       signedIn: authenticationStore.isAuthenticated,
-      anonymous: authenticationStore.isAnonymous,
       entitled: hasAttendance,
       syncEnabled: profileStore.syncEnabled,
       offline: networkStore.isOffline,

@@ -4,10 +4,11 @@
  *
  * ADDED 2026-09-17. Spec: docs/superpowers/specs/2026-09-17-revenuecat-identity-reactive-design.md.
  *
- * Until this, RevenueCat's app user id was `authenticationStore.userIdentifier`
- * read at render time in `App` (not an observer), so after sign-in the SDK
- * stayed identified as the DEVICE ID until `App` happened to re-render — and
- * a purchase made in that window posted to the device-id customer. The
+ * Until this, RevenueCat's app user id came from the auth store's combined
+ * identity getter (since removed; it fell back to the device id), read at
+ * render time in `App` (not an observer), so after sign-in the SDK stayed
+ * identified as the DEVICE ID until `App` happened to re-render — and a
+ * purchase made in that window posted to the device-id customer. The
  * 2026-09-17 export showed 9,881 device-id customers (one per install), 286
  * of them purchasers, 81 with active subscriptions the signed-in user could
  * not see. The rules here make the identity a reaction to the auth store and
@@ -21,14 +22,15 @@
  * The RevenueCat app user id for the current auth state: the Auth0 sub when
  * a real user is signed in, otherwise null — in which case the SDK runs on
  * its own `$RCAnonymousID`, which `logIn()` later aliases into the user's
- * customer. The device id is never an answer: `loginAnonymously()` stores it
- * in `userId`, hence the `isAnonymous` check.
+ * customer.
+ * CHANGED 2026-10-11: the old device-id login is gone, and with it the flag
+ * input that kept its device id out of RevenueCat (that login stored the
+ * device id in `userId`). `userId` is now only ever an Auth0 sub, and
+ * setupRootStore clears a leftover device-id value on hydration
+ * (legacyIdentityLogic.ts).
  */
-export function rcIdentityFor(i: {
-  userId: string | undefined
-  isAnonymous: boolean
-}): string | null {
-  if (i.isAnonymous || !i.userId) return null
+export function rcIdentityFor(i: { userId: string | undefined }): string | null {
+  if (!i.userId) return null
   return i.userId
 }
 

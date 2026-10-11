@@ -10,20 +10,14 @@
 export type OwnershipDecision = "adopt" | "match" | "relinked" | "mismatch"
 
 /**
- * One device, one owner. Anonymous sessions never own a device and are never
- * blocked by one — the first real sign-in adopts.
- *
- * CHANGED 2026-09-18: `isAnonymous` means "the session being decided is itself
- * anonymous", which is never true for an Auth0 session. It is NOT the auth
- * store's persisted flag: that describes the previous session, and passing it
- * here would wave a stranger's account through on a device whose flag had not
- * been reset yet. The gate in useAuth0Wrapper.ts passes a literal false.
+ * One device, one owner. The first real sign-in adopts.
+ * CHANGED 2026-10-11: the device-id login flag input (always a literal false
+ * at the one call site since 2026-09-18) is gone with that login. Guests
+ * (spec 2026-09-27) never reach this gate — they have no Auth0 session.
  */
 export function decideOwnership(input: {
   ownerSub: string | undefined
   sessionSub: string
-  /** True only when the session being decided is itself anonymous (never for an Auth0 session). */
-  isAnonymous: boolean
   /**
    * Every identity's standalone sub from the ID token's identities claim
    * (linkedSubsFromIdToken). Empty for an unlinked account or a tenant
@@ -31,7 +25,6 @@ export function decideOwnership(input: {
    */
   linkedSubs?: readonly string[]
 }): OwnershipDecision {
-  if (input.isAnonymous) return "match"
   if (!input.ownerSub) return "adopt"
   if (input.ownerSub === input.sessionSub) return "match"
   // ADDED 2026-09-30 (spec 2 §7): the owner's identity was linked into another

@@ -9,20 +9,17 @@ import {
 } from "./ownerLogic"
 
 describe("decideOwnership", () => {
+  // CHANGED 2026-10-11: the case for a session from the old device-id login is
+  // gone with that login. Guests (spec 2026-09-27) have no Auth0 session, so
+  // they never reach this decision at all.
   it("adopts when the device has no owner yet", () => {
-    expect(
-      decideOwnership({ ownerSub: undefined, sessionSub: "email|1", isAnonymous: false }),
-    ).toBe("adopt")
+    expect(decideOwnership({ ownerSub: undefined, sessionSub: "email|1" })).toBe("adopt")
   })
   it("matches the owner", () => {
-    expect(
-      decideOwnership({ ownerSub: "auth0|a", sessionSub: "auth0|a", isAnonymous: false }),
-    ).toBe("match")
+    expect(decideOwnership({ ownerSub: "auth0|a", sessionSub: "auth0|a" })).toBe("match")
   })
   it("flags a different account", () => {
-    expect(
-      decideOwnership({ ownerSub: "auth0|a", sessionSub: "google-oauth2|b", isAnonymous: false }),
-    ).toBe("mismatch")
+    expect(decideOwnership({ ownerSub: "auth0|a", sessionSub: "google-oauth2|b" })).toBe("mismatch")
   })
   // ADDED 2026-09-30 (spec 2 §7): the owner's identity was linked into another
   // account from a different device, so Auth0 now answers with the primary's sub.
@@ -31,7 +28,6 @@ describe("decideOwnership", () => {
       decideOwnership({
         ownerSub: "email|jm",
         sessionSub: "google-oauth2|mm",
-        isAnonymous: false,
         linkedSubs: ["google-oauth2|mm", "email|jm"],
       }),
     ).toBe("relinked")
@@ -41,7 +37,6 @@ describe("decideOwnership", () => {
       decideOwnership({
         ownerSub: "email|jm",
         sessionSub: "google-oauth2|mm",
-        isAnonymous: false,
         linkedSubs: ["google-oauth2|mm", "email|someone-else"],
       }),
     ).toBe("mismatch")
@@ -51,7 +46,6 @@ describe("decideOwnership", () => {
       decideOwnership({
         ownerSub: "google-oauth2|mm",
         sessionSub: "google-oauth2|mm",
-        isAnonymous: false,
         linkedSubs: ["google-oauth2|mm", "email|jm"],
       }),
     ).toBe("match")
@@ -61,18 +55,9 @@ describe("decideOwnership", () => {
       decideOwnership({
         ownerSub: undefined,
         sessionSub: "google-oauth2|mm",
-        isAnonymous: false,
         linkedSubs: ["google-oauth2|mm", "email|jm"],
       }),
     ).toBe("adopt")
-  })
-  it("never stamps or blocks an anonymous session", () => {
-    expect(
-      decideOwnership({ ownerSub: undefined, sessionSub: "device-1", isAnonymous: true }),
-    ).toBe("match")
-    expect(
-      decideOwnership({ ownerSub: "auth0|a", sessionSub: "device-1", isAnonymous: true }),
-    ).toBe("match")
   })
 })
 

@@ -120,7 +120,6 @@ describe("recordShowing", () => {
 describe("verifyGateBlocked (Review Focus 5)", () => {
   const clear = {
     isAuthenticated: true,
-    isAnonymous: false,
     onboardingCompleted: true,
     offline: false,
     maintenanceMode: false,
@@ -133,7 +132,6 @@ describe("verifyGateBlocked (Review Focus 5)", () => {
   })
   it.each([
     ["signed out", { isAuthenticated: false }],
-    ["anonymous", { isAnonymous: true }],
     ["mid-onboarding", { onboardingCompleted: false }],
     ["offline", { offline: true }],
     ["maintenance", { maintenanceMode: true }],

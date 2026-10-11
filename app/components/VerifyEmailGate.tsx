@@ -81,13 +81,15 @@ export const VerifyEmailGate: FC = observer(function VerifyEmailGate() {
   // — and `evaluate` below gets a new identity and runs again — when any of it
   // changes. That is what makes the gate appear right after a password
   // sign-in, at the end of onboarding, or when the device comes back online.
-  const sub = authStore.isAnonymous ? undefined : authStore.userId
+  // CHANGED 2026-10-11: no flag check any more — `userId` is only ever an Auth0
+  // sub (the old device-id login stored the device id there), and a guest has
+  // none, so the `!sub` bail in `evaluate` covers a guest too.
+  const sub = authStore.userId
   const accountEmail = authStore.authEmail
   const claim = authStore.emailVerified
   const loginMethod = authStore.loginMethod
   const blocked = verifyGateBlocked({
     isAuthenticated: authStore.isAuthenticated,
-    isAnonymous: authStore.isAnonymous,
     onboardingCompleted: profileStore.onboardingCompleted,
     offline: networkStore.isOffline,
     maintenanceMode: configStore.maintenanceMode,

@@ -695,11 +695,11 @@ export function App() {
           if (__DEV__) registerTestPushDevMenu()
 
           // Register push token with backend.
-          // CHANGED 2026-09-14: keyed on a SIGNED-IN identity, not
-          // `userIdentifier` — that getter (and `loginAnonymously()`) hands
-          // back the device id when there is no Auth0 user, and the server
-          // route is `authenticateSignedIn`, so every signed-out or anonymous
-          // launch fired one guaranteed 403 (a rejection the edge counts).
+          // CHANGED 2026-09-14: keyed on a SIGNED-IN identity, not the auth
+          // store's combined identity getter — that getter handed back the
+          // device id when there is no Auth0 user, and the server route is
+          // `authenticateSignedIn`, so every signed-out launch fired one
+          // guaranteed 403 (a rejection the edge counts).
           // Decision in the pure `pushRegistrationUserId`; sign-out lands in
           // the `else` below, which only clears local state.
           // CHANGED 2026-09-21 (RS-040): also keyed on the store holding a
@@ -712,7 +712,6 @@ export function App() {
           const registrableUserId = () =>
             pushRegistrationUserId({
               userId: authStore.userId,
-              isAnonymous: authStore.isAnonymous,
               hasSession: !!authStore.accessToken || !!authStore.refreshToken,
             })
           const initialUserId = registrableUserId()

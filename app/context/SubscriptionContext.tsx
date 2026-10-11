@@ -204,14 +204,11 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
    * a reaction on the same store now.) Existing users are backfilled
    * organically the first time they launch after this ships; the pure
    * `resolveEmailAttribute()` decides whether there is anything to send
-   * (never for anonymous / device-id customers).
+   * (never for a signed-out customer).
    */
   const syncEmailAttribute = useCallback(async () => {
     const email = resolveEmailAttribute({
-      appUserId:
-        rcIdentityFor({ userId: authStore.userId, isAnonymous: authStore.isAnonymous }) ?? "",
-      deviceId: authStore.deviceId,
-      isAnonymous: authStore.isAnonymous,
+      appUserId: rcIdentityFor({ userId: authStore.userId }) ?? "",
       authEmail: authStore.authEmail,
     })
     if (!email) return
@@ -268,10 +265,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
     const initialize = async () => {
       setIsLoading(true)
 
-      const initialIdentity = rcIdentityFor({
-        userId: authStore.userId,
-        isAnonymous: authStore.isAnonymous,
-      })
+      const initialIdentity = rcIdentityFor({ userId: authStore.userId })
       const result = await initializeRevenueCat(
         initialIdentity ?? undefined,
         configStore.revenueCatApiKey || undefined,
@@ -375,7 +369,7 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
   useEffect(() => {
     if (!isInitialized) return
     return reaction(
-      () => rcIdentityFor({ userId: authStore.userId, isAnonymous: authStore.isAnonymous }),
+      () => rcIdentityFor({ userId: authStore.userId }),
       (next) => void enqueueIdentity(next),
       { fireImmediately: true },
     )

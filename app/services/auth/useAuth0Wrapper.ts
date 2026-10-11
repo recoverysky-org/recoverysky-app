@@ -328,14 +328,6 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
             const decision = decideOwnership({
               ownerSub: authStore.ownerSub,
               sessionSub: user.sub,
-              // CHANGED 2026-09-18: hardcoded false, not authStore.isAnonymous.
-              // Auth0 never issues an anonymous session — reaching this line at
-              // all means a real account signed in. The store flag describes
-              // the PREVIOUS session (anonymous mode is our own local concept),
-              // and decideOwnership returns "match" for an anonymous one, so
-              // passing it here let any account through on a device whose flag
-              // had not been reset yet.
-              isAnonymous: false,
               // ADDED 2026-09-30 (spec 2 §7): lets the gate recognise an owner
               // whose identity was linked into this account from another device.
               linkedSubs: linkedSubsFromIdToken(credentials.idToken ?? undefined),

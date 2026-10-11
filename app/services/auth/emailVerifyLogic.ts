@@ -112,10 +112,12 @@ export function recordShowing(state: VerifyState, today: string): VerifyState {
  * `configStore.deviceAuthDegraded` is set, every API send is refused locally
  * and answers "unavailable", so a mandatory screen would have no way to pass —
  * the same lock-out as offline.
+ *
+ * CHANGED 2026-10-11: the device-id login flag input is gone with that login.
+ * `!isAuthenticated` already blocks a signed-out user and a guest.
  */
 export function verifyGateBlocked(input: {
   isAuthenticated: boolean
-  isAnonymous: boolean
   onboardingCompleted: boolean
   offline: boolean
   maintenanceMode: boolean
@@ -125,7 +127,6 @@ export function verifyGateBlocked(input: {
 }): boolean {
   return (
     !input.isAuthenticated ||
-    input.isAnonymous ||
     !input.onboardingCompleted ||
     input.offline ||
     input.maintenanceMode ||
