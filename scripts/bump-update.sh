@@ -31,6 +31,13 @@ npx vitest run
 # all five fellowship pickers, while the store binary built from the same commit
 # had it. Nothing failed; nothing warned. This is that warning.
 #
+# CHANGED 2026-10-11: "NOT .env" held only for variables EAS defines. The export
+# inherits this shell, and direnv loads .env into it, so a variable missing from
+# EAS shipped with its local value (4.11.0-1 showed the Agent tab; the dev API
+# key rode along in every OTA). `release:ota` now runs eas through
+# scripts/eas-prod.sh, which strips local EXPO_PUBLIC_*, and the tripwire at the
+# end of this script checks the exported bundles.
+#
 # `--eas-only` on purpose: the script's other half (.env vs eas.json) reports
 # drift on any dev machine pointed at localhost, and a gate that always fails is
 # a gate everyone learns to skip. Exit 2 (EAS unreadable — offline, logged out)
@@ -108,6 +115,29 @@ npm run release:ota
 echo "Uploading source maps to Sentry (token from EAS production env)..."
 eas env:exec production "npx sentry-expo-upload-sourcemaps dist" || \
   echo "⚠️  Sentry source map upload failed (non-fatal). Stack traces will lack line numbers until the next successful upload."
+
+# Leak tripwire (ADDED 2026-10-11). Searches the bundles `release:ota` just
+# exported for any local EXPO_PUBLIC_* value the EAS production environment
+# does not define: the 4.11.0-1 failure, where the shell's .env values shipped
+# (see scripts/eas-prod.sh). This script pushes before it publishes, so the OTA
+# is already live when this runs. It cannot stop a leak, only make sure nobody
+# misses one. It runs after the Sentry upload so the maps go up either way.
+echo "Checking the published bundles for local-only values..."
+set +e
+node scripts/check-bundle-env.js dist
+LEAK_CHECK=$?
+set -e
+if [ "$LEAK_CHECK" -eq 1 ]; then
+  echo ""
+  echo "❌ OTA $TAG is LIVE with local-only values baked in (names above)."
+  echo "   Fix the environment and ship another OTA, or republish the previous update group."
+  exit 1
+elif [ "$LEAK_CHECK" -ne 0 ]; then
+  echo ""
+  echo "⚠️  OTA $TAG is live, but its bundles could not be checked (see above)."
+  echo "   Re-run by hand: npm run check:bundle-env"
+  exit 2
+fi
 
 echo ""
 echo "✅ OTA $TAG bumped, pushed, and published!"

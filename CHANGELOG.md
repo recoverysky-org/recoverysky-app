@@ -22,6 +22,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Security
+- **Production builds and OTAs no longer pick up values from the local `.env`.**
+  `eas update --environment production` and local production builds inherited
+  the release shell, where direnv exports `.env`. So any `EXPO_PUBLIC_*` the EAS
+  production environment does not define shipped with its local value: 4.11.0-1
+  showed the Sky Agent tab pointed at the dev agent URL, and the dev API key
+  (`EXPO_PUBLIC_AUTH_KEY`) was in the 4.11.0 store build and its OTAs. The
+  production `eas` scripts (`release:ota`, `release:*`, `build:*:prod`,
+  `build:*:cloud`) now run through `scripts/eas-prod.sh`, which strips local
+  `EXPO_PUBLIC_*`. `npm run update` ends with a tripwire
+  (`scripts/check-bundle-env.js`, also `npm run check:bundle-env`) that fails
+  loudly if a published bundle carries a local-only value. The leaked key stays
+  valid until it is rotated on the server.
+
 ## [4.11.0-3] — 2026-10-11
 
 ### Changed
