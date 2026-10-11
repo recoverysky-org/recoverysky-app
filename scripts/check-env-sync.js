@@ -485,4 +485,8 @@ function main() {
   process.exit(1)
 }
 
-main()
+// CHANGED 2026-10-11: runs only as a CLI, so check-bundle-env.js can require
+// the EAS reader and the .env parser below without triggering the report.
+if (require.main === module) main()
+
+module.exports = { fetchEasEnv, parseEnvFile }
