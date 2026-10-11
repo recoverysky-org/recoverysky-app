@@ -39,7 +39,8 @@ export const AuthenticationStoreModel = types
      * CHANGED 2026-10-11: this said "no stored data", which was false. The
      * device keeps only this flag and shared device settings: the Meetings
      * filter and view picks, the location choice and the legal acceptance
-     * (CLAUDE.md "Guest mode (Android)" lists them).
+     * (CLAUDE.md "Guest mode (Android)" lists them). ADDED 2026-10-11: plus
+     * ProfileStore.guestOnboardingCompleted, that the first-visit cards were seen.
      * CHANGED 2026-10-11: "no userId" is now enforced, not only stated.
      * This flag is true only while userId is undefined: enterGuest() refuses
      * while a userId is present (see there for the two Login states that

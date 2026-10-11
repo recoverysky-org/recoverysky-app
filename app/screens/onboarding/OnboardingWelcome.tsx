@@ -25,6 +25,8 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
 
+import { nextOnboardingCard } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
 import { ProgressDots } from "./ProgressDots"
 
 const log = logger.child({ module: "OnboardingWelcome" })
@@ -37,9 +39,20 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
     const { themed, theme } = useAppTheme()
     const profileStore = useProfileStore()
     const [loading, setLoading] = useState(false)
+    const variant = useOnboardingVariant()
 
     const handleGetStarted = async () => {
-      trackEvent("onboarding_step", { step: "welcome" })
+      trackEvent("onboarding_step", { step: "welcome", variant })
+
+      // ADDED 2026-10-11: a guest goes straight to the next guest card. The
+      // old-app import check below needs an account (checkFirebaseUser), and
+      // a guest has none.
+      if (variant === "guest") {
+        const next = nextOnboardingCard(variant, "OnboardingWelcome")
+        if (next) navigation.navigate(next)
+        return
+      }
+
       log.info("handleGetStarted", { imported: profileStore.imported })
 
       // CHANGED 2026-08-13: was OnboardingProfile, which merged into
@@ -73,7 +86,7 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={0} />
+        <ProgressDots current="OnboardingWelcome" />
 
         {/* Content */}
         <View style={$content}>

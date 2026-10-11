@@ -57,6 +57,11 @@ export const ProfileStoreModel = types
 
     // Onboarding & UX
     onboardingCompleted: types.optional(types.boolean, false),
+    // ADDED 2026-10-11 (Jenova): the guest's own onboarding, the four-card
+    // subset a guest sees on their first visit (screens/onboarding/
+    // onboardingStepsLogic.ts). A device setting, separate from
+    // onboardingCompleted so a later real sign-in still gets all six cards.
+    guestOnboardingCompleted: types.optional(types.boolean, false),
 
     // Where the (volatile, SQLite-held) recoveryDate came from: "user" when
     // picked or imported, "default" when the app chose it, "" until an old
@@ -435,10 +440,22 @@ export const ProfileStoreModel = types
       },
 
       /**
+       * Mark the guest's onboarding cards as seen. ADDED 2026-10-11.
+       * Only the flag: unlike completeOnboarding() it saves no recovery date
+       * and marks no announcement seen. A guest records nothing personal.
+       */
+      completeGuestOnboarding() {
+        self.guestOnboardingCompleted = true
+      },
+
+      /**
        * Reset onboarding (for testing or re-onboarding)
+       * CHANGED 2026-10-11: also resets the guest's onboarding, so both
+       * paths can be re-run.
        */
       resetOnboarding() {
         self.onboardingCompleted = false
+        self.guestOnboardingCompleted = false
         self.imported = false
       },
 
@@ -560,6 +577,9 @@ export const ProfileStoreModel = types
         self.subscriptionExpires = null
         self.themeColor = ""
         self.onboardingCompleted = false
+        // ADDED 2026-10-11: Delete User Data starts the device fresh, guest
+        // onboarding included.
+        self.guestOnboardingCompleted = false
         self.dontShowShortMeetingWarning = false
         // CHANGED 2026-08-08: was `true`. A reset that re-enabled push would
         // hand a non-premium user notifications they cannot switch off, since

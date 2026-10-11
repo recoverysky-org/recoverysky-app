@@ -43,8 +43,8 @@ POST ${UMAMI_URL}/api/send
 | `login_completed` | User authenticated successfully. Not fired for an Android login recovered after process death (`resumeSession`, 4.11.0+), which completes outside LoginScreen, so this slightly under-counts Android sign-ins | `{ method: "email" \| "apple" \| "google" \| "password" }` | `app/screens/LoginScreen.tsx` |
 | `guest_mode_entered` | User tapped "Just join meetings" on Login (Android only) and entered guest mode, after the legal-agreements gate. A guest has no user id, so the event carries none | — | `app/screens/LoginScreen.tsx` |
 | `logout` | User logged out from settings | — | `app/screens/SettingsScreen.tsx` |
-| `onboarding_step` | User advanced through an onboarding step | `{ step: "welcome" \| "profile" \| "recovery" \| "theme" \| "attendance" \| "privacy" \| "oss" }` | `app/screens/onboarding/*.tsx` |
-| `onboarding_completed` | User finished the full onboarding flow | — | `app/screens/onboarding/OnboardingOSS.tsx` |
+| `onboarding_step` | User advanced through an onboarding step. `variant` (ADDED 2026-10-11) says which set: `"full"` for a real sign-in, `"guest"` for a guest's first visit (Welcome, Zoom, Privacy, OSS only) | `{ step: "welcome" \| "profile" \| "recovery" \| "zoom" \| "theme" \| "attendance" \| "privacy" \| "oss", variant: "full" \| "guest" }` | `app/screens/onboarding/*.tsx` |
+| `onboarding_completed` | User finished an onboarding flow: the full set, or a guest's first-visit set (CHANGED 2026-10-11) | `{ variant: "full" \| "guest" }` | `app/screens/onboarding/OnboardingOSS.tsx` |
 | `firebase_import` | User imported data from the old Firebase app | — | `app/screens/onboarding/OnboardingImport.tsx` |
 
 ### Group 3: Meetings

@@ -37,6 +37,8 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+import { nextOnboardingCard } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
 import { ProgressDots } from "./ProgressDots"
 
 // ADDED 2026-10-03: the Push Notifications and Location rows are built but
@@ -52,6 +54,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
     const [languageModalVisible, setLanguageModalVisible] = useState(false)
     const { isPremium, showPaywall } = useSubscription()
     const { handleNotificationsToggle, handleLocationToggle } = usePermissionToggles()
+    const variant = useOnboardingVariant()
 
     const currentLang = profileStore.language || getCurrentLanguage()
     const availableLanguages = getAvailableLanguages()
@@ -88,8 +91,11 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
       // Tapping Next does not blur the field first on every platform, so the
       // name is persisted here too. Only while the field is on screen.
       if (profileStore.attendanceEnabled) persistShortName()
-      trackEvent("onboarding_step", { step: "theme" })
-      navigation.navigate("OnboardingPrivacy")
+      trackEvent("onboarding_step", { step: "theme", variant })
+      // CHANGED 2026-10-11: the next card comes from onboardingStepsLogic.ts,
+      // which holds both card sets (full and a guest's first visit).
+      const next = nextOnboardingCard(variant, "OnboardingTheme")
+      if (next) navigation.navigate(next)
     }
 
     const pushSwitch = (
@@ -115,7 +121,7 @@ export const OnboardingTheme: FC<OnboardingScreenProps<"OnboardingTheme">> = obs
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={3} />
+        <ProgressDots current="OnboardingTheme" />
 
         {/* Content */}
         <View style={$content}>

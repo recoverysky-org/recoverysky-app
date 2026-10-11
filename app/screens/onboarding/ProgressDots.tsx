@@ -13,6 +13,9 @@ import { useTranslation } from "react-i18next"
 import type { OnboardingParamList } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 
+import { onboardingCards } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
+
 /**
  * Onboarding screen names in order.
  *
@@ -21,28 +24,27 @@ import { useAppTheme } from "@/theme/context"
  * from seven steps to six. Every screen's currentIndex shifted down by one.
  * Re-adding the entry here is one half of re-enabling the screen (the other
  * is its Stack.Screen registration in OnboardingNavigator).
+ * CHANGED 2026-10-11: the list moved to onboardingStepsLogic.ts, which holds
+ * both card sets (six for a real sign-in, four for a guest's first visit).
+ * The dots draw the current variant's set, and each card names itself
+ * (`current`) instead of passing a fixed index, since Zoom is the third
+ * dot in one set and the second in the other.
  */
-const SCREENS: (keyof OnboardingParamList)[] = [
-  "OnboardingWelcome",
-  "OnboardingRecovery",
-  "OnboardingZoom",
-  "OnboardingTheme",
-  "OnboardingPrivacy",
-  "OnboardingOSS",
-]
 
 interface ProgressDotsProps {
-  /** Current screen index (0-5) */
-  currentIndex: number
+  /** The card this screen is. A card outside the set (the parked Profile) selects no dot. */
+  current: keyof OnboardingParamList
 }
 
 /**
  * Tappable progress dots for onboarding navigation
  */
-export const ProgressDots: FC<ProgressDotsProps> = ({ currentIndex }) => {
+export const ProgressDots: FC<ProgressDotsProps> = ({ current }) => {
   const { theme } = useAppTheme()
   const { t } = useTranslation()
   const navigation = useNavigation<NavigationProp<OnboardingParamList>>()
+  const SCREENS = onboardingCards(useOnboardingVariant())
+  const currentIndex = (SCREENS as readonly string[]).indexOf(current)
 
   const handleDotPress = (index: number) => {
     if (index !== currentIndex) {

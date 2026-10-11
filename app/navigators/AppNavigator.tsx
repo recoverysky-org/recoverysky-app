@@ -28,7 +28,7 @@ import { GuestNavigator } from "./GuestNavigator"
 import { MainNavigator } from "./MainNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
 import { navigationRef, useBackButtonHandler, flushPendingNavigation } from "./navigationUtilities"
-import { OnboardingNavigator } from "./OnboardingNavigator"
+import { GuestOnboardingNavigator, OnboardingNavigator } from "./OnboardingNavigator"
 
 const log = logger.child({ module: "AppNavigator" })
 
@@ -50,6 +50,10 @@ const AppStack = observer(function AppStack() {
   const profileStore = useProfileStore()
   const isAuthenticated = authStore.isAuthenticated
   const needsOnboarding = !profileStore.onboardingCompleted
+  // ADDED 2026-10-11: the guest's own onboarding, the four cards a guest sees
+  // on their first visit. Its own flag, so a later real sign-in still gets
+  // the full set (needsOnboarding above).
+  const needsGuestOnboarding = !profileStore.guestOnboardingCompleted
   // Full-screen MaintenanceScreen is reserved for the cold-start outage:
   // the very first /config fetch failed with no cached data to render.
   // Runtime maintenance (server flag flips, polling failure after retries)
@@ -77,6 +81,7 @@ const AppStack = observer(function AppStack() {
     needsOnboarding,
     hasForeignSession,
     isGuest: authStore.isGuest,
+    needsGuestOnboarding,
     platform: Platform.OS,
   })
   log.debug("Auth state retrieved", {
@@ -85,6 +90,7 @@ const AppStack = observer(function AppStack() {
     showOutage,
     foreignSession: hasForeignSession,
     isGuest: authStore.isGuest,
+    needsGuestOnboarding,
   })
 
   const {
@@ -99,11 +105,19 @@ const AppStack = observer(function AppStack() {
       needsOnboarding,
       foreignSession: hasForeignSession,
       isGuest: authStore.isGuest,
+      needsGuestOnboarding,
     })
     return () => {
       log.debug("AppStack unmounting")
     }
-  }, [isAuthenticated, authStore.authReady, needsOnboarding, hasForeignSession, authStore.isGuest])
+  }, [
+    isAuthenticated,
+    authStore.authReady,
+    needsOnboarding,
+    hasForeignSession,
+    authStore.isGuest,
+    needsGuestOnboarding,
+  ])
 
   // Don't render navigation until auth is resolved — splash screen covers this
   if (!authStore.authReady) {
@@ -124,6 +138,7 @@ const AppStack = observer(function AppStack() {
     needsOnboarding,
     foreignSession: hasForeignSession,
     isGuest: authStore.isGuest,
+    needsGuestOnboarding,
   })
 
   return (
@@ -179,6 +194,13 @@ const AppStack = observer(function AppStack() {
         // alongside: offering "sign in" next to "you are signed in as the
         // wrong person" is what produced the loop this screen replaces.
         <Stack.Screen name="WrongAccount" component={WrongAccountScreen} />
+      ) : route === "GuestOnboarding" ? (
+        // ADDED 2026-10-11 (Jenova): a guest's first visit walks the four guest
+        // cards (Welcome, Zoom, Privacy, Open Source) before guest Meetings.
+        // The last card's Finish sets guestOnboardingCompleted, and
+        // decideAppRoute then lands on Guest. Guest is not registered
+        // alongside, so the flow can't be skipped by navigation.
+        <Stack.Screen name="GuestOnboarding" component={GuestOnboardingNavigator} />
       ) : route === "Guest" ? (
         // ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md): Android
         // guest mode, the Meetings tab alone. Login is not registered

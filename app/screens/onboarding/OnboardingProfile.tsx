@@ -72,7 +72,7 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={1} />
+        <ProgressDots current="OnboardingProfile" />
 
         {/* Content */}
         <View style={$content}>

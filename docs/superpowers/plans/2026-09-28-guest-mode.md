@@ -1374,3 +1374,5 @@ Also out of date in the plan text, though not set by a ruling:
 - Task 9 Step 4's items 2 and 5 are corrected in place: the bar's remembered pick (R25) and the dark default theme.
 
 After the merge (2026-10-11, Jenova): "Just join meetings" became a full button, the last in `ChooseStep`'s stack and styled like the sign-in options, because guest mode is a first-class way in. This supersedes R22's underlined-link style and Task 6 Step 3's link block in `LoginScreen`. The screen passes `onJustJoin` only when `decideGuestEntry` allows a guest (R35).
+
+After the merge (2026-10-11, Jenova): a guest's first visit opens with four onboarding cards (Welcome, Install Zoom, Your Privacy Matters, Open Source) before guest Meetings, through a `GuestOnboarding` route and `OnboardingNavigator`'s "guest" variant. Their own flag, `profileStore.guestOnboardingCompleted`, keeps a later real sign-in on the full six. The card sets live in `screens/onboarding/onboardingStepsLogic.ts`.

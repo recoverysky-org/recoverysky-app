@@ -27,6 +27,8 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
 
+import { nextOnboardingCard } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
 import { ProgressDots } from "./ProgressDots"
 
 const log = logger.child({ module: "OnboardingZoom" })
@@ -49,10 +51,14 @@ const ZOOM_BENEFITS = [
 export const OnboardingZoom: FC<OnboardingScreenProps<"OnboardingZoom">> = observer(
   function OnboardingZoom({ navigation }) {
     const { themed, theme } = useAppTheme()
+    const variant = useOnboardingVariant()
 
     const handleNext = () => {
-      trackEvent("onboarding_step", { step: "zoom" })
-      navigation.navigate("OnboardingTheme")
+      trackEvent("onboarding_step", { step: "zoom", variant })
+      // CHANGED 2026-10-11: the next card comes from onboardingStepsLogic.ts,
+      // which holds both card sets (full and a guest's first visit).
+      const next = nextOnboardingCard(variant, "OnboardingZoom")
+      if (next) navigation.navigate(next)
     }
 
     // Web fallback to App Store on Mac App Store / browser when running
@@ -74,7 +80,7 @@ export const OnboardingZoom: FC<OnboardingScreenProps<"OnboardingZoom">> = obser
         safeAreaEdges={["top", "bottom"]}
         contentContainerStyle={themed($container)}
       >
-        <ProgressDots currentIndex={2} />
+        <ProgressDots current="OnboardingZoom" />
 
         <View style={$content}>
           <Text style={themed($title)} tx="onboarding:zoomTitle" />
