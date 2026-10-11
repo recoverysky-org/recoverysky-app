@@ -258,6 +258,8 @@ MST with MMKV persistence in `app/models/`:
   - **Props** (MMKV): `refreshToken`, `authEmail`, `userId` (the Auth0 sub, never
     a device id: `setupRootStore` clears a device id left there by the old
     device-id login, see `helpers/legacyIdentityLogic.ts`), `deviceId`,
+    `isGuest` (Android guest mode; persisted so a guest relaunches into
+    Meetings, and never an identity — see "Guest mode (Android)"),
     `loginMethod` (how the current session was established — `"email" | "apple" |
     "google"`; drives the logout branch, see "Auth, Attestation & Encryption
     Keys" §1), `ownerSub` / `ownerEmail` (the device owner — the one account
@@ -309,9 +311,11 @@ const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ### Navigation
 React Navigation v7 in `app/navigators/`:
 
-**App-level gating** (`AppNavigator.tsx`): outage check → (authenticated: Onboarding | Main) → WrongAccount (when `authStore.foreignSession` is set) → Login. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
+**App-level gating** (`AppNavigator.tsx`): outage check → (authenticated: Onboarding | Main) → WrongAccount (when `authStore.foreignSession` is set) → **Guest** (when `authStore.isGuest` is set, Android only — see "Guest mode (Android)" below) → Login, decided by the pure `decideAppRoute()` in `appRouteLogic.ts`. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
 
 CHANGED 2026-09-18 (spec `2026-09-17-device-owner-and-wrong-account-recovery-design.md` §2.2): a fourth state sits between Login and the rest. `WrongAccountScreen` shows while the SDK holds a session whose sub is not `ownerSub`; `isAuthenticated` is false in that state by construction (the ownership gate in `useAuth0Wrapper` writes no token for a mismatched session), so no identity-driven reaction ever sees it. `initialRouteName` mirrors the same branch order exactly — only the matching `<Stack.Screen>` is registered per render, so it must not diverge.
+
+CHANGED 2026-10-11 (spec `2026-09-27-guest-mode-design.md`): Guest sits between WrongAccount and Login. The whole order is now one pure function, `decideAppRoute()` (`app/navigators/appRouteLogic.ts`, vitest-covered), and `AppNavigator` keys both the registered screen and `initialRouteName` on its result, so the two can no longer drift apart. A real session outranks a stale guest flag, WrongAccount outranks Guest so a refused session is never hidden behind guest browsing, and Guest is returned only on Android, so a stray persisted flag on iOS lands on Login.
 
 **Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. Two tabs are built but **hard-disabled behind local `const … = false` flags**, not entitlements: `agentTabVisible` (Agent — hidden until release-ready) and `socialTabVisible` (Community/Social — hidden pending SPA-side fixes; re-enable with `__DEV__ || isPremium`). `useSubscription()`'s `isPremium` is still read and `void`-ed here so the hook stays wired for future gates — don't "clean up" that line.
 
@@ -387,6 +391,84 @@ or tears down fetch state on every tab tap.
 **Section routing**: Attendance tab accepts `{ section?: "new" | "archive" | "reports" }` route params. Navigation to a specific section uses `navigate("Attendance", { section: "reports" })`. The screen syncs via `navigation.addListener("focus", ...)` to handle repeated navigations to the same section.
 
 Route types defined in `app/navigators/navigationTypes.ts`.
+
+### Guest mode (Android)
+
+ADDED 2026-10-11. Spec: `docs/superpowers/specs/2026-09-27-guest-mode-design.md`;
+the plan `docs/superpowers/plans/2026-09-28-guest-mode.md` ends with the
+rulings that changed its code during implementation. "Just join meetings" on
+Login's choose step (Android only, through the legal gate like every entry)
+calls `authStore.enterGuest()`. A guest gets the Meetings tab alone (Online,
+In-Person, Search, and joining through the Zoom app) with no account. Nothing
+about them is stored, and the device owner's data stays hidden. `isGuest` is
+persisted, so a guest relaunches into Meetings.
+
+- **Guest mode never sets `userId`.** No device-id identity, placeholder uid or
+  hash, and `isAuthenticated` stays false, so sync, push registration,
+  RevenueCat identity, report polling, the ownership gate and the Sentry /
+  Umami / logger user ids treat a guest exactly as a signed-out user.
+  RevenueCat still configures as it does on Login: a guest runs on the SDK's
+  own `$RCAnonymousID` and never calls `logIn`, because a later sign-in needs
+  the SDK configured. A guest sends no `Authorization` header.
+- **Navigator.** `GuestNavigator.tsx` is a bottom-tab navigator typed with
+  `MainTabParamList` that holds only `MeetingsScreen`, with the tab bar
+  hidden. Its `sceneStyle` pads the bottom system inset, which Main's tab bar
+  clears under edge-to-edge. Deep links don't resolve for a guest in v1 (the
+  linking config maps only `Main`'s screens), and a `navigate()` to another
+  tab from a stale push does nothing.
+- **Leaving.** `GuestPromoBar` (`app/components/GuestPromoBar.tsx`,
+  presentational) is the house-ad slot under the Meetings filter bar. Its Sign
+  in calls `exitGuest()` and the route falls to Login. Any accepted Auth0
+  session also calls `exitGuest()` (`useAuth0Wrapper`), and `logout()` clears
+  the flag.
+- **Guards**, one per place the Meetings tab reached the owner's data:
+  - Hearts, stars and join counts: `feedbackCache.setSuppressedWhen()`, given
+    a predicate that reads `isGuest` in `app.tsx` right after
+    `setupRootStore`. While it holds, reads are empty, writes are no-ops and
+    listeners stay silent. Pure, fail-closed rule in
+    `app/db/feedbackSuppressionLogic.ts`.
+  - `ProfileHydrator` skips hydration while a guest.
+  - `TimerSessionResumer` restores an interrupted timer only while the owner's
+    `userId` is present: never for a guest, and never on Login after a real
+    sign-out. It keys on `userId`, not `isAuthenticated`, so a forced logout
+    deferred for a live timer still fires (see the comment there). `app.tsx`
+    imports it directly, not through the `app/db` barrel (depcruise cycle).
+  - Theme: `ThemeProvider` takes an `isGuest` prop, fed by the observer
+    `GuestAwareThemeProvider` in `app.tsx`. A guest gets the default look,
+    dark with the default tint, as on a fresh install. It is a prop because
+    importing `@/models` from `app/theme/` closes a depcruise cycle.
+  - Popups: `SchedulePopup` is join-only (no heart, stars or visit count, a
+    read-only reminder grid, no rating soft-ask, and no first-run
+    `ExternalZoomEducationModal`, whose per-install seen flag stays the
+    owner's). `InPersonPopup` is read-only (no feedback, reminders or "I'm
+    Here"; Get Directions stays).
+  - Attendance: `canLogAttendance()` (`app/services/attendance/attendanceGateLogic.ts`,
+    vitest) is the one rule for both timer entry points, SchedulePopup's timer
+    and InPersonPopup's "I'm Here". `attendanceEnabled` alone is not a gate:
+    it defaults to true, and the owner's setting persists into guest mode. The
+    resumer rule above relies on a guest never persisting a timer session.
+  - Zoom `un=`: `zoomPrefillName()` (`app/services/zoom/zoomNameLogic.ts`,
+    vitest) wraps whichever name wins on all three join paths, so a guest
+    sends none.
+  - Fellowship filter: `savedFellowshipInput()` (`app/utils/meetingFiltersLogic.ts`)
+    makes a guest's `saved` input "AA". The bar's remembered picks (MMKV
+    `meetings.fellowship` / `meetings.language`) belong to the device, so a
+    guest sees the device's last bar pick when there is one. AA applies only
+    when nothing is remembered (spec Decision 2 accepts this).
+  - Not guarded, on purpose: `useLocationGate` still writes
+    `profileStore.locationEnabled` when a guest allows location. It is a
+    device setting, not personal data (spec Decision 1).
+  - `MeetingProvider` re-fetches live meetings, and re-snapshots the rows it
+    holds, on the `isGuest` edge, so a favorites-first order never crosses the
+    switch.
+- **Why per-surface guards.** A cold-started guest never hydrates the profile,
+  but an owner's profile hydrated earlier in the session stays in memory when
+  the owner signs out and taps "Just join meetings". `displayName` also
+  carries the owner's saved clean-time and pronoun toggles (MMKV props) even
+  with no name. So the filter and the Zoom name have guards of their own
+  rather than trusting the skipped hydrator.
+- **The rule:** any new Meetings-tab feature that reads or writes local user
+  data needs an `isGuest` guard.
 
 ### Database Layer
 SQLite with Drizzle ORM in `app/db/`:

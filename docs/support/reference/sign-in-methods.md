@@ -22,7 +22,8 @@ Two caveats apply to the "Sub prefix" column:
 - **Login screen steps.** `choose`, `email`, `code`.
 - **Button order.** iOS: Apple, Google, Email. Android: Google, Apple, Email.
 - **Intro text.** iOS: "Log in to access app subscriptions and premium features. An account is required by Apple for apps with interactive services like video conferencing." Android: "Log in to access app subscriptions and premium features. Subscriptions require a logged in account." followed by "You may login and logout at any time in Settings."
-- **No guest button on the login screen.** The anonymous option is commented out of the UI. The old "Sign Up" and "Log In" buttons are retired.
+- **Guest mode (Android only).** The choose step also offers "Just join meetings", an underlined link under the sign-in buttons. It goes through the same legal-agreements gate, then opens a Meetings-only guest mode: no account, nothing stored, and the device owner's data hidden. The app has no tab bar, and a card under the meeting filters ("Get more from RecoverySky") carries a "Sign in" button that returns to the login screen. Guest mode survives a relaunch until that button is tapped. iOS has no guest mode. Support doc: [only-meetings-showing](../problems/only-meetings-showing.md).
+- **Retired buttons.** The old "Sign Up" and "Log In" buttons are gone.
 - **Browser flows** (password, Google, Apple) show "Opening browser for authentication..." while the browser is open.
 - **Tokens.** Scopes are `openid profile email offline_access` and the app's API audience. Only the refresh token is persisted (MMKV). The access token, ID token and expiry live in memory.
 - **Token shape check.** Every access token must pass `isUsableAccessToken()` before it enters the store. An audience-less login yields an opaque token, and the user is signed out one tick after signing in (see [signed out unexpectedly](#signed-out-unexpectedly)).
@@ -172,6 +173,7 @@ The passwordless sign-in, linking and email verification JS ships as an OTA on r
 - `app/services/auth/accountMethodsLogic.ts`
 - `app/screens/LoginScreen.tsx`
 - `app/screens/login/LoginSteps.tsx`
+- `app/navigators/appRouteLogic.ts`, `app/components/GuestPromoBar.tsx` (guest mode)
 - `app/screens/WrongAccountScreen.tsx`
 - `app/app.tsx` (`performForcedLogout`)
 - `app/models/AuthenticationStore.ts`
