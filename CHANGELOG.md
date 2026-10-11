@@ -25,12 +25,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Added
 - **Android: "Just join meetings" opens a Meetings-only guest mode.** The button
   sits with the sign-in options on the Login screen and lets someone browse
-  Online, In-Person and Search and join a meeting with no account. No user id is created, and nothing personal
-  is recorded for a guest: no attendance, reminders, favorites, ratings or
-  profile. The phone keeps only device settings: that guest mode is on, the
-  Meetings filters, list-or-map view and sort order picked (shared with the
-  device owner), the location permission choice, and that the legal
-  agreements were accepted. The device owner's name, favorites, theme and
+  Online, In-Person and Search and join a meeting with no account. A guest's
+  first visit opens with four short cards (Welcome, Install Zoom, Your
+  Privacy Matters, Open Source); signing in later still shows the full
+  onboarding to an account that hasn't done it on this phone. No user id is created, and nothing personal is recorded for a
+  guest: no attendance, reminders, favorites, ratings or profile. The phone
+  keeps only device settings: that guest mode is on and its first-visit cards
+  were seen, the Meetings filters, list-or-map view and sort order picked
+  (shared with the device owner), the location permission choice, and that
+  the legal agreements were accepted. The device owner's name, favorites, theme and
   attendance never show, and the owner's interrupted attendance timer never
   comes up. A card above the meeting list invites the guest to make a free
   account, and its Sign in button returns to Login. Guest mode survives a

@@ -274,7 +274,7 @@ MST with MMKV persistence in `app/models/`:
     `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md`)
   - Computed: `isAuthenticated`
 - **ProfileStore**: User profile and preferences with two storage tiers:
-  - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription` / `subscriptionExpires`, `themeColor`, `onboardingCompleted`, `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `locationEnabled` (default OFF — see "Permissions & the Location Gate"), `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`, `seenAnnouncementIds`, `dontShowShortMeetingWarning`, the `moneySaved*` family (weekly total + one per weekday + `moneySavedTobacco`), the `ninety*` family (`ninetyStartDate` / `ninetyStartEpoch` / `ninetyStrictMode` / `ninetyCertificatePath`, plus DEV-only `ninetyDebugDay`)
+  - **Props** (MMKV snapshots): display toggles (`showCleanDate`/`showCleanDays`/`showPronouns`), `subscription` / `subscriptionExpires`, `themeColor`, `onboardingCompleted`, `guestOnboardingCompleted` (a guest's first-visit cards were seen; see "Guest mode (Android)"), `attendanceEnabled`, `syncEnabled` (cloud backup opt-in, default OFF), `enableMeetingTopic`, `notificationsEnabled`, `locationEnabled` (default OFF — see "Permissions & the Location Gate"), `reportEmail`, `imported`, `aiConsentAccepted`, `dismissedHomeCards`, `seenAnnouncementIds`, `dontShowShortMeetingWarning`, the `moneySaved*` family (weekly total + one per weekday + `moneySavedTobacco`), the `ninety*` family (`ninetyStartDate` / `ninetyStartEpoch` / `ninetyStrictMode` / `ninetyCertificatePath`, plus DEV-only `ninetyDebugDay`)
   - **Volatile** (encrypted SQLite): shortName, pronouns, recoveryDate, fellowship, language — sensitive data kept out of snapshots
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed. Fed by the NetInfo listener in `app/services/network/` (registered once in `app.tsx`; sole writer). `isOffline` keys off the interface state, not the reachability probe.
@@ -311,7 +311,7 @@ const { isPremium, hasAttendance, showPaywall } = useSubscription()
 ### Navigation
 React Navigation v7 in `app/navigators/`:
 
-**App-level gating** (`AppNavigator.tsx`): outage check → (authenticated: Onboarding | Main) → WrongAccount (when `authStore.foreignSession` is set) → **Guest** (when `authStore.isGuest` is set, Android only — see "Guest mode (Android)" below) → Login, decided by the pure `decideAppRoute()` in `appRouteLogic.ts`. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
+**App-level gating** (`AppNavigator.tsx`): outage check → (authenticated: Onboarding | Main) → WrongAccount (when `authStore.foreignSession` is set) → **GuestOnboarding** (a guest's first visit: four onboarding cards, until `profileStore.guestOnboardingCompleted`) → **Guest** (when `authStore.isGuest` is set, Android only — see "Guest mode (Android)" below) → Login, decided by the pure `decideAppRoute()` in `appRouteLogic.ts`. The outage check (`configStore.outageMode`) takes precedence and routes to `MaintenanceScreen` when cold start landed in an unusable state — `/status` precheck failed, `/config` fetch failed, or `/config` reported `MAINTENANCE_MODE: true` at startup. See "Maintenance Mode" below. The remaining gates are `authStore.isAuthenticated` and `!profileStore.onboardingCompleted`, and for a guest `!profileStore.guestOnboardingCompleted`. There is **no Zoom gate** — `ZoomSetupScreen` / `zoomConnected` were removed in 4.5.0.
 
 CHANGED 2026-09-18 (spec `2026-09-17-device-owner-and-wrong-account-recovery-design.md` §2.2): a fourth state sits between Login and the rest. `WrongAccountScreen` shows while the SDK holds a session whose sub is not `ownerSub`; `isAuthenticated` is false in that state by construction (the ownership gate in `useAuth0Wrapper` writes no token for a mismatched session), so no identity-driven reaction ever sees it. `initialRouteName` mirrors the same branch order exactly — only the matching `<Stack.Screen>` is registered per render, so it must not diverge.
 
@@ -400,12 +400,24 @@ rulings that changed its code during implementation. "Just join meetings" on
 Login's choose step (Android only, through the legal gate like every entry)
 calls `authStore.enterGuest()`. A guest gets the Meetings tab alone (Online,
 In-Person, Search, and joining through the Zoom app) with no account, and the
-device owner's data stays hidden. No user id is created, and nothing personal
+device owner's data stays hidden. ADDED 2026-10-11: a guest's first visit
+opens with four onboarding cards (Welcome, Install Zoom, Your Privacy
+Matters, Open Source): `decideAppRoute` returns `GuestOnboarding` until
+`profileStore.guestOnboardingCompleted`, and `OnboardingNavigator`'s "guest"
+variant registers only those cards. The card sets, each card's next card and
+the finish live in `screens/onboarding/onboardingStepsLogic.ts` (vitest). A
+guest finish calls `completeGuestOnboarding()`, never `completeOnboarding()`
+(which also saves the recovery date and marks announcements seen), so an
+account that hasn't onboarded on this phone still gets all six cards when it
+signs in. The guest Welcome skips the
+old-app import check, which needs an account. No user id is created, and nothing personal
 is recorded for a guest: no attendance, reminders, favorites, ratings, join
 counts or profile. The phone keeps only device settings, per install rather
 than per person:
 - that guest mode is on (`isGuest`, persisted, so a guest relaunches into
   Meetings);
+- that the guest's first-visit cards were seen
+  (`profileStore.guestOnboardingCompleted`, once per install);
 - the Meetings tab's filter and view choices, which the device owner shares
   (MMKV `meetings.fellowship`, `meetings.language`, `inperson.radius`,
   `inperson.viewMode`, `inperson.sortOrder`);

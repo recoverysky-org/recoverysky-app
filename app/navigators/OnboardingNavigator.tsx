@@ -22,6 +22,15 @@
  * OnboardingProfile.tsx is parked (still exported, still in OnboardingParamList)
  * for the community release — re-register it here and re-add it to
  * ProgressDots' SCREENS to bring it back.
+ * CHANGED 2026-10-11: the card order now lives in
+ * screens/onboarding/onboardingStepsLogic.ts, not in ProgressDots, so
+ * re-adding Profile means adding it there.
+ *
+ * ADDED 2026-10-11 (Jenova): a `variant`. "guest" is a guest's first visit:
+ * Welcome, Zoom, Privacy and OSS only, and the flow finishes with
+ * completeGuestOnboarding(). Recovery, Theme and Import are not registered
+ * for a guest, so nothing can navigate there. The variant reaches every card
+ * through OnboardingVariantProvider.
  */
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
@@ -34,37 +43,52 @@ import {
   OnboardingPrivacy,
   OnboardingOSS,
 } from "@/screens/onboarding"
+import type { OnboardingVariant } from "@/screens/onboarding/onboardingStepsLogic"
+import { OnboardingVariantProvider } from "@/screens/onboarding/OnboardingVariant"
 import { useAppTheme } from "@/theme/context"
 
 import type { OnboardingParamList } from "./navigationTypes"
 
 const Stack = createNativeStackNavigator<OnboardingParamList>()
 
-export function OnboardingNavigator() {
+export function OnboardingNavigator({ variant = "full" }: { variant?: OnboardingVariant }) {
   const {
     theme: { colors },
   } = useAppTheme()
 
+  const guest = variant === "guest"
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        navigationBarColor: colors.background,
-        contentStyle: {
-          backgroundColor: colors.background,
-        },
-        animation: "slide_from_right",
-      }}
-      initialRouteName="OnboardingWelcome"
-    >
-      <Stack.Screen name="OnboardingImport" component={OnboardingImport} />
-      <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcome} />
-      {/* OnboardingProfile intentionally unregistered — see the docblock. */}
-      <Stack.Screen name="OnboardingRecovery" component={OnboardingRecovery} />
-      <Stack.Screen name="OnboardingZoom" component={OnboardingZoom} />
-      <Stack.Screen name="OnboardingTheme" component={OnboardingTheme} />
-      <Stack.Screen name="OnboardingPrivacy" component={OnboardingPrivacy} />
-      <Stack.Screen name="OnboardingOSS" component={OnboardingOSS} />
-    </Stack.Navigator>
+    <OnboardingVariantProvider value={variant}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          navigationBarColor: colors.background,
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+          animation: "slide_from_right",
+        }}
+        initialRouteName="OnboardingWelcome"
+      >
+        {!guest && <Stack.Screen name="OnboardingImport" component={OnboardingImport} />}
+        <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcome} />
+        {/* OnboardingProfile intentionally unregistered — see the docblock. */}
+        {!guest && <Stack.Screen name="OnboardingRecovery" component={OnboardingRecovery} />}
+        <Stack.Screen name="OnboardingZoom" component={OnboardingZoom} />
+        {!guest && <Stack.Screen name="OnboardingTheme" component={OnboardingTheme} />}
+        <Stack.Screen name="OnboardingPrivacy" component={OnboardingPrivacy} />
+        <Stack.Screen name="OnboardingOSS" component={OnboardingOSS} />
+      </Stack.Navigator>
+    </OnboardingVariantProvider>
   )
+}
+
+/**
+ * A guest's first-visit onboarding (ADDED 2026-10-11). AppNavigator registers
+ * it as the GuestOnboarding route; a Stack.Screen can't pass the variant prop
+ * itself.
+ */
+export function GuestOnboardingNavigator() {
+  return <OnboardingNavigator variant="guest" />
 }

@@ -1303,15 +1303,25 @@ Manual: Jenova runs this on a device. An agent cannot sign in as the owner or dr
 
 Run `npm run android`. The device must have the app signed in as an owner who has favorites, a custom theme color and a display name.
 
-1. Sign out. Login shows **Just join meetings**. Tap it and accept the terms if asked. You should land on Meetings with no tab bar and the promo bar showing.
+1. Sign out. Login shows **Just join meetings** as the last button. Tap it and accept the terms if asked. On this device's first guest visit the four guest cards come first (steps 10-13); after Finish you land on Meetings with no tab bar and the promo bar showing. CHANGED 2026-10-11: guest onboarding.
 2. Filter bar fellowship shows **AA**, unless the bar already remembers a pick on this device (MMKV `meetings.fellowship`), which a guest shares by design (spec Decision 2). CHANGED 2026-10-11: see R25 in the execution notes below.
 3. Open a live meeting: no heart, stars, join count, reminder hint or tappable cells. Tap Join. In Zoom, the name field is empty or Zoom's default, not the owner's name.
 4. Open an In-Person meeting: no heart/stars and no I'm Here. The location prompt behaves as before.
 5. The theme is the default: dark, with the default tint. CHANGED 2026-10-11: this line said "follows the system light/dark setting", but since 2026-09-28 an unsaved scheme means dark, so a guest gets the fresh-install look.
-6. Kill and relaunch: you're back in guest Meetings.
+6. Kill and relaunch: you're back in guest Meetings (once the guest cards were finished; mid-cards, step 12 applies).
 7. Tap **Sign in**: Login appears. Sign in as the owner: Main with all tabs, and favorites, theme and name are back.
 8. `adb logcat | grep -i "push-tokens\|401\|403"` during steps 1–6 shows no user-lane requests.
 9. iOS simulator (`npm run ios`): Login has no guest button.
+
+ADDED 2026-10-11, guest onboarding (Jenova):
+
+10. A first guest visit shows Welcome, Install Zoom, Your Privacy Matters and Open Source, with four dots. TalkBack reads "Step 1 of 4". Get Started moves on at once, with no spinner (no old-app import check).
+11. Finish on Open Source lands on guest Meetings.
+12. Kill the app mid-cards and relaunch: the cards show again.
+13. After Finish, a relaunch, and Sign in followed by Just join meetings again, both skip the cards.
+14. On a fresh install, or after Delete User Data: Just join meetings, the cards, then Sign in with a new account: all six onboarding cards show, and the recovery date is saved.
+15. The owner signing in after guest mode lands on Main with no onboarding.
+16. Android Back on a guest card: note what happens (the app backgrounds; there is no way back to Login from the cards). Open product question, see the final hand-off.
 
 - [ ] **Step 5: Commit**
 
@@ -1374,3 +1384,5 @@ Also out of date in the plan text, though not set by a ruling:
 - Task 9 Step 4's items 2 and 5 are corrected in place: the bar's remembered pick (R25) and the dark default theme.
 
 After the merge (2026-10-11, Jenova): "Just join meetings" became a full button, the last in `ChooseStep`'s stack and styled like the sign-in options, because guest mode is a first-class way in. This supersedes R22's underlined-link style and Task 6 Step 3's link block in `LoginScreen`. The screen passes `onJustJoin` only when `decideGuestEntry` allows a guest (R35).
+
+After the merge (2026-10-11, Jenova): a guest's first visit opens with four onboarding cards (Welcome, Install Zoom, Your Privacy Matters, Open Source) before guest Meetings, through a `GuestOnboarding` route and `OnboardingNavigator`'s "guest" variant. Their own flag, `profileStore.guestOnboardingCompleted`, keeps a later real sign-in on the full six. The card sets live in `screens/onboarding/onboardingStepsLogic.ts`.

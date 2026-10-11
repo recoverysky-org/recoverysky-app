@@ -11,9 +11,22 @@
  * guest browsing. Guest is Android-only: iOS requires an authenticated
  * account, so a stray persisted flag there (restored backup) falls to Login.
  *
+ * CHANGED 2026-10-11 (Jenova): a guest's first visit shows four guest
+ * onboarding cards first (GuestOnboarding), until `needsGuestOnboarding`
+ * clears. It is the guest's own flag, never `needsOnboarding`, so a later
+ * real session still gets the full onboarding; and it sits inside the Guest
+ * branch, so it inherits the Android-only rule and every precedence above it.
+ *
  * Pure, no `@/` imports (CLAUDE.md "Test Runner Split").
  */
-export type AppRoute = "Maintenance" | "Onboarding" | "Main" | "WrongAccount" | "Guest" | "Login"
+export type AppRoute =
+  | "Maintenance"
+  | "Onboarding"
+  | "Main"
+  | "WrongAccount"
+  | "GuestOnboarding"
+  | "Guest"
+  | "Login"
 
 export function decideAppRoute(i: {
   outage: boolean
@@ -21,12 +34,16 @@ export function decideAppRoute(i: {
   needsOnboarding: boolean
   hasForeignSession: boolean
   isGuest: boolean
+  /** !profileStore.guestOnboardingCompleted (ADDED 2026-10-11). */
+  needsGuestOnboarding: boolean
   /** Platform.OS */
   platform: string
 }): AppRoute {
   if (i.outage) return "Maintenance"
   if (i.isAuthenticated) return i.needsOnboarding ? "Onboarding" : "Main"
   if (i.hasForeignSession) return "WrongAccount"
-  if (i.isGuest && i.platform === "android") return "Guest"
+  if (i.isGuest && i.platform === "android") {
+    return i.needsGuestOnboarding ? "GuestOnboarding" : "Guest"
+  }
   return "Login"
 }

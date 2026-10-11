@@ -17,6 +17,10 @@
  * To bring it back: register it in OnboardingNavigator, add it to
  * ProgressDots' SCREENS, shift every screen's currentIndex up by one, and
  * point OnboardingWelcome / OnboardingImport at it again.
+ * CHANGED 2026-10-11: there is no SCREENS list or currentIndex any more.
+ * To bring it back: add it to FULL and the OnboardingCard type in
+ * onboardingStepsLogic.ts (Welcome and Import follow that list), register
+ * it in OnboardingNavigator's full variant, and pass `current` to its dots.
  */
 import { FC, useState } from "react"
 import { View, ViewStyle, TextStyle, Pressable, Modal, TouchableOpacity } from "react-native"
@@ -72,7 +76,7 @@ export const OnboardingProfile: FC<OnboardingScreenProps<"OnboardingProfile">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={1} />
+        <ProgressDots current="OnboardingProfile" />
 
         {/* Content */}
         <View style={$content}>

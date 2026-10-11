@@ -43,6 +43,8 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 
+import { nextOnboardingCard } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
 import { ProgressDots } from "./ProgressDots"
 
 // Driven by EXPO_PUBLIC_FELLOWSHIPS via ACTIVE_FELLOWSHIPS (single source of
@@ -82,10 +84,14 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
     const profileStore = useProfileStore()
     const [fellowshipModalVisible, setFellowshipModalVisible] = useState(false)
     const [showDatePicker, setShowDatePicker] = useState(false)
+    const variant = useOnboardingVariant()
 
     const handleNext = () => {
-      trackEvent("onboarding_step", { step: "recovery" })
-      navigation.navigate("OnboardingZoom")
+      trackEvent("onboarding_step", { step: "recovery", variant })
+      // CHANGED 2026-10-11: the next card comes from onboardingStepsLogic.ts,
+      // which holds both card sets (full and a guest's first visit).
+      const next = nextOnboardingCard(variant, "OnboardingRecovery")
+      if (next) navigation.navigate(next)
     }
 
     const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -112,7 +118,7 @@ export const OnboardingRecovery: FC<OnboardingScreenProps<"OnboardingRecovery">>
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={1} />
+        <ProgressDots current="OnboardingRecovery" />
 
         {/* Content */}
         <View style={$content}>

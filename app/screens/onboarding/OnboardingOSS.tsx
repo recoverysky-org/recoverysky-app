@@ -17,6 +17,8 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+import { finishOnboarding } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
 import { ProgressDots } from "./ProgressDots"
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -37,10 +39,18 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
   function OnboardingOSS(_props) {
     const { themed, theme } = useAppTheme()
     const profileStore = useProfileStore()
+    const variant = useOnboardingVariant()
 
     const handleFinish = () => {
-      trackEvent("onboarding_completed")
-      profileStore.completeOnboarding()
+      trackEvent("onboarding_completed", { variant })
+      // CHANGED 2026-10-11: a guest's first-visit flow finishes with its own
+      // flag (finishOnboarding in onboardingStepsLogic.ts), never with
+      // completeOnboarding(), so a later real sign-in still gets all six
+      // cards and no recovery date is saved for a guest.
+      finishOnboarding(variant, {
+        completeOnboarding: () => profileStore.completeOnboarding(),
+        completeGuestOnboarding: () => profileStore.completeGuestOnboarding(),
+      })
     }
 
     const openSourceCode = () => {
@@ -58,7 +68,7 @@ export const OnboardingOSS: FC<OnboardingScreenProps<"OnboardingOSS">> = observe
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={5} />
+        <ProgressDots current="OnboardingOSS" />
 
         {/* Content */}
         <View style={$content}>

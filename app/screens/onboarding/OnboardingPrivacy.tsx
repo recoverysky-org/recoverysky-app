@@ -22,6 +22,8 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+import { nextOnboardingCard } from "./onboardingStepsLogic"
+import { useOnboardingVariant } from "./OnboardingVariant"
 import { ProgressDots } from "./ProgressDots"
 
 // Privacy cards: icon, title, one-sentence body.
@@ -51,10 +53,14 @@ const PRIVACY_ITEMS = [
 export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> = observer(
   function OnboardingPrivacy({ navigation }) {
     const { themed, theme } = useAppTheme()
+    const variant = useOnboardingVariant()
 
     const handleNext = () => {
-      trackEvent("onboarding_step", { step: "privacy" })
-      navigation.navigate("OnboardingOSS")
+      trackEvent("onboarding_step", { step: "privacy", variant })
+      // CHANGED 2026-10-11: the next card comes from onboardingStepsLogic.ts,
+      // which holds both card sets (full and a guest's first visit).
+      const next = nextOnboardingCard(variant, "OnboardingPrivacy")
+      if (next) navigation.navigate(next)
     }
 
     const openPrivacyPolicy = () => {
@@ -73,7 +79,7 @@ export const OnboardingPrivacy: FC<OnboardingScreenProps<"OnboardingPrivacy">> =
         contentContainerStyle={themed($container)}
       >
         {/* Progress dots */}
-        <ProgressDots currentIndex={4} />
+        <ProgressDots current="OnboardingPrivacy" />
 
         {/* Content */}
         <View style={$content}>

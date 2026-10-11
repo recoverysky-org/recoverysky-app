@@ -32,6 +32,8 @@ import type { ThemedStyle } from "@/theme/types"
 import { logger } from "@/utils/logger"
 import { mayImportRecoveryDate } from "@/utils/recoveryDateLogic"
 
+import { nextOnboardingCard } from "./onboardingStepsLogic"
+
 const log = logger.child({ module: "OnboardingImport" })
 
 /** Map Firebase fellowship full names to local enum values */
@@ -154,7 +156,7 @@ async function importAttendance(records: FirebaseAttendanceRecord[]): Promise<nu
         arid: r.arid,
       })
       if (result.ok) imported++
-    } catch (err) {
+    } catch {
       log.debug("Skipping duplicate attendance record", { id: r.id })
     }
   }
@@ -184,7 +186,7 @@ async function importReports(records: FirebaseReportRecord[]): Promise<number> {
         credit: r.credit,
       })
       if (result.ok) imported++
-    } catch (err) {
+    } catch {
       log.debug("Skipping duplicate report record", { id: r.id })
     }
   }
@@ -218,7 +220,11 @@ export const OnboardingImport: FC<any> = observer(function OnboardingImport() {
     } else {
       // CHANGED 2026-08-13: was OnboardingProfile, which merged into
       // OnboardingRecovery when the profile concept left the UI.
-      navigation.replace("OnboardingRecovery")
+      // CHANGED 2026-10-11: Import is a detour from Welcome in the full set
+      // only, so it continues with the full set's card after Welcome
+      // (onboardingStepsLogic.ts).
+      const afterWelcome = nextOnboardingCard("full", "OnboardingWelcome")
+      if (afterWelcome) navigation.replace(afterWelcome)
     }
   }
 
