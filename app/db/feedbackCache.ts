@@ -20,6 +20,7 @@
 import { reconcileScheduleFeedback, type ScheduleRowLike } from "@/utils/favoriteLogic"
 import { logger } from "@/utils/logger"
 
+import { createSuppression } from "./feedbackSuppressionLogic"
 import { feedbackRepo, type FeedbackRecord } from "./repositories"
 
 const log = logger.child({ module: "feedbackCache" })
@@ -41,10 +42,21 @@ let pendingReconcile: (readonly ScheduleRowLike[])[] = []
 type FeedbackListener = (mid: string, feedback: FeedbackRecord) => void
 const listeners = new Set<FeedbackListener>()
 
+// Guest-mode switch. ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md):
+// while it is active this cache shows nothing, writes nothing and notifies no
+// one. The rows stay loaded underneath for the owner's next session. The
+// predicate is injected through `setSuppressedWhen` (see
+// feedbackSuppressionLogic.ts for why, and for its fail-closed rule).
+const suppression = createSuppression()
+
 /**
  * Notify all listeners of a feedback change
+ * CHANGED 2026-10-11: silent while guest mode suppresses the cache. loadAll()
+ * replays every loaded row through here, which would otherwise push the
+ * owner's hearts and stars into a guest's Meetings lists.
  */
 function notifyListeners(mid: string, feedback: FeedbackRecord) {
+  if (suppression.active()) return
   listeners.forEach((listener) => listener(mid, feedback))
 }
 
@@ -143,6 +155,25 @@ async function applyToMids(args: {
  */
 export const feedbackCache = {
   /**
+   * Hide this cache while `predicate` returns true: guest mode. ADDED
+   * 2026-10-11 (spec 2026-09-27-guest-mode-design.md). The hearts, stars and
+   * join counts here are the device owner's, and a guest may be a stranger
+   * holding the owner's phone.
+   *
+   * app.tsx registers `() => authenticationStore.isGuest` once, right after
+   * setupRootStore() and before any screen mounts. It is injected rather than
+   * imported so app/db/ gains no runtime dependency on app/models/. While the
+   * predicate is true, `get` returns null, `getAll` an empty Map, every write
+   * is a no-op that returns its "nothing happened" value, and listeners are
+   * not notified. It is read on every call, so Sign in brings the owner's
+   * data back with no reload. Pure decision and fail-closed rule:
+   * feedbackSuppressionLogic.ts.
+   */
+  setSuppressedWhen(predicate: () => boolean): void {
+    suppression.setWhen(predicate)
+  },
+
+  /**
    * Load all feedback records from SQLite into memory
    * Call once at app startup after database is seeded
    */
@@ -183,15 +214,21 @@ export const feedbackCache = {
   /**
    * Get feedback for a meeting (synchronous, from memory)
    * Returns null if no feedback exists for this meeting
+   * CHANGED 2026-10-11: also null while guest mode suppresses the cache (see
+   * `setSuppressedWhen`).
    */
   get(mid: string): FeedbackRecord | null {
+    if (suppression.active()) return null
     return cache.get(mid) ?? null
   },
 
   /**
    * Get all cached feedback records
+   * CHANGED 2026-10-11: an empty Map while guest mode suppresses the cache
+   * (see `setSuppressedWhen`).
    */
   getAll(): Map<string, FeedbackRecord> {
+    if (suppression.active()) return new Map()
     return new Map(cache)
   },
 
@@ -199,8 +236,12 @@ export const feedbackCache = {
    * Toggle love status for a meeting
    * Updates cache immediately, then persists to SQLite
    * Returns new loves state
+   * CHANGED 2026-10-11: a no-op returning false while guest mode suppresses
+   * the cache (see `setSuppressedWhen`); a guest's tap must not write the
+   * owner's favorites.
    */
   async toggleLove(mid: string): Promise<boolean> {
+    if (suppression.active()) return false
     // Get current or create new
     const current = cache.get(mid) ?? defaultFeedback(mid)
     const newLoves = !current.loves
@@ -258,8 +299,13 @@ export const feedbackCache = {
    * Returns true when every write persisted. The popups ignore this (their
    * subscription already reflects any revert); the favorites migration uses
    * it to avoid setting its done-flag over failed SQLite writes.
+   *
+   * CHANGED 2026-10-11: a no-op returning false while guest mode suppresses
+   * the cache (see `setSuppressedWhen`). False because nothing was written,
+   * so a caller keyed on success never records a write that did not happen.
    */
   async setLoveForMids(mids: string[], loves: boolean): Promise<boolean> {
+    if (suppression.active()) return false
     return applyToMids({
       mids,
       alreadyAt: (record) => (record?.loves ?? false) === loves,
@@ -281,8 +327,12 @@ export const feedbackCache = {
    * Same two-phase optimistic-then-persist contract as `setLoveForMids` (see
    * `applyToMids`). Returns true when every write persisted (the ratings
    * migration keys its done-flag on it).
+   *
+   * CHANGED 2026-10-11: a no-op returning false while guest mode suppresses
+   * the cache, as in `setLoveForMids`.
    */
   async setRatingForMids(mids: string[], rating: number): Promise<boolean> {
+    if (suppression.active()) return false
     const clampedRating = Math.max(0, Math.min(5, rating))
     return applyToMids({
       mids,
@@ -306,8 +356,15 @@ export const feedbackCache = {
    * the caller must not have to await it, and the writes settle in the
    * background exactly like a popup tap. Uniform schedules cost one Map read
    * per cell and produce no writes.
+   *
+   * CHANGED 2026-10-11: a no-op while guest mode suppresses the cache (see
+   * `setSuppressedWhen`). The reconcile writes the owner's hearts and stars,
+   * so a guest's payloads are dropped, not queued. Nothing is lost: it runs on
+   * every payload, so the owner's fetches after Sign in reconcile what they
+   * carry.
    */
   reconcileSchedules(schedules: readonly ScheduleRowLike[]): void {
+    if (suppression.active()) return
     // CHANGED 2026-10-02: queued instead of dropped before the cache loads
     // (see `pendingReconcile`). Planning against an empty cache would see no
     // loved sibling and write nothing, so it has to wait for the real one.
@@ -331,8 +388,11 @@ export const feedbackCache = {
    * NOTE 2026-09-09: no longer called by the popups, which rate schedule-wide
    * through `setRatingForMids` above. Kept as the single-meeting primitive,
    * like `toggleLove` beside `setLoveForMids`.
+   * CHANGED 2026-10-11: a no-op while guest mode suppresses the cache (see
+   * `setSuppressedWhen`).
    */
   async setRating(mid: string, rating: number): Promise<void> {
+    if (suppression.active()) return
     const clampedRating = Math.max(0, Math.min(5, rating))
 
     // Get current or create new
@@ -364,8 +424,11 @@ export const feedbackCache = {
   /**
    * Record a join event (increment joins, update lastJoin)
    * Updates cache immediately, then persists to SQLite
+   * CHANGED 2026-10-11: a no-op while guest mode suppresses the cache (see
+   * `setSuppressedWhen`), so a guest's joins never add to the owner's counts.
    */
   async recordJoin(mid: string): Promise<void> {
+    if (suppression.active()) return
     const now = Date.now()
 
     // Get current or create new

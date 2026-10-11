@@ -29,7 +29,10 @@ export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
 export { ProfileHydrator } from "./ProfileHydrator"
 export { ChatHydrator } from "./ChatHydrator"
 export { ReportPollingResumer } from "./ReportPollingResumer"
-export { TimerSessionResumer } from "./TimerSessionResumer"
+// TimerSessionResumer is deliberately NOT re-exported (CHANGED 2026-10-11):
+// it reads @/models for guest mode, and re-exporting it here closes a
+// models → api → db barrel cycle (depcruise no-circular). app.tsx imports it
+// directly, like OwnerRelinkMigrator.
 export { SyncResumer } from "./SyncResumer"
 export { BackupPassRunner } from "./BackupPassRunner"
 export {

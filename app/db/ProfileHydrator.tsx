@@ -15,6 +15,7 @@
 
 import { useEffect, useRef } from "react"
 import * as Application from "expo-application"
+import { observer } from "mobx-react-lite"
 
 import { useStores } from "@/models"
 import { todayLocalISODate } from "@/utils/localDate"
@@ -44,14 +45,23 @@ async function loadInstallDate(): Promise<string | null> {
 /**
  * Hydrates profile store with sensitive data from SQLite.
  * Renders nothing - just handles the side effect.
+ * CHANGED 2026-10-11: an observer, so the guest-mode flag in the effect's deps
+ * is tracked. Leaving guest mode re-renders this and re-runs the effect, with
+ * no reload needed.
  */
-export function ProfileHydrator(): null {
+export const ProfileHydrator = observer(function ProfileHydrator(): null {
   const { status } = useDatabase()
-  const { profileStore } = useStores()
+  const { profileStore, authenticationStore } = useStores()
   const hasHydrated = useRef(false)
 
   useEffect(() => {
     // Only hydrate once, when database is ready
+    // CHANGED 2026-10-11: skip while a guest (spec 2026-09-27). The profile
+    // row is the device owner's — name (Zoom `un=` prefill), fellowship
+    // (Meetings filter default), recovery date, language. Left un-hydrated, a
+    // guest's fellowship is the store default "AA", which is the decided
+    // guest filter default. Sign in → exitGuest() re-runs this effect.
+    if (authenticationStore.isGuest) return
     if ((status === "open" || status === "seeded") && !hasHydrated.current) {
       hasHydrated.current = true
 
@@ -102,7 +112,7 @@ export function ProfileHydrator(): null {
           log.error("Failed to hydrate profile from SQLite", { error: String(err) })
         })
     }
-  }, [status, profileStore])
+  }, [status, profileStore, authenticationStore.isGuest])
 
   return null
-}
+})

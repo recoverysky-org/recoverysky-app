@@ -21,6 +21,10 @@
  * Why we don't have to worry about double-mounting with the SchedulePopup
  * version: only set once at cold start, cleared on Save/Cancel. Any
  * subsequent Join flow uses the SchedulePopup-owned modal.
+ * CHANGED 2026-10-11: on a device in guest mode it is set when the device
+ * leaves guest mode, not at cold start. TimerSessionResumer waits while
+ * `isGuest` is true so a guest never sees the owner's timer. It is still set
+ * at most once per resumer mount.
  *
  * CHANGED 2026-08-05: this now has to cover a second owner too —
  * InPersonPopup mounts its own InPersonTimerModal (Task 10) the same way

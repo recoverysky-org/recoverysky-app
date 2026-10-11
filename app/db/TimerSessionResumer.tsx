@@ -42,7 +42,9 @@
  */
 
 import { useEffect, useRef } from "react"
+import { observer } from "mobx-react-lite"
 
+import { useAuthenticationStore } from "@/models"
 import { loadTimerSession, sessionSource, setRecoverySession } from "@/services/attendance"
 import { EXTERNAL_MIN_CREDIT_MS } from "@/services/zoom"
 import { logger } from "@/utils/logger"
@@ -51,12 +53,19 @@ import { useDatabase } from "./DatabaseProvider"
 
 const log = logger.child({ module: "TimerSessionResumer" })
 
-export function TimerSessionResumer(): null {
+// CHANGED 2026-10-11: an observer, so the guest-mode flag in the effect's deps
+// is tracked. Leaving guest mode re-renders this and re-runs the effect.
+export const TimerSessionResumer = observer(function TimerSessionResumer(): null {
   const { status } = useDatabase()
+  const authStore = useAuthenticationStore()
   const hasRun = useRef(false)
 
   useEffect(() => {
     if ((status !== "open" && status !== "seeded") || hasRun.current) return
+    // ADDED 2026-10-11: never raise the device owner's interrupted attendance
+    // timer inside guest mode (spec 2026-09-27). Not consumed — once the user
+    // signs in, isGuest flips, this effect re-runs and restores it.
+    if (authStore.isGuest) return
     hasRun.current = true
 
     const session = loadTimerSession()
@@ -75,7 +84,7 @@ export function TimerSessionResumer(): null {
       belowCredit: elapsedMs < EXTERNAL_MIN_CREDIT_MS,
     })
     setRecoverySession(session)
-  }, [status])
+  }, [status, authStore.isGuest])
 
   return null
-}
+})

@@ -22,13 +22,14 @@ if (__DEV__) {
 }
 import "./utils/gestureHandler"
 
-import { useEffect, useRef, useState } from "react"
+import { PropsWithChildren, useEffect, useRef, useState } from "react"
 import { Alert, AppState, AppStateStatus, BackHandler, Platform } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import * as Location from "expo-location"
 import * as SplashScreen from "expo-splash-screen"
 import { reaction } from "mobx"
+import { observer } from "mobx-react-lite"
 import { Auth0Provider } from "react-native-auth0"
 import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
@@ -48,21 +49,30 @@ import { SubscriptionProvider } from "./context/SubscriptionContext"
 import {
   attendanceEvents,
   configCacheRepository,
+  feedbackCache,
   DatabaseProvider,
   DatabaseLoadingOverlay,
   openDbEarly,
   ProfileHydrator,
   ChatHydrator,
   ReportPollingResumer,
-  TimerSessionResumer,
   SyncResumer,
   BackupPassRunner,
 } from "./db"
 // Imported directly, not via the db barrel: it reads @/models, and the barrel
 // is on the models → api → db import path (depcruise no-circular).
 import { OwnerRelinkMigrator } from "./db/OwnerRelinkMigrator"
+// Direct for the same reason since 2026-10-11, when it began reading
+// @/models for guest mode.
+import { TimerSessionResumer } from "./db/TimerSessionResumer"
 import { initI18n, translate } from "./i18n"
-import { RootStoreModel, RootStoreProvider, setupRootStore, RootStore } from "./models"
+import {
+  RootStoreModel,
+  RootStoreProvider,
+  setupRootStore,
+  RootStore,
+  useAuthenticationStore,
+} from "./models"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
 import { api, type ServerConfig } from "./services/api"
@@ -477,6 +487,12 @@ export function App() {
 
         // setupRootStore logs its own params/results
         await setupRootStore(_rootStore)
+
+        // ADDED 2026-10-11: guests never see or write the device's hearts /
+        // stars / join counts (spec 2026-09-27). Read live on every access, so
+        // Sign in → a real session unhides them without a reload; registered
+        // before any screen mounts.
+        feedbackCache.setSuppressedWhen(() => _rootStore.authenticationStore.isGuest)
 
         // Auth0 SDK handles token persistence internally
         // deviceId is attached to every log line and is the device-lane attestation key
@@ -1243,7 +1259,9 @@ export function App() {
                 <SyncResumer />
                 <BackupPassRunner />
                 <MeetingProvider>
-                  <ThemeProvider>
+                  {/* ThemeProvider fed the live guest-mode flag (ADDED
+                      2026-10-11) — see GuestAwareThemeProvider below. */}
+                  <GuestAwareThemeProvider>
                     <ToastProvider>
                       <DatabaseLoadingOverlay />
                       <AppNavigator
@@ -1271,7 +1289,7 @@ export function App() {
                       <VerifyEmailGate />
                       <AnnouncementGate />
                     </ToastProvider>
-                  </ThemeProvider>
+                  </GuestAwareThemeProvider>
                 </MeetingProvider>
               </DatabaseProvider>
             </SubscriptionProvider>
@@ -1281,3 +1299,27 @@ export function App() {
     </Auth0Provider>
   )
 }
+
+/**
+ * ThemeProvider fed with the live guest-mode flag. ADDED 2026-10-11 (spec
+ * 2026-09-27-guest-mode-design.md): a guest gets the default look, not the
+ * device owner's saved scheme and tint.
+ *
+ * Why a wrapper:
+ * - `App` above is not a MobX observer. An `isGuest` read in its render would
+ *   go stale when Login's "Just join meetings" or the promo bar's Sign in
+ *   flips the flag, and the theme would not follow until a reload.
+ * - ThemeProvider cannot read the store itself. Importing @/models from
+ *   app/theme closes a depcruise no-circular cycle (theme → models → api → db
+ *   barrel → DatabaseLoadingOverlay → theme).
+ *
+ * It must render inside RootStoreProvider. It is declared at module scope
+ * because a component declared inside App's render would be a new type on
+ * every render and remount the whole tree below it.
+ */
+const GuestAwareThemeProvider = observer(function GuestAwareThemeProvider({
+  children,
+}: PropsWithChildren) {
+  const authStore = useAuthenticationStore()
+  return <ThemeProvider isGuest={authStore.isGuest}>{children}</ThemeProvider>
+})
