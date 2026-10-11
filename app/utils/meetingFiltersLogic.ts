@@ -71,6 +71,33 @@ export function resolveFellowship(i: {
   return i.active[0] ?? ""
 }
 
+/** Guest mode's fellowship default (spec 2026-09-27-guest-mode-design.md, Decision 2). */
+const GUEST_FELLOWSHIP = "AA"
+
+/**
+ * The `saved` input to resolveFellowship: the profile's Settings fellowship,
+ * or "AA" for a guest.
+ *
+ * ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md, Decision 2). A guest
+ * may be a stranger holding the owner's phone, and the profile in memory can be
+ * the owner's. ProfileHydrator skips hydration for a guest, but the profile is
+ * already loaded when the owner signs out and taps "Just join meetings", or
+ * when a guest goes Sign in → Login → back to guest mode (Sign in clears guest
+ * mode, so the hydrator runs on Login). Pinning the guest's input keeps the
+ * owner's Settings fellowship out of the bar in every case.
+ *
+ * Only `saved` changes. A remembered bar pick still wins (the spec keeps it),
+ * and a build without AA still falls back to its first fellowship inside
+ * resolveFellowship.
+ */
+export function savedFellowshipInput(i: {
+  isGuest: boolean
+  /** `profileStore.fellowship`. */
+  profileFellowship: string | undefined
+}): string | undefined {
+  return i.isGuest ? GUEST_FELLOWSHIP : i.profileFellowship
+}
+
 /**
  * MMKV value → language code, or null for "all languages".
  * Junk that isn't a 2–3 letter code reads as "all" rather than as a filter

@@ -18,7 +18,7 @@ import { type meeting } from "@recoverysky-org/common/browser"
 import { reaction } from "mobx"
 
 import { feedbackCache, type FeedbackRecord } from "@/db"
-import { useConfigStore } from "@/models"
+import { useAuthenticationStore, useConfigStore } from "@/models"
 import { api, type LiveSchedule, type ScheduleDataRow } from "@/services/api"
 import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import {
@@ -274,6 +274,7 @@ interface MeetingProviderProps {
 export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   log.debug("MeetingProvider initializing")
   const configStore = useConfigStore()
+  const authStore = useAuthenticationStore()
 
   // Live meetings data — online pool only (see MeetingContextType.liveMeetings).
   const [liveMeetings, setLiveMeetings] = useState<MeetingWithTrex[]>([])
@@ -309,6 +310,39 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
     )
     return () => dispose()
   }, [configStore])
+
+  // ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md): refresh on the
+  // guest-mode edge, in both directions.
+  //
+  // Why: `toMeetingWithTrex` snapshots each row's feedback when a fetch lands,
+  // and LiveScreen's favorites-first sort reads that snapshot. This provider
+  // sits above the navigator, so it outlives the Guest ↔ Login ↔ Main swap.
+  // Without this, a guest who entered right after the owner signed out saw
+  // the owner's favorites sorted first, and an owner signing in from guest
+  // mode got an unranked list. Either lasted until the next quarter-hour poll,
+  // because useLivePolling never fetches on mount.
+  //
+  // How:
+  // - A reaction, not an effect dep, so it fires on a change only, never on
+  //   mount, and the refresh effect below stays keyed on `refreshTrigger`
+  //   alone (see the note under it).
+  // - The same tick re-snapshots the rows already held. LiveScreen keeps
+  //   showing them while the fetch runs, and keeps them when the fetch is
+  //   skipped (maintenance/outage, whose gating is unchanged) or fails
+  //   (offline). Without the re-snapshot, the owner's order would show in all
+  //   three cases.
+  // - feedbackCache.get reads guest mode live, so the rows match the new mode.
+  useEffect(() => {
+    const dispose = reaction(
+      () => authStore.isGuest,
+      (isGuest) => {
+        log.info("Guest mode changed, refreshing live meetings", { isGuest })
+        setLiveMeetings((prev) => prev.map((m) => ({ ...m, feedback: feedbackCache.get(m.id) })))
+        setRefreshTrigger((prev) => prev + 1)
+      },
+    )
+    return () => dispose()
+  }, [authStore])
 
   // ============================================================================
   // Check API status (with retry)

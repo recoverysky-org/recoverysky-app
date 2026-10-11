@@ -6,6 +6,7 @@ import {
   matchesLanguage,
   parsePersistedLanguage,
   resolveFellowship,
+  savedFellowshipInput,
 } from "./meetingFiltersLogic"
 
 const ACTIVE = ["AA", "NA", "CMA"] as const
@@ -31,6 +32,31 @@ describe("resolveFellowship", () => {
   })
 })
 
+describe("savedFellowshipInput", () => {
+  it("is the profile's Settings fellowship for a signed-in user", () => {
+    expect(savedFellowshipInput({ isGuest: false, profileFellowship: "NA" })).toBe("NA")
+    expect(savedFellowshipInput({ isGuest: false, profileFellowship: undefined })).toBeUndefined()
+  })
+
+  it("is AA for a guest, whatever profile is in memory", () => {
+    // The in-memory profile can be the device owner's: hydrated earlier in
+    // the session, before the owner signed out or a guest went Sign in →
+    // Login → back to guest mode.
+    expect(savedFellowshipInput({ isGuest: true, profileFellowship: "NA" })).toBe("AA")
+    expect(savedFellowshipInput({ isGuest: true, profileFellowship: undefined })).toBe("AA")
+  })
+
+  it("keeps resolveFellowship's precedence and fallback for a guest", () => {
+    const saved = savedFellowshipInput({ isGuest: true, profileFellowship: "NA" })
+    // No bar pick: the guest sees AA, not the owner's NA.
+    expect(resolveFellowship({ persisted: null, saved, active: ACTIVE })).toBe("AA")
+    // A remembered bar pick still wins, as the spec keeps it.
+    expect(resolveFellowship({ persisted: "CMA", saved, active: ACTIVE })).toBe("CMA")
+    // A build without AA falls back to its first fellowship.
+    expect(resolveFellowship({ persisted: null, saved, active: ["NA", "CMA"] })).toBe("NA")
+  })
+})
+
 describe("parsePersistedLanguage", () => {
   it("returns null for missing or empty values (= all languages)", () => {
     expect(parsePersistedLanguage(null)).toBeNull()
@@ -49,7 +75,13 @@ describe("parsePersistedLanguage", () => {
 
 describe("buildLanguageOptions", () => {
   it("returns sorted unique uppercase codes", () => {
-    const meetings = [{ language: "es" }, { language: "EN" }, { language: "es" }, { language: null }, {}]
+    const meetings = [
+      { language: "es" },
+      { language: "EN" },
+      { language: "es" },
+      { language: null },
+      {},
+    ]
     expect(buildLanguageOptions(meetings, null)).toEqual(["EN", "ES"])
   })
 

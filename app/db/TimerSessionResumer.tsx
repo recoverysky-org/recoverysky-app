@@ -55,6 +55,9 @@ const log = logger.child({ module: "TimerSessionResumer" })
 
 // CHANGED 2026-10-11: an observer, so the guest-mode flag in the effect's deps
 // is tracked. Leaving guest mode re-renders this and re-runs the effect.
+// CHANGED 2026-10-11: it now tracks `isAuthenticated` instead (see the
+// effect). A sign-in or token refresh that makes the session live re-runs it.
+// Leaving guest mode alone no longer does, because that lands on Login.
 export const TimerSessionResumer = observer(function TimerSessionResumer(): null {
   const { status } = useDatabase()
   const authStore = useAuthenticationStore()
@@ -65,7 +68,17 @@ export const TimerSessionResumer = observer(function TimerSessionResumer(): null
     // ADDED 2026-10-11: never raise the device owner's interrupted attendance
     // timer inside guest mode (spec 2026-09-27). Not consumed — once the user
     // signs in, isGuest flips, this effect re-runs and restores it.
-    if (authStore.isGuest) return
+    // CHANGED 2026-10-11: gated on a real session (`isAuthenticated`) instead
+    // of `!isGuest`. A guest is never authenticated, so guests stay covered,
+    // and the spec expects this to bail without a session. The guest flag
+    // clears on the Sign-in tap, before anyone has signed in, so the old gate
+    // raised the owner's timer over Login after Guest → Sign in. There a
+    // stranger could Cancel it, discarding the session, and a signed-out Save
+    // writes the record with an empty uid (the modals save `userId ?? ""`).
+    // It is still not consumed: `hasRun` is set only past this gate, so the
+    // restore runs once a sign-in or token refresh makes the session live. A
+    // wrong-account session is never authenticated either.
+    if (!authStore.isAuthenticated) return
     hasRun.current = true
 
     const session = loadTimerSession()
@@ -84,7 +97,7 @@ export const TimerSessionResumer = observer(function TimerSessionResumer(): null
       belowCredit: elapsedMs < EXTERNAL_MIN_CREDIT_MS,
     })
     setRecoverySession(session)
-  }, [status, authStore.isGuest])
+  }, [status, authStore.isAuthenticated])
 
   return null
 })
