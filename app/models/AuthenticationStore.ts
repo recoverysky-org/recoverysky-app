@@ -32,9 +32,14 @@ export const AuthenticationStoreModel = types
     deviceId: types.maybe(types.string),
     /**
      * ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md).
-     * Android-only "Just join meetings" mode: Meetings tab only, no userId, no
-     * stored data. Persisted so a guest relaunches straight into meetings.
-     * Never implies an identity — isAuthenticated stays false for a guest.
+     * Android-only "Just join meetings" mode: Meetings tab only, no account, no
+     * userId, nothing personal stored. Persisted so a guest relaunches straight
+     * into meetings. Never implies an identity — isAuthenticated stays false
+     * for a guest.
+     * CHANGED 2026-10-11: this said "no stored data", which was false. The
+     * device keeps only this flag and shared device settings: the Meetings
+     * filter and view picks, the location choice and the legal acceptance
+     * (CLAUDE.md "Guest mode (Android)" lists them).
      */
     isGuest: types.optional(types.boolean, false),
     /**

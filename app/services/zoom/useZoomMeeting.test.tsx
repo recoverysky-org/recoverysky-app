@@ -4,10 +4,14 @@ import { act, renderHook } from "@testing-library/react-native"
 import { useZoomMeeting } from "./useZoomMeeting"
 import type { ZoomJoinConfig } from "./zoomTypes"
 
-// The hook reads two stores and logs. Plain objects stand in for the MST nodes
-// so the test never loads the models graph (ConfigStore → api → db …). Both
-// mocks are built inside their factories (jest.mock is hoisted above the
-// imports) and reached through jest.requireMock below.
+// Plain objects stand in for the MST stores so the test never loads the models
+// graph (ConfigStore → api → db …). Both mocks are built inside their factories
+// (jest.mock is hoisted above the imports) and reached through jest.requireMock
+// below.
+// CHANGED 2026-10-11: the hook reads no store now that join links carry no
+// name. The @/models mock stays on purpose. The cases give the profile a
+// display name and flip the guest flag, showing that neither reaches the URL,
+// and a store read added back later still cannot load the models graph.
 jest.mock("@/models", () => {
   const auth = { isGuest: false }
   const profile = { displayName: "" }
@@ -34,17 +38,16 @@ const { __log: log } = jest.requireMock("@/utils/logger") as {
 
 const JOIN_LOG = "Join meeting request (external Zoom)"
 
+// A display name the device owner's profile can hold: the short name plus the
+// clean-time toggle's suffix. Every case has it in the profile, so a link with
+// no name in it shows the name was left out, not that there was none to send.
+const OWNER_DISPLAY_NAME = "Jen (12d)"
+
 const config: ZoomJoinConfig = {
   meetingId: "m1",
   meetingNumber: "123456789",
   passwordEnc: "abc",
-  userName: "Jen",
 }
-
-// ZoomJoinConfig.userName is a required string, so a TypeScript caller can't
-// omit it. The hook still falls back to the profile name for a caller that
-// does (plain JS, or a cast), and that fallback is the path under test.
-const withoutUserName = { ...config, userName: undefined } as unknown as ZoomJoinConfig
 
 let openURL: jest.SpyInstance
 
@@ -67,58 +70,74 @@ describe("useZoomMeeting.joinMeeting", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     models.__auth.isGuest = false
-    models.__profile.displayName = ""
+    models.__profile.displayName = OWNER_DISPLAY_NAME
     openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(true)
   })
 
   afterEach(() => openURL.mockRestore())
 
-  describe("the name prefill (`un=`)", () => {
-    it("is the caller's name for a signed-in user", async () => {
-      expect(await join(config)).toBe("https://zoom.us/j/123456789?pwd=abc&un=SmVu")
+  // ADDED 2026-10-11: the display-name prefill (Zoom's `un` query parameter)
+  // is removed (Zoom never applied it). No join link carries a name, for a
+  // guest or anyone else.
+  describe("no join URL carries a name", () => {
+    it("gives a signed-in user whose profile has a name the passcode link alone", async () => {
+      expect(await join(config)).toBe("https://zoom.us/j/123456789?pwd=abc")
     })
 
-    it("falls back to the profile display name for a signed-in user who supplies none", async () => {
-      models.__profile.displayName = "Jen (12d)"
-      const url = await join(withoutUserName)
-      expect(url).toBe(`https://zoom.us/j/123456789?pwd=abc&un=${btoa("Jen (12d)")}`)
-    })
-
-    // THE REGRESSION. The guest rule used to sit on the profile fallback
-    // only (`config.userName ?? zoomPrefillName(…)`), and a caller-supplied
-    // name short-circuited it, so a guest joined under whatever name the
-    // caller passed. The rule has to run on whichever name wins.
-    it("is none for a guest, even when the caller supplies a name", async () => {
+    it("gives a guest the same link", async () => {
       models.__auth.isGuest = true
       expect(await join(config)).toBe("https://zoom.us/j/123456789?pwd=abc")
     })
 
-    // The profile is not empty for a guest. ProfileStore.displayName appends the
-    // owner's saved clean-time toggles (MMKV props, so they persist into guest
-    // mode) even when shortName is empty, and an owner profile already in
-    // memory still carries the name too. The rule is the protection, not a backup.
-    it.each([" (12d)", "Jen (12d)"])(
-      "is none for a guest whose profile display name is %p",
-      async (displayName) => {
-        models.__auth.isGuest = true
-        models.__profile.displayName = displayName
-        expect(await join(withoutUserName)).toBe("https://zoom.us/j/123456789?pwd=abc")
-      },
-    )
+    it("ignores a name a caller still passes (plain JS, or a cast)", async () => {
+      const withName = { ...config, userName: "Jen" } as ZoomJoinConfig
+      expect(await join(withName)).toBe("https://zoom.us/j/123456789?pwd=abc")
+    })
+
+    it("is the bare join URL, with no query, when there is no passcode and no meetingUrl", async () => {
+      expect(await join({ meetingId: "m1", meetingNumber: "123456789" })).toBe(
+        "https://zoom.us/j/123456789",
+      )
+    })
+
+    // A webinar link has no `/j/<number>` path, so the caller has no meeting
+    // number. Its own query must come back untouched, with nothing appended.
+    it("is the meetingUrl unchanged when there is no meeting number", async () => {
+      const meetingUrl = "https://us02web.zoom.us/w/98765?tk=abc"
+      expect(await join({ meetingId: "m1", meetingNumber: "", meetingUrl })).toBe(meetingUrl)
+    })
+  })
+
+  // The passcode and fallback rules are exactly as they were before the
+  // removal; these cases hold them in place.
+  describe("the passcode and the fallbacks", () => {
+    it("prefers passwordEnc over the plaintext password", async () => {
+      expect(await join({ ...config, password: "123" })).toBe("https://zoom.us/j/123456789?pwd=abc")
+    })
+
+    it("falls back to the plaintext password, percent-encoded", async () => {
+      expect(await join({ meetingId: "m1", meetingNumber: "123456789", password: "a b+c" })).toBe(
+        "https://zoom.us/j/123456789?pwd=a%20b%2Bc",
+      )
+    })
+
+    // With no passcode, a meeting number wins over meetingUrl. That order came
+    // in with the name prefill (April 2026) and the removal keeps it; preferring
+    // meetingUrl here would change which link opens (see buildExternalZoomUrl).
+    it("opens the bare join URL, not meetingUrl, when there is a meeting number but no passcode", async () => {
+      const meetingUrl = "https://us02web.zoom.us/j/123456789"
+      expect(await join({ meetingId: "m1", meetingNumber: "123456789", meetingUrl })).toBe(
+        "https://zoom.us/j/123456789",
+      )
+    })
   })
 
   describe("the request log line", () => {
-    it("records whether a name was supplied, not the name", async () => {
-      await join(config)
-      const payload = joinLogPayload()
-      expect(payload).toMatchObject({ mid: "m1", zid: "123456789", hasUserName: true })
-      expect(payload).not.toHaveProperty("userName")
-      expect(JSON.stringify(payload)).not.toContain("Jen")
-    })
-
-    it("records that no name was supplied", async () => {
-      await join(withoutUserName)
-      expect(joinLogPayload()).toMatchObject({ hasUserName: false })
+    // The exact shape, so no name field of any kind (the name itself, or a
+    // flag saying one was passed) can come back without failing here.
+    it("carries no name field, even when a caller passes a name", async () => {
+      await join({ ...config, userName: "Jen" } as ZoomJoinConfig)
+      expect(joinLogPayload()).toEqual({ mid: "m1", zid: "123456789", ts: expect.any(Number) })
     })
   })
 })

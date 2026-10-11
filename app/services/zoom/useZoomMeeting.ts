@@ -17,10 +17,8 @@
 import { useCallback, useState } from "react"
 import { Linking } from "react-native"
 
-import { useAuthenticationStore, useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
 
-import { zoomPrefillName } from "./zoomNameLogic"
 import type { ZoomJoinConfig, ZoomJoinResult, ZoomMeetingState } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeeting" })
@@ -52,61 +50,37 @@ export function extractZoomPassword(url: string): string | null {
 }
 
 /**
- * Encode a UTF-8 string as base64. Hermes ships `btoa` but it only handles
- * Latin-1; the encodeURIComponent/unescape dance is the canonical
- * cross-runtime workaround for Unicode names (e.g. "José", "Žaneta") so
- * non-ASCII display names don't throw `InvalidCharacterError` here.
- */
-function toBase64Utf8(s: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  return btoa(unescape(encodeURIComponent(s)))
-}
-
-/**
  * Build the URL used to launch a meeting in the external Zoom app. Prefers
  * `passwordEnc` (the encrypted share-link pwd) when present; otherwise falls
  * back to the plaintext `password`. Either is appended as `?pwd=<value>` on a
  * freshly-constructed join URL so it matches what Zoom's own share links
  * look like. If neither is available, falls back to the stored meetingUrl,
  * then to a bare join URL.
+ * CORRECTED 2026-10-11: with no passcode, a meeting number wins. The result is
+ * the bare join URL, and meetingUrl is used only when there is no meeting
+ * number. That order came in with the name prefill (April 2026). Removing the
+ * prefill keeps it, because changing it would change which link opens for a
+ * meeting with no passcode.
  *
- * Display name (`?un=<base64>`): best-effort prefill of the participant
- * name. Officially Zoom only documents `un=` for the web client
- * (zoom.us/wc/...) but some native clients honor it as well, and including
- * it costs nothing if they don't. Users on Android whose Zoom app has
- * never been configured with "Remember my name for future meetings" are
- * the audience here — iOS users typically have a cached identity already
- * so the prompt doesn't show. We base64-encode UTF-8 to match the format
- * the web client accepts; URL-safe characters in base64 (`+`, `/`, `=`)
- * are then percent-encoded by URL.searchParams below.
- *
- * ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): callers
- * take `userName` from zoomPrefillName(), which is undefined for a guest. A
- * missing or blank name leaves `un=` off every branch below, so a guest joins
- * under whatever name Zoom itself holds, never the device owner's.
+ * CHANGED 2026-10-11: the display-name prefill (Zoom's `un` query parameter)
+ * is removed (Zoom never applied it). No join link carries a name, so guest
+ * mode needs no name rule.
  */
 export function buildExternalZoomUrl(opts: {
   meetingNumber: string
   meetingUrl?: string | null
   password?: string | null
   passwordEnc?: string | null
-  userName?: string | null
 }): string {
   const pwd = opts.passwordEnc || opts.password
-  const trimmedName = opts.userName?.trim() || ""
-  const unParam = trimmedName ? `&un=${encodeURIComponent(toBase64Utf8(trimmedName))}` : ""
 
   if (pwd && opts.meetingNumber) {
-    return `https://zoom.us/j/${opts.meetingNumber}?pwd=${encodeURIComponent(pwd)}${unParam}`
+    return `https://zoom.us/j/${opts.meetingNumber}?pwd=${encodeURIComponent(pwd)}`
   }
-  // No pwd path: we still want the un= prefill if we have a name. Tack
-  // it onto the bare join URL or the supplied meetingUrl as appropriate.
+  // No passcode: a meeting number still wins over meetingUrl (see the
+  // CORRECTED note above).
   if (opts.meetingNumber) {
-    return `https://zoom.us/j/${opts.meetingNumber}${unParam ? `?${unParam.slice(1)}` : ""}`
-  }
-  if (opts.meetingUrl && trimmedName) {
-    const sep = opts.meetingUrl.includes("?") ? "&" : "?"
-    return `${opts.meetingUrl}${sep}un=${encodeURIComponent(toBase64Utf8(trimmedName))}`
+    return `https://zoom.us/j/${opts.meetingNumber}`
   }
   return opts.meetingUrl || `https://zoom.us/j/${opts.meetingNumber}`
 }
@@ -136,8 +110,6 @@ export interface UseZoomMeetingReturn {
  * registered).
  */
 export function useZoomMeeting(): UseZoomMeetingReturn {
-  const profileStore = useProfileStore()
-  const authStore = useAuthenticationStore()
   const [state, setState] = useState<ZoomMeetingState>("idle")
   const [error, setError] = useState<string | null>(null)
 
@@ -158,17 +130,11 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig): Promise<ZoomJoinResult> => {
-      // CHANGED 2026-10-11: records whether a name was supplied, not the name.
-      // This line used to log `userName: config.userName`. A display name comes
-      // from the profile's shortName (plus the owner's clean days or pronouns
-      // when those toggles are on), and CLAUDE.md's Logging section says never
-      // to log those. It describes the request: the name actually sent also
-      // passes the guest rule below, so a guest's request can say true here and
-      // still go out unnamed. No doc or dashboard in the repo read the old field.
+      // CHANGED 2026-10-11: no name field. This line used to log `userName`;
+      // join links carry no name now (see buildExternalZoomUrl).
       log.info("Join meeting request (external Zoom)", {
         mid: config.meetingId,
         zid: config.meetingNumber,
-        hasUserName: !!config.userName,
         ts: Date.now(),
       })
 
@@ -181,18 +147,6 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
           meetingUrl: config.meetingUrl,
           password: config.password,
           passwordEnc: config.passwordEnc,
-          // CHANGED 2026-10-11: a guest sends no name (spec 2026-09-27); the
-          // profile on a shared device belongs to its owner. zoomPrefillName is
-          // the protection, not a backup, so it wraps whichever name wins here
-          // (the caller's, else the profile's). The form `config.userName ??
-          // zoomPrefillName(…)` let a caller-supplied name skip the rule. And a
-          // guest's displayName is not empty: ProfileHydrator skips guests, but
-          // the owner's saved toggles (MMKV props) still format " (12d)" with no
-          // shortName, and a profile already in memory still has the name itself.
-          userName: zoomPrefillName({
-            isGuest: authStore.isGuest,
-            displayName: config.userName ?? profileStore.displayName,
-          }),
         })
         await openInZoomApp(zoomUrl)
         setState("idle")
@@ -205,7 +159,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
         return { success: false, error: errorMessage }
       }
     },
-    [openInZoomApp, profileStore.displayName, authStore],
+    [openInZoomApp],
   )
 
   return {

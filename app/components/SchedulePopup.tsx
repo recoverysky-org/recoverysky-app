@@ -15,9 +15,9 @@
  * ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): for a
  * guest this popup is join-only. The heart, stars and visit count, the
  * tappable reminder cells and their hint are hidden; Join opens Zoom directly
- * (no attendance timer, no first-run timer heads-up, no name prefill); and no
- * rating soft-ask follows the close. The device owner's data never reaches a
- * guest through this popup.
+ * (no attendance timer, no first-run timer heads-up); and no rating soft-ask
+ * follows the close. The device owner's data never reaches a guest through
+ * this popup.
  */
 
 import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
@@ -56,7 +56,6 @@ import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
 import { maybePresentRatingPrompt } from "@/services/rating"
 import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
-import { zoomPrefillName } from "@/services/zoom/zoomNameLogic"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
@@ -98,8 +97,8 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const authStore = useAuthenticationStore()
   // ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): a guest
   // may be a stranger on the device owner's phone, so for a guest this popup is
-  // join-only — no name prefill, no attendance timer, no heart/stars/visit
-  // count, no reminders, no rating prompt. Read here, in the observer's render,
+  // join-only — no attendance timer, no heart/stars/visit count, no
+  // reminders, no rating prompt. Read here, in the observer's render,
   // so the popup re-renders if the flag flips. `authStore` is declared up here
   // (not beside useSubscription() below) because presentRatingAfterClose, which
   // is defined before that line, reads it too.
@@ -427,20 +426,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         meetingUrl: meeting.url,
         password: meeting.password,
         passwordEnc: meeting.passwordEnc,
-        // CHANGED 2026-10-11: no name for a guest — on a shared phone the
-        // profile is the owner's and Zoom would show them joining.
-        userName: zoomPrefillName({ isGuest, displayName: profileStore.displayName }),
       }),
     }
-  }, [
-    meeting?.id,
-    meeting?.url,
-    meeting?.name,
-    meeting?.password,
-    meeting?.passwordEnc,
-    profileStore.displayName,
-    isGuest,
-  ])
+  }, [meeting?.id, meeting?.url, meeting?.name, meeting?.password, meeting?.passwordEnc])
 
   const fellowshipColor = meeting
     ? FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
@@ -518,9 +506,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           meetingUrl: meeting.url,
           password: meeting.password,
           passwordEnc: meeting.passwordEnc,
-          // CHANGED 2026-10-11: no name for a guest — on a shared phone the
-          // profile is the owner's and Zoom would show them joining.
-          userName: zoomPrefillName({ isGuest, displayName: profileStore.displayName }),
         })
         // Guarded: buildExternalZoomUrl always returns a string today, but
         // a defensive check costs nothing and stops a malformed-record

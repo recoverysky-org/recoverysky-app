@@ -4,14 +4,14 @@
 
 /**
  * Configuration for joining a Zoom meeting
+ * CHANGED 2026-10-11: no `userName`. Join links carry no display name (see
+ * buildExternalZoomUrl in useZoomMeeting.ts).
  */
 export interface ZoomJoinConfig {
   /** Our internal meeting ID (for attendance tracking) */
   meetingId: string
   /** The Zoom meeting number/ID */
   meetingNumber: string
-  /** Display name for the user in the meeting */
-  userName: string
   /** Meeting name (for attendance record display) */
   meetingName?: string
   /** Plaintext meeting passcode. Used as fallback when passwordEnc is absent. */

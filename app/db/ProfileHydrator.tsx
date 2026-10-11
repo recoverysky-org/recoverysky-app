@@ -57,10 +57,10 @@ export const ProfileHydrator = observer(function ProfileHydrator(): null {
   useEffect(() => {
     // Only hydrate once, when database is ready
     // CHANGED 2026-10-11: skip while a guest (spec 2026-09-27). The profile
-    // row is the device owner's — name (Zoom `un=` prefill), fellowship
-    // (Meetings filter default), recovery date, language. Left un-hydrated, a
-    // guest's fellowship is the store default "AA", which is the decided
-    // guest filter default. Sign in → exitGuest() re-runs this effect.
+    // row is the device owner's — name, fellowship (Meetings filter default),
+    // recovery date, language. Left un-hydrated, a guest's fellowship is the
+    // store default "AA", which is the decided guest filter default. Sign in →
+    // exitGuest() re-runs this effect.
     // CHANGED 2026-10-11: the Meetings filter now pins "AA" for a guest itself
     // (savedFellowshipInput in utils/meetingFiltersLogic.ts). A profile
     // hydrated earlier in the session can still reach guest mode (owner signs
