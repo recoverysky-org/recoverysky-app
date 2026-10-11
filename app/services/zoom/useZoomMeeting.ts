@@ -17,9 +17,10 @@
 import { useCallback, useState } from "react"
 import { Linking } from "react-native"
 
-import { useProfileStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { logger } from "@/utils/logger"
 
+import { zoomPrefillName } from "./zoomNameLogic"
 import type { ZoomJoinConfig, ZoomJoinResult, ZoomMeetingState } from "./zoomTypes"
 
 const log = logger.child({ module: "ZoomMeeting" })
@@ -78,6 +79,11 @@ function toBase64Utf8(s: string): string {
  * so the prompt doesn't show. We base64-encode UTF-8 to match the format
  * the web client accepts; URL-safe characters in base64 (`+`, `/`, `=`)
  * are then percent-encoded by URL.searchParams below.
+ *
+ * ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): callers
+ * take `userName` from zoomPrefillName(), which is undefined for a guest. A
+ * missing or blank name leaves `un=` off every branch below, so a guest joins
+ * under whatever name Zoom itself holds, never the device owner's.
  */
 export function buildExternalZoomUrl(opts: {
   meetingNumber: string
@@ -131,6 +137,7 @@ export interface UseZoomMeetingReturn {
  */
 export function useZoomMeeting(): UseZoomMeetingReturn {
   const profileStore = useProfileStore()
+  const authStore = useAuthenticationStore()
   const [state, setState] = useState<ZoomMeetingState>("idle")
   const [error, setError] = useState<string | null>(null)
 
@@ -167,7 +174,12 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
           meetingUrl: config.meetingUrl,
           password: config.password,
           passwordEnc: config.passwordEnc,
-          userName: config.userName ?? profileStore.displayName,
+          // CHANGED 2026-10-11: a guest sends no name (spec 2026-09-27); the
+          // profile on a shared device belongs to its owner. ProfileHydrator
+          // also skips guests, so displayName is "" anyway — belt and braces.
+          userName:
+            config.userName ??
+            zoomPrefillName({ isGuest: authStore.isGuest, displayName: profileStore.displayName }),
         })
         await openInZoomApp(zoomUrl)
         setState("idle")
@@ -180,7 +192,7 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
         return { success: false, error: errorMessage }
       }
     },
-    [openInZoomApp, profileStore.displayName],
+    [openInZoomApp, profileStore.displayName, authStore],
   )
 
   return {
