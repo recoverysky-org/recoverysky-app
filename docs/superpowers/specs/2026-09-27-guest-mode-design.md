@@ -1,7 +1,11 @@
-# Anonymous (guest) mode: Meetings only, Android only
+# Guest mode: Meetings only, Android only
 
-Status: DRAFT, 2026-09-27. Branch `feat/anonymous-auth` (worktree `.claude/worktrees/guest-mode`),
+Status: DRAFT, 2026-09-27. Branch `feat/guest-mode` (worktree `.claude/worktrees/guest-mode`),
 cut from `feat/passwordless-auth` @ 5c2c14d. Builds on that branch's login screen and owner gate.
+
+Naming (2026-10-11): this feature is **guest mode** everywhere: code, copy, docs and commits.
+"Anonymous" named the old device-id login, which this work deletes. Renamed from
+`2026-09-27-anonymous-meetings-only-mode-design.md`; the branch was `feat/anonymous-auth`.
 
 ## Why
 
@@ -9,7 +13,7 @@ Most Android installs never get past the login screen. An account is required fo
 stores about a person, but browsing and joining a meeting stores nothing. This mode lets Android users
 open the app, find a meeting, and join it without signing in.
 
-## What an anonymous user gets
+## What a guest gets
 
 - **Only the Meetings tab:** Online, In-Person and Search, and joining meetings through the external
   Zoom app. No Home, Attendance or Settings tabs, and no onboarding.
@@ -17,7 +21,7 @@ open the app, find a meeting, and join it without signing in.
   90-in-90, attendance, reminders, theme color, favorites or meeting ratings (all out of scope for v1).
 - **On a borrowed or shared phone the app shows meetings and nothing else.** No data belonging to the
   device owner is visible.
-- **The mode persists across relaunches.** An anonymous user lands on Meetings until they choose to
+- **The mode persists across relaunches.** A guest lands on Meetings until they choose to
   sign in.
 - **Android only.** iOS requires an authenticated account, so the entry point is never rendered on iOS.
 
@@ -26,7 +30,7 @@ the Meetings header shows a persistent "Sign in" affordance.
 
 ## Identity model (the core decision)
 
-The old anonymous login (`loginAnonymously()`) is **not** revived. It set `userId = deviceId` and
+The old device-id login (`loginAnonymously()`) is **not** revived. It set `userId = deviceId` and
 `isAuthenticated = true`. That device-id identity leaked into RevenueCat, Sentry, Umami, the sync
 queue owner and reminder uids (audit of 2026-09-27). The new mode:
 
@@ -44,28 +48,28 @@ No migration on sign-in is needed, because a guest has nothing to migrate.
 for one: no device-id identity, no placeholder uid, no hashed id. Anything that needs `userId` is
 by definition not a guest feature.
 
-### Removing the old anonymous concept entirely (decided 2026-09-27)
+### Removing the old device-id login entirely (decided 2026-09-27)
 
-`isGuest` is a new concept, not a rename. The old anonymous concept is removed completely: code,
+`isGuest` is a new concept, not a rename. The old device-id login is removed completely: code,
 comments, types and strings. No `isAnonymous` / `loginAnonymously` / "anonymous user" wording is
 left behind to be mistaken for a live path. The ~59 references across `app/` include:
-- store: the `isAnonymous` prop, `loginAnonymously()`, and the `isAuthenticated` anonymous branch
-- `useAuth0Wrapper.loginAnonymously`, the `loadStoredAuth0` anonymous-restore branch, and
+- store: the `isAnonymous` prop, `loginAnonymously()`, and its branch in `isAuthenticated`
+- `useAuth0Wrapper.loginAnonymously`, the `loadStoredAuth0` restore branch for it, and
   `LoginScreen`'s `"anonymous"` action / commented-out button
 - the `setupRootStore` cold-start reset, plus the worktree's owner-stamp guard comment that
-  explains itself in terms of anonymous snapshots
+  explains itself in terms of device-id-login snapshots
 - the readers in sync (`gate()`, the reaction), `rcIdentityLogic`, `pushRegistrationLogic`,
   `userTokenRefresher`, `emailAttributeLogic`, `ownerLogic`, `BackupPassRunner`, the app.tsx
-  shortName→Auth0 reaction, and the Settings anonymous branches ("Anonymous user", "Login to
+  shortName→Auth0 reaction, and the Settings branches for it ("Anonymous user", "Login to
   Subscribe")
 - the `"anonymous"` uid fallbacks in the timer modals, `en.ts` `continueAnonymously` /
   `anonymousUser` in all nine locales, and `platformStrings*.ts`
 - the tests that cover these branches
 
-Each reader either loses its anonymous branch (its "signed in" check already excludes guests,
+Each reader either loses its device-id-login branch (its "signed in" check already excludes guests,
 because a guest has no `userId` and no session) or, where a guest-specific check is still needed,
 reads `isGuest`. Per the Comments convention, rewritten comments explain the change
-("CHANGED 2026-09-27: anonymous login removed; guests have no userId") rather than silently
+("CHANGED 2026-10-11: device-id login removed; guests have no userId") rather than silently
 dropping history where the history still explains a guard.
 
 **Verify during implementation:** MST's handling of the now-unknown `isAnonymous` key in persisted
@@ -73,12 +77,12 @@ MMKV snapshots (it must be dropped silently, not throw on `applySnapshot`).
 
 This removal:
 - closes TODO 7cc1b9e ("the device id is never a user identity");
-- fixes a live bug: legacy Android installs that used the old anonymous login (Dec 2025 to May 2026)
+- fixes a live bug: legacy Android installs that used the old device-id login (Dec 2025 to May 2026)
   keep `userId = deviceId` after the cold-start reset, and `rcIdentityFor()` returns it, so
   `SubscriptionProvider` calls `Purchases.logIn(deviceId)`.
 
 **Legacy snapshot hydration.** In `setupRootStore`, an MMKV snapshot with `userId === deviceId` and no
-stored credentials is a leftover anonymous session. Clear `userId` and `isAnonymous`, and land the
+stored credentials is a leftover device-id-login session. Clear `userId` and `isAnonymous`, and land the
 user on Login. Do not convert them to guests; they were never guests.
 
 The `platformStrings` "Continue Anonymously" copy should be reworded for the new mode. Keep the
