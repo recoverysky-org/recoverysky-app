@@ -22,6 +22,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **A cancelled Apple / Google / password-link sign-in now logs which kind of
+  cancel it was.** The `Provider login cancelled or declined by user` line
+  carries the SDK's error type, native code and message, and how long the
+  attempt took (`elapsedMs`). A person needs seconds to close the sign-in
+  sheet; on 2026-10-07 one iPhone "cancelled" twelve times at about 0.14 s
+  because iOS never showed the sheet, and the bare line made that look like a
+  4.11.0 sign-in regression. (RS-056: diagnostics only, not a fix, so leave
+  the issue open when this ships.)
+
 ## [4.11.0-1] — 2026-10-11
 
 ### Added

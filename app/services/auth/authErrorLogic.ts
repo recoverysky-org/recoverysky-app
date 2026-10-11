@@ -102,6 +102,36 @@ export function isUserAbandonedAuth(err: unknown): boolean {
   return /did not authorize/i.test(msg)
 }
 
+/** The SDK's own account of a failure, as log-line attributes. */
+export interface AuthErrorLogFields {
+  /** The SDK's mapped `WebAuthErrorCodes` value, e.g. "USER_CANCELLED". */
+  errorType?: string
+  /** The native code before mapping: "USER_CANCELLED" on iOS, "a0.session.user_cancelled" on Android. */
+  errorCode?: string
+  errorMessage?: string
+}
+
+/**
+ * `type`, `code` and `message` off a thrown auth error, each kept only when it
+ * is a non-empty string, so a log line can say which failure it was.
+ *
+ * ADDED 2026-10-11 (RS-056). The provider-login cancel line carried nothing
+ * but its text, so in Loki a USER_CANCELLED looked like an ACCESS_DENIED, and
+ * an iPhone whose sign-in sheet was cancelled before it ever appeared (12
+ * attempts at ~0.14 s on 2026-10-07) looked like a person closing the sheet.
+ * On iOS a USER_CANCELLED carries no further cause: Auth0.swift maps
+ * ASWebAuthenticationSession's `canceledLogin` to it and drops the NSError.
+ */
+export function authErrorLogFields(err: unknown): AuthErrorLogFields {
+  if (typeof err !== "object" || err === null) return {}
+  const { type, code, message } = err as AuthErrorLike
+  const fields: AuthErrorLogFields = {}
+  if (typeof type === "string" && type !== "") fields.errorType = type
+  if (typeof code === "string" && code !== "") fields.errorCode = code
+  if (typeof message === "string" && message !== "") fields.errorMessage = message
+  return fields
+}
+
 /**
  * Whether a failure is on the user's side rather than an app fault: their own
  * input (a wrong, expired or over-tried code, or resending too fast) or their

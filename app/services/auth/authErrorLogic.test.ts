@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { classifyAuthError, isUserAbandonedAuth, isUserSideAuthError } from "./authErrorLogic"
+import {
+  authErrorLogFields,
+  classifyAuthError,
+  isUserAbandonedAuth,
+  isUserSideAuthError,
+} from "./authErrorLogic"
 
 describe("classifyAuthError", () => {
   it("maps the SDK's BROWSER_TERMINATED type", () => {
@@ -145,5 +150,49 @@ describe("isUserSideAuthError", () => {
     expect(isUserSideAuthError({ code: "unauthorized_client" })).toBe(false)
     expect(isUserSideAuthError({ message: "Something odd" })).toBe(false)
     expect(isUserSideAuthError(null)).toBe(false)
+  })
+})
+
+describe("authErrorLogFields (ADDED 2026-10-11, RS-056)", () => {
+  it("carries the SDK's mapped type, native code and message", () => {
+    expect(
+      authErrorLogFields({
+        type: "USER_CANCELLED",
+        code: "USER_CANCELLED",
+        message: "The user cancelled the Web Auth operation.",
+      }),
+    ).toEqual({
+      errorType: "USER_CANCELLED",
+      errorCode: "USER_CANCELLED",
+      errorMessage: "The user cancelled the Web Auth operation.",
+    })
+  })
+
+  it("keeps Android's native code, which differs from the mapped type", () => {
+    expect(
+      authErrorLogFields({
+        type: "USER_CANCELLED",
+        code: "a0.session.user_cancelled",
+        message: "User cancelled the Auth",
+      }),
+    ).toEqual({
+      errorType: "USER_CANCELLED",
+      errorCode: "a0.session.user_cancelled",
+      errorMessage: "User cancelled the Auth",
+    })
+  })
+
+  it("leaves out fields that are missing, empty or not strings", () => {
+    expect(authErrorLogFields({ type: 42, code: "", message: undefined })).toEqual({})
+  })
+
+  it("reads a plain Error's message", () => {
+    expect(authErrorLogFields(new Error("boom"))).toEqual({ errorMessage: "boom" })
+  })
+
+  it("returns no fields for non-objects", () => {
+    expect(authErrorLogFields(null)).toEqual({})
+    expect(authErrorLogFields(undefined)).toEqual({})
+    expect(authErrorLogFields("boom")).toEqual({})
   })
 })

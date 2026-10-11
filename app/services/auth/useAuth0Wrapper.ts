@@ -19,7 +19,12 @@ import { hashUserId, logger } from "@/utils/logger"
 
 import { linkedSubsFromIdToken } from "./accountMethodsLogic"
 import { AUTH0_CONFIG, type Auth0UserInfo } from "./auth0"
-import { classifyAuthError, isUserAbandonedAuth, isUserSideAuthError } from "./authErrorLogic"
+import {
+  authErrorLogFields,
+  classifyAuthError,
+  isUserAbandonedAuth,
+  isUserSideAuthError,
+} from "./authErrorLogic"
 import {
   decodeJwtPayload,
   extractSqliteKeyFromClaims,
@@ -621,6 +626,8 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         connection,
         clearFirst: !!options.clearBrowserSessionFirst,
       })
+      // For the cancel line's elapsedMs (RS-056).
+      const startedAt = Date.now()
       setError(null)
       pendingLoginMethod = METHOD_FOR_CONNECTION[connection]
       pendingLoginEmail = undefined
@@ -661,8 +668,19 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
         pendingLoginMethod = undefined
         pendingLoginEmail = undefined
         // CHANGED 2026-09-19 (RS-022): also covers a declined consent screen.
+        // CHANGED 2026-10-11 (RS-056): the line now says which it was (the
+        // SDK's type/code/message) and how long the attempt took. A person
+        // needs seconds to close the sheet; an iPhone on 2026-10-07 "cancelled"
+        // 12 times at ~0.14 s because iOS never showed the sheet, and the bare
+        // line made that look like a 4.11.0 regression. elapsedMs runs from
+        // "Starting provider login", so with clearBrowserSessionFirst it also
+        // covers the iOS "Sign In" dialog that clearSession() shows first.
         if (isUserAbandonedAuth(err)) {
-          log.info("Provider login cancelled or declined by user")
+          log.info("Provider login cancelled or declined by user", {
+            connection,
+            elapsedMs: Date.now() - startedAt,
+            ...authErrorLogFields(err),
+          })
           return
         }
         const message = err instanceof Error ? err.message : "Login failed"
