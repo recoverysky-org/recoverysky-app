@@ -6,8 +6,8 @@ probably a device attestation failure
 Every OTLP log record (→ Loki) carries these identity attributes, set via
 `logger.setContext()` in `app.tsx`. Lines logged at cold start before a key
 was known (`App module loaded`, `getDeviceId()`, `Database opened`, …) have
-it filled in at flush time; a key that was set to `undefined` (anonymous
-user, sign-out) is never filled in afterwards.
+it filled in at flush time; a key that was set to `undefined` (signed out, a
+guest, or after sign-out) is never filled in afterwards.
 
 | Attribute    | Value                                            | Lifetime            |
 | ------------ | ------------------------------------------------ | ------------------- |
@@ -67,8 +67,8 @@ recipient is a third party — a sponsor, court officer, or employer — who nev
 consented to our telemetry. When you need to tie a line to a recipient, log
 `reportId`; the encrypted report row and the API both resolve it.
 
-**Sentry and Umami are different.** Both receive `authStore.userIdentifier`
-(the raw sub, or `deviceId` when anonymous) via `setSentryUser` /
+**Sentry and Umami are different.** Both receive `authStore.userId`
+(the raw sub; nothing when signed out or a guest) via `setSentryUser` /
 `setTrackingUserId`, because their UIs group by user id and a hash would
 break the link to the Auth0 dashboard. Sentry's PII policy lives in the
 header of `app/services/crashReporting/sentry.ts`.

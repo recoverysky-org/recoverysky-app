@@ -22,6 +22,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **Every push-token registration now uses the same signed-in check.** The
+  notifications switch (Settings and onboarding) and the reminder editor's
+  permission prompt register the push token through `pushRegistrationUserId`,
+  like the registration at app start: an Auth0 user with a stored session, or
+  nothing. They used to read an identity getter that fell back to the device
+  id. No path can register a device id now.
+
+### Removed
+- **The old device-id login.** Hidden since May 2026, it signed a person in as
+  the phone itself, with the device id as their user id. Its code, tests and
+  four i18n keys (in all nine locales) are gone. The device id is no longer a
+  user identity anywhere: it still identifies the install (device attestation,
+  log lines, push tokens), never a person.
+
+### Fixed
+- **RevenueCat no longer logs in as a device id left by the old device-id
+  login.** Android installs that used that login (December 2025 to May 2026)
+  kept the device id as their user id after every relaunch, so RevenueCat
+  logged in as the device id: the same kind of customer split that stranded
+  subscriptions in September. The leftover id is now cleared on launch, and
+  those users still land on Login, signed out.
+
 ### Build
 - EAS cloud builds work again. They failed in "Install dependencies" because the private
   packages (`@recoverysky-org/common`, `@trex-ts/core`, `@jenova-marie/ts-rust-result`) were

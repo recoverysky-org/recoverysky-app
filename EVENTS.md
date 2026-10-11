@@ -39,7 +39,7 @@ POST ${UMAMI_URL}/api/send
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `login_completed` | User authenticated successfully. Not fired for an Android login recovered after process death (`resumeSession`, 4.11.0+), which completes outside LoginScreen, so this slightly under-counts Android sign-ins | `{ method: "oauth" \| "anonymous" }` | `app/screens/LoginScreen.tsx` |
+| `login_completed` | User authenticated successfully. Not fired for an Android login recovered after process death (`resumeSession`, 4.11.0+), which completes outside LoginScreen, so this slightly under-counts Android sign-ins | `{ method: "email" \| "apple" \| "google" \| "password" }` | `app/screens/LoginScreen.tsx` |
 | `logout` | User logged out from settings | — | `app/screens/SettingsScreen.tsx` |
 | `onboarding_step` | User advanced through an onboarding step | `{ step: "welcome" \| "profile" \| "recovery" \| "theme" \| "attendance" \| "privacy" \| "oss" }` | `app/screens/onboarding/*.tsx` |
 | `onboarding_completed` | User finished the full onboarding flow | — | `app/screens/onboarding/OnboardingOSS.tsx` |
@@ -152,7 +152,7 @@ These events have been identified as valuable but are not included in the initia
 
 | Event | Description | Data | Source |
 |---|---|---|---|
-| `login_started` | User initiated login flow | `{ method: "oauth" \| "anonymous" }` | `app/screens/LoginScreen.tsx` |
+| `login_started` | User initiated login flow | `{ method: "email" \| "apple" \| "google" \| "password" }` | `app/screens/LoginScreen.tsx` |
 | `login_failed` | Login attempt failed | `{ error }` | `app/screens/LoginScreen.tsx` |
 | `terms_accepted` | User accepted terms/EUA | — | `app/screens/LoginScreen.tsx` |
 | `device_attestation_completed` | Device attestation flow completed | `{ method: "attestation" \| "api_key" }` | `app/app.tsx` |

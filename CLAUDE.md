@@ -255,7 +255,9 @@ cloud build).
 MST with MMKV persistence in `app/models/`:
 - **RootStore**: Combines all stores, initialized in `app.tsx`
 - **AuthenticationStore**: Auth state with two storage tiers:
-  - **Props** (MMKV): `refreshToken`, `authEmail`, `userId`, `deviceId`, `isAnonymous`,
+  - **Props** (MMKV): `refreshToken`, `authEmail`, `userId` (the Auth0 sub, never
+    a device id: `setupRootStore` clears a device id left there by the old
+    device-id login, see `helpers/legacyIdentityLogic.ts`), `deviceId`,
     `loginMethod` (how the current session was established — `"email" | "apple" |
     "google"`; drives the logout branch, see "Auth, Attestation & Encryption
     Keys" §1), `ownerSub` / `ownerEmail` (the device owner — the one account
@@ -527,10 +529,13 @@ Three separate trust layers, easy to confuse:
    blocks; a 400 `bad_nonce` or a 429 degrades. Simulators, web, and Android
    dev builds call `setApiKeyFallback()` and use `X-API-Key` instead.
 3. **Data-at-rest — SQLite key** (`app/services/encryption/sqliteKey.ts`).
-   Anonymous users get a locally generated 256-bit key in SecureStore
-   (`sqlite_encryption_key_v1`); authenticated users get it from JWT custom
-   claims. This is what makes ProfileStore's "volatile (encrypted SQLite)" tier
-   actually encrypted.
+   The key is a locally generated 256-bit value in SecureStore
+   (`sqlite_encryption_key_v1`), minted once per install on first launch. A
+   JWT `sqliteKey` claim path still exists in `useAuth0Wrapper`. If the claim
+   were ever issued, its fallback for mount sites without `onSqliteKeyChange`
+   (all but `LoginScreen`) would overwrite the stored key without rekeying the
+   file and brick the database (RS-024). This is what makes ProfileStore's
+   "volatile (encrypted SQLite)" tier actually encrypted.
    CHANGED 2026-09-30: the JWT half is dormant. No tenant Action issues
    `https://recoverysky.app/metadata` (`auth0/actions/<tenant>/` is the source of
    truth, and neither tenant folder has it), so EVERY device, signed in or not, runs on
@@ -668,7 +673,7 @@ Spec (its appendix holds this section's full change history):
 In `app/services/purchases/`:
 - **config.ts**: Entitlements (`recoverysky-premium`, `recoverysky-attendance`), API key selection by env/platform. No offering ids — CHANGED 2026-09-15, the paywall always uses RevenueCat's **current** offering (the hardcoded ids never existed in the project and the fallback to `current` was the only path that ran); change the paywall from the dashboard, not the code
 - **revenueCatService.ts**: SDK init, entitlement checks, offering-aware paywall presentation, purchase/restore flows
-- **SubscriptionContext** (`app/context/`): Wraps the app, initializes RC with `configStore.revenueCatApiKey`, listens for customer info updates, auto-enables attendance on first subscription. **Identity is a MobX reaction on the auth store, not a prop** (CHANGED 2026-09-17): the Auth0 `userId` when signed in and not anonymous, otherwise no id at all so the SDK runs on its own `$RCAnonymousID` that `logIn()` later aliases. **The device id is never a RevenueCat identity** — the old render-time prop left the SDK on the device id after sign-in and stranded 81 active subscriptions on device-id customers (2026-09-17 export). Store receipts are synced once **per identity per install** (`rc_purchases_synced.<sub>`), which is also what moves a stranded subscription over (Restore Behavior = Transfer, verified 2026-09-17). Decisions in the vitest-covered `rcIdentityLogic.ts`; spec `docs/superpowers/specs/2026-09-17-revenuecat-identity-reactive-design.md`. Don't reintroduce an `appUserId` prop.
+- **SubscriptionContext** (`app/context/`): Wraps the app, initializes RC with `configStore.revenueCatApiKey`, listens for customer info updates, auto-enables attendance on first subscription. **Identity is a MobX reaction on the auth store, not a prop** (CHANGED 2026-09-17): the Auth0 `userId` when signed in, otherwise no id at all so the SDK runs on its own `$RCAnonymousID` that `logIn()` later aliases. **The device id is never a RevenueCat identity** — the old render-time prop left the SDK on the device id after sign-in and stranded 81 active subscriptions on device-id customers (2026-09-17 export). Store receipts are synced once **per identity per install** (`rc_purchases_synced.<sub>`), which is also what moves a stranded subscription over (Restore Behavior = Transfer, verified 2026-09-17). Decisions in the vitest-covered `rcIdentityLogic.ts`; spec `docs/superpowers/specs/2026-09-17-revenuecat-identity-reactive-design.md`. Don't reintroduce an `appUserId` prop.
 
 Key pattern: `__DEV__` uses the `test_` RC API key (Test Store). Production uses platform-specific `appl_`/`goog_` keys. Both use the project's current offering. `__DEV__` is false in TestFlight builds.
 

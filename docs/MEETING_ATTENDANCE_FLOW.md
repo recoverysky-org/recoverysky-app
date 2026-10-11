@@ -150,7 +150,7 @@ Implemented in `ZoomMeetingProvider.tsx` -> `ZoomSDKConsumer`.
 /** Tracks a single join attempt — module-level, survives provider remounts */
 interface MeetingContext {
   attendanceId: string      // SQLite record ID (UUID)
-  uid: string               // Auth0 user ID or "anonymous"
+  uid: string               // Auth0 user ID
   mid: string               // Our internal meeting ID
   zid: string               // Zoom meeting number joined
   userName: string           // Display name sent to Zoom
