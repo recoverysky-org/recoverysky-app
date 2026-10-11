@@ -78,7 +78,6 @@ const es: Translations = {
       "Inicia sesión para acceder a las suscripciones y funciones premium. Apple requiere una cuenta para apps con servicios interactivos como videoconferencias.",
     enterDetailsAndroid:
       "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Ajustes.",
-    continueAnonymously: "",
     openingBrowser: "Abriendo navegador para autenticación...",
     signingIn: "Iniciando sesión...",
     euaTitle: "Acuerdos Legales",
@@ -401,8 +400,6 @@ const es: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Actualizar a Premium",
     manageSubscription: "Gestionar Suscripción",
-    loginToSubscribe: "Iniciar Sesión para Suscribirse",
-    loginToSubscribeHint: "Las suscripciones requieren una cuenta en la app.",
     restorePurchases: "Restaurar Compras",
     subscriptionSuccess: "¡Bienvenido a Premium!",
     subscriptionSuccessMessage:
@@ -432,7 +429,6 @@ const es: Translations = {
     // Account Section
     accountSection: "Cuenta",
     userId: "ID de Usuario",
-    anonymousUser: "Anónimo",
     accountActive: "Activa",
     accountLinked: "Vinculada",
     accountMethodEmail: "Correo",

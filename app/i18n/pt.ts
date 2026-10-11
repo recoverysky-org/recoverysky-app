@@ -78,7 +78,6 @@ const pt: Translations = {
       "Entre na sua conta pra acessar assinaturas e recursos premium. A Apple exige uma conta pra apps com serviços interativos como videoconferência.",
     enterDetailsAndroid:
       "Entre na sua conta pra acessar assinaturas e recursos premium. Assinaturas precisam de uma conta ativa.\n\nVocê pode entrar e sair a qualquer momento em Configurações.",
-    continueAnonymously: "",
     openingBrowser: "Abrindo navegador pra autenticação...",
     signingIn: "Entrando...",
     euaTitle: "Acordos Legais",
@@ -413,8 +412,6 @@ const pt: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Assinar Premium",
     manageSubscription: "Gerenciar Assinatura",
-    loginToSubscribe: "Entrar pra Assinar",
-    loginToSubscribeHint: "Assinaturas do app precisam de uma conta.",
     restorePurchases: "Restaurar Compras",
     subscriptionSuccess: "Bem-vindo ao Premium!",
     subscriptionSuccessMessage:
@@ -434,7 +431,6 @@ const pt: Translations = {
     // Account Section
     accountSection: "Conta",
     userId: "ID do Usuário",
-    anonymousUser: "Anônimo",
     accountActive: "Ativa",
     accountLinked: "Vinculada",
     accountMethodEmail: "E-mail",

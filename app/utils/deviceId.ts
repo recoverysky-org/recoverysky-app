@@ -2,7 +2,7 @@
  * Device ID Utility
  *
  * Cross-platform unique device identifier using expo-application.
- * Used to identify users across both anonymous and authenticated states.
+ * Identifies the INSTALL (device-lane attestation, log lines) — never a user (CHANGED 2026-10-11).
  */
 
 import { Platform } from "react-native"

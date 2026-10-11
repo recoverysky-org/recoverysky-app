@@ -66,7 +66,7 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
 /**
  * What the legal-agreements modal will run once accepted. CHANGED 2026-09-17:
- * was a `"authenticated" | "signup" | "anonymous"` string; the passwordless
+ * was a `"authenticated" | "signup"` string; the passwordless
  * screen has more entry points, each carrying its own argument.
  */
 type PendingAction =
@@ -76,7 +76,6 @@ type PendingAction =
   // link's connection (ADDED 2026-09-30).
   // CHANGED 2026-10-01: was the __DEV__ password button's; now every build.
   | { kind: "provider"; connection: BrowserConnection }
-  | { kind: "anonymous" }
   | null
 
 /** The `kind` of whatever action is currently in flight — see `inFlight` below. */
@@ -100,17 +99,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   // through the hook alone, and useAuth0Wrapper deliberately doesn't expose a
   // bare clearCredentials() to production code.
   const { clearCredentials: clearSdkCredentials } = useAuth0()
-  const {
-    sendCode,
-    verifyCode,
-    loginWithProvider,
-    loginAnonymously,
-    isLoading,
-    error,
-    clearError,
-  } = useAuth0Wrapper({
-    onSqliteKeyChange: rekeyDb,
-  })
+  const { sendCode, verifyCode, loginWithProvider, isLoading, error, clearError } = useAuth0Wrapper(
+    {
+      onSqliteKeyChange: rekeyDb,
+    },
+  )
 
   // spec 2 §2.6: a returning owner on their own device taps once and gets a
   // code. Only the code path prefills — an owner who signed in with Apple or
@@ -390,16 +383,12 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
                     : "google",
             })
             return
-          case "anonymous":
-            loginAnonymously()
-            trackEvent("login_completed", { method: "anonymous" })
-            return
         }
       } finally {
         setInFlight(null)
       }
     },
-    [clearError, ownerEmail, runSend, loginWithProvider, loginAnonymously],
+    [clearError, ownerEmail, runSend, loginWithProvider],
   )
 
   // Every entry point goes through the legal gate first — unchanged in
@@ -425,12 +414,6 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     },
     [termsAlreadyAccepted, runAction, clearError],
   )
-
-  // Kept for the commented-out anonymous-login button further down (see the
-  // comment above that block). Disabling the rule rather than renaming to
-  // `_handleAnonymousPress` keeps re-enabling a literal one-block uncomment.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAnonymousPress = useCallback(() => gated({ kind: "anonymous" }), [gated])
 
   const handleEuaAgree = useCallback(async () => {
     // Belt-and-braces alongside the button's `disabled` prop: acceptance is
@@ -597,26 +580,6 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
               }}
             />
           )}
-
-          {/* Anonymous login intentionally disabled in the UI. We're keeping the
-            handler + state plumbing (handleAnonymousPress, loginAnonymously,
-            the "anonymous" PendingAction) so re-enabling is a one-block
-            uncomment. Hidden because the anonymous-user experience doesn't
-            meet the bar we want for new installs — bring it back only when
-            paired with a clear upgrade path.
-            CHANGED 2026-09-17: also gated on the choose step, so re-enabling
-            it cannot put an anonymous button under the code field. */}
-          {/* {Platform.OS !== "ios" && step === "choose" && (
-          <Pressable
-            testID="anonymous-button"
-            accessibilityRole="button"
-            accessibilityLabel={translate("loginScreen:continueAnonymously")}
-            onPress={handleAnonymousPress}
-            disabled={isLoading}
-          >
-            <Text style={themed($loadingText)} tx="loginScreen:continueAnonymously" />
-          </Pressable>
-        )} */}
 
           {/* Only the provider path leaves the app, so only it gets this copy —
             an email code never opens a browser.

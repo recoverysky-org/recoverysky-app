@@ -91,13 +91,13 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   // Track previous status to detect streaming completion
   const prevStatusRef = useRef<string>("")
 
-  // Build authorization headers (Bearer token for authenticated, X-API-Key for anonymous)
+  // Build authorization headers (Bearer token for authenticated, X-API-Key when signed out)
   const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {}
     if (authStore.accessToken) {
       headers["Authorization"] = `Bearer ${authStore.accessToken}`
     } else {
-      // Anonymous users get X-API-Key
+      // X-API-Key when signed out
       if (configStore.authKey) {
         headers["X-API-Key"] = configStore.authKey
       }

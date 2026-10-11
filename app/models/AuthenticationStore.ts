@@ -26,12 +26,10 @@ export const AuthenticationStoreModel = types
   .props({
     /** User's email address */
     authEmail: "",
-    /** User ID from OAuth provider (sub claim) or deviceId for anonymous users */
+    /** Auth0 user id (sub claim). Undefined when signed out or a guest — never a device id (CHANGED 2026-10-11). */
     userId: types.maybe(types.string),
     /** Unique device identifier, captured on app start */
     deviceId: types.maybe(types.string),
-    /** Whether user is using anonymous login (no OAuth) */
-    isAnonymous: types.optional(types.boolean, false),
     /**
      * ADDED 2026-09-17 (spec 1 §2.4). Written only when a session is ACCEPTED
      * by the ownership gate — a foreign session must not leave this behind.
@@ -105,13 +103,9 @@ export const AuthenticationStoreModel = types
   .views((store) => ({
     /**
      * Whether the user is authenticated.
-     * Returns true for:
-     * - Anonymous users (isAnonymous=true with deviceId)
-     * - OAuth users (valid, non-expired access token)
+     * Returns true for OAuth users with a valid, non-expired access token.
      */
     get isAuthenticated() {
-      // Anonymous users are authenticated
-      if (store.isAnonymous && store.deviceId) return true
       // OAuth users need valid token
       if (!store.accessToken) return false
       if (store.expiresAt && store.expiresAt < Date.now()) return false
@@ -129,10 +123,6 @@ export const AuthenticationStoreModel = types
      */
     get canRefresh() {
       return !!store.refreshToken
-    },
-    /** The effective user identifier: Auth0 userId for registered users, deviceId for anonymous */
-    get userIdentifier(): string | undefined {
-      return store.userId ?? store.deviceId
     },
     /**
      * Email validation error (if any)
@@ -267,26 +257,16 @@ export const AuthenticationStoreModel = types
       store.forcedLogoutNotice = value
     },
     /**
-     * Login as anonymous user
-     * Uses deviceId as userId for tracking
-     */
-    loginAnonymously() {
-      log.info("loginAnonymously()")
-      store.isAnonymous = true
-      store.userId = store.deviceId
-    },
-    /**
      * Logout - clear all auth state
      */
     logout() {
-      log.info("logout()", { wasAnonymous: store.isAnonymous, hadUserId: !!store.userId })
+      log.info("logout()", { hadUserId: !!store.userId })
       store.accessToken = undefined
       store.refreshToken = undefined
       store.idToken = undefined
       store.expiresAt = undefined
       store.authEmail = ""
       store.userId = undefined
-      store.isAnonymous = false
       store.pendingLogout = false
       // ADDED 2026-09-17: the session's method goes with the session; the
       // owner record does NOT — it protects the data that stays on disk.

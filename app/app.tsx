@@ -479,7 +479,7 @@ export function App() {
         await setupRootStore(_rootStore)
 
         // Auth0 SDK handles token persistence internally
-        // We just need to set up deviceId for anonymous users
+        // deviceId is attached to every log line and is the device-lane attestation key
 
         // getDeviceId logs its own params/results
         const deviceId = await getDeviceId()
@@ -815,27 +815,32 @@ export function App() {
           )
 
           // Set initial user identity
-          if (authStore.userIdentifier) setTrackingUserId(authStore.userIdentifier)
+          // CHANGED 2026-10-11: keyed on userId, not the removed getter that
+          // fell back to the device id (same change as Sentry below).
+          if (authStore.userId) setTrackingUserId(authStore.userId)
 
           // React to auth identity changes
           reaction(
-            () => authStore.userIdentifier,
+            () => authStore.userId,
             (id) => setTrackingUserId(id || undefined),
           )
         }
 
         // Sentry user identity. Always wired (not gated on umami config)
         // since crash reporting must work even when analytics doesn't.
-        // Opaque userIdentifier only — never email/name. PII is also
+        // Opaque user id only — never email/name. PII is also
         // double-checked in sentry.beforeSend just in case.
-        if (authStore.userIdentifier) setSentryUser(authStore.userIdentifier)
+        // CHANGED 2026-10-11: keyed on userId, not the removed getter that
+        // fell back to the device id; signed-out users and guests carry no
+        // user id.
+        if (authStore.userId) setSentryUser(authStore.userId)
         reaction(
-          () => authStore.userIdentifier,
+          () => authStore.userId,
           (id) => setSentryUser(id || null),
         )
 
-        // Logger user identity. Keyed on `userId` (Auth0 sub), NOT
-        // `userIdentifier` — anonymous users already ride on `deviceId`,
+        // Logger user identity. Keyed on `userId` (Auth0 sub), never a
+        // device-id fallback — signed-out users and guests ride on `deviceId`,
         // which every record carries. The value is HASHED before it touches
         // the logger (see hashUserId.ts): the raw sub embeds the identity
         // provider and its account id, and this attribute lands on every

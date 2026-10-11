@@ -77,7 +77,6 @@ const ru: Translations = {
       "Войди, чтобы получить доступ к подпискам и премиум-функциям. Apple требует аккаунт для приложений с интерактивными сервисами, такими как видеоконференции.",
     enterDetailsAndroid:
       "Войди, чтобы получить доступ к подпискам и премиум-функциям. Для подписок нужен аккаунт.\n\nТы можешь войти и выйти в любое время в Настройках.",
-    continueAnonymously: "",
     openingBrowser: "Открываем браузер для авторизации...",
     signingIn: "Выполняем вход...",
     euaTitle: "Юридические соглашения",
@@ -411,8 +410,6 @@ const ru: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Перейти на Премиум",
     manageSubscription: "Управление подпиской",
-    loginToSubscribe: "Войти для подписки",
-    loginToSubscribeHint: "Для подписки необходим аккаунт в приложении.",
     restorePurchases: "Восстановить покупки",
     subscriptionSuccess: "Добро пожаловать в Премиум!",
     subscriptionSuccessMessage: "Спасибо за поддержку RecoverySky. Наслаждайся премиум-функциями!",
@@ -431,7 +428,6 @@ const ru: Translations = {
     // Account Section
     accountSection: "Аккаунт",
     userId: "ID пользователя",
-    anonymousUser: "Анонимный",
     accountActive: "Активен",
     accountLinked: "Связан",
     accountMethodEmail: "Эл. почта",

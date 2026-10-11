@@ -79,7 +79,6 @@ const fr: Translations = {
       "Connecte-toi pour accéder aux abonnements et aux fonctions premium. Apple exige un compte pour les apps avec des services interactifs comme la vidéoconférence.",
     enterDetailsAndroid:
       "Connecte-toi pour accéder aux abonnements et aux fonctions premium. Les abonnements nécessitent un compte.\n\nTu peux te connecter et te déconnecter en tout temps dans les Réglages.",
-    continueAnonymously: "",
     openingBrowser: "Ouverture du navigateur pour l'authentification...",
     signingIn: "Connexion en cours...",
     euaTitle: "Accords Juridiques",
@@ -417,8 +416,6 @@ const fr: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Passer à Premium",
     manageSubscription: "Gérer l'abonnement",
-    loginToSubscribe: "Se connecter pour s'abonner",
-    loginToSubscribeHint: "Les abonnements nécessitent un compte dans l'app.",
     restorePurchases: "Restaurer les achats",
     subscriptionSuccess: "Bienvenue dans Premium!",
     subscriptionSuccessMessage:
@@ -438,7 +435,6 @@ const fr: Translations = {
     // Account Section
     accountSection: "Compte",
     userId: "ID utilisateur",
-    anonymousUser: "Anonyme",
     accountActive: "Active",
     accountLinked: "Associée",
     accountMethodEmail: "E-mail",

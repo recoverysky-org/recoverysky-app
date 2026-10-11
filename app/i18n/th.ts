@@ -76,7 +76,6 @@ const th: Translations = {
       "เข้าสู่ระบบเพื่อใช้งานการสมัครสมาชิกและฟีเจอร์พรีเมียม Apple กำหนดให้ต้องมีบัญชีสำหรับแอปที่มีบริการแบบโต้ตอบเช่นการประชุมวิดีโอ",
     enterDetailsAndroid:
       "เข้าสู่ระบบเพื่อใช้งานการสมัครสมาชิกและฟีเจอร์พรีเมียม การสมัครสมาชิกต้องใช้บัญชี\n\nสามารถเข้าและออกจากระบบได้ตลอดเวลาในการตั้งค่า",
-    continueAnonymously: "",
     openingBrowser: "กำลังเปิดเบราว์เซอร์เพื่อยืนยันตัวตน...",
     signingIn: "กำลังเข้าสู่ระบบ...",
     euaTitle: "ข้อตกลงทางกฎหมาย",
@@ -407,8 +406,6 @@ const th: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "อัปเกรดเป็นพรีเมียม",
     manageSubscription: "จัดการสมาชิก",
-    loginToSubscribe: "เข้าสู่ระบบเพื่อสมัครสมาชิก",
-    loginToSubscribeHint: "การสมัครสมาชิกต้องใช้บัญชีในแอป",
     restorePurchases: "กู้คืนการซื้อ",
     subscriptionSuccess: "ยินดีต้อนรับสู่พรีเมียม!",
     subscriptionSuccessMessage:
@@ -428,7 +425,6 @@ const th: Translations = {
     // Account Section
     accountSection: "บัญชี",
     userId: "รหัสผู้ใช้",
-    anonymousUser: "ไม่ระบุตัวตน",
     accountActive: "ใช้งานอยู่",
     accountLinked: "เชื่อมโยงแล้ว",
     accountMethodEmail: "อีเมล",

@@ -21,7 +21,7 @@
  *    exists once it's been enabled *in Settings*, that screen was essentially
  *    always already mounted and the return trip essentially never happened.
  *
- * 2. IT PERSISTS TO MMKV. An anonymous user tapping Subscribe is sent through
+ * 2. IT PERSISTS TO MMKV. A signed-out user tapping Subscribe is sent through
  *    Auth0 first, which restarts the navigator and remounts this screen with no
  *    route params. `SUBSCRIPTION_RETURN` is what carries the destination across
  *    that gap — which also means a string written by a PREVIOUS app version can

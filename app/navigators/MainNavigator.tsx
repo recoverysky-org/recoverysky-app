@@ -1,4 +1,3 @@
-import { useRef } from "react"
 import { View, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
@@ -20,9 +19,8 @@ import { SettingsScreen } from "@/screens/SettingsScreen"
 import { SocialScreen } from "@/screens/SocialScreen"
 import { isTimerSessionActive } from "@/services/attendance"
 import { useAppTheme } from "@/theme/context"
-import { loadString, remove } from "@/utils/storage"
 
-import type { MainTabParamList, SettingsSection } from "./navigationTypes"
+import type { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
@@ -58,15 +56,9 @@ export const MainNavigator = observer(function MainNavigator() {
   // starts or ends. See the screenListeners comment below.
   const timerLocked = isTimerSessionActive()
 
-  // Post-login redirect: if a section was saved before logout, open Settings tab first
-  const postLoginSectionRef = useRef(loadString("POST_LOGIN_SECTION") as SettingsSection | null)
-  if (postLoginSectionRef.current) {
-    remove("POST_LOGIN_SECTION")
-  }
-
   return (
     <Tab.Navigator
-      initialRouteName={postLoginSectionRef.current ? "Settings" : "Home"}
+      initialRouteName="Home"
       // Tab switching is refused while an attendance timer is running. Leaving
       // the tab unmounts the popup that hosts the timer modal (RN Modal returns
       // null once hidden), which runs useAttendanceTimer's cleanup and destroys
@@ -195,9 +187,6 @@ export const MainNavigator = observer(function MainNavigator() {
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        initialParams={
-          postLoginSectionRef.current ? { section: postLoginSectionRef.current } : undefined
-        }
         options={{
           tabBarLabel: t("mainNavigator:settingsTab"),
           tabBarIcon: ({ focused }) => (

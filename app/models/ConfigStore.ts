@@ -39,7 +39,7 @@ export const ConfigStoreModel = types
       types.string,
       process.env.EXPO_PUBLIC_SOCIAL_URL || "https://social.recoverysky.app",
     ),
-    /** Anonymous auth API key */
+    /** X-API-Key device-auth fallback (dev/simulator builds) */
     authKey: types.optional(types.string, process.env.EXPO_PUBLIC_AUTH_KEY || ""),
     /** RevenueCat test API key */
     revenueCatTestKey: types.optional(

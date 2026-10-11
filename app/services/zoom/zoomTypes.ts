@@ -23,7 +23,7 @@ export interface ZoomJoinConfig {
   passwordEnc?: string
   /** Full Zoom meeting URL for external app fallback */
   meetingUrl?: string
-  /** ZAK token for authenticated join (optional - joins anonymously if not provided) */
+  /** ZAK token for authenticated join (optional — without one, Zoom joins as an unauthenticated participant) */
   zak?: string
   /** Whether this meeting is password-protected (external Zoom only) */
   external?: boolean

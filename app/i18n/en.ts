@@ -80,7 +80,6 @@ const en = {
       "Log in to access app subscriptions and premium features. An account is required by Apple for apps with interactive services like video conferencing.",
     enterDetailsAndroid:
       "Log in to access app subscriptions and premium features. Subscriptions require a logged in account.\n\nYou may login and logout at any time in Settings.",
-    continueAnonymously: "",
     openingBrowser: "Opening browser for authentication...",
     signingIn: "Signing you in...",
     euaTitle: "Legal Agreements",
@@ -431,8 +430,6 @@ const en = {
     subscriptionLoading: "...",
     upgradeToPro: "Upgrade to Premium",
     manageSubscription: "Manage Subscription",
-    loginToSubscribe: "Login to Subscribe",
-    loginToSubscribeHint: "App subscriptions require an app account.",
     restorePurchases: "Restore Purchases",
     subscriptionSuccess: "Welcome to Premium!",
     subscriptionSuccessMessage:
@@ -462,7 +459,6 @@ const en = {
     // Account Section
     accountSection: "Account",
     userId: "User ID",
-    anonymousUser: "Anonymous",
     accountActive: "Active",
     accountLinked: "Linked",
     accountMethodEmail: "Email",

@@ -19,7 +19,7 @@ import { hashUserId } from "../../utils/logger/hashUserId"
 const localRecord = {
   id: "att-1",
   iid: "iid-1",
-  uid: "device-abc", // legacy anonymous-era uid — server re-stamps from Auth0 sub
+  uid: "device-abc", // legacy device-id-era uid — server re-stamps from Auth0 sub
   mid: "mid-1",
   zid: "123456789",
   created: 1751900000000,

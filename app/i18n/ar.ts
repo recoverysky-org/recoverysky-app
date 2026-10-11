@@ -76,7 +76,6 @@ const ar: Translations = {
       "سجّل دخولك للوصول إلى الاشتراكات والميزات المميزة. تتطلب Apple حساباً للتطبيقات التي تقدم خدمات تفاعلية مثل مؤتمرات الفيديو.",
     enterDetailsAndroid:
       "سجّل دخولك للوصول إلى الاشتراكات والميزات المميزة. تتطلب الاشتراكات حساباً مسجلاً.\n\nيمكنك تسجيل الدخول والخروج في أي وقت من الإعدادات.",
-    continueAnonymously: "",
     openingBrowser: "جارٍ فتح المتصفح للمصادقة...",
     signingIn: "جارٍ تسجيل الدخول...",
     euaTitle: "الاتفاقيات القانونية",
@@ -405,8 +404,6 @@ const ar: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "الترقية إلى المميز",
     manageSubscription: "إدارة الاشتراك",
-    loginToSubscribe: "سجّل الدخول للاشتراك",
-    loginToSubscribeHint: "تتطلب الاشتراكات حساباً في التطبيق.",
     restorePurchases: "استعادة المشتريات",
     subscriptionSuccess: "مرحباً بك في المميز!",
     subscriptionSuccessMessage: "شكراً لدعمك لـ RecoverySky. استمتع بالميزات المميزة!",
@@ -425,7 +422,6 @@ const ar: Translations = {
     // Account Section
     accountSection: "الحساب",
     userId: "معرّف المستخدم",
-    anonymousUser: "مجهول",
     accountActive: "نشط",
     accountLinked: "مرتبط",
     accountMethodEmail: "البريد الإلكتروني",

@@ -120,7 +120,6 @@ async function gate(): Promise<{ ok: boolean; uid: string }> {
   if (!getDb().db) return { ok: false, uid }
   const cheapOk =
     rs.profileStore.syncEnabled &&
-    !auth.isAnonymous &&
     auth.isAuthenticated &&
     !rs.configStore.maintenanceMode &&
     !rs.networkStore.isOffline &&
@@ -503,7 +502,6 @@ export function initAttendanceSync(rootStore: RootStore): void {
   reaction(
     () =>
       rootStore.profileStore.syncEnabled &&
-      !rootStore.authenticationStore.isAnonymous &&
       rootStore.authenticationStore.isAuthenticated &&
       !rootStore.configStore.maintenanceMode &&
       !rootStore.networkStore.isOffline,

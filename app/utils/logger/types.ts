@@ -50,8 +50,8 @@ export interface LoggerContext {
   /**
    * Pseudonymous user id — ALWAYS the output of `hashUserId()`, never the raw
    * Auth0 `sub`. Set on sign-in, cleared (set to `undefined`) on sign-out by
-   * the reaction in app.tsx. Absent for anonymous users; `deviceId` already
-   * identifies them.
+   * the reaction in app.tsx. Absent for signed-out users; `deviceId` already
+   * identifies their install.
    */
   userId?: string
 }

@@ -3,7 +3,6 @@
  *
  * Custom hook that wraps Auth0's useAuth0 hook to:
  * - Sync auth state to MST AuthenticationStore for API layer compatibility
- * - Handle anonymous login (Auth0 doesn't support this natively)
  * - Extract SQLite encryption key from JWT claims if present
  * - Passwordless email code login (sendCode/verifyCode), direct-to-provider
  *   social login, and the device-ownership gate (spec 2 §2.1)
@@ -173,8 +172,6 @@ export interface UseAuth0WrapperResult {
   ) => Promise<void>
   /** Cancel on WrongAccountScreen: drop the foreign session and return to Login. */
   abandonForeignSession: () => Promise<void>
-  /** Login as anonymous user (no OAuth) */
-  loginAnonymously: () => void
   /** Logout and clear all tokens */
   logout: () => Promise<void>
   /** Whether an auth operation is in progress */
@@ -213,7 +210,9 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     resumeSession,
   } = useAuth0()
 
-  // Track our own loading state for anonymous login
+  // Track our own loading state for the email-code calls (sendCode/verifyCode).
+  // CHANGED 2026-10-11: the old device-id login, this state's first writer, is
+  // removed; the code calls are its only writers now.
   const [localLoading, setLocalLoading] = useState(false)
   const isLoading = auth0Loading || localLoading
 
@@ -422,9 +421,6 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
               credentials.idToken ?? undefined,
               expiresAt,
             )
-
-            // Clear anonymous flag for OAuth users
-            authStore.setProp("isAnonymous", false)
 
             // Set user info
             authStore.setUserId(user.sub)
@@ -734,26 +730,6 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
   }, [authStore, clearSession, clearCredentials])
 
   /**
-   * Login as anonymous user (no OAuth required)
-   */
-  const loginAnonymously = useCallback(() => {
-    log.info("Anonymous login")
-    setLocalLoading(true)
-    setError(null)
-
-    try {
-      authStore.loginAnonymously()
-      log.info("Anonymous login complete")
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Anonymous login failed"
-      log.error("Anonymous login failed", { error: message })
-      setError(message)
-    } finally {
-      setLocalLoading(false)
-    }
-  }, [authStore])
-
-  /**
    * Logout and clear all tokens.
    *
    * Uses clearSession to revoke the Auth0 web session (prevents auto-login
@@ -767,7 +743,7 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
 
     try {
       // Clear Auth0 web session (requires browser redirect)
-      if (user && !authStore.isAnonymous) {
+      if (user) {
         // CHANGED 2026-09-17 (spec 1 §2.4): an email-code session never
         // created a browser session, so there is no Auth0 cookie to clear.
         // clearSession() would open a browser for nothing and, on iOS, show
@@ -823,7 +799,6 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     verifyCode,
     loginWithProvider,
     abandonForeignSession,
-    loginAnonymously,
     logout,
     isLoading,
     error,
@@ -831,28 +806,4 @@ export function useAuth0Wrapper(options: UseAuth0WrapperOptions = {}): UseAuth0W
     user: user as Auth0UserInfo | null,
     isAuthenticated: !!user,
   }
-}
-
-/**
- * Load stored auth state on app startup
- *
- * Auth0 SDK handles token persistence internally, so this is mainly for
- * syncing to MST store. Call this from app initialization.
- */
-export async function loadStoredAuth0(
-  authStore: ReturnType<typeof useAuthenticationStore>,
-): Promise<boolean> {
-  log.info("loadStoredAuth0() - Auth0 SDK handles token persistence internally")
-
-  // Auth0 SDK automatically restores session on mount
-  // This function is kept for API compatibility but doesn't need to do much
-  // The useAuth0Wrapper hook will sync state when user becomes available
-
-  // Check if we have a deviceId for anonymous users
-  if (authStore.isAnonymous && authStore.deviceId) {
-    log.info("Anonymous user session restored")
-    return true
-  }
-
-  return false
 }

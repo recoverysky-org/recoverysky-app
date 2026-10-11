@@ -129,7 +129,6 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
   useEffect(() => {
     log.info("HomeScreen mounted", {
       isAuthenticated: authStore.isAuthenticated,
-      isAnonymous: authStore.isAnonymous,
       cleanDays: profileStore.cleanDays,
       dismissedCards: profileStore.dismissedHomeCards.length,
     })

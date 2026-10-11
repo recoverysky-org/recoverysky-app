@@ -49,7 +49,7 @@ describe("useSubscriptionReturn", () => {
     expect(result.current.consume()).toBe("Attendance:new")
   })
 
-  // The paywall can bounce an anonymous user through Auth0, which restarts the
+  // The paywall can bounce a signed-out user through Auth0, which restarts the
   // navigator and remounts this screen with no params — MMKV is what carries
   // the destination across that gap.
   it("falls back to the persisted value when no param is present", () => {

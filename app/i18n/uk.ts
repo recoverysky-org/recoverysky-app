@@ -77,7 +77,6 @@ const uk: Translations = {
       "Увійди, щоб отримати доступ до підписок і преміум-функцій. Apple вимагає обліковий запис для додатків з інтерактивними сервісами, як-от відеоконференції.",
     enterDetailsAndroid:
       "Увійди, щоб отримати доступ до підписок і преміум-функцій. Для підписок потрібен обліковий запис.\n\nТи можеш увійти та вийти будь-коли в Налаштуваннях.",
-    continueAnonymously: "",
     openingBrowser: "Відкриваємо браузер для авторизації...",
     signingIn: "Виконуємо вхід...",
     euaTitle: "Юридичні угоди",
@@ -410,8 +409,6 @@ const uk: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Перейти на Преміум",
     manageSubscription: "Керування підпискою",
-    loginToSubscribe: "Увійти для підписки",
-    loginToSubscribeHint: "Для підписки потрібен обліковий запис у додатку.",
     restorePurchases: "Відновити покупки",
     subscriptionSuccess: "Ласкаво просимо до Преміум!",
     subscriptionSuccessMessage: "Дякуємо за підтримку RecoverySky. Насолоджуйся преміум-функціями!",
@@ -430,7 +427,6 @@ const uk: Translations = {
     // Account Section
     accountSection: "Обліковий запис",
     userId: "ID користувача",
-    anonymousUser: "Анонімний",
     accountActive: "Активний",
     accountLinked: "Пов'язаний",
     accountMethodEmail: "Ел. пошта",

@@ -109,7 +109,10 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
   const meetingId = meeting?.id
   const meetingUrl = meeting?.url
   const meetingName = meeting?.name
-  const uid = authStore.userId || "anonymous"
+  // The timer is only reachable signed in (attendance lives behind Main); ""
+  // is the unreachable fallback. CHANGED 2026-10-11: was a literal placeholder
+  // uid from the removed device-id login.
+  const uid = authStore.userId ?? ""
 
   const { startedAt, elapsed, isResume, beginSave, endSave } = useAttendanceTimer({
     active: visible && !!meetingId && !!meetingUrl,
@@ -200,7 +203,7 @@ export const ExternalZoomTimerModal: FC<ExternalZoomTimerModalProps> = ({
     })
     try {
       const result = await saveTimerAttendance({
-        uid: authStore.userId || "anonymous",
+        uid: authStore.userId ?? "",
         mid: meeting.id,
         zid: extractZoomMeetingNumber(meeting.url) ?? "",
         meetingName: meeting.name,
