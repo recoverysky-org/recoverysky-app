@@ -420,7 +420,11 @@ builds restore it.
 - **Guest mode never sets `userId`.** No device-id identity, placeholder uid or
   hash, and `isAuthenticated` stays false, so sync, push registration,
   RevenueCat identity, report polling, the ownership gate and the Sentry /
-  Umami / logger user ids treat a guest exactly as a signed-out user.
+  Umami / logger user ids treat a guest exactly as a signed-out user. It is
+  enforced at entry: Login can show while a `userId` is present (a signed-in
+  owner's token renewing, a forced logout deferred for a timer), so
+  `enterGuest()` refuses then and Login hides "Just join meetings"
+  (`app/screens/login/guestEntryLogic.ts`).
   RevenueCat still configures as it does on Login: a guest runs on the SDK's
   own `$RCAnonymousID` and never calls `logIn`, because a later sign-in needs
   the SDK configured. A guest sends no `Authorization` header.

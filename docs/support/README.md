@@ -37,7 +37,7 @@ Logs carry `hashUserId(sub)` only. **Never paste a user's email address or raw A
 
 ## Reference
 
-- [Sign-in methods](reference/sign-in-methods.md): email code, password, Google, Apple, and guest mode (Android).
+- [Sign-in methods](reference/sign-in-methods.md): email code, password, Google and Apple. It also covers guest mode (Android), which is not a sign-in method.
 - [Account linking](reference/account-linking.md): automatic linking, the wrong-account rescue, what does and does not move.
 - [Device owner](reference/device-owner.md): the one-account-per-install rule.
 - [Email verification](reference/email-verification.md): who is asked, skips, mandatory day, error copy.

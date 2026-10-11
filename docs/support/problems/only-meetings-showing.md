@@ -33,7 +33,7 @@ They say:
    {service_name="recoverysky-app", module="AuthStore"} |= "exitGuest()" | deviceId="<deviceId>"
    {service_name="recoverysky-app", module="AuthStore"} |= "logout()" | deviceId="<deviceId>"
    ```
-   `enterGuest()` (INFO) is the tap on "Just join meetings". `exitGuest()` (INFO) is the "Sign in" tap or a later real sign-in. A `logout()` shortly before `enterGuest()` shows they were signed out first.
+   `enterGuest()` (INFO) is the tap on "Just join meetings". A WARN `enterGuest() refused: a signed-in identity is present` is a tap that did not start guest mode, because the phone still held a signed-in account. `exitGuest()` (INFO) is the "Sign in" tap or a later real sign-in. A `logout()` shortly before `enterGuest()` shows they were signed out first.
 
 ## Causes
 

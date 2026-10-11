@@ -39,6 +39,7 @@ POST ${UMAMI_URL}/api/send
 
 | Event | Description | Data | Source |
 |---|---|---|---|
+| `login_code_sent` | Auth0 accepted a request to email a sign-in code: from the email step, the returning owner's "Send code to …" button or the code step's Resend (each resend fires it again). Not fired when the send fails. Read against `login_completed` with `method: "email"` to see how many sends end in a sign-in | — | `app/screens/LoginScreen.tsx` |
 | `login_completed` | User authenticated successfully. Not fired for an Android login recovered after process death (`resumeSession`, 4.11.0+), which completes outside LoginScreen, so this slightly under-counts Android sign-ins | `{ method: "email" \| "apple" \| "google" \| "password" }` | `app/screens/LoginScreen.tsx` |
 | `guest_mode_entered` | User tapped "Just join meetings" on Login (Android only) and entered guest mode, after the legal-agreements gate. A guest has no user id, so the event carries none | — | `app/screens/LoginScreen.tsx` |
 | `logout` | User logged out from settings | — | `app/screens/SettingsScreen.tsx` |
