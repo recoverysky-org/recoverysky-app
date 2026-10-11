@@ -22,6 +22,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **The Sky Agent tab is controlled by its build variable again.** 4.11.0-2 hid
+  it with a hard `__DEV__` gate because the release shell leaked the local agent
+  URL into the OTA. With that leak fixed in 4.11.0-4, the gate is gone:
+  production stays hidden because no production bundle carries
+  `EXPO_PUBLIC_AGENT_URL`. Releasing the tab is adding the variable to
+  `eas.json` and the EAS production environment, nothing in code. (Follows the
+  RS-060 fix, already recorded on 4.11.0-4; no tracker update for this one.)
+
 ## [4.11.0-4] — 2026-10-11
 
 ### Security

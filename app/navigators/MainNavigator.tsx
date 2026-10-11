@@ -57,15 +57,18 @@ export const MainNavigator = observer(function MainNavigator() {
   // production env, so the env switch alone did not hold for an OTA. Store
   // builds and OTAs never show it now; dev builds still follow the env var.
   // Remove the `__DEV__ &&` to release the tab.
-  const agentTabVisible =
-    __DEV__ &&
-    decideAgentTabVisible({
-      // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
-      // these at bundle time only for that exact form.
-      agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
-      isDev: __DEV__,
-      isPremium,
-    })
+  // CHANGED 2026-10-11 (later): the `__DEV__` gate is gone again; the env var
+  // is the switch, as on 2026-10-10. It failed only because the release
+  // shell's .env reached the OTA (RS-060). Production eas commands now strip
+  // local EXPO_PUBLIC_* (scripts/eas-prod.sh), and bump-update.sh's tripwire
+  // fails if a bundle carries one, so a var missing from EAS stays missing.
+  const agentTabVisible = decideAgentTabVisible({
+    // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
+    // these at bundle time only for that exact form.
+    agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
+    isDev: __DEV__,
+    isPremium,
+  })
   // Community (Social) tab hidden for this release. Re-enable with
   // `__DEV__ || isPremium` once the SPA-side bugs are addressed.
   const socialTabVisible = false
