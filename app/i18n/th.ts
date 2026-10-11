@@ -76,7 +76,8 @@ const th: Translations = {
       "เข้าสู่ระบบเพื่อใช้งานการสมัครสมาชิกและฟีเจอร์พรีเมียม Apple กำหนดให้ต้องมีบัญชีสำหรับแอปที่มีบริการแบบโต้ตอบเช่นการประชุมวิดีโอ",
     enterDetailsAndroid:
       "เข้าสู่ระบบเพื่อใช้งานการสมัครสมาชิกและฟีเจอร์พรีเมียม การสมัครสมาชิกต้องใช้บัญชี\n\nสามารถเข้าและออกจากระบบได้ตลอดเวลาในการตั้งค่า",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "กำลังเปิดเบราว์เซอร์เพื่อยืนยันตัวตน...",
     signingIn: "กำลังเข้าสู่ระบบ...",
     euaTitle: "ข้อตกลงทางกฎหมาย",
@@ -110,6 +111,13 @@ const th: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -407,8 +415,6 @@ const th: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "อัปเกรดเป็นพรีเมียม",
     manageSubscription: "จัดการสมาชิก",
-    loginToSubscribe: "เข้าสู่ระบบเพื่อสมัครสมาชิก",
-    loginToSubscribeHint: "การสมัครสมาชิกต้องใช้บัญชีในแอป",
     restorePurchases: "กู้คืนการซื้อ",
     subscriptionSuccess: "ยินดีต้อนรับสู่พรีเมียม!",
     subscriptionSuccessMessage:
@@ -428,7 +434,6 @@ const th: Translations = {
     // Account Section
     accountSection: "บัญชี",
     userId: "รหัสผู้ใช้",
-    anonymousUser: "ไม่ระบุตัวตน",
     accountActive: "ใช้งานอยู่",
     accountLinked: "เชื่อมโยงแล้ว",
     accountMethodEmail: "อีเมล",

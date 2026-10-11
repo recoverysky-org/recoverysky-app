@@ -627,7 +627,9 @@ so iterating Auth0 would mint a phantom customer per non-subscriber.
 
 ---
 
-## 🧹 Remove the anonymous-login path (device id as a user identity)
+## 🧹 Remove the device-id login path (device id as a user identity)
+
+DONE 2026-10-11 on `feat/guest-mode` (spec `docs/superpowers/specs/2026-09-27-guest-mode-design.md`).
 
 Jenova's direction, 2026-09-17: the device id must not be used as a *user
 identity* anywhere. Anonymous sign-in was disabled about a month after launch
@@ -648,15 +650,17 @@ a decision: "signed-in Auth0 user or nothing".
 Keep `deviceId` itself — attestation, the logger's `deviceId` attribute, and
 `getDeviceId()` are legitimate *device* identity, not user identity.
 
-- [ ] Inventory each `isAnonymous` / `userIdentifier` reader and decide its
-      signed-out behaviour.
-- [ ] Remove `loginAnonymously()`, the LoginScreen branch, the wrapper
-      fallback; make `userIdentifier` either signed-in `userId` or undefined
-      (or delete it).
-- [ ] `isAuthenticated` stops treating anonymous as authenticated; confirm the
+- [x] Inventory each reader of the old login's flag and of the identity getter
+      that fell back to the device id, and decide its signed-out behaviour:
+      signed-in Auth0 user or nothing.
+- [x] Remove the old login's store action, the LoginScreen branch and the
+      wrapper fallback; delete the identity getter.
+- [x] `isAuthenticated` stops counting the old login as signed in; the
       navigator still routes signed-out users to Login.
-- [ ] Migration for installs currently in the anonymous state (MMKV
-      `isAnonymous = true`): treat as signed out on next launch.
+- [x] Migration for installs still in the old login's state: the device id left
+      in `userId` is cleared on hydration (`legacyIdentityLogic.ts`) and MST
+      ignores the old flag in the stored snapshot, so they open on Login,
+      signed out.
 
 ---
 

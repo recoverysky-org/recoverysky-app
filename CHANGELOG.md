@@ -22,11 +22,50 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **Android: "Just join meetings" opens a Meetings-only guest mode.** The link
+  on the Login screen lets someone browse Online, In-Person and Search and
+  join a meeting with no account. No user id is created, and nothing personal
+  is recorded for a guest: no attendance, reminders, favorites, ratings or
+  profile. The phone keeps only device settings: that guest mode is on, the
+  Meetings filters, list-or-map view and sort order picked (shared with the
+  device owner), the location permission choice, and that the legal
+  agreements were accepted. The device owner's name, favorites, theme and
+  attendance never show, and the owner's interrupted attendance timer never
+  comes up. A card above the meeting list invites the guest to make a free
+  account, and its Sign in button returns to Login. Guest mode survives a
+  relaunch. iOS still requires an account. Four new i18n keys in nine locales
+  (translations queued for review; the card's three are still English
+  outside `en`).
+
 ### Changed
 - **Sky Agent tab can be switched on per build.** It was hard-disabled in code. It now shows
   when the build has a valid `EXPO_PUBLIC_AGENT_URL` and the user is premium (or it's a dev
   build). Production builds and OTAs carry that variable today, so the next release shows the
   tab to premium users unless it's removed from `eas.json` and the EAS production environment.
+- **Every push-token registration now uses the same signed-in check.** The
+  notifications switch (Settings and onboarding) and the reminder editor's
+  permission prompt register the push token through `pushRegistrationUserId`,
+  like the registration at app start: an Auth0 user with a stored session, or
+  nothing. They used to read an identity getter that fell back to the device
+  id. No path can register a device id now.
+
+### Removed
+- **The old device-id login.** Hidden since May 2026, it signed a person in as
+  the phone itself, with the device id as their user id. Its code, tests and
+  four i18n keys (in all nine locales) are gone. The device id is no longer a
+  user identity anywhere: it still identifies the install (device attestation,
+  log lines, push tokens), never a person.
+- **Zoom join links no longer carry a display-name hint (`un=`).** Zoom never
+  applied it, so joining looks the same, and no join link can carry a name.
+
+### Fixed
+- **RevenueCat no longer logs in as a device id left by the old device-id
+  login.** Android installs that used that login (December 2025 to May 2026)
+  kept the device id as their user id after every relaunch, so RevenueCat
+  logged in as the device id: the same kind of customer split that stranded
+  subscriptions in September. The leftover id is now cleared on launch, and
+  those users still land on Login, signed out.
 
 ### Build
 - EAS cloud builds work again. They failed in "Install dependencies" because the private

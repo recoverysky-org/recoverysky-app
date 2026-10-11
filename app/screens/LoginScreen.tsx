@@ -43,6 +43,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { devPurgeAllLocalData } from "@/utils/devPurge"
 import { logger } from "@/utils/logger"
 
+import { decideGuestEntry } from "./login/guestEntryLogic"
 import { ChooseStep, CodeStep, EmailStep } from "./login/LoginSteps"
 
 const log = logger.child({ module: "LoginScreen" })
@@ -66,7 +67,7 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
 /**
  * What the legal-agreements modal will run once accepted. CHANGED 2026-09-17:
- * was a `"authenticated" | "signup" | "anonymous"` string; the passwordless
+ * was a string naming the entry point; the passwordless
  * screen has more entry points, each carrying its own argument.
  */
 type PendingAction =
@@ -76,7 +77,8 @@ type PendingAction =
   // link's connection (ADDED 2026-09-30).
   // CHANGED 2026-10-01: was the __DEV__ password button's; now every build.
   | { kind: "provider"; connection: BrowserConnection }
-  | { kind: "anonymous" }
+  // ADDED 2026-10-11: guest mode's "Just join meetings" (Android only).
+  | { kind: "guest" }
   | null
 
 /** The `kind` of whatever action is currently in flight — see `inFlight` below. */
@@ -100,17 +102,11 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
   // through the hook alone, and useAuth0Wrapper deliberately doesn't expose a
   // bare clearCredentials() to production code.
   const { clearCredentials: clearSdkCredentials } = useAuth0()
-  const {
-    sendCode,
-    verifyCode,
-    loginWithProvider,
-    loginAnonymously,
-    isLoading,
-    error,
-    clearError,
-  } = useAuth0Wrapper({
-    onSqliteKeyChange: rekeyDb,
-  })
+  const { sendCode, verifyCode, loginWithProvider, isLoading, error, clearError } = useAuth0Wrapper(
+    {
+      onSqliteKeyChange: rekeyDb,
+    },
+  )
 
   // spec 2 §2.6: a returning owner on their own device taps once and gets a
   // code. Only the code path prefills — an owner who signed in with Apple or
@@ -390,16 +386,22 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
                     : "google",
             })
             return
-          case "anonymous":
-            loginAnonymously()
-            trackEvent("login_completed", { method: "anonymous" })
+          case "guest":
+            // ADDED 2026-10-11 (spec 2026-09-27): no Auth0 call, no userId —
+            // just the flag. Through the legal gate like every entry point.
+            authStore.enterGuest()
+            // CHANGED 2026-10-11: counted only when guest mode began.
+            // enterGuest() refuses while a userId is present. The link is
+            // hidden then, but a userId recorded between the tap and this
+            // line (the legal modal can sit open) would still reach here.
+            if (authStore.isGuest) trackEvent("guest_mode_entered")
             return
         }
       } finally {
         setInFlight(null)
       }
     },
-    [clearError, ownerEmail, runSend, loginWithProvider, loginAnonymously],
+    [clearError, ownerEmail, runSend, loginWithProvider, authStore],
   )
 
   // Every entry point goes through the legal gate first — unchanged in
@@ -425,12 +427,6 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     },
     [termsAlreadyAccepted, runAction, clearError],
   )
-
-  // Kept for the commented-out anonymous-login button further down (see the
-  // comment above that block). Disabling the rule rather than renaming to
-  // `_handleAnonymousPress` keeps re-enabling a literal one-block uncomment.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleAnonymousPress = useCallback(() => gated({ kind: "anonymous" }), [gated])
 
   const handleEuaAgree = useCallback(async () => {
     // Belt-and-braces alongside the button's `disabled` prop: acceptance is
@@ -467,6 +463,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     () => gated({ kind: "provider", connection: PASSWORD_CONNECTION }),
     [gated],
   )
+
+  // ADDED 2026-10-11 (spec 2026-09-27): guest mode's "Just join meetings".
+  // Through `gated` like every other entry point, so the legal gate applies.
+  const handleGuestPress = useCallback(() => gated({ kind: "guest" }), [gated])
 
   // DEV-ONLY purge — see the button below and utils/devPurge.ts.
   const handleDevPurge = useCallback(() => {
@@ -598,25 +598,34 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             />
           )}
 
-          {/* Anonymous login intentionally disabled in the UI. We're keeping the
-            handler + state plumbing (handleAnonymousPress, loginAnonymously,
-            the "anonymous" PendingAction) so re-enabling is a one-block
-            uncomment. Hidden because the anonymous-user experience doesn't
-            meet the bar we want for new installs — bring it back only when
-            paired with a clear upgrade path.
-            CHANGED 2026-09-17: also gated on the choose step, so re-enabling
-            it cannot put an anonymous button under the code field. */}
-          {/* {Platform.OS !== "ios" && step === "choose" && (
-          <Pressable
-            testID="anonymous-button"
-            accessibilityRole="button"
-            accessibilityLabel={translate("loginScreen:continueAnonymously")}
-            onPress={handleAnonymousPress}
-            disabled={isLoading}
-          >
-            <Text style={themed($loadingText)} tx="loginScreen:continueAnonymously" />
-          </Pressable>
-        )} */}
+          {/* ADDED 2026-10-11: guest entry. Android only — iOS requires an
+            authenticated account, and the string itself is absent from the iOS
+            bundle (platformStrings.ios.ts). Choose step only, so it never sits
+            under the code field.
+            CHANGED 2026-10-11: also hidden while a userId is present, through
+            decideGuestEntry (login/guestEntryLogic.ts, vitest). Login shows
+            with a userId for a signed-in owner whose token is renewing at cold
+            start, and while a forced logout is deferred for a persisted timer;
+            a tap there put the owner's own session in guest mode, where Join
+            opens Zoom with no attendance timer. `authStore.userId` is read here
+            in render, so this observer re-renders when it changes. The store's
+            enterGuest() refuses in that state too. */}
+          {decideGuestEntry({ platform: Platform.OS, step, hasUserId: !!authStore.userId }) && (
+            <Pressable
+              testID="guest-button"
+              accessibilityRole="button"
+              accessibilityLabel={translate("loginScreen:justJoinMeetings")}
+              onPress={handleGuestPress}
+              // `|| providerBusy`, like ChooseStep and the password link: the
+              // SDK's isLoading is not reliably true during authorize() (see
+              // the 2026-10-03 note on ChooseStep above), and a guest tap in
+              // that window would overwrite `inFlight` and drop the busy overlay.
+              disabled={isLoading || providerBusy}
+              style={themed($guestLink)}
+            >
+              <Text style={themed($guestLinkText)} tx="loginScreen:justJoinMeetings" />
+            </Pressable>
+          )}
 
           {/* Only the provider path leaves the app, so only it gets this copy —
             an email code never opens a browser.
@@ -855,6 +864,34 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 1, // CHANGED 2026-09-28 from flex:1 — same reason as $screenContentContainer
   justifyContent: "center",
   gap: spacing.md,
+})
+
+// ADDED 2026-10-11: the guest button is one 24 dp line of text, so it gets a
+// real box at Material's 48 dp minimum touch height. Not hitSlop as on the
+// text links elsewhere: Android drops a touch outside the parent's bounds
+// before it reaches a child's slop (TouchTargetHelper), and this button can be
+// the last child of $contentContainer, so on a short screen or with large text
+// the slop below it would be dead. The bottom margin keeps the password link's
+// own 8 dp hitSlop (just below) off this box when the column has no free space.
+// Otherwise it is laid out like $passwordLink (centred, md side padding), so
+// the two secondary links read alike.
+const $guestLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignSelf: "center",
+  minHeight: 48,
+  justifyContent: "center",
+  paddingHorizontal: spacing.md,
+  marginBottom: spacing.xs,
+})
+
+// ADDED 2026-10-11: the guest link's own text style, matching $passwordLinkText
+// (dim, 14, underlined) so the two secondary links read alike and the
+// underline gives a tap cue. It used to share $loadingText, the style of the
+// "Opening browser…" status line, which has no tap cue and would have
+// restyled this link along with that line.
+const $guestLinkText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 14,
+  textDecorationLine: "underline",
 })
 
 const $passwordLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({

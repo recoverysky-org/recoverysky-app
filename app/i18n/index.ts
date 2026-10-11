@@ -36,7 +36,7 @@ const baseResources: Record<string, Record<string, any>> = {
   uk,
 }
 
-// Deep-merge platform-specific string overrides (e.g. Android-only anonymous login text).
+// Deep-merge platform-specific string overrides (e.g. the Android-only guest entry).
 // Metro resolves platformStrings.ios.ts (empty) on iOS, so those strings never enter the bundle.
 const resources = Object.fromEntries(
   Object.entries(baseResources).map(([lang, translations]) => {

@@ -11,6 +11,13 @@
  * - Favorite heart (UI only)
  * - 5-star rating (UI only)
  * - Weekly schedule grid
+ *
+ * ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): for a
+ * guest this popup is join-only. The heart, stars and visit count, the
+ * tappable reminder cells and their hint are hidden; Join opens Zoom directly
+ * (no attendance timer, no first-run timer heads-up); and no rating soft-ask
+ * follows the close. The device owner's data never reaches a guest through
+ * this popup.
  */
 
 import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
@@ -43,8 +50,9 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
 import { useReminders } from "@/hooks/useReminders"
 import { useTopicPanel } from "@/hooks/useTopicPanel"
-import { useConfigStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
+import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
 import { maybePresentRatingPrompt } from "@/services/rating"
 import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
@@ -86,6 +94,15 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
   const configStore = useConfigStore()
+  const authStore = useAuthenticationStore()
+  // ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): a guest
+  // may be a stranger on the device owner's phone, so for a guest this popup is
+  // join-only — no attendance timer, no heart/stars/visit count, no
+  // reminders, no rating prompt. Read here, in the observer's render,
+  // so the popup re-renders if the flag flips. `authStore` is declared up here
+  // (not beside useSubscription() below) because presentRatingAfterClose, which
+  // is defined before that line, reads it too.
+  const isGuest = authStore.isGuest
   const isFocused = useIsFocused()
 
   // Auto-close when parent screen loses focus (e.g. navigating to Settings from review prompt)
@@ -101,17 +118,26 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   // is a no-op.
   const ratingShownForCloseRef = useRef(false)
   const prevVisibleRef = useRef(visible)
-  const presentRatingAfterClose = useCallback((trigger: string) => {
-    // Guard: at most one present per close. onDismiss (iOS) and the settle-timeout
-    // fallback both target the same close — whichever fires first wins.
-    if (ratingShownForCloseRef.current) {
-      log.info("rating[diag]: present-after-close already fired this cycle", { trigger })
-      return
-    }
-    ratingShownForCloseRef.current = true
-    log.info("rating[diag]: present-after-close firing", { trigger })
-    maybePresentRatingPrompt()
-  }, [])
+  const presentRatingAfterClose = useCallback(
+    (trigger: string) => {
+      // CHANGED 2026-10-11: no review prompt for guests (spec 2026-09-27). Read
+      // from the store at call time, not from the render-time `isGuest`, and the
+      // dep below is the stable `authStore` node, not its flag: a flag dep would
+      // give this callback a new identity on a flip, re-running the close effect
+      // below, whose cleanup clears a pending present-after-close timer.
+      if (authStore.isGuest) return
+      // Guard: at most one present per close. onDismiss (iOS) and the settle-timeout
+      // fallback both target the same close — whichever fires first wins.
+      if (ratingShownForCloseRef.current) {
+        log.info("rating[diag]: present-after-close already fired this cycle", { trigger })
+        return
+      }
+      ratingShownForCloseRef.current = true
+      log.info("rating[diag]: present-after-close firing", { trigger })
+      maybePresentRatingPrompt()
+    },
+    [authStore],
+  )
   useEffect(() => {
     const wasVisible = prevVisibleRef.current
     prevVisibleRef.current = visible
@@ -400,17 +426,9 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         meetingUrl: meeting.url,
         password: meeting.password,
         passwordEnc: meeting.passwordEnc,
-        userName: profileStore.displayName,
       }),
     }
-  }, [
-    meeting?.id,
-    meeting?.url,
-    meeting?.name,
-    meeting?.password,
-    meeting?.passwordEnc,
-    profileStore.displayName,
-  ])
+  }, [meeting?.id, meeting?.url, meeting?.name, meeting?.password, meeting?.passwordEnc])
 
   const fellowshipColor = meeting
     ? FELLOWSHIP_COLORS[meeting.fellowship as Fellowship] || FELLOWSHIP_COLORS[Fellowship.NONE]
@@ -434,8 +452,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
     // Extract meeting number from URL
     const meetingNumber = extractZoomMeetingNumber(meeting.url)
-    // SDK expects the plaintext passcode, not the encrypted pwd from URLs
-    const password = meeting.password || ""
 
     if (!meetingNumber) {
       // Fallback for non-Zoom URLs. Guarded: Linking.openURL throws
@@ -465,7 +481,17 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     // enabled — the modal launches Zoom and captures the user-confirmed
     // attendance window. When attendance is off, open Zoom directly.
     const proceedExternalJoin = () => {
-      if (profileStore.attendanceEnabled) {
+      // CHANGED 2026-10-11: gated by canLogAttendance() (services/attendance/
+      // attendanceGateLogic.ts), not `attendanceEnabled` alone. Guests never log
+      // attendance (spec 2026-09-27); open Zoom directly. LOAD-BEARING for the
+      // timer-recovery rule: `attendanceEnabled` is an MMKV prop, so the device
+      // OWNER's setting persists into guest mode. If a guest could open the
+      // timer and the app were killed mid-meeting, the persisted session would
+      // be restored on the owner's next sign-in and saved under the owner's
+      // identity (see TimerSessionResumer). A guest must never start one. The
+      // rule lives in that helper so a vitest case pins it; keep it there
+      // rather than re-inlining `&& !isGuest`.
+      if (canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest })) {
         // Tag the source so the "processed" subscription shows the host
         // field when the topic panel slides in.
         // CHANGED 2026-08-05: attendanceSourceRef removed — useTopicPanel now
@@ -480,7 +506,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
           meetingUrl: meeting.url,
           password: meeting.password,
           passwordEnc: meeting.passwordEnc,
-          userName: profileStore.displayName,
         })
         // Guarded: buildExternalZoomUrl always returns a string today, but
         // a defensive check costs nothing and stops a malformed-record
@@ -503,8 +528,17 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
     // First-time education: defer the actual join until the user taps
     // Continue in the education modal.
+    // CHANGED 2026-10-11: never for a guest (spec 2026-09-27). Its copy is
+    // false for a guest ("A timer will be started … to receive attendance
+    // credit", yet a guest's join opens Zoom directly, with no timer), and the
+    // seen flag is a per-install MMKV key that belongs to the device owner: a
+    // guest tapping Continue would spend it, and the owner would never get the
+    // heads-up on their first join. A guest goes straight to the join and
+    // leaves the flag alone. Keyed on `isGuest`, NOT on canLogAttendance():
+    // signed-in users with attendance off still see it, as before (that copy
+    // question predates guest mode).
     const educationSeen = load<boolean>(EXTERNAL_ZOOM_EDUCATION_SEEN_KEY) === true
-    if (!educationSeen) {
+    if (!educationSeen && !isGuest) {
       educationActionRef.current = proceedExternalJoin
       setEducationVisible(true)
       return
@@ -655,56 +689,63 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
           {/* Heart + stars on their own line, then the Join button (see $actionRow) */}
           <View style={themed($actionRow)}>
-            {/* Feedback section (own line) */}
-            <View style={themed($feedbackSection)}>
-              {/* Heart and Stars row */}
-              <View style={themed($heartStarsRow)}>
-                <Pressable
-                  onPress={handleToggleLove}
-                  style={themed($heartButton)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("accessibility:favoriteToggle")}
-                  accessibilityState={{ selected: isFavorite }}
-                  accessibilityHint={t("accessibility:doubleTapToToggleFavorite")}
-                >
-                  <Ionicons
-                    name={isFavorite ? "heart" : "heart-outline"}
-                    size={26}
-                    color={isFavorite ? "#ef4444" : theme.colors.textDim}
-                  />
-                </Pressable>
-                <View style={themed($ratingContainer)}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Pressable
-                      key={star}
-                      onPress={() => handleSetRating(star)}
-                      style={themed($starButton)}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("accessibility:rateStars", { count: star })}
-                      accessibilityState={{ selected: star <= rating }}
-                      accessibilityHint={t("accessibility:doubleTapToRate")}
-                    >
-                      <Ionicons
-                        name={star <= rating ? "star" : "star-outline"}
-                        size={24}
-                        color={star <= rating ? "#fbbf24" : theme.colors.textDim}
-                      />
-                    </Pressable>
-                  ))}
+            {/* Feedback section (own line).
+                CHANGED 2026-10-11: the whole block — heart, stars and the
+                visits row — is hidden for a guest (spec 2026-09-27). Those are
+                the device owner's favorites/ratings/visit counts and
+                feedbackCache returns nothing and writes nothing for a guest, so
+                a visible control would be dead. The Join button below stays. */}
+            {!isGuest && (
+              <View style={themed($feedbackSection)}>
+                {/* Heart and Stars row */}
+                <View style={themed($heartStarsRow)}>
+                  <Pressable
+                    onPress={handleToggleLove}
+                    style={themed($heartButton)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("accessibility:favoriteToggle")}
+                    accessibilityState={{ selected: isFavorite }}
+                    accessibilityHint={t("accessibility:doubleTapToToggleFavorite")}
+                  >
+                    <Ionicons
+                      name={isFavorite ? "heart" : "heart-outline"}
+                      size={26}
+                      color={isFavorite ? "#ef4444" : theme.colors.textDim}
+                    />
+                  </Pressable>
+                  <View style={themed($ratingContainer)}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Pressable
+                        key={star}
+                        onPress={() => handleSetRating(star)}
+                        style={themed($starButton)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("accessibility:rateStars", { count: star })}
+                        accessibilityState={{ selected: star <= rating }}
+                        accessibilityHint={t("accessibility:doubleTapToRate")}
+                      >
+                        <Ionicons
+                          name={star <= rating ? "star" : "star-outline"}
+                          size={24}
+                          color={star <= rating ? "#fbbf24" : theme.colors.textDim}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
-              </View>
 
-              {/* Joins and time ago row */}
-              {joinCount > 0 && (
-                <View style={themed($joinsRow)}>
-                  <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
-                  <Text style={themed($joinsText)}>
-                    {joinCount} {joinCount === 1 ? t("liveScreen:join") : t("liveScreen:joins")}
-                    {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
-                  </Text>
-                </View>
-              )}
-            </View>
+                {/* Joins and time ago row */}
+                {joinCount > 0 && (
+                  <View style={themed($joinsRow)}>
+                    <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
+                    <Text style={themed($joinsText)}>
+                      {joinCount} {joinCount === 1 ? t("liveScreen:join") : t("liveScreen:joins")}
+                      {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* Join button */}
             {meeting.url && (
@@ -746,15 +787,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             </Pressable>
           ) : null}
 
-          {/* Schedule Grid */}
+          {/* Schedule Grid.
+              CHANGED 2026-10-11: read-only for a guest (spec 2026-09-27).
+              Reminders need a user; ScheduleGrid renders plain, non-tappable
+              cells when `onCellPress` is absent, and the tap-to-set-a-reminder
+              hint below is hidden with them. */}
           <ScheduleGrid
             scheduleData={scheduleGridData}
             currentDow={currentDow}
-            onCellPress={handleCellPress}
-            reminderCells={reminderCells}
+            onCellPress={isGuest ? undefined : handleCellPress}
+            reminderCells={isGuest ? undefined : reminderCells}
           />
 
-          <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />
+          {!isGuest && <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />}
 
           {/* Slide-in topic panel. Rendered inside $content (not as its own
               Modal) so iOS doesn't have to present a second native modal

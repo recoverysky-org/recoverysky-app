@@ -78,7 +78,8 @@ const pt: Translations = {
       "Entre na sua conta pra acessar assinaturas e recursos premium. A Apple exige uma conta pra apps com serviços interativos como videoconferência.",
     enterDetailsAndroid:
       "Entre na sua conta pra acessar assinaturas e recursos premium. Assinaturas precisam de uma conta ativa.\n\nVocê pode entrar e sair a qualquer momento em Configurações.",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "Abrindo navegador pra autenticação...",
     signingIn: "Entrando...",
     euaTitle: "Acordos Legais",
@@ -113,6 +114,13 @@ const pt: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -413,8 +421,6 @@ const pt: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Assinar Premium",
     manageSubscription: "Gerenciar Assinatura",
-    loginToSubscribe: "Entrar pra Assinar",
-    loginToSubscribeHint: "Assinaturas do app precisam de uma conta.",
     restorePurchases: "Restaurar Compras",
     subscriptionSuccess: "Bem-vindo ao Premium!",
     subscriptionSuccessMessage:
@@ -434,7 +440,6 @@ const pt: Translations = {
     // Account Section
     accountSection: "Conta",
     userId: "ID do Usuário",
-    anonymousUser: "Anônimo",
     accountActive: "Ativa",
     accountLinked: "Vinculada",
     accountMethodEmail: "E-mail",

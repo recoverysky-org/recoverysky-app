@@ -11,16 +11,16 @@ describe("rcIdentityFor", () => {
   // The device id is never a RevenueCat identity (spec 2026-09-17). Before this,
   // configure() ran with the device id and 9,881 phantom customers — and 286
   // purchases — accumulated on them.
+  // CHANGED 2026-10-11: the case that fed a device id in through the old
+  // device-id login's flag is gone with that login. `userId` is only ever an
+  // Auth0 sub now, and a leftover device-id value is cleared on hydration.
   it("is the Auth0 user id for a signed-in user", () => {
-    expect(rcIdentityFor({ userId: "google-oauth2|123", isAnonymous: false })).toBe(
-      "google-oauth2|123",
-    )
+    expect(rcIdentityFor({ userId: "google-oauth2|123" })).toBe("google-oauth2|123")
   })
 
-  it("is null for anonymous sessions and when signed out", () => {
-    expect(rcIdentityFor({ userId: "3c8d8f26d5fb07b3", isAnonymous: true })).toBeNull()
-    expect(rcIdentityFor({ userId: undefined, isAnonymous: false })).toBeNull()
-    expect(rcIdentityFor({ userId: "", isAnonymous: false })).toBeNull()
+  it("is null when nobody is signed in", () => {
+    expect(rcIdentityFor({ userId: undefined })).toBeNull()
+    expect(rcIdentityFor({ userId: "" })).toBeNull()
   })
 })
 

@@ -89,7 +89,7 @@ No sync traffic happens unless *all* of these hold, checked on every tick in
 
 - `profileStore.syncEnabled` — the user opted in
 - the RevenueCat `recoverysky-attendance` entitlement is active
-- `authenticationStore.isAuthenticated` and **not** `isAnonymous`
+- `authenticationStore.isAuthenticated`
 - a non-empty `userId`
 - not `configStore.maintenanceMode`
 - not `networkStore.isOffline`
@@ -362,7 +362,7 @@ Once per launch, after the DB is open **and** RevenueCat has answered
 | Situation | Action | Pass consumed? |
 | --- | --- | --- |
 | Already done for `BACKUP_PASS_ID` | `skip` | — |
-| Signed out, anonymous, or not entitled | `skip` | **No** — a user who subscribes later gets it on their first launch after that, on every device |
+| Signed out (a guest included), or not entitled | `skip` | **No** — a user who subscribes later gets it on their first launch after that, on every device |
 | Offline or maintenance | `skip` | **No** — `initialBackup()`'s gate would no-op with no signal back, so this defers instead of burning the shot |
 | Entitled, backup off | `prompt` | Yes, on either answer ("ask once, never again") |
 | Entitled, backup on | `backup` → `void initialBackup()` | Yes, when fired — the durable outbox, not the pass, guarantees completion |

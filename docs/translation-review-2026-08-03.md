@@ -893,3 +893,31 @@ screen-reader only; the `…NoEmail` pair must read as complete sentences
 without the address.
 
 - `verifyEmailScreen.*` (added 2026-10-01): English placeholders in all eight locales.
+
+## 2026-10-11 guest mode (English placeholders)
+
+Android-only guest mode (spec `docs/superpowers/specs/2026-09-27-guest-mode-design.md`): a person
+can open the app, browse meetings and join one without an account.
+
+**Still English placeholders (need translating), 24 strings (8 locales × 3 keys):**
+`guestPromo.title` ("Get more from RecoverySky"), `guestPromo.body` ("Track your clean time, log
+attendance and email meeting reports — free account.") and `guestPromo.signIn` ("Sign in") in ar,
+de, es, fr, pt, ru, th, uk. Together they are the promo bar above a guest's meeting list: a short
+heading, one line of copy, and a small pill button. `body` invites the guest to make an account and
+should not read as a nag. `signIn` sits in a compact pill beside the copy, so keep it short.
+
+**Best-effort translations to check, 8 strings:** `loginScreen.justJoinMeetings`, the guest entry
+button on the Login screen. These live in **`app/i18n/platformStrings.ts`**, not in the locale
+files. Every locale file holds `justJoinMeetings: ""` on purpose so the text stays out of the iOS
+bundle, so correct them in `platformStrings.ts`.
+- es "Solo unirme a reuniones"
+- ar "الانضمام إلى الاجتماعات فقط"
+- de "Nur an Meetings teilnehmen"
+- fr "Juste rejoindre des réunions"
+- pt "Só entrar em reuniões"
+- ru "Просто присоединиться к собраниям"
+- th "เข้าร่วมการประชุมเท่านั้น"
+- uk "Просто приєднатися до зустрічей"
+
+The English is "Just join meetings": a way in that gives meetings and nothing else. It sits under
+the sign-in buttons and must not read as one of them.

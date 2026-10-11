@@ -6,7 +6,6 @@ import { BACKUP_PASS_ID, decideBackupPass, type BackupPassInput } from "./backup
 const ready: BackupPassInput = {
   donePassId: null,
   signedIn: true,
-  anonymous: false,
   entitled: true,
   syncEnabled: true,
   offline: false,
@@ -33,9 +32,8 @@ describe("decideBackupPass", () => {
     expect(decideBackupPass({ ...ready, donePassId: "2020-01-01" })).toBe("backup")
   })
 
-  it("skips a signed-out or anonymous user without consuming the pass", () => {
+  it("skips a signed-out user without consuming the pass", () => {
     expect(decideBackupPass({ ...ready, signedIn: false })).toBe("skip")
-    expect(decideBackupPass({ ...ready, anonymous: true })).toBe("skip")
   })
 
   it("skips a user without the attendance entitlement", () => {

@@ -50,6 +50,12 @@
  * type tags came along for the same reason — a meeting's identity shouldn't
  * shrink because it happens to have an address. The header now matches
  * SchedulePopup's block-for-block; keep them in step.
+ *
+ * ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): for a
+ * guest this popup is read-only. The heart, stars and visit count, the
+ * tappable reminder cells and their hint, and "I'm Here" are all hidden: they
+ * belong to the device owner or write attendance, and a guest may be a
+ * stranger holding the owner's phone. Get Directions and the contacts stay.
  */
 
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -85,9 +91,10 @@ import { usePresenceCheck } from "@/hooks/usePresenceCheck"
 import { useReminders } from "@/hooks/useReminders"
 import { useTopicPanel } from "@/hooks/useTopicPanel"
 import { translate } from "@/i18n"
-import { useConfigStore, useProfileStore } from "@/models"
+import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import type { PersistedPresence } from "@/services/attendance"
+import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -129,6 +136,13 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   const { themed, theme } = useAppTheme()
   const profileStore = useProfileStore()
   const configStore = useConfigStore()
+  const authStore = useAuthenticationStore()
+  // ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): a guest
+  // may be a stranger on the device owner's phone, so for a guest this popup is
+  // read-only — no heart/stars/visit count, no reminders, no "I'm Here". Get
+  // Directions and the contacts stay. Read in the observer's render, so the
+  // popup re-renders if the flag flips.
+  const isGuest = authStore.isGuest
   const { isPremium } = useSubscription()
   const isFocused = useIsFocused()
 
@@ -434,6 +448,13 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // attendance they are standing in the room for because a server is down.
   // Do not "restore consistency" by adding one.
   const handleImHere = useCallback(async () => {
+    // ADDED 2026-10-11: the same canLogAttendance() rule the button renders
+    // on, checked again where the timer starts. Defense in depth: the button
+    // is hidden for a guest, but canLogAttendance's JSDoc requires every
+    // place that starts a timer to gate on it, TimerSessionResumer relies on
+    // a guest never persisting a timer session, and SchedulePopup gates
+    // inside its handler the same way.
+    if (!canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest })) return
     if (!meeting || isChecking) return
 
     // Self-heal, deliberately silent. The only way to reach this with the
@@ -554,7 +575,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     }
     // The popup stays open in every rejection case above so the user can
     // retry without re-navigating.
-  }, [meeting, isChecking, check, useMiles, profileStore])
+  }, [meeting, isChecking, check, useMiles, profileStore, isGuest])
 
   // Copy wrinkle accepted, not fixed: formatDistance renders the 150 m radius
   // as "0.1 mi" for US users, which reads oddly for a threshold. It's the same
@@ -830,57 +851,65 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                 meeting has no coordinates AND no address — see
                 buildDirectionsUrl). */}
             <View style={themed($actionRow)}>
-              <View style={themed($feedbackSection)}>
-                <View style={themed($heartStarsRow)}>
-                  <Pressable
-                    onPress={handleToggleLove}
-                    style={themed($heartButton)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("accessibility:favoriteToggle")}
-                    accessibilityState={{ selected: isFavorite }}
-                    accessibilityHint={t("accessibility:doubleTapToToggleFavorite")}
-                  >
-                    <Ionicons
-                      name={isFavorite ? "heart" : "heart-outline"}
-                      size={26}
-                      color={isFavorite ? FAVORITE_COLOR : theme.colors.textDim}
-                    />
-                  </Pressable>
-                  <View style={$ratingContainer}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Pressable
-                        key={star}
-                        onPress={() => handleSetRating(star)}
-                        style={themed($starButton)}
-                        accessibilityRole="button"
-                        accessibilityLabel={t("accessibility:rateStars", { count: star })}
-                        accessibilityState={{ selected: star <= rating }}
-                        accessibilityHint={t("accessibility:doubleTapToRate")}
-                      >
-                        <Ionicons
-                          name={star <= rating ? "star" : "star-outline"}
-                          size={24}
-                          color={star <= rating ? STAR_COLOR : theme.colors.textDim}
-                        />
-                      </Pressable>
-                    ))}
+              {/* CHANGED 2026-10-11: the whole feedback block — heart, stars
+                  and the visits row — is hidden for a guest (spec 2026-09-27).
+                  Those are the device owner's favorites/ratings/visit counts
+                  and feedbackCache returns nothing and writes nothing for a
+                  guest, so a visible control would be dead. Get Directions
+                  below stays. */}
+              {!isGuest && (
+                <View style={themed($feedbackSection)}>
+                  <View style={themed($heartStarsRow)}>
+                    <Pressable
+                      onPress={handleToggleLove}
+                      style={themed($heartButton)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("accessibility:favoriteToggle")}
+                      accessibilityState={{ selected: isFavorite }}
+                      accessibilityHint={t("accessibility:doubleTapToToggleFavorite")}
+                    >
+                      <Ionicons
+                        name={isFavorite ? "heart" : "heart-outline"}
+                        size={26}
+                        color={isFavorite ? FAVORITE_COLOR : theme.colors.textDim}
+                      />
+                    </Pressable>
+                    <View style={$ratingContainer}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Pressable
+                          key={star}
+                          onPress={() => handleSetRating(star)}
+                          style={themed($starButton)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t("accessibility:rateStars", { count: star })}
+                          accessibilityState={{ selected: star <= rating }}
+                          accessibilityHint={t("accessibility:doubleTapToRate")}
+                        >
+                          <Ionicons
+                            name={star <= rating ? "star" : "star-outline"}
+                            size={24}
+                            color={star <= rating ? STAR_COLOR : theme.colors.textDim}
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
                   </View>
-                </View>
 
-                {/* Visit count + how long ago — same markup, glyph and copy as
-                    SchedulePopup's joins row, under the stars. Hidden entirely at zero rather than
-                    showing "0 joins", so a meeting the user has never been to
-                    reads the same as it always did. */}
-                {joinCount > 0 && (
-                  <View style={themed($joinsRow)}>
-                    <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
-                    <Text style={themed($joinsText)}>
-                      {joinCount} {joinCount === 1 ? t("liveScreen:join") : t("liveScreen:joins")}
-                      {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
-                    </Text>
-                  </View>
-                )}
-              </View>
+                  {/* Visit count + how long ago — same markup, glyph and copy as
+                      SchedulePopup's joins row, under the stars. Hidden entirely at zero rather than
+                      showing "0 joins", so a meeting the user has never been to
+                      reads the same as it always did. */}
+                  {joinCount > 0 && (
+                    <View style={themed($joinsRow)}>
+                      <Ionicons name="enter-outline" size={14} color={theme.colors.textDim} />
+                      <Text style={themed($joinsText)}>
+                        {joinCount} {joinCount === 1 ? t("liveScreen:join") : t("liveScreen:joins")}
+                        {lastJoin > 0 && ` · ${DateTime.fromMillis(lastJoin).toRelative()}`}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
               {!!directionsUrl && (
                 <Pressable
@@ -928,21 +957,33 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
               </View>
             )}
 
-            {/* Schedule grid + reminders */}
+            {/* Schedule grid + reminders.
+                CHANGED 2026-10-11: read-only for a guest (spec 2026-09-27).
+                Reminders need a user; ScheduleGrid renders plain, non-tappable
+                cells when `onCellPress` is absent, and the tap-to-set-a-reminder
+                hint below is hidden with them. */}
             <ScheduleGrid
               scheduleData={scheduleGridData}
               currentDow={currentDow}
-              onCellPress={handleCellPress}
-              reminderCells={reminderCells}
+              onCellPress={isGuest ? undefined : handleCellPress}
+              reminderCells={isGuest ? undefined : reminderCells}
             />
-            <Text style={themed($reminderHint)} tx="inPersonPopup:tapTimesHint" />
+            {!isGuest && <Text style={themed($reminderHint)} tx="inPersonPopup:tapTimesHint" />}
 
             {/* "I'm Here" — only surfaced when attendance tracking is on.
                 Tapping it takes a fresh GPS fix (usePresenceCheck) and only
                 opens the timer once the user is verified within radius; every
                 rejection is explained via Alert in handleImHere above rather
                 than reflected in this button's own visual state. */}
-            {profileStore.attendanceEnabled && (
+            {/* CHANGED 2026-10-11: never for guests — "I'm Here" writes attendance.
+                Gated by canLogAttendance() (services/attendance/
+                attendanceGateLogic.ts), not `attendanceEnabled` alone: the
+                owner's MMKV setting persists into guest mode, and a timer
+                session started by a guest is exactly what TimerSessionResumer
+                relies on never existing. The rule lives in that helper so a
+                vitest case pins it; keep it there rather than re-inlining
+                `&& !isGuest`. */}
+            {canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest }) && (
               <Pressable
                 onPress={handleImHere}
                 disabled={isChecking}

@@ -27,8 +27,11 @@ export const BACKUP_PASS_ID = "2026-09-14"
 export interface BackupPassInput {
   /** The pass id recorded in MMKV, or null if no pass has ever completed. */
   donePassId: string | null
+  /**
+   * CHANGED 2026-10-11: the separate input for the old device-id login is gone
+   * with that login. A guest is not signed in either, so a guest skips.
+   */
   signedIn: boolean
-  anonymous: boolean
   /** RevenueCat `recoverysky-attendance` entitlement — the one /sync requires. */
   entitled: boolean
   /** profileStore.syncEnabled — the per-device Cloud Backup toggle. */
@@ -43,7 +46,7 @@ export interface BackupPassInput {
  * - `"skip"`    — do nothing AND leave the pass unconsumed. This covers three
  *   different situations on purpose:
  *     1. Already done for this pass id.
- *     2. Not eligible yet (signed out, anonymous, not entitled). Leaving the
+ *     2. Not eligible yet (signed out, not entitled). Leaving the
  *        pass open means a user who subscribes next month gets prompted on
  *        their first launch after that, on every device — which closes the
  *        second-device gap the purchase-time prompt can't reach.
@@ -55,7 +58,7 @@ export type BackupPassAction = "skip" | "prompt" | "backup"
 
 export function decideBackupPass(input: BackupPassInput): BackupPassAction {
   if (input.donePassId === BACKUP_PASS_ID) return "skip"
-  if (!input.signedIn || input.anonymous) return "skip"
+  if (!input.signedIn) return "skip"
   if (!input.entitled) return "skip"
   if (input.offline || input.maintenanceMode) return "skip"
   return input.syncEnabled ? "backup" : "prompt"

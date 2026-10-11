@@ -2,7 +2,7 @@
  * SQLite Encryption Key Service
  *
  * Manages the encryption key for SQLite database:
- * - Anonymous users: Generate and store a local key in SecureStore
+ * - Generated locally on first launch and stored in SecureStore (per install, not per user)
  * - Authenticated users: Use key from JWT custom claims
  *   CHANGED 2026-09-30: dormant — no Auth0 Action issues that claim (see
  *   auth0/README.md "Not implemented"), so in practice every device uses

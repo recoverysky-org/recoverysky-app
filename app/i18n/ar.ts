@@ -76,7 +76,8 @@ const ar: Translations = {
       "سجّل دخولك للوصول إلى الاشتراكات والميزات المميزة. تتطلب Apple حساباً للتطبيقات التي تقدم خدمات تفاعلية مثل مؤتمرات الفيديو.",
     enterDetailsAndroid:
       "سجّل دخولك للوصول إلى الاشتراكات والميزات المميزة. تتطلب الاشتراكات حساباً مسجلاً.\n\nيمكنك تسجيل الدخول والخروج في أي وقت من الإعدادات.",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "جارٍ فتح المتصفح للمصادقة...",
     signingIn: "جارٍ تسجيل الدخول...",
     euaTitle: "الاتفاقيات القانونية",
@@ -109,6 +110,13 @@ const ar: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -405,8 +413,6 @@ const ar: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "الترقية إلى المميز",
     manageSubscription: "إدارة الاشتراك",
-    loginToSubscribe: "سجّل الدخول للاشتراك",
-    loginToSubscribeHint: "تتطلب الاشتراكات حساباً في التطبيق.",
     restorePurchases: "استعادة المشتريات",
     subscriptionSuccess: "مرحباً بك في المميز!",
     subscriptionSuccessMessage: "شكراً لدعمك لـ RecoverySky. استمتع بالميزات المميزة!",
@@ -425,7 +431,6 @@ const ar: Translations = {
     // Account Section
     accountSection: "الحساب",
     userId: "معرّف المستخدم",
-    anonymousUser: "مجهول",
     accountActive: "نشط",
     accountLinked: "مرتبط",
     accountMethodEmail: "البريد الإلكتروني",

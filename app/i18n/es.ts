@@ -78,7 +78,8 @@ const es: Translations = {
       "Inicia sesión para acceder a las suscripciones y funciones premium. Apple requiere una cuenta para apps con servicios interactivos como videoconferencias.",
     enterDetailsAndroid:
       "Inicia sesión para acceder a las suscripciones y funciones premium. Las suscripciones requieren una cuenta activa.\n\nPuedes iniciar y cerrar sesión en cualquier momento en Ajustes.",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "Abriendo navegador para autenticación...",
     signingIn: "Iniciando sesión...",
     euaTitle: "Acuerdos Legales",
@@ -113,6 +114,13 @@ const es: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -401,8 +409,6 @@ const es: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Actualizar a Premium",
     manageSubscription: "Gestionar Suscripción",
-    loginToSubscribe: "Iniciar Sesión para Suscribirse",
-    loginToSubscribeHint: "Las suscripciones requieren una cuenta en la app.",
     restorePurchases: "Restaurar Compras",
     subscriptionSuccess: "¡Bienvenido a Premium!",
     subscriptionSuccessMessage:
@@ -432,7 +438,6 @@ const es: Translations = {
     // Account Section
     accountSection: "Cuenta",
     userId: "ID de Usuario",
-    anonymousUser: "Anónimo",
     accountActive: "Activa",
     accountLinked: "Vinculada",
     accountMethodEmail: "Correo",

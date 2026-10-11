@@ -77,7 +77,8 @@ const ru: Translations = {
       "Войди, чтобы получить доступ к подпискам и премиум-функциям. Apple требует аккаунт для приложений с интерактивными сервисами, такими как видеоконференции.",
     enterDetailsAndroid:
       "Войди, чтобы получить доступ к подпискам и премиум-функциям. Для подписок нужен аккаунт.\n\nТы можешь войти и выйти в любое время в Настройках.",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "Открываем браузер для авторизации...",
     signingIn: "Выполняем вход...",
     euaTitle: "Юридические соглашения",
@@ -112,6 +113,13 @@ const ru: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -411,8 +419,6 @@ const ru: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Перейти на Премиум",
     manageSubscription: "Управление подпиской",
-    loginToSubscribe: "Войти для подписки",
-    loginToSubscribeHint: "Для подписки необходим аккаунт в приложении.",
     restorePurchases: "Восстановить покупки",
     subscriptionSuccess: "Добро пожаловать в Премиум!",
     subscriptionSuccessMessage: "Спасибо за поддержку RecoverySky. Наслаждайся премиум-функциями!",
@@ -431,7 +437,6 @@ const ru: Translations = {
     // Account Section
     accountSection: "Аккаунт",
     userId: "ID пользователя",
-    anonymousUser: "Анонимный",
     accountActive: "Активен",
     accountLinked: "Связан",
     accountMethodEmail: "Эл. почта",

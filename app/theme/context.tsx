@@ -46,6 +46,15 @@ export const ThemeContext = createContext<ThemeContextType | null>(null)
 
 export interface ThemeProviderProps {
   initialContext?: ThemeContextModeT
+  /**
+   * ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md): true while the
+   * app is in guest mode, which shows the default look instead of the saved
+   * scheme and tint. A prop rather than a store read: importing `@/models`
+   * here closes a dependency cycle (theme → models → api → db barrel →
+   * DatabaseLoadingOverlay → theme). app.tsx feeds it from a MobX observer
+   * wrapper so the theme follows the flag live. Defaults to false.
+   */
+  isGuest?: boolean
 }
 
 /**
@@ -60,6 +69,7 @@ export interface ThemeProviderProps {
 export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
   children,
   initialContext,
+  isGuest = false,
 }) => {
   log.debug("ThemeProvider initializing")
 
@@ -132,6 +142,13 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
     [setThemeColorValue],
   )
 
+  // ADDED 2026-10-11: guests get the default look (spec 2026-09-27) — the
+  // saved scheme/tint are the device owner's Settings choices.
+  // Only what is shown changes: the MMKV values stay as saved, so Sign in →
+  // exitGuest() flips the prop and the owner's look returns with no reload.
+  const effectiveScheme = isGuest ? undefined : themeScheme
+  const effectiveColor = isGuest ? undefined : themeColor
+
   /**
    * initialContext is the theme context passed in from the app.tsx file and always takes precedence.
    * themeScheme is the value from MMKV. If undefined, we fall back to the system theme
@@ -140,11 +157,17 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
    * means dark (see legacySystemPin above for how pre-existing installs keep their
    * look). Settings and onboarding only ever write "light"/"dark", so there was
    * no user-facing "follow system" option to preserve.
+   * CHANGED 2026-10-11: reads `effectiveScheme`, which is undefined for a
+   * guest, so a guest gets the unsaved-scheme look: dark, as on a fresh
+   * install. legacySystemPin stays in the chain as device-level migration. It
+   * holds a value only during the session that saves it (the first launch
+   * after the dark default), so only someone who enters guest mode in that
+   * same session sees the pinned OS scheme instead.
    */
   const themeContext: ImmutableThemeContextModeT = useMemo(() => {
-    const t = initialContext || themeScheme || legacySystemPin || "dark"
+    const t = initialContext || effectiveScheme || legacySystemPin || "dark"
     return t === "dark" ? "dark" : "light"
-  }, [initialContext, themeScheme, legacySystemPin])
+  }, [initialContext, effectiveScheme, legacySystemPin])
 
   const navigationTheme: NavTheme = useMemo(() => {
     switch (themeContext) {
@@ -159,18 +182,20 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
     const baseTheme = themeContext === "dark" ? darkTheme : lightTheme
 
     // Apply custom tint color if set
-    if (themeColor) {
+    // CHANGED 2026-10-11: `effectiveColor`, so a guest never gets the owner's
+    // tint (see effectiveScheme above).
+    if (effectiveColor) {
       return {
         ...baseTheme,
         colors: {
           ...baseTheme.colors,
-          tint: themeColor,
+          tint: effectiveColor,
         },
       } as Theme
     }
 
     return baseTheme
-  }, [themeContext, themeColor])
+  }, [themeContext, effectiveColor])
 
   useEffect(() => {
     log.debug("Theme changed, setting imperative theming", { themeContext })
@@ -198,7 +223,9 @@ export const ThemeProvider: FC<PropsWithChildren<ThemeProviderProps>> = ({
     setThemeContextOverride,
     setThemeColor,
     theme,
-    themeColor,
+    // CHANGED 2026-10-11: the effective tint, undefined for a guest, so a
+    // reader of `themeColor` agrees with `theme.colors.tint`.
+    themeColor: effectiveColor,
     themeContext,
     themed,
   }

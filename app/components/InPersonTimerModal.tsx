@@ -86,7 +86,10 @@ export const InPersonTimerModal: FC<InPersonTimerModalProps> = ({
 
   const meetingId = meeting?.id
   const meetingName = meeting?.name
-  const uid = authStore.userId || "anonymous"
+  // Same fallback as ExternalZoomTimerModal: "" is unreachable, since the timer
+  // is only reachable signed in. CHANGED 2026-10-11: was a literal placeholder
+  // uid from the removed device-id login.
+  const uid = authStore.userId ?? ""
 
   const { startedAt, elapsed, isResume, beginSave, endSave } = useAttendanceTimer({
     active: visible && !!meetingId && !!presence,

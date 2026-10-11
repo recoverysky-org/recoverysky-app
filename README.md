@@ -34,7 +34,7 @@ Discover recovery meetings near you with powerful filtering by fellowship, time,
 Meet **Sky** — your AI recovery companion. Get instant answers about meetings, recovery resources, literature, and more through natural conversation.
 
 ### 🔐 **Privacy-First Design**
-Your data stays yours. SQLCipher encryption protects your local database, with seamless key migration when upgrading from anonymous to authenticated accounts.
+Your data stays yours. SQLCipher encryption protects your local database, with a key generated on your device.
 
 ### 📱 **Offline-First**
 Works without internet. SQLite + Drizzle ORM ensures your meeting data and personal settings are always available, syncing when you're back online.

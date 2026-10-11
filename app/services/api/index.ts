@@ -398,7 +398,7 @@ export const SKIP_AUTH_GATE_HEADER = "X-Skip-Auth-Gate"
 export interface TokenRefreshers {
   /** Fresh device JWT, or null when running the X-API-Key fallback. */
   device: () => Promise<string | null>
-  /** Fresh access token, or null when anonymous / signed out. */
+  /** Fresh access token, or null when signed out (a guest included). */
   user: () => Promise<string | null>
   /**
    * ADDED 2026-09-10: the server answered a bearer with a code meaning it can

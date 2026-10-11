@@ -33,6 +33,7 @@ import {
   requestNotificationPermission,
   loginNotificationUser,
 } from "@/services/notifications"
+import { pushRegistrationUserId } from "@/services/notifications/pushRegistrationLogic"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -205,8 +206,15 @@ export const ReminderEditorModal: FC<ReminderEditorModalProps> = ({
       const permitted = await hasNotificationPermission()
       if (!permitted) {
         const granted = await requestNotificationPermission()
-        if (granted && authStore.userIdentifier && authStore.deviceId) {
-          loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
+        // CHANGED 2026-10-11: was keyed on a getter that fell back to the
+        // device id — a signed-out tap sent POST /push-tokens/ to an
+        // authenticateSignedIn route (a CrowdSec-counted 401/403).
+        const pushUserId = pushRegistrationUserId({
+          userId: authStore.userId,
+          hasSession: !!authStore.accessToken || !!authStore.refreshToken,
+        })
+        if (granted && pushUserId && authStore.deviceId) {
+          loginNotificationUser(pushUserId, authStore.deviceId).catch(() => {})
         }
       }
 

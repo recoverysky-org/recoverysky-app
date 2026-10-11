@@ -77,7 +77,8 @@ const uk: Translations = {
       "Увійди, щоб отримати доступ до підписок і преміум-функцій. Apple вимагає обліковий запис для додатків з інтерактивними сервісами, як-от відеоконференції.",
     enterDetailsAndroid:
       "Увійди, щоб отримати доступ до підписок і преміум-функцій. Для підписок потрібен обліковий запис.\n\nТи можеш увійти та вийти будь-коли в Налаштуваннях.",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "Відкриваємо браузер для авторизації...",
     signingIn: "Виконуємо вхід...",
     euaTitle: "Юридичні угоди",
@@ -112,6 +113,13 @@ const uk: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -410,8 +418,6 @@ const uk: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Перейти на Преміум",
     manageSubscription: "Керування підпискою",
-    loginToSubscribe: "Увійти для підписки",
-    loginToSubscribeHint: "Для підписки потрібен обліковий запис у додатку.",
     restorePurchases: "Відновити покупки",
     subscriptionSuccess: "Ласкаво просимо до Преміум!",
     subscriptionSuccessMessage: "Дякуємо за підтримку RecoverySky. Насолоджуйся преміум-функціями!",
@@ -430,7 +436,6 @@ const uk: Translations = {
     // Account Section
     accountSection: "Обліковий запис",
     userId: "ID користувача",
-    anonymousUser: "Анонімний",
     accountActive: "Активний",
     accountLinked: "Пов'язаний",
     accountMethodEmail: "Ел. пошта",

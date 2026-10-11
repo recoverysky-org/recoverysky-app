@@ -71,7 +71,7 @@ const CONTEXT_FIELDS: ReadonlyArray<keyof LoggerContext> = [
  * now, and only when the record does not already carry them.
  *
  * "Unresolved" means never passed to `setContext` at all, NOT "currently
- * absent": app.tsx writes `userId: undefined` explicitly for an anonymous
+ * absent": app.tsx writes `userId: undefined` explicitly for a signed-out
  * user and on sign-out, which resolves the key as known-absent. So a line
  * logged while signed out can never pick up a later sign-in's identity.
  */
@@ -164,8 +164,8 @@ class LoggerImpl implements Logger {
     // set the context keys. They used to win the spread below, and the push
     // path's `userId: sub.slice(0, 8) + "..."` replaced the hashed userId on
     // ~950 lines a day — unattributable, and part of the raw sub in Loki.
-    // Stripping (rather than just spreading context last) also covers an
-    // anonymous user, whose context has no userId for a caller's to lose to.
+    // Stripping (rather than just spreading context last) also covers a
+    // signed-out user, whose context has no userId for a caller's to lose to.
     // `traceId` is deliberately NOT reserved: the per-request "API request"
     // line carries it as an attribute (see the Tracing note in CLAUDE.md).
     const record: LogRecord = {

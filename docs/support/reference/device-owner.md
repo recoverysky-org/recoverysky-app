@@ -21,7 +21,7 @@ A separate in-memory field, `foreignSession`, holds a refused session (sub, emai
 ### When it is set
 
 - **Adopt.** The first accepted sign-in on an install with no owner sets it. Log: INFO `Device owner adopted` with `ownerId` (hashed).
-- **Hydration stamp.** On a cold start of an install that was already signed in when this feature arrived, the owner is stamped from the stored `userId` and `authEmail` if there is no owner, there is a user id, the session is not anonymous, and the user id is not the device id. Log: INFO `Owner stamped from hydration` (module `RootStore`). The guards exist because a device-id owner is unrecoverable (the wrong-account screen would offer only Cancel).
+- **Hydration stamp.** On a cold start of an install that was already signed in when this feature arrived, the owner is stamped from the stored `userId` and `authEmail` if there is no owner and there is a user id. Log: INFO `Owner stamped from hydration` (module `RootStore`). Just before the stamp, a device id that the old device-id login left in `userId` is cleared (INFO `Cleared legacy device-id userId`, module `RootStore`), so only an Auth0 sub is ever stamped. The cleanup runs first because a device-id owner is unrecoverable (the wrong-account screen would offer only Cancel).
 - **Relink.** The owner moves to the primary's sub ([below](#relink-after-another-device-linked-the-account)).
 - **Email refresh.** Every owner code sign-in re-stores the typed address.
 
@@ -46,7 +46,7 @@ A separate in-memory field, `foreignSession`, holds a refused session (sub, emai
 
 On `mismatch` nothing is written: no tokens, no user id, no SecureStore copy. `isAuthenticated` stays false, so sync, RevenueCat, push and the Sentry identity never see the foreign session. The Auth0 SDK still holds the foreign credentials in its own keychain, so a **cold start restores the session and hits the gate again, landing on the same screen**.
 
-An anonymous session never reaches the gate as anonymous (the call site passes a literal `false`), and the anonymous login is not offered on the login screen.
+A guest never reaches the gate: guest mode (Android only) has no Auth0 session.
 
 ### Foreign session on an owned device
 
@@ -127,7 +127,7 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 
 **Steps, in order (verified in `app/screens/SettingsScreen.tsx`, `handleDeleteUserData`):**
 
-1. RevenueCat logout (`logOut`; the SDK goes back to an anonymous id).
+1. RevenueCat logout (`logOut`; the SDK goes back to its own random customer id).
 2. Push opt-out and notification user logout.
 3. Clear the AI conversation history.
 4. `profileStore.reset()`.
@@ -174,6 +174,7 @@ Hash first, locally ([tools](tools.md#hash-an-auth0-sub-into-the-log-userid)). U
 - `app/services/auth/secureStorage.ts`
 - `app/models/AuthenticationStore.ts`
 - `app/models/helpers/setupRootStore.ts`
+- `app/models/helpers/legacyIdentityLogic.ts`
 - `app/screens/WrongAccountScreen.tsx`
 - `app/screens/WrongAccountView.tsx`
 - `app/screens/SettingsScreen.tsx` (`handleDeleteUserData`)

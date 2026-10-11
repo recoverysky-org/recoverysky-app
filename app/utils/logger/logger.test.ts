@@ -591,10 +591,10 @@ describe("Logger", () => {
         apiKey: "test-key",
       })
 
-      // Anonymous user: no userId in context, so there is nothing to win the
+      // Signed-out user: no userId in context, so there is nothing to win the
       // spread — the caller's value must still not reach the record.
       logger.setContext({ deviceId: "device-hash" })
-      logger.info("Anonymous", { userId: "auth0|6a...", deviceId: "raw-dev..." })
+      logger.info("Signed out", { userId: "auth0|6a...", deviceId: "raw-dev..." })
 
       await logger.flush()
 
@@ -681,13 +681,13 @@ describe("Logger", () => {
       logger.destroy()
     })
 
-    it("should not back-fill a key resolved as absent (anonymous user)", async () => {
+    it("should not back-fill a key resolved as absent (signed-out user)", async () => {
       const logger = make()
 
-      // app.tsx writes userId: hashUserId(undefined) === undefined for an
-      // anonymous user — that resolves the key.
+      // app.tsx writes userId: hashUserId(undefined) === undefined for a
+      // signed-out user — that resolves the key.
       logger.setContext({ deviceId: "device-abc", userId: undefined })
-      logger.info("Anonymous line")
+      logger.info("Signed-out line")
       logger.setContext({ userId: "0123456789abcdef" })
 
       await logger.flush()

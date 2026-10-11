@@ -9,6 +9,7 @@ import {
   optOutNotifications,
   requestNotificationPermission,
 } from "@/services/notifications"
+import { pushRegistrationUserId } from "@/services/notifications/pushRegistrationLogic"
 import { trackEvent } from "@/services/tracking"
 import { decideLocationGate, toOsStatus } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
@@ -39,8 +40,15 @@ export function usePermissionToggles() {
           return
         }
         // Ensure push token is registered with backend (fetches token if needed)
-        if (authStore.userIdentifier && authStore.deviceId) {
-          loginNotificationUser(authStore.userIdentifier, authStore.deviceId).catch(() => {})
+        // CHANGED 2026-10-11: was keyed on a getter that fell back to the
+        // device id — a signed-out tap sent POST /push-tokens/ to an
+        // authenticateSignedIn route (a CrowdSec-counted 401/403).
+        const pushUserId = pushRegistrationUserId({
+          userId: authStore.userId,
+          hasSession: !!authStore.accessToken || !!authStore.refreshToken,
+        })
+        if (pushUserId && authStore.deviceId) {
+          loginNotificationUser(pushUserId, authStore.deviceId).catch(() => {})
         }
         optInNotifications()
       } else {

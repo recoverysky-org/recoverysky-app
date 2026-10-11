@@ -27,7 +27,6 @@ function makeStore(): UserRefresherStore & {
     refreshToken: "rt-1",
     idToken: undefined,
     expiresAt: undefined, // undefined → shouldRefresh() says refresh now
-    isAnonymous: false,
     // Explicit type param: `ReturnType<typeof vi.fn>` alone resolves the
     // generic's constraint (Procedure | Constructable) rather than its
     // default, which vitest 4's Mock<T> then refuses to assign to the
@@ -235,18 +234,6 @@ describe("buildUserTokenRefresher — markRejected()", () => {
 })
 
 describe("buildUserTokenRefresher — guards that predate this change", () => {
-  it("returns null without refreshing for an anonymous user", async () => {
-    const h = harness({
-      accessToken: GOOD_JWT,
-      refreshToken: null,
-      idToken: null,
-      expiresAt: 1_800_000_000,
-    })
-    h.authStore.isAnonymous = true
-    await expect(h.refresher.getToken()).resolves.toBeNull()
-    expect(h.getFreshCredentials).not.toHaveBeenCalled()
-  })
-
   it("returns null without refreshing when there is no session at all", async () => {
     const h = harness({
       accessToken: GOOD_JWT,

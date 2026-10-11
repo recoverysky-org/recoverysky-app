@@ -79,7 +79,8 @@ const fr: Translations = {
       "Connecte-toi pour accéder aux abonnements et aux fonctions premium. Apple exige un compte pour les apps avec des services interactifs comme la vidéoconférence.",
     enterDetailsAndroid:
       "Connecte-toi pour accéder aux abonnements et aux fonctions premium. Les abonnements nécessitent un compte.\n\nTu peux te connecter et te déconnecter en tout temps dans les Réglages.",
-    continueAnonymously: "",
+    // ADDED 2026-10-11 — empty on purpose; the Android text lives in platformStrings.ts (see en.ts).
+    justJoinMeetings: "",
     openingBrowser: "Ouverture du navigateur pour l'authentification...",
     signingIn: "Connexion en cours...",
     euaTitle: "Accords Juridiques",
@@ -114,6 +115,13 @@ const fr: Translations = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md).
+  // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.
@@ -417,8 +425,6 @@ const fr: Translations = {
     subscriptionLoading: "...",
     upgradeToPro: "Passer à Premium",
     manageSubscription: "Gérer l'abonnement",
-    loginToSubscribe: "Se connecter pour s'abonner",
-    loginToSubscribeHint: "Les abonnements nécessitent un compte dans l'app.",
     restorePurchases: "Restaurer les achats",
     subscriptionSuccess: "Bienvenue dans Premium!",
     subscriptionSuccessMessage:
@@ -438,7 +444,6 @@ const fr: Translations = {
     // Account Section
     accountSection: "Compte",
     userId: "ID utilisateur",
-    anonymousUser: "Anonyme",
     accountActive: "Active",
     accountLinked: "Associée",
     accountMethodEmail: "E-mail",

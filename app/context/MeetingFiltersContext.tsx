@@ -11,6 +11,9 @@
  * That is what survives the cold-start race: `profileStore.fellowship` reads
  * "AA" until ProfileHydrator loads the real value, and deriving it lets the
  * hydrated value through, where seeding state would have frozen "AA".
+ * CHANGED 2026-10-11 (spec 2026-09-27-guest-mode-design.md, Decision 2): for a
+ * guest, `null` means "AA", never the device owner's Settings fellowship (see
+ * savedFellowshipInput). A remembered pick works as before.
  *
  * Follows Settings through liveEvents `preferences_changed` (reason
  * "fellowship"), emitted only by ProfileStore.setFellowship(), i.e. a real
@@ -46,12 +49,13 @@ import {
 import { observer } from "mobx-react-lite"
 
 import { liveEvents } from "@/db"
-import { useProfileStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import type { MeetingsSegment } from "@/navigators/navigationTypes"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import {
   parsePersistedLanguage,
   resolveFellowship,
+  savedFellowshipInput,
   type LanguageCarrier,
 } from "@/utils/meetingFiltersLogic"
 import { loadString, remove, saveString } from "@/utils/storage"
@@ -92,6 +96,7 @@ const MeetingFiltersContext = createContext<MeetingFiltersValue | null>(null)
 export const MeetingFiltersProvider: FC<PropsWithChildren> = observer(
   function MeetingFiltersProvider({ children }) {
     const profileStore = useProfileStore()
+    const authStore = useAuthenticationStore()
     const [persistedFellowship, setPersistedFellowship] = useState<string | null>(() =>
       loadString(FELLOWSHIP_KEY),
     )
@@ -103,9 +108,14 @@ export const MeetingFiltersProvider: FC<PropsWithChildren> = observer(
     >({})
 
     // Read during render so this observer re-renders when hydration lands.
+    // CHANGED 2026-10-11: and when guest mode flips. A guest's `saved` input
+    // is "AA" (see the file header and savedFellowshipInput).
     const fellowship = resolveFellowship({
       persisted: persistedFellowship,
-      saved: profileStore.fellowship,
+      saved: savedFellowshipInput({
+        isGuest: authStore.isGuest,
+        profileFellowship: profileStore.fellowship,
+      }),
       active: ACTIVE_FELLOWSHIPS,
     })
 

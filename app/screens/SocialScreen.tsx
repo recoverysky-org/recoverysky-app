@@ -63,7 +63,7 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   const tokenRequestInFlight = useRef(false)
 
   const socialUrl = configStore.socialUrl
-  const userIdentifier = authStore.userIdentifier
+  const signedInUserId = authStore.userId
   // ProfileStore stores empty string when the user hasn't picked a custom
   // tint — fall back to the app's default so the SPA always has a usable
   // hex value (no need to handle empty/null on its side).
@@ -119,7 +119,7 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
   useEffect(() => {
     if (!isReadyRef.current) return
     injectReplykeToken()
-  }, [userIdentifier, injectReplykeToken])
+  }, [signedInUserId, injectReplykeToken])
 
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
@@ -198,7 +198,9 @@ export const SocialScreen: FC<MainTabScreenProps<"Social">> = observer(function 
         }}
         startInLoadingState
         renderLoading={() => (
-          <View style={[StyleSheet.absoluteFill, styles.loader, { backgroundColor: colors.background }]}>
+          <View
+            style={[StyleSheet.absoluteFill, styles.loader, { backgroundColor: colors.background }]}
+          >
             <ActivityIndicator color={colors.tint} />
           </View>
         )}

@@ -26,12 +26,27 @@ export const AuthenticationStoreModel = types
   .props({
     /** User's email address */
     authEmail: "",
-    /** User ID from OAuth provider (sub claim) or deviceId for anonymous users */
+    /** Auth0 user id (sub claim). Undefined when signed out or a guest — never a device id (CHANGED 2026-10-11). */
     userId: types.maybe(types.string),
     /** Unique device identifier, captured on app start */
     deviceId: types.maybe(types.string),
-    /** Whether user is using anonymous login (no OAuth) */
-    isAnonymous: types.optional(types.boolean, false),
+    /**
+     * ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md).
+     * Android-only "Just join meetings" mode: Meetings tab only, no account, no
+     * userId, nothing personal stored. Persisted so a guest relaunches straight
+     * into meetings. Never implies an identity — isAuthenticated stays false
+     * for a guest.
+     * CHANGED 2026-10-11: this said "no stored data", which was false. The
+     * device keeps only this flag and shared device settings: the Meetings
+     * filter and view picks, the location choice and the legal acceptance
+     * (CLAUDE.md "Guest mode (Android)" lists them).
+     * CHANGED 2026-10-11: "no userId" is now enforced, not only stated.
+     * This flag is true only while userId is undefined: enterGuest() refuses
+     * while a userId is present (see there for the two Login states that
+     * carry one), because guest mode over a signed-in owner's session ran the
+     * owner's Join with no attendance timer.
+     */
+    isGuest: types.optional(types.boolean, false),
     /**
      * ADDED 2026-09-17 (spec 1 §2.4). Written only when a session is ACCEPTED
      * by the ownership gate — a foreign session must not leave this behind.
@@ -105,13 +120,9 @@ export const AuthenticationStoreModel = types
   .views((store) => ({
     /**
      * Whether the user is authenticated.
-     * Returns true for:
-     * - Anonymous users (isAnonymous=true with deviceId)
-     * - OAuth users (valid, non-expired access token)
+     * Returns true for OAuth users with a valid, non-expired access token.
      */
     get isAuthenticated() {
-      // Anonymous users are authenticated
-      if (store.isAnonymous && store.deviceId) return true
       // OAuth users need valid token
       if (!store.accessToken) return false
       if (store.expiresAt && store.expiresAt < Date.now()) return false
@@ -129,10 +140,6 @@ export const AuthenticationStoreModel = types
      */
     get canRefresh() {
       return !!store.refreshToken
-    },
-    /** The effective user identifier: Auth0 userId for registered users, deviceId for anonymous */
-    get userIdentifier(): string | undefined {
-      return store.userId ?? store.deviceId
     },
     /**
      * Email validation error (if any)
@@ -267,26 +274,56 @@ export const AuthenticationStoreModel = types
       store.forcedLogoutNotice = value
     },
     /**
-     * Login as anonymous user
-     * Uses deviceId as userId for tracking
+     * Enter guest mode (LoginScreen "Just join meetings"). Never sets userId.
+     * Does nothing (and logs a warning) while a userId is present.
      */
-    loginAnonymously() {
-      log.info("loginAnonymously()")
-      store.isAnonymous = true
-      store.userId = store.deviceId
+    enterGuest() {
+      // ADDED 2026-10-11: refuse while a userId is present, so a guest
+      // never has one. Login shows with a userId in two states:
+      // - a signed-in owner whose access token is renewing at cold start: the
+      //   persisted userId comes back beside an expired token, and Login stays
+      //   up until a renewal lands, which offline can be the whole session;
+      // - a forced logout deferred for a persisted attendance timer: the eject
+      //   waits for the timer's Save or Cancel, and userId stays until then.
+      // Guest mode over either is the owner's own session with every guest
+      // guard on: no hearts or stars, a read-only reminder grid, and Join
+      // opening Zoom with no attendance timer (canLogAttendance is false), so
+      // the meeting earns no credit and nothing says why. Login hides the
+      // link in both states (decideGuestEntry, screens/login/guestEntryLogic.ts);
+      // this guard keeps the invariant whatever the caller. The sign-in path
+      // clears the flag before it sets userId (useAuth0Wrapper), so the two
+      // are never set together.
+      if (store.userId) {
+        // No identity on this line: the reason is enough to diagnose.
+        log.warn("enterGuest() refused: a signed-in identity is present")
+        return
+      }
+      log.info("enterGuest()")
+      store.isGuest = true
+    },
+    /** Leave guest mode — the Sign-in action, or any accepted real session. */
+    exitGuest() {
+      if (!store.isGuest) return
+      log.info("exitGuest()")
+      store.isGuest = false
     },
     /**
      * Logout - clear all auth state
      */
     logout() {
-      log.info("logout()", { wasAnonymous: store.isAnonymous, hadUserId: !!store.userId })
+      log.info("logout()", { hadUserId: !!store.userId })
       store.accessToken = undefined
       store.refreshToken = undefined
       store.idToken = undefined
       store.expiresAt = undefined
       store.authEmail = ""
       store.userId = undefined
-      store.isAnonymous = false
+      // ADDED 2026-10-11: guest mode is auth state too, so a sign-out never
+      // leaves a stale flag that would route the next launch into guest
+      // browsing instead of Login. Every logout() caller is a deliberate
+      // sign-out or a lost session, never a plain cold start, so this cannot
+      // wipe a guest's persisted flag on relaunch.
+      store.isGuest = false
       store.pendingLogout = false
       // ADDED 2026-09-17: the session's method goes with the session; the
       // owner record does NOT — it protects the data that stays on disk.

@@ -5,6 +5,7 @@
  * and a "main" flow which the user will use once logged in.
  */
 import { useEffect } from "react"
+import { Platform } from "react-native"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import { observer } from "mobx-react-lite"
@@ -22,6 +23,8 @@ import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { useAppTheme } from "@/theme/context"
 import { logger } from "@/utils/logger"
 
+import { decideAppRoute } from "./appRouteLogic"
+import { GuestNavigator } from "./GuestNavigator"
 import { MainNavigator } from "./MainNavigator"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
 import { navigationRef, useBackButtonHandler, flushPendingNavigation } from "./navigationUtilities"
@@ -64,11 +67,24 @@ const AppStack = observer(function AppStack() {
   // from.
   const showOutage = configStore.outageMode
   const hasForeignSession = !!authStore.foreignSession
+  // CHANGED 2026-10-11: one pure decision drives BOTH the registered screen
+  // and initialRouteName (appRouteLogic.ts), now that guest mode adds a sixth
+  // state. Order is unchanged for the existing five; Guest sits between
+  // WrongAccount and Login.
+  const route = decideAppRoute({
+    outage: showOutage,
+    isAuthenticated,
+    needsOnboarding,
+    hasForeignSession,
+    isGuest: authStore.isGuest,
+    platform: Platform.OS,
+  })
   log.debug("Auth state retrieved", {
     isAuthenticated,
     needsOnboarding,
     showOutage,
     foreignSession: hasForeignSession,
+    isGuest: authStore.isGuest,
   })
 
   const {
@@ -82,11 +98,12 @@ const AppStack = observer(function AppStack() {
       authReady: authStore.authReady,
       needsOnboarding,
       foreignSession: hasForeignSession,
+      isGuest: authStore.isGuest,
     })
     return () => {
       log.debug("AppStack unmounting")
     }
-  }, [isAuthenticated, authStore.authReady, needsOnboarding, hasForeignSession])
+  }, [isAuthenticated, authStore.authReady, needsOnboarding, hasForeignSession, authStore.isGuest])
 
   // Don't render navigation until auth is resolved — splash screen covers this
   if (!authStore.authReady) {
@@ -97,21 +114,16 @@ const AppStack = observer(function AppStack() {
   // CHANGED 2026-09-18: must mirror the branch below exactly — only the
   // matching <Stack.Screen> is registered, so an initialRouteName naming a
   // screen this render doesn't include warns and falls back to the first one.
-  const initialRoute = showOutage
-    ? "Maintenance"
-    : !isAuthenticated
-      ? hasForeignSession
-        ? "WrongAccount"
-        : "Login"
-      : needsOnboarding
-        ? "Onboarding"
-        : "Main"
+  // CHANGED 2026-10-11: keyed on decideAppRoute — the same `route` the branch
+  // below switches on, so the two can no longer drift apart.
+  const initialRoute = route
   log.debug("Determining initial route", {
     initialRoute,
     showOutage,
     isAuthenticated,
     needsOnboarding,
     foreignSession: hasForeignSession,
+    isGuest: authStore.isGuest,
   })
 
   return (
@@ -125,10 +137,10 @@ const AppStack = observer(function AppStack() {
       }}
       initialRouteName={initialRoute}
     >
-      {showOutage ? (
+      {route === "Maintenance" ? (
         <Stack.Screen name="Maintenance" component={MaintenanceScreen} />
-      ) : isAuthenticated ? (
-        needsOnboarding ? (
+      ) : route === "Main" || route === "Onboarding" ? (
+        route === "Onboarding" ? (
           <Stack.Screen name="Onboarding" component={OnboardingNavigator} />
         ) : (
           <>
@@ -159,7 +171,7 @@ const AppStack = observer(function AppStack() {
             />
           </>
         )
-      ) : hasForeignSession ? (
+      ) : route === "WrongAccount" ? (
         // spec 2 §2.2: the SDK holds a session for an account that is not this
         // device's owner. isAuthenticated is false (the gate wrote no token),
         // so nothing in the authenticated branch — or any identity-driven
@@ -167,6 +179,12 @@ const AppStack = observer(function AppStack() {
         // alongside: offering "sign in" next to "you are signed in as the
         // wrong person" is what produced the loop this screen replaces.
         <Stack.Screen name="WrongAccount" component={WrongAccountScreen} />
+      ) : route === "Guest" ? (
+        // ADDED 2026-10-11 (spec 2026-09-27-guest-mode-design.md): Android
+        // guest mode, the Meetings tab alone. Login is not registered
+        // alongside; the promo bar's Sign in calls exitGuest(), and
+        // decideAppRoute then lands this branch on Login.
+        <Stack.Screen name="Guest" component={GuestNavigator} />
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />
       )}

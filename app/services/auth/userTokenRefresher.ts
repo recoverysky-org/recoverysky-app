@@ -9,8 +9,8 @@
  * "Test Runner Split").
  *
  * Returns the token to stamp on the outgoing request, or null when there
- * should be no Authorization header at all (anonymous, signed out, or the
- * refresh token is dead).
+ * should be no Authorization header at all (signed out — including a guest —
+ * or the refresh token is dead).
  */
 
 import { isUsableAccessToken } from "./jwtUtils"
@@ -47,7 +47,6 @@ export interface UserRefresherStore {
   refreshToken?: string
   idToken?: string
   expiresAt?: number
-  isAnonymous: boolean
   setTokens(accessToken: string, refreshToken?: string, idToken?: string, expiresAt?: number): void
 }
 
@@ -215,13 +214,15 @@ export function buildUserTokenRefresher(
   return {
     getToken: async () => {
       if (permanentlyFailed) return null
-      if (authStore.isAnonymous) return null
       // Load-bearing, not defensive. A user who has never signed in has no
       // tokens at all, so without this the very first request would call
       // getFreshCredentials(), the SDK would throw NO_CREDENTIALS, and
       // classifyRefreshError() treats that as PERMANENT — which fires
       // onPermanentFailure() and force-logs-out someone who was never logged
       // in. Bail before the refresh, not inside it.
+      // CHANGED 2026-10-11: this guard now stands alone — the separate check
+      // for the old device-id login's flag went with that login. It is also
+      // what keeps a guest (no tokens, never signed in) out of the refresh path.
       if (!authStore.accessToken && !authStore.refreshToken) return null
 
       const current = authStore.accessToken ?? null

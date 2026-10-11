@@ -69,7 +69,7 @@ import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import { reloadApp } from "@/utils/reloadApp"
 import { parseReturnTo } from "@/utils/returnToLogic"
-import { clear as clearStorage, saveString } from "@/utils/storage"
+import { clear as clearStorage } from "@/utils/storage"
 
 type Pronouns = "none" | "he/him" | "she/her" | "they/them" | "em/ers" | null
 
@@ -211,26 +211,27 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   const profileStore = useProfileStore()
   const { promptCloudBackup } = useCloudBackupPrompt()
   const authStore = useAuthenticationStore()
-  // Anonymous sessions have no sign-in method to show (userId is the device
-  // id there), so they skip straight to the fallback row below.
+  // Sessions of the old device-id login had no sign-in method to show (userId
+  // was the device id there), so they skipped straight to the fallback row below.
   // CHANGED 2026-09-30: memoised — describeAccount decodes the ID token, and
   // this screen re-renders for every toggle and store tick. The observables
   // are read here in render, so observer() still re-renders on their change
   // and the deps below pick up the new values.
-  const { isAnonymous, loginMethod, userId, authEmail, idToken, ownerEmail } = authStore
+  // CHANGED 2026-10-11: no skip any more. The device-id session that needed it
+  // went with the old login, and Settings is only reachable signed in. Signed
+  // out (no sub, no loginMethod), describeAccount returns no active row itself.
+  const { loginMethod, userId, authEmail, idToken, ownerEmail } = authStore
   const accountDescription = useMemo(
     () =>
-      isAnonymous
-        ? { active: null, linked: [] }
-        : describeAccount({
-            loginMethod,
-            sub: userId,
-            authEmail,
-            idToken,
-            // ADDED 2026-09-30: only a code session has a typed address to match.
-            codeEmail: loginMethod === "email" ? ownerEmail : undefined,
-          }),
-    [isAnonymous, loginMethod, userId, authEmail, idToken, ownerEmail],
+      describeAccount({
+        loginMethod,
+        sub: userId,
+        authEmail,
+        idToken,
+        // ADDED 2026-09-30: only a code session has a typed address to match.
+        codeEmail: loginMethod === "email" ? ownerEmail : undefined,
+      }),
+    [loginMethod, userId, authEmail, idToken, ownerEmail],
   )
   const conversationStore = useConversationStore()
   const configStore = useConfigStore()
@@ -1240,82 +1241,55 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           </View>
         </View>
 
-        {authStore.isAnonymous ? (
-          /* Anonymous user: show only Login to Subscribe button */
-          <>
-            <TouchableOpacity
-              style={themed($upgradeButton)}
-              onPress={() => {
-                saveString("POST_LOGIN_SECTION", "subscription")
-                logout()
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={translate("settingsScreen:loginToSubscribe")}
-            >
-              <Ionicons name="log-in" size={18} color={theme.colors.tint} />
-              <Text style={themed($upgradeButtonText)} tx="settingsScreen:loginToSubscribe" />
-            </TouchableOpacity>
-            <Text
-              style={[themed($subscriptionHint), themed($lastRow)]}
-              tx="settingsScreen:loginToSubscribeHint"
-            />
-          </>
-        ) : (
-          <>
-            {/* Expiration Date (show for any paid tier) */}
-            {(isPremium || hasAttendance) && (
-              <SettingsRow
-                label={translate("settingsScreen:expires")}
-                value={formatExpirationDate()}
-              />
-            )}
+        {/* Expiration Date (show for any paid tier) */}
+        {(isPremium || hasAttendance) && (
+          <SettingsRow label={translate("settingsScreen:expires")} value={formatExpirationDate()} />
+        )}
 
-            {/* Manage Subscription (show for any paid tier) */}
-            {(isPremium || hasAttendance) && (
-              <TouchableOpacity
-                style={themed($settingsRow)}
-                onPress={handleManageSubscription}
-                accessibilityRole="button"
-                accessibilityLabel={translate("settingsScreen:manageSubscription")}
-              >
-                <Text style={themed($rowLabel)} tx="settingsScreen:manageSubscription" />
-                <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-              </TouchableOpacity>
-            )}
+        {/* Manage Subscription (show for any paid tier) */}
+        {(isPremium || hasAttendance) && (
+          <TouchableOpacity
+            style={themed($settingsRow)}
+            onPress={handleManageSubscription}
+            accessibilityRole="button"
+            accessibilityLabel={translate("settingsScreen:manageSubscription")}
+          >
+            <Text style={themed($rowLabel)} tx="settingsScreen:manageSubscription" />
+            <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+          </TouchableOpacity>
+        )}
 
-            {/* Restore Purchases.
-                CHANGED 2026-08-09: moved above the Upgrade button so the plain text
-                rows stay grouped and the glowing CTA sits last in the section. */}
-            <TouchableOpacity
-              style={[themed($settingsRow), themed($lastRow)]}
-              onPress={handleRestorePurchases}
-              accessibilityRole="button"
-              accessibilityLabel={translate("settingsScreen:restorePurchases")}
-            >
-              <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
-              <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
-            </TouchableOpacity>
+        {/* Restore Purchases.
+            CHANGED 2026-08-09: moved above the Upgrade button so the plain text
+            rows stay grouped and the glowing CTA sits last in the section. */}
+        <TouchableOpacity
+          style={[themed($settingsRow), themed($lastRow)]}
+          onPress={handleRestorePurchases}
+          accessibilityRole="button"
+          accessibilityLabel={translate("settingsScreen:restorePurchases")}
+        >
+          <Text style={themed($rowLabel)} tx="settingsScreen:restorePurchases" />
+          <Icon icon="caretRight" size={16} color={themed($dimColor).color} />
+        </TouchableOpacity>
 
-            {/* Upgrade Button (show for Free and Attendance users) */}
-            {!isPremium && (
-              <TouchableOpacity
-                style={themed($upgradeButton)}
-                onPress={handleUpgrade}
-                accessibilityRole="button"
-                accessibilityLabel={translate("settingsScreen:upgradeToPro")}
-              >
-                <Ionicons name="rocket" size={18} color={theme.colors.tint} />
-                <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
-              </TouchableOpacity>
-            )}
-          </>
+        {/* Upgrade Button (show for Free and Attendance users) */}
+        {!isPremium && (
+          <TouchableOpacity
+            style={themed($upgradeButton)}
+            onPress={handleUpgrade}
+            accessibilityRole="button"
+            accessibilityLabel={translate("settingsScreen:upgradeToPro")}
+          >
+            <Ionicons name="rocket" size={18} color={theme.colors.tint} />
+            <Text style={themed($upgradeButtonText)} tx="settingsScreen:upgradeToPro" />
+          </TouchableOpacity>
         )}
       </View>
 
       {/* Cloud Backup Section — gated on hasAttendance because the /sync API
           requires the attendance entitlement, and the RevenueCat purchase
-          flow forces sign-in first, so hasAttendance implies a real (non-
-          anonymous) identity for the server to key backups against. */}
+          flow forces sign-in first, so hasAttendance implies a signed-in
+          identity for the server to key backups against. */}
       {hasAttendance && (
         <View style={themed($section)} onLayout={trackSection("cloudBackup")}>
           <View style={themed($sectionHeader)}>
@@ -1358,8 +1332,10 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           used ("Active") and any identities linked into the same account
           ("Linked"). The decision lives in accountMethodsLogic.ts; see its
           header for why the active method comes from loginMethod and not the
-          sub prefix. The old single "User ID" row is still the fallback for
-          anonymous sessions and for a session whose method can't be derived.
+          sub prefix. The old single "User ID" row is still the fallback for a
+          session whose method can't be derived.
+          CHANGED 2026-10-11: it no longer has a second case to cover — the
+          device-id sessions it also caught went with the old login.
         */}
         {accountDescription.active ? (
           <>
@@ -1376,9 +1352,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           <SettingsRow
             label={translate("settingsScreen:userId")}
             value={
-              authStore.isAnonymous
-                ? translate("settingsScreen:anonymousUser")
-                : authStore.authEmail || authStore.userId || translate("settingsScreen:notLoggedIn")
+              authStore.authEmail || authStore.userId || translate("settingsScreen:notLoggedIn")
             }
           />
         )}
@@ -1702,13 +1676,6 @@ const $deleteText: ThemedStyle<TextStyle> = ({ colors }) => ({
 
 const $logoutRowIcon: ThemedStyle<ImageStyle> = () => ({
   transform: [{ rotate: "180deg" }],
-})
-
-const $subscriptionHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 13,
-  color: colors.textDim,
-  textAlign: "center",
-  marginTop: spacing.sm,
 })
 
 const $premiumText: ThemedStyle<TextStyle> = () => ({

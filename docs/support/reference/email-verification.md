@@ -42,7 +42,7 @@ The count lives in MMKV (`emailVerify.<hash of sub>`, per install and per accoun
 | Blocked by | Why |
 | --- | --- |
 | Not authenticated | No account. |
-| Anonymous (guest) session | Not a password account. |
+| Guest mode (Android) | No account at all, so nothing to verify. A guest is never authenticated, so the row above already covers it. |
 | Onboarding not completed | Never interrupt setup. |
 | Offline | The API cannot send a code. |
 | Maintenance mode | Same. |
