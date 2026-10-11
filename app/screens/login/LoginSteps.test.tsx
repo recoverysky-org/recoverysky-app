@@ -11,7 +11,7 @@
  * address the two ways it is actually observable: the accessibility label a
  * screen reader speaks, and the `txOptions` handed to the header Text.
  */
-import { Platform } from "react-native"
+import { Platform, StyleSheet } from "react-native"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 
 import { ChooseStep, CodeStep, EmailStep } from "./LoginSteps"
@@ -81,11 +81,50 @@ describe("ChooseStep", () => {
   })
 
   it("disables every way in while a login is in flight", () => {
-    render(<ChooseStep {...props} isLoading />)
+    // CHANGED 2026-10-11: includes the guest button, which is a way in too.
+    render(<ChooseStep {...props} isLoading onJustJoin={jest.fn()} />)
 
-    for (const id of ["login-apple", "login-google", "login-email"]) {
+    for (const id of ["login-apple", "login-google", "login-email", "login-guest"]) {
       expect(screen.getByTestId(id).props.accessibilityState.disabled).toBe(true)
     }
+  })
+
+  // ADDED 2026-10-11: guest mode is a first-class way in (Jenova), so its
+  // entry is a full button in this stack, not a link below it.
+  describe("Just join meetings", () => {
+    it("is a labelled button that routes its tap", () => {
+      const onJustJoin = jest.fn()
+      render(<ChooseStep {...props} onJustJoin={onJustJoin} />)
+
+      const button = screen.getByTestId("login-guest")
+      expect(button.props.accessibilityRole).toBe("button")
+      expect(button.props.accessibilityLabel).toContain("justJoinMeetings")
+      fireEvent.press(button)
+      expect(onJustJoin).toHaveBeenCalledTimes(1)
+    })
+
+    it("looks exactly like the sign-in buttons", () => {
+      render(<ChooseStep {...props} onJustJoin={jest.fn()} />)
+
+      const style = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style)
+      expect(style("login-guest")).toEqual(style("login-email"))
+    })
+
+    it("comes last, after every sign-in option", () => {
+      render(<ChooseStep {...props} onJustJoin={jest.fn()} />)
+
+      const order = testIdOrder()
+      const guest = order.indexOf("login-guest")
+      for (const id of ["login-apple", "login-google", "login-email"]) {
+        expect(order.indexOf(id)).toBeLessThan(guest)
+      }
+    })
+
+    it("is absent when the screen passes no handler (iOS, or a signed-in owner)", () => {
+      render(<ChooseStep {...props} />)
+
+      expect(screen.queryByTestId("login-guest")).toBeNull()
+    })
   })
 })
 

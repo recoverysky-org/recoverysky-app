@@ -391,7 +391,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
             // just the flag. Through the legal gate like every entry point.
             authStore.enterGuest()
             // CHANGED 2026-10-11: counted only when guest mode began.
-            // enterGuest() refuses while a userId is present. The link is
+            // enterGuest() refuses while a userId is present. The button is
             // hidden then, but a userId recorded between the tap and this
             // line (the legal modal can sit open) would still reach here.
             if (authStore.isGuest) trackEvent("guest_mode_entered")
@@ -558,6 +558,30 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
               onEmail={() => gated({ kind: "email" })}
               onOwnerEmail={() => gated({ kind: "ownerEmail" })}
               onProvider={(connection) => gated({ kind: "provider", connection })}
+              // ADDED 2026-10-11: guest entry. Android only — iOS requires an
+              // authenticated account, and the string itself is absent from
+              // the iOS bundle (platformStrings.ios.ts). Choose step only, so
+              // it never sits under the code field.
+              // CHANGED 2026-10-11: also hidden while a userId is present,
+              // through decideGuestEntry (login/guestEntryLogic.ts, vitest).
+              // Login shows with a userId for a signed-in owner whose token is
+              // renewing at cold start, and while a forced logout is deferred
+              // for a persisted timer; a tap there put the owner's own session
+              // in guest mode, where Join opens Zoom with no attendance timer.
+              // `authStore.userId` is read here in render, so this observer
+              // re-renders when it changes. The store's enterGuest() refuses
+              // in that state too.
+              // CHANGED 2026-10-11 (Jenova): a full button inside ChooseStep's
+              // stack, styled like the sign-in options, because guest mode is a
+              // first-class way in. It was a dim underlined link below the
+              // steps. It shares ChooseStep's `isLoading`, which already
+              // carries `|| providerBusy`, so a tap during authorize() can't
+              // overwrite `inFlight` and drop the busy overlay.
+              onJustJoin={
+                decideGuestEntry({ platform: Platform.OS, step, hasUserId: !!authStore.userId })
+                  ? handleGuestPress
+                  : undefined
+              }
             />
           )}
 
@@ -596,35 +620,6 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
                 setStep((s) => nextStep(s, "wrongEmail"))
               }}
             />
-          )}
-
-          {/* ADDED 2026-10-11: guest entry. Android only — iOS requires an
-            authenticated account, and the string itself is absent from the iOS
-            bundle (platformStrings.ios.ts). Choose step only, so it never sits
-            under the code field.
-            CHANGED 2026-10-11: also hidden while a userId is present, through
-            decideGuestEntry (login/guestEntryLogic.ts, vitest). Login shows
-            with a userId for a signed-in owner whose token is renewing at cold
-            start, and while a forced logout is deferred for a persisted timer;
-            a tap there put the owner's own session in guest mode, where Join
-            opens Zoom with no attendance timer. `authStore.userId` is read here
-            in render, so this observer re-renders when it changes. The store's
-            enterGuest() refuses in that state too. */}
-          {decideGuestEntry({ platform: Platform.OS, step, hasUserId: !!authStore.userId }) && (
-            <Pressable
-              testID="guest-button"
-              accessibilityRole="button"
-              accessibilityLabel={translate("loginScreen:justJoinMeetings")}
-              onPress={handleGuestPress}
-              // `|| providerBusy`, like ChooseStep and the password link: the
-              // SDK's isLoading is not reliably true during authorize() (see
-              // the 2026-10-03 note on ChooseStep above), and a guest tap in
-              // that window would overwrite `inFlight` and drop the busy overlay.
-              disabled={isLoading || providerBusy}
-              style={themed($guestLink)}
-            >
-              <Text style={themed($guestLinkText)} tx="loginScreen:justJoinMeetings" />
-            </Pressable>
           )}
 
           {/* Only the provider path leaves the app, so only it gets this copy —
@@ -864,34 +859,6 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 1, // CHANGED 2026-09-28 from flex:1 — same reason as $screenContentContainer
   justifyContent: "center",
   gap: spacing.md,
-})
-
-// ADDED 2026-10-11: the guest button is one 24 dp line of text, so it gets a
-// real box at Material's 48 dp minimum touch height. Not hitSlop as on the
-// text links elsewhere: Android drops a touch outside the parent's bounds
-// before it reaches a child's slop (TouchTargetHelper), and this button can be
-// the last child of $contentContainer, so on a short screen or with large text
-// the slop below it would be dead. The bottom margin keeps the password link's
-// own 8 dp hitSlop (just below) off this box when the column has no free space.
-// Otherwise it is laid out like $passwordLink (centred, md side padding), so
-// the two secondary links read alike.
-const $guestLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignSelf: "center",
-  minHeight: 48,
-  justifyContent: "center",
-  paddingHorizontal: spacing.md,
-  marginBottom: spacing.xs,
-})
-
-// ADDED 2026-10-11: the guest link's own text style, matching $passwordLinkText
-// (dim, 14, underlined) so the two secondary links read alike and the
-// underline gives a tap cue. It used to share $loadingText, the style of the
-// "Opening browser…" status line, which has no tap cue and would have
-// restyled this link along with that line.
-const $guestLinkText: ThemedStyle<TextStyle> = ({ colors }) => ({
-  color: colors.textDim,
-  fontSize: 14,
-  textDecorationLine: "underline",
 })
 
 const $passwordLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
