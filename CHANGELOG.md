@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.11.0-3] — 2026-10-11
+
 ### Changed
 - **A cancelled Apple / Google / password-link sign-in now logs which kind of
   cancel it was.** The `Provider login cancelled or declined by user` line
@@ -31,6 +33,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   because iOS never showed the sheet, and the bare line made that look like a
   4.11.0 sign-in regression. (RS-056: diagnostics only, not a fix, so leave
   the issue open when this ships.)
+
+## [4.11.0-2] — 2026-10-11
+
+### Fixed
+- **The Sky Agent tab no longer shows in production.** 4.11.0-1 showed it to
+  premium users: the OTA bundle still carried an agent URL, although the
+  variable had been taken out of `eas.json` and the EAS production
+  environment. The tab is now also gated on `__DEV__`, so store builds and
+  OTAs never show it, whatever the build environment holds. Dev builds still
+  follow `EXPO_PUBLIC_AGENT_URL`. To release the tab, remove the `__DEV__ &&`
+  in `MainNavigator.tsx`.
 
 ## [4.11.0-1] — 2026-10-11
 
