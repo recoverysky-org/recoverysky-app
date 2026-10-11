@@ -66,7 +66,7 @@ interface LoginScreenProps extends AppStackScreenProps<"Login"> {}
 
 /**
  * What the legal-agreements modal will run once accepted. CHANGED 2026-09-17:
- * was a `"authenticated" | "signup"` string; the passwordless
+ * was a string naming the entry point; the passwordless
  * screen has more entry points, each carrying its own argument.
  */
 type PendingAction =
@@ -76,6 +76,8 @@ type PendingAction =
   // link's connection (ADDED 2026-09-30).
   // CHANGED 2026-10-01: was the __DEV__ password button's; now every build.
   | { kind: "provider"; connection: BrowserConnection }
+  // ADDED 2026-10-11: guest mode's "Just join meetings" (Android only).
+  | { kind: "guest" }
   | null
 
 /** The `kind` of whatever action is currently in flight — see `inFlight` below. */
@@ -383,12 +385,18 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
                     : "google",
             })
             return
+          case "guest":
+            // ADDED 2026-10-11 (spec 2026-09-27): no Auth0 call, no userId —
+            // just the flag. Through the legal gate like every entry point.
+            authStore.enterGuest()
+            trackEvent("guest_mode_entered")
+            return
         }
       } finally {
         setInFlight(null)
       }
     },
-    [clearError, ownerEmail, runSend, loginWithProvider],
+    [clearError, ownerEmail, runSend, loginWithProvider, authStore],
   )
 
   // Every entry point goes through the legal gate first — unchanged in
@@ -450,6 +458,10 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
     () => gated({ kind: "provider", connection: PASSWORD_CONNECTION }),
     [gated],
   )
+
+  // ADDED 2026-10-11 (spec 2026-09-27): guest mode's "Just join meetings".
+  // Through `gated` like every other entry point, so the legal gate applies.
+  const handleGuestPress = useCallback(() => gated({ kind: "guest" }), [gated])
 
   // DEV-ONLY purge — see the button below and utils/devPurge.ts.
   const handleDevPurge = useCallback(() => {
@@ -579,6 +591,26 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
                 setStep((s) => nextStep(s, "wrongEmail"))
               }}
             />
+          )}
+
+          {/* ADDED 2026-10-11: guest entry. Android only — iOS requires an
+            authenticated account, and the string itself is absent from the iOS
+            bundle (platformStrings.ios.ts). Choose step only, so it never sits
+            under the code field. */}
+          {Platform.OS === "android" && step === "choose" && (
+            <Pressable
+              testID="guest-button"
+              accessibilityRole="button"
+              accessibilityLabel={translate("loginScreen:justJoinMeetings")}
+              onPress={handleGuestPress}
+              // `|| providerBusy`, like ChooseStep and the password link: the
+              // SDK's isLoading is not reliably true during authorize() (see
+              // the 2026-10-03 note on ChooseStep above), and a guest tap in
+              // that window would overwrite `inFlight` and drop the busy overlay.
+              disabled={isLoading || providerBusy}
+            >
+              <Text style={themed($loadingText)} tx="loginScreen:justJoinMeetings" />
+            </Pressable>
           )}
 
           {/* Only the provider path leaves the app, so only it gets this copy —

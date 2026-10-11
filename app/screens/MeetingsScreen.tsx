@@ -3,10 +3,12 @@ import { View, ViewStyle } from "react-native"
 import { useRoute, useIsFocused, RouteProp } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
 
+import { GuestPromoBar } from "@/components/GuestPromoBar"
 import { MeetingFilterBar } from "@/components/MeetingFilterBar"
 import { Screen } from "@/components/Screen"
 import { SegmentedControl } from "@/components/SegmentedControl"
 import { MeetingFiltersProvider, useMeetingFilters } from "@/context/MeetingFiltersContext"
+import { useAuthenticationStore } from "@/models"
 import { MainTabParamList, MainTabScreenProps, MeetingsSegment } from "@/navigators/navigationTypes"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
@@ -72,6 +74,8 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
   navigation: meetingsNavigation,
 }) {
   const { themed } = useAppTheme()
+  // ADDED 2026-10-11: read only for guest mode's promo bar in the header below.
+  const authStore = useAuthenticationStore()
   const route = useRoute<RouteProp<MainTabParamList, "Meetings">>()
   // ADDED 2026-09-26: Live resets Starts In on every visit, including a return
   // to the Meetings tab from another tab, which activeSegment alone can't see.
@@ -179,6 +183,9 @@ export const MeetingsScreen: FC<MainTabScreenProps<"Meetings">> = observer(funct
             onChange={handleSegmentChange}
           />
           <ConnectedFilterBar activeSegment={activeSegment} />
+          {/* ADDED 2026-10-11: guest mode's house ad + Sign in. exitGuest()
+              flips AppNavigator to Login (decideAppRoute). */}
+          {authStore.isGuest && <GuestPromoBar onSignIn={() => authStore.exitGuest()} />}
         </View>
 
         {/* Content Views - all three mounted, inactive ones hidden via display:none */}

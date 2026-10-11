@@ -35,4 +35,16 @@ describe("decideAppRoute", () => {
   it("a wrong-account session is never masked by guest mode", () => {
     expect(decideAppRoute({ ...base, hasForeignSession: true, isGuest: true })).toBe("WrongAccount")
   })
+  // ADDED 2026-10-11: these are the inputs a real device sends. AppNavigator
+  // computes needsOnboarding as !profileStore.onboardingCompleted, so a
+  // signed-out fresh install arrives with it true, and so does every guest
+  // (a guest never runs onboarding). Onboarding belongs to an authenticated
+  // session only: hoisting that check above the isAuthenticated branch would
+  // send every Android guest to Onboarding while the cases above stay green.
+  it("routes a guest to Guest even though onboarding never ran", () => {
+    expect(decideAppRoute({ ...base, isGuest: true, needsOnboarding: true })).toBe("Guest")
+  })
+  it("routes a signed-out fresh install to Login, not Onboarding", () => {
+    expect(decideAppRoute({ ...base, needsOnboarding: true })).toBe("Login")
+  })
 })

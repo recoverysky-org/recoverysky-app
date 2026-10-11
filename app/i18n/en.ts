@@ -80,6 +80,10 @@ const en = {
       "Log in to access app subscriptions and premium features. An account is required by Apple for apps with interactive services like video conferencing.",
     enterDetailsAndroid:
       "Log in to access app subscriptions and premium features. Subscriptions require a logged in account.\n\nYou may login and logout at any time in Settings.",
+    // ADDED 2026-10-11 — guest mode's entry button. Empty on purpose in all nine locales: the
+    // Android text lives in platformStrings.ts so it never enters the iOS bundle (iOS requires
+    // an account). Text filled in here would ship on iOS.
+    justJoinMeetings: "",
     openingBrowser: "Opening browser for authentication...",
     signingIn: "Signing you in...",
     euaTitle: "Legal Agreements",
@@ -113,6 +117,13 @@ const en = {
     errorTooManyAttempts: "Too many attempts. Please wait a few minutes and try again.",
     errorSendRateLimited:
       "We've sent several codes to that address recently. Please wait before requesting another.",
+  },
+  // ADDED 2026-10-11 — guest mode (spec 2026-09-27-guest-mode-design.md, decision 3):
+  // GuestPromoBar's house ad + Sign in on the guest's Meetings screen.
+  guestPromo: {
+    title: "Get more from RecoverySky",
+    body: "Track your clean time, log attendance and email meeting reports — free account.",
+    signIn: "Sign in",
   },
   wrongAccountScreen: {
     // ADDED 2026-10-01 — legacy password owners who cannot receive the code.

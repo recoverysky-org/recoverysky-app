@@ -70,6 +70,8 @@ export type AppStackParamList = {
   Terms: undefined
   Onboarding: NavigatorScreenParams<OnboardingParamList>
   Main: NavigatorScreenParams<MainTabParamList>
+  /** ADDED 2026-10-11: Android guest mode — a one-tab navigator holding only Meetings. */
+  Guest: NavigatorScreenParams<MainTabParamList>
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
 }
