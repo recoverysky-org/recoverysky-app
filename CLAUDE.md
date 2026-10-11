@@ -106,10 +106,18 @@ npm run update
 3. `git push && git push --tags`.
 4. **Publishes the OTA**: `npm run release:ota` → `eas update --branch production
    --auto`. Reaches only users whose installed native build advertises a
-   **matching `runtimeVersion`**.
+   **matching `runtimeVersion`**. CHANGED 2026-10-11 (RS-060): eas runs through
+   `scripts/eas-prod.sh`, which strips the shell's `EXPO_PUBLIC_*` (see
+   "Environment Variables").
 5. Uploads JS source maps to Sentry (needs `SENTRY_AUTH_TOKEN` in env / `.env`;
    non-fatal if missing — new-bundle stack traces just lack `file:line` until the
    next successful upload).
+6. **Leak tripwire** (ADDED 2026-10-11, RS-060): `scripts/check-bundle-env.js`
+   searches the exported bundles for any local `EXPO_PUBLIC_*` value the EAS
+   production environment does not define. A hit ends the script with ❌ and
+   exit 1. The OTA is already live by then (push and publish come first), so ship
+   a fixed OTA or republish the previous group. `npm run check:bundle-env` runs
+   it by hand.
 
 **Before you run it:**
 - **Commit your feature work AND the `CHANGELOG.md` update first.** `eas update`
@@ -134,6 +142,9 @@ npm run release:android  # EAS CLOUD build --profile production + eas submit --l
 npm run build:ios:prod && npm run submit:ios
 npm run build:android:prod && npm run submit:android
 ```
+
+These production build scripts (`release:*`, `build:*:prod`, `build:*:cloud`)
+also run eas through `scripts/eas-prod.sh` (ADDED 2026-10-11, RS-060).
 
 Cloud builds need every dependency reachable from the internet. The private
 packages are vendored for exactly that reason (see "Linked Packages").
@@ -317,7 +328,7 @@ CHANGED 2026-09-18 (spec `2026-09-17-device-owner-and-wrong-account-recovery-des
 
 CHANGED 2026-10-11 (spec `2026-09-27-guest-mode-design.md`): Guest sits between WrongAccount and Login. The whole order is now one pure function, `decideAppRoute()` (`app/navigators/appRouteLogic.ts`, vitest-covered), and `AppNavigator` keys both the registered screen and `initialRouteName` on its result, so the two can no longer drift apart. A real session outranks a stale guest flag, WrongAccount outranks Guest so a refused session is never hidden behind guest browsing, and Guest is returned only on Android, so a stray persisted flag on iOS lands on Login.
 
-**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. `agentTabVisible` (Agent) is `decideAgentTabVisible()` (`app/utils/agentTabLogic.ts`, vitest-covered): a valid `EXPO_PUBLIC_AGENT_URL` in the build **and** `__DEV__ || isPremium`. It keys on the env var, not `configStore.agentUrl`, because the store falls back to a default URL and is never empty — remove the var from the build's env (eas.json + EAS production env for OTAs) to hide the tab. CHANGED 2026-10-11 (Jenova): production carries no `EXPO_PUBLIC_AGENT_URL` (removed from `eas.json` and the EAS production environment), so the tab is hidden for every production user, in store builds and OTAs. Dev builds read `.env` and still show it. To bring it back, add the var to both places; `npm run check:env` checks they agree. `socialTabVisible` (Community/Social) is still **hard-disabled behind a local `const … = false`** pending SPA-side fixes; re-enable with `__DEV__ || isPremium`.
+**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. `agentTabVisible` (Agent) is `decideAgentTabVisible()` (`app/utils/agentTabLogic.ts`, vitest-covered): a valid `EXPO_PUBLIC_AGENT_URL` in the build **and** `__DEV__ || isPremium`. It keys on the env var, not `configStore.agentUrl`, because the store falls back to a default URL and is never empty — remove the var from the build's env (eas.json + EAS production env for OTAs) to hide the tab. CHANGED 2026-10-11 (Jenova): production carries no `EXPO_PUBLIC_AGENT_URL` (removed from `eas.json` and the EAS production environment), so the tab is hidden for every production user, in store builds and OTAs. Dev builds read `.env` and still show it. To bring it back, add the var to both places; `npm run check:env` checks they agree. CHANGED 2026-10-11 (later): the env var alone did not hold. OTA 4.11.0-1 still showed the tab, with the local dev agent URL, because the release shell leaked `.env` (RS-060, now fixed). Since 4.11.0-2 the tab is also gated on `__DEV__` in `MainNavigator.tsx`, so bringing it back also means removing that `__DEV__ &&`. `socialTabVisible` (Community/Social) is still **hard-disabled behind a local `const … = false`** pending SPA-side fixes; re-enable with `__DEV__ || isPremium`.
 
 **Meetings tab segments** (`MeetingsScreen.tsx`): Online | In-Person | Search,
 with segment keys `live` / `inperson` / `listings`. The labels were renamed and
@@ -684,7 +695,9 @@ headers.
   drop the JWT. Before this path existed, a dead JWT was re-sent for up to
   seven days and CrowdSec banned the device.
 - **No credential → no request.** When the gate has neither a device JWT nor an
-  API key (production has no `EXPO_PUBLIC_AUTH_KEY`), it installs
+  API key (production has no `EXPO_PUBLIC_AUTH_KEY`; CHANGED 2026-10-11: 4.11.0
+  through 4.11.0-3 did carry the dev key, from the release shell, until RS-060
+  was fixed and the key rotated), it installs
   `noDeviceCredentialAdapter`. The request resolves locally as a 401
   (`no_device_credential`), call sites get `{ kind: "unauthorized" }`, and
   nothing reaches the wire. Don't restore the bare send.
@@ -1329,6 +1342,15 @@ them referenced anywhere, that reference is stale.
 
 Production values are set in `eas.json` under `build.base.env`; `npm run check:env`
 verifies `.env` and `eas.json` haven't drifted apart.
+
+ADDED 2026-10-11 (RS-060): a production bundle gets its `EXPO_PUBLIC_*` only from
+the EAS environment (OTAs), or from `eas.json` plus EAS (builds). direnv exports
+`.env` into every shell in this repo, and eas inherits the shell. So the
+production eas scripts run through `scripts/eas-prod.sh`, which strips the
+shell's `EXPO_PUBLIC_*`. Before it, a variable EAS did not define shipped with
+its local value: the dev API key and the local agent URL rode in 4.11.0 to
+4.11.0-3. A variable missing from EAS is now undefined in production. Never run
+a production eas command as a bare `npx eas`.
 
 ## AI Agent Integration
 

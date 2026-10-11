@@ -651,6 +651,13 @@ export class Api {
         // the wire, and the marker body says no server was involved. A local
         // API with attestation disabled would have accepted the bare request;
         // that setup needs EXPO_PUBLIC_AUTH_KEY in .env, which dev already has.
+        //
+        // CHANGED 2026-10-11 (RS-060): "no EXPO_PUBLIC_AUTH_KEY in eas.json"
+        // did not keep the key out of production. The release shell exported
+        // .env and eas inherited it, so 4.11.0 through 4.11.0-3 shipped the dev
+        // key and simulators/emulators on those builds took the X-API-Key
+        // branch above instead of reaching this one. Production eas commands
+        // now run through scripts/eas-prod.sh, and the key was rotated.
         log.warn("No device credential — answering 401 locally", { url: request.url })
         request.adapter = noDeviceCredentialAdapter
       }

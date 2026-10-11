@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.11.0-4] — 2026-10-11
+
 ### Security
 - **Production builds and OTAs no longer pick up values from the local `.env`.**
   `eas update --environment production` and local production builds inherited
@@ -33,8 +35,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `build:*:cloud`) now run through `scripts/eas-prod.sh`, which strips local
   `EXPO_PUBLIC_*`. `npm run update` ends with a tripwire
   (`scripts/check-bundle-env.js`, also `npm run check:bundle-env`) that fails
-  loudly if a published bundle carries a local-only value. The leaked key stays
-  valid until it is rotated on the server.
+  loudly if a published bundle carries a local-only value. The leaked key was
+  rotated on the server the same day, so the copies in older bundles no longer
+  work. (RS-060)
 
 ## [4.11.0-3] — 2026-10-11
 
