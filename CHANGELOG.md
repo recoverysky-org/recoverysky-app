@@ -44,8 +44,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Changed
 - **Sky Agent tab can be switched on per build.** It was hard-disabled in code. It now shows
   when the build has a valid `EXPO_PUBLIC_AGENT_URL` and the user is premium (or it's a dev
-  build). Production builds and OTAs carry that variable today, so the next release shows the
-  tab to premium users unless it's removed from `eas.json` and the EAS production environment.
+  build). Production no longer carries that variable: it was removed from `eas.json` and the
+  EAS production environment on 2026-10-11, so the tab stays hidden for everyone. Dev builds
+  still show it from `.env`.
 - **Every push-token registration now uses the same signed-in check.** The
   notifications switch (Settings and onboarding) and the reminder editor's
   permission prompt register the push token through `pushRegistrationUserId`,
