@@ -77,8 +77,9 @@ describe("GuestPromoBar", () => {
     expect(style?.minHeight).toBeGreaterThanOrEqual(48)
   })
 
-  // WCAG AA needs 4.5:1 for 16 px / 600 text. The pill is colors.tint in both
-  // palettes, so a label colour that flips with the theme can fail in one.
+  // WCAG AA needs 4.5:1 for 16 px / 600 text. The pill is the same colors.tint
+  // in both palettes, so the label has to clear it in each theme separately
+  // (palette.neutral100 alone was white in light theme: 3.2:1).
   it.each([
     ["light", lightTheme],
     ["dark", darkTheme],
@@ -94,4 +95,15 @@ describe("GuestPromoBar", () => {
       expect(contrast(color, pill as string)).toBeGreaterThanOrEqual(4.5)
     },
   )
+
+  // The Meetings header spaces each element from the one ABOVE it
+  // (MeetingFilterBar's $row carries marginTop; the header's bottom padding
+  // spaces the last one from the content). A bottom margin here left the card
+  // flush under the filter cells, with 24 dp of space below it.
+  it("takes its gap above it, like the rest of the Meetings header", () => {
+    const { root } = render(<GuestPromoBar onSignIn={() => {}} />)
+    const style = StyleSheet.flatten(root.props.style as StyleProp<ViewStyle>)
+    expect(style?.marginTop).toBe(lightTheme.spacing.sm)
+    expect(style?.marginBottom).toBeUndefined()
+  })
 })

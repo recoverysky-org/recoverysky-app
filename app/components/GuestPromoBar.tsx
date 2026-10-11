@@ -46,7 +46,11 @@ const $container: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
   marginHorizontal: spacing.md,
-  marginBottom: spacing.sm,
+  // The gap goes ABOVE, as everywhere in the Meetings header: each element
+  // spaces itself from the one before it (MeetingFilterBar's $row carries
+  // marginTop), and the header's own bottom padding spaces the last one from
+  // the content. A bottom margin left the card flush under the filter cells.
+  marginTop: spacing.sm,
   padding: spacing.sm,
   borderRadius: 12,
   backgroundColor: colors.card,
@@ -81,15 +85,17 @@ const $button: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   backgroundColor: colors.tint,
 })
 
-// Black, the pairing AgentScreen's consent button uses on colors.tint. The tint
-// is Electric Pink (#FF10F0) in both palettes and black on it is 6.6:1, above
-// WCAG AA's 4.5:1 for 16 px text in both themes. It was palette.neutral100, the
-// SegmentedPill pairing: white in light theme (3.2:1) and #0D0D0D in dark. Not a
-// theme token on purpose, because no token is dark in both themes (neutral900
-// is black in light and white in dark). A user-picked tint would change the
-// maths, but the guest-mode spec gives a guest the default theme, never the
-// device owner's tint (2026-09-27-guest-mode-design.md, leaks table).
-const $buttonText: ThemedStyle<TextStyle> = () => ({
+// Near-black in both themes, from palette tokens. The pill is colors.tint, which
+// is Electric Pink (#FF10F0) in both palettes, so the label needs a dark colour
+// in each. No single token is dark in both (neutral900 is black in light and
+// white in dark; neutral100 is the reverse), so the theme picks one:
+// neutral900 in light (#000000, 6.58:1) and neutral100 in dark (#0D0D0D,
+// 6.09:1). Both clear WCAG AA's 4.5:1 for 16 px text. It was neutral100 in
+// both themes, the SegmentedPill pairing, which is white in light theme
+// (3.19:1). A user-picked tint would change the maths, but the guest-mode spec
+// gives a guest the default theme, never the device owner's tint
+// (2026-09-27-guest-mode-design.md, leaks table).
+const $buttonText: ThemedStyle<TextStyle> = ({ colors, isDark }) => ({
   fontWeight: "600",
-  color: "#000",
+  color: isDark ? colors.palette.neutral100 : colors.palette.neutral900,
 })

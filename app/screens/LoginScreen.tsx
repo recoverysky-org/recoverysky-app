@@ -608,9 +608,9 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
               // the 2026-10-03 note on ChooseStep above), and a guest tap in
               // that window would overwrite `inFlight` and drop the busy overlay.
               disabled={isLoading || providerBusy}
-              style={themed($guestButton)}
+              style={themed($guestLink)}
             >
-              <Text style={themed($loadingText)} tx="loginScreen:justJoinMeetings" />
+              <Text style={themed($guestLinkText)} tx="loginScreen:justJoinMeetings" />
             </Pressable>
           )}
 
@@ -860,10 +860,25 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // the last child of $contentContainer, so on a short screen or with large text
 // the slop below it would be dead. The bottom margin keeps the password link's
 // own 8 dp hitSlop (just below) off this box when the column has no free space.
-const $guestButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+// Otherwise it is laid out like $passwordLink (centred, md side padding), so
+// the two secondary links read alike.
+const $guestLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignSelf: "center",
   minHeight: 48,
   justifyContent: "center",
+  paddingHorizontal: spacing.md,
   marginBottom: spacing.xs,
+})
+
+// ADDED 2026-10-11: the guest link's own text style, matching $passwordLinkText
+// (dim, 14, underlined) so the two secondary links read alike and the
+// underline gives a tap cue. It used to share $loadingText, the style of the
+// "Opening browser…" status line, which has no tap cue and would have
+// restyled this link along with that line.
+const $guestLinkText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  color: colors.textDim,
+  fontSize: 14,
+  textDecorationLine: "underline",
 })
 
 const $passwordLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
