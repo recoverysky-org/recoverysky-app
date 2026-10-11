@@ -21,12 +21,13 @@
  * Why we don't have to worry about double-mounting with the SchedulePopup
  * version: only set once at cold start, cleared on Save/Cancel. Any
  * subsequent Join flow uses the SchedulePopup-owned modal.
- * CHANGED 2026-10-11: it is set only once a real session is live.
- * TimerSessionResumer waits for `isAuthenticated`, so the owner's timer never
- * surfaces over Login, the wrong-account screen or guest mode. For an owner
- * whose token is still valid that is still cold start; otherwise it is when a
- * sign-in or token refresh completes. It is still set at most once per
- * resumer mount.
+ * CHANGED 2026-10-11: it is set only while the owner's identity (`userId`)
+ * is present. TimerSessionResumer waits without one, so a guest, and the
+ * Login screen after a real sign-out, never get the owner's timer. A
+ * signed-in owner still gets it at cold start, as before guest mode: over
+ * Login too while their token renews, or while a forced logout waits on the
+ * timer. Otherwise it comes when a sign-in records the identity. It is still
+ * set at most once per resumer mount.
  *
  * CHANGED 2026-08-05: this now has to cover a second owner too —
  * InPersonPopup mounts its own InPersonTimerModal (Task 10) the same way

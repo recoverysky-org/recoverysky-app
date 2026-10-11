@@ -53,11 +53,9 @@ import { useDatabase } from "./DatabaseProvider"
 
 const log = logger.child({ module: "TimerSessionResumer" })
 
-// CHANGED 2026-10-11: an observer, so the guest-mode flag in the effect's deps
-// is tracked. Leaving guest mode re-renders this and re-runs the effect.
-// CHANGED 2026-10-11: it now tracks `isAuthenticated` instead (see the
-// effect). A sign-in or token refresh that makes the session live re-runs it.
-// Leaving guest mode alone no longer does, because that lands on Login.
+// CHANGED 2026-10-11: an observer, so `userId` in the effect's deps is
+// tracked. A sign-in that records the owner's identity re-runs the effect
+// (see the gate there for why it keys on `userId`).
 export const TimerSessionResumer = observer(function TimerSessionResumer(): null {
   const { status } = useDatabase()
   const authStore = useAuthenticationStore()
@@ -66,19 +64,26 @@ export const TimerSessionResumer = observer(function TimerSessionResumer(): null
   useEffect(() => {
     if ((status !== "open" && status !== "seeded") || hasRun.current) return
     // ADDED 2026-10-11: never raise the device owner's interrupted attendance
-    // timer inside guest mode (spec 2026-09-27). Not consumed — once the user
-    // signs in, isGuest flips, this effect re-runs and restores it.
-    // CHANGED 2026-10-11: gated on a real session (`isAuthenticated`) instead
-    // of `!isGuest`. A guest is never authenticated, so guests stay covered,
-    // and the spec expects this to bail without a session. The guest flag
-    // clears on the Sign-in tap, before anyone has signed in, so the old gate
-    // raised the owner's timer over Login after Guest → Sign in. There a
-    // stranger could Cancel it, discarding the session, and a signed-out Save
-    // writes the record with an empty uid (the modals save `userId ?? ""`).
-    // It is still not consumed: `hasRun` is set only past this gate, so the
-    // restore runs once a sign-in or token refresh makes the session live. A
-    // wrong-account session is never authenticated either.
-    if (!authStore.isAuthenticated) return
+    // timer inside guest mode (spec 2026-09-27). Not consumed — once the
+    // owner signs in, this effect re-runs and restores it.
+    // CHANGED 2026-10-11: gated on the owner identity (`userId`), not on
+    // `!isGuest`. Guest mode never sets userId and a real sign-out clears it,
+    // so neither a guest nor a stranger on Login after Guest → Sign in gets
+    // the owner's timer. The guest flag alone was not enough: it clears on
+    // the Sign-in tap, before anyone signs in, so the timer came up over
+    // Login. A stranger could Cancel it there, discarding the session, or
+    // Save it with an empty uid (the modals save `userId ?? ""`).
+    // Why `userId` and not a live token (`isAuthenticated`): a forced logout
+    // deferred for a live timer keeps userId set. So on a cold start with a
+    // dead refresh token the timer still comes up (over Login, as before
+    // guest mode), and its Save/Cancel fires the pending logout. Gated on a
+    // live token, the timer waited for a re-login, and that re-login
+    // inherited the deferred logout: the refresher stayed latched, so its
+    // requests went out with no bearer, and Save then ejected it. userId comes
+    // from the persisted snapshot, so a signed-in owner whose token only needs
+    // renewal still restores at once.
+    // Still not consumed: `hasRun` is set only past this gate.
+    if (!authStore.userId) return
     hasRun.current = true
 
     const session = loadTimerSession()
@@ -97,7 +102,7 @@ export const TimerSessionResumer = observer(function TimerSessionResumer(): null
       belowCredit: elapsedMs < EXTERNAL_MIN_CREDIT_MS,
     })
     setRecoverySession(session)
-  }, [status, authStore.isAuthenticated])
+  }, [status, authStore.userId])
 
   return null
 })
