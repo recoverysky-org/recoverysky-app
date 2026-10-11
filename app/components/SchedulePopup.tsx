@@ -464,8 +464,6 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
     // Extract meeting number from URL
     const meetingNumber = extractZoomMeetingNumber(meeting.url)
-    // SDK expects the plaintext passcode, not the encrypted pwd from URLs
-    const password = meeting.password || ""
 
     if (!meetingNumber) {
       // Fallback for non-Zoom URLs. Guarded: Linking.openURL throws

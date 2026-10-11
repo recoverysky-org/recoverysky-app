@@ -158,10 +158,17 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
 
   const joinMeeting = useCallback(
     async (config: ZoomJoinConfig): Promise<ZoomJoinResult> => {
+      // CHANGED 2026-10-11: records whether a name was supplied, not the name.
+      // This line used to log `userName: config.userName`. A display name comes
+      // from the profile's shortName (plus the owner's clean days or pronouns
+      // when those toggles are on), and CLAUDE.md's Logging section says never
+      // to log those. It describes the request: the name actually sent also
+      // passes the guest rule below, so a guest's request can say true here and
+      // still go out unnamed. No doc or dashboard in the repo read the old field.
       log.info("Join meeting request (external Zoom)", {
         mid: config.meetingId,
         zid: config.meetingNumber,
-        userName: config.userName,
+        hasUserName: !!config.userName,
         ts: Date.now(),
       })
 
@@ -175,11 +182,17 @@ export function useZoomMeeting(): UseZoomMeetingReturn {
           password: config.password,
           passwordEnc: config.passwordEnc,
           // CHANGED 2026-10-11: a guest sends no name (spec 2026-09-27); the
-          // profile on a shared device belongs to its owner. ProfileHydrator
-          // also skips guests, so displayName is "" anyway — belt and braces.
-          userName:
-            config.userName ??
-            zoomPrefillName({ isGuest: authStore.isGuest, displayName: profileStore.displayName }),
+          // profile on a shared device belongs to its owner. zoomPrefillName is
+          // the protection, not a backup, so it wraps whichever name wins here
+          // (the caller's, else the profile's). The form `config.userName ??
+          // zoomPrefillName(…)` let a caller-supplied name skip the rule. And a
+          // guest's displayName is not empty: ProfileHydrator skips guests, but
+          // the owner's saved toggles (MMKV props) still format " (12d)" with no
+          // shortName, and a profile already in memory still has the name itself.
+          userName: zoomPrefillName({
+            isGuest: authStore.isGuest,
+            displayName: config.userName ?? profileStore.displayName,
+          }),
         })
         await openInZoomApp(zoomUrl)
         setState("idle")
