@@ -20,6 +20,7 @@ import { SettingsScreen } from "@/screens/SettingsScreen"
 import { SocialScreen } from "@/screens/SocialScreen"
 import { isTimerSessionActive } from "@/services/attendance"
 import { useAppTheme } from "@/theme/context"
+import { decideAgentTabVisible } from "@/utils/agentTabLogic"
 import { loadString, remove } from "@/utils/storage"
 
 import type { MainTabParamList, SettingsSection } from "./navigationTypes"
@@ -45,11 +46,21 @@ export const MainNavigator = observer(function MainNavigator() {
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
   const { isPremium } = useSubscription()
-  // Reference kept so the value isn't flagged unused; useSubscription is
-  // still wired here for future tab gates and ProfileStore reactions.
-  void isPremium
   // Agent tab stays hidden until ready for release.
-  const agentTabVisible = false
+  // CHANGED 2026-10-10: no longer a hard `false`. Shown when the build carries
+  // a valid EXPO_PUBLIC_AGENT_URL and the user passes the entitlement gate
+  // (`__DEV__ || isPremium`); see agentTabLogic.ts. To hide it again, remove
+  // the var from the build's environment (eas.json + EAS production env for
+  // OTAs), not from ConfigStore, which falls back to a default URL. isPremium
+  // used to be read only to keep it from being flagged unused; it is now this
+  // gate's input.
+  const agentTabVisible = decideAgentTabVisible({
+    // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
+    // these at bundle time only for that exact form.
+    agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
+    isDev: __DEV__,
+    isPremium,
+  })
   // Community (Social) tab hidden for this release. Re-enable with
   // `__DEV__ || isPremium` once the SPA-side bugs are addressed.
   const socialTabVisible = false

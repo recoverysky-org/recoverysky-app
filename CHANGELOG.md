@@ -22,6 +22,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **Sky Agent tab can be switched on per build.** It was hard-disabled in code. It now shows
+  when the build has a valid `EXPO_PUBLIC_AGENT_URL` and the user is premium (or it's a dev
+  build). Production builds and OTAs carry that variable today, so the next release shows the
+  tab to premium users unless it's removed from `eas.json` and the EAS production environment.
+
 ### Build
 - EAS cloud builds work again. They failed in "Install dependencies" because the private
   packages (`@recoverysky-org/common`, `@trex-ts/core`, `@jenova-marie/ts-rust-result`) were
