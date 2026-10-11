@@ -608,6 +608,7 @@ export const LoginScreen: FC<LoginScreenProps> = observer(function LoginScreen(_
               // the 2026-10-03 note on ChooseStep above), and a guest tap in
               // that window would overwrite `inFlight` and drop the busy overlay.
               disabled={isLoading || providerBusy}
+              style={themed($guestButton)}
             >
               <Text style={themed($loadingText)} tx="loginScreen:justJoinMeetings" />
             </Pressable>
@@ -850,6 +851,19 @@ const $contentContainer: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexGrow: 1, // CHANGED 2026-09-28 from flex:1 — same reason as $screenContentContainer
   justifyContent: "center",
   gap: spacing.md,
+})
+
+// ADDED 2026-10-11: the guest button is one 24 dp line of text, so it gets a
+// real box at Material's 48 dp minimum touch height. Not hitSlop as on the
+// text links elsewhere: Android drops a touch outside the parent's bounds
+// before it reaches a child's slop (TouchTargetHelper), and this button can be
+// the last child of $contentContainer, so on a short screen or with large text
+// the slop below it would be dead. The bottom margin keeps the password link's
+// own 8 dp hitSlop (just below) off this box when the column has no free space.
+const $guestButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  minHeight: 48,
+  justifyContent: "center",
+  marginBottom: spacing.xs,
 })
 
 const $passwordLink: ThemedStyle<ViewStyle> = ({ spacing }) => ({
