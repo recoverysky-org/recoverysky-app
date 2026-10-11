@@ -25,13 +25,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Added
 - **Android: "Just join meetings" opens a Meetings-only guest mode.** The link
   on the Login screen lets someone browse Online, In-Person and Search and
-  join a meeting with no account. Nothing about a guest is stored. The device
-  owner's name, favorites, theme and attendance never show, and the owner's
-  interrupted attendance timer never comes up. A card above the meeting list
-  invites the guest to make a free account, and its Sign in button returns to
-  Login. Guest mode survives a relaunch. iOS still requires an account. Four
-  new i18n keys in nine locales (translations queued for review; the card's
-  three are still English outside `en`).
+  join a meeting with no account. No user id is created, and nothing personal
+  is recorded for a guest: no attendance, reminders, favorites, ratings or
+  profile. The phone keeps only device settings: that guest mode is on, the
+  Meetings filters, list-or-map view and sort order picked (shared with the
+  device owner), the location permission choice, and that the legal
+  agreements were accepted. The device owner's name, favorites, theme and
+  attendance never show, and the owner's interrupted attendance timer never
+  comes up. A card above the meeting list invites the guest to make a free
+  account, and its Sign in button returns to Login. Guest mode survives a
+  relaunch. iOS still requires an account. Four new i18n keys in nine locales
+  (translations queued for review; the card's three are still English
+  outside `en`).
 
 ### Changed
 - **Every push-token registration now uses the same signed-in check.** The

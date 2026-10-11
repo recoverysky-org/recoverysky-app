@@ -38,7 +38,7 @@ They say:
 ## Causes
 
 ### 1. Guest mode
-Someone tapped "Just join meetings" on the login screen, so the app is in guest mode: the Meetings tab alone, no account, nothing stored about the guest, and the device owner's data hidden. Hidden is not deleted. The owner's attendance, reports, clean time, favourites, theme and settings are still on the phone, and Cloud Backup is untouched. The mode stays on across relaunches until "Sign in" is tapped.
+Someone tapped "Just join meetings" on the login screen, so the app is in guest mode: the Meetings tab alone, no account, nothing personal recorded about the guest (no attendance, reminders, favourites, ratings or profile), and the device owner's data hidden. The phone keeps only device settings: that guest mode is on, the Meetings filters, list-or-map view and sort order picked (shared with the device owner, who sees the guest's last picks after signing back in), the location permission choice, and that the legal agreements were accepted. Hidden is not deleted. The owner's attendance, reports, clean time, favourites, theme and settings are still on the phone, and Cloud Backup is untouched. The mode stays on across relaunches until "Sign in" is tapped.
 
 ## Solution
 

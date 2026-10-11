@@ -399,9 +399,23 @@ the plan `docs/superpowers/plans/2026-09-28-guest-mode.md` ends with the
 rulings that changed its code during implementation. "Just join meetings" on
 Login's choose step (Android only, through the legal gate like every entry)
 calls `authStore.enterGuest()`. A guest gets the Meetings tab alone (Online,
-In-Person, Search, and joining through the Zoom app) with no account. Nothing
-about them is stored, and the device owner's data stays hidden. `isGuest` is
-persisted, so a guest relaunches into Meetings.
+In-Person, Search, and joining through the Zoom app) with no account, and the
+device owner's data stays hidden. No user id is created, and nothing personal
+is recorded for a guest: no attendance, reminders, favorites, ratings, join
+counts or profile. The phone keeps only device settings, per install rather
+than per person:
+- that guest mode is on (`isGuest`, persisted, so a guest relaunches into
+  Meetings);
+- the Meetings tab's filter and view choices, which the device owner shares
+  (MMKV `meetings.fellowship`, `meetings.language`, `inperson.radius`,
+  `inperson.viewMode`, `inperson.sortOrder`);
+- the location permission choice (`profileStore.locationEnabled`, plus the
+  OS grant);
+- that the legal agreements were accepted (SecureStore `terms_accepted_v2`,
+  a timestamp), so the next sign-in on the install is not asked again.
+
+The `NAVIGATION_STATE` cache is written too, as for every user, but only dev
+builds restore it.
 
 - **Guest mode never sets `userId`.** No device-id identity, placeholder uid or
   hash, and `isAuthenticated` stays false, so sync, push registration,

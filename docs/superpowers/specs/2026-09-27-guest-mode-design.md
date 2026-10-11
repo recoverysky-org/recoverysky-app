@@ -13,15 +13,19 @@ Naming (2026-10-11): this feature is **guest mode** everywhere: code, copy, docs
 ## Why
 
 Most Android installs never get past the login screen. An account is required for everything the app
-stores about a person, but browsing and joining a meeting stores nothing. This mode lets Android users
-open the app, find a meeting, and join it without signing in.
+stores about a person, but browsing and joining a meeting records nothing personal. This mode lets
+Android users open the app, find a meeting, and join it without signing in.
 
 ## What a guest gets
 
 - **Only the Meetings tab:** Online, In-Person and Search, and joining meetings through the external
   Zoom app. No Home, Attendance or Settings tabs, and no onboarding.
-- **Nothing about them is stored or tracked.** They get no user id and no local rows. No clean time,
-  90-in-90, attendance, reminders, theme color, favorites or meeting ratings (all out of scope for v1).
+- **No account, and nothing personal is recorded.** They get no user id and no local rows: no clean
+  time, 90-in-90, attendance, reminders, theme color, favorites or meeting ratings (all out of scope
+  for v1). The phone keeps only device settings: that guest mode is on, the Meetings tab's filter and
+  view choices (shared with the device owner), the location permission choice, and that the legal
+  agreements were accepted. Logs and analytics carry no user id. CHANGED 2026-10-11: this said
+  "Nothing about them is stored or tracked", which the persisted flag and those settings contradict.
 - **On a borrowed or shared phone the app shows meetings and nothing else.** No data belonging to the
   device owner is visible.
 - **The mode persists across relaunches.** A guest lands on Meetings until they choose to

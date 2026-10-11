@@ -8,7 +8,7 @@ Hi [first name],
 
 Thanks for writing, and please don't worry. Your records are safe on your phone. Nothing has been deleted.
 
-The app is in its meetings-only mode, which starts when "Just join meetings" is tapped on the sign-in screen. That mode shows meetings and nothing else, so your clean time, attendance and Settings are hidden while it's on.
+The app is in its meetings-only mode, which starts when "Just join meetings" is tapped on the sign-in screen. That mode shows meetings and nothing else, so your clean time, attendance and Settings are hidden while it's on. It doesn't record anything personal. The phone only remembers a few settings from it: that it was turned on, the meeting filters, list or map view and sort order that were picked, whether location was allowed, and that the legal agreements were accepted. Any meeting filters picked in that mode will still be set when you're back.
 
 To get everything back:
 
@@ -25,6 +25,8 @@ RecoverySky Support
 Hi [first name],
 
 Thanks for getting in touch. You're using RecoverySky without an account, which lets you find and join meetings. Clean time, attendance records, reports and reminders need a free account.
+
+Without an account, the app records nothing personal about you: no attendance, reminders, favourites, ratings or profile details. It only remembers a few settings on this phone: that you chose to just join meetings, the meeting filters, list or map view and sort order you pick, whether you allow location, and that you accepted the legal agreements.
 
 To make one:
 
