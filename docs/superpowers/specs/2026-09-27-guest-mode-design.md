@@ -1,7 +1,7 @@
 # Guest mode: Meetings only, Android only
 
-Status: implemented on `feat/guest-mode` (2026-10-11); the on-device pass (plan Task 9 Step 4) is
-pending. Drafted 2026-09-27 on that branch (worktree `.claude/worktrees/guest-mode`), which was cut
+Status: implemented and merged to `root` (2026-10-11); the on-device pass (plan Task 9 Step 4)
+passed 2026-10-11 (Jenova). Drafted 2026-09-27 on `feat/guest-mode` (worktree `.claude/worktrees/guest-mode`), which was cut
 from `feat/passwordless-auth` @ 5c2c14d and builds on its login screen and owner gate. The plan,
 `docs/superpowers/plans/2026-09-28-guest-mode.md`, ends with "Execution notes" listing the rulings
 that changed it.

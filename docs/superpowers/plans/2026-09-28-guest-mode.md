@@ -1297,7 +1297,9 @@ Under `[Unreleased]` `### Added`:
 - In the "App-wide pieces" list, replace the RevenueCat bullet: "`SubscriptionProvider`: unchanged — a guest is identical to a signed-out user on the Login screen (the SDK runs on `$RCAnonymousID`, no `logIn`). Skipping init was dropped: a later sign-in relies on the SDK already being configured."
 - Add a "Found during planning" note: the local favorites / ratings / join-count cache was already per device and shown in every list, so it's suppressed via `feedbackCache.setSuppressedWhen`. Also, skipping `ProfileHydrator` both blanks the Zoom name and yields the AA filter default.
 
-- [ ] **Step 4: Verify on a device**
+- [x] **Step 4: Verify on a device**
+
+PASSED 2026-10-11: Jenova ran the device pass and confirmed it valid, guest onboarding included.
 
 Manual: Jenova runs this on a device. An agent cannot sign in as the owner or drive the device UI (ruling 2026-10-11). The docs task does not run it; the branch hand-off lists it as the remaining gate.
 
