@@ -75,6 +75,8 @@ const AppStack = observer(function AppStack() {
   // and initialRouteName (appRouteLogic.ts), now that guest mode adds a sixth
   // state. Order is unchanged for the existing five; Guest sits between
   // WrongAccount and Login.
+  // CHANGED 2026-10-11: GuestOnboarding makes seven. It sits just before
+  // Guest, for a guest's first visit (appRouteLogic.ts).
   const route = decideAppRoute({
     outage: showOutage,
     isAuthenticated,

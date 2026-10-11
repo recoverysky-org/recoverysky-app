@@ -45,6 +45,7 @@ POST ${UMAMI_URL}/api/send
 | `logout` | User logged out from settings | — | `app/screens/SettingsScreen.tsx` |
 | `onboarding_step` | User advanced through an onboarding step. `variant` (ADDED 2026-10-11) says which set: `"full"` for a real sign-in, `"guest"` for a guest's first visit (Welcome, Zoom, Privacy, OSS only) | `{ step: "welcome" \| "profile" \| "recovery" \| "zoom" \| "theme" \| "attendance" \| "privacy" \| "oss", variant: "full" \| "guest" }` | `app/screens/onboarding/*.tsx` |
 | `onboarding_completed` | User finished an onboarding flow: the full set, or a guest's first-visit set (CHANGED 2026-10-11) | `{ variant: "full" \| "guest" }` | `app/screens/onboarding/OnboardingOSS.tsx` |
+| `onboarding_zoom_install_tap` | User tapped the Zoom install link on the onboarding Zoom card (both the full set and a guest's first visit) | `{ platform: "ios" \| "android", variant: "full" \| "guest" }` | `app/screens/onboarding/OnboardingZoom.tsx` |
 | `firebase_import` | User imported data from the old Firebase app | — | `app/screens/onboarding/OnboardingImport.tsx` |
 
 ### Group 3: Meetings

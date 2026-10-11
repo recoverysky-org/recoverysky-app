@@ -18,6 +18,7 @@ import { useOnboardingVariant } from "./OnboardingVariant"
 
 /**
  * Onboarding screen names in order.
+ * CHANGED 2026-10-11: that list is no longer here; see the last note below.
  *
  * CHANGED 2026-08-13: OnboardingProfile dropped — it merged into
  * OnboardingRecovery when the profile concept left the UI, taking the flow

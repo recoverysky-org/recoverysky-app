@@ -65,7 +65,9 @@ export const OnboardingZoom: FC<OnboardingScreenProps<"OnboardingZoom">> = obser
     // on Expo Web; otherwise the platform-native store link is preferred.
     const handleInstallZoom = () => {
       const url = Platform.OS === "android" ? ZOOM_PLAY_STORE_URL : ZOOM_APP_STORE_URL
-      trackEvent("onboarding_zoom_install_tap", { platform: Platform.OS })
+      // CHANGED 2026-10-11: carries `variant`, like the other onboarding events,
+      // so guest installs of Zoom can be told apart from signed-in ones.
+      trackEvent("onboarding_zoom_install_tap", { platform: Platform.OS, variant })
       Linking.openURL(url).catch((err: unknown) => {
         log.error("Failed to open Zoom store URL", {
           url,

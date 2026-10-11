@@ -19,9 +19,10 @@ Android users open the app, find a meeting, and join it without signing in.
 ## What a guest gets
 
 - **Only the Meetings tab:** Online, In-Person and Search, and joining meetings through the external
-  Zoom app. No Home, Attendance or Settings tabs, and no onboarding. CHANGED 2026-10-11 (Jenova): a
-  guest's first visit opens with four onboarding cards (Welcome, Install Zoom, Your Privacy Matters,
-  Open Source), tracked by their own flag so a later real sign-in still gets all six.
+  Zoom app. No Home, Attendance or Settings tabs. A guest's first visit opens with four onboarding
+  cards (Welcome, Install Zoom, Your Privacy Matters, Open Source), tracked by their own flag, so an
+  account that hasn't onboarded on this phone still gets all six when it signs in. CHANGED 2026-10-11
+  (Jenova): this said "and no onboarding".
 - **No account, and nothing personal is recorded.** They get no user id and no local rows: no clean
   time, 90-in-90, attendance, reminders, theme color, favorites or meeting ratings (all out of scope
   for v1). The phone keeps only device settings: that guest mode is on and its first-visit cards
@@ -106,7 +107,7 @@ The `platformStrings` "Continue Anonymously" copy should be reworded for the new
 1. Maintenance / outage
 2. authenticated → Onboarding / Main
 3. foreign session → WrongAccount
-4. `isGuest` → Guest
+4. `isGuest` → GuestOnboarding until `guestOnboardingCompleted`, otherwise Guest (CHANGED 2026-10-11)
 5. Login
 
 WrongAccount keeps precedence over Guest, so a wrong-account state is never masked.

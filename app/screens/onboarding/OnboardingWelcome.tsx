@@ -59,7 +59,10 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
       // OnboardingRecovery when the profile concept left the UI.
       if (profileStore.imported) {
         log.info("imported=true, skipping to Recovery")
-        navigation.navigate("OnboardingRecovery")
+        // CHANGED 2026-10-11: the card after Welcome comes from
+        // onboardingStepsLogic.ts, so a reordered set moves this too.
+        const afterWelcome = nextOnboardingCard(variant, "OnboardingWelcome")
+        if (afterWelcome) navigation.navigate(afterWelcome)
         return
       }
 
@@ -75,7 +78,8 @@ export const OnboardingWelcome: FC<OnboardingScreenProps<"OnboardingWelcome">> =
       } else {
         log.info("No Firebase data, navigating to Recovery")
         // profileStore.setImported(true) // TODO: re-enable after dev
-        navigation.navigate("OnboardingRecovery")
+        const afterWelcome = nextOnboardingCard(variant, "OnboardingWelcome")
+        if (afterWelcome) navigation.navigate(afterWelcome)
       }
     }
 

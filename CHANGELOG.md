@@ -28,7 +28,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Online, In-Person and Search and join a meeting with no account. A guest's
   first visit opens with four short cards (Welcome, Install Zoom, Your
   Privacy Matters, Open Source); signing in later still shows the full
-  onboarding. No user id is created, and nothing personal is recorded for a
+  onboarding to an account that hasn't done it on this phone. No user id is created, and nothing personal is recorded for a
   guest: no attendance, reminders, favorites, ratings or profile. The phone
   keeps only device settings: that guest mode is on and its first-visit cards
   were seen, the Meetings filters, list-or-map view and sort order picked
