@@ -52,13 +52,20 @@ export const MainNavigator = observer(function MainNavigator() {
   // OTAs), not from ConfigStore, which falls back to a default URL. isPremium
   // used to be read only to keep it from being flagged unused; it is now this
   // gate's input.
-  const agentTabVisible = decideAgentTabVisible({
-    // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
-    // these at bundle time only for that exact form.
-    agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
-    isDev: __DEV__,
-    isPremium,
-  })
+  // CHANGED 2026-10-11: also hard-gated on `__DEV__`. OTA 4.11.0-1 showed the
+  // tab in production after the var was taken out of eas.json and the EAS
+  // production env, so the env switch alone did not hold for an OTA. Store
+  // builds and OTAs never show it now; dev builds still follow the env var.
+  // Remove the `__DEV__ &&` to release the tab.
+  const agentTabVisible =
+    __DEV__ &&
+    decideAgentTabVisible({
+      // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
+      // these at bundle time only for that exact form.
+      agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
+      isDev: __DEV__,
+      isPremium,
+    })
   // Community (Social) tab hidden for this release. Re-enable with
   // `__DEV__ || isPremium` once the SPA-side bugs are addressed.
   const socialTabVisible = false
