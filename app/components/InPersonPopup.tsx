@@ -94,6 +94,7 @@ import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import type { PersistedPresence } from "@/services/attendance"
+import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -967,8 +968,15 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
                 opens the timer once the user is verified within radius; every
                 rejection is explained via Alert in handleImHere above rather
                 than reflected in this button's own visual state. */}
-            {/* CHANGED 2026-10-11: never for guests — "I'm Here" writes attendance. */}
-            {profileStore.attendanceEnabled && !isGuest && (
+            {/* CHANGED 2026-10-11: never for guests — "I'm Here" writes attendance.
+                Gated by canLogAttendance() (services/attendance/
+                attendanceGateLogic.ts), not `attendanceEnabled` alone: the
+                owner's MMKV setting persists into guest mode, and a timer
+                session started by a guest is exactly what TimerSessionResumer
+                relies on never existing. The rule lives in that helper so a
+                vitest case pins it; keep it there rather than re-inlining
+                `&& !isGuest`. */}
+            {canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest }) && (
               <Pressable
                 onPress={handleImHere}
                 disabled={isChecking}

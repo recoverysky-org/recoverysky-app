@@ -15,8 +15,9 @@
  * ADDED 2026-10-11 (guest mode, spec 2026-09-27-guest-mode-design.md): for a
  * guest this popup is join-only. The heart, stars and visit count, the
  * tappable reminder cells and their hint are hidden; Join opens Zoom directly
- * (no attendance timer, no name prefill); and no rating soft-ask follows the
- * close. The device owner's data never reaches a guest through this popup.
+ * (no attendance timer, no first-run timer heads-up, no name prefill); and no
+ * rating soft-ask follows the close. The device owner's data never reaches a
+ * guest through this popup.
  */
 
 import { FC, useMemo, useState, useEffect, useCallback, useRef } from "react"
@@ -51,6 +52,7 @@ import { useReminders } from "@/hooks/useReminders"
 import { useTopicPanel } from "@/hooks/useTopicPanel"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
+import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
 import { maybePresentRatingPrompt } from "@/services/rating"
 import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
@@ -493,14 +495,17 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     // enabled — the modal launches Zoom and captures the user-confirmed
     // attendance window. When attendance is off, open Zoom directly.
     const proceedExternalJoin = () => {
-      // CHANGED 2026-10-11: `&& !isGuest`. Guests never log attendance (spec
-      // 2026-09-27); open Zoom directly. LOAD-BEARING for the timer-recovery
-      // rule: `attendanceEnabled` is an MMKV prop, so the device OWNER's setting
-      // persists into guest mode. If a guest could open the timer and the app
-      // were killed mid-meeting, the persisted session would be restored on the
-      // owner's next sign-in and saved under the owner's identity (see
-      // TimerSessionResumer). A guest must never start one.
-      if (profileStore.attendanceEnabled && !isGuest) {
+      // CHANGED 2026-10-11: gated by canLogAttendance() (services/attendance/
+      // attendanceGateLogic.ts), not `attendanceEnabled` alone. Guests never log
+      // attendance (spec 2026-09-27); open Zoom directly. LOAD-BEARING for the
+      // timer-recovery rule: `attendanceEnabled` is an MMKV prop, so the device
+      // OWNER's setting persists into guest mode. If a guest could open the
+      // timer and the app were killed mid-meeting, the persisted session would
+      // be restored on the owner's next sign-in and saved under the owner's
+      // identity (see TimerSessionResumer). A guest must never start one. The
+      // rule lives in that helper so a vitest case pins it; keep it there
+      // rather than re-inlining `&& !isGuest`.
+      if (canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest })) {
         // Tag the source so the "processed" subscription shows the host
         // field when the topic panel slides in.
         // CHANGED 2026-08-05: attendanceSourceRef removed — useTopicPanel now
@@ -540,8 +545,17 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
 
     // First-time education: defer the actual join until the user taps
     // Continue in the education modal.
+    // CHANGED 2026-10-11: never for a guest (spec 2026-09-27). Its copy is
+    // false for a guest ("A timer will be started … to receive attendance
+    // credit", yet a guest's join opens Zoom directly, with no timer), and the
+    // seen flag is a per-install MMKV key that belongs to the device owner: a
+    // guest tapping Continue would spend it, and the owner would never get the
+    // heads-up on their first join. A guest goes straight to the join and
+    // leaves the flag alone. Keyed on `isGuest`, NOT on canLogAttendance():
+    // signed-in users with attendance off still see it, as before (that copy
+    // question predates guest mode).
     const educationSeen = load<boolean>(EXTERNAL_ZOOM_EDUCATION_SEEN_KEY) === true
-    if (!educationSeen) {
+    if (!educationSeen && !isGuest) {
       educationActionRef.current = proceedExternalJoin
       setEducationVisible(true)
       return
