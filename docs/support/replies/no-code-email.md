@@ -45,7 +45,7 @@ You have a few options:
 
 1. Check the address for typos. If you find one, go back in the app and enter the correct one.
 2. Try a different email address that you can read.
-3. On the sign-in screen, choose "Continue with Google" or "Continue with Apple" if you use one of those. If you have a password, "Can't get a code? Sign in with your password" is also there.
+3. On the sign-in screen, choose "Continue with Google" or "Continue with Apple" if you use one of those. If you have a password, "Can't get an email code? Sign in with your password" is also there.
 
 Reply if none of these work and we'll find another way.
 

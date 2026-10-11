@@ -108,7 +108,7 @@ HTTP 429 (no `code` on the wire; the app labels it `rate_limited`). The user see
 
 **A3:**
 1. Open the `fcls` event and read the description.
-2. If it is a refused recipient, ask the user for another address, or let them sign in by another method (Google, Apple, or "Can't get a code? Sign in with your password" if they have a password account).
+2. If it is a refused recipient, ask the user for another address, or let them sign in by another method (Google, Apple, or "Can't get an email code? Sign in with your password" if they have a password account).
 3. If it points at the tenant's email provider, check the provider in the Auth0 dashboard (Branding, Email Provider) and escalate.
 
 **A4:** if `cls` exists in the tenant log for that time, the mail was sent: tell the user to wait and check their inbox, then enter the code (on a build older than 2026-09-30 they may have to retry the screen). If there is no `cls`, check the device's connection and whether a VPN is on; the user can retry on mobile data.

@@ -137,7 +137,7 @@ Needs the local API with Postmark configured. Wipe users first.
 
 | # | Device | Do | Expect | ✓ |
 |---|---|---|---|---|
-| 3.1 | iOS | 🧨 Purge → **Can't get a code? Sign in with your password** → **Sign up** with a mistyped address (e.g. your Gmail + `f`). Finish onboarding. | The verify screen: heading "Please review and verify your email address", the mistyped address in full, "Skips left: 6". | ✅ |
+| 3.1 | iOS | 🧨 Purge → **Can't get an email code? Sign in with your password** → **Sign up** with a mistyped address (e.g. your Gmail + `f`). Finish onboarding. | The verify screen: heading "Please review and verify your email address", the mistyped address in full, "Skips left: 6". | ✅ |
 | 3.2 | iOS | Tap **Why is verification required?** | The browser opens the RecoverySky post. | — |
 | 3.3 | iOS | Tap **Not now**. Background and foreground the app. | Into the app. The screen does not return today. | ✅ (Android, in 3.8) |
 | 3.4 | iOS | Set the phone's date forward one day, foreground the app. | The screen returns with "Skips left: 5". | ✅ (Android, in 3.8) |

@@ -69,7 +69,7 @@ const th: Translations = {
   },
   loginScreen: {
     // ADDED 2026-10-01 — legacy password accounts that cannot receive a code.
-    passwordSignIn: "Can't get a code? Sign in with your password",
+    passwordSignIn: "Can't get an email code? Sign in with your password",
     passwordSignInHint: "Opens the password sign-in page in a browser",
     logIn: "เข้าสู่ระบบ",
     enterDetails:

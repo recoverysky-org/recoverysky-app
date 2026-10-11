@@ -7,7 +7,7 @@ How a user can sign in to the app, what each method does on the Auth0 side, what
 | Method | What the user taps | Auth0 connection | Sub prefix | `loginMethod` | Browser opens | Logout |
 | --- | --- | --- | --- | --- | --- | --- |
 | Email code | "Continue with Email" | `email` (passwordless) | `email\|` | `email` | No | Clear credentials only |
-| Password | "Can't get a code? Sign in with your password" | `Username-Password-Authentication` | `auth0\|` | undefined | Yes (Auth0 password page) | Browser session cleared |
+| Password | "Can't get an email code? Sign in with your password" | `Username-Password-Authentication` | `auth0\|` | undefined | Yes (Auth0 password page) | Browser session cleared |
 | Google | "Continue with Google" | `google-oauth2` | `google-oauth2\|` | `google` | Yes | Browser session cleared |
 | Apple | "Continue with Apple" | `apple` | `apple\|` | `apple` | Yes | Browser session cleared |
 
@@ -62,7 +62,7 @@ The 30 s timeout exists because `/passwordless/start` answers only after Auth0 h
 
 ## Password
 
-**What the user taps.** A small link under the sign-in buttons: "Can't get a code? Sign in with your password" (accessibility hint "Opens the password sign-in page in a browser"). On the wrong-account screen the link reads "Sign in with your password instead". It was added on 2026-10-01 for legacy accounts that cannot receive a code (a dead or mistyped address). It used to be dev-only.
+**What the user taps.** A small link under the sign-in buttons: "Can't get an email code? Sign in with your password" (accessibility hint "Opens the password sign-in page in a browser"). On the wrong-account screen the link reads "Sign in with your password instead". It was added on 2026-10-01 for legacy accounts that cannot receive a code (a dead or mistyped address). It used to be dev-only.
 
 **What happens**
 
