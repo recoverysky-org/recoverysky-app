@@ -23,9 +23,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Added
-- **Android: "Just join meetings" opens a Meetings-only guest mode.** The link
-  on the Login screen lets someone browse Online, In-Person and Search and
-  join a meeting with no account. No user id is created, and nothing personal
+- **Android: "Just join meetings" opens a Meetings-only guest mode.** The button
+  sits with the sign-in options on the Login screen and lets someone browse
+  Online, In-Person and Search and join a meeting with no account. No user id is created, and nothing personal
   is recorded for a guest: no attendance, reminders, favorites, ratings or
   profile. The phone keeps only device settings: that guest mode is on, the
   Meetings filters, list-or-map view and sort order picked (shared with the

@@ -34,6 +34,14 @@ export interface ChooseStepProps {
   onEmail: () => void
   onOwnerEmail: () => void
   onProvider: (connection: ProviderConnection) => void
+  /**
+   * ADDED 2026-10-11: guest mode's entry, "Just join meetings". Guest mode is
+   * a first-class way in (Jenova), so it is a full button in this stack,
+   * styled like the sign-in options. The screen passes it only when
+   * decideGuestEntry allows a guest (Android, no userId present); absent, no
+   * button renders, so iOS and a signed-in owner never see it.
+   */
+  onJustJoin?: () => void
 }
 
 export function ChooseStep({
@@ -42,6 +50,7 @@ export function ChooseStep({
   onEmail,
   onOwnerEmail,
   onProvider,
+  onJustJoin,
 }: ChooseStepProps) {
   const { themed, theme } = useAppTheme()
 
@@ -120,6 +129,21 @@ export function ChooseStep({
           disabled={isLoading}
         >
           <Text style={themed($buttonText)} tx="loginScreen:continueWithEmail" />
+        </Pressable>
+      )}
+
+      {/* ADDED 2026-10-11: last in the stack, after every sign-in option, and
+        disabled with them while a login is in flight. */}
+      {onJustJoin && (
+        <Pressable
+          testID="login-guest"
+          accessibilityRole="button"
+          accessibilityLabel={translate("loginScreen:justJoinMeetings")}
+          style={[themed($button), isLoading && themed($buttonDisabled)]}
+          onPress={onJustJoin}
+          disabled={isLoading}
+        >
+          <Text style={themed($buttonText)} tx="loginScreen:justJoinMeetings" />
         </Pressable>
       )}
 
@@ -331,10 +355,13 @@ const $button: ThemedStyle<ViewStyle> = ({ spacing, colors }) => ({
 
 const $buttonDisabled: ThemedStyle<ViewStyle> = () => ({ opacity: 0.7 })
 
+// CHANGED 2026-10-11: textAlign centre, so a label that wraps stays centred
+// in its box. "Just join meetings" runs 28-33 characters in fr, ru and uk.
 const $buttonText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 18,
   fontWeight: "600",
   color: colors.tint,
+  textAlign: "center",
 })
 
 const $linkText: ThemedStyle<TextStyle> = ({ colors }) => ({

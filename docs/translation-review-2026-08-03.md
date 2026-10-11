@@ -920,4 +920,5 @@ bundle, so correct them in `platformStrings.ts`.
 - uk "Просто приєднатися до зустрічей"
 
 The English is "Just join meetings": a way in that gives meetings and nothing else. It sits under
-the sign-in buttons and must not read as one of them.
+the sign-in buttons and must not read as one of them. Since 2026-10-11 it is styled like them,
+so the wording alone has to say it is not a sign-in.

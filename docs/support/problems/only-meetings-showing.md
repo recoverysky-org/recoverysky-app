@@ -25,7 +25,7 @@ They say:
    | "This device is set up for a different RecoverySky account." | Not guest mode: [wrong-account-screen](wrong-account-screen.md) |
    | All tabs, but an empty account | Not guest mode: [empty-account-after-sign-in](empty-account-after-sign-in.md) |
    | An iPhone showing only Meetings | Not guest mode (iOS has none): Escalate |
-2. **Ask: "Did you, or anyone else using the phone, tap "Just join meetings" on the sign-in screen?"** It is the underlined link under the sign-in buttons, and the only way into guest mode. The mode survives relaunches, so the tap may be days old.
+2. **Ask: "Did you, or anyone else using the phone, tap "Just join meetings" on the sign-in screen?"** It is the last button on the sign-in screen, under Google, Apple and Email, and the only way into guest mode. The mode survives relaunches, so the tap may be days old.
 3. **Ask why the sign-in screen was showing at all.** Guest mode starts from the login screen, so the user was signed out first: they logged out, the app signed them out (the login screen then says "You were signed out because your session could not be restored on this device. Please sign in again."), or the app was new on this phone. If they never chose to sign out, also work [signed-out-unexpectedly](signed-out-unexpectedly.md).
 4. **Loki has no hash to search.** A guest has no user id, so guest lines carry no `userId`, and the Umami event `guest_mode_entered` carries none either. Diagnose from what the user describes. Only if you already have the user's hash from an earlier signed-in session ([tools](../reference/tools.md#hash-an-auth0-sub-into-the-log-userid)): a line with their `userId` shows the phone's `deviceId`, and then
    ```
@@ -63,7 +63,8 @@ See [../replies/only-meetings-showing.md](../replies/only-meetings-showing.md). 
 
 ## Sources
 
-- `app/screens/LoginScreen.tsx` (the guest entry, Umami `guest_mode_entered`)
+- `app/screens/LoginScreen.tsx` (the guest entry's wiring, Umami `guest_mode_entered`)
+- `app/screens/login/LoginSteps.tsx` (`ChooseStep`, which renders the "Just join meetings" button)
 - `app/models/AuthenticationStore.ts` (`isGuest`, `enterGuest()`, `exitGuest()`, `logout()`)
 - `app/navigators/appRouteLogic.ts`, `app/navigators/GuestNavigator.tsx`
 - `app/components/GuestPromoBar.tsx`, `app/screens/MeetingsScreen.tsx`

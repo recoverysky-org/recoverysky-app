@@ -1372,3 +1372,5 @@ Also out of date in the plan text, though not set by a ruling:
 - `app/db/index.ts` no longer re-exports `TimerSessionResumer`. `app.tsx` imports it directly, like `OwnerRelinkMigrator`, because its new `@/models` read would close a barrel cycle. Don't add the export back.
 - Task 6's `GuestNavigator` cast fallback was not needed.
 - Task 9 Step 4's items 2 and 5 are corrected in place: the bar's remembered pick (R25) and the dark default theme.
+
+After the merge (2026-10-11, Jenova): "Just join meetings" became a full button, the last in `ChooseStep`'s stack and styled like the sign-in options, because guest mode is a first-class way in. This supersedes R22's underlined-link style and Task 6 Step 3's link block in `LoginScreen`. The screen passes `onJustJoin` only when `decideGuestEntry` allows a guest (R35).
