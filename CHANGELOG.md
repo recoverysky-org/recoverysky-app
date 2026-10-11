@@ -49,6 +49,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   like the registration at app start: an Auth0 user with a stored session, or
   nothing. They used to read an identity getter that fell back to the device
   id. No path can register a device id now.
+- **The password link on Login reads "Can't get an email code? Sign in with
+  your password".** It used to say only "a code", which didn't say which
+  code it meant.
 
 ### Removed
 - **The old device-id login.** Hidden since May 2026, it signed a person in as
