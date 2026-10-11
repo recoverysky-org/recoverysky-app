@@ -8,6 +8,7 @@ import { logger } from "@/utils/logger"
 import * as storage from "@/utils/storage"
 
 import { RootStore, RootStoreSnapshot } from "../RootStore"
+import { isLegacyDeviceIdUserId } from "./legacyIdentityLogic"
 
 const log = logger.child({ module: "RootStore" })
 
@@ -47,33 +48,33 @@ export async function setupRootStore(rootStore: RootStore) {
     log.error("Failed to load RootStore from MMKV", { error: String(e) })
   }
 
-  // ADDED 2026-09-17 (spec 2 §1.3): first launch after the ownership OTA on an
-  // install that was signed in. Adopt the persisted account as the device
-  // owner NOW, before any reaction sees the session, so the upgrade itself
-  // never shows the wrong-account screen. Must run before the isAnonymous
-  // reset below: an anonymous snapshot carries userId === deviceId, and a
-  // device id must never become the owner.
-  //
-  // CHANGED 2026-09-18: running before the reset is NOT sufficient on its own,
-  // hence the explicit deviceId check. The reset below persists through
-  // onSnapshot, so an install that used the old anonymous login (live on
-  // Android 2025-12-26 → 2026-05-14) reaches its SECOND cold start with
-  // `isAnonymous: false` already written and `userId` still the device id —
-  // the `!auth.isAnonymous` guard passes and the device id becomes the owner.
-  // That state is unrecoverable from inside the app: ownerProofMethod() on a
-  // device id is "unknown" and ownerEmail is undefined, so WrongAccountView
-  // offers Cancel and nothing else, and every real sign-in loops back to it.
+  // ADDED 2026-10-11: clear a device id left in `userId` by the removed
+  // device-id login (see legacyIdentityLogic.ts). Runs FIRST so the owner
+  // stamp below and every identity reaction only ever see an Auth0 sub.
+  // Replaces the old cold-start reset of that login's flag, which cleared the
+  // flag but left the device id behind.
   {
     const auth = rootStore.authenticationStore
-    if (!auth.ownerSub && auth.userId && !auth.isAnonymous && auth.userId !== auth.deviceId) {
-      auth.setOwner(auth.userId, auth.authEmail || undefined)
-      log.info("Owner stamped from hydration")
+    if (isLegacyDeviceIdUserId({ userId: auth.userId, deviceId: auth.deviceId })) {
+      auth.setUserId(undefined)
+      log.info("Cleared legacy device-id userId")
     }
   }
 
-  // Reset anonymous flag on cold start so returning anonymous users see the Login screen.
-  if (rootStore.authenticationStore.isAnonymous) {
-    rootStore.authenticationStore.setProp("isAnonymous", false)
+  // ADDED 2026-09-17 (spec 2 §1.3): first launch after the ownership OTA on an
+  // install that was signed in. Adopt the persisted account as the device
+  // owner NOW, before any reaction sees the session, so the upgrade itself
+  // never shows the wrong-account screen.
+  // CHANGED 2026-10-11: the device-id guards that lived here (a device-id-login
+  // snapshot carries userId === deviceId, and a device id must never become
+  // the owner — it is unrecoverable from WrongAccountView) moved into the
+  // legacy cleanup above, which empties such a userId before this runs.
+  {
+    const auth = rootStore.authenticationStore
+    if (!auth.ownerSub && auth.userId) {
+      auth.setOwner(auth.userId, auth.authEmail || undefined)
+      log.info("Owner stamped from hydration")
+    }
   }
 
   // Load auth credentials from SecureStore.
