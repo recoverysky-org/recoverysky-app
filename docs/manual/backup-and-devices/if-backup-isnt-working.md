@@ -11,13 +11,13 @@ When "Back up attendance" is on, a status line under the switch in Settings → 
 
 ## What the status line means
 
-You're in Settings → "Cloud Backup", and "Back up attendance" is on.
+You're in Settings → "Cloud Backup", and "Back up attendance" is on. This section shows only with the Attendance subscription.
 
 - **"Paused — offline"**: the phone has no connection. Backup picks up again when the connection is back. This shows whenever you are offline, even right after a good backup.
 - **"Backing up… (37)"**: 37 records are still to send. Records go in batches with a pause between them, so the first backup of a long history takes minutes. Keep the app open and online.
 - **"Syncing…"**: the app is sending your latest changes to your backup. It clears by itself.
-- **"Backup issue — will retry"**: recent attempts to back up failed. The app waits half a minute, then a minute, then five minutes between tries. After the wait, it tries again the next time backup runs: when you log or edit attendance, open the app, or open the Attendance tab. Check your connection first. If it still says this after a day, contact support.
-- **Nothing under the switch**: nothing has run since you opened the app. Open the Attendance tab, or close and reopen the app.
+- **"Backup issue — will retry"**: recent attempts to back up failed. The app waits half a minute, then a minute, then five minutes between tries. After the wait, it tries again the next time backup runs: when you log or edit attendance, open the app, or open the Attendance tab. Check your connection first.
+- **Nothing under the switch**: nothing has been sent to your backup since you opened the app. That is normal when you have not logged or changed attendance since then.
 
 ## If the Cloud Backup section is missing
 
@@ -46,7 +46,7 @@ Reports arrive a few at a time, so a long list takes a little while. A record th
 
 **Turning it off loses nothing.** Switching "Back up attendance" off pauses backup. Nothing is deleted on the phone or in your backup. Switching it back on backs everything up again.
 
-**One stuck record.** Rarely, a single old record never backs up while the rest do. That is something support has to look at.
+**One stuck record.** Rarely, a single old record never backs up while the rest do. Contact support@recoverysky.app and mention the date of the record that is missing.
 
 ## If something's wrong
 
@@ -60,7 +60,7 @@ Contact support@recoverysky.app and mention what the status line under "Back up 
 **A:** Your phone has no connection right now. Backup picks up again by itself when you are back online. It shows whenever you are offline, even if everything was already backed up.
 
 **Q:** It says "Backup issue — will retry".
-**A:** Recent attempts to back up failed. Check your connection. After a short wait, the app tries again the next time you log attendance, open the app, or open the Attendance tab. If it still says this after a day, contact support@recoverysky.app and mention what the status line says.
+**A:** Recent attempts to back up failed. Check your connection. After a short wait, the app tries again the next time you log attendance, open the app, or open the Attendance tab. Still there after that? Contact support@recoverysky.app and mention what the status line says.
 
 **Q:** Why don't I see Cloud Backup in Settings?
 **A:** The "Cloud Backup" section shows only while the Attendance subscription is active on this phone. If you have the subscription, tap "Restore Purchases" in Settings → "Subscription".

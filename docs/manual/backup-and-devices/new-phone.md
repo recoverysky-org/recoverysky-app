@@ -7,7 +7,7 @@ tier: attendance
 aliases: ["new phone", transfer, "switch phones", "restored from backup", "lost my records", "data is gone", "records are gone"]
 ---
 <!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts -->
-Your attendance records live on your phone unless Cloud Backup is on. Moving to a new phone takes two steps: turn on Cloud Backup on the old phone and let it finish, then sign in on the new phone with the same account and turn on Cloud Backup there. Your attendance records and the reports you have sent come back. Cloud Backup needs the Attendance subscription.
+Your attendance records live only on your phone unless Cloud Backup is on. Moving to a new phone takes two steps: turn on Cloud Backup on the old phone and let it finish, then sign in on the new phone with the same account and turn on Cloud Backup there. Your attendance records and the reports you have sent come back. Cloud Backup needs the Attendance subscription.
 
 ## Before you switch
 
@@ -30,7 +30,7 @@ You're on the new phone.
 3. In Settings → "Cloud Backup", turn on "Back up attendance".
 4. Keep the app open and online. The first backup fetches what is in your backup before it sends anything. It can take a few minutes, and it finishes with "All backed up ✓".
 
-Reports come across a few at a time, so give them a little while.
+Reports come across a few at a time, so give them a little while. Cloud Backup needs the Attendance subscription.
 
 ## What comes back and what doesn't
 
@@ -52,7 +52,7 @@ These do not come back. Set them up again on the new phone:
 
 Your records are under the account you used before, but the new phone now belongs to the account you just signed in with. This happens after signing in a different way: a different method, a different email address, or Apple's hidden address instead of your own.
 
-First, check the Attendance tab and Settings. If you see records you made on this phone, stop and contact support first.
+First, check the Attendance tab and Settings. If you see records you made on this phone, stop there. Contact support@recoverysky.app and mention that this phone signed in with a different account than before.
 
 If they hold nothing you made on this phone:
 

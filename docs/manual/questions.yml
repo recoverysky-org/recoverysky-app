@@ -1,4 +1,35 @@
 # Retrieval smoke test for the manual: each `q` is run through the same search Sky
 # uses (no filters, three hits) and must bring back its `expect` page. At least three
 # per page, in the user's words. The ingest runs this after writing; a miss exits 1.
-[]
+- q: how do I turn on cloud backup
+  expect: backup-and-devices/cloud-backup
+- q: what does back up attendance actually save
+  expect: backup-and-devices/cloud-backup
+- q: is my attendance encrypted in the cloud
+  expect: backup-and-devices/cloud-backup
+- q: how do I delete my cloud backup
+  expect: backup-and-devices/cloud-backup
+- q: can I use RecoverySky on two phones
+  expect: backup-and-devices/using-more-than-one-device
+- q: my favorites didn't come over to my new phone
+  expect: backup-and-devices/using-more-than-one-device
+- q: will my attendance show up on my tablet too
+  expect: backup-and-devices/using-more-than-one-device
+- q: I got a new phone and my attendance is gone
+  expect: backup-and-devices/new-phone
+- q: how do I move my records to a new phone
+  expect: backup-and-devices/new-phone
+- q: it says can't unlock your local data after I restored my phone
+  expect: backup-and-devices/new-phone
+- q: it says this phone is set up for a different account
+  expect: backup-and-devices/one-account-per-phone
+- q: can my partner use my phone with their own account
+  expect: backup-and-devices/one-account-per-phone
+- q: how do I switch to a different account on this phone
+  expect: backup-and-devices/one-account-per-phone
+- q: what does paused offline mean
+  expect: backup-and-devices/if-backup-isnt-working
+- q: backup says backup issue will retry
+  expect: backup-and-devices/if-backup-isnt-working
+- q: why don't I see the cloud backup section in settings
+  expect: backup-and-devices/if-backup-isnt-working

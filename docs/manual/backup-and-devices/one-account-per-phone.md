@@ -16,7 +16,7 @@ Under it, the app says: "Sign in to that account to continue. Your meetings and 
 
 The screen offers the way the phone's account signs in:
 
-- **"Send code to …"**, for an account that signs in with an email code. The address is shown partly hidden. Tap it to get a code at that address.
+- **"Send code to" and an address**, for an account that signs in with an email code. The address is shown partly hidden. Tap it to get a code at that address.
 - **"Sign in with Google"** or **"Sign in with Apple"**, for an account that signs in with Google or Apple.
 - **"Sign in with your password instead"**, for an older account that signs in with a password.
 - **"Cancel"**, which takes you back to the login screen. It deletes nothing.
@@ -29,7 +29,7 @@ At the bottom, the screen says: "If you can't sign in to that account, contact s
 
 Two people cannot both keep their own records on one phone. A second person needs their own phone for their own account.
 
-On Android, someone else can tap "Just join meetings" on the login screen. That opens the Meetings tab as a guest, with no account. A guest can browse and join meetings. A guest sees none of your records, settings or favorites, and nothing personal is recorded for them.
+On Android, someone else can tap "Just join meetings" on the login screen. That opens the Meetings tab as a guest, with no account. A guest can browse and join meetings. A guest sees none of your records or favorites, and nothing personal is recorded for them.
 
 Guest mode is only on Android. On iPhone, using the app needs an account.
 

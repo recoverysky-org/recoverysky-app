@@ -6,8 +6,8 @@ platforms: [ios, android]
 tier: attendance
 aliases: ["two phones", "second device", tablet, "sync between devices", "favorites didn't move", "didn't come over"]
 ---
-<!-- sources: docs/BACKUP.md, app/screens/SettingsScreen.tsx, app/services/sync/attendanceSyncService.ts, app/services/sync/syncLogic.ts, app/db/feedbackCache.ts, app/services/api/index.ts, app/models/ProfileStore.ts, app/context/SubscriptionContext.tsx, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/login/guestEntryLogic.ts, app.json, CLAUDE.md -->
-You can use RecoverySky on more than one phone or tablet. Sign in with the same account on each one, and turn on "Back up attendance" on each one. Your attendance records and the reports you have sent then move between them through Cloud Backup. Nothing else moves between devices. This needs the Attendance subscription.
+<!-- sources: docs/BACKUP.md, app/screens/SettingsScreen.tsx, app/services/sync/attendanceSyncService.ts, app/services/sync/syncLogic.ts, app/db/feedbackCache.ts, app/services/api/index.ts, app/models/ProfileStore.ts, app/context/SubscriptionContext.tsx, app/hooks/useReminders.ts, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/login/guestEntryLogic.ts, app.json, CLAUDE.md -->
+You can use RecoverySky on more than one phone or tablet. Sign in with the same account on each one, and turn on "Back up attendance" on each one. Your attendance records and the reports you have sent then move between them through Cloud Backup. Nothing else you save in the app moves between devices. This needs the Attendance subscription.
 
 ## How to set up a second device
 
@@ -22,7 +22,7 @@ This needs the Attendance subscription; without it the Cloud Backup section isn'
 
 ## What moves between your devices
 
-Two things move between your devices through Cloud Backup:
+Two things move between your devices through Cloud Backup, which needs the Attendance subscription:
 
 - **Attendance records.** New records, edits, archived records and deleted records all move.
 - **The reports you have sent.** Reports arrive on the other device a few at a time.
@@ -37,9 +37,9 @@ These are not part of Cloud Backup, so they do not move to another device:
 
 - **Your clean date and profile**, including your fellowship. They stay on the device where you set them.
 - **Favorites (hearts) and star ratings.** They stay on the device where you tapped them.
-- **Meeting reminders.** They do not follow you to another device.
+- **Meeting reminders.** A reminder you set shows only on the device where you set it.
 - **Your settings**, such as theme, language and the Meetings filters. They stay on the device where you chose them.
-- **Money saved and the 90-in-90 challenge.** They stay on the device where you set them up.
+- **Money saved, and the start date of a 90-in-90 challenge.** They stay on the device where you set them up.
 - **Attendance on a device where "Back up attendance" is off.** Those records stay on that device until you turn backup on there.
 
 On a new device, set these up again by hand.
@@ -63,7 +63,7 @@ A record is missing on your other device. Check these, in order:
 3. Both devices are online.
 4. Wait a few minutes, then open the Attendance tab on the device that is missing the record.
 
-If it is still missing, contact support@recoverysky.app and mention which device is missing what, and the status line under "Back up attendance" on each.
+Still missing? Contact support@recoverysky.app and mention which device is missing what, and the status line under "Back up attendance" on each.
 
 ## Questions people ask
 

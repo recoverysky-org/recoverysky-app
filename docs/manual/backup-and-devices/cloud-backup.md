@@ -24,14 +24,14 @@ This needs the Attendance subscription; without it the Cloud Backup section isn'
 
 ## What you'll see
 
-You're in Settings → "Cloud Backup". While "Back up attendance" is on, a status line under the switch says what backup is doing. The app checks these in this order and shows the first one that applies:
+You're in Settings → "Cloud Backup", which shows only with the Attendance subscription. While "Back up attendance" is on, a status line under the switch says what backup is doing. The app checks these in this order and shows the first one that applies:
 
 - **"Paused — offline"**: the phone has no connection. Backup waits until you are back online. This shows whenever you are offline, even right after a good backup.
-- **"Backing up…"**: records are being sent to your backup. A number such as "Backing up… (12)" means 12 records are still to send.
+- **"Backing up…"**: a full backup of this phone's attendance is running, as happens when you turn the switch on. A number such as "Backing up… (12)" means 12 records are still to send.
 - **"Syncing…"**: the app is sending your latest changes to your backup.
 - **"Backup issue — will retry"**: recent attempts to back up failed. After a short wait, the app tries again the next time backup runs.
 - **"All backed up ✓ · 3:42 PM"**: everything is backed up. The time is when the last backup finished.
-- **Nothing under the switch**: nothing has run yet since you opened the app.
+- **Nothing under the switch**: nothing has been sent to your backup since you opened the app. That is normal when you have not logged or changed attendance since then.
 
 ## Good to know
 
@@ -41,19 +41,19 @@ You're in Settings → "Cloud Backup". While "Back up attendance" is on, a statu
 
 **Turning it off.** Switching "Back up attendance" off pauses backup. Nothing is deleted: not on the phone, and not in your backup. Switching it back on backs everything up again, which is safe.
 
-**The app offers to turn it on.** You may see an offer at three moments:
+**The app offers to turn it on.** If you have the Attendance subscription and backup is off, you may see an offer at three moments:
 
 - Right after you buy a subscription, in the "Welcome to Premium!" dialog, with "Not now" and "Back up attendance".
 - After you tap "Restore Purchases", in the "Back up your attendance?" dialog.
-- Once on a later launch, in the same "Back up your attendance?" dialog. After you answer that launch offer, it is not shown again on this phone.
+- Once when you open the app, in the same "Back up your attendance?" dialog. It is shown only once on this phone, whatever you answer.
 
 The offers never appear while backup is already on. You can always turn it on yourself in Settings → "Cloud Backup".
 
-**No "Back up now" button.** The "Back up attendance" switch is the only control. To nudge a backup, open the Attendance tab or reopen the app.
+**No button to back up right away.** The "Back up attendance" switch is the only control. To nudge a backup, open the Attendance tab or reopen the app.
 
 **Encryption.** The app describes it this way: "Encrypted on your device, in transit, and in the cloud."
 
-**Reports on another phone.** Reports arrive a few at a time, about one a second, so a long list takes a little while.
+**Reports on another phone.** Each report's content is fetched on its own, about one a second, so a long list takes a little while to fill in.
 
 **Deleting the cloud copy.** There is no way to delete the cloud copy from inside the app. "Delete User Data", "Reset local data" and switching backup off all leave it in place. Contact support@recoverysky.app and mention that you want your cloud backup deleted.
 
@@ -63,7 +63,7 @@ The offers never appear while backup is already on. You can always turn it on yo
 - **It stays on "Backing up…".** The first backup of a long history takes minutes. Keep the app open and online.
 - **It says "Backup issue — will retry".** See the page "If Cloud Backup isn't working".
 
-If none of that helps, contact support@recoverysky.app and mention what the status line under "Back up attendance" says.
+Still stuck? Contact support@recoverysky.app and mention what the status line under "Back up attendance" says.
 
 ## Questions people ask
 
