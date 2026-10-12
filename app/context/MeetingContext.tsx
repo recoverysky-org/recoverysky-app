@@ -12,6 +12,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react"
 import { type meeting } from "@recoverysky-org/common/browser"
@@ -285,6 +286,8 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("unknown")
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  // Numbers each live refresh; only the newest may write the list (RS-059).
+  const liveSeqRef = useRef(0)
 
   // Auto-refresh when maintenance mode ends so meetings are up to date.
   // CHANGED 2026-09-14: observes the combined blocked flag (maintenance OR
@@ -373,6 +376,16 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
   // ============================================================================
   useEffect(() => {
     async function refreshLiveMeetings() {
+      // ADDED 2026-10-11 (RS-059): the newest call owns the list. Refreshes
+      // overlap: a request in flight when the app goes to background can land
+      // on resume after the foreground refresh's newer answer, and nothing
+      // stopped it putting the older list back (seen once in 6 hours of
+      // production logs, harmlessly in the right order that time). Same
+      // sequence guard as useAtNextSchedules. Numbered before the
+      // maintenance skip, so a skip also retires an older request.
+      const seq = ++liveSeqRef.current
+      const isLatest = () => seq === liveSeqRef.current
+
       // Skip the API call entirely while server-side maintenance is on.
       // We keep showing whatever cached schedules we already have. The
       // existing maintenance-exit reaction above will trigger a refresh
@@ -411,11 +424,18 @@ export function MeetingProvider({ children }: MeetingProviderProps): ReactNode {
       // `getLiveSchedules(in_person) failed` error log every quarter-hour for
       // a 1.4 MB payload nobody used. In-person data is fetched on demand by
       // useNearbySchedules instead. Do not re-add the in-person fetch here.
+      // CHANGED 2026-10-11 (RS-059): a superseded ladder stops retrying, and
+      // its answer (or failure) is dropped below; the newer call reports.
       const outcome = await retryWithBackoff(
         () => api.getLiveSchedules("online"),
         (result) => result.kind === "ok",
         "getLiveSchedules(online)",
+        { shouldContinue: isLatest },
       )
+      if (!isLatest()) {
+        log.debug("Dropping a superseded live meetings response")
+        return
+      }
 
       if (!("result" in outcome) || outcome.result.kind !== "ok") {
         // "kind" from an API problem (e.g. "not-found", "timeout") or the

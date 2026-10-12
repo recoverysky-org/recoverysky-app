@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  isFromEarlierQuarter,
   LIVE_POLL_JITTER_MAX_MS,
   LIVE_POLL_JITTER_MIN_MS,
   msUntilNextQuarterHour,
@@ -67,5 +68,31 @@ describe("msUntilNextRefresh", () => {
       pickRefreshJitterMs(() => 0),
     )
     expect(delay).toBeGreaterThan(15 * 60 * 1000)
+  })
+})
+
+// ADDED 2026-10-11 (RS-059): the Live list mounted without refreshing, so a
+// list fetched in an earlier quarter-hour stayed on screen until the next mark.
+describe("isFromEarlierQuarter", () => {
+  const ms = (h: number, m: number, s: number, msPart = 0) => at(h, m, s, msPart).getTime()
+
+  it("is true for a list fetched before the mark the clock has since passed", () => {
+    expect(isFromEarlierQuarter(ms(12, 14, 59, 999), ms(12, 15, 0))).toBe(true)
+  })
+
+  it("is true for a list fetched hours ago", () => {
+    expect(isFromEarlierQuarter(ms(9, 40, 0), ms(12, 7, 0))).toBe(true)
+  })
+
+  it("is false inside the quarter-hour the list was fetched in", () => {
+    expect(isFromEarlierQuarter(ms(12, 15, 0), ms(12, 29, 59, 999))).toBe(false)
+  })
+
+  it("is false before anything has landed, so it cannot race the provider's first fetch", () => {
+    expect(isFromEarlierQuarter(null, ms(12, 7, 0))).toBe(false)
+  })
+
+  it("is false when the device clock has moved back behind the last fetch", () => {
+    expect(isFromEarlierQuarter(ms(12, 31, 0), ms(12, 20, 0))).toBe(false)
   })
 })

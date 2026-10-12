@@ -31,6 +31,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   `eas.json` and the EAS production environment, nothing in code. (Follows the
   RS-060 fix, already recorded on 4.11.0-4; no tracker update for this one.)
 
+### Fixed
+- **Opening Meetings no longer shows the Live list from an earlier quarter-hour.**
+  The 15-minute refresh ran only while the Live list was on screen, and it never
+  fetched when the list first appeared. So opening Meetings for the first time
+  since the app started, or after signing in, could show meetings from a
+  quarter-hour or more ago until the next mark: 18 of 337 openings in a day of
+  production logs. The list now refreshes as it appears when its data is from
+  an earlier quarter-hour, and an older refresh that lands late can no longer
+  put its list back over a newer one. (RS-059)
+
 ## [4.11.0-4] — 2026-10-11
 
 ### Security

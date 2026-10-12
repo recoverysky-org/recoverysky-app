@@ -57,3 +57,33 @@ export function pickRefreshJitterMs(random: () => number = Math.random): number 
 export function msUntilNextRefresh(now: Date, jitterMs: number): number {
   return msUntilNextQuarterHour(now) + jitterMs
 }
+
+/** One quarter-hour: the period each server live answer is built for. */
+const QUARTER_HOUR_MS = 15 * 60 * 1000
+
+/**
+ * Whether a list last refreshed at `lastRefreshMs` was fetched in an earlier
+ * quarter-hour than `nowMs`. It then answers for a mark that has passed, so a
+ * Live list mounting now should refresh instead of waiting up to 15 minutes
+ * plus jitter for the next scheduled poll.
+ *
+ * ADDED 2026-10-11 (RS-059). The poller lives in LiveContent and by design
+ * does not fetch on mount, and MeetingProvider (above the navigator) refreshes
+ * only when asked. So while the Live list was unmounted (Meetings not opened
+ * since cold start, or remounted by a Login → Main swap) nothing refreshed the
+ * provider: 18 of 337 Live list mounts in 24 hours showed an earlier
+ * quarter's list.
+ *
+ * Null is not stale: nothing has landed yet, so MeetingProvider's own first
+ * fetch is still in flight and a second request would only race it. A device
+ * clock moved back behind the last fetch is not stale either; the scheduled
+ * poll still runs.
+ *
+ * Periods are counted on the epoch, not the local clock. Every time-zone offset
+ * in use is a whole number of quarter-hours, so these are the same marks that
+ * msUntilNextQuarterHour counts down to.
+ */
+export function isFromEarlierQuarter(lastRefreshMs: number | null, nowMs: number): boolean {
+  if (lastRefreshMs === null) return false
+  return Math.floor(lastRefreshMs / QUARTER_HOUR_MS) < Math.floor(nowMs / QUARTER_HOUR_MS)
+}

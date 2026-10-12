@@ -16,7 +16,7 @@ import { AppState, type AppStateStatus } from "react-native"
 
 import { logger } from "@/utils/logger"
 
-import { msUntilNextRefresh, pickRefreshJitterMs } from "./livePollingLogic"
+import { isFromEarlierQuarter, msUntilNextRefresh, pickRefreshJitterMs } from "./livePollingLogic"
 
 const log = logger.child({ module: "LivePolling" })
 
@@ -25,23 +25,41 @@ interface UseLivePollingOptions {
   enabled?: boolean
   /** Callback to run on each poll */
   onRefresh: () => void
+  /**
+   * When the list on screen was last refreshed (MeetingContext's
+   * `lastRefresh`). Checked when polling starts: a list from an earlier
+   * quarter-hour is refreshed at once. ADDED 2026-10-11 (RS-059).
+   */
+  lastRefresh?: Date | null
 }
 
 /**
  * Hook that polls for updates at 15-minute clock marks
  *
  * Refreshes shortly after :00, :15, :30, :45 of each hour (jittered).
- * Also refreshes immediately when app comes to foreground.
+ * Also refreshes immediately when app comes to foreground, and when polling
+ * starts on a list fetched in an earlier quarter-hour (RS-059).
  *
  * @example
  * useLivePolling({
  *   enabled: true,
  *   onRefresh: () => refreshLiveMeetings(),
+ *   lastRefresh,
  * })
  */
-export function useLivePolling({ enabled = true, onRefresh }: UseLivePollingOptions): void {
+export function useLivePolling({
+  enabled = true,
+  onRefresh,
+  lastRefresh = null,
+}: UseLivePollingOptions): void {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const appStateRef = useRef<AppStateStatus>(AppState.currentState)
+  // The polling effect reads this when it starts, but must not depend on it:
+  // every refresh would then re-subscribe AppState and re-roll the jitter.
+  const lastRefreshRef = useRef<Date | null>(lastRefresh)
+  useEffect(() => {
+    lastRefreshRef.current = lastRefresh
+  }, [lastRefresh])
 
   useEffect(() => {
     if (!enabled) {
@@ -97,7 +115,21 @@ export function useLivePolling({ enabled = true, onRefresh }: UseLivePollingOpti
     const subscription = AppState.addEventListener("change", handleAppStateChange)
 
     // Schedule first refresh (don't refresh immediately on mount)
+    // CHANGED 2026-10-11 (RS-059): unless the list on screen was fetched in an
+    // earlier quarter-hour. This poller only exists while the Live list is
+    // mounted, so a list fetched before it mounted (Meetings opened later, or
+    // remounted by a Login → Main swap) kept answering for a passed mark until
+    // the next poll, up to 15 minutes plus jitter later. A list from this
+    // quarter-hour still waits for the mark.
     scheduleNextRefresh()
+    const lastRefreshMs = lastRefreshRef.current?.getTime() ?? null
+    const nowMs = Date.now()
+    if (isFromEarlierQuarter(lastRefreshMs, nowMs)) {
+      log.debug("Refreshing on mount: list is from an earlier quarter-hour", {
+        minutesOld: Math.round((nowMs - (lastRefreshMs ?? nowMs)) / 60_000),
+      })
+      onRefresh()
+    }
 
     // Cleanup
     return () => {

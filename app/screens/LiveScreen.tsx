@@ -398,9 +398,13 @@ export const LiveContent: FC<LiveContentProps> = observer(function LiveContent({
   }, [pendingMeetingId, liveMeetings])
 
   // Auto-refresh at 15-minute marks (:00, :15, :30, :45)
+  // CHANGED 2026-10-11 (RS-059): also on mount when MeetingContext's list is
+  // from an earlier quarter-hour; it was fetched while this screen did not
+  // exist yet (see useLivePolling).
   useLivePolling({
     enabled: true,
     onRefresh: refresh,
+    lastRefresh,
   })
 
   const handleMeetingPress = useCallback((meeting: MeetingWithTrex) => {
