@@ -130,6 +130,10 @@ npm run update
 - Re-confirm you genuinely did **not** need a `runtimeVersion` bump. If you did,
   this OTA targets a runtime no installed user has → reaches nobody. Do a native
   release instead.
+- Did this release touch `docs/manual/`? Then, once the OTA is live, run the
+  manual ingest from the agent repo with the production `.env`:
+  `pnpm manual:ingest ../app/docs/manual` (it refuses a non-localhost target
+  without `--yes`; see "User's Manual").
 
 ### Native release (anything that changed `runtimeVersion`)
 
@@ -145,6 +149,10 @@ npm run build:android:prod && npm run submit:android
 
 These production build scripts (`release:*`, `build:*:prod`, `build:*:cloud`)
 also run eas through `scripts/eas-prod.sh` (ADDED 2026-10-11, RS-060).
+
+Did this release touch `docs/manual/`? Then, once the store build is live, run
+the manual ingest from the agent repo with the production `.env`:
+`pnpm manual:ingest ../app/docs/manual` (see "User's Manual").
 
 Cloud builds need every dependency reachable from the internet. The private
 packages are vendored for exactly that reason (see "Linked Packages").
@@ -1059,6 +1067,34 @@ images to ECR and carries `branches-ignore: [root]` — there is no CI that runs
 `compile` / `lint` / `test` on this app's code, on any branch. Local verification
 before committing is the only gate that exists.
 
+## User's Manual (`docs/manual/`)
+
+The user-facing manual: one Markdown page per feature, written in the voice of
+a user's manual and ingested into the Sky agent's `manual` search collection so
+she can answer "how do I…", "where is…", "why can't I…" and "is it private"
+about the app (spec `docs/superpowers/specs/2026-10-12-user-manual-rag-design.md`;
+the ingest, store, tools and prompt section live in `../agent`). Sky is the only
+reader. The rules are in `docs/manual/README.md`; the ones that bite:
+
+- **Same-commit rule.** A user-visible behaviour change updates the matching
+  page under `docs/manual/` in the same commit, the way `docs/support/` follows
+  auth changes. A renamed label is a changed quote; a new feature is a new page
+  or section; a removed feature is removed text (the manual never carries a
+  roadmap). Pages that do not exist yet are listed in the spec's layout.
+- **Labels verbatim, no internal names, every claim traceable** to the page's
+  `<!-- sources -->` line, one H2 under 400 words, and the hand-off is always
+  "Contact support@recoverysky.app and mention […]".
+- **Validate before committing:** `pnpm --dir ../agent manual:ingest ../app/docs/manual --dry-run`
+  parses every page with the real ingest's parser and lists every problem,
+  writing nothing. It needs no services. Exit codes: `0` ok, `1` a
+  `questions.yml` miss after the writes, `2` the run did not complete (a
+  page, map or questions problem means nothing was written). With `--dry-run`
+  it exits `2` with the full problem list when any page breaks a rule.
+- **CHANGELOG:** manual edits go under `Docs` with a `(manual)` tag.
+- **Ingest is by hand, after the release is live** (see the release sections):
+  from the agent repo with the production `.env`,
+  `pnpm manual:ingest ../app/docs/manual`.
+
 ## Repo Docs Map
 
 Longer-form docs live outside this file; read the relevant one before touching
@@ -1070,6 +1106,9 @@ its subsystem:
 - `docs/support/` — support knowledge base for sign-in, email verification and account linking:
   reference, problems (Diagnose / Cause / Solution) and separate user replies. Update it in the
   same commit as any auth behaviour change.
+- `docs/manual/` — the user's manual Sky searches (one page per feature,
+  `map.md` in her prompt). Update the matching page in the same commit as any
+  user-visible change; rules in its README and in "User's Manual" above.
 - `docs/DIAGNOSTICS.md` — logging/telemetry troubleshooting (`docs/grafana/`
   holds the dashboard JSON)
 - `docs/PRODUCTION_CHECKLIST.md` — pre-release verification
