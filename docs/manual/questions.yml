@@ -1,0 +1,4 @@
+# Retrieval smoke test for the manual: each `q` is run through the same search Sky
+# uses (no filters, three hits) and must bring back its `expect` page. At least three
+# per page, in the user's words. The ingest runs this after writing; a miss exits 1.
+[]
