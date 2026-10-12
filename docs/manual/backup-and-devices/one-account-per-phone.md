@@ -8,7 +8,7 @@ aliases: ["different account", "wrong account", "share a phone", "switch account
 <!-- sources: docs/support/reference/device-owner.md, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/WrongAccountView.tsx, app/screens/WrongAccountScreen.tsx, app/screens/SettingsScreen.tsx, app/screens/login/guestEntryLogic.ts, docs/BACKUP.md, app/db/resetLocalDatabase.ts, app/db/feedbackCache.ts, CLAUDE.md -->
 Each install of RecoverySky holds the data of one account: the first account that signs in on that phone. If a different account signs in, the app shows "This device is set up for a different RecoverySky account." and keeps the phone's records safe. Logging out does not change which account the phone belongs to.
 
-## What the "different account" screen means
+## What the different account screen means
 
 You just signed in, and the app shows "This device is set up for a different RecoverySky account."
 
