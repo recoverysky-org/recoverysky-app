@@ -666,42 +666,75 @@ Keep `deviceId` itself — attestation, the logger's `deviceId` attribute, and
 
 ## 📖 Finish the user's manual (`docs/manual/`) — docs-only, NOT runtimeVersion-gated
 
-Queued 2026-10-12. Spec: `docs/superpowers/specs/2026-10-12-user-manual-rag-design.md`
-(the layout in §1.1, the per-area writing process in §4, the roadmap in §5).
-Sub-project 0, the **skeleton**, is built and reviewed on two unmerged branches:
-app `feat/user-manual` (6 commits on `root`) and agent `feat/manual-rag` (13
-commits on `prod`), plan `docs/superpowers/plans/2026-10-12-user-manual-skeleton.md`.
-It proved the pipeline end to end on a local Docker Qdrant + pgvector: Sky
-answered 9 of 10 checklist questions, every answer through `searchManual`.
+Queued 2026-10-12, updated 2026-10-13. Spec:
+`docs/superpowers/specs/2026-10-12-user-manual-rag-design.md` (the layout in
+§1.1, the per-area writing process in §4, the roadmap in §5). Sub-project 0,
+the **skeleton**, is merged into app `root` (50e24f2, 2026-10-13, not pushed);
+its agent half, `feat/manual-rag` (13 commits), is still an unmerged branch,
+see "Land the agent half" below. Plan:
+`docs/superpowers/plans/2026-10-12-user-manual-skeleton.md`. The pipeline was
+proven end to end on a local Docker Qdrant + pgvector: Sky answered 9 of 10
+checklist questions, every answer through `searchManual`.
 
-What exists: the authoring rules (`docs/manual/README.md`), the map Sky carries
-in her prompt (`map.md`), `questions.yml` (16 entries), and ONE area of nine,
-`backup-and-devices/` (5 pages, fact-checked twice against the code). The spec's
-layout lists 57 pages; **52 are unwritten**, so today Sky can answer backup and
-multi-device questions and nothing else about the app. Each area is a bounded
-sub-project with a brief, not a spec (spec §4): brief → write from the named
-sources only → fact-check by a DIFFERENT reader → at least three `questions.yml`
-entries per page → `pnpm --dir ../agent manual:ingest ../app/docs/manual --dry-run`
-→ commit → dev ingest → CLI checklist. An invented setting in a RAG corpus is
-worse than a missing page, because Sky repeats it with confidence.
+**Where the writing stands (2026-10-13):**
 
-**First, land what exists (Jenova's call — nothing is merged or pushed):**
+| | Written | Planned (spec §1.1) |
+| --- | --- | --- |
+| Pages | 5 | 57 |
+| Directories (the `area` values) | 1 of 10: `backup-and-devices/` | 10 |
+| Roadmap areas (spec §5) | 0 of 5 | 5 |
+| Words | 4,246 in 30 sections | 25–35k |
+| `questions.yml` entries | 16 | ≥ 3 per page, so ≥ 171 |
+| `map.md` | 510 words | "about 350, never more than 600" |
 
-- [ ] Integrate both branches (merge locally / PR / keep): app `feat/user-manual`
-      → `root`, agent `feat/manual-rag` → `prod`. Three small items were parked
-      in the final review and ride with the branch, not against it: the plan
-      names a `packages/manual/README.md` that no task creates (agent `CLAUDE.md`
-      "App Manual" covers it); every ingest inserts a `manual-map` history row
-      even when the map is byte-identical (spec §3 says insert; a skip is a
-      behaviour change); and the store's warn-vs-error split for a missing
-      collection has no direct store test (the tools path is tested).
-- [ ] Populate the **dev** Qdrant so each area can be verified through the CLI:
-      from the agent repo, `QDRANT_URL=http://127.0.0.1:6333 pnpm manual:ingest
-      ../app/docs/manual --yes`. The agent root `.env` has no `QDRANT_URL` and
-      its `DATABASE_URL` is `db.rso`, hence the `--yes` (the ingest refuses a
-      non-localhost database without it). The plan's Task 14 `pnpm dev` as
-      written also talks to the shared `redis.rso`; blank `REDIS_URL` /
-      `REDIS_USERNAME` / `REDIS_PASSWORD` to keep the api local.
+So today Sky can answer backup and multi-device questions and nothing else
+about the app; **52 pages are unwritten**. What exists besides the pages: the
+authoring rules (`docs/manual/README.md`), the map Sky carries in her prompt
+(`map.md`) and `questions.yml`. Each area is a bounded sub-project with a
+brief, not a spec (spec §4): brief → write from the named sources only →
+fact-check by a DIFFERENT reader → at least three `questions.yml` entries per
+page → `pnpm --dir ../agent manual:ingest ../app/docs/manual --dry-run` →
+commit → ingest → CLI checklist. An invented setting in a RAG corpus is worse
+than a missing page, because Sky repeats it with confidence.
+
+**Land the agent half (Jenova's call):**
+
+- [x] App: `feat/user-manual` merged into `root` as 50e24f2 (2026-10-13).
+      Pushing `root` is a separate decision.
+- [ ] Agent: `feat/manual-rag` (53ca127) forked from `prod` at 63fcd0f and
+      `prod` has since moved to v0.8.0 (mem0 long-term memory, 142 commits).
+      A trial merge conflicts in eight files: `CLAUDE.md`,
+      `apps/api/src/container.ts`, `package.json`,
+      `packages/memory/src/index.ts`, `packages/memory/src/stores/index.ts`,
+      `packages/pipeline/src/Pipeline.ts`, `packages/tools/src/index.ts`,
+      `pnpm-lock.yaml`. Merge `prod` into the branch, resolve, suite green,
+      smoke boot, then merge to `prod` and tag `v*` so CI ships the image.
+      Until that image is deployed Sky has no `searchManual`, and the
+      `pnpm --dir ../agent manual:ingest … --dry-run` check in CLAUDE.md fails
+      because the script exists only on the branch. Three small items were
+      parked in the final review and ride with the branch, not against it:
+      the plan names a `packages/manual/README.md` that no task creates
+      (agent `CLAUDE.md` "App Manual" covers it); every ingest inserts a
+      `manual-map` history row even when the map is byte-identical (spec §3
+      says insert; a skip is a behaviour change); and the store's
+      warn-vs-error split for a missing collection has no direct store test
+      (the tools path is tested).
+- [ ] Build the `manual` collection. **There is no dev Qdrant and no dev
+      agent database.** The one Qdrant is production: `databases_qdrant` on
+      enheduanna, reachable from a Mac as `http://qdrant.rso` (Caddy, port 80)
+      or `http://enheduanna.prod.rso:6333`; it needs `QDRANT_API_KEY`
+      (Infisical `app-secrets:Qdrant/JSON`; the dashboard shell loads without
+      it, every data call 401s). `db.rso` resolves to enheduanna too, so the
+      agent root `.env`'s `DATABASE_URL` (database `agent`) is the production
+      agent database and the ingest's `manual-map` row lands there. From the
+      agent repo, after the agent branch is on `prod`:
+      `QDRANT_URL=http://qdrant.rso QDRANT_API_KEY=… pnpm manual:ingest ../app/docs/manual --yes`
+      (the root `.env` has neither variable; `--yes` because neither target is
+      localhost). Ingest first, deploy the image second, so the boot logs
+      "Qdrant manual collection ready". To rehearse without touching
+      production, the plan's Task 14 recipe (Docker `qdrant/qdrant` on
+      127.0.0.1:6333 + pgvector, a scratch migrator, blank `REDIS_*`) still
+      works and needs no `--yes`.
 
 **Then the areas, in the spec's order (§5). Page names are the file names Sky
 sees as `page`, and `questions.yml` must follow them:**
@@ -740,10 +773,11 @@ sees as `page`, and `questions.yml` must follow them:**
       `sky/about-sky`; `status/`: offline-and-maintenance, updates,
       platform-differences. The Home card copy that says attendance is tracked
       "automatically" is wrong; the manual describes the timer.
-- [ ] After each area: the spec §6 hand checklist through the CLI against dev,
-      read for invented details, and `map.md` re-verified against the new pages.
-      It is 510 words today against the README's "about 350, never more than
-      600", so new areas add lines to it, not paragraphs.
+- [ ] After each area: the spec §6 hand checklist through the CLI (against the
+      local rehearsal stack, or production once the area is ingested), read for
+      invented details, and `map.md` re-verified against the new pages. It is
+      510 words today against the README's "about 350, never more than 600",
+      so new areas add lines to it, not paragraphs.
 
 **Open questions the first areas will hit (the answers belong in the pages):**
 
@@ -764,10 +798,15 @@ sees as `page`, and `questions.yml` must follow them:**
       Android?".
 - [ ] `docs/manual/README.md` does not state the same-commit rule (CLAUDE.md
       "User's Manual" does); add it so the README is complete on its own.
+- [ ] The stacks comment on `databases_qdrant` says it is reachable as
+      `qdrant.rso:6333`; it is not (6333 is published on enheduanna only, and
+      `qdrant.rso` is the Caddy ingress on port 80). Fix the comment in
+      `stacks/databases/stack.yml`.
 - [ ] Forgejo-triggered ingest, if running it by hand gets old. Until then it is
-      a release step: after any release that touched `docs/manual/`,
-      `pnpm manual:ingest ../app/docs/manual` from the agent repo with the
-      production `.env` (CLAUDE.md "Releasing").
+      a release step: after any release that touched `docs/manual/`, the ingest
+      command above from the agent repo (CLAUDE.md "Releasing" says "the
+      production `.env`"; in practice that is the root `.env` plus
+      `QDRANT_URL` and `QDRANT_API_KEY` on the command line).
 - [ ] LLM-judged manual evals on the agent-evals harness ("uses on-screen
       labels", "invents nothing").
 - [ ] Before the Agent tab returns to production users, the two app-side
