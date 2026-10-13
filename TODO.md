@@ -664,6 +664,120 @@ Keep `deviceId` itself — attestation, the logger's `deviceId` attribute, and
 
 ---
 
+## 📖 Finish the user's manual (`docs/manual/`) — docs-only, NOT runtimeVersion-gated
+
+Queued 2026-10-12. Spec: `docs/superpowers/specs/2026-10-12-user-manual-rag-design.md`
+(the layout in §1.1, the per-area writing process in §4, the roadmap in §5).
+Sub-project 0, the **skeleton**, is built and reviewed on two unmerged branches:
+app `feat/user-manual` (6 commits on `root`) and agent `feat/manual-rag` (13
+commits on `prod`), plan `docs/superpowers/plans/2026-10-12-user-manual-skeleton.md`.
+It proved the pipeline end to end on a local Docker Qdrant + pgvector: Sky
+answered 9 of 10 checklist questions, every answer through `searchManual`.
+
+What exists: the authoring rules (`docs/manual/README.md`), the map Sky carries
+in her prompt (`map.md`), `questions.yml` (16 entries), and ONE area of nine,
+`backup-and-devices/` (5 pages, fact-checked twice against the code). The spec's
+layout lists 57 pages; **52 are unwritten**, so today Sky can answer backup and
+multi-device questions and nothing else about the app. Each area is a bounded
+sub-project with a brief, not a spec (spec §4): brief → write from the named
+sources only → fact-check by a DIFFERENT reader → at least three `questions.yml`
+entries per page → `pnpm --dir ../agent manual:ingest ../app/docs/manual --dry-run`
+→ commit → dev ingest → CLI checklist. An invented setting in a RAG corpus is
+worse than a missing page, because Sky repeats it with confidence.
+
+**First, land what exists (Jenova's call — nothing is merged or pushed):**
+
+- [ ] Integrate both branches (merge locally / PR / keep): app `feat/user-manual`
+      → `root`, agent `feat/manual-rag` → `prod`. Three small items were parked
+      in the final review and ride with the branch, not against it: the plan
+      names a `packages/manual/README.md` that no task creates (agent `CLAUDE.md`
+      "App Manual" covers it); every ingest inserts a `manual-map` history row
+      even when the map is byte-identical (spec §3 says insert; a skip is a
+      behaviour change); and the store's warn-vs-error split for a missing
+      collection has no direct store test (the tools path is tested).
+- [ ] Populate the **dev** Qdrant so each area can be verified through the CLI:
+      from the agent repo, `QDRANT_URL=http://127.0.0.1:6333 pnpm manual:ingest
+      ../app/docs/manual --yes`. The agent root `.env` has no `QDRANT_URL` and
+      its `DATABASE_URL` is `db.rso`, hence the `--yes` (the ingest refuses a
+      non-localhost database without it). The plan's Task 14 `pnpm dev` as
+      written also talks to the shared `redis.rso`; blank `REDIS_URL` /
+      `REDIS_USERNAME` / `REDIS_PASSWORD` to keep the api local.
+
+**Then the areas, in the spec's order (§5). Page names are the file names Sky
+sees as `page`, and `questions.yml` must follow them:**
+
+- [ ] **Area 1 — Getting started & account** (17 pages, highest support load).
+      `getting-started/`: install-and-zoom, sign-in, guest-mode, onboarding,
+      import-from-old-app. `account/`: wrong-account, verify-email,
+      mistyped-email, email-change-not-showing, empty-account,
+      forgot-password-or-old-app, signed-out, only-meetings-showing,
+      sign-in-hangs, delete-account, code-not-arriving, code-rejected (one per
+      `docs/support/problems/`; "data missing after new phone" maps to
+      `backup-and-devices/new-phone` instead). Grown from `docs/support/replies/`
+      and `reference/`; afterwards `replies/` become pointers into the manual
+      (spec D7) and `docs/support/README.md` says so.
+- [ ] **Area 2 — Meetings** (10 pages, the core). `meetings/`: online, starts-in,
+      in-person, map-view, search, filters, favorites-and-ratings, reminders,
+      meeting-details, joining-with-zoom. Sources: the filter-bar + Starts In
+      spec, the In-Person specs, `MeetingRow`, `SchedulePopup` / `InPersonPopup`.
+      Starts In is `__DEV__`-only today (`startsInVisible` in `LiveScreen.tsx`),
+      so rule 6 (no roadmap) decides whether it gets a page at all.
+- [ ] **Area 3 — Attendance** (6 pages). `attendance/`: tracking, timer, im-here,
+      editing-and-archive, reports, certificate. Sources:
+      `docs/MEETING_ATTENDANCE_FLOW.md`, `useReportSender` (the four send
+      operations), `useAttendanceTimer`, `usePresenceCheck`.
+- [ ] **Area 4 — Settings, subscription, privacy** (10 pages). `settings/`:
+      profile, recovery, attendance, app-settings, subscription, cloud-backup,
+      permissions, account, legal-and-support; `privacy/your-data`. Tiers
+      verified row by row against `useSubscription` consumers.
+      `settings/cloud-backup` describes the row and its statuses;
+      `backup-and-devices/cloud-backup` describes the feature; each names the
+      other by title. Settle here (spec §8): whether the 90-in-90 certificate
+      needs the Attendance subscription, and whether the Community tab is
+      mentioned at all (hidden behind a constant; rule 6 says no).
+- [ ] **Area 5 — Home, Sky, status** (9 pages). `home/`: clean-time,
+      money-saved, recovery-chart, ninety-in-ninety, tips-and-news;
+      `sky/about-sky`; `status/`: offline-and-maintenance, updates,
+      platform-differences. The Home card copy that says attendance is tracked
+      "automatically" is wrong; the manual describes the timer.
+- [ ] After each area: the spec §6 hand checklist through the CLI against dev,
+      read for invented details, and `map.md` re-verified against the new pages.
+      It is 510 words today against the README's "about 350, never more than
+      600", so new areas add lines to it, not paragraphs.
+
+**Open questions the first areas will hit (the answers belong in the pages):**
+
+- [ ] Does the Premium product also grant the `recoverysky-attendance`
+      entitlement? The backup pages and the map say Cloud Backup needs the
+      "Attendance" subscription, which is what the code gates on
+      (`revenueCatService.ts`); if Premium carries it too, one sentence per
+      page says so. RevenueCat dashboard config, not code.
+- [ ] Does a reminder's push reach a second signed-in device? Server behaviour
+      (`useReminders.ts` POSTs every reminder with the device id); the pages
+      claim only that a reminder shows where it was set.
+
+**Follow-ups, each its own small piece of work (spec §5 + the final review):**
+
+- [ ] `AgentScreen` sends `{ timezone, fellowship }` in the chat body; add
+      `platform` and `appVersion` (JS-only here; a zod field and a prompt line
+      in the agent) so Sky pre-filters by platform and stops asking "iPhone or
+      Android?".
+- [ ] `docs/manual/README.md` does not state the same-commit rule (CLAUDE.md
+      "User's Manual" does); add it so the README is complete on its own.
+- [ ] Forgejo-triggered ingest, if running it by hand gets old. Until then it is
+      a release step: after any release that touched `docs/manual/`,
+      `pnpm manual:ingest ../app/docs/manual` from the agent repo with the
+      production `.env` (CLAUDE.md "Releasing").
+- [ ] LLM-judged manual evals on the agent-evals harness ("uses on-screen
+      labels", "invents nothing").
+- [ ] Before the Agent tab returns to production users, the two app-side
+      blockers already listed above still stand: `AgentScreen`'s own
+      `Authorization` header outside the token gate (see "Token freshness gate")
+      and the hardcoded English string in `MeetingResultsCard` (see "App-wide
+      accessibility sweep").
+
+---
+
 ## ⚙️ Release checklist reminders
 
 - [ ] Bump `version` **and** `runtimeVersion` in `app.json` together (native change).
