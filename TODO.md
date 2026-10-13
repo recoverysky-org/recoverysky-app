@@ -714,22 +714,32 @@ than a missing page, because Sky repeats it with confidence.
       missing collection has no direct store test (the tools path is tested).
 - [ ] Push app `root` and agent `prod`, then tag the agent (`v*`) so CI builds
       the image and runs `swarm up services agent`.
-- [ ] Build the `manual` collection. **There is no dev Qdrant and no dev
-      agent database.** The one Qdrant is production: `databases_qdrant` on
-      enheduanna, reachable from a Mac as `http://qdrant.rso` (Caddy, port 80)
-      or `http://enheduanna.prod.rso:6333`; it needs `QDRANT_API_KEY`
-      (Infisical `app-secrets:Qdrant/JSON`; the dashboard shell loads without
-      it, every data call 401s). `db.rso` resolves to enheduanna too, so the
-      agent root `.env`'s `DATABASE_URL` (database `agent`) is the production
-      agent database and the ingest's `manual-map` row lands there. From the
-      agent repo:
-      `QDRANT_URL=http://qdrant.rso QDRANT_API_KEY=… pnpm manual:ingest ../app/docs/manual --yes`
-      (the root `.env` has neither variable; `--yes` because neither target is
-      localhost). Ingest first, deploy the image second, so the boot logs
-      "Qdrant manual collection ready". To rehearse without touching
-      production, the plan's Task 14 recipe (Docker `qdrant/qdrant` on
-      127.0.0.1:6333 + pgvector, a scratch migrator, blank `REDIS_*`) still
+- [x] Build the `manual` collection: done 2026-10-13 (run
+      `2026-10-13T19:36:43Z-079e`, manualVersion `v4.11.0-4-15-g15cb3a2`):
+      35 points embedded, `manual-map` row replaced, 16 of 16 questions
+      retrieve their page. **There is no dev Qdrant and no dev agent
+      database.** The one Qdrant is production: `databases_qdrant` on
+      enheduanna, reachable from a Mac as `http://qdrant.rso` (Caddy, port
+      80) or `http://enheduanna.prod.rso:6333`; it needs `QDRANT_API_KEY`
+      (Infisical `app-secrets:Qdrant/JSON`). `db.rso` resolves to enheduanna
+      too, so the agent root `.env`'s `DATABASE_URL` (database `agent`) is the
+      production agent database. Both variables now live in the agent root
+      `.env`, so the release step is just, from the agent repo:
+      `pnpm manual:ingest ../app/docs/manual --yes` (`--yes` because neither
+      target is localhost). The first run failed: the Qdrant client dials
+      6333 for any URL without an explicit port, fixed in agent 6e742a4
+      (`createQdrantClient` passes the URL's port itself). To rehearse without
+      touching production, the plan's Task 14 recipe (Docker `qdrant/qdrant`
+      on 127.0.0.1:6333 + pgvector, a scratch migrator, blank `REDIS_*`) still
       works and needs no `--yes`.
+- [ ] Production Qdrant has no `literature` collection (2026-10-13 listing:
+      `agent_memories`, `mem0migrations`, `memory_migrations`, `messages`,
+      the siri/ninshubur ones, now `manual`), so the agent's literature
+      semantic search boot check must be logging "unusable" in production.
+      Agent-side: confirm in the service logs and either run the literature
+      ingest or drop the check. Also: the Qdrant JS client is 1.18.0 against
+      server 1.16.3 and prints a compatibility warning on every client
+      creation; calls work.
 
 **Then the areas, in the spec's order (§5). Page names are the file names Sky
 sees as `page`, and `questions.yml` must follow them:**
