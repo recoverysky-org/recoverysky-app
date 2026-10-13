@@ -669,9 +669,9 @@ Keep `deviceId` itself — attestation, the logger's `deviceId` attribute, and
 Queued 2026-10-12, updated 2026-10-13. Spec:
 `docs/superpowers/specs/2026-10-12-user-manual-rag-design.md` (the layout in
 §1.1, the per-area writing process in §4, the roadmap in §5). Sub-project 0,
-the **skeleton**, is merged into app `root` (50e24f2, 2026-10-13, not pushed);
-its agent half, `feat/manual-rag` (13 commits), is still an unmerged branch,
-see "Land the agent half" below. Plan:
+the **skeleton**, is merged into app `root` (50e24f2) and agent `prod`
+(8062fda), both 2026-10-13, neither pushed, the agent untagged, see "Ship the
+agent half" below. Plan:
 `docs/superpowers/plans/2026-10-12-user-manual-skeleton.md`. The pipeline was
 proven end to end on a local Docker Qdrant + pgvector: Sky answered 9 of 10
 checklist questions, every answer through `searchManual`.
@@ -697,28 +697,23 @@ page → `pnpm --dir ../agent manual:ingest ../app/docs/manual --dry-run` →
 commit → ingest → CLI checklist. An invented setting in a RAG corpus is worse
 than a missing page, because Sky repeats it with confidence.
 
-**Land the agent half (Jenova's call):**
+**Ship the agent half (Jenova's call):**
 
 - [x] App: `feat/user-manual` merged into `root` as 50e24f2 (2026-10-13).
       Pushing `root` is a separate decision.
-- [ ] Agent: `feat/manual-rag` (53ca127) forked from `prod` at 63fcd0f and
-      `prod` has since moved to v0.8.0 (mem0 long-term memory, 142 commits).
-      A trial merge conflicts in eight files: `CLAUDE.md`,
-      `apps/api/src/container.ts`, `package.json`,
-      `packages/memory/src/index.ts`, `packages/memory/src/stores/index.ts`,
-      `packages/pipeline/src/Pipeline.ts`, `packages/tools/src/index.ts`,
-      `pnpm-lock.yaml`. Merge `prod` into the branch, resolve, suite green,
-      smoke boot, then merge to `prod` and tag `v*` so CI ships the image.
-      Until that image is deployed Sky has no `searchManual`, and the
-      `pnpm --dir ../agent manual:ingest … --dry-run` check in CLAUDE.md fails
-      because the script exists only on the branch. Three small items were
-      parked in the final review and ride with the branch, not against it:
-      the plan names a `packages/manual/README.md` that no task creates
-      (agent `CLAUDE.md` "App Manual" covers it); every ingest inserts a
-      `manual-map` history row even when the map is byte-identical (spec §3
-      says insert; a skip is a behaviour change); and the store's
-      warn-vs-error split for a missing collection has no direct store test
-      (the tools path is tested).
+- [x] Agent: `feat/manual-rag` merged into `prod` as 8062fda (2026-10-13).
+      `prod` had moved to v0.8.0 (mem0) under the branch; the eight conflicts
+      were resolved on the branch first (0c0268f), suite 134 files / 2,299
+      tests green, stub-mode boot clean. Not pushed, not tagged: until a `v*`
+      tag ships the image, Sky has no `searchManual`. Three small items were
+      parked in the final review and ride with the code, not against it: the
+      plan names a `packages/manual/README.md` that no task creates (agent
+      `CLAUDE.md` "App Manual" covers it); every ingest inserts a `manual-map`
+      history row even when the map is byte-identical (spec §3 says insert; a
+      skip is a behaviour change); and the store's warn-vs-error split for a
+      missing collection has no direct store test (the tools path is tested).
+- [ ] Push app `root` and agent `prod`, then tag the agent (`v*`) so CI builds
+      the image and runs `swarm up services agent`.
 - [ ] Build the `manual` collection. **There is no dev Qdrant and no dev
       agent database.** The one Qdrant is production: `databases_qdrant` on
       enheduanna, reachable from a Mac as `http://qdrant.rso` (Caddy, port 80)
@@ -727,7 +722,7 @@ than a missing page, because Sky repeats it with confidence.
       it, every data call 401s). `db.rso` resolves to enheduanna too, so the
       agent root `.env`'s `DATABASE_URL` (database `agent`) is the production
       agent database and the ingest's `manual-map` row lands there. From the
-      agent repo, after the agent branch is on `prod`:
+      agent repo:
       `QDRANT_URL=http://qdrant.rso QDRANT_API_KEY=… pnpm manual:ingest ../app/docs/manual --yes`
       (the root `.env` has neither variable; `--yes` because neither target is
       localhost). Ingest first, deploy the image second, so the boot logs
