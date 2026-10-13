@@ -41,6 +41,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   an earlier quarter-hour, and an older refresh that lands late can no longer
   put its list back over a newer one. (RS-059)
 
+### Docs
+- **(manual) The user's manual begins.** `docs/manual/` is Sky's reference to
+  the app: a map of what the app can do for her prompt, the authoring rules,
+  and the first area, `backup-and-devices/` (Cloud Backup, more than one
+  device, a new phone, one account per phone, when backup isn't working),
+  every claim traced to the screens and `docs/BACKUP.md`. It is ingested into
+  the agent's manual search by hand after a release (CLAUDE.md "User's
+  Manual"); nothing in the app changes.
+
 ## [4.11.0-4] — 2026-10-11
 
 ### Security
