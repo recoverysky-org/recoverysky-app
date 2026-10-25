@@ -24,12 +24,7 @@ import { TextField } from "@/components/TextField"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useVoiceInput } from "@/hooks/useVoiceInput"
 import { translate, getCurrentLanguage } from "@/i18n"
-import {
-  useAuthenticationStore,
-  useConfigStore,
-  useConversationStore,
-  useProfileStore,
-} from "@/models"
+import { useConfigStore, useConversationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
@@ -68,7 +63,6 @@ function htmlToText(html: string): string {
 export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function AgentScreen(props) {
   const { navigation } = props
   const { themed, theme } = useAppTheme()
-  const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
   const conversationStore = useConversationStore()
   const profileStore = useProfileStore()
@@ -90,20 +84,6 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
 
   // Track previous status to detect streaming completion
   const prevStatusRef = useRef<string>("")
-
-  // Build authorization headers (Bearer token for authenticated, X-API-Key when signed out)
-  const getAuthHeaders = useCallback(() => {
-    const headers: Record<string, string> = {}
-    if (authStore.accessToken) {
-      headers["Authorization"] = `Bearer ${authStore.accessToken}`
-    } else {
-      // X-API-Key when signed out
-      if (configStore.authKey) {
-        headers["X-API-Key"] = configStore.authKey
-      }
-    }
-    return headers
-  }, [authStore.accessToken, configStore.authKey])
 
   // Initialize useChat with persisted messages from MST store
   const initialMessages = useMemo(() => {
@@ -136,7 +116,9 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     transport: new DefaultChatTransport({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: agentApiUrl,
-      headers: getAuthHeaders(),
+      // Resolved per request: the device JWT and the bearer rotate (see
+      // api.agentHeaders)
+      headers: () => api.agentHeaders(),
       body: { timezone, fellowship: profileStore.fellowship },
     }),
     onError: (err) => {

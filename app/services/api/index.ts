@@ -16,6 +16,7 @@ import type { AtNextOffset } from "@/utils/atNextLogic"
 import { delay } from "@/utils/delay"
 import { hashUserId, logger } from "@/utils/logger"
 
+import { agentCredentialHeaders } from "./agentHeadersLogic"
 import {
   getGeneralApiProblem as classifyApiProblem,
   isReadyBody,
@@ -566,6 +567,23 @@ export class Api {
   registerTokenRefreshers(refreshers: TokenRefreshers) {
     log.debug("Registering token refreshers")
     this.refreshers = refreshers
+  }
+
+  /**
+   * Credential headers for the Sky agent: the device JWT and the bearer from
+   * the same refreshers as the auth gate below, fresh on every call.
+   *
+   * ADDED 2026-10-24. AgentScreen hands this to the chat transport as a
+   * function, so each request resolves it, never a copy taken at mount
+   * (the sticky-header problem the auth gate's CHANGED 2026-08-06 note
+   * describes). See agentHeadersLogic.ts.
+   */
+  async agentHeaders(): Promise<Record<string, string>> {
+    const [deviceJwt, accessToken] = await Promise.all([
+      this.refreshers.device(),
+      this.refreshers.user(),
+    ])
+    return agentCredentialHeaders({ deviceJwt, authKey: this.authKey, accessToken })
   }
 
   /**

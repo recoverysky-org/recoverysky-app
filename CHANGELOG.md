@@ -22,6 +22,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Security
+- **The Sky Agent gets the device token on every request.** Agent requests now
+  carry the same `X-Device-Token` the RecoverySky API checks, beside the Auth0
+  bearer, both resolved fresh for each message from the refreshers behind the
+  API client's auth gate (`api.agentHeaders()`). Until now the screen sent only
+  the bearer, captured once when the screen mounted, so the agent ran with
+  device verification off and a renewed token was never sent. Simulators and
+  dev builds fall back to the API key, as the API client does. Nothing visible
+  changes: production bundles carry no `EXPO_PUBLIC_AGENT_URL`, so the tab
+  stays hidden. (No tracker issue.)
+
 ### Changed
 - **The Sky Agent tab is controlled by its build variable again.** 4.11.0-2 hid
   it with a hard `__DEV__` gate because the release shell leaked the local agent
