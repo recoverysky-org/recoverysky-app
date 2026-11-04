@@ -72,8 +72,10 @@ export function createDailyDashDriver(deps: DailyDashDriverDeps): DailyDashDrive
 
   const runSignIn = async () => {
     busy = true
-    setAttempt("running")
     try {
+      // Inside the try (CHANGED 2026-11-04, review): a throwing listener here
+      // must also land on "failed", so no line can leave the attempt running.
+      setAttempt("running")
       const result = await session.signInWithProvider(null, "recoverysky")
       if (result.ok) {
         setAttempt("idle")
@@ -123,6 +125,9 @@ export function createDailyDashDriver(deps: DailyDashDriverDeps): DailyDashDrive
       // Replay only what arrived meanwhile. No unconditional re-evaluation:
       // a sign-in that resolved ok while the state somehow stayed signedOut,
       // or a release the API refused, would otherwise retry in a tight loop.
+      // After a release whose commit fails and lands on `signedOut`, the
+      // replayed "state" sees attempt "idle" and signs in once more. That is
+      // bounded and intended; do not "fix" it into a loop.
       const replay = pending
       pending = null
       if (replay) evaluate(replay)
@@ -155,6 +160,18 @@ export function createDailyDashDriver(deps: DailyDashDriverDeps): DailyDashDrive
     setGate(holds) {
       if (holds === gateHolds) return
       gateHolds = holds
+      // ADDED 2026-11-04: the client session sits in "restoring" until
+      // `start()`. ClientProvider used to call it on mount at app level; now
+      // that the provider lives in the My Day tab, the driver starts the
+      // session when the gate opens, so the sign-in does not wait for the
+      // tab's first open. `start()` is idempotent (`starting ??= restore()`),
+      // so the provider's own later call gets the same promise. The catch is
+      // belt and braces: a rejection must not surface as an unhandled one.
+      if (holds) {
+        void session.start().catch(() => {
+          log.warn({ code: "start_threw" }, "Daily Dash session start failed")
+        })
+      }
       // Closing the gate decides `none` for every status; it is evaluated
       // anyway so the rule, not this file, owns that answer. A running
       // attempt is not cancelled: the client offers no cancel, and its

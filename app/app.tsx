@@ -1274,11 +1274,18 @@ export function App() {
         <KeyboardProvider preload={false}>
           <RootStoreProvider value={rootStore}>
             <SubscriptionProvider>
-              {/* ADDED 2026-11-04 (My Day tab): outside DatabaseProvider
-                  because Daily Dash opens its own database, independent of
-                  the app's encrypted SQLite (one may fail while the other
-                  works, and neither waits on the other). Inside
-                  SubscriptionProvider because its gate reads `isPremium`. */}
+              {/* ADDED 2026-11-04 (My Day tab): feeds the My Day gate to the
+                  Daily Dash sign-in driver, and the driver to the tab's UI.
+                  The client itself (ClientProvider) mounts inside the My Day
+                  tab, not here. Outside DatabaseProvider because Daily Dash
+                  has its own database, independent of the app's encrypted
+                  SQLite (one may fail while the other works, and neither
+                  waits on the other). Inside SubscriptionProvider because
+                  the gate reads `isPremium`.
+                  CHANGED 2026-11-04: it used to mount ClientProvider here
+                  only while the gate held, which remounted the whole app
+                  below on every gate flip (each premium cold start, since
+                  isPremium is false until RevenueCat answers). */}
               <DailyDashProvider>
                 <DatabaseProvider>
                   <ProfileHydrator />

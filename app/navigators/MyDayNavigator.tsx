@@ -1,7 +1,12 @@
 /**
  * MyDayNavigator — the My Day tab: a native stack of the Daily Dash package's six screens
- * under seven routes (ADDED 2026-11-04, My Day tab spec §4.5). Task 11 registers it as the
- * `MyDay` tab.
+ * under seven routes (ADDED 2026-11-04, My Day tab spec §4.5). MainNavigator registers it as
+ * the `MyDay` tab for premium accounts.
+ *
+ * The Daily Dash client (`DailyDashClient`, i.e. `ClientProvider`) mounts here, once per tab
+ * mount, around the whole stack, so every `MyDayFrame` below it sits inside the provider that
+ * `useSession()` and `useDb()` read. CHANGED 2026-11-04: it used to wrap the app at app level,
+ * which remounted the whole app whenever the My Day gate flipped (see DailyDashProvider.tsx).
  *
  * Route names are `MyDay*` (`myDayNavigationLogic.ts` maps the package's `MyDayRoutes` keys to
  * them). `RoutineItemScreen` serves two routes: `MyDayRoutineNew` (no `itemId`, a new item) and
@@ -25,6 +30,7 @@ import {
 } from "@daily-dash/my-day"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
+import { DailyDashClient } from "@/context/DailyDashProvider"
 import { MyDayFrame } from "@/screens/myDay/MyDayFrame"
 
 import type { MyDayScreenProps, MyDayStackParamList } from "./navigationTypes"
@@ -74,13 +80,15 @@ const MyDayNightsRoute: FC<MyDayScreenProps<"MyDayNights">> = ({ navigation }) =
 )
 
 export const MyDayNavigator = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="MyDayToday">
-    <Stack.Screen name="MyDayToday" component={MyDayTodayRoute} />
-    <Stack.Screen name="MyDayCheckIn" component={MyDayCheckInRoute} />
-    <Stack.Screen name="MyDayRoutine" component={MyDayRoutineRoute} />
-    <Stack.Screen name="MyDayRoutineNew" component={MyDayRoutineNewRoute} />
-    <Stack.Screen name="MyDayRoutineItem" component={MyDayRoutineItemRoute} />
-    <Stack.Screen name="MyDayNight" component={MyDayNightRoute} />
-    <Stack.Screen name="MyDayNights" component={MyDayNightsRoute} />
-  </Stack.Navigator>
+  <DailyDashClient>
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="MyDayToday">
+      <Stack.Screen name="MyDayToday" component={MyDayTodayRoute} />
+      <Stack.Screen name="MyDayCheckIn" component={MyDayCheckInRoute} />
+      <Stack.Screen name="MyDayRoutine" component={MyDayRoutineRoute} />
+      <Stack.Screen name="MyDayRoutineNew" component={MyDayRoutineNewRoute} />
+      <Stack.Screen name="MyDayRoutineItem" component={MyDayRoutineItemRoute} />
+      <Stack.Screen name="MyDayNight" component={MyDayNightRoute} />
+      <Stack.Screen name="MyDayNights" component={MyDayNightsRoute} />
+    </Stack.Navigator>
+  </DailyDashClient>
 )
