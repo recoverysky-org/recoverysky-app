@@ -922,3 +922,33 @@ bundle, so correct them in `platformStrings.ts`.
 The English is "Just join meetings": a way in that gives meetings and nothing else. It sits under
 the sign-in buttons and must not read as one of them. Since 2026-10-11 it is styled like them,
 so the wording alone has to say it is not a sign-in.
+
+## 2026-11-04 My Day tab (English placeholders)
+
+The premium My Day tab (spec `docs/superpowers/specs/2026-10-25-my-day-tab-design.md`, plan
+`docs/superpowers/plans/2026-11-04-my-day-tab.md`) hosts The Daily Dash's `@daily-dash/my-day`
+screens, and every word they show goes through i18n.
+
+**Still English placeholders (need translating), 2152 strings (8 locales × 269 keys)** in ar, de,
+es, fr, pt, ru, th, uk:
+- `myDay.*`, 254 keys: every word of the package's screens (Today, Check in, Your routine, Rate your
+  day, Past nights, Grateful for). The block mirrors the package's `MyDayCopy` leaf for leaf.
+- `myDayGate.*`, 14 keys: the tab's own loading, couldn't-connect, local-data and deleted-account
+  screens.
+- `mainNavigator.myDayTab`, 1 key: the tab bar label "My Day". Keep it as short as the other tab
+  labels.
+
+Reviewer notes worth acting on first:
+- **Keep every `{{name}}` placeholder exactly.** Function leaves became interpolation strings named
+  after their parameters (`night.position` is "{{n}} of {{total}}"); a renamed or dropped
+  placeholder shows a raw `{{n}}` or loses the number.
+- **Joiners are words too.** `night.namesJoin` (", ") and `night.actionsJoin` (" · ") join lists
+  the screen builds; change them where your locale joins lists differently.
+- **One/many splits are not i18next plurals.** `routine.templates.addsOne` / `addsMany` are two
+  plain keys chosen by count, so a locale with more plural forms (ru, uk, ar) must find a wording
+  that reads right for every count above one.
+- `app/utils/myDayCopy.test.ts` compares the **English** only, so a translation never fails it. A
+  word a later package version adds fails that test until `en.ts` has it, and then needs adding
+  here.
+- The user's manual (`docs/manual/my-day/`) quotes the English labels; it is English-only, so a
+  translation needs no manual change.

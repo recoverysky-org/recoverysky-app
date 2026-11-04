@@ -22,6 +22,25 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **My Day, a new tab for premium accounts.** The Daily Dash's My Day sits
+  between Attendance and Sky: a quote, where to focus today, an any-time
+  check-in, a gratitude list, the daily routine with its ticks, and Rate your
+  day in the evening with past nights to look back on. It uses the account the
+  person is already signed in with, so there is no second sign-in, and it is
+  hidden for free accounts, guests, signed-out users and on web. It follows the
+  app's light or dark scheme and the tint chosen in Settings, over a photo
+  picked once per launch behind frosted glass: a real blur on Android 12 and
+  later and on iOS, a translucent pane on older Android. Every word goes
+  through the app's translations, in all nine locales, with English text in
+  the eight others for now. Settings → Delete User Data also deletes My Day's
+  data and key on the phone, while signing out or losing Premium keeps it, so
+  the tab comes back on the same data. Sky's part in My Day (a moment opening
+  a chat on the Sky tab) is not built yet. Before the store build ships, the
+  Daily Dash API release after 0.9.0 must be live at api.the-daily-dash.com,
+  with this app's Auth0 client on that API's RecoverySky allow-list.
+  (No tracker issue.)
+
 ### Build
 - **Dependencies for the My Day tab.** Added `expo-blur` (native module: needs a
   store build and a `runtimeVersion` bump at release), `@tanstack/react-query`,
@@ -70,6 +89,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   every claim traced to the screens and `docs/BACKUP.md`. It is ingested into
   the agent's manual search by hand after a release (CLAUDE.md "User's
   Manual"); nothing in the app changes.
+- **(manual) My Day in the user's manual.** A new `my-day/` area with five
+  pages (Today, Check in, Your routine, Rate your day, Grateful for), the map
+  updated for the fifth tab, and every Delete User Data passage now saying it
+  also deletes My Day's data on the phone. The manual ingest after the store
+  build needs the agent's `my-day` area first (agent branch
+  `feat/manual-my-day-area`, merged to its `prod`).
+- **My Day's words are in the translation review queue.** The `myDay`,
+  `myDayGate` and `mainNavigator.myDayTab` strings ship English in ar, de, es,
+  fr, pt, ru, th and uk; `docs/translation-review-2026-08-03.md` lists them
+  for a native-speaker pass. Corrections ship as an OTA.
 
 ## [4.11.0-4] — 2026-10-11
 

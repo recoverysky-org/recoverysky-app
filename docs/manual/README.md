@@ -20,8 +20,8 @@ docs/manual/
 ```
 
 Areas: `getting-started`, `home`, `meetings`, `attendance`, `settings`, `backup-and-devices`,
-`account`, `privacy`, `sky`, `status`. A page's `area` in its front-matter must equal its
-folder. Page ids are stable identifiers: renaming a page is a content change that
+`account`, `privacy`, `sky`, `status`, `my-day`. A page's `area` in its front-matter must equal
+its folder. Page ids are stable identifiers: renaming a page is a content change that
 `questions.yml` must follow.
 
 ## Page template

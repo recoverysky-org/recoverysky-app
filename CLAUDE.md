@@ -270,6 +270,31 @@ range and repacks what no longer satisfies it, and it fails if
 `package-lock.json` still mentions `git.rso` (a non-zero count breaks every
 cloud build).
 
+ADDED 2026-11-04 (My Day tab): **the three Daily Dash packages are vendored
+too, by hand.** `@daily-dash/sdk`, `@daily-dash/client` and `@daily-dash/my-day`
+come from the Daily Dash repo (`jenova-marie/the-daily-dash-app`) as `npm pack`
+tarballs in `vendor/` (`daily-dash-sdk-<version>.tgz`, `daily-dash-client-…`,
+`daily-dash-my-day-…`; read the versions from `package.json`). Each is listed
+twice, a `file:` dependency and a `file:` override, six entries in all. The
+overrides hold the packages' own exact pins on each other (my-day → client →
+sdk) to the vendored copies. **There is no script:** to bump, copy the new
+tarballs from the Daily Dash hand-off into `vendor/`, delete the old ones, edit
+all six `file:` entries, `npm install`, and check `package-lock.json` resolves
+the new files. As with common, an override the bump misses installs the old
+tarball silently. Two traps:
+- **`npm run vendor:update` deletes the Daily Dash tarballs.** It removes every
+  `vendor/*.tgz` it did not choose, and it walks only common's private deps
+  (`@daily-dash/` is not in its `PRIVATE_SCOPES`). After running it, restore
+  them (`git checkout -- vendor/daily-dash-*.tgz`) before installing, until
+  the script learns the Daily Dash packages (queued in `TODO.md`).
+- **sdk and client pin `@jenova-marie/ts-rust-result` exactly**, and that
+  package's override is shared with common. A common bump that moves the
+  override forces the new version on the Daily Dash packages with no error;
+  the Daily Dash side has to publish against the same version.
+
+A Daily Dash bump that adds words fails the My Day copy parity test until
+`en.ts` has them (see "My Day (Daily Dash)").
+
 ### State Management (MobX-State-Tree)
 MST with MMKV persistence in `app/models/`:
 - **RootStore**: Combines all stores, initialized in `app.tsx`
@@ -336,7 +361,17 @@ CHANGED 2026-09-18 (spec `2026-09-17-device-owner-and-wrong-account-recovery-des
 
 CHANGED 2026-10-11 (spec `2026-09-27-guest-mode-design.md`): Guest sits between WrongAccount and Login. The whole order is now one pure function, `decideAppRoute()` (`app/navigators/appRouteLogic.ts`, vitest-covered), and `AppNavigator` keys both the registered screen and `initialRouteName` on its result, so the two can no longer drift apart. A real session outranks a stale guest flag, WrongAccount outranks Guest so a refused session is never hidden behind guest browsing, and Guest is returned only on Android, so a stray persisted flag on iOS lands on Login.
 
-**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), Settings. `agentTabVisible` (Agent) is `decideAgentTabVisible()` (`app/utils/agentTabLogic.ts`, vitest-covered): a valid `EXPO_PUBLIC_AGENT_URL` in the build **and** `__DEV__ || isPremium`. It keys on the env var, not `configStore.agentUrl`, because the store falls back to a default URL and is never empty — remove the var from the build's env (eas.json + EAS production env for OTAs) to hide the tab. CHANGED 2026-10-11 (Jenova): production carries no `EXPO_PUBLIC_AGENT_URL` (removed from `eas.json` and the EAS production environment), so the tab is hidden for every production user, in store builds and OTAs. Dev builds read `.env` and still show it. To bring it back, add the var to both places; `npm run check:env` checks they agree. CHANGED 2026-10-11 (later): the env var alone did not hold. OTA 4.11.0-1 still showed the tab, with the local dev agent URL, because the release shell leaked `.env` (RS-060, now fixed). Since 4.11.0-2 the tab is also gated on `__DEV__` in `MainNavigator.tsx`, so bringing it back also means removing that `__DEV__ &&`. CHANGED 2026-10-11 (Jenova, later): that `__DEV__` gate is removed again. With production eas commands stripping local values and the bundle tripwire behind them, the env var alone hides the tab, so bringing it back is just the var in `eas.json` and EAS. `socialTabVisible` (Community/Social) is still **hard-disabled behind a local `const … = false`** pending SPA-side fixes; re-enable with `__DEV__ || isPremium`.
+**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), My Day (premium, see below), Settings. `agentTabVisible` (Agent) is `decideAgentTabVisible()` (`app/utils/agentTabLogic.ts`, vitest-covered): a valid `EXPO_PUBLIC_AGENT_URL` in the build **and** `__DEV__ || isPremium`. It keys on the env var, not `configStore.agentUrl`, because the store falls back to a default URL and is never empty — remove the var from the build's env (eas.json + EAS production env for OTAs) to hide the tab. CHANGED 2026-10-11 (Jenova): production carries no `EXPO_PUBLIC_AGENT_URL` (removed from `eas.json` and the EAS production environment), so the tab is hidden for every production user, in store builds and OTAs. Dev builds read `.env` and still show it. To bring it back, add the var to both places; `npm run check:env` checks they agree. CHANGED 2026-10-11 (later): the env var alone did not hold. OTA 4.11.0-1 still showed the tab, with the local dev agent URL, because the release shell leaked `.env` (RS-060, now fixed). Since 4.11.0-2 the tab is also gated on `__DEV__` in `MainNavigator.tsx`, so bringing it back also means removing that `__DEV__ &&`. CHANGED 2026-10-11 (Jenova, later): that `__DEV__` gate is removed again. With production eas commands stripping local values and the bundle tripwire behind them, the env var alone hides the tab, so bringing it back is just the var in `eas.json` and EAS. `socialTabVisible` (Community/Social) is still **hard-disabled behind a local `const … = false`** pending SPA-side fixes; re-enable with `__DEV__ || isPremium`.
+
+ADDED 2026-11-04: **My Day** sits between Attendance and Agent (spec D6 order:
+Home, Meetings, Attendance, My Day, Sky, Settings). `myDayTabVisible` is
+`decideMyDayTabVisible()` (`app/utils/myDayTabLogic.ts`, vitest-covered):
+signed in, not a guest, `isPremium`, a valid `EXPO_PUBLIC_DAILY_DASH_API_URL`
+(`isValidDailyDashUrl`, the Agent tab's URL check), and `Platform.OS` not
+`"web"`. Unlike the Agent tab it has **no `__DEV__` escape**: a dev build
+without premium has no Daily Dash account to show. `DailyDashProvider` computes
+the same decision from the same inputs, so the Daily Dash session is driven
+exactly while the tab exists. See "My Day (Daily Dash)".
 
 **Meetings tab segments** (`MeetingsScreen.tsx`): Online | In-Person | Search,
 with segment keys `live` / `inperson` / `listings`. The labels were renamed and
@@ -1352,6 +1387,9 @@ EXPO_PUBLIC_AGENT_URL=http://192.168.x.x:3333   # AI Agent API
 EXPO_PUBLIC_SOCIAL_URL=...                      # Agora-hosted community site
 EXPO_PUBLIC_AUTH_KEY=...                        # X-API-Key device-auth fallback
 
+# My Day (see "My Day (Daily Dash)"); not seeded into ConfigStore
+EXPO_PUBLIC_DAILY_DASH_API_URL=https://api.the-daily-dash.com  # unset hides the tab
+
 # Auth0 (see "Auth, Attestation & Encryption Keys")
 EXPO_PUBLIC_AUTH0_DOMAIN / _CLIENT_ID / _AUDIENCE
 
@@ -1391,6 +1429,16 @@ its local value: the dev API key and the local agent URL rode in 4.11.0 to
 4.11.0-3. A variable missing from EAS is now undefined in production. Never run
 a production eas command as a bare `npx eas`.
 
+ADDED 2026-11-04 (My Day tab): `EXPO_PUBLIC_DAILY_DASH_API_URL` is the My Day
+tab's on/off switch, as `EXPO_PUBLIC_AGENT_URL` is the Agent tab's. Production
+is `https://api.the-daily-dash.com` in `eas.json` `build.base.env`, and the
+EAS production environment needs it too: the release adds it there (plan
+Task 17), then `npm run check:env`. Read it only as the direct expression
+`process.env.EXPO_PUBLIC_DAILY_DASH_API_URL`, because Expo inlines
+`EXPO_PUBLIC_*` only in that exact form. Its readers are `MainNavigator`,
+`DailyDashProvider` / `DailyDashClient` and the `configureDailyDash` call in
+`app.tsx`. It does not come from `/config` yet (spec D12, a later API change).
+
 ## AI Agent Integration
 
 The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
@@ -1399,6 +1447,199 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 - Supports tool calls (meeting search, recovery resources)
 - Conversation persisted to ConversationStore
 - Agent tab gated behind `isPremium` entitlement
+
+## My Day (Daily Dash)
+
+ADDED 2026-11-04. Spec `docs/superpowers/specs/2026-10-25-my-day-tab-design.md`;
+plan `docs/superpowers/plans/2026-11-04-my-day-tab.md` (its "Where this plan
+departs from the spec" lists the rulings). The premium **My Day** tab hosts The
+Daily Dash's `@daily-dash/my-day` screens (Today, Check in, Your routine, Rate
+your day with Past nights, Grateful for) over the person's existing Auth0
+session. Its data lives in the Daily Dash client's own encrypted SQLite on the
+phone and on the Daily Dash API, never in our database or our API. This app is
+the package's second host; the Daily Dash repo's `apps/app` is the reference.
+
+**Packages.** Three vendored tarballs (bumping them: "Linked Packages"):
+`@daily-dash/sdk` (Result types, `refusalOf`), `@daily-dash/client` (the
+session, `ClientProvider`, its database, `useSession` / `useDb`) and
+`@daily-dash/my-day` (the screens, `MyDayProvider`, the `dailyDashLight` /
+`dailyDashDark` looks, `defaultMyDayCopy` under `/copy`). Peers added for them:
+`@tanstack/react-query`, `zod` ^4.6.5, `expo-blur` (native) and the Inter and
+Playfair Display fonts. `jest.config.js`'s `transformIgnorePatterns` lists
+`@daily-dash` and `@tanstack` because both ship ESM.
+
+**One gate, two readers.** `decideMyDayTabVisible()` (see "Navigation" → "Main
+tabs") registers the tab in `MainNavigator` and is the gate `DailyDashProvider`
+feeds the sign-in driver. A gate that does not hold starts nothing for any
+session status (`decideDailyDashAction`), so a free, guest or signed-out person
+never has a session built or a Daily Dash account minted.
+
+**Wiring, outermost first** (`app/services/dailyDash/`, barrel `index.ts`):
+- `configureDailyDash(deps)` in `app.tsx` runs ahead of every await and every
+  call that can throw in init, or a keychain throw would leave Daily Dash
+  unconfigured for good. The deps are closures: the held tokens and
+  `loginMethod` from the auth store, the Auth0 audience,
+  `renewStoredCredentials`, `userRefresher.getToken`, the network store and the
+  URL. The folder never imports `@/models` (depcruise).
+- `getDailyDashSession()` (`dailyDashSession.ts`) is **the one session** in the
+  process, built on first call; `null` before configure or without a valid URL.
+  Two sessions would race each other's token exchange and refresh over the
+  vault, so `ClientProvider` is handed this one. `getDailyDashDriver()` builds
+  its one driver; `peekDailyDashSession()` / `peekDailyDashDriver()` read
+  without building, for paths that must never create one.
+- `DailyDashProvider` (`app/context/DailyDashProvider.tsx`) sits in `app.tsx`
+  between `SubscriptionProvider` (the gate reads `isPremium`) and
+  `DatabaseProvider` (the two databases are independent; one can fail while the
+  other works). It **always renders one element shape**: it computes the gate,
+  calls the driver's `setGate`, and hands the driver to the tab through
+  `useDailyDashDriver()`. CHANGED 2026-11-04 (commit `91c62f9`): it first
+  mounted `ClientProvider` around the app only while the gate held, which
+  remounted the whole app on every gate flip, so on every premium cold start,
+  because `isPremium` is false until RevenueCat answers. Don't put a
+  conditional wrapper back above the app.
+- `DailyDashClient` (same file) is `ClientProvider` over the one session, with
+  the same `loadSignIn` / logger / connectivity / `onRefused` / `track` the
+  session was built with. `MyDayNavigator` wraps its stack in it, so the client
+  and My Day's database exist exactly while the tab is mounted. Unmounting
+  closes the database and leaves the session alive, and a remount reopens it
+  (checked in the client source).
+- Each of the stack's seven `MyDay*` routes (six package screens;
+  `RoutineItemScreen` serves both `MyDayRoutineNew` and `MyDayRoutineItem`)
+  renders `MyDayFrame`: `MyDayHost` (`MyDayProvider` with theme, copy,
+  surfaces, navigation and version, every value memoised) around `MyDayGate`
+  around the screen. One provider per screen, because the navigation adapter
+  (`createMyDayNavigation`, `app/navigators/myDayNavigation.ts`) needs that
+  screen's own `navigation` so `back()` pops this stack. `MY_DAY_SCREEN`
+  (`myDayNavigationLogic.ts`, vitest) is a mapped type over the package's
+  `MyDayRoutes`, so a route a package bump adds fails `npm run compile`; don't
+  loosen it. `openCrisisPath` navigates to `Meetings` `{ segment: "live" }`,
+  which bubbles to the tab navigator. The port has no `signOut`, so Today shows
+  no Sign out link: Settings owns sign-out.
+
+**Sign-in.** The driver (`dailyDashDriver.ts`; decisions in the pure
+`dailyDashDriverLogic.ts`, both vitest, the driver with fake deps) calls
+`session.start()` when the gate opens (idempotent, so `ClientProvider`'s own
+call gets the same promise) and, while the gate holds and the session is
+`signedOut`, `session.signInWithProvider(null, "recoverysky")`. One session
+operation at a time; a trigger that arrives meanwhile is replayed once. After a
+failed attempt it retries **only on an edge**: reconnect, foreground, the gate
+reopening, or the tab's Try again. There is no timer on purpose: the usual cause
+is an API that cannot answer, and polling it spends battery (and CrowdSec has
+banned devices for less). `wrongAccount` calls `releaseDevice()`, never a
+sign-out, because our ownership gate already decided who owns the device; it
+normally arises only after an identity relink (`TODO.md`). Failures log the
+error `code` alone.
+
+The adapter (`createDailyDashSignIn`, `dailyDashSignIn.ts`; pure half
+`decideDailyDashSignIn` in `dailyDashSignInLogic.ts`) hands the client the
+tokens the app already holds: no browser, and the connection argument is
+ignored. No access token is a refusal, never a renewal behind the app's back;
+an unusable (opaque) one is refused; a missing ID token (volatile, so a cold
+start can lack it) earns exactly one renewal, then a refusal. No method throws
+(the client's contract): a rejected renewal maps to a result and its error is
+dropped unlogged. `signOutProvider` is a no-op, because a Daily Dash sign-out
+must never end our Auth0 session. `providerToken` uses the user refresher's
+getter, the same gate-checked token every API request gets.
+
+**The two lifecycle rules (spec D8, §4.4, §4.9). Don't break them.**
+1. **Our logout never signs Daily Dash out.** The client's `signOut(reason)`
+   deletes its account database and key for almost every reason, so logout,
+   a lapsed subscription and the gate closing all leave the Daily Dash session,
+   its tokens, database and key on the phone. The owner's next sign-in opens on
+   the same data. The driver's action type has no sign-out member on purpose.
+2. **`signOut("reset_local_data")` is called in exactly one place**, Settings
+   → Delete User Data step 7b in `SettingsScreen.tsx`, **beside**
+   `resetLocalDatabase()` and never inside it. It calls `start()` first, so a
+   record kept from an earlier premium period is restored and therefore
+   deleted. It sits outside the steps 1-7 `try`, so a throw there cannot skip
+   it while step 8 still runs. Not in `resetLocalDatabase()`, because that is
+   also the database-error overlay's Reset, which must reset ours alone, and
+   `app/db/` may not depend on the client. `dailyDashPolicy.test.ts` (vitest)
+   greps the app's sources: exactly one `.signOut("…")` call, in
+   `SettingsScreen.tsx`, and no `@daily-dash/` import under `app/db/`. A new
+   sign-out call site is meant to fail it.
+
+`MyDayGate`'s "Reset My Day's local data" is the client's `db.reset()`, which
+the client implements as its own `reset_local_data` sign-out. It is client
+code, not an app call site, so the policy test does not see it, and it resets
+the Daily Dash file alone.
+
+**The tab's own gate.** The client always renders its children and only
+reports state, so `MyDayGate` (`app/screens/myDay/MyDayGate.tsx`; decisions in
+`decideMyDayGateView`, `myDayGateLogic.ts`, vitest) draws the blocking
+screens: loading (restoring, wrong account, signed out before any failed
+attempt, signed in with the database not ready), couldn't connect with Try
+again (the driver's `retry`), local data failed with Reset (confirmed first),
+and account deleted with Restore while `recoverableUntil` is set. The gate
+shows and the driver acts. A failed reset or restore logs only its code,
+through the client's `appErrorOf`, because the error object and its cause can
+carry account details. It wears My Day's look, and its words are the
+`myDayGate` namespace.
+
+**Logging, connectivity, refusals.**
+- `createDailyDashLogger()` (`dailyDashLogger.ts`) swaps the client's
+  `(fields, msg)` into the app's `(msg, attributes)`. `toDailyDashAttributes`
+  (`dailyDashLogLogic.ts`, vitest) drops `cause` (spec §4.8) and renames the
+  client's `module` binding to `ddModule`. `module` is a Loki index label and
+  the app's logger lets call attributes override it, so without the rename the
+  lines split into `api` / `db` / `sync` / `session` streams. Every line lands
+  under `module: "DailyDash"`, with `host: "recoverysky"`.
+- `createDailyDashConnectivity()` (`dailyDashConnectivity.ts`): `onReconnect`
+  is a MobX reaction on the network store's offline-to-online edge. `reach` is a
+  no-op on purpose, because NetworkStore has one writer (the NetInfo listener).
+- `dailyDashOnRefused`: a 410 goes to the session (`sessionRefusal`, account
+  deleted or purged); a 426 `update_required` shows `promptStoreUpdate()`
+  (`app/utils/checkForUpdates.ts`), which shares its lock with the cold-start
+  check so two store prompts never stack. The client's `X-Client` identity is
+  the native version and the EAS Update channel (`getDailyDashClientIdentity`).
+  Analytics go through `trackEvent` (Umami).
+
+**Look.**
+- `buildMyDayTheme()` (`app/utils/myDayTheme.ts`, vitest) lays the app's tint
+  pair (`tint`, `tintInactive`) over `dailyDashDark` when the app is dark,
+  otherwise `dailyDashLight`, and picks `onTint` by contrast: white at 3:1 or
+  more, else dark ink. Every other token stays the package's.
+- Fonts: Inter and Playfair Display, eight weights, registered in
+  `app/theme/typography.ts` under exactly the key names the package's
+  typography uses. A renamed key falls back to the system font silently.
+- Photo: one of 13 bundled Pexels JPEGs (`assets/images/my-day/`), drawn once
+  per launch by `coldStartMyDayPhoto()` (`app/theme/myDayPhotos.ts`, the only
+  file that requires them; `pickPhotoIndex` is the pure half).
+- Glass: `MyDayBlur` (`app/components/myDay/MyDayBlur.tsx`, the only expo-blur
+  import) follows the app's scheme. `decideAndroidBlurMethod()`
+  (`app/utils/myDayBlurLogic.ts`, vitest) gives Android 12+ (API 31) the real
+  `dimezisBlurView` and older Android `"none"`, a translucent pane, because the
+  Dimezis blur is not dependable below 12. iOS and web omit the prop. expo-blur
+  15 calls it `experimentalBlurMethod`; expo-blur 57 replaces it.
+
+**Words.** The `myDay` namespace in all nine locale files mirrors the
+package's `MyDayCopy` leaf for leaf. The pure `buildMyDayCopy(t)`
+(`app/utils/myDayCopy.ts`) rebuilds the package's shape, `useMyDayCopy()`
+memoises it on `i18n.language`, and the mapping rules are in `en.ts`'s block
+comment. `app/utils/myDayCopy.test.ts` walks every leaf of `defaultMyDayCopy`
+and fails on a missing key, a differing English string or a function leaf with
+no sample arguments. **A word My Day adds is a failing test**, not English
+leaking past the translator. After a package bump, add the key to all nine
+files, a sample in the test's `SAMPLE_ARGS` for a function leaf, and an entry
+in `docs/translation-review-2026-08-03.md`. The eight other locales are
+English placeholders for now.
+
+**Not built.** The Sky hand-off (spec §6): `MyDayHost` passes no
+`capabilities`, so My Day shows nothing of Sky (the "Sky suggests" chips on Rate
+your day go through the Daily Dash API and work). `reminders` is off, because
+the client cannot register a push token, so "Remind me later" would promise
+nothing. Web is hidden; lifting that needs COEP/COOP headers for expo-sqlite's
+OPFS worker and `wasm` in Metro's `assetExts`. All queued in `TODO.md`.
+
+**Release prerequisites.** expo-blur is native, so the first build with the tab
+is a native release: bump `version` and `runtimeVersion` together. Before that
+store build: the Daily Dash API release after 0.9.0 live at
+`api.the-daily-dash.com` (my-day 0.4.0 reads `sky` fields on today and
+check-ins that 0.9.0 does not serve), this app's Auth0 client in that API's
+`AUTH0_RECOVERYSKY_CLIENT_IDS` allow-list (Infisical), and the URL in the EAS
+production environment. Before the manual ingest: the agent repo's
+`feat/manual-my-day-area` merged to its `prod`, since the agent's closed area
+list needs `my-day`.
 
 ## Attendance Cloud Backup & Sync
 
