@@ -68,8 +68,9 @@ design's §4, agent plan 1), both unbuilt. Then `MyDayHost` passes
 - [ ] **Relinked identities (spec §8, §4.4).** A relink (`relinkOwner`) gives
       the owner a new sub, and the Daily Dash platform treats it as a new
       account: the driver's `releaseDevice()` hands the device to it, and the
-      person's earlier My Day data stays with the old platform account. Flag to the Daily Dash team (ADR 0015 makes the Auth0
-      subject the identity unless the platform links subs). No change here.
+      person's earlier My Day data stays with the old platform account. Flag
+      to the Daily Dash team (ADR 0015 makes the Auth0 subject the identity
+      unless the platform links subs). No change here.
 - [ ] **Photo weight (spec §8, §4.6).** The 13 bundled JPEGs in
       `assets/images/my-day/` total about 1.4 MB. Measure first paint on a
       low-end Android in the device checklist (plan Task 16) and decide
@@ -77,14 +78,15 @@ design's §4, agent plan 1), both unbuilt. Then `MyDayHost` passes
 - [ ] **Web.** The tab is hidden on web (`decideMyDayTabVisible`). Lifting it
       needs COEP/COOP headers on our web hosting for expo-sqlite's OPFS worker,
       and `wasm` in Metro's `assetExts`.
-- [ ] **`npm run vendor:update` deletes the Daily Dash tarballs.** It removes
-      every `vendor/*.tgz` it did not choose and walks only common's private
-      deps, so running it removes `vendor/daily-dash-*.tgz` before its
-      `npm install`. Teach `scripts/vendor-update.js` to keep them (or to bump
-      them), and to check the shared `@jenova-marie/ts-rust-result` override
-      against the Daily Dash packages' exact pin. Until then, restore them
-      with `git checkout -- vendor/daily-dash-*.tgz` (CLAUDE.md "Linked
-      Packages").
+- [ ] **`npm run vendor:update` deletes the Daily Dash tarballs, then fails.**
+      It walks only common's private deps, removes every `vendor/*.tgz` it did
+      not choose, and runs `npm install` itself straight after, which fails
+      because `package.json` still names `vendor/daily-dash-*.tgz`. Teach
+      `scripts/vendor-update.js` to keep them (or to bump them), and to check
+      the shared `@jenova-marie/ts-rust-result` override against the Daily
+      Dash packages' exact pin. Until then, recover by restoring them
+      (`git checkout -- vendor/daily-dash-*.tgz`), running `npm install` again
+      and checking the lock (CLAUDE.md "Linked Packages").
 
 ---
 

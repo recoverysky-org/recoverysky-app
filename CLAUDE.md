@@ -282,11 +282,16 @@ tarballs from the Daily Dash hand-off into `vendor/`, delete the old ones, edit
 all six `file:` entries, `npm install`, and check `package-lock.json` resolves
 the new files. As with common, an override the bump misses installs the old
 tarball silently. Two traps:
-- **`npm run vendor:update` deletes the Daily Dash tarballs.** It removes every
-  `vendor/*.tgz` it did not choose, and it walks only common's private deps
-  (`@daily-dash/` is not in its `PRIVATE_SCOPES`). After running it, restore
-  them (`git checkout -- vendor/daily-dash-*.tgz`) before installing, until
-  the script learns the Daily Dash packages (queued in `TODO.md`).
+- **`npm run vendor:update` deletes the Daily Dash tarballs, then fails.** It
+  walks only common's private deps (`@daily-dash/` is not in its
+  `PRIVATE_SCOPES`), removes every `vendor/*.tgz` it did not choose, and runs
+  `npm install` itself straight after. `package.json` still names the three
+  `file:vendor/daily-dash-*.tgz` entries, so that install fails on the missing
+  files. To recover, restore the tarballs from git
+  (`git checkout -- vendor/daily-dash-*.tgz`), run `npm install` again, then
+  do by hand the two checks the failed run never reached: every vendored
+  tarball still exists, and `package-lock.json` has no `git.rso`. This holds
+  until the script learns the Daily Dash packages (queued in `TODO.md`).
 - **sdk and client pin `@jenova-marie/ts-rust-result` exactly**, and that
   package's override is shared with common. A common bump that moves the
   override forces the new version on the Daily Dash packages with no error;
@@ -1492,7 +1497,8 @@ never has a session built or a Daily Dash account minted.
   `DatabaseProvider` (the two databases are independent; one can fail while the
   other works). It **always renders one element shape**: it computes the gate,
   calls the driver's `setGate`, and hands the driver to the tab through
-  `useDailyDashDriver()`. CHANGED 2026-11-04 (commit `91c62f9`): it first
+  `useDailyDashDriver()`. CHANGED 2026-11-04 (commit "DailyDashProvider keeps
+  one tree shape; the client mounts inside the My Day tab"): it first
   mounted `ClientProvider` around the app only while the gate held, which
   remounted the whole app on every gate flip, so on every premium cold start,
   because `isPremium` is false until RevenueCat answers. Don't put a
@@ -1506,7 +1512,7 @@ never has a session built or a Daily Dash account minted.
 - Each of the stack's seven `MyDay*` routes (six package screens;
   `RoutineItemScreen` serves both `MyDayRoutineNew` and `MyDayRoutineItem`)
   renders `MyDayFrame`: `MyDayHost` (`MyDayProvider` with theme, copy,
-  surfaces, navigation and version, every value memoised) around `MyDayGate`
+  surfaces, navigation and version, every object memoised) around `MyDayGate`
   around the screen. One provider per screen, because the navigation adapter
   (`createMyDayNavigation`, `app/navigators/myDayNavigation.ts`) needs that
   screen's own `navigation` so `back()` pops this stack. `MY_DAY_SCREEN`
@@ -1587,8 +1593,9 @@ carry account details. It wears My Day's look, and its words are the
 - `createDailyDashConnectivity()` (`dailyDashConnectivity.ts`): `onReconnect`
   is a MobX reaction on the network store's offline-to-online edge. `reach` is a
   no-op on purpose, because NetworkStore has one writer (the NetInfo listener).
-- `dailyDashOnRefused`: a 410 goes to the session (`sessionRefusal`, account
-  deleted or purged); a 426 `update_required` shows `promptStoreUpdate()`
+- `dailyDashOnRefused`: every refusal goes to the session's `sessionRefusal`,
+  which acts on a 410 (account deleted or purged); a 426 `update_required`
+  shows `promptStoreUpdate()`
   (`app/utils/checkForUpdates.ts`), which shares its lock with the cold-start
   check so two store prompts never stack. The client's `X-Client` identity is
   the native version and the EAS Update channel (`getDailyDashClientIdentity`).
@@ -1610,7 +1617,9 @@ carry account details. It wears My Day's look, and its words are the
   (`app/utils/myDayBlurLogic.ts`, vitest) gives Android 12+ (API 31) the real
   `dimezisBlurView` and older Android `"none"`, a translucent pane, because the
   Dimezis blur is not dependable below 12. iOS and web omit the prop. expo-blur
-  15 calls it `experimentalBlurMethod`; expo-blur 57 replaces it.
+  15 calls it `experimentalBlurMethod`. Per `MyDayBlur.tsx`'s header comment,
+  expo-blur 57 brings a single `blurMethod` prop, so the SDK 31 decision can
+  move into the library.
 
 **Words.** The `myDay` namespace in all nine locale files mirrors the
 package's `MyDayCopy` leaf for leaf. The pure `buildMyDayCopy(t)`
