@@ -163,6 +163,7 @@ const th: Translations = {
     meetingsTab: "ประชุม",
     scheduleTab: "ตาราง",
     agentTab: "ผู้ช่วย",
+    myDayTab: "My Day",
     socialTab: "ชุมชน",
     settingsTab: "ตั้งค่า",
   },

@@ -170,6 +170,7 @@ const en = {
     meetingsTab: "Meetings",
     scheduleTab: "Schedule",
     agentTab: "Agent",
+    myDayTab: "My Day",
     socialTab: "Community",
     settingsTab: "Settings",
   },

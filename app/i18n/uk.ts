@@ -165,6 +165,7 @@ const uk: Translations = {
     meetingsTab: "Зустрічі",
     scheduleTab: "Розклад",
     agentTab: "Помічник",
+    myDayTab: "My Day",
     socialTab: "Спільнота",
     settingsTab: "Налаштування",
   },

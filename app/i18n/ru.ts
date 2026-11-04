@@ -165,6 +165,7 @@ const ru: Translations = {
     meetingsTab: "Собрания",
     scheduleTab: "Расписание",
     agentTab: "Агент",
+    myDayTab: "My Day",
     socialTab: "Сообщество",
     settingsTab: "Настройки",
   },

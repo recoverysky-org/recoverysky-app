@@ -162,6 +162,7 @@ const ar: Translations = {
     meetingsTab: "الاجتماعات",
     scheduleTab: "الجدول",
     agentTab: "المساعد",
+    myDayTab: "My Day",
     socialTab: "مجتمع",
     settingsTab: "الإعدادات",
   },

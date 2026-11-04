@@ -167,6 +167,7 @@ const fr: Translations = {
     meetingsTab: "Réunions",
     scheduleTab: "Horaire",
     agentTab: "Agent",
+    myDayTab: "My Day",
     socialTab: "Communauté",
     settingsTab: "Réglages",
   },
