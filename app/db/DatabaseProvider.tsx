@@ -107,6 +107,14 @@ export function useDatabaseReady(): { isReady: boolean; error: Error | null } {
 
 interface DatabaseProviderProps {
   children: ReactNode
+  /**
+   * ADDED 2026-11-04 (My Day spec §4.9 amendment, final review I-1): deletes My
+   * Day's local data, called by `resetLocalData` before our own reset. A plain
+   * function type, injected from app.tsx (`resetDailyDashLocalData`), so
+   * `app/db/` imports nothing of the Daily Dash client (depcruise and the
+   * policy test both hold that line). Must never throw.
+   */
+  resetDailyDash?: () => Promise<void>
 }
 
 /**
@@ -114,7 +122,7 @@ interface DatabaseProviderProps {
  *
  * Automatically opens database and runs migrations on mount.
  */
-export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode {
+export function DatabaseProvider({ children, resetDailyDash }: DatabaseProviderProps): ReactNode {
   log.debug("DatabaseProvider initializing")
 
   // ADDED 2026-09-17 (spec 2 §1.4): resetLocalDatabase() needs to clear the
@@ -293,6 +301,12 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
       return
     }
     clearRetryTimer()
+    // ADDED 2026-11-04 (My Day spec §4.9 amendment): the overlay's reset must
+    // take My Day's local data with it. resetLocalDatabase() clears ownerSub,
+    // so a later different account on this phone would otherwise open the
+    // previous owner's My Day (the client restores its stored session with no
+    // owner check). The function never throws, so it cannot block our reset.
+    await resetDailyDash?.()
     try {
       await resetLocalDatabase({ clearOwner: () => authStore.clearOwner() })
     } catch (e) {
@@ -302,7 +316,7 @@ export function DatabaseProvider({ children }: DatabaseProviderProps): ReactNode
     }
     attemptRef.current = 0
     await openDb()
-  }, [authStore, clearRetryTimer, openDb])
+  }, [authStore, clearRetryTimer, openDb, resetDailyDash])
 
   // Auto-initialize database on mount — once. `openDb` is stable (no state in
   // its deps), so this effect runs exactly one time per mount.

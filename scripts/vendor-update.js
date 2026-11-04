@@ -19,7 +19,9 @@
  *      hand bump forgets, and overrides would hide the miss: they force the
  *      old version with no error.
  *   3. Rewrites package.json (common's dependency + the overrides), deletes
- *      tarballs nothing references any more, and runs `npm install`.
+ *      tarballs nothing references any more (a tarball package.json still
+ *      names, such as the Daily Dash packages', is kept), and runs
+ *      `npm install`.
  *   4. Fails if package-lock.json still mentions git.rso, because that would
  *      break every cloud build.
  *
@@ -95,6 +97,27 @@ function manifestOf(tgz) {
 function vendoredTgz(spec) {
   const m = typeof spec === "string" && spec.match(/^file:vendor\/(.+\.tgz)$/)
   return m ? m[1] : null
+}
+
+/**
+ * Tarballs the prune must keep: everything this run chose, plus every
+ * `file:vendor/<x>.tgz` still named in package.json's dependencies or
+ * overrides. Call it AFTER package.json is rewritten, so a replaced common or
+ * a dropped override no longer counts.
+ * ADDED 2026-11-04: the Daily Dash packages (@daily-dash/client, /sdk,
+ * /my-day) are vendored `file:` tarballs this script does not manage, and the
+ * prune used to keep only `chosen`, so it deleted them and then failed its
+ * own `npm install`.
+ */
+function tarballsToKeep(pkg, chosen) {
+  const keep = new Set(chosen.values())
+  for (const specs of [pkg.dependencies, pkg.overrides]) {
+    for (const spec of Object.values(specs ?? {})) {
+      const tgz = vendoredTgz(spec)
+      if (tgz) keep.add(tgz)
+    }
+  }
+  return keep
 }
 
 // ── main ────────────────────────────────────────────────────────────────────
@@ -175,7 +198,9 @@ if (JSON.stringify(pkg) !== before) {
 }
 
 // Delete tarballs nothing references any more.
-const keep = new Set(chosen.values())
+// CHANGED 2026-11-04: "nothing" now includes every file:vendor spec still in
+// package.json, not only this run's choices (see tarballsToKeep).
+const keep = tarballsToKeep(pkg, chosen)
 for (const f of fs.readdirSync(VENDOR)) {
   if (f.endsWith(".tgz") && !keep.has(f)) {
     fs.rmSync(path.join(VENDOR, f))

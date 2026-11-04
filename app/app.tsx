@@ -102,7 +102,7 @@ import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { clearAuthCredentials } from "./services/auth/secureStorage"
 import { registerUnusableTokenHandler } from "./services/auth/unusableTokenHandler"
 import { setSentryUser } from "./services/crashReporting/sentry"
-import { configureDailyDash } from "./services/dailyDash"
+import { configureDailyDash, resetDailyDashLocalData } from "./services/dailyDash"
 import { initNetworkMonitoring } from "./services/network"
 import { getNetworkLogContext } from "./services/network/context"
 import { oracleLogAttributes, probeInternetOracle } from "./services/network/oracle"
@@ -1287,7 +1287,10 @@ export function App() {
                   below on every gate flip (each premium cold start, since
                   isPremium is false until RevenueCat answers). */}
               <DailyDashProvider>
-                <DatabaseProvider>
+                {/* ADDED 2026-11-04 (My Day spec §4.9 amendment): the database
+                    overlay's Reset also deletes My Day's local data. Injected
+                    here so app/db imports nothing of the Daily Dash client. */}
+                <DatabaseProvider resetDailyDash={resetDailyDashLocalData}>
                   <ProfileHydrator />
                   <ChatHydrator />
                   {/* Before ReportPollingResumer: its rewrite must land first (spec 2 §7). */}

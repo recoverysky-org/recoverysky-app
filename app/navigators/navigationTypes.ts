@@ -47,7 +47,8 @@ export type MainTabParamList = {
   Settings: { section?: SettingsSection; returnTo?: string } | undefined
   /**
    * ADDED 2026-11-04 (My Day tab, spec §4.5): a native stack of the Daily Dash
-   * package's screens (`MyDayNavigator`). Registered as a tab by Task 11.
+   * package's screens (`MyDayNavigator`). Registered as a tab in
+   * MainNavigator.tsx while the My Day gate holds.
    */
   MyDay: NavigatorScreenParams<MyDayStackParamList> | undefined
 }

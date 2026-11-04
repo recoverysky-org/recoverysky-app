@@ -4,10 +4,11 @@
  *
  * Why lazily and module-scoped: the session owns the device's Daily Dash
  * records in the vault, so two of them would race each other's exchange and
- * refresh. `ClientProvider` (Task 8) is given this instance via its `session`
- * prop instead of building its own. Building on first use (not at import)
- * keeps a build without `EXPO_PUBLIC_DAILY_DASH_API_URL` from ever creating
- * one, and keeps this file importable before app.tsx has the root store.
+ * refresh. `ClientProvider` (under the My Day tab) is given this instance via
+ * its `session` prop instead of building its own. Building on first use (not
+ * at import) keeps a build without `EXPO_PUBLIC_DAILY_DASH_API_URL` from ever
+ * creating one, and keeps this file importable before app.tsx has the root
+ * store.
  *
  * Everything from the app arrives through `DailyDashHostDeps`, so this folder
  * never imports `@/models` (depcruise: `services/dailyDash` → `utils`,
@@ -43,7 +44,7 @@ import type { DailyDashSignInDeps } from "./dailyDashSignIn"
 
 const log = logger.child({ module: "DailyDashSession" })
 
-/** What app.tsx hands over (Task 8): the SignIn adapter's deps plus the two the session needs. */
+/** What app.tsx hands over: the SignIn adapter's deps plus the two the session needs. */
 export interface DailyDashHostDeps extends DailyDashSignInDeps {
   /** `rootStore.networkStore`, taken structurally (see dailyDashConnectivity.ts). */
   networkStore: { readonly isOffline: boolean }
@@ -167,7 +168,7 @@ export function peekDailyDashSession(): Session | null {
 /**
  * The session's one sign-in driver (dailyDashDriver.ts), built with the session
  * on first call; `null` whenever `getDailyDashSession()` is. ADDED 2026-11-04
- * (Task 8). One per session because each driver subscribes to the session
+ * (My Day tab). One per session because each driver subscribes to the session
  * and would start its own sign-in on the same signedOut edge.
  *
  * Built only after the session, so `getDailyDashConnectivity()` is the real

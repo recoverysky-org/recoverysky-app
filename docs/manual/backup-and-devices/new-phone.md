@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: attendance
 aliases: ["new phone", transfer, "switch phones", "restored from backup", "lost my records", "data is gone", "records are gone"]
 ---
-<!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md -->
+<!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, app/services/dailyDash/resetDailyDashLocalData.ts, app/db/DatabaseProvider.tsx -->
 Your attendance records live only on your phone unless Cloud Backup is on. Moving to a new phone takes two steps: turn on Cloud Backup on the old phone and let it finish, then sign in on the new phone with the same account and turn on Cloud Backup there. Your attendance records and the reports you have sent come back. Cloud Backup needs the Attendance subscription.
 
 ## Before you switch
@@ -72,7 +72,7 @@ The app's database came across to the new phone, but the key that protects it di
 3. Sign in.
 4. Turn on "Back up attendance" in Settings → "Cloud Backup".
 
-Anything in your Cloud Backup comes back once "Back up attendance" is on. Reset clears only what was already unreadable.
+Anything in your Cloud Backup comes back once "Back up attendance" is on. Reset clears what was already unreadable, and it also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for your account.
 
 ## If something's wrong
 

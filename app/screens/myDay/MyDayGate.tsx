@@ -207,6 +207,8 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
               {restoreFailed && (
                 <Text
                   tx="myDayGate:restoreFailed"
+                  // Appears after the Restore press, so a screen reader announces it.
+                  accessibilityLiveRegion="polite"
                   style={[bodyStyle, { color: theme.colors.error, marginTop: theme.spacing.sm }]}
                 />
               )}

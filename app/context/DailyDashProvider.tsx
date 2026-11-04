@@ -109,9 +109,11 @@ export function DailyDashClient({ children }: PropsWithChildren) {
   const apiBaseUrl = process.env.EXPO_PUBLIC_DAILY_DASH_API_URL
   // Cannot happen under the tab, which MainNavigator registers only while
   // `decideMyDayTabVisible` holds (the same inputs as the gate, which needs a
-  // valid URL). The fallback keeps the hooks below from crashing on a stale
-  // render, nothing more.
-  if (!session || !apiBaseUrl) return <>{children}</>
+  // valid URL).
+  // CHANGED 2026-11-04 (final review M2): renders nothing instead of bare
+  // children. The path is unreachable, and bare children would crash anyway:
+  // `useSession()` and `useDb()` throw outside ClientProvider.
+  if (!session || !apiBaseUrl) return null
 
   return (
     <ClientProvider

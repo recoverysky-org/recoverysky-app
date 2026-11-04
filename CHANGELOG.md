@@ -33,8 +33,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   picked once per launch behind frosted glass: a real blur on Android 12 and
   later and on iOS, a translucent pane on older Android. Every word goes
   through the app's translations, in all nine locales, with English text in
-  the eight others for now. Settings → Delete User Data also deletes My Day's
-  data and key on the phone, while signing out or losing Premium keeps it, so
+  the eight others for now. Settings → Delete User Data (and the database
+  overlay's Reset local data) also deletes My Day's data and key on the phone,
+  so a different account signing in later starts with an empty My Day, while
+  signing out or losing Premium keeps it, so
   the tab comes back on the same data. Sky's part in My Day (a moment opening
   a chat on the Sky tab) is not built yet. Before the store build ships, the
   Daily Dash API release after 0.9.0 must be live at api.the-daily-dash.com,
@@ -49,7 +51,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - **Daily Dash packages vendored for the My Day tab.** `@daily-dash/sdk` 0.2.0,
   `@daily-dash/client` 0.4.0 and `@daily-dash/my-day` 0.4.0 are `file:` tarballs
   in `vendor/` with matching `overrides`, like `@recoverysky-org/common`, because
-  the private registry is intranet-only. (No tracker issue.)
+  the private registry is intranet-only. `npm run vendor:update` now keeps
+  every tarball `package.json` still names, so bumping common no longer deletes
+  them. (No tracker issue.)
 
 ### Security
 - **The Sky Agent gets the device token on every request.** Agent requests now
