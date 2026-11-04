@@ -4,16 +4,15 @@
  *
  * The provider wraps the gate, not the other way round, so the gate's own UI wears My Day's
  * theme and copy.
+ *
+ * ADDED 2026-11-04: the gate is the real `MyDayGate` (loading, couldn't connect, local data
+ * failed, account deleted); it replaced a pass-through that rendered the package's screens
+ * unconditionally while the gate was being built.
  */
 import { FC, ReactNode } from "react"
 
+import { MyDayGate } from "./MyDayGate"
 import { MyDayHost, type MyDayHostProps } from "./MyDayHost"
-
-/**
- * TODO(Task 10): replace with the real `MyDayGate`. A pass-through until then, so the stack
- * renders the package's screens unconditionally; nothing registers the tab before Task 11.
- */
-const MyDayGate: FC<{ children: ReactNode }> = ({ children }) => <>{children}</>
 
 export interface MyDayFrameProps {
   navigation: MyDayHostProps["navigation"]

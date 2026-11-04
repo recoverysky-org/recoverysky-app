@@ -498,6 +498,24 @@ const fr: Translations = {
       backGlyph: "‹",
     },
   },
+  // ADDED 2026-11-04: the My Day tab's own gate (MyDayGate). English placeholder in every
+  // locale until the native-speaker review queue reaches it.
+  myDayGate: {
+    loading: "Getting My Day ready…",
+    connectFailedTitle: "My Day couldn't connect",
+    connectFailedBody: "Check your connection and try again.",
+    tryAgain: "Try again",
+    dbFailedTitle: "My Day's local data couldn't be opened",
+    dbFailedBody:
+      "Resetting deletes only My Day's data on this phone. Anything not sent yet is lost; everything that was sent is kept on the server.",
+    resetData: "Reset My Day's local data",
+    resetConfirmTitle: "Reset My Day's local data?",
+    resetConfirmBody: "Anything not sent yet is lost.",
+    deletedTitle: "This account was deleted",
+    deletedBody: "It can still be restored for a while.",
+    deletedClosedBody: "The time to restore it has passed.",
+    restore: "Restore",
+  },
   homeScreen: {
     title: "Accueil",
     placeholder: "Contenu du tableau de bord à venir",
