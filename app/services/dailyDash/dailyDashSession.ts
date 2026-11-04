@@ -84,7 +84,10 @@ export function getDailyDashLogger(): Logger {
 
 /**
  * Inert stand-in for before `configureDailyDash`: it is never memoised, so the
- * real one is built from the network store as soon as the deps arrive.
+ * real one is built from the network store as soon as the deps arrive. A
+ * reference captured before configure stays inert for good (its
+ * `onReconnect` never fires), so app.tsx must configure before anything,
+ * such as ClientProvider, reads connectivity.
  */
 const UNCONFIGURED_CONNECTIVITY: ClientConnectivity = {
   reach: () => {},

@@ -54,3 +54,23 @@ export function toLogAttributes(fields: Record<string, unknown>): LogAttributes 
   }
   return out
 }
+
+/**
+ * `toLogAttributes`, then the client's `module` moved to `ddModule`.
+ * ADDED 2026-11-04: the client's child loggers bind `module: "api" | "db" |
+ * "sync" | "session"`, and the app logger spreads per-call attributes OVER a
+ * child's bindings (`app/utils/logger/logger.ts`, the record build). Forwarded
+ * as-is, every Daily Dash line would carry `module=api` (etc.) instead of the
+ * sink's `module=DailyDash`, and `module` is one of the two Loki index labels
+ * (docs/DIAGNOSTICS.md), so the lines would scatter into other modules'
+ * streams. `module` itself is never forwarded; the client's part stays
+ * queryable as `ddModule`.
+ */
+export function toDailyDashAttributes(fields: Record<string, unknown>): LogAttributes {
+  const out = toLogAttributes(fields)
+  if ("module" in out) {
+    out.ddModule = out.module
+    delete out.module
+  }
+  return out
+}
