@@ -72,6 +72,8 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.285",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.0",
     "@expo/app-integrity": "^0.1.10",
     "@expo/metro-runtime": "~6.1.2",
@@ -85,6 +87,7 @@
     "@revenuecat/purchases-js": "^1.60.1",
     "@sentry/react-native": "~7.2.0",
     "@stardazed/streams-text-encoding": "^1.0.2",
+    "@tanstack/react-query": "^5.104.0",
     "@ungap/structured-clone": "^1.4.0",
     "ai": "^6.0.282",
     "apisauce": "3.1.1",
@@ -95,6 +98,7 @@
     "expo-asset": "~12.0.12",
     "expo-audio": "~1.1.1",
     "expo-auth-session": "~7.0.11",
+    "expo-blur": "~15.0.8",
     "expo-build-properties": "~1.0.9",
     "expo-crypto": "~15.0.9",
     "expo-dev-client": "~6.0.21",
@@ -143,7 +147,7 @@
     "setimmediate": "^1.0.5",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
-    "zod": "^4.6.2"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",

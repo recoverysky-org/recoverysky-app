@@ -22,6 +22,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Build
+- **Dependencies for the My Day tab.** Added `expo-blur` (native module: needs a
+  store build and a `runtimeVersion` bump at release), `@tanstack/react-query`,
+  the Inter and Playfair Display font families, and raised `zod` to `^4.6.5`.
+  (No tracker issue.)
+
 ### Security
 - **The Sky Agent gets the device token on every request.** Agent requests now
   carry the same `X-Device-Token` the RecoverySky API checks, beside the Auth0

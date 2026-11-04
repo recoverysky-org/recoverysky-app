@@ -56,8 +56,10 @@ module.exports = {
   // @jenova-marie, @trex-ts, lodash-es, uuid — found iteratively, one
   // SyntaxError at a time); luxon and zod are CJS-resolvable and correctly
   // left out.
+  // ADDED 2026-11-04 (My Day tab): @daily-dash and @tanstack, which ship ESM
+  // that babel-jest must transform like first-party source.
   transformIgnorePatterns: [
-    "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|@recoverysky-org|jose|@jenova-marie|@trex-ts|lodash-es|uuid))",
+    "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|@recoverysky-org|jose|@jenova-marie|@trex-ts|lodash-es|uuid|@daily-dash|@tanstack))",
     "/node_modules/react-native-reanimated/plugin/",
   ],
   // .claude/worktrees holds full nested checkouts of this repo — without ignoring
