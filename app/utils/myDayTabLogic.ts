@@ -3,7 +3,7 @@
  * and React Native imports so vitest can import it (see CLAUDE.md "Test Runner
  * Split"); MainNavigator supplies the inputs. Mirrors `agentTabLogic.ts`.
  *
- * Keyed on the build's `EXPO_PUBLIC_DAILY_DASH_URL` env var, not on a store:
+ * Keyed on the build's `EXPO_PUBLIC_DAILY_DASH_API_URL` env var, not on a store:
  * a store would fall back to a default URL and never be empty, so it could not
  * serve as an on/off switch. Removing the var from a build's environment (and
  * from EAS, for OTAs) is what turns the tab off, the same way the Agent tab
@@ -27,7 +27,7 @@ export interface MyDayTabInputs {
   isAuthenticated: boolean
   isGuest: boolean
   isPremium: boolean
-  /** The build's `EXPO_PUBLIC_DAILY_DASH_URL`, as inlined at bundle time. */
+  /** The build's `EXPO_PUBLIC_DAILY_DASH_API_URL`, as inlined at bundle time. */
   dailyDashUrlEnv: string | undefined
   /** `Platform.OS`; the tab is phone-only (spec D12), so "web" hides it. */
   platform: string
