@@ -499,24 +499,28 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
               // 7. Logout from Auth0 (clear session + MST auth state)
               await logout()
-
-              // 7b. ADDED 2026-11-04 (My Day design D8, §4.9): the ONE place My Day's
-              // database and its key are deleted. start() first, so a record kept from an
-              // earlier premium period is restored and therefore deleted; the client's
-              // reset_local_data also drops any kept file. Our own reset follows (step 8)
-              // and must not move into app/db, which may not depend on the client.
-              try {
-                const dd = getDailyDashSession()
-                if (dd) {
-                  await dd.start()
-                  await dd.signOut("reset_local_data")
-                }
-              } catch (e) {
-                logger.error("Delete User Data: My Day reset failed", { error: String(e) })
-              }
             } catch {
               // Even if some steps fail, ensure auth is cleared
               authStore.logout()
+            }
+
+            // 7b. ADDED 2026-11-04 (My Day design D8, §4.9): the ONE place My Day's
+            // database and its key are deleted. start() first, so a record kept from an
+            // earlier premium period is restored and therefore deleted; the client's
+            // reset_local_data also drops any kept file. Our own reset follows (step 8)
+            // and must not move into app/db, which may not depend on the client.
+            // CHANGED 2026-11-04: sits outside the steps 1-7 try, so a throw from
+            // clearAllSecureData() or logout() cannot skip My Day's reset while step 8 still runs.
+            try {
+              const dd = getDailyDashSession()
+              if (dd) {
+                await dd.start()
+                await dd.signOut("reset_local_data")
+              } else {
+                logger.info("Delete User Data: no Daily Dash session configured, nothing to reset")
+              }
+            } catch (e) {
+              logger.error("Delete User Data: My Day reset failed", { error: String(e) })
             }
 
             // 8. Delete the encrypted database AND its key together, then
