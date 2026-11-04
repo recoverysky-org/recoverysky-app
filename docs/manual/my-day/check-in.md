@@ -27,7 +27,7 @@ The switch "Mix up the questions" on the "Check in" card changes the order the q
 
 The questions depend on your first answer.
 
-- **A low answer (1 or 2)** is followed by a question about what's bothering you, a question about self-harm, asked every time you answer low, then questions about the topics you pick.
+- **A low answer (1 or 2)** is followed by a question about what's bothering you, a question about self-harm, asked on every low day, then questions about the topics you pick.
 - **A higher answer** is followed by a few questions about what you find hard. A question you left unanswered last time may come first.
 
 **Support.** "Need support now?" is on every question. If your answers say things are hard, a card appears first: "You don't have to get through this alone" with "Get support now", or "Thank you for being honest" with "See support". Each one opens Meetings → "Online", where live meetings are listed.
@@ -65,8 +65,8 @@ Contact support@recoverysky.app and mention what the check-in screen says and wh
 **Q:** How often can I check in?
 **A:** As often as you like. Each time is a new check-in.
 
-**Q:** Why does it ask about self-harm every time I say I feel bad?
-**A:** After a low answer (1 or 2), that question is asked every time.
+**Q:** Why does it ask about self-harm when I say I feel bad?
+**A:** After a low answer (1 or 2), that question is asked on every low day.
 
 **Q:** Can I stop halfway through?
 **A:** Yes. Tap "Close", then "That's enough for now". What you've answered is kept.

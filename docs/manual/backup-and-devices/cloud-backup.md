@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: attendance
 aliases: [backup, sync, "back up attendance", cloud, synced, "all backed up", encrypted]
 ---
-<!-- sources: app/screens/SettingsScreen.tsx, app/i18n/en.ts, docs/BACKUP.md, app/services/sync/enableCloudBackup.ts, app/hooks/useCloudBackupPrompt.ts, app/db/BackupPassRunner.tsx, app/services/sync/index.ts, app/services/sync/attendanceSyncService.ts, app/db/resetLocalDatabase.ts, docs/support/reference/device-owner.md, docs/support/problems/data-missing-after-new-phone.md, app/db/feedbackCache.ts, app/models/ProfileStore.ts -->
+<!-- sources: app/screens/SettingsScreen.tsx, app/i18n/en.ts, docs/BACKUP.md, app/services/sync/enableCloudBackup.ts, app/hooks/useCloudBackupPrompt.ts, app/db/BackupPassRunner.tsx, app/services/sync/index.ts, app/services/sync/attendanceSyncService.ts, app/db/resetLocalDatabase.ts, docs/support/reference/device-owner.md, docs/support/problems/data-missing-after-new-phone.md, app/db/feedbackCache.ts, app/models/ProfileStore.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md -->
 Cloud Backup keeps a copy of your attendance records and the reports you have sent in your RecoverySky backup, and keeps them in step across your phones. It backs up nothing else. It is off until you turn it on, and the switch is remembered on each phone, not on your account. It needs the Attendance subscription. Cloud Backup is part of the iPhone and Android apps.
 
 ## How to turn on Cloud Backup

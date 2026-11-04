@@ -69,5 +69,5 @@
   expect: my-day/grateful-for
 - q: how do I delete something from my gratitude list
   expect: my-day/grateful-for
-- q: why can't I tap add on grateful for
+- q: the add button for my gratitude list won't work
   expect: my-day/grateful-for

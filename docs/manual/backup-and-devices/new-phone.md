@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: attendance
 aliases: ["new phone", transfer, "switch phones", "restored from backup", "lost my records", "data is gone", "records are gone"]
 ---
-<!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts -->
+<!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md -->
 Your attendance records live only on your phone unless Cloud Backup is on. Moving to a new phone takes two steps: turn on Cloud Backup on the old phone and let it finish, then sign in on the new phone with the same account and turn on Cloud Backup there. Your attendance records and the reports you have sent come back. Cloud Backup needs the Attendance subscription.
 
 ## Before you switch
@@ -56,7 +56,7 @@ First, check the Attendance tab and Settings. If you see records you made on thi
 
 If they hold nothing you made on this phone:
 
-1. Open Settings → "Account" and tap "Delete User Data", then "OK!". This clears this phone only. Nothing in your backup is touched. It also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for your account.
+1. Open Settings → "Account" and tap "Delete User Data", then "OK!". This clears this phone only. Nothing in your backup is touched. It also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for that account.
 2. On iPhone, a "Sign In" system message may appear if you used a Google or Apple account. Go through it.
 3. Sign in the way you did on your old phone.
 4. Turn on "Back up attendance" in Settings → "Cloud Backup".

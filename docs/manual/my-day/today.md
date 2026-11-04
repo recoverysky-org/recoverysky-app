@@ -24,7 +24,7 @@ The tab shows only when all of these are true: you are signed in, you have Premi
 
 You're in My Day → "Today". The date is at the top. Below it, cards in this order:
 
-- **"You don't have to get through this alone"** shows first, only when last night's ratings say things are hard. "Get support now" opens Meetings → "Online", where live meetings are listed.
+- **"You don't have to get through this alone"** shows first, only when last night's check-in says things are hard. "Get support now" opens Meetings → "Online", where live meetings are listed.
 - **"Today's quote"** shows the day's quote and who said it, on days that have one. Tap "♡ Favourite" to keep it; it then reads "♥ Favourited". Tap it again to remove the favourite.
 - **"Where to focus today"** lists the parts of your life worth some care today, each with how you rated it last night, for example "Last night: 2".
 - **"Check in"**: answer a few questions about how you feel, any time.
@@ -53,7 +53,7 @@ You tapped "My Day" and see one of these instead of "Today":
 - **"Getting My Day ready…"**: the tab is connecting your account. Wait a moment.
 - **"My Day couldn't connect"**: My Day could not reach its server. Check your connection and tap "Try again". It also tries again by itself when your connection comes back and when you return to the app.
 - **"Your day didn't load. Check your connection and try again."**: tap "Try again".
-- **"My Day's local data couldn't be opened"**: My Day's storage on this phone could not be opened. "Reset My Day's local data" deletes only My Day's data on this phone, then asks "Reset My Day's local data?" with "Anything not sent yet is lost." Tap "OK!" to reset. Everything already sent is kept on the server.
+- **"My Day's local data couldn't be opened"**: My Day's storage on this phone could not be opened. Tap "Reset My Day's local data". It asks "Reset My Day's local data?" with "Anything not sent yet is lost." Tap "OK!" to reset; this deletes only My Day's data on this phone. Everything already sent is kept on the server.
 - **"This account was deleted"**: if it says "It can still be restored for a while.", tap "Restore". If "Restore didn't work. Check your connection and try again." shows, check your connection and tap "Restore" again. If it says "The time to restore it has passed.", there is nothing to restore.
 
 ## If something's wrong
