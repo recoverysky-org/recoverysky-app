@@ -354,6 +354,14 @@ overlay's Reset, which is about *our* file failing to open and must reset ours a
 grow a dependency on the Daily Dash client. This handler is the **only** place the Daily Dash database and key
 are deleted (D8); `MyDayGate`'s "Reset My Day's local data" (§4.5) resets the Daily Dash file alone.
 
+AMENDED 2026-11-04 (final review I-1): the database-error overlay's "Reset local data" also resets My Day's
+local data. That reset clears `ownerSub`, which undoes the single-owner premise of §4.4: the next sign-in is
+adopted whoever it is, and the client restores a stored Daily Dash session with no owner check, so a different
+account would open the previous owner's My Day. The Daily Dash reset is now one function,
+`resetDailyDashLocalData()` (`app/services/dailyDash/`), called from Delete User Data and, injected as a
+`DatabaseProvider` prop from `app.tsx`, from the overlay's Reset, before `resetLocalDatabase()`. `app/db/` still
+imports nothing of the client, and the function never throws, so it cannot block our own reset.
+
 ### 4.10 Documents
 
 - `docs/manual/`: one page per My Day feature the user can see (Today, Check in, Routine, Rate your day,

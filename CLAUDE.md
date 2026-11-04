@@ -282,16 +282,12 @@ tarballs from the Daily Dash hand-off into `vendor/`, delete the old ones, edit
 all six `file:` entries, `npm install`, and check `package-lock.json` resolves
 the new files. As with common, an override the bump misses installs the old
 tarball silently. Two traps:
-- **`npm run vendor:update` deletes the Daily Dash tarballs, then fails.** It
-  walks only common's private deps (`@daily-dash/` is not in its
-  `PRIVATE_SCOPES`), removes every `vendor/*.tgz` it did not choose, and runs
-  `npm install` itself straight after. `package.json` still names the three
-  `file:vendor/daily-dash-*.tgz` entries, so that install fails on the missing
-  files. To recover, restore the tarballs from git
-  (`git checkout -- vendor/daily-dash-*.tgz`), run `npm install` again, then
-  do by hand the two checks the failed run never reached: every vendored
-  tarball still exists, and `package-lock.json` has no `git.rso`. This holds
-  until the script learns the Daily Dash packages (queued in `TODO.md`).
+- **`npm run vendor:update` keeps the Daily Dash tarballs** (CHANGED
+  2026-11-04). It walks only common's private deps (`@daily-dash/` is not in
+  its `PRIVATE_SCOPES`), so it never bumps them; its prune keeps every
+  `vendor/*.tgz` that `package.json`'s dependencies or overrides still name
+  (`tarballsToKeep`). Before that change it deleted the three Daily Dash
+  tarballs and then failed its own `npm install`.
 - **sdk and client pin `@jenova-marie/ts-rust-result` exactly**, and that
   package's override is shared with common. A common bump that moves the
   override forces the new version on the Daily Dash packages with no error;
@@ -1553,17 +1549,25 @@ getter, the same gate-checked token every API request gets.
    a lapsed subscription and the gate closing all leave the Daily Dash session,
    its tokens, database and key on the phone. The owner's next sign-in opens on
    the same data. The driver's action type has no sign-out member on purpose.
-2. **`signOut("reset_local_data")` is called in exactly one place**, Settings
-   → Delete User Data step 7b in `SettingsScreen.tsx`, **beside**
-   `resetLocalDatabase()` and never inside it. It calls `start()` first, so a
-   record kept from an earlier premium period is restored and therefore
-   deleted. It sits outside the steps 1-7 `try`, so a throw there cannot skip
-   it while step 8 still runs. Not in `resetLocalDatabase()`, because that is
-   also the database-error overlay's Reset, which must reset ours alone, and
-   `app/db/` may not depend on the client. `dailyDashPolicy.test.ts` (vitest)
-   greps the app's sources: exactly one `.signOut("…")` call, in
-   `SettingsScreen.tsx`, and no `@daily-dash/` import under `app/db/`. A new
-   sign-out call site is meant to fail it.
+2. **`signOut("reset_local_data")` is called from exactly one function**,
+   `resetDailyDashLocalData()` (`app/services/dailyDash/`), which has two
+   callers: Settings → Delete User Data step 7b in `SettingsScreen.tsx`, and
+   the database overlay's Reset (`DatabaseProvider`'s `resetLocalData`, given
+   the function as its `resetDailyDash` prop from `app.tsx`). It runs
+   **beside** `resetLocalDatabase()` and never inside it, so `app/db/` still
+   imports nothing of the client. It calls `start()` first, so a stored
+   session from an earlier premium period is restored and its file deleted by
+   hash; the client's `reset_local_data` also drops a kept file whether or not
+   `start()` ran. It never throws and logs only an error code. Step 7b sits
+   outside the steps 1-7 `try`, so a throw there cannot skip it while step 8
+   still runs. CHANGED 2026-11-04 (spec §4.9 amendment): the overlay's Reset
+   used to reset ours alone; but it clears `ownerSub`, and the client restores
+   a stored session with no owner check, so a different account signing in
+   afterwards would have opened the previous owner's My Day.
+   `dailyDashPolicy.test.ts` (vitest) greps the app's sources: exactly one
+   `.signOut(…)` call (any argument, a bare `.signOut()` included), in
+   `resetDailyDashLocalData.ts`, and no `@daily-dash/` import under `app/db/`.
+   A new sign-out call site is meant to fail it.
 
 `MyDayGate`'s "Reset My Day's local data" is the client's `db.reset()`, which
 the client implements as its own `reset_local_data` sign-out. It is client

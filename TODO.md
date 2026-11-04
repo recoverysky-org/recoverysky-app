@@ -78,15 +78,22 @@ design's §4, agent plan 1), both unbuilt. Then `MyDayHost` passes
 - [ ] **Web.** The tab is hidden on web (`decideMyDayTabVisible`). Lifting it
       needs COEP/COOP headers on our web hosting for expo-sqlite's OPFS worker,
       and `wasm` in Metro's `assetExts`.
-- [ ] **`npm run vendor:update` deletes the Daily Dash tarballs, then fails.**
-      It walks only common's private deps, removes every `vendor/*.tgz` it did
-      not choose, and runs `npm install` itself straight after, which fails
-      because `package.json` still names `vendor/daily-dash-*.tgz`. Teach
-      `scripts/vendor-update.js` to keep them (or to bump them), and to check
-      the shared `@jenova-marie/ts-rust-result` override against the Daily
-      Dash packages' exact pin. Until then, recover by restoring them
-      (`git checkout -- vendor/daily-dash-*.tgz`), running `npm install` again
-      and checking the lock (CLAUDE.md "Linked Packages").
+- [ ] **`npm run vendor:update`: check the shared `ts-rust-result` pin.**
+      DONE 2026-11-04: the script's prune keeps every tarball `package.json`
+      still names (`tarballsToKeep`), so it no longer deletes the Daily Dash
+      tarballs. Left: check the shared `@jenova-marie/ts-rust-result` override
+      against the Daily Dash packages' exact pin, so a common bump that moves
+      it fails loudly instead of forcing a new version on sdk and client.
+- [ ] **My Day: a failed release holds the loading screen.** After a
+      `wrongAccount`, a refused or failed `releaseDevice()` leaves "Getting My
+      Day ready…" up until the next reconnect or foreground edge. Map it to
+      `connectFailed` and give Try again an edge (final review M3).
+- [ ] **My Day: prefix the client's Umami events.** The client's
+      `signed_in`, `signed_out` and `account_restored` reach Umami beside the
+      app's own names; wrap `track` to prefix them `dd_` (final review M4).
+- [ ] **My Day: draw the photo behind the gate.** The gate's blocking screens
+      paint a flat background, so the tab flips to the photo and glass when
+      ready (final review M5).
 
 ---
 
