@@ -34,7 +34,12 @@ export function createDailyDashSignIn(deps: DailyDashSignInDeps): SignIn {
       let decision = decideDailyDashSignIn(held, usable, false)
       if (decision.kind === "renew") {
         // At most one renewal per request (the logic refuses a second).
-        const renewed = await deps.renew()
+        // ADDED 2026-11-04: the client's SignIn contract says "No method throws"
+        // (session/types.d.ts:46), and Auth0 credential calls do reject. A
+        // rejection is treated as a null renewal, so the second decision yields
+        // unauthorized/no_id_token. The caught error is dropped, never logged
+        // or put in details/cause (it can carry request context).
+        const renewed = await deps.renew().catch(() => null)
         held = {
           accessToken: renewed?.accessToken ?? held.accessToken,
           idToken: renewed?.idToken ?? undefined,
@@ -61,7 +66,12 @@ export function createDailyDashSignIn(deps: DailyDashSignInDeps): SignIn {
     signOutProvider: async () => {},
 
     providerToken: async (options) => {
-      const token = options?.fresh ? (await deps.renew())?.accessToken : await deps.getUserToken()
+      // ADDED 2026-11-04: "No method throws" (session/types.d.ts:46). A rejected
+      // renew/getUserToken maps to the same refusal as a missing token; the
+      // caught error is discarded so nothing of it reaches details or a log.
+      const token = await (
+        options?.fresh ? deps.renew().then((r) => r?.accessToken) : deps.getUserToken()
+      ).catch(() => null)
       if (!token) return err(unauthorized("Sign in again", { code: "provider_token_unavailable" }))
       return ok(token)
     },
