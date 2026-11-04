@@ -27,6 +27,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   store build and a `runtimeVersion` bump at release), `@tanstack/react-query`,
   the Inter and Playfair Display font families, and raised `zod` to `^4.6.5`.
   (No tracker issue.)
+- **Daily Dash packages vendored for the My Day tab.** `@daily-dash/sdk` 0.2.0,
+  `@daily-dash/client` 0.4.0 and `@daily-dash/my-day` 0.4.0 are `file:` tarballs
+  in `vendor/` with matching `overrides`, like `@recoverysky-org/common`, because
+  the private registry is intranet-only. (No tracker issue.)
 
 ### Security
 - **The Sky Agent gets the device token on every request.** Agent requests now
