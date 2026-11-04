@@ -16,12 +16,15 @@
  * It wears My Day's look (`useMyDayTheme`), not RecoverySky's tokens, on purpose: the gate sits
  * inside `MyDayHost`, so the tab reads as one place whether its screen or its gate is showing.
  *
- * It must render inside the `ClientProvider` (`DailyDashProvider`): `useSession()` and `useDb()`
- * throw outside it. `MyDayFrame` is its one mount, inside the provider tree.
+ * It must render inside the Daily Dash client (`ClientProvider`): `useSession()` and `useDb()`
+ * throw outside it. `MyDayFrame` is its one mount.
+ * CHANGED 2026-11-04: the client no longer mounts in `DailyDashProvider` itself. It mounts in
+ * `DailyDashClient`, which `MyDayNavigator` wraps around the whole My Day stack, so every
+ * `MyDayFrame`, and this gate with it, sits inside it.
  */
-import { FC, ReactNode, useCallback } from "react"
+import { FC, ReactNode, useCallback, useMemo, useState } from "react"
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native"
-import { useDb, useSession } from "@daily-dash/client"
+import { appErrorOf, useDb, useSession } from "@daily-dash/client"
 import { useMyDayTheme } from "@daily-dash/my-day"
 
 import { Button } from "@/components/Button"
@@ -31,6 +34,15 @@ import { translate } from "@/i18n"
 import { useLogger } from "@/utils/logger"
 
 import { decideMyDayGateView } from "./myDayGateLogic"
+
+/**
+ * The code of a failed client call, and nothing else. A failure arrives as the SDK's
+ * `ResultError`, whose domain error sits at `e.error`; the error object and its `cause` can carry
+ * the person's account details, so only the code ever reaches our logs.
+ * `appErrorOf` is the client's own `isResultError(e) ? e.error : null`, typed to the client's
+ * `AppError` (which has `code`); the SDK's bare guard narrows only to a code-less `DomainError`.
+ */
+const codeOf = (e: unknown): string | undefined => appErrorOf(e)?.code
 
 export interface MyDayGateProps {
   children: ReactNode
@@ -44,6 +56,19 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
   const driver = useDailyDashDriver()
   const { theme } = useMyDayTheme()
   const log = useLogger("MyDayGate")
+  // Set by a failed restore, cleared when the next one starts, so the person sees that the tap
+  // did something. The Restore button stays enabled: trying again is the only remedy.
+  const [restoreFailed, setRestoreFailed] = useState(false)
+
+  // The app's "filled" preset paints RecoverySky's palette (Button.tsx), and the gate must read as
+  // part of the My Day tab, so its buttons wear My Day's tint and type instead.
+  const buttonLook = useMemo(
+    () => ({
+      button: { backgroundColor: theme.colors.tint },
+      text: { color: theme.colors.onTint, fontFamily: theme.typography.primary.semiBold },
+    }),
+    [theme],
+  )
 
   const view = decideMyDayGateView({
     session: session.state,
@@ -62,22 +87,28 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
       {
         text: translate("common:ok"),
         style: "destructive",
-        onPress: () => void db.reset(),
+        // A rejected reset is logged by its code alone, like a failed restore, rather than left
+        // as an unhandled rejection.
+        onPress: () => {
+          db.reset().catch((e: unknown) =>
+            log.warn("My Day local data reset failed", { code: codeOf(e) }),
+          )
+        },
       },
     ])
-  }, [db])
+  }, [db, log])
 
   const restore = useCallback(async () => {
-    // The handle's restoreAccount resolves void and the client logs its own failure; the catch is
-    // for a throw that slips past it. Only the error's `code` is logged: the object and its
-    // `cause` can carry the person's account details, which never go in our logs.
+    // The `useSession()` handle unwraps the session's result, so EVERY failed restore arrives
+    // here as a thrown `ResultError` (`@daily-dash/sdk`). The client logs only a success, which
+    // makes this catch the gate's ONLY failure path: do not remove it. Only the code is logged,
+    // because the error and its `cause` can carry the person's account details.
+    setRestoreFailed(false)
     try {
       await session.restoreAccount()
     } catch (e) {
-      const code = (e as { code?: unknown } | null)?.code
-      log.warn("My Day account restore threw", {
-        code: typeof code === "string" ? code : undefined,
-      })
+      log.warn("My Day account restore failed", { code: codeOf(e) })
+      setRestoreFailed(true)
     }
   }, [session, log])
 
@@ -103,15 +134,21 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
       marginBottom: theme.spacing.sm,
     },
   ]
-  const buttonStyle = { marginTop: theme.spacing.md, alignSelf: "stretch" as const }
+  const buttonStyle = [
+    { marginTop: theme.spacing.md, alignSelf: "stretch" as const },
+    buttonLook.button,
+  ]
 
   switch (view.kind) {
     case "loading":
       return (
         <View style={containerStyle}>
+          {/* Hidden from assistive tech: the text below carries the announcement, and a label
+              here too made screen readers say "Getting My Day ready" twice. */}
           <ActivityIndicator
             color={theme.colors.text}
-            accessibilityLabel={translate("myDayGate:loading")}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
           />
           <Text tx="myDayGate:loading" style={[bodyStyle, { marginTop: theme.spacing.md }]} />
         </View>
@@ -126,6 +163,7 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
             preset="filled"
             onPress={driver.retry}
             style={buttonStyle}
+            textStyle={buttonLook.text}
             accessibilityRole="button"
             accessibilityLabel={translate("myDayGate:tryAgain")}
           />
@@ -144,6 +182,7 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
             preset="filled"
             onPress={confirmReset}
             style={buttonStyle}
+            textStyle={buttonLook.text}
             accessibilityRole="button"
             accessibilityLabel={translate("myDayGate:resetData")}
           />
@@ -161,9 +200,16 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
                 preset="filled"
                 onPress={() => void restore()}
                 style={buttonStyle}
+                textStyle={buttonLook.text}
                 accessibilityRole="button"
                 accessibilityLabel={translate("myDayGate:restore")}
               />
+              {restoreFailed && (
+                <Text
+                  tx="myDayGate:restoreFailed"
+                  style={[bodyStyle, { color: theme.colors.error, marginTop: theme.spacing.sm }]}
+                />
+              )}
             </>
           ) : (
             // The recovery window has closed: there is nothing to restore, so no button at all

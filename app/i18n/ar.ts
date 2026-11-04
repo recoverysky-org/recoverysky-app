@@ -510,6 +510,7 @@ const ar: Translations = {
     deletedBody: "It can still be restored for a while.",
     deletedClosedBody: "The time to restore it has passed.",
     restore: "Restore",
+    restoreFailed: "Restore didn't work. Check your connection and try again.",
   },
   homeScreen: {
     title: "الرئيسية",
