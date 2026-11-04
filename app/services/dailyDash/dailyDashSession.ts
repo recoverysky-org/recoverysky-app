@@ -13,6 +13,7 @@
  * never imports `@/models` (depcruise: `services/dailyDash` → `utils`,
  * `services/tracking`, never `models`).
  */
+import { AppState } from "react-native"
 import * as Application from "expo-application"
 import * as Updates from "expo-updates"
 import { createClientSession, err, internal, ok, sessionRefusal } from "@daily-dash/client"
@@ -34,6 +35,8 @@ import { logger } from "@/utils/logger"
 import { isValidDailyDashUrl } from "@/utils/myDayTabLogic"
 
 import { createDailyDashConnectivity } from "./dailyDashConnectivity"
+import { createDailyDashDriver } from "./dailyDashDriver"
+import type { DailyDashDriver } from "./dailyDashDriver"
 import { createDailyDashLogger } from "./dailyDashLogger"
 import { createDailyDashSignIn } from "./dailyDashSignIn"
 import type { DailyDashSignInDeps } from "./dailyDashSignIn"
@@ -53,6 +56,7 @@ let session: Session | null = null
 let sessionLogger: Logger | null = null
 let connectivity: ClientConnectivity | null = null
 let clientIdentity: ClientIdentity | null = null
+let driver: DailyDashDriver | null = null
 
 /**
  * Called once from app.tsx. A later call (Fast Refresh re-running app.tsx in
@@ -158,4 +162,35 @@ export function getDailyDashSession(): Session | null {
 /** The built session or `null`; never builds (for teardown paths such as logout). */
 export function peekDailyDashSession(): Session | null {
   return session
+}
+
+/**
+ * The session's one sign-in driver (dailyDashDriver.ts), built with the session
+ * on first call; `null` whenever `getDailyDashSession()` is. ADDED 2026-11-04
+ * (Task 8). One per session because each driver subscribes to the session
+ * and would start its own sign-in on the same signedOut edge.
+ *
+ * Built only after the session, so `getDailyDashConnectivity()` is the real
+ * port by then (configure has run) and its `onReconnect` actually fires.
+ */
+export function getDailyDashDriver(): DailyDashDriver | null {
+  if (driver) return driver
+  const built = getDailyDashSession()
+  if (!built) return null
+  driver = createDailyDashDriver({
+    session: built,
+    connectivity: getDailyDashConnectivity(),
+    appState: AppState,
+    log: getDailyDashLogger().child({ module: "driver" }),
+  })
+  return driver
+}
+
+/**
+ * The built driver or `null`; never builds a driver or a session. For
+ * DailyDashProvider's gate-closed path: closing the gate must not be what
+ * creates a session for a free account.
+ */
+export function peekDailyDashDriver(): DailyDashDriver | null {
+  return driver
 }
