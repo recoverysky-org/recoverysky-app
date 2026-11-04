@@ -42,7 +42,7 @@ You want to hand this phone over to a different account on purpose.
 3. Confirm "Are you sure you want to delete all your user data? This cannot be undone." by tapping "OK!".
 4. On iPhone, a "Sign In" system message may appear if the phone's account uses Google or Apple. Go through it.
 
-This removes everything on this phone: attendance records and reports, favorites, star ratings, reminders, your profile, your settings and your conversations with Sky. Attendance that was never backed up is lost.
+This removes everything on this phone: attendance records and reports, favorites, star ratings, reminders, your profile, your settings and your conversations with Sky. Attendance that was never backed up is lost. It also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for that account.
 
 It leaves your Cloud Backup untouched, and it does not delete your account. The next account to sign in becomes the phone's account.
 

@@ -55,7 +55,7 @@ The offers never appear while backup is already on. You can always turn it on yo
 
 **Reports on another phone.** Each report's content is fetched on its own, about one a second, so a long list takes a little while to fill in.
 
-**Deleting the cloud copy.** There is no way to delete the cloud copy from inside the app. "Delete User Data", "Reset local data" and switching backup off all leave it in place. Contact support@recoverysky.app and mention that you want your cloud backup deleted.
+**Deleting the cloud copy.** There is no way to delete the cloud copy from inside the app. "Delete User Data", "Reset local data" and switching backup off all leave it in place. "Delete User Data" also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for your account. Contact support@recoverysky.app and mention that you want your cloud backup deleted.
 
 ## If something's wrong
 

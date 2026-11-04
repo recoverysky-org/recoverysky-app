@@ -56,7 +56,7 @@ First, check the Attendance tab and Settings. If you see records you made on thi
 
 If they hold nothing you made on this phone:
 
-1. Open Settings → "Account" and tap "Delete User Data", then "OK!". This clears this phone only. Nothing in your backup is touched.
+1. Open Settings → "Account" and tap "Delete User Data", then "OK!". This clears this phone only. Nothing in your backup is touched. It also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for your account.
 2. On iPhone, a "Sign In" system message may appear if you used a Google or Apple account. Go through it.
 3. Sign in the way you did on your old phone.
 4. Turn on "Back up attendance" in Settings → "Cloud Backup".
