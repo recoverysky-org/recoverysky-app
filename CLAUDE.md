@@ -281,7 +281,7 @@ sdk) to the vendored copies. **There is no script:** to bump, copy the new
 tarballs from the Daily Dash hand-off into `vendor/`, delete the old ones, edit
 all six `file:` entries, `npm install`, and check `package-lock.json` resolves
 the new files. As with common, an override the bump misses installs the old
-tarball silently. Two traps:
+tarball silently. One note and one trap:
 - **`npm run vendor:update` keeps the Daily Dash tarballs** (CHANGED
   2026-11-04). It walks only common's private deps (`@daily-dash/` is not in
   its `PRIVATE_SCOPES`), so it never bumps them; its prune keeps every

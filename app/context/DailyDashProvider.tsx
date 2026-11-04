@@ -6,8 +6,11 @@
  *   element shape. It computes the My Day gate (`decideMyDayTabVisible`, the
  *   same inputs MainNavigator reads, so the gate holds exactly when the tab
  *   exists), feeds it to the sign-in driver, and hands the driver to the tab's
- *   UI through `useDailyDashDriver()`. A free, guest or signed-out person
- *   never has a session built or an account minted. When the gate closes the
+ *   UI through `useDailyDashDriver()`. Outside the two local-data resets
+ *   (Settings → Delete User Data and the database overlay's Reset, which build
+ *   a session only to wipe it — `resetDailyDashLocalData`), a free, guest or
+ *   signed-out person never has a session built, and no account is ever
+ *   minted for them. When the gate closes the
  *   driver is told, and nothing signs the session out (spec D8): a lapsed
  *   subscription that comes back finds its data where it was.
  * - `DailyDashClient` is the client boundary for the tab: MyDayNavigator wraps
