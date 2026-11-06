@@ -907,3 +907,27 @@ sees as `page`, and `questions.yml` must follow them:**
 - [ ] Add CHANGELOG.md entries under `[Unreleased]` before opening the PR.
 - [ ] `bump-version.sh` resets the `package.json` `update` field to `"0"` —
       verify the OTA counter restarts cleanly.
+
+### 🍎 Floor the pods' resource-bundle deployment targets, then drop the EAS image pin
+
+Queued 2026-11-05 by the 4.12.0 release. EAS's `latest` iOS image is Xcode 27.1 now, and
+Xcode 27 makes "The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 11.0, but
+the range of supported deployment target versions is 15.0 to 27.1.x" an error instead of
+a warning. It fires for the resource-bundle targets CocoaPods generates beside each pod:
+`Auth0-Auth0`, `PurchasesHybridCommon-PurchasesHybridCommon`, `ReachabilitySwift-ReachabilitySwift`, `RevenueCat-RevenueCat`, `RevenueCatUI-RevenueCat_RevenueCatUI`, `Sentry-Sentry`.
+React Native's `react_native_post_install` floors every pod's own target to 15.1
+(`ReactNativePodsUtils.updateOSDeploymentTarget`, `node_modules/react-native/scripts/cocoapods/utils.rb`)
+but iterates `native_target` only, never `resource_bundle_targets`. 4.12.0 ships with
+`build.production.ios.image` pinned to `macos-tahoe-26.5-xcode-26.6` in `eas.json` instead
+(the October 4.11.0 build ran on that Xcode 26 generation and only warned).
+
+- [ ] A local config plugin (`plugins/withPodResourceBundleDeploymentTarget.ts`, `withDangerousMod`
+      on `ios/Podfile`, inserted into `post_install`) that sets each resource bundle's
+      `IPHONEOS_DEPLOYMENT_TARGET` to the Podfile platform (`15.1`) when it is lower. Plugin edits
+      are native-shape changes: `npm run prebuild:clean`, then confirm with
+      `xcodebuild -project ios/Pods/Pods.xcodeproj -target Sentry-Sentry -showBuildSettings | grep IPHONEOS_DEPLOYMENT_TARGET`.
+- [ ] Put the image back to `latest` (or the matching `sdk-NN` alias) and build once on an Xcode 27
+      image before tagging the next native release.
+- [ ] EAS docs, read 2026-11-05: apps built on Xcode 27 images launch on iOS 27 only with the UIKit
+      scene life cycle (`ios.enableSceneSupport` in expo-build-properties, SDK 57+), so moving to
+      Xcode 27 is coupled to the Expo SDK upgrade, not a standalone image bump.

@@ -82,7 +82,7 @@
       },
       "ios": {
         "resourceClass": "m-medium",
-        "image": "latest"
+        "image": "macos-tahoe-26.5-xcode-26.6"
       },
       "android": {
         "buildType": "app-bundle",

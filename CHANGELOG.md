@@ -68,6 +68,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   reanimated, were already in the app, so this adds no native module. The
   app's copy mirror, route params (`routineNew` carries `{ bucket? }`) and
   manual pages follow. (No tracker issue.)
+- **iOS production builds pin the EAS image to Xcode 26.6**
+  (`macos-tahoe-26.5-xcode-26.6`, was `latest`). On 2026-11-05 `latest` became
+  Xcode 27.1, which turns the pods' resource-bundle deployment targets (11.0 to
+  14.0 for Sentry, Auth0, RevenueCat, RevenueCatUI, ReachabilitySwift) from
+  warnings into errors, so the first 4.12.0 build failed in Xcode. React
+  Native's post-install floors the pod targets themselves but not their
+  resource bundles. The pin restores the October toolchain; flooring those
+  bundles in a Podfile hook, then dropping the pin, is queued in TODO.md.
+  (No tracker issue.)
 
 ### Security
 - **The Sky Agent gets the device token on every request.** Agent requests now
