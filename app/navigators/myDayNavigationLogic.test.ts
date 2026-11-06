@@ -25,5 +25,9 @@ describe("myDayRouteFor (spec §4.5)", () => {
       params: { date: "2026-11-04" },
     })
     expect(myDayRouteFor("today", undefined)).toEqual({ name: "MyDayToday", params: undefined })
+    expect(myDayRouteFor("routineNew", { bucket: "morning" })).toEqual({
+      name: "MyDayRoutineNew",
+      params: { bucket: "morning" },
+    })
   })
 })

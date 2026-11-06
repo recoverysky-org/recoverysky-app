@@ -1,4 +1,5 @@
 import { ComponentProps } from "react"
+import type { MyDayRoutes } from "@daily-dash/my-day"
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs"
 import {
   CompositeScreenProps,
@@ -62,7 +63,9 @@ export type MyDayStackParamList = {
   MyDayToday: undefined
   MyDayCheckIn: { typeKey: string }
   MyDayRoutine: undefined
-  MyDayRoutineNew: undefined
+  // CHANGED 2026-11-05 (my-day 0.5.0): `{ bucket? }`, the part of the day whose "+" opened the
+  // new item; `undefined` too, so a restored or linked state without params still opens it.
+  MyDayRoutineNew: MyDayRoutes["routineNew"] | undefined
   MyDayRoutineItem: { itemId: string }
   MyDayNight: { date: string }
   MyDayNights: undefined

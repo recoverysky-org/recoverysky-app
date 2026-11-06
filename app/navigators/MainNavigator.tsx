@@ -206,11 +206,10 @@ export const MainNavigator = observer(function MainNavigator() {
           options={{
             tabBarLabel: t("mainNavigator:myDayTab"),
             tabBarIcon: ({ focused }) => (
-              <Ionicons
-                name="sunny-outline"
-                size={24}
-                color={focused ? colors.tint : colors.textDim}
-              />
+              // CHANGED 2026-11-05 (Jenova): `today`, a calendar page with the day marked, filled
+              // like the other Ionicons tabs. `sunny-outline` was the bar's only outline glyph and
+              // read thin at 24 pt.
+              <Ionicons name="today" size={24} color={focused ? colors.tint : colors.textDim} />
             ),
           }}
         />

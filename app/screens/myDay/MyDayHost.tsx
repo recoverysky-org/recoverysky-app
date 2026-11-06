@@ -5,8 +5,12 @@
  * Every value handed to the provider is memoised: the package passes each down through its own
  * context, so a fresh object per render would re-render every My Day consumer on every render.
  * - theme: rebuilt only when the scheme or the tint picker changes (spec D4).
- * - surfaces: once; the photo is this launch's (`coldStartMyDayPhoto`), and `MyDayBlur` reads
- *   the scheme itself, so neither needs a dep.
+ * - surfaces: per top inset. The photo is this launch's (`coldStartMyDayPhoto`), and `MyDayBlur`
+ *   reads the scheme itself, so neither needs a dep. CHANGED 2026-11-04: `insets.top` is a dep.
+ *   `MyDayNavigator` hides the native header and the window runs edge to edge, so without it the
+ *   package's glass header (title and Back) sat under the Android status bar and iOS's notch;
+ *   the package pads the header by it (my-day `MyDaySurfaces.insets`). The value changes only on
+ *   a rotation or a status-bar change.
  * - navigation: per stack `navigation` object, which React Navigation keeps stable per screen.
  *
  * No `capabilities`: `reminders` stays off and `sky` arrives later (spec §1), and the package
@@ -21,6 +25,7 @@ import {
   type MyDaySurfaces,
 } from "@daily-dash/my-day"
 import { observer } from "mobx-react-lite"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { MyDayBlur } from "@/components/myDay/MyDayBlur"
 import { useMyDayCopy } from "@/hooks/useMyDayCopy"
@@ -49,9 +54,10 @@ export const MyDayHost: FC<MyDayHostProps> = observer(function MyDayHost({ navig
     [isDark, tint, tintInactive],
   )
   const copy = useMyDayCopy()
+  const { top } = useSafeAreaInsets()
   const surfaces = useMemo<MyDaySurfaces>(
-    () => ({ photo: coldStartMyDayPhoto(), Blur: MyDayBlur }),
-    [],
+    () => ({ photo: coldStartMyDayPhoto(), Blur: MyDayBlur, insets: { top } }),
+    [top],
   )
   // The one cast: React Navigation's `navigate` is overloaded and generic over the param list,
   // so the stack's prop is not assignable to the adapter's loose `navigate(name: string, …)`.

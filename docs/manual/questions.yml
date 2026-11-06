@@ -47,8 +47,6 @@
   expect: my-day/check-in
 - q: why does the check in ask about self-harm
   expect: my-day/check-in
-- q: why are my check-in questions in a different order
-  expect: my-day/check-in
 - q: how do I add something to my daily routine
   expect: my-day/routine
 - q: how do I skip something on my routine today

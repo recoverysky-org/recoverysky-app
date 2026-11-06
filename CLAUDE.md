@@ -1454,9 +1454,9 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 ADDED 2026-11-04. Spec `docs/superpowers/specs/2026-10-25-my-day-tab-design.md`;
 plan `docs/superpowers/plans/2026-11-04-my-day-tab.md` (its "Where this plan
 departs from the spec" lists the rulings). The premium **My Day** tab hosts The
-Daily Dash's `@daily-dash/my-day` screens (Today, Check in, Your routine, Rate
-your day with Past nights, Grateful for) over the person's existing Auth0
-session. Its data lives in the Daily Dash client's own encrypted SQLite on the
+Daily Dash's `@daily-dash/my-day` screens (the My Day screen with its Record My
+Day panel, Check in, Your Routine and its editor, Rate your day with Past
+nights, Grateful for) over the person's existing Auth0 session. Its data lives in the Daily Dash client's own encrypted SQLite on the
 phone and on the Daily Dash API, never in our database or our API. This app is
 the package's second host; the Daily Dash repo's `apps/app` is the reference.
 
@@ -1517,6 +1517,11 @@ never has a session built or a Daily Dash account minted.
   loosen it. `openCrisisPath` navigates to `Meetings` `{ segment: "live" }`,
   which bubbles to the tab navigator. The port has no `signOut`, so Today shows
   no Sign out link: Settings owns sign-out.
+- The surfaces carry the window's top inset (`insets: { top }` from
+  `useSafeAreaInsets()`, a dep of the memo). The stack hides the native header
+  and the window is edge to edge, so the package pads its glass header by it;
+  without it the header, Back included, sits under the Android status bar and
+  the iOS notch (my-day `MyDaySurfaces.insets`, ADDED 2026-11-04).
 
 **Sign-in.** The driver (`dailyDashDriver.ts`; decisions in the pure
 `dailyDashDriverLogic.ts`, both vitest, the driver with fake deps) calls
@@ -1647,7 +1652,7 @@ OPFS worker and `wasm` in Metro's `assetExts`. All queued in `TODO.md`.
 **Release prerequisites.** expo-blur is native, so the first build with the tab
 is a native release: bump `version` and `runtimeVersion` together. Before that
 store build: the Daily Dash API release after 0.9.0 live at
-`api.the-daily-dash.com` (my-day 0.4.0 reads `sky` fields on today and
+`api.the-daily-dash.com` (my-day 0.5.0 reads `sky` fields on today and
 check-ins that 0.9.0 does not serve), this app's Auth0 client in that API's
 `AUTH0_RECOVERYSKY_CLIENT_IDS` allow-list (Infisical), and the URL in the EAS
 production environment. Before the manual ingest: the agent repo's

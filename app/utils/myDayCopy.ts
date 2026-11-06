@@ -26,6 +26,11 @@
  * The React half (`useTranslation` + `translate`) is `app/hooks/useMyDayCopy.ts`.
  *
  * ADDED 2026-11-04 (My Day tab, task 5).
+ * CHANGED 2026-11-05 (my-day 0.5.0): `today.record.title`, the routine editor's glyph and
+ * name leaves (`addGlyph`/`addToName`, `copyGlyph`/`copyName`, `switchOffGlyph`/`switchOffName`,
+ * `editGlyph`, `emptyBucket`) and `routine.item.partsHint` are new; `today.checkIn.title`/`body`/
+ * `mixUp`/`saveProblem`, the `today.tonight` block and `routine.add`/`moveUp`/`moveDown`/`editItem`
+ * are gone with the today card's Record My Day panel and the editor's icon controls.
  */
 import type { MyDayCopy } from "@daily-dash/my-day/copy"
 
@@ -84,19 +89,13 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
       // `n`, never `count`: i18next treats a `count` option as a plural lookup and would
       // go looking for `week_one` / `week_other`, which don't exist.
       week: (n) => s("today.week", { n }),
+      record: {
+        title: s("today.record.title"),
+      },
       checkIn: {
-        title: s("today.checkIn.title"),
-        body: s("today.checkIn.body"),
         needsConnection: s("today.checkIn.needsConnection"),
         loading: s("today.checkIn.loading"),
         none: s("today.checkIn.none"),
-        mixUp: s("today.checkIn.mixUp"),
-        saveProblem: s("today.checkIn.saveProblem"),
-      },
-      tonight: {
-        title: s("today.tonight.title"),
-        saved: s("today.tonight.saved"),
-        waiting: s("today.tonight.waiting"),
       },
       quote: {
         title: s("today.quote.title"),
@@ -321,12 +320,16 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
       sendAgain: s("routine.sendAgain"),
       discard: s("routine.discard"),
       discardProblem: s("routine.discardProblem"),
-      add: s("routine.add"),
-      moveUp: s("routine.moveUp"),
-      moveDown: s("routine.moveDown"),
-      editItem: s("routine.editItem"),
+      addGlyph: s("routine.addGlyph"),
+      addToName: (part) => s("routine.addToName", { part }),
+      copyGlyph: s("routine.copyGlyph"),
+      switchOffGlyph: s("routine.switchOffGlyph"),
+      editGlyph: s("routine.editGlyph"),
+      emptyBucket: s("routine.emptyBucket"),
       moveUpName: (title) => s("routine.moveUpName", { title }),
       moveDownName: (title) => s("routine.moveDownName", { title }),
+      copyName: (title) => s("routine.copyName", { title }),
+      switchOffName: (title) => s("routine.switchOffName", { title }),
       unknownBucket: s("routine.unknownBucket"),
       editName: (title) => s("routine.editName", { title }),
       switchedOff: {
@@ -355,6 +358,7 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
         title: s("routine.item.title"),
         titlePlaceholder: s("routine.item.titlePlaceholder"),
         bucket: s("routine.item.bucket"),
+        partsHint: s("routine.item.partsHint"),
         time: s("routine.item.time"),
         timePlaceholder: s("routine.item.timePlaceholder"),
         noTime: s("routine.item.noTime"),

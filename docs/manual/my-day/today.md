@@ -1,44 +1,42 @@
 ---
-title: My Day's Today screen
+title: My Day's main screen
 area: my-day
-screen: My Day → "Today"
+screen: My Day → "My Day"
 platforms: [ios, android]
 tier: premium
 aliases: ["my day", "today", "daily routine", "today's quote", "where to focus today", "favourite quote", "daily dash", "my day missing", "my day tab"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.4.0.tgz, app/screens/SettingsScreen.tsx -->
-"My Day" is a tab for your day in recovery: a quote, where to focus, a check-in, a gratitude list, your routine, and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.5.0.tgz, app/screens/SettingsScreen.tsx -->
+"My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list, a check-in and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
 
 ## How to open My Day
 
 You need to be signed in, with the Premium subscription.
 
 1. Tap "My Day" in the tab bar along the bottom.
-2. The tab opens on "Today". While it loads, it says "Getting your day ready…".
+2. The tab opens on its main screen, titled "My Day" with the date under it. While it loads, it says "Getting your day ready…".
 
 The first time, or after you sign in again, the tab may say "Getting My Day ready…" for a moment while it connects your account. There is no second sign-in: My Day uses the account you are already signed in with.
 
 The tab shows only when all of these are true: you are signed in, you have Premium, and you are not using guest mode. It does not show on the web.
 
-## What you'll see on Today
+## What you'll see on My Day
 
-You're in My Day → "Today". The date is at the top. Below it, cards in this order:
+You're in My Day → "My Day". The date is at the top. Below it, cards in this order:
 
 - **"You don't have to get through this alone"** shows first, only when last night's check-in says things are hard. "Get support now" opens Meetings → "Online", where live meetings are listed.
 - **"Today's quote"** shows the day's quote and who said it, on days that have one. Tap "♡ Favourite" to keep it; it then reads "♥ Favourited". Tap it again to remove the favourite.
 - **"Where to focus today"** lists the parts of your life worth some care today, each with how you rated it last night, for example "Last night: 2".
-- **"Check in"**: answer a few questions about how you feel, any time.
-- **"Grateful for"**: add the good things in your day.
-- **"Your routine"**: tick off your routine, by part of the day.
-- **"Rate your day"**: rate your day in the evening and look back at "Past nights".
+- **"Your Routine"**: tick off your routine, by part of the day.
+- **"Record My Day"**: one panel for the day's record. "Grateful for" is at its top, where you add the good things in your day. Under it, a row of buttons: one for each check-in on offer, named for it; "Rate your day" in the evening, or "See your night" once you have rated; and "Past nights".
 
-Each of the last four has its own page in this manual.
+Grateful for, check-ins, your routine and Rate your day each have their own page in this manual.
 
 ## Good to know
 
 **Premium only.** Without Premium there is no My Day tab. If Premium ends, the tab disappears and nothing is deleted. It comes back, with your data, when Premium is active again.
 
-**Where your data lives.** On this phone, encrypted, and on The Daily Dash's server for your account. A change shows at once. If you are offline, it says "Saved on this phone. It will send when you're online."
+**Where your data lives.** On this phone, encrypted, and on The Daily Dash's server for your account. A change shows at once. If you are offline, it says "Saved on this device. It will send when you're online."
 
 **Signing out.** Signing out keeps My Day's data on this phone. When you sign back in with the same account, My Day opens on the same data.
 
@@ -48,7 +46,7 @@ Each of the last four has its own page in this manual.
 
 ## If My Day won't open
 
-You tapped "My Day" and see one of these instead of "Today":
+You tapped "My Day" and see one of these instead of "My Day":
 
 - **"Getting My Day ready…"**: the tab is connecting your account. Wait a moment.
 - **"My Day couldn't connect"**: My Day could not reach its server. Check your connection and tap "Try again". It also tries again by itself when your connection comes back and when you return to the app.

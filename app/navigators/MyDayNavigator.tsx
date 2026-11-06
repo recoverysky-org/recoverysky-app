@@ -10,7 +10,9 @@
  *
  * Route names are `MyDay*` (`myDayNavigationLogic.ts` maps the package's `MyDayRoutes` keys to
  * them). `RoutineItemScreen` serves two routes: `MyDayRoutineNew` (no `itemId`, a new item) and
- * `MyDayRoutineItem` (an existing one).
+ * `MyDayRoutineItem` (an existing one). CHANGED 2026-11-05 (my-day 0.5.0): `MyDayRoutineNew`
+ * carries `{ bucket? }`, the part of the day whose "+" opened it, passed to the screen's `bucket`
+ * prop; the screen takes the clock's part when it is missing or unknown.
  *
  * Each screen is a module-scope component, not an inline render function, so React Navigation
  * never sees a new component type on re-render (which would remount the screen). Each wraps
@@ -55,9 +57,9 @@ const MyDayRoutineRoute: FC<MyDayScreenProps<"MyDayRoutine">> = ({ navigation })
   </MyDayFrame>
 )
 
-const MyDayRoutineNewRoute: FC<MyDayScreenProps<"MyDayRoutineNew">> = ({ navigation }) => (
+const MyDayRoutineNewRoute: FC<MyDayScreenProps<"MyDayRoutineNew">> = ({ navigation, route }) => (
   <MyDayFrame navigation={navigation}>
-    <RoutineItemScreen />
+    <RoutineItemScreen bucket={route.params?.bucket} />
   </MyDayFrame>
 )
 

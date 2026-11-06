@@ -1,7 +1,7 @@
 # The RecoverySky User's Manual
 
 One Markdown page per feature, written in the voice of a user's manual. The reader is
-Sky, the agent in the Agent tab: the pages are chunked into her `manual` search
+Sky, the agent in the Sky Agent tab: the pages are chunked into her `manual` search
 collection, and `map.md` is pasted into her system prompt, so she can answer "how do
 I…", "where is…", "why can't I…", "what's included" and "is it private" about the app.
 Nobody browses this folder; its only job is to be true.
