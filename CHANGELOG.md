@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.12.0] — 2026-11-05
+
 ### Added
 - **My Day, a new tab for premium accounts.** The Daily Dash's My Day sits
   between Attendance and Sky: a quote, where to focus today, the daily routine
