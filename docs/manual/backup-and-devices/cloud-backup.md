@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: attendance
 aliases: [backup, sync, "back up attendance", cloud, synced, "all backed up", encrypted]
 ---
-<!-- sources: app/screens/SettingsScreen.tsx, app/i18n/en.ts, docs/BACKUP.md, app/services/sync/enableCloudBackup.ts, app/hooks/useCloudBackupPrompt.ts, app/db/BackupPassRunner.tsx, app/services/sync/index.ts, app/services/sync/attendanceSyncService.ts, app/db/resetLocalDatabase.ts, docs/support/reference/device-owner.md, docs/support/problems/data-missing-after-new-phone.md, app/db/feedbackCache.ts, app/models/ProfileStore.ts -->
+<!-- sources: app/screens/SettingsScreen.tsx, app/i18n/en.ts, docs/BACKUP.md, app/services/sync/enableCloudBackup.ts, app/hooks/useCloudBackupPrompt.ts, app/db/BackupPassRunner.tsx, app/services/sync/index.ts, app/services/sync/attendanceSyncService.ts, app/db/resetLocalDatabase.ts, docs/support/reference/device-owner.md, docs/support/problems/data-missing-after-new-phone.md, app/db/feedbackCache.ts, app/models/ProfileStore.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, app/services/dailyDash/resetDailyDashLocalData.ts -->
 Cloud Backup keeps a copy of your attendance records and the reports you have sent in your RecoverySky backup, and keeps them in step across your phones. It backs up nothing else. It is off until you turn it on, and the switch is remembered on each phone, not on your account. It needs the Attendance subscription. Cloud Backup is part of the iPhone and Android apps.
 
 ## How to turn on Cloud Backup
@@ -55,7 +55,7 @@ The offers never appear while backup is already on. You can always turn it on yo
 
 **Reports on another phone.** Each report's content is fetched on its own, about one a second, so a long list takes a little while to fill in.
 
-**Deleting the cloud copy.** There is no way to delete the cloud copy from inside the app. "Delete User Data", "Reset local data" and switching backup off all leave it in place. Contact support@recoverysky.app and mention that you want your cloud backup deleted.
+**Deleting the cloud copy.** There is no way to delete the cloud copy from inside the app. "Delete User Data", "Reset local data" and switching backup off all leave it in place. "Delete User Data" and "Reset local data" also delete My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for your account. Contact support@recoverysky.app and mention that you want your cloud backup deleted.
 
 ## If something's wrong
 

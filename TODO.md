@@ -18,6 +18,85 @@ Items queued for the **next native build** (each requires a fresh
 
 ---
 
+## ☀️ My Day follow-ons (Daily Dash) — not in the first build
+
+Queued 2026-11-04, when the premium My Day tab was built on `feat/my-day-tab`.
+Spec: `docs/superpowers/specs/2026-10-25-my-day-tab-design.md` (§6 the Sky
+hand-off, §8 the open items). Plan:
+`docs/superpowers/plans/2026-11-04-my-day-tab.md`. CLAUDE.md "My Day (Daily
+Dash)" says what shipped.
+
+**The Sky hand-off (spec §6).** Waits on My Day's `sky` capability (Sky
+moments design §7, Daily Dash plan 2) and the agent's moment addenda (that
+design's §4, agent plan 1), both unbuilt. Then `MyDayHost` passes
+`capabilities.sky` and every moment routes to the Sky Agent tab. What
+`AgentScreen` needs, in order:
+
+- [ ] **The `daily-dash/1` guide, a `conversation_id` and the `moment`** on the
+      chat body for conversations My Day opens. Today it sends neither guide
+      nor id and keeps history in encrypted SQLite, while the agent holds
+      those conversations' history (Sky chat design D8). So a second history
+      model sits beside `ConversationStore` or replaces it: that design's
+      decision.
+- [ ] **The approval card** (`skyCardLogic` + `SkyCard`,
+      `addToolApprovalResponse`, `sendAutomaticallyWhen:
+      lastAssistantMessageIsCompleteWithApprovalResponses`). Without it a
+      Daily Dash write tool stalls at `approval-requested` with nothing to tap.
+- [ ] **The `crisis-resources` part drawn as a card.** `AgentScreen` renders
+      only text and tool parts today.
+- [ ] **Decide whether `bubble` moments open a sheet here or map to the tab.**
+      The moments table is the API's; the mapping is the host's.
+- [ ] **The two agent configuration items (spec §5.5)**, any time before the
+      hand-off: this app's client id stays in the agent's `DD_APP_CLIENT_IDS`
+      (its CLAUDE.md marks it for removal), and `daily-dash/1`'s stripping of
+      the RecoverySky manual tools is wrong when the host is this app.
+
+**The rest:**
+
+- [ ] **`reminders`, once the client registers a push token.** The client has
+      no `registerPushToken` today, so the Daily Dash API cannot reach this
+      app's push token and "Remind me later" would promise nothing. When the
+      client grows it, wire our Expo push token through and pass the
+      `reminders` capability.
+- [ ] **Daily Dash tokens on sign-out (spec §8, §4.4).** Our logout leaves the
+      Daily Dash session record, tokens, database and key on the phone (D8).
+      If the tokens should go on sign-out, the Daily Dash client first adds a
+      sign-out reason that keeps the file (the `sky_sign_in` path under a
+      host's name); only then may logout call it, and
+      `dailyDashPolicy.test.ts` must learn the new call. Nothing is deleted
+      either way.
+- [ ] **Relinked identities (spec §8, §4.4).** A relink (`relinkOwner`) gives
+      the owner a new sub, and the Daily Dash platform treats it as a new
+      account: the driver's `releaseDevice()` hands the device to it, and the
+      person's earlier My Day data stays with the old platform account. Flag
+      to the Daily Dash team (ADR 0015 makes the Auth0 subject the identity
+      unless the platform links subs). No change here.
+- [ ] **Photo weight (spec §8, §4.6).** The 13 bundled JPEGs in
+      `assets/images/my-day/` total about 1.4 MB. Measure first paint on a
+      low-end Android in the device checklist (plan Task 16) and decide
+      whether to downsample.
+- [ ] **Web.** The tab is hidden on web (`decideMyDayTabVisible`). Lifting it
+      needs COEP/COOP headers on our web hosting for expo-sqlite's OPFS worker,
+      and `wasm` in Metro's `assetExts`.
+- [ ] **`npm run vendor:update`: check the shared `ts-rust-result` pin.**
+      DONE 2026-11-04: the script's prune keeps every tarball `package.json`
+      still names (`tarballsToKeep`), so it no longer deletes the Daily Dash
+      tarballs. Left: check the shared `@jenova-marie/ts-rust-result` override
+      against the Daily Dash packages' exact pin, so a common bump that moves
+      it fails loudly instead of forcing a new version on sdk and client.
+- [ ] **My Day: a failed release holds the loading screen.** After a
+      `wrongAccount`, a refused or failed `releaseDevice()` leaves "Getting My
+      Day ready…" up until the next reconnect or foreground edge. Map it to
+      `connectFailed` and give Try again an edge (final review M3).
+- [ ] **My Day: prefix the client's Umami events.** The client's
+      `signed_in`, `signed_out` and `account_restored` reach Umami beside the
+      app's own names; wrap `track` to prefix them `dd_` (final review M4).
+- [ ] **My Day: draw the photo behind the gate.** The gate's blocking screens
+      paint a flat background, so the tab flips to the photo and glass when
+      ready (final review M5).
+
+---
+
 ## ⏳ Adaptive layouts for large screens (HARD DEADLINE ~Aug 2027)
 
 Queued 2026-08-10, when `targetSdkVersion` went 35 → 36 to meet Play's

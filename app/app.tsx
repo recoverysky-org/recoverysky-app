@@ -44,6 +44,7 @@ import { MaintenanceBanner } from "./components/MaintenanceBanner"
 import { TimerRecoveryGate } from "./components/TimerRecoveryGate"
 import { ToastProvider } from "./components/Toast"
 import { VerifyEmailGate } from "./components/VerifyEmailGate"
+import { DailyDashProvider } from "./context/DailyDashProvider"
 import { MeetingProvider } from "./context/MeetingContext"
 import { SubscriptionProvider } from "./context/SubscriptionContext"
 import {
@@ -95,11 +96,13 @@ import {
   clearStoredCredentials,
   createDeviceTokenRefresher,
   createUserTokenRefresher,
+  renewStoredCredentials,
 } from "./services/auth"
 import { AUTH0_CONFIG } from "./services/auth/auth0"
 import { clearAuthCredentials } from "./services/auth/secureStorage"
 import { registerUnusableTokenHandler } from "./services/auth/unusableTokenHandler"
 import { setSentryUser } from "./services/crashReporting/sentry"
+import { configureDailyDash, resetDailyDashLocalData } from "./services/dailyDash"
 import { initNetworkMonitoring } from "./services/network"
 import { getNetworkLogContext } from "./services/network/context"
 import { oracleLogAttributes, probeInternetOracle } from "./services/network/oracle"
@@ -466,6 +469,28 @@ export function App() {
           // request re-asserts through the single-flight refresher instead
           // of re-sending a token the server has already refused.
           onDeviceJwtRejected: markDeviceJwtRejected,
+        })
+
+        // ADDED 2026-11-04 (My Day tab): hand the Daily Dash service the
+        // app's session, before anything renders a tab that could read it.
+        // It sits right here for the same reason as the registration above:
+        // ahead of every await and every call that can throw, so a keychain
+        // throw further down cannot leave Daily Dash unconfigured (its
+        // connectivity would stay the inert stand-in and its sign-in would
+        // answer "not configured" forever). Everything is read lazily
+        // through closures, and `_rootStore` is the same node setupRootStore()
+        // later applies a snapshot to, so running this early is safe.
+        // `getUserToken` is the user refresher's getter, so the adapter's
+        // `providerToken` (Sky chat) gets the same single-flight, gate-checked
+        // token every API request does, not a renewal path of its own.
+        configureDailyDash({
+          held: () => ({ accessToken: authStore.accessToken, idToken: authStore.idToken }),
+          loginMethod: () => authStore.loginMethod,
+          audience: AUTH0_CONFIG.audience,
+          renew: renewStoredCredentials,
+          getUserToken: userRefresher.getToken,
+          networkStore: _rootStore.networkStore,
+          apiBaseUrl: process.env.EXPO_PUBLIC_DAILY_DASH_API_URL,
         })
 
         // Fire the deferred eject the moment the timer releases. Reads the
@@ -1249,49 +1274,66 @@ export function App() {
         <KeyboardProvider preload={false}>
           <RootStoreProvider value={rootStore}>
             <SubscriptionProvider>
-              <DatabaseProvider>
-                <ProfileHydrator />
-                <ChatHydrator />
-                {/* Before ReportPollingResumer: its rewrite must land first (spec 2 §7). */}
-                <OwnerRelinkMigrator />
-                <ReportPollingResumer />
-                <TimerSessionResumer />
-                <SyncResumer />
-                <BackupPassRunner />
-                <MeetingProvider>
-                  {/* ThemeProvider fed the live guest-mode flag (ADDED
+              {/* ADDED 2026-11-04 (My Day tab): feeds the My Day gate to the
+                  Daily Dash sign-in driver, and the driver to the tab's UI.
+                  The client itself (ClientProvider) mounts inside the My Day
+                  tab, not here. Outside DatabaseProvider because Daily Dash
+                  has its own database, independent of the app's encrypted
+                  SQLite (one may fail while the other works, and neither
+                  waits on the other). Inside SubscriptionProvider because
+                  the gate reads `isPremium`.
+                  CHANGED 2026-11-04: it used to mount ClientProvider here
+                  only while the gate held, which remounted the whole app
+                  below on every gate flip (each premium cold start, since
+                  isPremium is false until RevenueCat answers). */}
+              <DailyDashProvider>
+                {/* ADDED 2026-11-04 (My Day spec §4.9 amendment): the database
+                    overlay's Reset also deletes My Day's local data. Injected
+                    here so app/db imports nothing of the Daily Dash client. */}
+                <DatabaseProvider resetDailyDash={resetDailyDashLocalData}>
+                  <ProfileHydrator />
+                  <ChatHydrator />
+                  {/* Before ReportPollingResumer: its rewrite must land first (spec 2 §7). */}
+                  <OwnerRelinkMigrator />
+                  <ReportPollingResumer />
+                  <TimerSessionResumer />
+                  <SyncResumer />
+                  <BackupPassRunner />
+                  <MeetingProvider>
+                    {/* ThemeProvider fed the live guest-mode flag (ADDED
                       2026-10-11) — see GuestAwareThemeProvider below. */}
-                  <GuestAwareThemeProvider>
-                    <ToastProvider>
-                      <DatabaseLoadingOverlay />
-                      <AppNavigator
-                        linking={linking}
-                        initialState={initialNavigationState}
-                        onStateChange={onNavigationStateChange}
-                      />
-                      {/* Sticky maintenance banner — drawn above all
+                    <GuestAwareThemeProvider>
+                      <ToastProvider>
+                        <DatabaseLoadingOverlay />
+                        <AppNavigator
+                          linking={linking}
+                          initialState={initialNavigationState}
+                          onStateChange={onNavigationStateChange}
+                        />
+                        {/* Sticky maintenance banner — drawn above all
                           screens including modals via absolute positioning
                           + high zIndex. Sibling to AppNavigator so a
                           navigator state swap (or a navigator-level
                           modal) doesn't unmount it. */}
-                      <MaintenanceBanner />
-                      {/* External Zoom timer recovery — remounts the
+                        <MaintenanceBanner />
+                        {/* External Zoom timer recovery — remounts the
                           running timer modal on cold start when the OS
                           killed our process mid-meeting. Sibling to
                           AppNavigator so it survives navigator state
                           swaps and renders above every screen. Driven
                           by TimerSessionResumer via the recovery
                           channel in services/attendance/timerRecovery. */}
-                      <TimerRecoveryGate />
-                      {/* ADDED 2026-10-01: before AnnouncementGate so its
+                        <TimerRecoveryGate />
+                        {/* ADDED 2026-10-01: before AnnouncementGate so its
                           mount effect runs first and takes the overlay when
                           both are due (see utils/overlayGate.ts). */}
-                      <VerifyEmailGate />
-                      <AnnouncementGate />
-                    </ToastProvider>
-                  </GuestAwareThemeProvider>
-                </MeetingProvider>
-              </DatabaseProvider>
+                        <VerifyEmailGate />
+                        <AnnouncementGate />
+                      </ToastProvider>
+                    </GuestAwareThemeProvider>
+                  </MeetingProvider>
+                </DatabaseProvider>
+              </DailyDashProvider>
             </SubscriptionProvider>
           </RootStoreProvider>
         </KeyboardProvider>

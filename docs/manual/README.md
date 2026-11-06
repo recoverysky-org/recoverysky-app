@@ -1,7 +1,7 @@
 # The RecoverySky User's Manual
 
 One Markdown page per feature, written in the voice of a user's manual. The reader is
-Sky, the agent in the Agent tab: the pages are chunked into her `manual` search
+Sky, the agent in the Sky Agent tab: the pages are chunked into her `manual` search
 collection, and `map.md` is pasted into her system prompt, so she can answer "how do
 I…", "where is…", "why can't I…", "what's included" and "is it private" about the app.
 Nobody browses this folder; its only job is to be true.
@@ -20,8 +20,8 @@ docs/manual/
 ```
 
 Areas: `getting-started`, `home`, `meetings`, `attendance`, `settings`, `backup-and-devices`,
-`account`, `privacy`, `sky`, `status`. A page's `area` in its front-matter must equal its
-folder. Page ids are stable identifiers: renaming a page is a content change that
+`account`, `privacy`, `sky`, `status`, `my-day`. A page's `area` in its front-matter must equal
+its folder. Page ids are stable identifiers: renaming a page is a content change that
 `questions.yml` must follow.
 
 ## Page template

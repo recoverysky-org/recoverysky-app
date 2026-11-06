@@ -22,6 +22,51 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **My Day, a new tab for premium accounts.** The Daily Dash's My Day sits
+  between Attendance and Sky: a quote, where to focus today, the daily routine
+  with its ticks, and a Record My Day panel with the gratitude list, the
+  check-ins on offer, and Rate your day in the evening with past nights to look
+  back on. It uses the account the
+  person is already signed in with, so there is no second sign-in, and it is
+  hidden for free accounts, guests, signed-out users and on web. It follows the
+  app's light or dark scheme and the tint chosen in Settings, over a photo
+  picked once per launch behind frosted glass: a real blur on Android 12 and
+  later and on iOS, a translucent pane on older Android. Every word goes
+  through the app's translations, in all nine locales, with English text in
+  the eight others for now. Settings → Delete User Data (and the database
+  overlay's Reset local data) also deletes My Day's data and key on the phone,
+  so a different account signing in later starts with an empty My Day, while
+  signing out or losing Premium keeps it, so
+  the tab comes back on the same data. Sky's part in My Day (a moment opening
+  a chat on the Sky tab) is not built yet. Before the store build ships, the
+  Daily Dash API release after 0.9.0 must be live at api.the-daily-dash.com,
+  with this app's Auth0 client on that API's RecoverySky allow-list.
+  (No tracker issue.)
+
+### Build
+- **Dependencies for the My Day tab.** Added `expo-blur` (native module: needs a
+  store build and a `runtimeVersion` bump at release), `@tanstack/react-query`,
+  the Inter and Playfair Display font families, and raised `zod` to `^4.6.5`.
+  (No tracker issue.)
+- **Daily Dash packages vendored for the My Day tab.** `@daily-dash/sdk` 0.2.0,
+  `@daily-dash/client` 0.4.0 and `@daily-dash/my-day` 0.5.0 are `file:` tarballs
+  in `vendor/` with matching `overrides`, like `@recoverysky-org/common`, because
+  the private registry is intranet-only. `npm run vendor:update` now keeps
+  every tarball `package.json` still names, so bumping common no longer deletes
+  them. (No tracker issue.)
+- **`@daily-dash/my-day` 0.5.0** (was 0.4.0). The glass header clears the status
+  bar (the app passes its top inset, `MyDaySurfaces.insets`); the today card is
+  titled My Day and gathers Grateful for, the check-ins and Rate your day into
+  one Record My Day panel (the Mix up the questions switch is gone); the
+  routine editor gets drag-to-reorder by a grip, a + per part of the day,
+  Edit / Copy / Switch off icon buttons per item (Move up / Move down live on
+  as screen-reader actions) and a multi-select Parts of the day; every
+  "phone" in its copy is "device". Its two new peers, gesture-handler and
+  reanimated, were already in the app, so this adds no native module. The
+  app's copy mirror, route params (`routineNew` carries `{ bucket? }`) and
+  manual pages follow. (No tracker issue.)
+
 ### Security
 - **The Sky Agent gets the device token on every request.** Agent requests now
   carry the same `X-Device-Token` the RecoverySky API checks, beside the Auth0
@@ -34,6 +79,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   stays hidden. (No tracker issue.)
 
 ### Changed
+- **The Sky Agent tab is labelled "Sky Agent".** The tab bar said "Agent" (and its
+  translation in the other eight locales); it now carries the screen's own title,
+  "Sky Agent" and its translations, since Sky is her name. The build gate is
+  unchanged. The manual quotes the tab as "the Sky Agent tab" (`docs/manual/map.md`,
+  `README.md`).
 - **The Sky Agent tab is controlled by its build variable again.** 4.11.0-2 hid
   it with a hard `__DEV__` gate because the release shell leaked the local agent
   URL into the OTA. With that leak fixed in 4.11.0-4, the gate is gone:
@@ -60,6 +110,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   every claim traced to the screens and `docs/BACKUP.md`. It is ingested into
   the agent's manual search by hand after a release (CLAUDE.md "User's
   Manual"); nothing in the app changes.
+- **(manual) My Day in the user's manual.** A new `my-day/` area with five
+  pages (My Day's main screen, Check in, Your Routine, Rate your day, Grateful
+  for), the map
+  updated for the fifth tab, and every Delete User Data passage now saying it
+  also deletes My Day's data on the phone. The manual ingest after the store
+  build needs the agent's `my-day` area first (agent branch
+  `feat/manual-my-day-area`, merged to its `prod`).
+- **My Day's words are in the translation review queue.** The `myDay`,
+  `myDayGate` and `mainNavigator.myDayTab` strings ship English in ar, de, es,
+  fr, pt, ru, th and uk; `docs/translation-review-2026-08-03.md` lists them
+  for a native-speaker pass. Corrections ship as an OTA.
 
 ## [4.11.0-4] — 2026-10-11
 

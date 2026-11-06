@@ -5,7 +5,7 @@ screen: Settings → Account
 tier: free
 aliases: ["different account", "wrong account", "share a phone", "switch accounts", family, partner, "set up for a different account"]
 ---
-<!-- sources: docs/support/reference/device-owner.md, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/WrongAccountView.tsx, app/screens/WrongAccountScreen.tsx, app/screens/SettingsScreen.tsx, app/screens/login/guestEntryLogic.ts, docs/BACKUP.md, app/db/resetLocalDatabase.ts, app/db/feedbackCache.ts, CLAUDE.md -->
+<!-- sources: docs/support/reference/device-owner.md, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/WrongAccountView.tsx, app/screens/WrongAccountScreen.tsx, app/screens/SettingsScreen.tsx, app/screens/login/guestEntryLogic.ts, docs/BACKUP.md, app/db/resetLocalDatabase.ts, app/db/feedbackCache.ts, CLAUDE.md, docs/superpowers/specs/2026-10-25-my-day-tab-design.md -->
 Each install of RecoverySky holds the data of one account: the first account that signs in on that phone. If a different account signs in, the app shows "This device is set up for a different RecoverySky account." and keeps the phone's records safe. Logging out does not change which account the phone belongs to.
 
 ## What the different account screen means
@@ -42,7 +42,7 @@ You want to hand this phone over to a different account on purpose.
 3. Confirm "Are you sure you want to delete all your user data? This cannot be undone." by tapping "OK!".
 4. On iPhone, a "Sign In" system message may appear if the phone's account uses Google or Apple. Go through it.
 
-This removes everything on this phone: attendance records and reports, favorites, star ratings, reminders, your profile, your settings and your conversations with Sky. Attendance that was never backed up is lost.
+This removes everything on this phone: attendance records and reports, favorites, star ratings, reminders, your profile, your settings and your conversations with Sky. Attendance that was never backed up is lost. It also deletes My Day's data on this phone; what My Day sent to The Daily Dash's server stays there for that account.
 
 It leaves your Cloud Backup untouched, and it does not delete your account. The next account to sign in becomes the phone's account.
 

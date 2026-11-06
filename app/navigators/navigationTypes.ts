@@ -1,4 +1,5 @@
 import { ComponentProps } from "react"
+import type { MyDayRoutes } from "@daily-dash/my-day"
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs"
 import {
   CompositeScreenProps,
@@ -45,6 +46,29 @@ export type MainTabParamList = {
   Agent: undefined
   Social: undefined
   Settings: { section?: SettingsSection; returnTo?: string } | undefined
+  /**
+   * ADDED 2026-11-04 (My Day tab, spec §4.5): a native stack of the Daily Dash
+   * package's screens (`MyDayNavigator`). Registered as a tab in
+   * MainNavigator.tsx while the My Day gate holds.
+   */
+  MyDay: NavigatorScreenParams<MyDayStackParamList> | undefined
+}
+
+/**
+ * My Day stack (ADDED 2026-11-04, spec §4.5). One route per key of the package's
+ * `MyDayRoutes`, with the same params; `MY_DAY_SCREEN` in `myDayNavigationLogic.ts`
+ * maps one to the other and fails `tsc` when My Day grows a route this lacks a row for.
+ */
+export type MyDayStackParamList = {
+  MyDayToday: undefined
+  MyDayCheckIn: { typeKey: string }
+  MyDayRoutine: undefined
+  // CHANGED 2026-11-05 (my-day 0.5.0): `{ bucket? }`, the part of the day whose "+" opened the
+  // new item; `undefined` too, so a restored or linked state without params still opens it.
+  MyDayRoutineNew: MyDayRoutes["routineNew"] | undefined
+  MyDayRoutineItem: { itemId: string }
+  MyDayNight: { date: string }
+  MyDayNights: undefined
 }
 
 // Onboarding Stack Navigator types
@@ -86,6 +110,12 @@ export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStack
 export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, T>,
   AppStackScreenProps<keyof AppStackParamList>
+>
+
+/** A My Day stack screen's props: its own stack, inside the My Day tab (ADDED 2026-11-04). */
+export type MyDayScreenProps<T extends keyof MyDayStackParamList> = CompositeScreenProps<
+  NativeStackScreenProps<MyDayStackParamList, T>,
+  MainTabScreenProps<"MyDay">
 >
 
 export type OnboardingScreenProps<T extends keyof OnboardingParamList> = NativeStackScreenProps<

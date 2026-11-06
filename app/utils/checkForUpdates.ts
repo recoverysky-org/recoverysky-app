@@ -24,6 +24,9 @@ const LOCAL_VERSION: string = require("../../package.json").version
  * prompt Alert is still on screen short-circuits and returns false. The
  * flag flips off when the user dismisses the Alert (or in `finally` if the
  * pre-prompt async work threw).
+ * CHANGED 2026-11-04: the Daily Dash client's 426 `update_required` refusal
+ * (My Day tab) is a caller too, through `promptStoreUpdate()` below, so a
+ * refusal and the cold-start check never stack two store prompts.
  */
 let promptInFlight = false
 
@@ -51,6 +54,52 @@ function isVersionBehind(current: string, latest: string): boolean {
 }
 
 /**
+ * Shows the "update from the store" prompt. Returns false, showing nothing,
+ * when another update prompt is already on screen; true when this call showed
+ * it. `onPress` runs after the store page is opened.
+ *
+ * CHANGED 2026-11-04: extracted from `checkForUpdates()` as a named export so
+ * the Daily Dash client's 426 `update_required` refusal (My Day tab,
+ * `services/dailyDash/dailyDashSession.ts`) reuses the same prompt and the same
+ * `promptInFlight` lock instead of growing a second one.
+ */
+export function promptStoreUpdate(onPress?: () => void): boolean {
+  if (promptInFlight) {
+    log.debug("Store prompt skipped — prompt already in flight")
+    return false
+  }
+
+  // CHANGED 2026-09-19 (RS-035): the Cancel button is gone. A build that is
+  // behind the store is also cut off from every OTA (runtimeVersion tracks
+  // the native version), so "later" meant "never": 4.8.0-x alone showed this
+  // prompt in ~300 sessions a week and dismissed it every time, while its
+  // users kept hitting defects fixed months earlier. The one remaining button
+  // opens the store page and the app then CONTINUES RUNNING — nothing here
+  // blocks, quits, or loops. The user can come back without updating and use
+  // the app; the prompt simply returns on the next cold start or long
+  // foreground, exactly as before. Installing from the store is what restarts
+  // the app, not us. `cancelable: false` closes the Android back-button and
+  // tap-outside dismissals so the button is the only way through.
+  promptInFlight = true
+  Alert.alert(
+    translate("common:storeUpdateTitle"),
+    translate("common:storeUpdateMessage"),
+    [
+      {
+        text: translate("common:storeUpdateButton"),
+        onPress: () => {
+          promptInFlight = false
+          Linking.openURL(STORE_URL)
+          onPress?.()
+        },
+      },
+    ],
+    { cancelable: false },
+  )
+  return true
+}
+
+/**
  * Check for updates in two steps:
  * 1. If native version < latestVersion → prompt to open store
  * 2. Otherwise → check for OTA update via expo-updates
@@ -66,38 +115,14 @@ export async function checkForUpdates(latestVersion: string): Promise<boolean> {
 
   const local = LOCAL_VERSION
 
-  // Step 1: Native version check
-  //
-  // CHANGED 2026-09-19 (RS-035): the Cancel button is gone. A build that is
-  // behind the store is also cut off from every OTA (runtimeVersion tracks
-  // the native version), so "later" meant "never": 4.8.0-x alone showed this
-  // prompt in ~300 sessions a week and dismissed it every time, while its
-  // users kept hitting defects fixed months earlier. The one remaining button
-  // opens the store page and the app then CONTINUES RUNNING — nothing here
-  // blocks, quits, or loops. The user can come back without updating and use
-  // the app; the prompt simply returns on the next cold start or long
-  // foreground, exactly as before. Installing from the store is what restarts
-  // the app, not us. `cancelable: false` closes the Android back-button and
-  // tap-outside dismissals so the button is the only way through.
+  // Step 1: Native version check — the prompt itself (and why it has a single
+  // button) lives in `promptStoreUpdate()` above.
   if (latestVersion && isVersionBehind(local, latestVersion)) {
     log.info("Local version behind", { local, latest: latestVersion })
-    promptInFlight = true
     return new Promise((resolve) => {
-      Alert.alert(
-        translate("common:storeUpdateTitle"),
-        translate("common:storeUpdateMessage"),
-        [
-          {
-            text: translate("common:storeUpdateButton"),
-            onPress: () => {
-              promptInFlight = false
-              Linking.openURL(STORE_URL)
-              resolve(true)
-            },
-          },
-        ],
-        { cancelable: false },
-      )
+      // The early return above means the lock is free, so this always shows.
+      // Resolving false if it ever didn't keeps the promise from hanging.
+      if (!promptStoreUpdate(() => resolve(true))) resolve(false)
     })
   }
 

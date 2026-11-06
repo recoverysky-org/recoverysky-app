@@ -26,7 +26,8 @@
         "EXPO_PUBLIC_AUTH0_AUDIENCE": "https://api.recoverysky.app",
         "EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER": "568757477015",
         "EXPO_PUBLIC_CONFIG_POLL_SECONDS": "60",
-        "EXPO_PUBLIC_CONFIG_POLL_MAINTENANCE_SECONDS": "15"
+        "EXPO_PUBLIC_CONFIG_POLL_MAINTENANCE_SECONDS": "15",
+        "EXPO_PUBLIC_DAILY_DASH_API_URL": "https://api.the-daily-dash.com"
       }
     },
     "development": {

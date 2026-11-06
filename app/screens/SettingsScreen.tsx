@@ -54,6 +54,7 @@ import { api } from "@/services/api"
 import { describeAccount } from "@/services/auth/accountMethodsLogic"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
+import { resetDailyDashLocalData } from "@/services/dailyDash"
 import { logoutNotificationUser, optOutNotifications } from "@/services/notifications"
 import { billingUnresponsiveCopy } from "@/services/purchases"
 import { requestRatingFromSettings } from "@/services/rating"
@@ -502,6 +503,21 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // Even if some steps fail, ensure auth is cleared
               authStore.logout()
             }
+
+            // 7b. ADDED 2026-11-04 (My Day design D8, §4.9): delete My Day's
+            // database, its key and its session record. The reset lives in
+            // resetDailyDashLocalData(), shared with the database overlay's Reset;
+            // it never throws. It runs start() first, so a stored session from an
+            // earlier premium period is restored and its file deleted by hash; the
+            // client's reset_local_data also drops any kept file. Our own reset
+            // follows (step 8) and must not move into app/db, which may not depend
+            // on the client.
+            // CHANGED 2026-11-04: sits outside the steps 1-7 try, so a throw from
+            // clearAllSecureData() or logout() cannot skip My Day's reset while step 8 still runs.
+            // CHANGED 2026-11-04 (final review I-1, M1): the inline start()/signOut
+            // moved into resetDailyDashLocalData() so the overlay's Reset wipes My Day
+            // too, and its failure is logged by error code only, not String(e).
+            await resetDailyDashLocalData()
 
             // 8. Delete the encrypted database AND its key together, then
             // restart so every provider comes up on the fresh database.

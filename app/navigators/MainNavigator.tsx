@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native"
+import { Platform, View, StyleSheet } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { observer } from "mobx-react-lite"
@@ -10,7 +10,7 @@ import { Text } from "@/components/Text"
 import { useMeetings } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
-import { useProfileStore } from "@/models"
+import { useAuthenticationStore, useProfileStore } from "@/models"
 import { AgentScreen } from "@/screens/AgentScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
@@ -20,7 +20,9 @@ import { SocialScreen } from "@/screens/SocialScreen"
 import { isTimerSessionActive } from "@/services/attendance"
 import { useAppTheme } from "@/theme/context"
 import { decideAgentTabVisible } from "@/utils/agentTabLogic"
+import { decideMyDayTabVisible } from "@/utils/myDayTabLogic"
 
+import { MyDayNavigator } from "./MyDayNavigator"
 import type { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
@@ -43,6 +45,7 @@ export const MainNavigator = observer(function MainNavigator() {
   const { liveMeetings } = useMeetings()
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
+  const authStore = useAuthenticationStore()
   const { isPremium } = useSubscription()
   // Agent tab stays hidden until ready for release.
   // CHANGED 2026-10-10: no longer a hard `false`. Shown when the build carries
@@ -68,6 +71,18 @@ export const MainNavigator = observer(function MainNavigator() {
     agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
     isDev: __DEV__,
     isPremium,
+  })
+  // ADDED 2026-11-04: My Day tab (Daily Dash). Premium accounts only; the gate
+  // lives in myDayTabLogic.ts (signed in, not a guest, premium, a Daily Dash
+  // URL in the build, and a platform it supports).
+  const myDayTabVisible = decideMyDayTabVisible({
+    isAuthenticated: authStore.isAuthenticated,
+    isGuest: authStore.isGuest,
+    isPremium,
+    // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
+    // these at bundle time only for that exact form.
+    dailyDashUrlEnv: process.env.EXPO_PUBLIC_DAILY_DASH_API_URL,
+    platform: Platform.OS,
   })
   // Community (Social) tab hidden for this release. Re-enable with
   // `__DEV__ || isPremium` once the SPA-side bugs are addressed.
@@ -177,6 +192,24 @@ export const MainNavigator = observer(function MainNavigator() {
                   </View>
                 )}
               </View>
+            ),
+          }}
+        />
+      )}
+      {/* ADDED 2026-11-04: premium only. Order from spec D6: Home, Meetings,
+          Attendance, My Day, Sky, Settings. MyDayNavigator mounts the Daily
+          Dash client, so the client exists exactly while this tab does. */}
+      {myDayTabVisible && (
+        <Tab.Screen
+          name="MyDay"
+          component={MyDayNavigator}
+          options={{
+            tabBarLabel: t("mainNavigator:myDayTab"),
+            tabBarIcon: ({ focused }) => (
+              // CHANGED 2026-11-05 (Jenova): `today`, a calendar page with the day marked, filled
+              // like the other Ionicons tabs. `sunny-outline` was the bar's only outline glyph and
+              // read thin at 24 pt.
+              <Ionicons name="today" size={24} color={focused ? colors.tint : colors.textDim} />
             ),
           }}
         />

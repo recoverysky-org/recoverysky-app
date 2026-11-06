@@ -33,3 +33,39 @@
   expect: backup-and-devices/if-backup-isnt-working
 - q: why don't I see the cloud backup section in settings
   expect: backup-and-devices/if-backup-isnt-working
+- q: I don't see the my day tab
+  expect: my-day/today
+- q: what is my day
+  expect: my-day/today
+- q: my day says it couldn't connect
+  expect: my-day/today
+- q: what happens to my day if I sign out
+  expect: my-day/today
+- q: how do I check in on how I'm feeling
+  expect: my-day/check-in
+- q: can I stop a check-in halfway
+  expect: my-day/check-in
+- q: why does the check in ask about self-harm
+  expect: my-day/check-in
+- q: how do I add something to my daily routine
+  expect: my-day/routine
+- q: how do I skip something on my routine today
+  expect: my-day/routine
+- q: can I use a ready-made routine template
+  expect: my-day/routine
+- q: how do I take an item off my routine
+  expect: my-day/routine
+- q: how do I rate my day
+  expect: my-day/rate-your-day
+- q: how do I change last night's rating
+  expect: my-day/rate-your-day
+- q: where do I see the nights I rated before
+  expect: my-day/rate-your-day
+- q: can I delete a night I rated
+  expect: my-day/rate-your-day
+- q: how do I add to my gratitude list
+  expect: my-day/grateful-for
+- q: how do I delete something from my gratitude list
+  expect: my-day/grateful-for
+- q: the add button for my gratitude list won't work
+  expect: my-day/grateful-for
