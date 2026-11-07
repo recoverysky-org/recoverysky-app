@@ -75,7 +75,7 @@ Before redeploying, diff the tenant's deployed code against the file:
 
 ## Passwordless connection — `connections/email.json`
 
-ADDED 2026-09-30. The `email` connection's settings (6-digit code, 180 s, sign-ups on,
+ADDED 2026-09-30. The `email` connection's settings (6-digit code, 900 s since 2026-11-06 on prod, was 180 s; sign-ups on,
 brute-force protection, the Liquid subject/body) live in `connections/email.json`.
 `scripts/provision-passwordless.mjs <tenant> [--apply [--prod] --only conn,clients,grant,order]`
 makes a tenant match: creates or patches the connection, enables it for the app client (never

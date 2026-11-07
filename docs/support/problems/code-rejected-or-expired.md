@@ -58,7 +58,7 @@ Login: `wrongCode`. Verification: `invalid_code`. Also true for verification whe
 Both systems accept only the **latest** code. Verification: one live code per user; a new Start replaces the old code and resets the counter, so the previous mail is dead. Login: Auth0's behaviour for several codes is a tenant setting; assume only the newest works. The user typed the first mail's code after tapping Resend.
 
 ### 3. Genuinely expired
-Login: lifetime is set on the Auth0 tenant (the design spec says 180 s; verify in the tenant's passwordless settings). Verification: 10 minutes.
+Login: 15 minutes on production since 2026-11-06 (Auth0 `email` connection, `totp.time_step` 900, recorded in `auth0/connections/email.json`; it was Auth0's default 180 s before). Verification: 10 minutes.
 
 ### 4. Too many attempts
 Login: Auth0 brute-force protection (`too_many_attempts`); the user is sent back to the email step. Verification: five wrong tries kill the code (per API replica; with several replicas the real bound is about five times the replica count).
