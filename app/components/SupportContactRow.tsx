@@ -1,0 +1,105 @@
+import { FC } from "react"
+import { Pressable, View, ViewStyle } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+
+import { Text } from "@/components/Text"
+import { translate, type TxKeyPath } from "@/i18n"
+import { useAppTheme } from "@/theme/context"
+import type { ThemedStyle } from "@/theme/types"
+
+interface SupportContactRowProps {
+  roleTx: TxKeyPath
+  name: string
+  onCall: () => void
+  onText: () => void
+  onMore: () => void
+  testID?: string
+}
+
+/**
+ * One support contact: "Sponsor · Julie J." with Call, Text and More buttons.
+ * ADDED 2026-11-06 (Support Contacts).
+ *
+ * NAMES ONLY (spec D1): the props carry no phone number, by design. The row
+ * takes a role key and a display name, never a `SupportContact`, so there is no
+ * path by which a number could reach its text, its accessibility labels or a
+ * log. The parent owns the number and dials it from the callbacks.
+ *
+ * An empty or blank name (the contact was picked without one) shows the role
+ * alone rather than "Sponsor · ". The buttons' labels then read "Call " plus an
+ * empty name, so they fall back to the role text for the name slot.
+ *
+ * Accessibility: each of the three buttons has a role, a translated label and
+ * a 48 dp target, so a screen reader reaches Call, Text and More directly.
+ */
+export const SupportContactRow: FC<SupportContactRowProps> = ({
+  roleTx,
+  name,
+  onCall,
+  onText,
+  onMore,
+  testID,
+}) => {
+  const { themed, theme } = useAppTheme()
+
+  const role = translate(roleTx)
+  const trimmed = name.trim()
+  // Labels name the person when there is a name, else the role ("Call Sponsor").
+  const labelName = trimmed || role
+
+  return (
+    <View style={themed($row)} testID={testID}>
+      <View style={$textColumn}>
+        {trimmed ? (
+          <Text tx="support:roleAndName" txOptions={{ role, name: trimmed }} numberOfLines={1} />
+        ) : (
+          <Text tx={roleTx} numberOfLines={1} />
+        )}
+      </View>
+      <Pressable
+        style={themed($button)}
+        onPress={onCall}
+        accessibilityRole="button"
+        accessibilityLabel={translate("support:callA11y", { name: labelName })}
+      >
+        <Ionicons name="call" size={22} color={theme.colors.tint} />
+      </Pressable>
+      <Pressable
+        style={themed($button)}
+        onPress={onText}
+        accessibilityRole="button"
+        accessibilityLabel={translate("support:textA11y", { name: labelName })}
+      >
+        <Ionicons name="chatbubble" size={22} color={theme.colors.tint} />
+      </Pressable>
+      <Pressable
+        style={themed($button)}
+        onPress={onMore}
+        accessibilityRole="button"
+        accessibilityLabel={translate("support:moreA11y", { name: labelName })}
+      >
+        <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+      </Pressable>
+    </View>
+  )
+}
+
+const $textColumn: ViewStyle = { flex: 1 }
+
+const $row: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: colors.card,
+  borderRadius: 12,
+  paddingLeft: spacing.md,
+  paddingRight: spacing.xs,
+  minHeight: 56,
+})
+
+// 48 dp minimum touch target (repo a11y standard).
+const $button: ThemedStyle<ViewStyle> = () => ({
+  width: 48,
+  height: 48,
+  alignItems: "center",
+  justifyContent: "center",
+})
