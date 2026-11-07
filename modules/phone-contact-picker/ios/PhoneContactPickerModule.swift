@@ -13,6 +13,10 @@ import UIKit
 // delegate's contactPicker(_:didSelect contactProperty:) fires with exactly one number.
 // Expo derives the JS error code from the class name: NoPickerException → ERR_NO_PICKER. The
 // JS wrapper maps those codes (pickerErrorCodeFrom), so renaming a class changes the contract.
+// CHANGED 2026-11-06 (final review M-1): that holds only for an exception passed to
+// promise.reject. One THROWN from the AsyncFunction body is wrapped in FunctionCallException and
+// reaches JS as ERR_FUNCTION_CALL, so every failure below rejects and returns. Don't throw here:
+// JS stays silent on ERR_IN_PROGRESS, and a wrapped one would toast on a double tap.
 internal final class NoPickerException: Exception {
   override var reason: String { "No view controller to present the contact picker from" }
 }
@@ -43,14 +47,16 @@ public class PhoneContactPickerModule: Module {
       // Dropping the old delegate here also means its picker can never settle the new promise.
       if let stale = self.pending {
         if self.openPicker?.presentingViewController != nil {
-          throw InProgressException()
+          promise.reject(InProgressException())
+          return
         }
         self.pending = nil
         self.pickerDelegate = nil
         stale.resolve(nil)
       }
       guard let presenter = self.appContext?.utilities?.currentViewController() else {
-        throw NoPickerException()
+        promise.reject(NoPickerException())
+        return
       }
       let picker = CNContactPickerViewController()
       picker.displayedPropertyKeys = [CNContactPhoneNumbersKey]

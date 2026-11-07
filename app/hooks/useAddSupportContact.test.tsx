@@ -10,36 +10,92 @@ jest.mock("@/services/tracking", () => ({ trackEvent: jest.fn() }))
 
 let resolvePick: (v: { name: string; number: string } | null) => void = () => {}
 const mockPickPhoneContact = jest.fn(
-  () => new Promise<{ name: string; number: string } | null>((resolve) => (resolvePick = resolve)),
+  (): Promise<{ name: string; number: string } | null> =>
+    new Promise((resolve) => (resolvePick = resolve)),
 )
+// Named `mock…` so jest.mock's hoisting lets the factory read it; the test throws the same class
+// the hook checks with instanceof.
+class mockPickerError extends Error {
+  code: string
+  constructor(code: string) {
+    super(code)
+    this.code = code
+  }
+}
 jest.mock("@/services/support/phoneContactPicker", () => ({
   isPhoneContactPickerAvailable: () => true,
   pickPhoneContact: () => mockPickPhoneContact(),
-  PhoneContactPickerError: class extends Error {
-    code: string
-    constructor(code: string) {
-      super(code)
-      this.code = code
-    }
+  get PhoneContactPickerError() {
+    return mockPickerError
   },
 }))
 
 describe("useAddSupportContact", () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it("ignores a second Choose while a pick is in flight (Review Focus 5)", async () => {
+  // CHANGED 2026-11-06 (final review I-4): this used to pin a JS single-flight ("ignores a second
+  // Choose"). That gate made the native stale-pick recovery unreachable: a pick whose promise never
+  // settled left Choose dead until the app restarted. Native owns single-flight now.
+  it("a second Choose reaches the picker while the first is unsettled", async () => {
+    const { result } = renderHook(() => useAddSupportContact())
+    act(() => {
+      void result.current.choose()
+    })
+    mockPickPhoneContact.mockRejectedValueOnce(new mockPickerError("in_progress"))
+    await act(async () => {
+      await result.current.choose()
+    })
+    expect(mockPickPhoneContact).toHaveBeenCalledTimes(2)
+  })
+
+  it("stays silent on in_progress: a double tap is not a failure", async () => {
+    mockPickPhoneContact.mockRejectedValueOnce(new mockPickerError("in_progress"))
+    const { result } = renderHook(() => useAddSupportContact())
+    await act(async () => {
+      await result.current.choose()
+    })
+    expect(mockShowToast).not.toHaveBeenCalled()
+    expect(result.current.roleSheet.visible).toBe(false)
+  })
+
+  it("still toasts on no_picker, no_number and unknown", async () => {
+    const { result } = renderHook(() => useAddSupportContact())
+    for (const code of ["no_picker", "no_number", "unknown"]) {
+      mockShowToast.mockClear()
+      mockPickPhoneContact.mockRejectedValueOnce(new mockPickerError(code))
+      await act(async () => {
+        await result.current.choose()
+      })
+      expect(mockShowToast).toHaveBeenCalledWith({ tx: "support:couldntOpenPicker", type: "error" })
+    }
+  })
+
+  it("still toasts on an error that is not the picker's own", async () => {
+    mockPickPhoneContact.mockRejectedValueOnce(new Error("boom"))
+    const { result } = renderHook(() => useAddSupportContact())
+    await act(async () => {
+      await result.current.choose()
+    })
+    expect(mockShowToast).toHaveBeenCalledWith({ tx: "support:couldntOpenPicker", type: "error" })
+  })
+
+  it("a stale first pick resolving as a cancel leaves the second pick's sheet open", async () => {
     const { result } = renderHook(() => useAddSupportContact())
     let first: Promise<void> = Promise.resolve()
     act(() => {
       first = result.current.choose()
-      void result.current.choose()
     })
-    expect(mockPickPhoneContact).toHaveBeenCalledTimes(1)
+    const settleFirst = resolvePick
+    let second: Promise<void> = Promise.resolve()
+    act(() => {
+      second = result.current.choose()
+    })
     await act(async () => {
-      resolvePick(null)
-      await first
+      settleFirst(null) // what the native recovery does with the stale promise
+      resolvePick({ name: "Julie J.", number: "+15550100001" })
+      await Promise.all([first, second])
     })
-    expect(result.current.roleSheet.visible).toBe(false)
+    expect(result.current.roleSheet.visible).toBe(true)
   })
 
   it("opens the role sheet after a pick and adds with the chosen role", async () => {

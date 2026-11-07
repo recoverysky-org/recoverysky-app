@@ -996,7 +996,11 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   saved pause into the digits rings a longer, wrong number with no error; it
   returns null for anything else, and `addContact` refuses those. The local module wraps Apple's and
   Android's own pickers (error codes `no_picker` / `no_number` / `in_progress` /
-  `unknown`) so the app needs no contacts permission; expo-contacts adds
+  `unknown`) so the app needs no contacts permission. Native owns single-flight:
+  `useAddSupportContact` has no JS gate and stays silent on `in_progress`, because
+  a JS gate kept a hung pick's next tap from reaching the Swift stale-pick recovery;
+  Swift rejects rather than throws, since a thrown exception reaches JS as
+  `ERR_FUNCTION_CALL`. expo-contacts adds
   `READ_CONTACTS`, and `supportPolicy.test.ts` greps for that. `.gitignore` and
   `.easignore` re-include `modules/*/android` and `modules/*/ios`: the
   unanchored `android/` and `ios/` patterns otherwise drop a local module's

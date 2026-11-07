@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useState } from "react"
 
 import { useToast } from "@/components/Toast"
 import type { TxKeyPath } from "@/i18n"
 import { useSupportStore } from "@/models"
-import { pickPhoneContact } from "@/services/support/phoneContactPicker"
+import { PhoneContactPickerError, pickPhoneContact } from "@/services/support/phoneContactPicker"
 import {
   SUPPORT_ROLE_TX,
   SUPPORT_ROLES,
@@ -29,6 +29,12 @@ import { trackEvent } from "@/services/tracking"
  * Single-flight: the picker is a native screen, and a double tap on Choose would
  * start a second one ("in_progress" from the native side). A ref, not state,
  * because two taps can land before React re-renders.
+ *
+ * CHANGED 2026-11-06 (final review I-4): the ref is gone and native owns single-flight,
+ * so "in_progress" is a silent no-op here. The ref cleared only when the promise settled,
+ * so a pick that never settled (a dismiss no callback reported, a present UIKit refused)
+ * left Choose dead until the app restarted, and the next tap could never reach the
+ * Swift recovery that resolves the stale pick and opens a fresh one.
  */
 export interface RoleSheetOption {
   key: SupportRole
@@ -52,23 +58,21 @@ export function useAddSupportContact(): {
 } {
   const store = useSupportStore()
   const { showToast } = useToast()
-  const pickingRef = useRef(false)
   const [picked, setPicked] = useState<PickedPhoneContact | null>(null)
 
   const choose = useCallback(async () => {
-    if (pickingRef.current) return
-    pickingRef.current = true
     try {
       const result = await pickPhoneContact()
       // null is a cancel: silent, nothing held.
       if (result === null) return
       setPicked(result)
-    } catch {
+    } catch (e) {
+      // ADDED 2026-11-06 (final review I-4): a picker already on screen is a double tap, not a
+      // failure, and the person can see the picker.
+      if (e instanceof PhoneContactPickerError && e.code === "in_progress") return
       // Any failure (in practice a PhoneContactPickerError, which carries a code
       // only) is the same toast. We deliberately neither log nor show the error.
       showToast({ tx: "support:couldntOpenPicker", type: "error" })
-    } finally {
-      pickingRef.current = false
     }
   }, [showToast])
 
