@@ -315,8 +315,9 @@ git commit -m "✨ feat(agent): the turn-only body, stale refusals and finished 
 Hook rules, each with a comment saying why:
 - Runs `openConversation` on the false-to-true edge of `useIsFocused()` while `enabled`, and when `enabled` turns true. Bottom tabs stay mounted, so mount alone would run once per launch. Skips while `chatState.current.busy`.
 - A generation counter drops a read that lands after `startNew` or a newer open.
+- The hook wraps `listNewest` and `readMessages` in its `OpenDeps` and logs each answer that is not `ok` at warn, naming the read and its `kind`, with no message ids and nothing of what was said. Spec D1 says a failed re-read logs, and the pure module and the client cannot: `keep` merges an unstored turn with a failed read.
 - A read that lands while `busy`, or after `sentIds` changed since it started, is dropped whole: its answer predates the turn on screen, and applying it would erase that turn.
-- Applies outcomes: `fresh` with `minted` calls `store.startNewConversation(id)` and shows it ready and empty. `fresh` without `minted` on the id already showing changes nothing and does not bump `readAt`: `sentIds` may hold a turn that failed before streaming, whose words are on screen, and a `setMessages([])` would erase them. `thread` calls `store.adoptConversation(id)` and empties `sentIds`. `keep` changes nothing. `failed` calls `store.forgetConversation()`, whatever the cause: a fresh id never reaches `failed`, and a listed id is listed again next open.
+- Applies outcomes: `fresh` with `minted` calls `store.startNewConversation(id)`, empties `sentIds` (old ids checked against the new conversation would answer `keep` for good) and shows it ready and empty. `fresh` without `minted` on the id already showing changes nothing and does not bump `readAt`: `sentIds` may hold a turn that failed before streaming, whose words are on screen, and a `setMessages([])` would erase them. `thread` calls `store.adoptConversation(id)` and empties `sentIds`. `keep` changes nothing. `failed` calls `store.forgetConversation()`, whatever the cause: a fresh id never reaches `failed`, and a listed id is listed again next open.
 - `threadOnScreen` is the current view being `ready` with a non-empty history or non-empty `sentIds`.
 - `startNew()` mints with `randomUUID` from `expo-crypto`, calls `store.startNewConversation`, empties `sentIds`, shows it as ready and empty, fires `trackEvent("agent_conversation_started")`, then calls `agentConversationsClient(agentUrl).archive({ except: id })` unawaited, logging a warn on `false`.
 - `reopenStale()` calls `store.forgetConversation()`, empties `sentIds`, and runs the open with nothing on screen.
@@ -339,6 +340,7 @@ it("drops a read that lands after startNew", ...)                 // deferred re
 it("drops a read that lands after a send", ...)                   // sentIds gains an id mid-read => view and sentIds unchanged
 it("leaves the view alone on a fresh id with a failed turn", ...) // refocus with sentIds set: same readAt, no read
 it("empties sentIds when a thread is adopted", ...)
+it("logs a read that does not answer ok, with its name and kind", ...)
 it("forgets the id on failed and shows the failed phase", ...)
 it("startNew archives with except and shows ready and empty", ...) // archive({ except: id }) unawaited, trackEvent fired
 it("reopenStale forgets, then opens with nothing on screen", ...)

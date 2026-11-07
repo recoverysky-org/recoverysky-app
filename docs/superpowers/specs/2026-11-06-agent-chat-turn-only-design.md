@@ -83,7 +83,10 @@ the turn, and read the history back from the agent, as the Daily Dash app alread
     run, so that rule would have hidden the person's real thread, against "survives a reinstall".
   - **Accepted limit.** Two devices that each mint a fresh id before either sends make two threads; the
     newest by last message wins on each device's next open once neither is fresh. A device holding a
-    fresh id does not pick up the other device's turns until it sends or starts over.
+    fresh id does not pick up the other device's turns until it sends or starts over. A turn that failed
+    before the agent admitted it, on a thread already on the agent, keeps its id in the sent set, so that
+    device holds its screen at each focus and shows no other device's turns until a restart, New
+    conversation, or a send that earns D8. No words are lost (accepted, final-of-task review 2026-11-06).
 - **D2. The body is the turn.** `DefaultChatTransport` gets `prepareSendMessagesRequest` (the static
   `body` goes): `({ messages }) => ({ body: { conversation_id, messages: [the turn], timezone,
   fellowship } })`, where the turn is the newest message that is the person's or an answered card, as
