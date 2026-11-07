@@ -327,7 +327,7 @@ Screen rules:
 - `AgentChat` holds what was in the screen's body. `useChat({ id: conversationId, messages: history, transport })`, the transport built once with `useMemo`: `api`, `expoFetch`, `headers: () => api.agentHeaders()` and `prepareSendMessagesRequest: ({ id, messages }) => …`. It adds `turnOf(messages)?.id` to `chatState.sentIds` when that turn's role is user, and answers `{ body: chatRequestBody(id, messages, timezone, fellowshipRef.current) }`. `fellowshipRef` is updated each render, because the SDK keeps the first transport and the old static body went stale after a Settings change.
 - Effects: mirror `status` into `chatState.busy`. On `status === "streaming"` call `store.markConversationOnAgent()`. When `readAt` changes and nothing is streaming, `setMessages(history)`.
 - On an `error` where `isStaleRefusal(error.message)`: put the last user message's text back in `input`, call `clearError()` and `reopenStale()`, draw no row. Key the effect on `error`, so one refusal acts once. Any other error draws today's row. `historyFailed` draws the row with the retry and leaves the composer live.
-- Tool parts go through `classifyToolPart`: `result` renders `ToolResultRenderer`, `running` renders today's badge, `finished` renders that badge's shape with a `checkmark-done` icon and `agentScreen:toolFinished`.
+- Tool parts go through `classifyToolPart`: `result` renders `ToolResultRenderer`, `running` renders today's badge, `finished` renders that badge's shape with a `checkmark-done` icon and `agentScreen:toolFinished`. `null` renders nothing. `running` shows the badge only on the last message while the chat is `submitted` or `streaming`; any other `running` part, such as one read back from a stored reply, renders as `finished`, or it would spin for good. The `result` view's `output` maps to `ToolResultRenderer`'s `part.result`.
 - FAB: `add` icon, `$fabMenuItem` background `colors.tint`, label `agentScreen:newConversation`. The alert uses the spec's copy; the action is not `destructive`. Remove `persistedIdsRef`, `prevStatusRef`, both store effects and the stale doc comment lines.
 
 - [ ] **Step 1: Write the failing hook and screen tests**
@@ -351,6 +351,7 @@ it("draws today's row for any other error, with no reopen", ...)
 it("acts once per refusal", ...)                                  // rerender with the same error object
 it("sends the turn and records its id", ...)                      // call the transport's prepareSendMessagesRequest: one message in the body; chatState.sentIds holds its id
 it("marks the conversation on the agent when streaming starts", ...)
+it("draws a stored running tool part as finished, not a spinner", ...)
 ```
 
 Run: `npm run test:component -- app/hooks/useAgentConversation.test.tsx app/screens/AgentScreen.test.tsx`
