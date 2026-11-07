@@ -7,6 +7,7 @@
 import { FC, useCallback } from "react"
 import { View, ViewStyle, TextStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import { observer } from "mobx-react-lite"
 
 import { Text } from "@/components/Text"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
@@ -50,44 +51,50 @@ const MEETING_TOOLS = new Set([
 /**
  * ToolResultRenderer dispatches tool results to specialized renderers.
  * Unrecognized tools render as a default badge.
+ *
+ * CHANGED 2026-11-06 (spec D5): an observer, because the collapse state now lives in the store's
+ * volatile map. As a plain component it read the map once and the card would never redraw when
+ * its popup closed.
  */
-export const ToolResultRenderer: FC<ToolResultRendererProps> = ({ part, onSelectMeeting }) => {
-  const { themed, theme } = useAppTheme()
-  const conversationStore = useConversationStore()
+export const ToolResultRenderer: FC<ToolResultRendererProps> = observer(
+  function ToolResultRenderer({ part, onSelectMeeting }) {
+    const { themed, theme } = useAppTheme()
+    const conversationStore = useConversationStore()
 
-  // Get collapse state for this tool call
-  const collapseState = conversationStore.getCollapseState(part.toolCallId)
-  const isCollapsed = collapseState !== null
+    // Get collapse state for this tool call
+    const collapseState = conversationStore.getCollapseState(part.toolCallId)
+    const isCollapsed = collapseState !== null
 
-  // Handle meeting selection
-  const handleSelectMeeting = useCallback(
-    (meeting: MeetingWithTrex) => {
-      onSelectMeeting(meeting, part.toolCallId)
-    },
-    [onSelectMeeting, part.toolCallId],
-  )
-
-  // Render meeting tools with MeetingResultsCard
-  if (MEETING_TOOLS.has(part.toolName)) {
-    return (
-      <MeetingResultsCard
-        toolCallId={part.toolCallId}
-        result={part.result as Record<string, unknown>}
-        isCollapsed={isCollapsed}
-        collapsedSummary={collapseState?.summary}
-        onSelectMeeting={handleSelectMeeting}
-      />
+    // Handle meeting selection
+    const handleSelectMeeting = useCallback(
+      (meeting: MeetingWithTrex) => {
+        onSelectMeeting(meeting, part.toolCallId)
+      },
+      [onSelectMeeting, part.toolCallId],
     )
-  }
 
-  // Default: render a simple badge for unrecognized tools
-  return (
-    <View style={themed($defaultBadge)}>
-      <Ionicons name="checkmark-done" size={14} color={theme.colors.textDim} />
-      <Text style={themed($defaultText)}>{part.toolName} completed</Text>
-    </View>
-  )
-}
+    // Render meeting tools with MeetingResultsCard
+    if (MEETING_TOOLS.has(part.toolName)) {
+      return (
+        <MeetingResultsCard
+          toolCallId={part.toolCallId}
+          result={part.result as Record<string, unknown>}
+          isCollapsed={isCollapsed}
+          collapsedSummary={collapseState?.summary}
+          onSelectMeeting={handleSelectMeeting}
+        />
+      )
+    }
+
+    // Default: render a simple badge for unrecognized tools
+    return (
+      <View style={themed($defaultBadge)}>
+        <Ionicons name="checkmark-done" size={14} color={theme.colors.textDim} />
+        <Text style={themed($defaultText)}>{part.toolName} completed</Text>
+      </View>
+    )
+  },
+)
 
 const $defaultBadge: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
