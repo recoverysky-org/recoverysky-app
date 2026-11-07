@@ -99,8 +99,9 @@ Prod's legacy Create Firebase User Actions were unbound 2026-09-30; their code i
 |---|---|---|---|---|---|---|
 | Link passwordless identity | `link-passwordless-identity.js` | Login / Post Login | `MGMT_DOMAIN`, `MGMT_CLIENT_ID`, `MGMT_CLIENT_SECRET` | nothing in the app — it makes an email-code login land in the user's existing account | deployed + bound 2026-09-30 (v2; own M2M app "Action: Link passwordless identity") | deployed + bound 2026-09-30 (own M2M app, same name) |
 | Identities claim | `identities-claim.js` | Login / Post Login | none | `app/services/auth/accountMethodsLogic.ts` (Settings → Account; the ownership gate's `relinked` check) | v2 (adds `sub` per entry), deployed 2026-09-30 via `deploy-actions.sh`; bound (id `6d745790-f4db-479d-b1d0-0422c354c86b`) | v2, deployed + bound 2026-09-30 |
+| Tier claim | `tier-claim.js` | Login / Post Login | none | the agent's chat budgets and the Daily Dash API's Sky entitlement, from the access token | file added 2026-11-06, **not deployed** | file added 2026-11-06, **not deployed**; needs the api's RevenueCat webhook (api repo, `docs/superpowers/specs/2026-11-06-revenuecat-tier-webhook-design.md`) |
 
-Post-login order: passwordless linking → identities claim. Linking runs first because it
+Post-login order: passwordless linking → identities claim → tier claim. Linking runs first because it
 changes which identity is primary. In practice the order can't change a token today: the
 claim reads the event as it arrived, and a first email login has one identity, so the claim
 is skipped either way. Keep the order anyway so a future claim Action doesn't inherit a
