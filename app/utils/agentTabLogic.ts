@@ -26,8 +26,8 @@ export function isValidAgentUrl(raw: string | undefined | null): boolean {
 export interface AgentTabInputs {
   /** The build's `EXPO_PUBLIC_AGENT_URL`, as inlined at bundle time. */
   agentUrlEnv: string | undefined
-  isDev: boolean
-  isPremium: boolean
+  /** RevenueCat `skyagent` entitlement. CHANGED 2026-11-07: was `isPremium`. */
+  hasSkyAgent: boolean
 }
 
 /**
@@ -39,7 +39,16 @@ export interface AgentTabInputs {
  * falls back to a hardcoded production URL when the env var is missing, so it
  * is never empty and could not serve as an on/off switch. Removing the var from
  * a build's environment is what turns the tab off.
+ *
+ * CHANGED 2026-11-07 (Jenova): the `__DEV__` escape is gone. The tab shows
+ * only when the premium entitlement is present, in dev builds too, the same
+ * rule as My Day's gate (myDayTabLogic.ts, which never had a dev escape). A
+ * dev build gets the entitlement from RevenueCat's Test Store. The `isDev`
+ * input was removed with it, since nothing read it.
+ * CHANGED 2026-11-07 (later, Jenova): the entitlement is now RevenueCat's own
+ * `skyagent`, not `recoverysky-premium`. Which products grant it is set in the
+ * RevenueCat dashboard.
  */
-export function decideAgentTabVisible({ agentUrlEnv, isDev, isPremium }: AgentTabInputs): boolean {
-  return isValidAgentUrl(agentUrlEnv) && (isDev || isPremium)
+export function decideAgentTabVisible({ agentUrlEnv, hasSkyAgent }: AgentTabInputs): boolean {
+  return isValidAgentUrl(agentUrlEnv) && hasSkyAgent
 }

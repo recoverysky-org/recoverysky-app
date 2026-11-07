@@ -62,6 +62,10 @@ interface SubscriptionContextValue {
   isPremium: boolean
   /** Whether user has attendance report entitlement */
   hasAttendance: boolean
+  /** `skyagent` entitlement: the Agent tab's gate. ADDED 2026-11-07 */
+  hasSkyAgent: boolean
+  /** `myday` entitlement: the My Day tab's and Daily Dash session's gate. ADDED 2026-11-07 */
+  hasMyDay: boolean
   /** Detailed subscription info */
   subscriptionInfo: SubscriptionInfo | null
   /** Error message if any */
@@ -92,6 +96,8 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   isLoading: true,
   isPremium: false,
   hasAttendance: false,
+  hasSkyAgent: false,
+  hasMyDay: false,
   subscriptionInfo: null,
   error: null,
   billingUnresponsive: false,
@@ -145,6 +151,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
   const [isLoading, setIsLoading] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
   const [hasAttendance, setHasAttendance] = useState(false)
+  const [hasSkyAgent, setHasSkyAgent] = useState(false)
+  const [hasMyDay, setHasMyDay] = useState(false)
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [billingUnresponsive, setBillingUnresponsive] = useState(false)
@@ -185,6 +193,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
       setSubscriptionInfo(result.value)
       setIsPremium(result.value.isPremium)
       setHasAttendance(result.value.hasAttendance)
+      setHasSkyAgent(result.value.hasSkyAgent)
+      setHasMyDay(result.value.hasMyDay)
       setError(null)
     } else {
       setError(result.error)
@@ -474,6 +484,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
       isLoading,
       isPremium,
       hasAttendance,
+      hasSkyAgent,
+      hasMyDay,
       subscriptionInfo,
       error,
       billingUnresponsive,
@@ -489,6 +501,8 @@ export const SubscriptionProvider: FC<SubscriptionProviderProps> = ({ children }
       isLoading,
       isPremium,
       hasAttendance,
+      hasSkyAgent,
+      hasMyDay,
       subscriptionInfo,
       error,
       billingUnresponsive,

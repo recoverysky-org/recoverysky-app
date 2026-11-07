@@ -51,6 +51,10 @@ export interface SubscriptionInfo {
   isPremium: boolean
   /** Whether user has attendance report entitlement */
   hasAttendance: boolean
+  /** Whether user has the `skyagent` entitlement (gates the Agent tab). ADDED 2026-11-07 */
+  hasSkyAgent: boolean
+  /** Whether user has the `myday` entitlement (gates the My Day tab). ADDED 2026-11-07 */
+  hasMyDay: boolean
   /** Active entitlements */
   activeEntitlements: string[]
   /** Expiration date of current subscription (if any) */
@@ -184,10 +188,17 @@ export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
     const customerInfo = await Purchases.getCustomerInfo()
     const premiumEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]
     const attendanceEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.ATTENDANCE]
+    // ADDED 2026-11-07: per-feature entitlements for the Agent and My Day tabs.
+    // Read from `entitlements.active` with the same `isActive` check as the
+    // others; the SDK's `entitlements` is `{ all, active }`, not a map by id.
+    const skyAgentEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.SKY_AGENT]
+    const myDayEntitlement = customerInfo.entitlements.active[ENTITLEMENTS.MY_DAY]
 
     const info: SubscriptionInfo = {
       isPremium: premiumEntitlement !== undefined && premiumEntitlement.isActive,
       hasAttendance: attendanceEntitlement !== undefined && attendanceEntitlement.isActive,
+      hasSkyAgent: skyAgentEntitlement !== undefined && skyAgentEntitlement.isActive,
+      hasMyDay: myDayEntitlement !== undefined && myDayEntitlement.isActive,
       activeEntitlements: Object.keys(customerInfo.entitlements.active),
       expirationDate:
         (premiumEntitlement?.expirationDate ?? attendanceEntitlement?.expirationDate)

@@ -11,7 +11,9 @@
  *
  * Deliberately NO `__DEV__` escape, unlike the Agent tab: a dev build without
  * premium has no Daily Dash account to show, so the tab would only render an
- * error. Guests and signed-out users never see it either: My Day belongs to
+ * error. CHANGED 2026-11-07 (Jenova): the gate is RevenueCat's `myday`
+ * entitlement, no longer `recoverysky-premium`, and the Agent tab lost its
+ * `__DEV__` escape too, so both tabs follow the same rule. Guests and signed-out users never see it either: My Day belongs to
  * the device owner's account.
  */
 import { isValidAgentUrl } from "./agentTabLogic"
@@ -26,7 +28,8 @@ export const isValidDailyDashUrl: (raw: string | undefined | null) => boolean = 
 export interface MyDayTabInputs {
   isAuthenticated: boolean
   isGuest: boolean
-  isPremium: boolean
+  /** RevenueCat `myday` entitlement. CHANGED 2026-11-07: was `isPremium`. */
+  hasMyDay: boolean
   /** The build's `EXPO_PUBLIC_DAILY_DASH_API_URL`, as inlined at bundle time. */
   dailyDashUrlEnv: string | undefined
   /** `Platform.OS`; the tab is phone-only (spec D12), so "web" hides it. */
@@ -37,7 +40,7 @@ export function decideMyDayTabVisible(i: MyDayTabInputs): boolean {
   return (
     i.isAuthenticated &&
     !i.isGuest &&
-    i.isPremium &&
+    i.hasMyDay &&
     isValidDailyDashUrl(i.dailyDashUrlEnv) &&
     i.platform !== "web"
   )

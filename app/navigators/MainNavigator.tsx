@@ -46,7 +46,9 @@ export const MainNavigator = observer(function MainNavigator() {
   const { validUnproducedCount } = useAttendanceBadge()
   const profileStore = useProfileStore()
   const authStore = useAuthenticationStore()
-  const { isPremium } = useSubscription()
+  // CHANGED 2026-11-07: each tab reads its own RevenueCat entitlement
+  // (`skyagent`, `myday`) instead of `isPremium`.
+  const { hasSkyAgent, hasMyDay } = useSubscription()
   // Agent tab stays hidden until ready for release.
   // CHANGED 2026-10-10: no longer a hard `false`. Shown when the build carries
   // a valid EXPO_PUBLIC_AGENT_URL and the user passes the entitlement gate
@@ -65,20 +67,24 @@ export const MainNavigator = observer(function MainNavigator() {
   // shell's .env reached the OTA (RS-060). Production eas commands now strip
   // local EXPO_PUBLIC_* (scripts/eas-prod.sh), and bump-update.sh's tripwire
   // fails if a bundle carries one, so a var missing from EAS stays missing.
+  // CHANGED 2026-11-07: no `__DEV__` escape any more. Dev builds need the
+  // entitlement too, the same rule as My Day below. Later the same day the
+  // entitlement became RevenueCat's `skyagent` rather than premium.
   const agentTabVisible = decideAgentTabVisible({
     // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
     // these at bundle time only for that exact form.
     agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
-    isDev: __DEV__,
-    isPremium,
+    hasSkyAgent,
   })
   // ADDED 2026-11-04: My Day tab (Daily Dash). Premium accounts only; the gate
   // lives in myDayTabLogic.ts (signed in, not a guest, premium, a Daily Dash
   // URL in the build, and a platform it supports).
+  // CHANGED 2026-11-07: the `myday` entitlement replaces premium. DailyDashProvider
+  // passes the same input, so the session runs exactly while this tab exists.
   const myDayTabVisible = decideMyDayTabVisible({
     isAuthenticated: authStore.isAuthenticated,
     isGuest: authStore.isGuest,
-    isPremium,
+    hasMyDay,
     // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
     // these at bundle time only for that exact form.
     dailyDashUrlEnv: process.env.EXPO_PUBLIC_DAILY_DASH_API_URL,

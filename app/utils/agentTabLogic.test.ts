@@ -35,21 +35,18 @@ describe("isValidAgentUrl", () => {
 describe("decideAgentTabVisible", () => {
   const url = "https://agent.recoverysky.app"
 
-  it("shows for premium users when the URL is set", () => {
-    expect(decideAgentTabVisible({ agentUrlEnv: url, isDev: false, isPremium: true })).toBe(true)
+  it("shows with the skyagent entitlement when the URL is set", () => {
+    expect(decideAgentTabVisible({ agentUrlEnv: url, hasSkyAgent: true })).toBe(true)
   })
 
-  it("shows in dev builds without premium when the URL is set", () => {
-    expect(decideAgentTabVisible({ agentUrlEnv: url, isDev: true, isPremium: false })).toBe(true)
+  // CHANGED 2026-11-07: no `__DEV__` escape; dev builds need the entitlement too.
+  it("hides without the skyagent entitlement when the URL is set", () => {
+    expect(decideAgentTabVisible({ agentUrlEnv: url, hasSkyAgent: false })).toBe(false)
   })
 
-  it("hides for non-premium users in production builds", () => {
-    expect(decideAgentTabVisible({ agentUrlEnv: url, isDev: false, isPremium: false })).toBe(false)
-  })
-
-  it("hides everywhere when the URL is missing or invalid, even in dev for premium", () => {
+  it("hides when the URL is missing or invalid, even with the entitlement", () => {
     for (const agentUrlEnv of [undefined, "", "not a url"]) {
-      expect(decideAgentTabVisible({ agentUrlEnv, isDev: true, isPremium: true })).toBe(false)
+      expect(decideAgentTabVisible({ agentUrlEnv, hasSkyAgent: true })).toBe(false)
     }
   })
 })

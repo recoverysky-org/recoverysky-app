@@ -30,6 +30,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   Lifeline. My Day's crisis card now opens it. No tracker issue.
 
 ### Changed
+- **The My Day and Sky tabs each follow their own RevenueCat entitlement.**
+  My Day shows for an account with `myday` and Sky for one with `skyagent`,
+  instead of both following Premium. Which purchases include each one is set in
+  the RevenueCat dashboard, so an account whose products don't carry `myday`
+  loses the My Day tab. Dev builds no longer show Sky without the entitlement.
+  No tracker issue.
 - My Day's crisis path opens the Support screen, which offers "Find a live
   meeting now" itself, instead of going straight to Meetings → Online.
 - **The Sky tab sends only the message you typed.** Sky keeps the conversation

@@ -61,11 +61,14 @@ export const DailyDashProvider = observer(function DailyDashProvider({
   children,
 }: PropsWithChildren) {
   const authStore = useAuthenticationStore()
-  const { isPremium } = useSubscription()
+  // CHANGED 2026-11-07: the `myday` entitlement, not `isPremium`. Must stay
+  // the same input MainNavigator passes, so the session runs exactly while
+  // the tab exists.
+  const { hasMyDay } = useSubscription()
   const gateHolds = decideMyDayTabVisible({
     isAuthenticated: authStore.isAuthenticated,
     isGuest: authStore.isGuest,
-    isPremium,
+    hasMyDay,
     dailyDashUrlEnv: process.env.EXPO_PUBLIC_DAILY_DASH_API_URL,
     platform: Platform.OS,
   })

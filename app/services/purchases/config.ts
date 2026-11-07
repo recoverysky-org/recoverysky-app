@@ -51,6 +51,19 @@ export const ENTITLEMENTS = {
   PREMIUM: "recoverysky-premium",
   /** RecoverySky Attendance - Attendance report access */
   ATTENDANCE: "recoverysky-attendance",
+  /**
+   * Sky Agent tab. ADDED 2026-11-07 (Jenova): the Agent tab is gated on this
+   * entitlement alone, no longer on PREMIUM. Which products grant it is a
+   * RevenueCat dashboard setting, not code.
+   */
+  SKY_AGENT: "skyagent",
+  /**
+   * My Day tab (Daily Dash). ADDED 2026-11-07 (Jenova): the My Day tab and the
+   * Daily Dash session behind it are gated on this entitlement alone, no longer
+   * on PREMIUM. A person whose products don't carry it loses the tab, so attach
+   * it to every product that should include My Day before this ships.
+   */
+  MY_DAY: "myday",
 } as const
 
 /**
