@@ -5,11 +5,11 @@ import {
   canAddContact,
   decideCrisisLine,
   defaultRoleFor,
+  dialableNumber,
   dialUrl,
   digitsOf,
   MAX_SUPPORT_CONTACTS,
   moveUp,
-  normalizeNumber,
   parseStoredContacts,
   pickerErrorCodeFrom,
   removeContact,
@@ -26,13 +26,99 @@ describe("numbers", () => {
   it("digitsOf strips everything but digits", () => {
     expect(digitsOf("+1 (555) 010-0001")).toBe("15550100001")
   })
-  it("normalizeNumber keeps a leading + and digits only", () => {
-    expect(normalizeNumber("+1 (555) 010-0001")).toBe("+15550100001")
-    expect(normalizeNumber("555.010.0002")).toBe("5550100002")
-  })
-  it("dialUrl builds tel: and sms: links from the normalized number", () => {
+  it("dialUrl builds tel: and sms: links from the dialable number", () => {
     expect(dialUrl("call", "+1 (555) 010-0001")).toBe("tel:+15550100001")
     expect(dialUrl("text", "555 010 0003")).toBe("sms:5550100003")
+  })
+})
+
+// ADDED 2026-11-06 (final review I-2): the old normalizeNumber kept only digits, so a saved pause
+// or extension merged into a longer number and the phone rang a stranger with no error at all.
+describe("dialableNumber", () => {
+  it("strips formatting: spaces, NBSP, ( ) . - /", () => {
+    expect(dialableNumber(" +1 (555) 010-0001 ")).toBe("+15550100001")
+    expect(dialableNumber("555.010.0002")).toBe("5550100002")
+    expect(dialableNumber("555/010\u00A00003")).toBe("5550100003")
+  })
+  it("strips the invisible bidi marks address books embed", () => {
+    const marks = "\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069"
+    expect(dialableNumber(`${marks}+1 555 010 0001${marks}`)).toBe("+15550100001")
+    expect(dialableNumber("\u202A+1 555 010 0001\u202C")).toBe("+15550100001")
+  })
+  it("keeps a saved pause or wait", () => {
+    expect(dialableNumber("555-010-0001,,23")).toBe("5550100001,,23")
+    expect(dialableNumber("555-010-0001;23")).toBe("5550100001;23")
+  })
+  it("turns an extension marker followed by digits into one pause", () => {
+    for (const raw of [
+      "555-010-0001 x23",
+      "555-010-0001x23",
+      "555-010-0001 X 23",
+      "555-010-0001 ext 23",
+      "555-010-0001 ext. 23",
+      "555-010-0001 EXT.23",
+      "555-010-0001 extension 23",
+      "555-010-0001 Extension 23",
+    ]) {
+      expect(dialableNumber(raw)).toBe("5550100001,23")
+    }
+  })
+  it("keeps * and #", () => {
+    expect(dialableNumber("*67 555 010 0001")).toBe("*675550100001")
+    expect(dialableNumber("555-010-0001#")).toBe("5550100001#")
+  })
+  it("returns null for anything else, rather than a guess", () => {
+    expect(dialableNumber("")).toBeNull()
+    expect(dialableNumber("   ")).toBeNull()
+    expect(dialableNumber("()-")).toBeNull()
+    expect(dialableNumber("+")).toBeNull()
+    expect(dialableNumber("1-800-FLOWERS")).toBeNull()
+    expect(dialableNumber("1+555")).toBeNull()
+    expect(dialableNumber("++1555")).toBeNull()
+    expect(dialableNumber("\u0661\u0662\u0663")).toBeNull() // Arabic-Indic digits
+    expect(dialableNumber("555 x")).toBeNull()
+    expect(dialableNumber("x23")).toBeNull()
+    expect(dialableNumber("555 x1 x2")).toBeNull()
+  })
+  it("needs a digit before the first pause, so a text always has somewhere to go", () => {
+    expect(dialableNumber(",,23")).toBeNull()
+    expect(dialableNumber(";23")).toBeNull()
+    expect(dialableNumber("*#,23")).toBeNull()
+  })
+})
+
+describe("dialUrl", () => {
+  it("a pause or wait stays in the call and leaves the text", () => {
+    expect(dialUrl("call", "555-010-0001,,23")).toBe("tel:5550100001,,23")
+    expect(dialUrl("text", "555-010-0001,,23")).toBe("sms:5550100001")
+    expect(dialUrl("call", "555-010-0001;23")).toBe("tel:5550100001;23")
+    expect(dialUrl("text", "555-010-0001;23")).toBe("sms:5550100001")
+  })
+  it("an extension dials after one pause", () => {
+    expect(dialUrl("call", "555-010-0001 x23")).toBe("tel:5550100001,23")
+    expect(dialUrl("call", "555-010-0001 ext. 23")).toBe("tel:5550100001,23")
+    expect(dialUrl("text", "555-010-0001 ext. 23")).toBe("sms:5550100001")
+  })
+  it("keeps a leading + and *", () => {
+    expect(dialUrl("call", "+1 (555) 010-0001")).toBe("tel:+15550100001")
+    expect(dialUrl("call", "*67 555 010 0001")).toBe("tel:*675550100001")
+  })
+  it("percent-encodes #, which would otherwise start a URL fragment", () => {
+    expect(dialUrl("call", "555-010-0001#")).toBe("tel:5550100001%23")
+    expect(dialUrl("call", "*43#555")).toBe("tel:*43%23555")
+    expect(dialUrl("text", "555#1")).toBe("sms:555%231")
+  })
+  it("is null when the number cannot be dialled", () => {
+    expect(dialUrl("call", "1-800-FLOWERS")).toBeNull()
+    expect(dialUrl("text", "1-800-FLOWERS")).toBeNull()
+    expect(dialUrl("call", "")).toBeNull()
+  })
+  it("988 still works both ways", () => {
+    expect(dialUrl("call", "988")).toBe("tel:988")
+    expect(dialUrl("text", "988")).toBe("sms:988")
+  })
+  it("a bidi-wrapped number is clean", () => {
+    expect(dialUrl("call", "\u202A+1 555 010 0001\u202C")).toBe("tel:+15550100001")
   })
 })
 
@@ -63,6 +149,13 @@ describe("addContact, number-as-name (spec D1)", () => {
   it("stores an empty name for a bare digit string", () => {
     expect(added("5550100001").name).toBe("")
   })
+  // ADDED 2026-11-06 (final review I-2): every form dialableNumber accepts is a number, so none
+  // may reach a row as a name. Bidi marks and an extension both got past the character class.
+  it("stores an empty name for a bidi-wrapped number or one with an extension", () => {
+    expect(added("\u202A+1 555 010 0001\u202C").name).toBe("")
+    expect(added("555-010-0001 x23").name).toBe("")
+    expect(added("555-010-0001 ext. 23").name).toBe("")
+  })
   it("keeps a real name that contains digits", () => {
     expect(added("12 Step Dave").name).toBe("12 Step Dave")
   })
@@ -88,6 +181,18 @@ describe("addContact", () => {
   })
   it("refuses a pick with no digits", () => {
     expect(addContact([], { name: "Nobody", number: " " }, "sponsor")).toEqual({ kind: "invalid" })
+  })
+  it("refuses a number that cannot be dialled", () => {
+    expect(addContact([], { name: "Flowers", number: "1-800-FLOWERS" }, "friend")).toEqual({
+      kind: "invalid",
+    })
+  })
+  it("stores a dialable number trimmed and otherwise verbatim", () => {
+    const r = addContact([], { name: "Julie", number: " 555-010-0001 ext. 23 " }, "sponsor")
+    expect(r).toEqual({
+      kind: "ok",
+      contacts: [{ role: "sponsor", name: "Julie", number: "555-010-0001 ext. 23" }],
+    })
   })
   it("keeps an empty display name as an empty string", () => {
     const r = addContact([], { name: "  ", number: "5550100004" }, "sponsor")

@@ -22,7 +22,7 @@ export type SupportRole = (typeof SUPPORT_ROLES)[number]
 export interface SupportContact {
   role: SupportRole
   name: string
-  /** Stored verbatim as the picker gave it (trimmed); normalized only to dial. */
+  /** Stored verbatim as the picker gave it (trimmed); cleaned only to dial (dialableNumber). */
   number: string
 }
 
@@ -45,10 +45,29 @@ export function digitsOf(number: string): string {
   return number.replace(/\D/g, "")
 }
 
-/** A leading "+" if present, then digits only: what `tel:` / `sms:` receive. */
-export function normalizeNumber(number: string): string {
-  const trimmed = number.trim()
-  return (trimmed.startsWith("+") ? "+" : "") + digitsOf(trimmed)
+// Formatting an address book adds and a dialer ignores: whitespace (\s includes NBSP), ( ) . - /,
+// and the invisible bidi marks some address books wrap numbers in (U+200E, U+200F, U+202A-U+202E,
+// U+2066-U+2069).
+const NUMBER_FORMATTING = /[\s().\-/\u200E\u200F\u202A-\u202E\u2066-\u2069]/g
+// Runs after formatting is gone, so "ext. 23" is already "ext23". A digit on both sides, once:
+// "x23" alone or a second marker is left in place and fails the shape check below.
+const EXTENSION_MARKER = /(\d)(?:extension|ext|x)(?=\d)/i
+// Optional leading +, then digits, *, #, and pauses (, or ;), with a digit before the first pause
+// so the part a text goes to always holds one. \d is ASCII-only in JS, so non-ASCII digits fail:
+// we would rather refuse a number than hand the dialer one it may read differently.
+const DIALABLE_SHAPE = /^\+?[*#]*\d[\d*#,;]*$/
+
+/**
+ * What `tel:` receives, or null when the number cannot be dialled as it stands.
+ * ADDED 2026-11-06 (final review I-2): replaces normalizeNumber, which kept a leading "+" and the
+ * digits and dropped everything else. A number saved as "555-010-0001,,23" became tel:555010000123,
+ * a longer number that rings a stranger with no error and no toast. So only formatting is stripped
+ * here; a pause (,), a wait (;), * and # are kept, an extension becomes one pause, and anything else
+ * (vanity letters, a "+" not at the start, non-ASCII digits) is refused rather than guessed at.
+ */
+export function dialableNumber(raw: string): string | null {
+  const cleaned = raw.trim().replace(NUMBER_FORMATTING, "").replace(EXTENSION_MARKER, "$1,")
+  return DIALABLE_SHAPE.test(cleaned) ? cleaned : null
 }
 
 /** The first contact is the sponsor; everyone after defaults to "support". */
@@ -76,11 +95,19 @@ export function addContact(
   // only of digits and phone punctuation is therefore stored as "" so the row
   // shows the role alone. An explicit class, not \p{L}: any other character
   // ("12 Step Dave") marks a real name and keeps it.
+  // CHANGED 2026-11-06 (final review I-2): anything dialableNumber accepts is a number too. A
+  // nameless contact whose number carries bidi marks or an extension got past the character class
+  // and would have rendered the number as the name.
   const trimmedName = picked.name.trim()
-  const name = /^[0-9\s+().#*,;/-]*$/.test(trimmedName) ? "" : trimmedName
+  const name =
+    /^[0-9\s+().#*,;/-]*$/.test(trimmedName) || dialableNumber(trimmedName) !== null
+      ? ""
+      : trimmedName
   const number = picked.number.trim()
+  // CHANGED 2026-11-06 (final review I-2): the check was "has any digit". A number we could not
+  // dial (1-800-FLOWERS) would have been saved and then failed in the moment it was needed.
+  if (dialableNumber(number) === null) return { kind: "invalid" }
   const key = digitsOf(number)
-  if (key === "") return { kind: "invalid" }
   if (!canAddContact(contacts)) return { kind: "full" }
   if (contacts.some((c) => digitsOf(c.number) === key)) return { kind: "duplicate" }
   return { kind: "ok", contacts: [...contacts, { role, name, number }] }
@@ -161,8 +188,19 @@ export function decideCrisisLine(regionCode: string | null | undefined): { numbe
 
 export type DialKind = "call" | "text"
 
-export function dialUrl(kind: DialKind, number: string): string {
-  return `${kind === "call" ? "tel:" : "sms:"}${normalizeNumber(number)}`
+/**
+ * The link for the phone or messages app, or null when the number cannot be dialled (the caller
+ * shows its "couldn't open" toast). ADDED 2026-11-06 (final review I-2).
+ * - `call` keeps pauses and waits; the dialer plays them after the call connects.
+ * - `text` stops at the first pause or wait: messages go to the phone number, not an extension.
+ * - `#` is percent-encoded in both, because a bare `#` starts a URL fragment and whatever follows
+ *   it would silently fall off the number.
+ */
+export function dialUrl(kind: DialKind, number: string): string | null {
+  const dialable = dialableNumber(number)
+  if (dialable === null) return null
+  const target = kind === "call" ? dialable : dialable.split(/[,;]/, 1)[0]
+  return `${kind === "call" ? "tel:" : "sms:"}${target.replace(/#/g, "%23")}`
 }
 
 export type PhoneContactPickerErrorCode = "no_picker" | "no_number" | "in_progress" | "unknown"

@@ -983,7 +983,10 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   `restoredState`. SecureStore's default accessibility means an iOS device backup or transfer carries the contacts, like MMKV, so the fresh-install clear does not fire on a restore. `addContact` stores `""` when the name is only digits and
   punctuation (Android's `Phone.DISPLAY_NAME` holds the number for a nameless
   contact); don't remove that. `useSupportDial` is the one dial path (open,
-  track on success, toast on failure). The local module wraps Apple's and
+  track on success, toast on failure). `dialableNumber` is what a dial link is
+  built from: it strips formatting and keeps `,` `;` `*` `#`, because merging a
+  saved pause into the digits rings a longer, wrong number with no error; it
+  returns null for anything else, and `addContact` refuses those. The local module wraps Apple's and
   Android's own pickers (error codes `no_picker` / `no_number` / `in_progress` /
   `unknown`) so the app needs no contacts permission; expo-contacts adds
   `READ_CONTACTS`, and `supportPolicy.test.ts` greps for that. `.gitignore` and

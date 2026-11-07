@@ -97,6 +97,10 @@ rendered) is refused with the toast "That contact is already in your list", so t
 cannot fill two rows. A picked contact with an empty display name is kept and shown by its role
 alone. Names render on one line and truncate; nothing is stored shortened. The number is stored
 exactly as the OS returned it, because `tel:` accepts what the dialer accepts.
+CHANGED 2026-11-06 (final review I-2): stored verbatim still, but cleaned on the way to the dialer
+by `dialableNumber`: formatting goes, a pause, wait, `*` and `#` stay, an extension becomes one
+pause, and a number it cannot read (vanity letters, a misplaced `+`) is refused at add time. Merging
+those characters into the digits rang a longer, wrong number with no error.
 
 **D4. Storage: SecureStore, and nowhere else.** One key, `support_contacts_v1`, holding a JSON
 array of up to three `{ role, name, number }` (well under SecureStore's 2 KB limit). Never in an

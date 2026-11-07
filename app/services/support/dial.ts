@@ -17,10 +17,18 @@ const log = logger.child({ module: "Support" })
  * Names only (spec D1): the warn line carries `{ kind }` and nothing else. Not
  * the URL (it is the number), not the number, and not the error message, which
  * on some platforms echoes the URL it failed to open.
+ *
+ * CHANGED 2026-11-06 (final review I-2): `dialUrl` is null for a number that cannot be dialled, and
+ * that takes the same `false` path, so the person sees the toast rather than a wrong call.
  */
 export async function openDial(kind: DialKind, number: string): Promise<boolean> {
   try {
-    await Linking.openURL(dialUrl(kind, number))
+    const url = dialUrl(kind, number)
+    if (url === null) {
+      log.warn("Number cannot be dialled", { kind })
+      return false
+    }
+    await Linking.openURL(url)
     return true
   } catch {
     log.warn("Could not open the dialer", { kind })
