@@ -498,19 +498,24 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // 6. Clear secure store data (auth credentials, terms)
               await clearAllSecureData()
 
-              // 6b. Support contacts (sponsor name and number) live in their own
-              // keychain item, which clearAllSecureData does not touch.
-              // ADDED 2026-11-06 (support contacts spec D4). Never throws, so it may
-              // sit inside the try. The app reloads afterwards, so the bare keychain
-              // clear is enough (no in-memory store to empty).
-              await clearSupportContacts()
-
               // 7. Logout from Auth0 (clear session + MST auth state)
               await logout()
             } catch {
               // Even if some steps fail, ensure auth is cleared
               authStore.logout()
             }
+
+            // 6b. Support contacts (sponsor name and number) live in their own
+            // keychain item, which clearAllSecureData does not touch.
+            // ADDED 2026-11-06 (support contacts spec D4). The bare keychain clear is
+            // enough: the app reloads afterwards, so there is no in-memory store to empty.
+            // CHANGED 2026-11-06 (Task 8 review I-1): sits OUTSIDE the steps 1-7 try, like
+            // 7b, because clearAllSecureData() (a locked keychain) or an earlier step can
+            // throw and would skip it while the reload still runs. The fresh-install clear
+            // in app.tsx is no backstop: the catch's authStore.logout() and step 7's
+            // logout() write the root snapshot back to MMKV, so the next launch counts as
+            // restored and a "deleted" person's sponsor would survive. Never throws.
+            await clearSupportContacts()
 
             // 7b. ADDED 2026-11-04 (My Day design D8, §4.9): delete My Day's
             // database, its key and its session record. The reset lives in

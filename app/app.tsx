@@ -516,9 +516,12 @@ export function App() {
 
         // ADDED 2026-11-06 (support contacts spec D4): the keychain outlives an
         // uninstall on iOS, MMKV does not. No persisted root snapshot means a
-        // fresh install (or a Delete User Data reload), so a previous
-        // installer's sponsor must not greet whoever opens the app next. A rare
-        // MMKV read failure also lands here; clearing is the safe direction.
+        // fresh install, so a previous installer's sponsor must not greet
+        // whoever opens the app next. A rare MMKV read failure also lands here;
+        // clearing is the safe direction.
+        // CHANGED 2026-11-06 (Task 8 review I-1): no longer claims to cover a Delete
+        // User Data reload. Logout writes the snapshot back, so that reload is
+        // usually "restored"; Delete User Data clears the contacts itself (step 6b).
         // Runs BEFORE hydrate.
         if (!restoredState) await clearSupportContacts()
         await _rootStore.supportStore.hydrate()

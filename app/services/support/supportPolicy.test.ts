@@ -38,7 +38,12 @@ describe("support contacts reset policy (spec D4)", () => {
   const appDir = path.join(repo, "app")
   const read = (rel: string) => readFileSync(path.join(appDir, rel), "utf8")
   it("Settings Delete User Data and the dev purge call clearSupportContacts(", () => {
-    expect(read("screens/SettingsScreen.tsx")).toMatch(/clearSupportContacts\(/)
+    // CHANGED 2026-11-06 (Task 8 fix round 1): the call must sit OUTSIDE the steps 1-7 try,
+    // after its catch and before the database reset, so a throw from an earlier step cannot skip it.
+    const settings = read("screens/SettingsScreen.tsx")
+    const call = settings.indexOf("clearSupportContacts()")
+    expect(call).toBeGreaterThan(settings.indexOf("Even if some steps fail"))
+    expect(call).toBeLessThan(settings.indexOf("resetLocalDatabase("))
     expect(read("utils/devPurge.ts")).toMatch(/clearSupportContacts\(/)
   })
   it("the database overlay Reset calls the injected resetSupportContacts", () => {
