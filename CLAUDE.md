@@ -324,7 +324,7 @@ MST with MMKV persistence in `app/models/`:
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed. Fed by the NetInfo listener in `app/services/network/` (registered once in `app.tsx`; sole writer). `isOffline` keys off the interface state, not the reachability probe.
 - **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `mapStyleUrlLight` / `mapStyleUrlDark` (full MapTiler style URLs — the API key rides inside them and is deliberately **never** baked into the binary), `presenceRadiusM` (default 150 m; `devPresenceRadiusM` overrides it in dev builds only), `isLoaded` / `isLoading`. NOT persisted to MMKV (security). The raw /config payload IS cached in the encrypted SQLite `config_caches` table so warm cold-starts skip the fetch gate — maintenance fields are never applied from cache. See `applyServerConfig` and docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md. There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
-- **ConversationStore**: AI agent conversation state
+- **ConversationStore**: which conversation with Sky this device is on. Props (MMKV): `conversationId`, `conversationIsFresh`. Volatile: `collapsedToolResults`. CHANGED 2026-11-06: nothing of what was said is held here or anywhere on the device, see "AI Agent Integration".
 
 ```typescript
 // Access stores in components (wrap with observer())
@@ -560,10 +560,10 @@ builds restore it.
 SQLite with Drizzle ORM in `app/db/`:
 - **DatabaseProvider**: Runs Drizzle migrations on startup, seeds data on first launch
 - **provider.ts**: Creates expo-sqlite database and Drizzle instance
-- **repositories.ts**: Lazy proxy objects over common-lib repository classes — `meetingRepo`, `scheduleRepo`, `attendanceRepo`, `attendanceReportRepo`, `feedbackRepo`, `chatMessageRepo`, `reminderRepo`, `syncQueueRepo`, `attendanceSyncWriter`, `profileRepository`. This file is also the **single mutation choke point** that enqueues to the sync outbox (see "Attendance Cloud Backup & Sync"); `attendanceSyncWriter` is the deliberate bypass used by inbound pulls.
+- **repositories.ts**: Lazy proxy objects over common-lib repository classes — `meetingRepo`, `scheduleRepo`, `attendanceRepo`, `attendanceReportRepo`, `feedbackRepo`, `chatMessageRepo`, `reminderRepo`, `syncQueueRepo`, `attendanceSyncWriter`, `profileRepository`. This file is also the **single mutation choke point** that enqueues to the sync outbox (see "Attendance Cloud Backup & Sync"); `attendanceSyncWriter` is the deliberate bypass used by inbound pulls. CHANGED 2026-11-06: `chatMessageRepo`'s only caller is `ChatWipeRunner`'s one-time delete.
 - **attendanceEvents.ts**: Simple pub/sub for cross-component attendance updates. Event types: `"created" | "processed" | "produced" | "archived" | "delivery_resolved"`. Subscribe in `useEffect`, emit after mutations. `delivery_resolved` includes `deliveryError?: boolean` for report delivery status.
 - **liveEvents.ts** / **reminderEvents.ts**: Similar pub/sub for live meeting preference and reminder changes
-- **Resumer/hydrator components** mounted in the provider tree: `ProfileHydrator`, `ChatHydrator`, `ReportPollingResumer` (restarts delivery polling after a cold start), `TimerSessionResumer` (recovers an external-Zoom timer session killed mid-meeting), `SyncResumer`, `BackupPassRunner` (the one-off cloud-backup pass — see `docs/BACKUP.md`; bump `BACKUP_PASS_ID` in `backupPassLogic.ts` to run it again)
+- **Resumer/hydrator components** mounted in the provider tree: `ProfileHydrator`, `ChatWipeRunner` (deletes an earlier build's chat rows once, only in a build with a valid agent URL; CHANGED 2026-11-06, it took `ChatHydrator`'s slot; `app.tsx` imports it directly, not through the `app/db` barrel, depcruise cycle), `ReportPollingResumer` (restarts delivery polling after a cold start), `TimerSessionResumer` (recovers an external-Zoom timer session killed mid-meeting), `SyncResumer`, `BackupPassRunner` (the one-off cloud-backup pass — see `docs/BACKUP.md`; bump `BACKUP_PASS_ID` in `backupPassLogic.ts` to run it again)
 
 Migrations come from `@recoverysky-org/common/sqlite` (the `migrations` export), using the `useMigrations` hook.
 
@@ -1488,8 +1488,48 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 - Connects to `configStore.agentUrl` (from env var or server config)
 - Uses `@ai-sdk/react` `useChat()` hook for streaming responses
 - Supports tool calls (meeting search, recovery resources)
-- Conversation persisted to ConversationStore
 - Agent tab gated behind `isPremium` entitlement
+
+ADDED 2026-11-06 (spec `docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md`): **the
+agent holds the thread, and the phone keeps nothing of what was said.** The device pass is still open:
+it waits on the agent release that ships both of the agent's designs (the spec's D10), so none of this
+has been seen working on a phone.
+- **Turn-only body.** `chatRequestBody()` (`app/utils/agentBodyLogic.ts`, vitest) sends
+  `conversation_id`, one message (`turnOf`: the newest that is the person's or an answered card, never
+  a partial reply the SDK kept after a failed stream), `timezone` and `fellowship`. A retry resends the
+  same message id, and the agent stores it once.
+- **Agent-held thread.** `useAgentConversation` runs the pure `openConversation`
+  (`app/utils/agentConversationLogic.ts`, vitest) each time the tab takes focus with a session and AI
+  consent, not only on mount, because bottom tabs stay mounted. It lists the newest `base-identity`
+  conversation and reads up to 200 of its messages through `agentConversationsClient`
+  (`app/services/api/agentConversations.ts`; parsing in `agentConversationsLogic.ts`, vitest). None
+  listed: it mints a UUID here. A listing that fails with nothing on screen shows the error row and
+  the composer waits, because minting then would fork the thread.
+- **Fresh flag.** `conversationIsFresh` means the id was minted here and the agent has taken no turn
+  on it. A fresh open reads nothing: the listing would answer an older thread and undo New
+  conversation, and the messages read could only earn a 404, which CrowdSec bans for. It clears when a
+  turn starts streaming, since the agent has stored the message by then. It persists, so a restart
+  between New conversation and the first turn stays on the new id.
+- **The re-read rule.** Some turns exist only on the screen: the agent stores nothing for a refused
+  turn, including the crisis resources it streams for one, and a failed turn's words were never
+  answered. So the screen keeps the ids it sent (`chatState.sentIds`), and a focus re-read may change
+  nothing until each one is in the agent's stored messages. If one is missing or the read fails, the
+  screen stays as it is. A read landing during a turn, or after the sent ids changed, is dropped whole.
+  This is what stops a tab switch erasing a crisis reply; don't simplify it to "replace on focus".
+- **Stale refusals.** `isStaleRefusal()` reads the error's JSON body. `400 message_id_taken` /
+  `continuation_mismatch`, `409 conversation_archived` and `403` "Access denied" mean the thread in
+  memory is stale: re-list, re-read, no error row, and the person's last words go back in the composer.
+- **Archive, never erase.** New conversation mints a fresh id and archives the rest unawaited with
+  `except`, so it can land before or after the first turn. Settings → Delete User Data step 3 archives
+  with no `except`, bounded at 5 s, only in a build with a valid agent URL (the direct
+  `process.env.EXPO_PUBLIC_AGENT_URL`, because `configStore.agentUrl` is never empty), then forgets the
+  id in every build. **Both erase nothing, on Jenova's ruling of 2026-11-06**: the thread and what Sky
+  remembers stay on the agent, and any doc that says otherwise is wrong. The gates to settle before
+  the tab returns to production (erasure, the words that promise otherwise, the production wipe) are
+  in `TODO.md`.
+- **`ChatWipeRunner`** (`app/db/`) deletes the rows earlier builds kept, once. It gates on the agent URL
+  so an OTA does not delete a production person's only readable copy of old chats behind a hidden tab.
+  Don't drop that gate to finish the cleanup.
 
 ## My Day (Daily Dash)
 

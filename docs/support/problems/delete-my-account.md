@@ -29,19 +29,19 @@ Background: [device owner: Delete User Data](../reference/device-owner.md#delete
    {service_name="recoverysky-app", module="useAuth0Wrapper"} |= "Device owner relinked into a linked account" | ownerId="<hash>"
    ```
    Loki keeps 31 days, so no hit does not prove no phone owns it. Ask the user how many phones they have used.
-4. **Does the account hold server data?** There is no support-side query for server rows. The partial check is the API push line, `{service_name="app_api"} |= "Attendance sync push processed" |= "<hash>"` ([data-missing-after-new-phone](data-missing-after-new-phone.md#diagnose) step 5). Assume server data exists if the user ever had Cloud Backup on, sent a report, set a reminder or allowed push notifications.
+4. **Does the account hold server data?** There is no support-side query for server rows. The partial check is the API push line, `{service_name="app_api"} |= "Attendance sync push processed" |= "<hash>"` ([data-missing-after-new-phone](data-missing-after-new-phone.md#diagnose) step 5). Assume server data exists if the user ever had Cloud Backup on, sent a report, set a reminder, allowed push notifications or talked to Sky.
 5. **Active subscription?** Ask. Store subscriptions are billed by Apple or Google; nothing we delete cancels them.
 
 ## What each piece deletes
 
 | Action | Deletes | Does not delete |
 | --- | --- | --- |
-| Settings, "Delete User Data" (user, in the app) | This phone's local data: attendance, reports, reminders, profile, settings, conversation history; the phone's owner record. Signs out. | Anything on our servers. The Auth0 account. The subscription. Other phones. The confirmation it shows does not mention servers. The handler also archives the person's Sky conversations in builds where the tab exists, which hides them from the app and erases nothing (`handleDeleteUserData`). |
+| Settings, "Delete User Data" (user, in the app) | This phone's local data: attendance, reports, reminders, profile, settings, any Sky chat an older build left on the phone; the phone's owner record. Signs out. | Anything on our servers. The Auth0 account. The subscription. Other phones, with one exception: in builds where the tab exists, Sky's thread also goes from the person's other phones at their next open, and it is still not erased. The confirmation it shows does not mention servers. The handler also archives the person's Sky conversations in builds where the tab exists, which hides them from the app and erases nothing (`handleDeleteUserData`). |
 | Auth0 user delete (support, `DELETE /api/v2/users/{sub}`) | The sign-in account, its linked identities and login history. Irreversible. | Server rows, the RevenueCat customer, any store subscription. |
 | Server rows | Nothing deletes them today. There is no account-deletion route in the API (`/auth0` has only `profile`, `link` and the email-verify routes). `DELETE /sync/backup` exists but answers 404 unless `SYNC_BACKUP_DELETE_ENABLED=true` (tabled 2026-09-30, off), the app never calls it, and it would remove only attendance not yet in a report, never reports. | |
 | RevenueCat customer | Nothing support can run. | |
 
-Server data for an account is at least what the link sweep knows about: attendance, attendance reports, reminders, notification deliveries, report unsubscribes, push tokens, notification subscriptions ([list](../reference/account-linking.md#what-moved-covers)). Engineering owns the full list.
+Server data for an account is at least what the link sweep knows about: attendance, attendance reports, reminders, notification deliveries, report unsubscribes, push tokens, notification subscriptions ([list](../reference/account-linking.md#what-moved-covers)). The agent also holds the person's Sky conversations, archived ones included, and what Sky remembers about them. Nothing erases those for a RecoverySky account today: the agent's purge route (`DELETE /api/v1/subjects/{sub}`) is called only by the Daily Dash API, and "Delete User Data" archives. Engineering owns the full list.
 
 ## Causes
 
@@ -52,7 +52,7 @@ Local data only. Delete User Data does it.
 Needs the user (each phone), engineering (server rows, RevenueCat) and support (Auth0 user), in that order.
 
 ### C. The user ran Delete User Data and thinks the account is gone
-It was local only. Their account and any server data remain; if they want those gone, this is case B.
+It was local only, with one exception: in builds where the tab exists, Sky's thread is archived, so it also goes from their other phones at their next open, and it is not erased. Their account and any server data remain, Sky's conversations and what Sky remembers included; if they want those gone, this is case B.
 
 ## Solution
 
@@ -68,13 +68,13 @@ The user opens Settings, taps "Delete User Data" and confirms with "OK!". Warn f
 6. **Tell the user honestly** what is done and what is still with engineering (reply `account-deleted`). Do not promise a date for server-data deletion.
 
 ### Case C
-Explain that Delete User Data cleared the phone only. Ask whether they want the account and server data gone too; if yes, Case B.
+Explain that Delete User Data cleared the phone only, apart from Sky's thread in builds where the tab exists: that goes from their other phones too at their next open, and it stays on the agent, not erased. Ask whether they want the account and server data gone too; if yes, Case B.
 
 **Old app versions.** A phone still on an old build has no owner record yet. If it later updates while still signed in, the update stamps the signed-in account as owner (`Owner stamped from hydration`), and after the Auth0 delete that phone would be stuck too. Ask the user to sign out on any old-build phone, or to update it and run step 2. (Code-derived from `setupRootStore.ts`, not device-tested.)
 
 ## Escalate
 
-Every Case B goes to engineering for server rows and the RevenueCat customer: there is no support procedure for either. Also escalate when the user cannot prove control of the address, when a phone that owns the account cannot be cleared and the user still wants the Auth0 user gone now, or when the request mentions a legal deadline. Attach: the hash of every account to delete (computed locally; never raw subs or addresses), their `user_id` prefixes and `created_at`, whether Cloud Backup, reports, reminders or a subscription were used, whether the user came from the old app, the `ownerId` Loki hits (phones that own the account), `appVersion` and platform if known, and the date of the request (timezone).
+Every Case B goes to engineering for server rows and the RevenueCat customer: there is no support procedure for either. Also escalate when the user cannot prove control of the address, when a phone that owns the account cannot be cleared and the user still wants the Auth0 user gone now, or when the request mentions a legal deadline. Attach: the hash of every account to delete (computed locally; never raw subs or addresses), their `user_id` prefixes and `created_at`, whether Cloud Backup, reports, reminders, Sky or a subscription were used, whether the user came from the old app, the `ownerId` Loki hits (phones that own the account), `appVersion` and platform if known, and the date of the request (timezone).
 
 ## Reply
 
@@ -87,6 +87,8 @@ See [../replies/delete-my-account.md](../replies/delete-my-account.md). Expected
 ## Sources
 
 - `app/screens/SettingsScreen.tsx` (`handleDeleteUserData`)
+- `docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md` (D7, "Privacy")
+- `agent:apps/api/src/routes/subjects.ts` (the purge route)
 - `app/i18n/en.ts` (`settingsScreen.deleteUserData`, `deleteUserDataConfirm`, `common.ok`)
 - `app/services/auth/ownerLogic.ts` (`decideOwnership`)
 - `app/services/auth/useAuth0Wrapper.ts` (`logout`, owner log lines)

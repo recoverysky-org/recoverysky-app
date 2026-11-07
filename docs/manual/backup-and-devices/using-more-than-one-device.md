@@ -6,8 +6,8 @@ platforms: [ios, android]
 tier: attendance
 aliases: ["two phones", "second device", tablet, "sync between devices", "favorites didn't move", "didn't come over"]
 ---
-<!-- sources: docs/BACKUP.md, app/screens/SettingsScreen.tsx, app/services/sync/attendanceSyncService.ts, app/services/sync/syncLogic.ts, app/db/feedbackCache.ts, app/services/api/index.ts, app/models/ProfileStore.ts, app/context/SubscriptionContext.tsx, app/hooks/useReminders.ts, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/login/guestEntryLogic.ts, app.json, CLAUDE.md -->
-You can use RecoverySky on more than one phone or tablet. Sign in with the same account on each one, and turn on "Back up attendance" on each one. Your attendance records and the reports you have sent then move between them through Cloud Backup. Nothing else you save in the app moves between devices. This needs the Attendance subscription.
+<!-- sources: docs/BACKUP.md, app/screens/SettingsScreen.tsx, app/services/sync/attendanceSyncService.ts, app/services/sync/syncLogic.ts, app/db/feedbackCache.ts, app/services/api/index.ts, app/models/ProfileStore.ts, app/context/SubscriptionContext.tsx, app/hooks/useReminders.ts, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/login/guestEntryLogic.ts, app.json, CLAUDE.md, app/hooks/useAgentConversation.ts, docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md -->
+You can use RecoverySky on more than one phone or tablet. Sign in with the same account on each one, and turn on "Back up attendance" on each one. Your attendance records and the reports you have sent then move between them through Cloud Backup. This needs the Attendance subscription. Your conversation with Sky also shows on each device, because Sky keeps it on RecoverySky's servers under your account. Nothing else you save in the app moves between devices.
 
 ## How to set up a second device
 
@@ -30,6 +30,8 @@ Two things move between your devices through Cloud Backup, which needs the Atten
 When you turn on "Back up attendance" on a device, the app backs up that device's whole attendance history, not only what you log from then on.
 
 When the same record is changed on both devices, the latest change wins.
+
+**Your conversation with Sky** moves too, without Cloud Backup. Sky keeps it on RecoverySky's servers under your account, not on the phone, so the Sky Agent tab shows it on each device signed in to that account. The Sky Agent tab needs Premium. "New conversation" on one device starts it over on the others the next time you open the tab there.
 
 ## What stays on each device
 
@@ -68,7 +70,7 @@ Still missing? Contact support@recoverysky.app and mention which device is missi
 ## Questions people ask
 
 **Q:** My favorites didn't come over to my new phone.
-**A:** Favorites are not part of Cloud Backup. They stay on the phone where you tapped them. Only attendance records and the reports you have sent move between phones. Heart your favorite meetings again on the new phone.
+**A:** Favorites are not part of Cloud Backup. They stay on the phone where you tapped them. Only attendance records, the reports you have sent and your conversation with Sky move between phones. Heart your favorite meetings again on the new phone.
 
 **Q:** Can I use RecoverySky on two phones?
 **A:** Yes. Sign in with the same account on both, and turn on "Back up attendance" in Settings → "Cloud Backup" on both. Your attendance records and sent reports then move between them. This needs the Attendance subscription.

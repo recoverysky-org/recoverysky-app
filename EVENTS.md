@@ -246,7 +246,7 @@ All payloads obey the privacy rule stated in Group 3a.
 | `agent_screen_opened` | User opened the AI agent tab | — | `app/screens/AgentScreen.tsx` |
 | `agent_tool_called` | Agent executed a tool call | `{ tool }` | `app/screens/AgentScreen.tsx` |
 | `agent_meeting_opened` | User opened a meeting from agent results | — | `app/screens/AgentScreen.tsx` |
-| `agent_conversation_cleared` | User cleared conversation history | — | `app/screens/AgentScreen.tsx` |
+| `agent_conversation_started` | User started a new conversation | — | `app/hooks/useAgentConversation.ts` |
 
 ### Notifications
 

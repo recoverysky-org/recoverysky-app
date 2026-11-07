@@ -32,12 +32,15 @@ design's §4, agent plan 1), both unbuilt. Then `MyDayHost` passes
 `capabilities.sky` and every moment routes to the Sky Agent tab. What
 `AgentScreen` needs, in order:
 
-- [ ] **The `daily-dash/1` guide, a `conversation_id` and the `moment`** on the
-      chat body for conversations My Day opens. Today it sends neither guide
-      nor id and keeps history in encrypted SQLite, while the agent holds
-      those conversations' history (Sky chat design D8). So a second history
-      model sits beside `ConversationStore` or replaces it: that design's
-      decision.
+- [x] **Where the history lives.** DECIDED 2026-11-06 by
+      `docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md`: there
+      is no second history model. The agent holds the thread, `AgentScreen`
+      sends a `conversation_id` and the turn only, and `ConversationStore`
+      keeps the id and a fresh flag. Built on root; its device pass waits on
+      the agent release that ships both of the agent's designs.
+- [ ] **The `daily-dash/1` guide and the `moment`** on the chat body for
+      conversations My Day opens. Today the body carries neither, so the agent
+      uses its default guide.
 - [ ] **The approval card** (`skyCardLogic` + `SkyCard`,
       `addToolApprovalResponse`, `sendAutomaticallyWhen:
       lastAssistantMessageIsCompleteWithApprovalResponses`). Without it a
@@ -50,6 +53,29 @@ design's §4, agent plan 1), both unbuilt. Then `MyDayHost` passes
       hand-off: this app's client id stays in the agent's `DD_APP_CLIENT_IDS`
       (its CLAUDE.md marks it for removal), and `daily-dash/1`'s stripping of
       the RecoverySky manual tools is wrong when the host is this app.
+
+**Before the Sky tab returns to production (turn-only spec, "Privacy").**
+Delete User Data and New conversation archive and erase nothing, on Jenova's
+ruling of 2026-11-06. None of these changes the build as it stands, since the
+tab is hidden in production, and each is a decision to make knowingly:
+
+- [ ] **Erasure.** Whether Delete User Data should erase on the agent: an erase
+      route, a change for the agent team. Today nothing erases a RecoverySky
+      account's conversations or what Sky remembers.
+- [ ] **The words that promise otherwise.** `settingsScreen:deleteUserDataConfirm`
+      ("delete all your user data"), `onboarding:privacyControlBody` ("Your
+      records stay on this device unless you send a report or turn on cloud
+      backup") and the AI consent text, which is CMS content, not in this repo.
+      The `clear-this-phone` reply in `docs/support/replies/delete-my-account.md`
+      ("from this phone only") goes with them.
+- [ ] **The production wipe.** `ChatWipeRunner` runs only in a build with a valid
+      agent URL, so in production it waits for the tab. The pass gates on the
+      URL alone, not on premium or sign-in, so once the tab returns a lapsed or
+      non-premium person's rows are deleted with no tab to see. Those rows are
+      their only readable copy of chats from before the tab was hidden.
+- [ ] **The fellowship.** An imported Marijuana Anonymous profile sends `MA`,
+      outside the agent's closed list (`AA`, `NA`, `CMA`, `RD`), so every turn
+      answers 400.
 
 **The rest:**
 

@@ -32,12 +32,47 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ### Changed
 - My Day's crisis path opens the Support screen, which offers "Find a live
   meeting now" itself, instead of going straight to Meetings → Online.
+- **The Sky tab sends only the message you typed.** Sky keeps the conversation
+  and a summary of its older part, so long conversations cost less and she
+  remembers further back. The thread is read from Sky on open and no longer
+  kept on the phone, so it survives a reinstall and shows on a second device.
+  Clear conversation is New conversation: the thread starts over on this device
+  at once and on the person's other devices at their next open. The old one is
+  archived, so no app shows it again, and it is not erased; what Sky remembers
+  stays too. A turn the agent did not keep (the crisis resources for a refused
+  turn, a failed turn's words) stays through a tab switch but not a restart. The
+  tab is hidden in production, so production users see none of this, and it
+  needs the agent releases of both designs (per-turn context and the conversation
+  archive). Its device pass is still open. (No tracker issue.)
+- **Settings → Delete User Data starts Sky's conversation over, and erases
+  nothing on the server.** In builds where the tab exists it archives the
+  person's conversations before sign-out, waiting at most 5 seconds, so the next
+  sign-in opens empty, and the thread goes from their other phones at their next
+  open. Production builds, with the tab hidden, make no call. Without this the
+  thread would have come back at the next sign-in. (No tracker issue.)
+
+### Fixed
+- **Sky's meeting card collapses to "Selected: …" when the meeting popup closes,**
+  as it was always meant to. The old action looked for a part type the SDK never
+  writes, so the card never collapsed. Rows from before this agent no longer
+  show "Using invocation…" for good. Same hidden tab. (No tracker issue.)
 
 ### Removed
 - The unused iOS contacts usage string. Apple's picker needs none.
+- **Sky's chat rows on the phone.** A one-time pass deletes the rows earlier
+  builds kept in the encrypted database. It runs only in a build with an agent
+  URL, so production keeps them, unread, until the tab returns there; Delete User
+  Data still removes them with the database file. (No tracker issue.)
 
 ### Docs
 - (manual) The new `home/support` page, with the map sentence and questions.
+- (manual) Sky keeps the conversation on RecoverySky's servers under the account,
+  the one exception to what moves between phones, and New conversation and Delete
+  User Data start it over without erasing it: the map, `one-account-per-phone`,
+  `using-more-than-one-device` and `new-phone`.
+- `EVENTS.md`: `agent_conversation_cleared`, which nothing fired, is
+  `agent_conversation_started`. The support docs for Delete User Data name Sky's
+  conversations and what Sky remembers as server data nothing erases.
 
 ### Build
 - The local `phone-contact-picker` module, a native change: the next release is

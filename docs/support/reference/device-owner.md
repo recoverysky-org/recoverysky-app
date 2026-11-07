@@ -129,7 +129,7 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 
 1. RevenueCat logout (`logOut`; the SDK goes back to its own random customer id).
 2. Push opt-out and notification user logout.
-3. Clear the AI conversation history.
+3. Sky's conversations. In builds where the Sky tab exists (a valid `EXPO_PUBLIC_AGENT_URL`), archive them on the agent (`POST /api/v1/conversations/archive`), bounded at 5 seconds: no app shows them again, and nothing is erased. A failure logs ERROR `Delete User Data: Sky's conversations were not archived`, the delete carries on, and that thread comes back at the next sign-in. In every build, forget the conversation id this phone holds. Before sign-out, because the call needs the bearer.
 4. `profileStore.reset()`.
 5. Clear all MMKV storage (every persisted snapshot, including the auth store props, the owner record's MMKV copy, sync queue ownership and the local `emailVerify.*` records).
 6. Clear SecureStore auth credentials and the stored terms acceptance (`clearAllSecureData`: these two keys only).
@@ -143,13 +143,14 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 
 | Where | Effect | Basis |
 | --- | --- | --- |
-| This install's local data | Gone: attendance, reports, reminders, profile, settings, conversation history. Unsynced local records are lost. | Verified in handler |
+| This install's local data | Gone: attendance, reports, reminders, profile, settings, and any Sky chat rows an older build left in the database (step 8). Unsynced local records are lost. | Verified in handler |
+| Sky's conversations and what Sky remembers (agent) | **Not erased.** In builds where the tab exists, step 3 archives the conversations, so they go from this phone and from the person's other phones at their next open. They stay on the agent, and so does what Sky remembers. Production builds with the tab hidden make no call. | Handler verified; the agent's side is from the spec `docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md`, not device-tested (blocked until the agent ships) |
 | Device owner | Cleared. The next sign-in on this install (any account) is `adopt`ed into an empty database. | Verified |
 | Legal agreements | Asked again at the next sign-in (terms key cleared). | Verified |
 | Verify-email skip count and local "verified" record | Reset (MMKV cleared), so a user mid-skip gets six more skips and the ID-token claim decides again. | Verified clear; consequence is inferred |
 | Device attestation (device JWT and App Attest key id) | **Not** cleared by `clearAllSecureData` (only the credentials and terms keys are). The install keeps its device trust. | Verified in `secureStorage.ts` |
-| Auth0 user (account, identities, email, verified flag) | **Untouched.** The handler makes no Auth0 or API call. The user can sign in again with the same method. | Verified: no server call in the handler |
-| Cloud backup (server attendance rows) | **No server call is made by this handler**, so rows already pushed stay on the server and a later sign-in with Cloud Backup on can pull them back. Reports are never deleted server-side. A "delete cloud backup" feature is not built. | Handler verified; the survival of server rows follows from there being no delete call, and was not checked on the API |
+| Auth0 user (account, identities, email, verified flag) | **Untouched.** The handler makes no Auth0 or API call (step 3's archive goes to the agent). The user can sign in again with the same method. | Verified: no such call in the handler |
+| Cloud backup (server attendance rows) | **This handler makes no call to the backup API** (step 3's archive goes to the agent and does not touch these rows), so rows already pushed stay on the server and a later sign-in with Cloud Backup on can pull them back. Reports are never deleted server-side. A "delete cloud backup" feature is not built. | Handler verified; the survival of server rows follows from there being no delete call, and was not checked on the API |
 | Subscription | RevenueCat is logged out locally. The entitlement belongs to the RevenueCat customer for the Auth0 user id, so it should return on sign-in. | Inferred, not tested |
 
 The user-facing consequence is that Delete User Data is the only in-app way out of a stuck wrong-account loop, but it is reachable only after the owner's own sign-in succeeds (for a code owner: "Send code to {{email}}" on the wrong-account screen, then Settings, Delete User Data; code-derived, not device-tested). It discards unsynced local data. Advise it only after confirming nothing unsynced matters, or after trying the owner's original sign-in method.

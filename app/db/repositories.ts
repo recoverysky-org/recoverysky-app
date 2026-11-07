@@ -628,6 +628,11 @@ function getChatMessageRepo(): ChatMessageSqliteRepository {
  *
  * Stores AI agent conversation messages for persistence across app restarts.
  * Messages include tool invocations serialized as JSON for conversation continuity.
+ *
+ * CHANGED 2026-11-06 (spec 2026-11-06-agent-chat-turn-only-design.md, D4): the above describes rows
+ * only earlier builds wrote. The agent holds the thread now and nothing reads or writes rows here,
+ * except that ChatWipeRunner's one-time `clear()` deletes them. The other methods stay until the
+ * production wipe is decided (TODO.md); a new caller of them would put chats back on the phone.
  */
 export const chatMessageRepo = {
   /** Find all messages ordered by createdAt */
