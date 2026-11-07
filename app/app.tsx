@@ -22,7 +22,7 @@ if (__DEV__) {
 }
 import "./utils/gestureHandler"
 
-import { PropsWithChildren, useEffect, useRef, useState } from "react"
+import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react"
 import { Alert, AppState, AppStateStatus, BackHandler, Platform } from "react-native"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
@@ -1248,6 +1248,16 @@ export function App() {
     }
   }, [rootStore])
 
+  // ADDED 2026-11-06 (support contacts spec D4, Task 8): the database overlay's Reset
+  // reopens the database in place, so the store's in-memory contacts must empty with
+  // the keychain. Declared before the isAppReady early return (hook order), and stable
+  // per rootStore because DatabaseProvider's resetLocalData callback and context value
+  // depend on it. rootStore is undefined early; fall back to the bare keychain clear.
+  const resetSupportContacts = useCallback(
+    () => (rootStore ? rootStore.supportStore.clear() : clearSupportContacts()),
+    [rootStore],
+  )
+
   // Check if app is ready
   const isAppReady =
     isNavigationStateRestored && isI18nInitialized && rootStore && (areFontsLoaded || fontLoadError)
@@ -1300,7 +1310,10 @@ export function App() {
                 {/* ADDED 2026-11-04 (My Day spec §4.9 amendment): the database
                     overlay's Reset also deletes My Day's local data. Injected
                     here so app/db imports nothing of the Daily Dash client. */}
-                <DatabaseProvider resetDailyDash={resetDailyDashLocalData}>
+                <DatabaseProvider
+                  resetDailyDash={resetDailyDashLocalData}
+                  resetSupportContacts={resetSupportContacts}
+                >
                   <ProfileHydrator />
                   <ChatHydrator />
                   {/* Before ReportPollingResumer: its rewrite must land first (spec 2 §7). */}

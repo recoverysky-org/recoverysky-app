@@ -26,7 +26,11 @@ import {
   type SupportContact,
   type SupportRole,
 } from "@/services/support/supportContactsLogic"
-import { loadSupportContacts, saveSupportContacts } from "@/services/support/supportContactsStorage"
+import {
+  clearSupportContacts,
+  loadSupportContacts,
+  saveSupportContacts,
+} from "@/services/support/supportContactsStorage"
 
 export const SupportStoreModel = types
   .model("SupportStore")
@@ -63,6 +67,24 @@ export const SupportStoreModel = types
           self.contacts = []
         }
         self.hydrated = true
+      }),
+
+      /**
+       * ADDED 2026-11-06 (Task 8, spec D4): empties the list and the keychain. The
+       * list goes first and synchronously, so nothing can read or re-save the old
+       * contacts while the keychain call is pending. Used by the database overlay's
+       * Reset, which reopens the database in place with no app reload: a
+       * keychain-only clear would leave the previous owner's sponsor on Home and
+       * the next edit would write them back. Never rejects. `hydrated` is left
+       * alone: the store did hydrate, it is simply empty now.
+       */
+      clear: flow(function* () {
+        self.contacts = []
+        try {
+          yield clearSupportContacts()
+        } catch {
+          // Storage already never throws; defended anyway (no error logged).
+        }
       }),
 
       add(picked: PickedPhoneContact, role: SupportRole): AddResult["kind"] {

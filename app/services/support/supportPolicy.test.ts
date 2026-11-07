@@ -31,3 +31,26 @@ describe("support contacts permission policy (spec D2)", () => {
     expect(hits).toEqual([])
   })
 })
+
+// ADDED 2026-11-06 (spec D4, Task 8): three resets clear the contacts. Spans files no unit test
+// can see, so it greps them. app/db must never import the support service (depcruise and D4).
+describe("support contacts reset policy (spec D4)", () => {
+  const appDir = path.join(repo, "app")
+  const read = (rel: string) => readFileSync(path.join(appDir, rel), "utf8")
+  it("Settings Delete User Data and the dev purge call clearSupportContacts(", () => {
+    expect(read("screens/SettingsScreen.tsx")).toMatch(/clearSupportContacts\(/)
+    expect(read("utils/devPurge.ts")).toMatch(/clearSupportContacts\(/)
+  })
+  it("the database overlay Reset calls the injected resetSupportContacts", () => {
+    expect(read("db/DatabaseProvider.tsx")).toMatch(/resetSupportContacts\?\.\(\)/)
+  })
+  it("app.tsx passes resetSupportContacts to DatabaseProvider", () => {
+    expect(read("app.tsx")).toMatch(/resetSupportContacts=/)
+  })
+  it("nothing under app/db imports from services/support", () => {
+    const db = files(path.join(appDir, "db")).filter((p) => /\.tsx?$/.test(p))
+    expect(
+      db.filter((p) => /from\s+["'][^"']*services\/support/.test(readFileSync(p, "utf8"))),
+    ).toEqual([])
+  })
+})

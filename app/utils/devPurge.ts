@@ -19,6 +19,8 @@
  *     and the device-trust pair device_jwt_v1 / app_attest_key_id_v1, which
  *     clearAllSecureData deliberately keeps for normal sign-outs. The next
  *     launch re-attests from scratch (a new Apple key on iOS).
+ *     ADDED 2026-11-06: also support_contacts_v1 (clearSupportContacts), the
+ *     person's sponsor and other support contacts.
  *  3. The encrypted database, its SQLCipher key and the device-owner record —
  *     via resetLocalDatabase(), which keeps the key and the file one unit
  *     (RS-024) and clears the owner last.
@@ -39,6 +41,7 @@ import {
   clearAppAttestKeyId,
   clearDeviceJwt,
 } from "@/services/auth/secureStorage"
+import { clearSupportContacts } from "@/services/support"
 import { logger } from "@/utils/logger"
 import { reloadApp } from "@/utils/reloadApp"
 import { clear as clearMmkv } from "@/utils/storage"
@@ -66,7 +69,12 @@ export async function devPurgeAllLocalData(options: DevPurgeOptions): Promise<vo
   log.warn("Dev purge: wiping all local data")
   await step("auth0-sdk-credentials", options.clearSdkCredentials)
   await step("secure-store", async () => {
-    await Promise.all([clearAllSecureData(), clearDeviceJwt(), clearAppAttestKeyId()])
+    await Promise.all([
+      clearAllSecureData(),
+      clearDeviceJwt(),
+      clearAppAttestKeyId(),
+      clearSupportContacts(),
+    ])
   })
   await step("database-key-owner", () => resetLocalDatabase({ clearOwner: options.clearOwner }))
   await step("mmkv", clearMmkv)

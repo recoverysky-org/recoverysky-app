@@ -15,6 +15,7 @@ jest.mock("@/services/support/supportContactsStorage", () => ({
 const storage = jest.requireMock<{
   loadSupportContacts: jest.Mock
   saveSupportContacts: jest.Mock
+  clearSupportContacts: jest.Mock
 }>("@/services/support/supportContactsStorage")
 
 const julie = { role: "sponsor" as const, name: "Julie J.", number: "+15550100001" }
@@ -52,5 +53,38 @@ describe("SupportStore (spec D4)", () => {
     store.add(julie, "sponsor")
     expect(getSnapshot(store)).toEqual({})
     expect(JSON.stringify(getSnapshot(store))).not.toContain("555")
+  })
+
+  // ADDED 2026-11-06 (Task 8 ruling): the overlay Reset reopens the database in place, with no
+  // reload, so the in-memory list must empty too or a keychain-only clear would let the next
+  // edit write the previous owner's sponsor straight back.
+  describe("clear()", () => {
+    it("empties the contacts and clears the keychain", async () => {
+      const store = SupportStoreModel.create({})
+      store.add({ name: "Julie J.", number: "+15550100001" }, "sponsor")
+      await store.clear()
+      expect(store.contacts).toEqual([])
+      expect(storage.clearSupportContacts).toHaveBeenCalledTimes(1)
+    })
+
+    it("still resolves, and the list is already empty, when storage rejects", async () => {
+      storage.clearSupportContacts.mockRejectedValueOnce(new Error("keychain locked"))
+      const store = SupportStoreModel.create({})
+      store.add({ name: "Julie J.", number: "+15550100001" }, "sponsor")
+      await expect(store.clear()).resolves.toBeUndefined()
+      expect(store.contacts).toEqual([])
+    })
+
+    it("a later add persists only the new contact", async () => {
+      const store = SupportStoreModel.create({})
+      store.add({ name: "Julie J.", number: "+15550100001" }, "sponsor")
+      await store.clear()
+      storage.saveSupportContacts.mockClear()
+      store.add({ name: "Sam", number: "+15550100002" }, "friend")
+      expect(storage.saveSupportContacts).toHaveBeenCalledTimes(1)
+      const saved = storage.saveSupportContacts.mock.calls[0][0]
+      expect(saved).toHaveLength(1)
+      expect(saved[0].number).toBe("+15550100002")
+    })
   })
 })

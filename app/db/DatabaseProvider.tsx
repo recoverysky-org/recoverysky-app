@@ -115,6 +115,13 @@ interface DatabaseProviderProps {
    * policy test both hold that line). Must never throw.
    */
   resetDailyDash?: () => Promise<void>
+  /**
+   * ADDED 2026-11-06 (support contacts spec D4): empties the person's support
+   * contacts (sponsor name and number), called by `resetLocalData` right after
+   * `resetDailyDash`. Injected from app.tsx like `resetDailyDash`, so `app/db/`
+   * imports nothing of `app/services/support`. Must never throw.
+   */
+  resetSupportContacts?: () => Promise<void>
 }
 
 /**
@@ -122,7 +129,11 @@ interface DatabaseProviderProps {
  *
  * Automatically opens database and runs migrations on mount.
  */
-export function DatabaseProvider({ children, resetDailyDash }: DatabaseProviderProps): ReactNode {
+export function DatabaseProvider({
+  children,
+  resetDailyDash,
+  resetSupportContacts,
+}: DatabaseProviderProps): ReactNode {
   log.debug("DatabaseProvider initializing")
 
   // ADDED 2026-09-17 (spec 2 §1.4): resetLocalDatabase() needs to clear the
@@ -307,6 +318,10 @@ export function DatabaseProvider({ children, resetDailyDash }: DatabaseProviderP
     // previous owner's My Day (the client restores its stored session with no
     // owner check). The function never throws, so it cannot block our reset.
     await resetDailyDash?.()
+    // ADDED 2026-11-06 (support contacts spec D4): same reason as My Day's reset
+    // above. This clears ownerSub, so a different account could sign in next and
+    // must not find the previous owner's sponsor on Home. Never throws.
+    await resetSupportContacts?.()
     try {
       await resetLocalDatabase({ clearOwner: () => authStore.clearOwner() })
     } catch (e) {
@@ -316,7 +331,7 @@ export function DatabaseProvider({ children, resetDailyDash }: DatabaseProviderP
     }
     attemptRef.current = 0
     await openDb()
-  }, [authStore, clearRetryTimer, openDb, resetDailyDash])
+  }, [authStore, clearRetryTimer, openDb, resetDailyDash, resetSupportContacts])
 
   // Auto-initialize database on mount — once. `openDb` is stable (no state in
   // its deps), so this effect runs exactly one time per mount.

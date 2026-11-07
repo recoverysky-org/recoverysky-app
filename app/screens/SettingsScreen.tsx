@@ -58,6 +58,7 @@ import { resetDailyDashLocalData } from "@/services/dailyDash"
 import { logoutNotificationUser, optOutNotifications } from "@/services/notifications"
 import { billingUnresponsiveCopy } from "@/services/purchases"
 import { requestRatingFromSettings } from "@/services/rating"
+import { clearSupportContacts } from "@/services/support"
 import { attendanceSync } from "@/services/sync"
 import { enableCloudBackup } from "@/services/sync/enableCloudBackup"
 import { trackEvent } from "@/services/tracking"
@@ -496,6 +497,13 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
 
               // 6. Clear secure store data (auth credentials, terms)
               await clearAllSecureData()
+
+              // 6b. Support contacts (sponsor name and number) live in their own
+              // keychain item, which clearAllSecureData does not touch.
+              // ADDED 2026-11-06 (support contacts spec D4). Never throws, so it may
+              // sit inside the try. The app reloads afterwards, so the bare keychain
+              // clear is enough (no in-memory store to empty).
+              await clearSupportContacts()
 
               // 7. Logout from Auth0 (clear session + MST auth state)
               await logout()
