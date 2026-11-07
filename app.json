@@ -65,8 +65,7 @@
       "NSMicrophoneUsageDescription": "Microphone access is needed for audio in meetings",
       "NSBluetoothPeripheralUsageDescription": "Bluetooth is used for headset connectivity",
       "NSPhotoLibraryUsageDescription": "Photo library access is needed for sharing in meetings",
-      "NSCalendarsUsageDescription": "Calendar access allows adding meetings to your calendar",
-      "NSContactsUsageDescription": "Contacts access enables inviting friends to meetings"
+      "NSCalendarsUsageDescription": "Calendar access allows adding meetings to your calendar"
     },
     "appleTeamId": "75W22YQP29"
   },

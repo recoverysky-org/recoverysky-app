@@ -1,0 +1,5 @@
+<!-- ADDED 2026-11-06: deliberately empty. The picker needs no permission (support contacts
+     spec D2) and no <queries> entry (the module starts the implicit intent and catches
+     ActivityNotFoundException instead of calling resolveActivity()). -->
+<manifest>
+</manifest>

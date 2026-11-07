@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": { "modules": ["PhoneContactPickerModule"] },
+  "android": { "modules": ["live.meetingmaker.phonecontactpicker.PhoneContactPickerModule"] }
+}

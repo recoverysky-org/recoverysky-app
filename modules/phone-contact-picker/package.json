@@ -1,0 +1,9 @@
+{
+  "name": "phone-contact-picker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RecoverySky's permission-free phone-number picker (spec 2026-11-06-support-contacts-design.md D2)",
+  "peerDependencies": {
+    "expo": "*"
+  }
+}
