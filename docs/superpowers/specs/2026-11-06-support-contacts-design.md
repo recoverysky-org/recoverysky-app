@@ -34,6 +34,9 @@ somewhere that offers that call rather than only a meeting list.
   role and Remove), an **Add** row until there are three, **Find a live meeting now** (the
   Meetings tab's Online segment), and, when the device's region is the US or Canada, a
   **988 Suicide & Crisis Lifeline** row with Call and Text.
+  CHANGED 2026-11-06 (final review I-1): the screen is a plain app-stack card, not a modal. A
+  native iOS modal covers the root view, and `ToastProvider` renders in the root RN tree, so
+  every toast the screen fired drew behind it.
 - **My Day's crisis path opens the Support screen.** The check-in's crisis and support cards
   and the Support button already call `openCrisisPath`; it now lands here instead of Meetings →
   Online. "Find a live meeting now" on this screen keeps that destination one tap away.

@@ -180,12 +180,16 @@ const AppStack = observer(function AppStack() {
               }}
             />
             {/* ADDED 2026-11-06 (Support Contacts spec D6): registered only here, in the
-                signed-in-and-onboarded fragment, so a guest or signed-out user never reaches it. */}
+                signed-in-and-onboarded fragment, so a guest or signed-out user never reaches it.
+                CHANGED 2026-11-06 (final review I-1): a plain card, not `presentation: "modal"`.
+                A native iOS modal is a presented view controller that covers the root view, and
+                ToastProvider renders in the root RN tree, so this screen's toasts ("That contact
+                is already in your list", "Couldn't open the phone app") drew behind it and timed
+                out unseen. The screen keeps its own header and close button (goBack). */}
             <Stack.Screen
               name="Support"
               component={SupportScreen}
               options={{
-                presentation: "modal",
                 headerShown: false,
               }}
             />

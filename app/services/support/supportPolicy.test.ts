@@ -59,3 +59,21 @@ describe("support contacts reset policy (spec D4)", () => {
     ).toEqual([])
   })
 })
+
+// ADDED 2026-11-06 (final review I-1): a native iOS modal is a presented view controller that
+// covers the root view, and ToastProvider renders in the root RN tree, so a modal Support hides
+// its own toasts ("That contact is already in your list", "Couldn't open the phone app"). Spans
+// the navigator and the screen, so it greps them.
+describe("Support route presentation", () => {
+  const read = (rel: string) => readFileSync(path.join(repo, "app", rel), "utf8")
+  it("registers Support as a plain card with its own header", () => {
+    const navigator = read("navigators/AppNavigator.tsx")
+    const block = navigator.match(/<Stack\.Screen\s+name="Support"[\s\S]*?\/>/)
+    expect(block).not.toBeNull()
+    expect(block![0]).not.toMatch(/presentation/)
+    expect(block![0]).toMatch(/headerShown: false/)
+  })
+  it("the screen's close button still goes back", () => {
+    expect(read("screens/SupportScreen.tsx")).toMatch(/onPress=\{\(\) => navigation\.goBack\(\)\}/)
+  })
+})

@@ -441,7 +441,9 @@ surface and its native location consumer must not sit alive inside a hidden view
 Collapsing the two either mounts a GL surface for a segment the user never opened
 or tears down fetch state on every tab tap.
 
-**Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms, Support (signed-in and onboarded only).
+**Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms.
+
+**Support** (signed-in and onboarded only) sits in the same app stack but is a plain card. CHANGED 2026-11-06: a native iOS modal covers the root view, and `ToastProvider` renders in the root RN tree, so every toast Support fires drew behind the modal; `supportPolicy.test.ts` pins this.
 
 **Section routing**: Attendance tab accepts `{ section?: "new" | "archive" | "reports" }` route params. Navigation to a specific section uses `navigate("Attendance", { section: "reports" })`. The screen syncs via `navigation.addListener("focus", ...)` to handle repeated navigations to the same section.
 
@@ -968,7 +970,7 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
 
 - **Support contacts** (`app/services/support/`, `modules/phone-contact-picker/`)
   — ADDED 2026-11-06, spec `docs/superpowers/specs/2026-11-06-support-contacts-design.md`.
-  Up to three people for the Home Support card and the Support modal. **Names
+  Up to three people for the Home Support card and the Support screen. **Names
   only**: the card, rows and sheets take `{ roleTx, name }`, never a contact, and
   a number is read from the store only inside a press handler, to `openDial`.
   Stored in SecureStore `support_contacts_v1`; `SupportStore` has no props.

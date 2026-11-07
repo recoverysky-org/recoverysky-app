@@ -1,8 +1,11 @@
 /**
  * SupportScreen - the user's support contacts, a way to a live meeting, and the
  * 988 crisis line where it applies.
- * ADDED 2026-11-06 (Support Contacts, spec D6). Presented as a modal from the Home
- * Support card and from My Day's crisis path.
+ * ADDED 2026-11-06 (Support Contacts, spec D6). Opened from the Home Support card
+ * and from My Day's crisis path.
+ * CHANGED 2026-11-06 (final review I-1): an app-stack card, no longer a native modal,
+ * because a modal covers the root view and hid this screen's toasts on iOS (see
+ * AppNavigator.tsx). The header and close button are still this screen's own.
  *
  * NAMES ONLY (spec D1): contacts reach the rows as `{ roleTx, name }`. A number
  * is read from the store only inside press handlers, to `openDial`. The one number
