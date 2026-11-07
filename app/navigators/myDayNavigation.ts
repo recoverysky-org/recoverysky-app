@@ -33,6 +33,9 @@ export function createMyDayNavigation(nav: MyDayNavigationLike): MyDayNavigation
     // Spec D3: the crisis path is the Meetings tab's Online (live) segment. The My Day stack
     // has no `Meetings` route, so React Navigation bubbles this navigate to the parent tab
     // navigator, which does. `segment: "live"` is the key the Online segment still carries.
-    openCrisisPath: () => nav.navigate("Meetings", { segment: "live" }),
+    // CHANGED 2026-11-06 (support contacts spec D6): the crisis path is the app's Support screen,
+    // which offers Find a live meeting now itself; the route is not in the My Day stack, so the
+    // navigate bubbles up through the tab navigator to the app stack.
+    openCrisisPath: () => nav.navigate("Support"),
   }
 }

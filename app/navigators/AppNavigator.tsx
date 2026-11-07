@@ -17,6 +17,7 @@ import { LicensesScreen } from "@/screens/LicensesScreen"
 import { LoginScreen } from "@/screens/LoginScreen"
 import { MaintenanceScreen } from "@/screens/MaintenanceScreen"
 import { OnboardingImport } from "@/screens/onboarding/OnboardingImport"
+import { SupportScreen } from "@/screens/SupportScreen"
 import { TermsScreen } from "@/screens/TermsScreen"
 import { WrongAccountScreen } from "@/screens/WrongAccountScreen"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
@@ -173,6 +174,16 @@ const AppStack = observer(function AppStack() {
             <Stack.Screen
               name="Licenses"
               component={LicensesScreen}
+              options={{
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+            {/* ADDED 2026-11-06 (Support Contacts spec D6): registered only here, in the
+                signed-in-and-onboarded fragment, so a guest or signed-out user never reaches it. */}
+            <Stack.Screen
+              name="Support"
+              component={SupportScreen}
               options={{
                 presentation: "modal",
                 headerShown: false,

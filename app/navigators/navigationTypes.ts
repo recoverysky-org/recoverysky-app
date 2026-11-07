@@ -91,6 +91,8 @@ export type AppStackParamList = {
   WrongAccount: undefined
   Import: undefined
   Licenses: undefined
+  /** ADDED 2026-11-06 (Support Contacts spec D6): the Support modal, signed-in-and-onboarded only. */
+  Support: undefined
   Terms: undefined
   Onboarding: NavigatorScreenParams<OnboardingParamList>
   Main: NavigatorScreenParams<MainTabParamList>
