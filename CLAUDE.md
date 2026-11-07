@@ -441,7 +441,7 @@ surface and its native location consumer must not sit alive inside a hidden view
 Collapsing the two either mounts a GL surface for a segment the user never opened
 or tears down fetch state on every tab tap.
 
-**Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms.
+**Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms, Support (signed-in and onboarded only).
 
 **Section routing**: Attendance tab accepts `{ section?: "new" | "archive" | "reports" }` route params. Navigation to a specific section uses `navigate("Attendance", { section: "reports" })`. The screen syncs via `navigation.addListener("focus", ...)` to handle repeated navigations to the same section.
 
@@ -965,6 +965,31 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   RESOLVED 2026-08-06: the premium paywall's post-purchase `returnTo` round-trip
   used to force-route to the `live` segment and silently drop in-person
   deep-links. `returnTo` now carries the segment (see "Navigation").
+
+- **Support contacts** (`app/services/support/`, `modules/phone-contact-picker/`)
+  — ADDED 2026-11-06, spec `docs/superpowers/specs/2026-11-06-support-contacts-design.md`.
+  Up to three people for the Home Support card and the Support modal. **Names
+  only**: the card, rows and sheets take `{ roleTx, name }`, never a contact, and
+  a number is read from the store only inside a press handler, to `openDial`.
+  Stored in SecureStore `support_contacts_v1`; `SupportStore` has no props.
+  **Four clears**: Delete User Data step 6b (OUTSIDE the steps 1-7 `try`: a
+  keychain rejection there would skip it, and logout writes the snapshot back,
+  so the fresh-install clear is no backstop); the database overlay's Reset via
+  the injected `resetSupportContacts` prop calling `SupportStore.clear()`, which
+  also empties the in-memory list because that Reset reopens in place with no
+  reload; the dev purge; the fresh-install clear in `app.tsx` keyed on
+  `restoredState`. `addContact` stores `""` when the name is only digits and
+  punctuation (Android's `Phone.DISPLAY_NAME` holds the number for a nameless
+  contact); don't remove that. `useSupportDial` is the one dial path (open,
+  track on success, toast on failure). The local module wraps Apple's and
+  Android's own pickers (error codes `no_picker` / `no_number` / `in_progress` /
+  `unknown`) so the app needs no contacts permission; expo-contacts adds
+  `READ_CONTACTS`, and `supportPolicy.test.ts` greps for that. `.gitignore` and
+  `.easignore` re-include `modules/*/android` and `modules/*/ios`: the
+  unanchored `android/` and `ios/` patterns otherwise drop a local module's
+  native sources from git and EAS builds. `openCrisisPath` opens `Support`. It is
+  a native release; on the first TestFlight upload watch for an ITMS-90683 notice
+  (ContactsUI with no purpose string), as the usage string was removed on purpose.
 
 - **`MeetingRow`** (`app/components/MeetingRow.tsx`, jest-covered) — the one
   meeting row, used by all three Meetings segments and the agent's results

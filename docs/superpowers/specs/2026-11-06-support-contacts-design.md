@@ -1,7 +1,8 @@
 # Support contacts: call your sponsor from Home and from My Day's crisis path
 
-Status: design, drafted 2026-11-06 from a brainstorm with Jenova. Not planned, not built. The
-Daily Dash team was asked first (2026-11-06) and answered that the host app owns this: the
+Status: implemented on root (plan docs/superpowers/plans/2026-11-06-support-contacts.md); device pass pending; ships in the next native release. Drafted 2026-11-06 from a brainstorm with Jenova.
+
+The Daily Dash team was asked first (2026-11-06) and answered that the host app owns this: the
 `@daily-dash/my-day` navigation contract says `openCrisisPath` "opens the host's crisis path:
 meetings, support contacts, a crisis line. The host's own screen; My Day never names a number, a
 URL or a screen for it", and their own support screen lives in their host app, not the package.

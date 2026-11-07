@@ -22,6 +22,27 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **A Support card on Home and a Support screen.** A person picks up to three
+  people (sponsor, support person, friend, family) from the phone's own contact
+  picker and calls or texts them from the card or the screen, which show names
+  only. In the US and Canada the screen also has the 988 Suicide & Crisis
+  Lifeline. My Day's crisis card now opens it. No tracker issue.
+
+### Changed
+- My Day's crisis path opens the Support screen, which offers "Find a live
+  meeting now" itself, instead of going straight to Meetings → Online.
+
+### Removed
+- The unused iOS contacts usage string. Apple's picker needs none.
+
+### Docs
+- (manual) The new `home/support` page, with the map sentence and questions.
+
+### Build
+- The local `phone-contact-picker` module, a native change: the next release is
+  a native release (bump `runtimeVersion` with `version` at release time).
+
 ## [4.12.0] — 2026-11-05
 
 ### Added

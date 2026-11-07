@@ -78,6 +78,7 @@ the Permissions rows' pattern. **[My call]** Guests never see it: a guest has no
 **D3. The crisis path is Meetings → Online.** My Day's `openCrisisPath()` navigates to the Meetings tab's
 Online segment (`navigate("Meetings", { segment: "live" })`): live meetings right now, the fastest human
 contact the app has, on a tab that stays mounted so it lands warm. **[Owner]**
+CHANGED 2026-11-06 (support contacts spec D6): `openCrisisPath()` now opens the app's Support screen, which offers "Find a live meeting now" itself.
 
 **D4. Light and dark, following the app, with no seams.** My Day today has one baked theme, `dailyDashDark`
 (app packages amendment A11). Looks are very important; My Day is built for us and this is a feature it does
