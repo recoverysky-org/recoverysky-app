@@ -967,3 +967,18 @@ Reviewer notes worth acting on first:
   words a person reads when choosing who a contact is, so translate them before the rest.
 - `crisisLine` names the 988 Suicide & Crisis Lifeline, a US and Canada service. Keep the number and the
   official service name as they are.
+
+## 2026-11-06 Sky's chat thread (English placeholders)
+
+**Still English placeholders (need translating), 48 strings (8 locales × 6 keys)** in ar, de, es, fr,
+pt, ru, th, uk: `agentScreen.newConversation`, `newConversationConfirm`, `start`, `loadFailed`, `retry`
+and `toolFinished`, for the Sky tab's New conversation and its loading row (spec
+`docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md`). They replace the removed
+`clearConversation`, `clearConversationConfirm`, `clear` and `clearChat`, whose translations are gone
+with them.
+
+Reviewer notes worth acting on first:
+- **Keep `{{toolName}}` exactly** in `toolFinished`. It is an internal tool name in English, such as
+  `searchMeetings`, so the sentence has to read with an untranslated word in it.
+- **`newConversationConfirm` asks, it does not warn.** The conversation is put away, not deleted, and
+  nothing about the wording should suggest a loss. The action is no longer styled as destructive.

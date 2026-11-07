@@ -1,4 +1,14 @@
-import { FC, useRef, useEffect, useCallback, useState, useMemo } from "react"
+import {
+  Dispatch,
+  FC,
+  MutableRefObject,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   View,
   ViewStyle,
@@ -8,11 +18,10 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
-  TextInput,
 } from "react-native"
 import { useChat } from "@ai-sdk/react"
 import { Ionicons } from "@expo/vector-icons"
-import { DefaultChatTransport } from "ai"
+import { DefaultChatTransport, type UIMessage } from "ai"
 import { fetch as expoFetch } from "expo/fetch"
 import { observer } from "mobx-react-lite"
 
@@ -22,15 +31,23 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { useAgentConversation, type AgentChatState } from "@/hooks/useAgentConversation"
 import { useVoiceInput } from "@/hooks/useVoiceInput"
 import { translate, getCurrentLanguage } from "@/i18n"
-import { useConfigStore, useConversationStore, useProfileStore } from "@/models"
+import {
+  useAuthenticationStore,
+  useConfigStore,
+  useConversationStore,
+  useProfileStore,
+} from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { chatRequestBody, isStaleRefusal, turnOf } from "@/utils/agentBodyLogic"
+import { classifyToolPart } from "@/utils/agentToolPartLogic"
 import { logger } from "@/utils/logger"
 
 const log = logger.child({ module: "AgentScreen" })
@@ -51,206 +68,91 @@ function htmlToText(html: string): string {
 }
 
 /**
+ * The text of a message part, or null. Parts read back from the agent are checked only for being an
+ * array (`isStoredMessage`), so one can be `null` or a text part with no string in it, whatever the
+ * SDK's type says. A throw in the render path would take the whole tab down over one bad row, and a
+ * non-string child makes RN's Text throw.
+ */
+function textOfPart(part: unknown): string | null {
+  if (typeof part !== "object" || part === null) return null
+  const { type, text } = part as { type?: unknown; text?: unknown }
+  return type === "text" && typeof text === "string" ? text : null
+}
+
+/** The words of the last message the person sent, from its text parts. Empty when there are none. */
+function lastUserWords(messages: readonly UIMessage[]): string {
+  const last = [...messages].reverse().find((message) => message.role === "user")
+  if (!last) return ""
+  return last.parts
+    .map(textOfPart)
+    .filter((text) => text !== null)
+    .join("")
+}
+
+/** The title and subtitle, the same over every state of the tab. */
+const AgentHeader: FC = () => {
+  const { themed, theme } = useAppTheme()
+  return (
+    <>
+      <View style={themed($header)}>
+        <View style={$styles.row}>
+          <Ionicons name="help-buoy" size={24} color={theme.colors.tint} />
+          <Text preset="heading" tx="agentScreen:title" style={themed($headerTitle)} />
+        </View>
+      </View>
+      <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
+    </>
+  )
+}
+
+/** "Couldn't load your conversation" with its retry, for a failed listing or a failed history. */
+const LoadFailedRow: FC<{ onRetry: () => void }> = ({ onRetry }) => {
+  const { themed, theme } = useAppTheme()
+  return (
+    <View style={themed($errorContainer)}>
+      <Ionicons name="warning" size={16} color={theme.colors.error} />
+      <Text style={themed($errorText)} tx="agentScreen:loadFailed" />
+      <Pressable
+        onPress={onRetry}
+        style={themed($retryButton)}
+        accessibilityRole="button"
+        accessibilityLabel={translate("agentScreen:retry")}
+      >
+        <Text preset="bold" style={themed($retryText)} tx="agentScreen:retry" />
+      </Pressable>
+    </View>
+  )
+}
+
+/**
  * AgentScreen - Sky Agent, your AI-powered recovery meeting agent
  *
  * Uses Vercel AI SDK to provide streaming chat with the RecoverySky AI agent.
  * Features:
  * - Streaming responses from Claude
- * - Message history persisted to encrypted SQLite
  * - Tool calls (recovery resources, meeting info, literature)
- * - Conversation survives app restarts
+ *
+ * CHANGED 2026-11-06 (spec 2026-11-06-agent-chat-turn-only-design.md): the thread lives on the agent,
+ * not in encrypted SQLite, and each request carries only the turn. This outer shell holds what must
+ * outlive a conversation: the consent gate and the composer's words. `AgentChat` is keyed by the
+ * conversation id and remounts on a new thread, or when the stale path shows `loading` in its place,
+ * so words held in there would be lost at the moment the stale path has just put them back.
  */
 export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function AgentScreen(props) {
   const { navigation } = props
   const { themed, theme } = useAppTheme()
+  const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
-  const conversationStore = useConversationStore()
   const profileStore = useProfileStore()
-  const scrollViewRef = useRef<ScrollView>(null)
-  const inputRef = useRef<TextInput>(null)
 
   // Local state for input (AI SDK v6 manages input internally)
   const [input, setInput] = useState("")
 
-  // State for meeting popup (shown when user taps a meeting from tool results)
-  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
-  const [activeToolCallId, setActiveToolCallId] = useState<string | null>(null)
-
-  // State for FAB menu
-  const [fabMenuOpen, setFabMenuOpen] = useState(false)
-
-  // Track which message IDs we've already persisted
-  const persistedIdsRef = useRef(new Set<string>())
-
-  // Track previous status to detect streaming completion
-  const prevStatusRef = useRef<string>("")
-
-  // Initialize useChat with persisted messages from MST store
-  const initialMessages = useMemo(() => {
-    // Only provide initial messages if store is hydrated
-    if (!conversationStore.isHydrated) return undefined
-
-    // Populate persistedIdsRef with already-stored message IDs
-    const storedMessages = conversationStore.uiMessages
-    storedMessages.forEach((msg) => persistedIdsRef.current.add(msg.id))
-
-    log.debug("Initializing with stored messages", { count: storedMessages.length })
-    return storedMessages
-  }, [conversationStore.isHydrated]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Get user's timezone for context-aware responses
-  const timezone = useMemo(() => {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone
-    } catch {
-      return "UTC"
-    }
-  }, [])
-
-  const agentApiUrl = `${configStore.agentUrl}/api/v1/chat`
-
-  // Initialize chat with Vercel AI SDK
-  const { messages, status, error, sendMessage, setMessages } = useChat({
-    // Only set initial messages once hydrated
-    ...(initialMessages ? { messages: initialMessages } : {}),
-    transport: new DefaultChatTransport({
-      fetch: expoFetch as unknown as typeof globalThis.fetch,
-      api: agentApiUrl,
-      // Resolved per request: the device JWT and the bearer rotate (see
-      // api.agentHeaders)
-      headers: () => api.agentHeaders(),
-      body: { timezone, fellowship: profileStore.fellowship },
-    }),
-    onError: (err) => {
-      log.error("Chat error", { error: err.message, url: agentApiUrl })
-    },
+  // Spec D1: no read before consent, and none without a session.
+  const { view, chatState, retry, reopenStale, startNew } = useAgentConversation({
+    agentUrl: configStore.agentUrl,
+    enabled: authStore.isAuthenticated && profileStore.aiConsentAccepted,
   })
-
-  // Effect: Persist new messages when streaming completes
-  useEffect(() => {
-    const prevStatus = prevStatusRef.current
-    prevStatusRef.current = status
-
-    // Only act when transitioning from streaming/submitted to ready
-    const streamingCompleted =
-      (prevStatus === "streaming" || prevStatus === "submitted") && status === "ready"
-
-    if (!streamingCompleted) return
-
-    // Find messages that haven't been persisted yet
-    const newMessages = messages.filter((msg) => !persistedIdsRef.current.has(msg.id))
-
-    if (newMessages.length === 0) return
-
-    log.info("Streaming complete, persisting new messages", {
-      count: newMessages.length,
-      ids: newMessages.map((m) => m.id.slice(0, 8)).join(","),
-    })
-
-    // Mark as persisted immediately to prevent duplicates
-    newMessages.forEach((msg) => persistedIdsRef.current.add(msg.id))
-
-    // Add to store (which persists to SQLite)
-    newMessages.forEach((msg) => {
-      conversationStore.addMessage(msg)
-    })
-  }, [status, messages, conversationStore])
-
-  // Effect: Restore messages to useChat when store hydrates
-  useEffect(() => {
-    if (conversationStore.isHydrated && conversationStore.hasMessages) {
-      const storedMessages = conversationStore.uiMessages
-
-      // Only set if useChat doesn't have messages yet
-      if (messages.length === 0 && storedMessages.length > 0) {
-        log.info("Restoring messages from store", { count: storedMessages.length })
-        storedMessages.forEach((msg) => persistedIdsRef.current.add(msg.id))
-        setMessages(storedMessages)
-      }
-    }
-  }, [conversationStore.isHydrated, conversationStore.hasMessages]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true })
-      }, 100)
-    }
-  }, [messages])
-
-  const handleSend = useCallback(() => {
-    if (!input.trim()) return
-    const message = input.trim()
-    setInput("")
-    trackEvent("agent_message_sent")
-    sendMessage({ text: message })
-  }, [input, setInput, sendMessage])
-
-  const doClearChat = useCallback(() => {
-    // Clear useChat state
-    setMessages([])
-    // Clear persisted IDs tracker
-    persistedIdsRef.current.clear()
-    // Clear store (and SQLite)
-    conversationStore.clearHistory()
-  }, [setMessages, conversationStore])
-
-  const handleClearChat = useCallback(() => {
-    Alert.alert(
-      translate("agentScreen:clearConversation"),
-      translate("agentScreen:clearConversationConfirm"),
-      [
-        { text: translate("agentScreen:cancel"), style: "cancel" },
-        { text: translate("agentScreen:clear"), style: "destructive", onPress: doClearChat },
-      ],
-    )
-  }, [doClearChat])
-
-  // Handle meeting selection from tool results
-  const handleSelectMeeting = useCallback((meeting: MeetingWithTrex, toolCallId: string) => {
-    setSelectedMeeting(meeting)
-    setActiveToolCallId(toolCallId)
-  }, [])
-
-  // Handle popup close - collapse the tool result
-  const handleClosePopup = useCallback(() => {
-    if (selectedMeeting && activeToolCallId) {
-      conversationStore.collapseToolResult(
-        activeToolCallId,
-        translate("agentScreen:selected", { name: selectedMeeting.name }),
-      )
-    }
-    setSelectedMeeting(null)
-    setActiveToolCallId(null)
-  }, [selectedMeeting, activeToolCallId, conversationStore])
-
-  const isLoading = status === "streaming" || status === "submitted"
-
-  // Voice input - language derived from current app locale
-  const voiceLanguage = getCurrentLanguage() === "es" ? "es-MX" : "en-US"
-  const {
-    state: voiceState,
-    error: voiceError,
-    startRecording,
-    stopRecording,
-  } = useVoiceInput((transcript) => setInput(transcript), voiceLanguage)
-  const isVoiceActive = voiceState !== "idle"
-
-  // Extract debug metadata from last assistant message
-  const debugMetadata = useMemo(() => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
-    if (!lastAssistant?.metadata) return null
-
-    const meta = lastAssistant.metadata as {
-      crisisLevel?: number
-      tokensUsed?: { input: number; output: number; total: number }
-      emergency?: boolean
-    }
-
-    if (!meta.tokensUsed) return null
-    return meta
-  }, [messages])
 
   // Fetch AI consent text from CMS
   const [consentContent, setConsentContent] = useState("")
@@ -269,13 +171,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   if (!profileStore.aiConsentAccepted) {
     return (
       <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
-        <View style={themed($header)}>
-          <View style={$styles.row}>
-            <Ionicons name="help-buoy" size={24} color={theme.colors.tint} />
-            <Text preset="heading" tx="agentScreen:title" style={themed($headerTitle)} />
-          </View>
-        </View>
-        <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
+        <AgentHeader />
 
         <ScrollView style={themed($consentScroll)} showsVerticalScrollIndicator={false}>
           <View style={themed($consentHeader)}>
@@ -307,13 +203,280 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
     )
   }
 
+  if (view.phase === "ready") {
+    return (
+      <AgentChat
+        key={view.id}
+        conversationId={view.id}
+        history={view.history}
+        historyFailed={view.historyFailed}
+        readAt={view.readAt}
+        chatState={chatState}
+        input={input}
+        setInput={setInput}
+        onRetry={retry}
+        onStale={reopenStale}
+        onStartNew={startNew}
+      />
+    )
+  }
+
+  // Loading, or a listing that failed over nothing. No composer in either: the chat needs the agent
+  // anyway, and minting an id now would fork the thread (spec D1). Any words stay in `input`.
+  return (
+    <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
+      <AgentHeader />
+      {view.phase === "loading" ? (
+        <View
+          style={themed($loadingPhase)}
+          accessible
+          accessibilityLabel={translate("common:loading")}
+          accessibilityLiveRegion="polite"
+        >
+          <ActivityIndicator size="small" color={theme.colors.tint} />
+        </View>
+      ) : (
+        <LoadFailedRow onRetry={retry} />
+      )}
+    </Screen>
+  )
+})
+
+interface AgentChatProps {
+  conversationId: string
+  /** Handed to useChat for the mount. Later reads arrive through `readAt`. */
+  history: UIMessage[]
+  historyFailed: boolean
+  /** Changes when `history` is what the mounted chat should now show. */
+  readAt: number
+  chatState: MutableRefObject<AgentChatState>
+  input: string
+  setInput: Dispatch<SetStateAction<string>>
+  onRetry: () => void
+  /** The thread in memory is stale: the outer shell reads it again, which unmounts this chat. */
+  onStale: () => void
+  onStartNew: () => void
+}
+
+/**
+ * One conversation's chat. The screen's body before the split, minus the store sync.
+ *
+ * An observer because it reads `profileStore.fellowship`, and a change there must reach
+ * `fellowshipRef` below.
+ */
+const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
+  conversationId,
+  history,
+  historyFailed,
+  readAt,
+  chatState,
+  input,
+  setInput,
+  onRetry,
+  onStale,
+  onStartNew,
+}) {
+  const { themed, theme } = useAppTheme()
+  const configStore = useConfigStore()
+  const conversationStore = useConversationStore()
+  const profileStore = useProfileStore()
+  const scrollViewRef = useRef<ScrollView>(null)
+
+  // State for meeting popup (shown when user taps a meeting from tool results)
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
+  const [activeToolCallId, setActiveToolCallId] = useState<string | null>(null)
+
+  // State for FAB menu
+  const [fabMenuOpen, setFabMenuOpen] = useState(false)
+
+  // Get user's timezone for context-aware responses
+  const timezone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone
+    } catch {
+      return "UTC"
+    }
+  }, [])
+
+  const agentApiUrl = `${configStore.agentUrl}/api/v1/chat`
+
+  // Updated each render and read at send time, so the transport below, built once, sends the
+  // fellowship of the moment and not the mount's after a change in Settings.
+  const fellowshipRef = useRef(profileStore.fellowship)
+  fellowshipRef.current = profileStore.fellowship
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        fetch: expoFetch as unknown as typeof globalThis.fetch,
+        api: agentApiUrl,
+        // Resolved per request: the device JWT and the bearer rotate (see
+        // api.agentHeaders)
+        headers: () => api.agentHeaders(),
+        // The body is the turn (spec D2): the agent holds the history and builds the context.
+        prepareSendMessagesRequest: ({ id, messages }) => {
+          // Recorded before the request goes out, so a turn that fails on the way still counts as
+          // sent. Its id missing from the agent's stored messages is the whole signal that it
+          // exists only on this screen, and that a re-read must not replace it (spec D1). An
+          // answered card is not the person's words and has no id of theirs to check.
+          const turn = turnOf(messages)
+          if (turn?.role === "user") chatState.current.sentIds.add(turn.id)
+          return { body: chatRequestBody(id, messages, timezone, fellowshipRef.current) }
+        },
+      }),
+    [agentApiUrl, chatState, timezone],
+  )
+
+  // Initialize chat with Vercel AI SDK
+  const { messages, status, error, sendMessage, setMessages, clearError } = useChat({
+    id: conversationId,
+    messages: history,
+    transport,
+    onError: (err) => {
+      log.error("Chat error", { error: err.message, url: agentApiUrl })
+    },
+    // The second half of marking the id, with the effect below. A short reply can arrive in one
+    // read, and React may never commit the passing "streaming" status, so the effect would not see
+    // it. The id would stay fresh, and fresh reads nothing, so this thread would come back empty
+    // after a restart. A reply with parts means the agent admitted the turn; a turn refused before
+    // streaming finishes with none, and stays fresh (spec D1).
+    onFinish: ({ message }) => {
+      if (message.parts.length > 0) conversationStore.markConversationOnAgent()
+    },
+  })
+
+  const isLoading = status === "streaming" || status === "submitted"
+
+  // The hook runs no open during a turn and drops a read that lands in one. Declared ahead of the
+  // error effect so busy is already down when a stale refusal asks for the re-read.
+  useEffect(() => {
+    chatState.current.busy = isLoading
+  }, [isLoading, chatState])
+
+  // An unmounted chat has no turn on screen to protect, and busy left set would skip every open.
+  useEffect(
+    () => () => {
+      chatState.current.busy = false
+    },
+    [chatState],
+  )
+
+  // Streaming means the agent has stored the person's message (agent R2), so the id can be read from
+  // now on. A turn that fails before this leaves the id fresh, and nothing is read (spec D1). Not
+  // left to onFinish alone: the app can be killed mid-reply, and the flag persists.
+  useEffect(() => {
+    if (status === "streaming") conversationStore.markConversationOnAgent()
+  }, [status, conversationStore])
+
+  // A re-read of this conversation landed. A new conversation never comes through here: its id is a
+  // new key, and its history arrives as the mount's `messages`. So this skips the mount's readAt. It
+  // also records a readAt it skips: that read predates the turn running, and showing it when the
+  // turn ends would erase the turn.
+  const appliedReadAt = useRef(readAt)
+  useEffect(() => {
+    if (appliedReadAt.current === readAt) return
+    appliedReadAt.current = readAt
+    if (!isLoading) setMessages(history)
+  }, [readAt, history, isLoading, setMessages])
+
+  const isStale = error ? isStaleRefusal(error.message) : false
+
+  // Spec D8: the thread in memory is stale and a retry would repeat the refusal. The re-read replaces
+  // the list the person's words are in, so they go back in the composer first.
+  //
+  // Keyed on `error` alone so one refusal acts once: `messages` and `input` move on every render, and
+  // a second run would put the words back a second time.
+  useEffect(() => {
+    if (!isStale) return
+    const words = lastUserWords(messages)
+    // Anything typed since the send stays, after the returned words. Overwriting it would lose words
+    // to the very path that exists to save them.
+    if (words) setInput((typed) => (typed ? `${words} ${typed}` : words))
+    clearError()
+    onStale()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true })
+      }, 100)
+    }
+  }, [messages])
+
+  const handleSend = useCallback(() => {
+    if (!input.trim()) return
+    const message = input.trim()
+    setInput("")
+    trackEvent("agent_message_sent")
+    sendMessage({ text: message })
+  }, [input, setInput, sendMessage])
+
+  // CHANGED 2026-11-06 (spec D6): was Clear conversation. Nothing is lost now (the old thread is
+  // archived on the agent, not erased), so the action is no longer styled destructive.
+  const handleNewConversation = useCallback(() => {
+    Alert.alert(
+      translate("agentScreen:newConversation"),
+      translate("agentScreen:newConversationConfirm"),
+      [
+        { text: translate("agentScreen:cancel"), style: "cancel" },
+        { text: translate("agentScreen:start"), onPress: onStartNew },
+      ],
+    )
+  }, [onStartNew])
+
+  // Handle meeting selection from tool results
+  const handleSelectMeeting = useCallback((meeting: MeetingWithTrex, toolCallId: string) => {
+    setSelectedMeeting(meeting)
+    setActiveToolCallId(toolCallId)
+  }, [])
+
+  // Handle popup close - collapse the tool result
+  const handleClosePopup = useCallback(() => {
+    if (selectedMeeting && activeToolCallId) {
+      conversationStore.collapseToolResult(
+        activeToolCallId,
+        translate("agentScreen:selected", { name: selectedMeeting.name }),
+      )
+    }
+    setSelectedMeeting(null)
+    setActiveToolCallId(null)
+  }, [selectedMeeting, activeToolCallId, conversationStore])
+
+  // Voice input - language derived from current app locale
+  const voiceLanguage = getCurrentLanguage() === "es" ? "es-MX" : "en-US"
+  const {
+    state: voiceState,
+    error: voiceError,
+    startRecording,
+    stopRecording,
+  } = useVoiceInput((transcript) => setInput(transcript), voiceLanguage)
+  const isVoiceActive = voiceState !== "idle"
+
+  // Extract debug metadata from last assistant message
+  const debugMetadata = useMemo(() => {
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
+    if (!lastAssistant?.metadata) return null
+
+    const meta = lastAssistant.metadata as {
+      crisisLevel?: number
+      tokensUsed?: { input: number; output: number; total: number }
+      emergency?: boolean
+    }
+
+    if (!meta.tokensUsed) return null
+    return meta
+  }, [messages])
+
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} contentContainerStyle={themed($container)}>
       {/* Debug Overlay */}
       {debugMetadata && (
         <View style={themed($debugOverlay)}>
           {debugMetadata.emergency && (
-            <Ionicons name="warning" size={14} color="#ef4444" style={{ marginRight: 4 }} />
+            <Ionicons name="warning" size={14} color="#ef4444" style={$debugWarningIcon} />
           )}
           <Text style={themed($debugText)}>L{debugMetadata.crisisLevel ?? 0}</Text>
           <Text style={themed($debugSeparator)}>|</Text>
@@ -328,13 +491,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
       )}
 
       {/* Header */}
-      <View style={themed($header)}>
-        <View style={$styles.row}>
-          <Ionicons name="help-buoy" size={24} color={theme.colors.tint} />
-          <Text preset="heading" tx="agentScreen:title" style={themed($headerTitle)} />
-        </View>
-      </View>
-      <Text style={themed($subtitle)} tx="agentScreen:subtitle" />
+      <AgentHeader />
 
       {/* Chat Messages */}
       <View style={themed($chatContainer)}>
@@ -351,7 +508,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
               <Text style={themed($emptyStateHint)} tx="agentScreen:emptyStateHint" />
             </View>
           ) : (
-            messages.map((message) => (
+            messages.map((message, messageIndex) => (
               <View
                 key={message.id}
                 style={[
@@ -373,7 +530,8 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                 </View>
                 <View style={themed($messageContent)}>
                   {message.parts.map((part, index) => {
-                    if (part.type === "text") {
+                    const text = textOfPart(part)
+                    if (text !== null) {
                       return (
                         <Text
                           key={`${message.id}-${index}`}
@@ -382,68 +540,58 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
                             message.role === "user" && $userMessageText,
                           ]}
                         >
-                          {part.text}
+                          {text}
                         </Text>
                       )
                     }
 
-                    // Handle tool parts (both static and dynamic)
-                    // Static: type = "tool-{toolName}"
-                    // Dynamic: type = "dynamic-tool" with toolName field
-                    const isStaticTool = part.type.startsWith("tool-")
-                    const isDynamicTool = part.type === "dynamic-tool"
+                    // CHANGED 2026-11-06 (spec D9): the decision moved to classifyToolPart, because
+                    // the thread is now read back from the agent with parts this screen never saw
+                    // while it held its own. Null is anything that is not a tool to draw, junk too.
+                    const toolView = classifyToolPart(part)
+                    if (toolView === null) return null
 
-                    if (isStaticTool || isDynamicTool) {
-                      const toolPart = part as unknown as {
-                        type: string
-                        toolCallId: string
-                        toolName?: string
-                        state?: string
-                        input?: unknown
-                        output?: unknown
-                      }
-
-                      // Extract tool name
-                      const toolName = isDynamicTool
-                        ? (toolPart.toolName ?? "tool")
-                        : part.type.replace("tool-", "")
-
-                      // Check if output is available (tool completed)
-                      const hasOutput = toolPart.state === "output-available" && toolPart.output
-
-                      if (hasOutput) {
-                        // Render completed tool results with interactive UI
-                        return (
-                          <ToolResultRenderer
-                            key={`${message.id}-${index}`}
-                            part={{
-                              type: "tool-result",
-                              toolCallId: toolPart.toolCallId,
-                              toolName,
-                              result: toolPart.output,
-                            }}
-                            messageId={message.id}
-                            onSelectMeeting={handleSelectMeeting}
-                          />
-                        )
-                      }
-
-                      // Tool still in progress - show loading badge
+                    if (toolView.kind === "result") {
+                      // Render completed tool results with interactive UI
                       return (
-                        <View key={`${message.id}-${index}`} style={themed($toolCall)}>
-                          <Ionicons
-                            name="construct-outline"
-                            size={14}
-                            color={theme.colors.textDim}
-                          />
-                          <Text style={themed($toolCallText)}>
-                            {translate("agentScreen:usingTool", { toolName })}
-                          </Text>
-                        </View>
+                        <ToolResultRenderer
+                          key={`${message.id}-${index}`}
+                          part={{
+                            type: "tool-result",
+                            toolCallId: toolView.toolCallId,
+                            toolName: toolView.toolName,
+                            result: toolView.output,
+                          }}
+                          messageId={message.id}
+                          onSelectMeeting={handleSelectMeeting}
+                        />
                       )
                     }
 
-                    return null
+                    // Tool still in progress - show loading badge.
+                    // Only on the reply being written right now. Anything else in a running state
+                    // was read back from a stored reply and nothing will ever finish it, so
+                    // "Using…" would stay on screen for good.
+                    const inProgress =
+                      toolView.kind === "running" &&
+                      isLoading &&
+                      messageIndex === messages.length - 1
+
+                    return (
+                      <View key={`${message.id}-${index}`} style={themed($toolCall)}>
+                        <Ionicons
+                          name={inProgress ? "construct-outline" : "checkmark-done"}
+                          size={14}
+                          color={theme.colors.textDim}
+                        />
+                        <Text style={themed($toolCallText)}>
+                          {translate(
+                            inProgress ? "agentScreen:usingTool" : "agentScreen:toolFinished",
+                            { toolName: toolView.toolName },
+                          )}
+                        </Text>
+                      </View>
+                    )
                   })}
                 </View>
               </View>
@@ -463,8 +611,11 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
             </View>
           )}
 
-          {/* Error display */}
-          {error && (
+          {/* History that failed to load: the composer stays live, as the agent has it anyway */}
+          {historyFailed && <LoadFailedRow onRetry={onRetry} />}
+
+          {/* Error display. A stale refusal draws no row: the effect above handles it. */}
+          {error && !isStale && (
             <View style={themed($errorContainer)}>
               <Ionicons name="warning" size={16} color={theme.colors.error} />
               <Text style={themed($errorText)}>{error.message}</Text>
@@ -498,7 +649,6 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
           </Pressable>
 
           <TextField
-            ref={inputRef}
             value={voiceState === "processing" ? translate("agentScreen:transcribing") : input}
             onChangeText={setInput}
             placeholderTx="agentScreen:inputPlaceholder"
@@ -552,13 +702,13 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
               <Pressable
                 onPress={() => {
                   setFabMenuOpen(false)
-                  handleClearChat()
+                  handleNewConversation()
                 }}
                 style={themed($fabMenuItem)}
                 accessibilityRole="button"
-                accessibilityLabel={translate("agentScreen:clearChat")}
+                accessibilityLabel={translate("agentScreen:newConversation")}
               >
-                <Ionicons name="trash-outline" size={18} color="#FFF" />
+                <Ionicons name="add" size={18} color="#FFF" />
               </Pressable>
             </View>
           )}
@@ -614,6 +764,10 @@ const $debugOverlay: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderColor: colors.border,
   zIndex: 100,
 })
+
+const $debugWarningIcon: TextStyle = {
+  marginRight: 4,
+}
 
 const $debugText: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 10,
@@ -783,6 +937,22 @@ const $errorText: ThemedStyle<TextStyle> = ({ colors }) => ({
   flex: 1,
 })
 
+const $retryButton: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  paddingVertical: spacing.xxs,
+  paddingHorizontal: spacing.xs,
+})
+
+const $retryText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  color: colors.error,
+})
+
+const $loadingPhase: ThemedStyle<ViewStyle> = () => ({
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+})
+
 const $inputContainer: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
@@ -854,7 +1024,9 @@ const $fabMenuItem: ThemedStyle<ViewStyle> = ({ colors }) => ({
   width: 36,
   height: 36,
   borderRadius: 18,
-  backgroundColor: colors.error,
+  // CHANGED 2026-11-06 (spec D6): was `colors.error` for Clear conversation. New conversation loses
+  // nothing, so it should not read as a danger.
+  backgroundColor: colors.tint,
   alignItems: "center",
   justifyContent: "center",
   shadowColor: "#000",
