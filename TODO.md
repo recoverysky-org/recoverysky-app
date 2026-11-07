@@ -950,7 +950,7 @@ sees as `page`, and `questions.yml` must follow them:**
 - [ ] `bump-version.sh` resets the `package.json` `update` field to `"0"` —
       verify the OTA counter restarts cleanly.
 
-### 🍎 Floor the pods' resource-bundle deployment targets, then drop the EAS image pin
+### 🍎 Floor the pods' resource-bundle deployment targets, then drop the EAS image pin (with the Expo SDK 57+ upgrade, before April 2027)
 
 Queued 2026-11-05 by the 4.12.0 release. EAS's `latest` iOS image is Xcode 27.1 now, and
 Xcode 27 makes "The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 11.0, but
@@ -963,13 +963,38 @@ but iterates `native_target` only, never `resource_bundle_targets`. 4.12.0 ships
 `build.production.ios.image` pinned to `macos-tahoe-26.5-xcode-26.6` in `eas.json` instead
 (the October 4.11.0 build ran on that Xcode 26 generation and only warned).
 
-- [ ] A local config plugin (`plugins/withPodResourceBundleDeploymentTarget.ts`, `withDangerousMod`
-      on `ios/Podfile`, inserted into `post_install`) that sets each resource bundle's
-      `IPHONEOS_DEPLOYMENT_TARGET` to the Podfile platform (`15.1`) when it is lower. Plugin edits
-      are native-shape changes: `npm run prebuild:clean`, then confirm with
+CHANGED 2026-11-07 (Jenova, cutting 4.13.0): both items wait for the Expo upgrade. 4.13.0
+keeps the pin. Unpinning on SDK 54 would build a 4.13.0 that does not launch on iOS 27, and
+the hook changes nothing on Xcode 26, where the old target is only a warning. What was checked
+that day:
+- Expo, https://docs.expo.dev/build-reference/infrastructure/: "Apps built on Xcode 27 images,
+  including `latest`, launch on iOS 27 only if they use the UIKit scene life cycle." Secondary
+  sources tie the rule to the SDK the app is built with, so a build made with the iOS 26 SDK
+  still runs on iOS 27. Apple's TN3187 is the primary source; its text was not read.
+- `ios.enableSceneSupport` (expo-build-properties) "Requires Expo SDK 57.0.23 or newer" and
+  supports only the standard SDK 57 Swift AppDelegate template; SDK 58 and newer have it
+  built in. Nothing covers SDK 54.
+- Apple, https://developer.apple.com/news/?id=k1mtkt1k: "Starting April 2027 … iOS and iPadOS
+  apps must be built with the iOS 27 & iPadOS 27 SDK or later." That is the deadline for the
+  Expo upgrade and this entry.
+- EAS images that day: `latest` and `sdk-58` resolve to `macos-tahoe-26.6-xcode-27.1`, `sdk-57`
+  to our pinned `macos-tahoe-26.5-xcode-26.6`, and `sdk-54` to `macos-sequoia-15.6-xcode-26.0`.
+  EAS announced no retirement date for any iOS image. If ours is retired before the upgrade,
+  move to `sdk-54` or another Xcode 26 image, never to `latest`.
+
+- [ ] Not before the Expo upgrade: a local config plugin, `plugins/withPodResourceBundleDeploymentTarget.ts`,
+      that sets each resource bundle's `IPHONEOS_DEPLOYMENT_TARGET` to the Podfile platform
+      (`podfile_properties['ios.deploymentTarget'] || '15.1'`) when it is lower. Use the
+      `withPodfile` mod (it exists on SDK 54's config-plugins; no `withDangerousMod` needed) and
+      `mergeContents` anchored on `post_install do |installer|`. Keep the edit a pure
+      `(podfile: string) => string` with a vitest test beside it (`**/*.test.ts` covers `plugins/`).
+      The Ruby walks `installer.target_installation_results.pod_target_installation_results`,
+      then each result's `resource_bundle_targets` and their `build_configurations`. It raises
+      a target only when one is set and lower (`Gem::Version`), never lowers or sets an
+      inherited one. First check whether that SDK's React Native already floors resource
+      bundles in `updateOSDeploymentTarget`; if it does, drop this item. Plugin edits are
+      native-shape changes: `npm run prebuild:clean`, then confirm with
       `xcodebuild -project ios/Pods/Pods.xcodeproj -target Sentry-Sentry -showBuildSettings | grep IPHONEOS_DEPLOYMENT_TARGET`.
-- [ ] Put the image back to `latest` (or the matching `sdk-NN` alias) and build once on an Xcode 27
-      image before tagging the next native release.
-- [ ] EAS docs, read 2026-11-05: apps built on Xcode 27 images launch on iOS 27 only with the UIKit
-      scene life cycle (`ios.enableSceneSupport` in expo-build-properties, SDK 57+), so moving to
-      Xcode 27 is coupled to the Expo SDK upgrade, not a standalone image bump.
+- [ ] Never on SDK 54: with scene support adopted, put the image back to `latest` (or the
+      matching `sdk-NN` alias), build once on an Xcode 27 image, and open the build on an iOS 27
+      device before tagging that native release.
