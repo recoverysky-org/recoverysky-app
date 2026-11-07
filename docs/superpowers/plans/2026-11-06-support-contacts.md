@@ -1327,3 +1327,35 @@ git commit -m "📝 docs(support): manual page, map and questions; changelog; sp
 ## Execution notes
 
 (Rulings and device-pass results are appended here during execution.)
+
+#### Added 2026-11-06 from the final review (Fable): also check these
+
+Pick and dial:
+- Fast double tap on "Choose", both platforms: one picker, no toast. After a cancel, "Choose" works again on the same screen.
+- iOS: open the picker, swipe it down, tap "Choose" again on the same screen. The picker opens.
+- iOS: tap "Choose" while the role sheet is still closing. Tap "Choose", background the app before picking, return and pick.
+- Android, developer option "Don't keep activities": a pick still returns. If it never does, "Choose" is silently dead, and that needs a stale check like the iOS one.
+- Save a contact as `555-010-0001,,23`. "Call" shows the pause in the dialer on both platforms. "Text" opens Messages with `5550100001` only.
+- Save one as `555-010-0001;23` and record what iOS Phone does (unverified). Save `*67 555 010 0001`: it dials with the `*`. Save one ending `#`: Android dials it, iOS refuses it (expected).
+- Pick a contact saved as `1-800-FLOWERS`. Nothing is added and a toast appears (the picker's words for now).
+- Device region GB: no 988 row. US: the row shows, and `sms:988` opens Messages with 988 filled in.
+
+Errors and navigation:
+- iOS, on the Support screen: add a contact already in the list. "That contact is already in your list" is visible over the screen. On an iPad or simulator, tap the text button: "Couldn't open the phone app" is visible.
+- iOS edge-swipe and Android back from Support return to where it was opened: Home from Home, My Day from My Day's crisis card.
+- From Support, opened from Home and then from My Day, tap "Find a live meeting now". It lands on Meetings, "Online", with Support gone. A further back press does not reveal a second Home or Meetings.
+- Switch to In-Person, then My Day, crisis card, Support, "Find a live meeting now". Record whether it lands on "Online" or stays on In-Person (known follow-up).
+- Sign out while Support is open: lands on Login with no crash. Sign back in: contacts intact.
+
+Storage:
+- Cold start with contacts saved: the card is there on first paint, with no empty state and no hidden-then-shown flash.
+- iOS: delete the app and reinstall. The card shows its empty state and an add works on the first launch.
+- Delete User Data, then relaunch: empty.
+- Database overlay, "Reset local data": the card returns to empty without a reload, and the next add saves only the new contact.
+- Android: a contact with no name shows the role alone, and VoiceOver or TalkBack never speaks the number on the card, the screen, the sheets or the remove alert.
+- Large accessibility text and landscape: the role sheet's Cancel is reachable.
+- After a full add, call, text, move, change-role and remove run, search Loki for the test number's digits and the test name: nothing. Umami shows only the fixed event names, with no payload.
+
+At release:
+- The EAS cloud build log lists the `PhoneContactPicker` pod and the `:phone-contact-picker` Gradle project. Android autolinking has not been verified from a clean build.
+- Watch the first TestFlight upload for an ITMS-90683 notice.
