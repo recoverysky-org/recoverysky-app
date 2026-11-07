@@ -130,9 +130,10 @@ jest.mock("@/services/auth/useAuth0Wrapper", () => ({
 jest.mock("@/services/dailyDash", () => ({
   resetDailyDashLocalData: () => mockStep("resetDailyDashLocalData")(),
 }))
+let mockOptOut: () => Promise<void>
 jest.mock("@/services/notifications", () => ({
   logoutNotificationUser: () => mockStep("logoutNotificationUser")(),
-  optOutNotifications: () => mockStep("optOutNotifications")(),
+  optOutNotifications: () => mockOptOut(),
 }))
 jest.mock("@/services/purchases", () => ({ billingUnresponsiveCopy: () => ({}) }))
 jest.mock("@/services/rating", () => ({ requestRatingFromSettings: jest.fn() }))
@@ -185,6 +186,11 @@ describe("Settings: Delete User Data", () => {
     process.env.EXPO_PUBLIC_AGENT_URL = "https://agent.test"
     mockLogoutSubscription = async () => {
       mockSteps.push("logoutSubscription")
+    }
+    // The real opt-out sends its request after an await, so the mock answers after one too.
+    mockOptOut = async () => {
+      await Promise.resolve()
+      mockSteps.push("optOut sent")
     }
     mockArchive.mockResolvedValue(true)
     mockResetLocalDatabase.mockResolvedValue(undefined)
@@ -248,6 +254,44 @@ describe("Settings: Delete User Data", () => {
       })
 
       expect(count("reloadApp")).toBe(2)
+    })
+  })
+
+  describe("turning push off (RS-062)", () => {
+    // The logout clears the cached token and identity the opt-out sends, and step 7's sign-out
+    // removes the bearer it is sent with. Unawaited, the opt-out never reached the server.
+    it("waits for the opt-out before forgetting the notification user", async () => {
+      await act(async () => {
+        await askToDelete()()
+      })
+
+      expect(mockSteps.indexOf("optOut sent")).toBeGreaterThanOrEqual(0)
+      expect(mockSteps.indexOf("optOut sent")).toBeLessThan(
+        mockSteps.indexOf("logoutNotificationUser"),
+      )
+      expect(mockSteps.indexOf("optOut sent")).toBeLessThan(mockSteps.indexOf("logout"))
+    })
+
+    it("carries on after 5 seconds when the opt-out never answers", async () => {
+      jest.useFakeTimers()
+      try {
+        mockOptOut = () => new Promise(() => {})
+
+        const deleting = askToDelete()()
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(4999)
+        })
+        expect(count("logoutNotificationUser")).toBe(0)
+
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(1)
+          await deleting
+        })
+        expect(count("logoutNotificationUser")).toBe(1)
+        expect(count("reloadApp")).toBe(1)
+      } finally {
+        jest.useRealTimers()
+      }
     })
   })
 

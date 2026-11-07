@@ -54,6 +54,7 @@ import { api } from "@/services/api"
 import { agentConversationsClient } from "@/services/api/agentConversations"
 import { describeAccount } from "@/services/auth/accountMethodsLogic"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
+import { withTimeout } from "@/services/auth/tokenFreshnessLogic"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
 import { resetDailyDashLocalData } from "@/services/dailyDash"
 import { logoutNotificationUser, optOutNotifications } from "@/services/notifications"
@@ -494,7 +495,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               await logoutSubscription()
 
               // 2. Logout from push notifications
-              optOutNotifications()
+              // CHANGED 2026-11-07 (RS-062): the opt-out is awaited before the logout. Unawaited,
+              // the logout cleared the token and identity it was about to send, it threw on the
+              // phone, and the server kept this phone's token enabled, so a person who deleted
+              // their data could still get reminders. Bounded at 5 s like step 3, because the
+              // delete must never wait on the network; optOutNotifications() never throws.
+              await withTimeout(optOutNotifications(), 5000, undefined)
               logoutNotificationUser()
 
               // 3. Start Sky's conversation over. CHANGED 2026-11-06 (turn-only spec D7):

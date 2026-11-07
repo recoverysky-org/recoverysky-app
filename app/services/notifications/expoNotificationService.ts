@@ -33,28 +33,32 @@ export function getProjectId(): string {
 
 /**
  * Ensure we have a push token cached. Fetches one from APNs/FCM if not.
- * Returns false if the token could not be obtained.
+ * Returns null if the token could not be obtained.
+ * CHANGED 2026-11-07: returns the token itself, not a boolean, so upsertToken never reads
+ * `cachedToken` after an await. unregisterPushToken() can clear the cache in between: Delete
+ * User Data calls it straight after optOut(), and the opt-out then threw on a null token and
+ * never reached the server (RS-062).
  */
-async function ensureToken(): Promise<boolean> {
+async function ensureToken(): Promise<string | null> {
   if (cachedToken) {
     log.debug("ensureToken: using cached token", { token: cachedToken.slice(0, 20) + "..." })
-    return true
+    return cachedToken
   }
 
   if (Platform.OS === "web") {
     log.debug("ensureToken: skipped on web")
-    return false
+    return null
   }
 
   if (!Device.isDevice) {
     log.debug("ensureToken: skipped on simulator")
-    return false
+    return null
   }
 
   const projectId = getProjectId()
   if (!projectId) {
     log.debug("ensureToken: no project ID available")
-    return false
+    return null
   }
 
   try {
@@ -64,12 +68,12 @@ async function ensureToken(): Promise<boolean> {
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId })
     cachedToken = token
     log.info("ensureToken: push token obtained", { token: token.slice(0, 20) + "..." })
-    return true
+    return token
   } catch (error) {
     log.debug("ensureToken: failed to obtain push token", {
       error: error instanceof Error ? error.message : String(error),
     })
-    return false
+    return null
   }
 }
 
@@ -77,25 +81,32 @@ async function ensureToken(): Promise<boolean> {
  * Upsert the push token to the backend with current state.
  * All mutations (register, opt-in/out, language change) go through this single POST.
  * Fetches the token from APNs/FCM if not yet cached (e.g. permission was granted after init).
+ * CHANGED 2026-11-07 (RS-062): the identity is read once, before the first await, and the token
+ * comes from ensureToken's return, so a call that has started finishes for the person it started
+ * for even when unregisterPushToken() clears the cache meanwhile. It read them after the await,
+ * found them cleared, and Delete User Data's opt-out never reached the server.
  */
 async function upsertToken(overrides?: { enabled?: boolean; language?: string }): Promise<void> {
-  if (!cachedUserId || !cachedDeviceId) {
+  const userId = cachedUserId
+  const deviceId = cachedDeviceId
+  if (!userId || !deviceId) {
     log.debug("upsertToken: skipped, missing cached identity", {
-      hasUserId: !!cachedUserId,
-      hasDeviceId: !!cachedDeviceId,
+      hasUserId: !!userId,
+      hasDeviceId: !!deviceId,
     })
     return
   }
 
-  if (!(await ensureToken())) {
+  const token = await ensureToken()
+  if (!token) {
     log.debug("upsertToken: skipped, could not obtain token")
     return
   }
 
   const payload = {
-    userId: cachedUserId,
-    deviceId: cachedDeviceId,
-    token: cachedToken!,
+    userId,
+    deviceId,
+    token,
     platform: Platform.OS as "ios" | "android",
     ...overrides,
   }

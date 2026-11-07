@@ -22,6 +22,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Fixed
+- **Settings → Delete User Data now turns this phone's push notifications off
+  on the server.** The opt-out was sent without being waited for, and the
+  notification logout right after it cleared the token it was about to send, so
+  it failed on the phone and the server kept the token enabled: a person who
+  deleted their data could still get reminders. The delete now waits for it, at
+  most 5 seconds, and an opt-out that has started always finishes. (RS-062)
+
 ## [4.13.0] — 2026-11-07
 
 ### Added
