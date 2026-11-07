@@ -25,4 +25,13 @@ describe("OptionSheet", () => {
     fireEvent.press(getByText(/common:cancel/))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it("leaves closing to the caller: selecting an option does not call onClose", () => {
+    const onClose = jest.fn()
+    const { getByText } = render(
+      <OptionSheet visible options={options} onSelect={() => {}} onClose={onClose} />,
+    )
+    fireEvent.press(getByText(/support:moveUp/))
+    expect(onClose).not.toHaveBeenCalled()
+  })
 })

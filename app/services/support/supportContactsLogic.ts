@@ -70,7 +70,14 @@ export function addContact(
   picked: PickedPhoneContact,
   role: SupportRole,
 ): AddResult {
-  const name = picked.name.trim()
+  // ADDED 2026-11-06 (spec D1, names only): a contact saved without a name has
+  // its number in the name field on Android (Phone.DISPLAY_NAME falls back to
+  // the number). Stored as-is, the row would render the number. A name made
+  // only of digits and phone punctuation is therefore stored as "" so the row
+  // shows the role alone. An explicit class, not \p{L}: any other character
+  // ("12 Step Dave") marks a real name and keeps it.
+  const trimmedName = picked.name.trim()
+  const name = /^[0-9\s+().#*,;/-]*$/.test(trimmedName) ? "" : trimmedName
   const number = picked.number.trim()
   const key = digitsOf(number)
   if (key === "") return { kind: "invalid" }

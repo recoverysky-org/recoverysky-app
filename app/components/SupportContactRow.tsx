@@ -1,9 +1,10 @@
 import { FC } from "react"
 import { Pressable, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
-import { translate, type TxKeyPath } from "@/i18n"
+import type { TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -40,9 +41,10 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
   onMore,
   testID,
 }) => {
+  const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
 
-  const role = translate(roleTx)
+  const role = t(roleTx)
   const trimmed = name.trim()
   // Labels name the person when there is a name, else the role ("Call Sponsor").
   const labelName = trimmed || role
@@ -60,7 +62,7 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
         style={themed($button)}
         onPress={onCall}
         accessibilityRole="button"
-        accessibilityLabel={translate("support:callA11y", { name: labelName })}
+        accessibilityLabel={t("support:callA11y", { name: labelName })}
       >
         <Ionicons name="call" size={22} color={theme.colors.tint} />
       </Pressable>
@@ -68,7 +70,7 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
         style={themed($button)}
         onPress={onText}
         accessibilityRole="button"
-        accessibilityLabel={translate("support:textA11y", { name: labelName })}
+        accessibilityLabel={t("support:textA11y", { name: labelName })}
       >
         <Ionicons name="chatbubble" size={22} color={theme.colors.tint} />
       </Pressable>
@@ -76,7 +78,7 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
         style={themed($button)}
         onPress={onMore}
         accessibilityRole="button"
-        accessibilityLabel={translate("support:moreA11y", { name: labelName })}
+        accessibilityLabel={t("support:moreA11y", { name: labelName })}
       >
         <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
       </Pressable>

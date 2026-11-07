@@ -1,8 +1,9 @@
 import { FC } from "react"
 import { Modal, Pressable, TextStyle, View, ViewStyle } from "react-native"
+import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
-import { translate, type TxKeyPath } from "@/i18n"
+import type { TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -17,7 +18,7 @@ interface OptionSheetProps {
   visible: boolean
   titleTx?: TxKeyPath
   options: ReadonlyArray<OptionSheetOption>
-  /** Called with the tapped option's key. The sheet closes itself afterwards via onClose. */
+  /** Called with the tapped option's key. The sheet does not close itself: the caller closes it inside onSelect. */
   onSelect: (key: string) => void
   onClose: () => void
 }
@@ -41,6 +42,7 @@ export const OptionSheet: FC<OptionSheetProps> = ({
   onSelect,
   onClose,
 }) => {
+  const { t } = useTranslation()
   const { themed } = useAppTheme()
 
   return (
@@ -58,7 +60,7 @@ export const OptionSheet: FC<OptionSheetProps> = ({
         <View style={themed($sheet)} accessibilityViewIsModal>
           {!!titleTx && (
             <Text style={themed($title)} accessibilityRole="header">
-              {translate(titleTx)}
+              {t(titleTx)}
             </Text>
           )}
           {options.map((option) => (
@@ -67,10 +69,10 @@ export const OptionSheet: FC<OptionSheetProps> = ({
               style={themed($row)}
               onPress={() => onSelect(option.key)}
               accessibilityRole="button"
-              accessibilityLabel={translate(option.tx)}
+              accessibilityLabel={t(option.tx)}
             >
               <Text style={themed(option.destructive ? $rowTextDestructive : $rowText)}>
-                {translate(option.tx)}
+                {t(option.tx)}
               </Text>
             </Pressable>
           ))}
@@ -78,9 +80,9 @@ export const OptionSheet: FC<OptionSheetProps> = ({
             style={themed($row)}
             onPress={onClose}
             accessibilityRole="button"
-            accessibilityLabel={translate("common:cancel")}
+            accessibilityLabel={t("common:cancel")}
           >
-            <Text style={themed($rowText)}>{translate("common:cancel")}</Text>
+            <Text style={themed($rowText)}>{t("common:cancel")}</Text>
           </Pressable>
         </View>
       </View>

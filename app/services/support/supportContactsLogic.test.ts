@@ -47,6 +47,30 @@ describe("defaultRoleFor / canAddContact", () => {
   })
 })
 
+describe("addContact, number-as-name (spec D1)", () => {
+  const added = (name: string) => {
+    const r = addContact([], { name, number: "+1 (555) 010-0001" }, "friend")
+    if (r.kind !== "ok") throw new Error("expected ok")
+    return r.contacts[0]
+  }
+  it("stores an empty name when the name is a formatted phone number, keeping the number", () => {
+    expect(added("+1 (555) 010-0001")).toEqual({
+      role: "friend",
+      name: "",
+      number: "+1 (555) 010-0001",
+    })
+  })
+  it("stores an empty name for a bare digit string", () => {
+    expect(added("5550100001").name).toBe("")
+  })
+  it("keeps a real name that contains digits", () => {
+    expect(added("12 Step Dave").name).toBe("12 Step Dave")
+  })
+  it("leaves an empty name empty", () => {
+    expect(added("").name).toBe("")
+  })
+})
+
 describe("addContact", () => {
   it("appends the trimmed pick with the given role", () => {
     const r = addContact([], { name: " Julie J. ", number: " +1 (555) 010-0001 " }, "sponsor")
