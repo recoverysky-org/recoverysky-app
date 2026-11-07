@@ -130,7 +130,10 @@ export const SupportScreen: FC = observer(function SupportScreen() {
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        {pickerAvailable && (
+        {/* CHANGED 2026-11-06 (final review I-3): hidden while the keychain could not be read, so
+            nobody edits a list we do not have. The meeting and crisis rows below never depend on
+            it. The screen is an observer, so this returns by itself when a later read succeeds. */}
+        {pickerAvailable && store.hydrated && (
           <View style={themed($section)}>
             {contacts.map((contact, index) => (
               <SupportContactRow

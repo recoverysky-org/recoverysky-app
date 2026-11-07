@@ -121,6 +121,14 @@ deleted with the app, the keychain is not). A person who reinstalls picks their 
 that is the cost, and it matches the non-goal below. Whatever holds the contacts in memory must
 contribute nothing to `onSnapshot`.
 
+CHANGED 2026-11-06 (final review I-3, M-6): a read that fails is "unknown", not "empty". Before
+this, a locked keychain hydrated as no contacts, the card asked someone with a sponsor to add one,
+and the next edit overwrote the real list for good. Now a failed read leaves the store un-hydrated,
+the store refuses edits, the card and the screen's contacts hide (the screen keeps Find a live
+meeting and the 988 row), and the read is retried when the app next comes to the foreground. A
+fresh-install clear that fails leaves the previous installer's contacts unread and is retried the
+same way.
+
 **D5. The crisis line is keyed on the device region, US and Canada only.** The app's language
 setting is a language, not a country, so the key is `getLocales()[0].regionCode` from
 `expo-localization` (already a dependency; the In-Person map uses the same value). `US` and `CA`

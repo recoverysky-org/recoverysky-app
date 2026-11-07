@@ -120,7 +120,7 @@ import {
 import { registerTestPushDevMenu } from "./services/notifications/devTestPush"
 import { pushRegistrationUserId } from "./services/notifications/pushRegistrationLogic"
 import { initRatingEngine } from "./services/rating"
-import { clearSupportContacts } from "./services/support"
+import { clearSupportContacts, createSupportLoader } from "./services/support"
 import { initAttendanceSync } from "./services/sync"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ThemeProvider } from "./theme/context"
@@ -523,8 +523,23 @@ export function App() {
         // User Data reload. Logout writes the snapshot back, so that reload is
         // usually "restored"; Delete User Data clears the contacts itself (step 6b).
         // Runs BEFORE hydrate.
-        if (!restoredState) await clearSupportContacts()
-        await _rootStore.supportStore.hydrate()
+        // CHANGED 2026-11-06 (final review I-3, M-6): both steps moved into the loader, because a
+        // locked keychain (a background launch) can fail either. A failed clear now blocks the read
+        // that would show a previous installer's contacts, a failed read leaves the store unknown
+        // rather than empty, and the listener below retries when the phone is next in use. The
+        // listener lives as long as the app, like init's reactions. Awaited as before so a healthy
+        // cold start shows the card on first paint; the loader never rejects.
+        const { supportStore } = _rootStore
+        const supportLoader = createSupportLoader({
+          clearPending: !restoredState,
+          clear: clearSupportContacts,
+          hydrate: () => supportStore.hydrate(),
+          isHydrated: () => supportStore.hydrated,
+        })
+        await supportLoader.load()
+        AppState.addEventListener("change", (nextState: AppStateStatus) => {
+          if (nextState === "active" && !supportStore.hydrated) void supportLoader.load()
+        })
 
         // ADDED 2026-10-11: guests never see or write the device's hearts /
         // stars / join counts (spec 2026-09-27). Read live on every access, so
@@ -1256,10 +1271,12 @@ export function App() {
   // the keychain. Declared before the isAppReady early return (hook order), and stable
   // per rootStore because DatabaseProvider's resetLocalData callback and context value
   // depend on it. rootStore is undefined early; fall back to the bare keychain clear.
-  const resetSupportContacts = useCallback(
-    () => (rootStore ? rootStore.supportStore.clear() : clearSupportContacts()),
-    [rootStore],
-  )
+  // CHANGED 2026-11-06 (final review M-6): clearSupportContacts now returns whether it worked. The
+  // overlay does not act on it, so the fallback awaits and drops the answer to keep the prop's type.
+  const resetSupportContacts = useCallback(async () => {
+    if (rootStore) await rootStore.supportStore.clear()
+    else await clearSupportContacts()
+  }, [rootStore])
 
   // Check if app is ready
   const isAppReady =

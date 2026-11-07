@@ -25,6 +25,11 @@ import { SUPPORT_ROLE_TX, type DialKind } from "@/services/support/supportContac
  * Returns null when the picker is unavailable (web, or a binary built before the
  * module existed): without it nobody can add a contact, so the card would be a
  * dead end (spec D2).
+ *
+ * CHANGED 2026-11-06 (final review I-3): also returns null while the store is not
+ * hydrated, which on a running app means the keychain could not be read. "Add your
+ * sponsor" there would be untrue for someone who has one, and it renders again by
+ * itself (observer) when a later read succeeds.
  */
 
 export const SupportCardContainer: FC = observer(function SupportCardContainer() {
@@ -33,7 +38,7 @@ export const SupportCardContainer: FC = observer(function SupportCardContainer()
   const dialNumber = useSupportDial()
   const { choose, roleSheet } = useAddSupportContact()
 
-  if (!isPhoneContactPickerAvailable()) return null
+  if (!isPhoneContactPickerAvailable() || !store.hydrated) return null
 
   const primary = store.primary
 

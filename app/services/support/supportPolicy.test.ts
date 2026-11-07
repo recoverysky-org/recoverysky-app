@@ -52,6 +52,14 @@ describe("support contacts reset policy (spec D4)", () => {
   it("app.tsx passes resetSupportContacts to DatabaseProvider", () => {
     expect(read("app.tsx")).toMatch(/resetSupportContacts=/)
   })
+  // ADDED 2026-11-06 (final review I-3, M-6): init's wiring has no unit test. The loader's branches
+  // do (supportLoader.test.ts), so what needs pinning here is that init uses it and retries.
+  it("app.tsx loads through createSupportLoader and retries on the active edge", () => {
+    const app = read("app.tsx")
+    expect(app).toMatch(/createSupportLoader\(\{\s*clearPending: !restoredState/)
+    expect(app).toMatch(/nextState === "active" && !supportStore\.hydrated/)
+    expect(app).not.toMatch(/if \(!restoredState\) await clearSupportContacts\(\)/)
+  })
   it("nothing under app/db imports from services/support", () => {
     const db = files(path.join(appDir, "db")).filter((p) => /\.tsx?$/.test(p))
     expect(

@@ -16,6 +16,7 @@ jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
 }))
 const mockStore = {
+  hydrated: true,
   contacts: [
     { role: "sponsor", name: "Julie J.", number: "+15550100001" },
     { role: "support", name: "Marco", number: "5550100002" },
@@ -96,6 +97,31 @@ describe("SupportScreen", () => {
     fireEvent.press(getByLabelText(/support:crisisCallA11y/))
     await waitFor(() => expect(mockTrackEvent).toHaveBeenCalledWith("support_crisis_call"))
     expect(mockOpenDial).toHaveBeenCalledWith("call", "988")
+  })
+
+  // ADDED 2026-11-06 (final review I-3): the crisis paths never depend on reading the keychain.
+  describe("while the contacts are unread", () => {
+    beforeEach(() => {
+      mockStore.hydrated = false
+      mockRegion = "US"
+    })
+    afterEach(() => {
+      mockStore.hydrated = true
+    })
+
+    it("hides the contacts and the Add row", () => {
+      const { queryByText, queryByLabelText, queryAllByLabelText } = render(<SupportScreen />)
+      expect(queryByText(/support:roleAndName/)).toBeNull()
+      expect(queryAllByLabelText(/support:callA11y/)).toHaveLength(0)
+      expect(queryByLabelText(/support:addContact/)).toBeNull()
+    })
+
+    it("keeps Find a live meeting and the 988 row", () => {
+      const { getByText, getByLabelText } = render(<SupportScreen />)
+      expect(getByText(/support:findLiveMeeting/)).toBeTruthy()
+      expect(getByText(/support:crisisLine/)).toBeTruthy()
+      expect(getByLabelText(/support:crisisCallA11y/)).toBeTruthy()
+    })
   })
 
   it("the sheet acts on the tapped row: move up", () => {

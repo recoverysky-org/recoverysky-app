@@ -974,6 +974,14 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   only**: the card, rows and sheets take `{ roleTx, name }`, never a contact, and
   a number is read from the store only inside a press handler, to `openDial`.
   Stored in SecureStore `support_contacts_v1`; `SupportStore` has no props.
+  **Could-not-read is not empty** (CHANGED 2026-11-06): `loadSupportContacts`
+  returns null when the read throws, `hydrated` then stays false, every edit is
+  refused, and the card and the screen's contacts hide (988 and "Find a live
+  meeting now" stay). `createSupportLoader` runs at cold start and retries on the
+  `active` edge; a failed fresh-install clear blocks the read until it succeeds.
+  Hydrating a locked keychain as `[]` is what made the next edit permanent loss.
+  Keychain calls run on one chain in the store, so saves stay ordered and a save
+  cannot land after `clear()`.
   **Four clears**: Delete User Data step 6b (OUTSIDE the steps 1-7 `try`: a
   keychain rejection there would skip it, and logout writes the snapshot back,
   so the fresh-install clear is no backstop); the database overlay's Reset via
