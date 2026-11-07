@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai"
 import { describe, expect, it } from "vitest"
 
-import { chatRequestBody, isStaleRefusal, turnOf } from "./agentBodyLogic"
+import { chatErrorLogFields, chatRequestBody, isStaleRefusal, turnOf } from "./agentBodyLogic"
 
 const user = (id: string): UIMessage => ({
   id,
@@ -152,5 +152,55 @@ describe("isStaleRefusal", () => {
     ["an empty body", ""],
   ])("does not read %s as stale", (_name, body) => {
     expect(isStaleRefusal(body)).toBe(false)
+  })
+})
+
+describe("chatErrorLogFields", () => {
+  const WORDS = "my private words"
+  const fieldsOf = (body: string, name = "Error") => chatErrorLogFields({ name, message: body })
+
+  it("says what a refusal was, by its reason and code", () => {
+    const body = JSON.stringify({ error: "Conflict", message: "conversation_archived" })
+    expect(fieldsOf(body)).toEqual({
+      errorName: "Error",
+      bodyLength: body.length,
+      reason: "Conflict",
+      code: "conversation_archived",
+    })
+  })
+
+  it("names the one stale refusal that is not in snake case", () => {
+    const body = JSON.stringify({ error: "Forbidden", message: "Access denied" })
+    expect(fieldsOf(body).code).toBe("Access denied")
+  })
+
+  it.each([
+    ["zod issues", { error: "Bad Request", details: [{ received: WORDS, input: WORDS }] }],
+    ["a sentence as the message", { error: "Bad Request", message: WORDS }],
+    ["words as the reason", { error: WORDS, message: "conversation_archived" }],
+    ["a stray field", { error: "Bad Request", said: WORDS }],
+  ])("leaves the person's words out of %s", (_name, body) => {
+    expect(JSON.stringify(fieldsOf(JSON.stringify(body)))).not.toContain(WORDS)
+  })
+
+  it.each([
+    ["a proxy's page", `<html>${WORDS}</html>`],
+    ["JSON that is not an object", JSON.stringify(WORDS)],
+    ["JSON null", "null"],
+    ["an empty body", ""],
+  ])("logs only the name and the length for %s", (_name, body) => {
+    expect(fieldsOf(body)).toEqual({ errorName: "Error", bodyLength: body.length })
+  })
+
+  it("keeps the error's name, which is how a network failure shows", () => {
+    expect(fieldsOf("Network request failed", "TypeError").errorName).toBe("TypeError")
+  })
+
+  it.each([
+    ["a number", { error: 500, message: 7 }],
+    ["a list", { error: ["Bad Request"], message: ["conversation_archived"] }],
+  ])("ignores a reason and code that are %s", (_name, body) => {
+    const raw = JSON.stringify(body)
+    expect(fieldsOf(raw)).toEqual({ errorName: "Error", bodyLength: raw.length })
   })
 })

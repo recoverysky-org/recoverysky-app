@@ -10,7 +10,9 @@
  * is now read back from the agent, which brings parts this screen never saw while it
  * only held its own: a stored reply's finished states, and rows from before the agent
  * stored parts. A "Using…" badge is only true while a reply streams, so anything else
- * read back must not draw one, or it spins for good.
+ * read back must not draw one, or it spins for good. A stored part can still be in a
+ * running state, and this module cannot tell it from a live one: `running` reports the
+ * part's state, and the screen makes the stored-or-live call from the chat's status.
  *
  * Parts read from the agent are checked only for being an array (`isStoredMessage`),
  * so a part can be `null`, a primitive or the wrong shape whatever the signature says.

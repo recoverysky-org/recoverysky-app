@@ -46,7 +46,7 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { chatRequestBody, isStaleRefusal, turnOf } from "@/utils/agentBodyLogic"
+import { chatErrorLogFields, chatRequestBody, isStaleRefusal, turnOf } from "@/utils/agentBodyLogic"
 import { classifyToolPart } from "@/utils/agentToolPartLogic"
 import { logger } from "@/utils/logger"
 
@@ -315,10 +315,13 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
         headers: () => api.agentHeaders(),
         // The body is the turn (spec D2): the agent holds the history and builds the context.
         prepareSendMessagesRequest: ({ id, messages }) => {
-          // Recorded before the request goes out, so a turn that fails on the way still counts as
-          // sent. Its id missing from the agent's stored messages is the whole signal that it
+          // Recorded just before the request goes out, so a turn that fails on the way still counts
+          // as sent. Its id missing from the agent's stored messages is the whole signal that it
           // exists only on this screen, and that a re-read must not replace it (spec D1). An
           // answered card is not the person's words and has no id of theirs to check.
+          // CHANGED 2026-11-06 (final review): this used to read as if nothing could fail ahead of
+          // it. The SDK awaits `headers` above before it calls this, so a turn that fails there
+          // never gets here. The error effect below records that one.
           const turn = turnOf(messages)
           if (turn?.role === "user") chatState.current.sentIds.add(turn.id)
           return { body: chatRequestBody(id, messages, timezone, fellowshipRef.current) }
@@ -327,21 +330,39 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
     [agentApiUrl, chatState, timezone],
   )
 
+  // ADDED 2026-11-06 (final review): only while the store is still on this chat's thread. A stream
+  // can outlive a sign-out (useChat does not abort on unmount), and marking then would clear the
+  // flag of an id minted since, which would then read an id the agent has never seen.
+  const markOnAgent = useCallback(() => {
+    if (conversationStore.conversationId === conversationId) {
+      conversationStore.markConversationOnAgent()
+    }
+  }, [conversationStore, conversationId])
+
   // Initialize chat with Vercel AI SDK
   const { messages, status, error, sendMessage, setMessages, clearError } = useChat({
     id: conversationId,
     messages: history,
     transport,
     onError: (err) => {
-      log.error("Chat error", { error: err.message, url: agentApiUrl })
+      // CHANGED 2026-11-06 (final review): a stale refusal is the agent working as designed, and the
+      // error effect below handles it, so it logs at info and stays out of the error counts. And no
+      // line logs `err.message` any more: it is the raw response body, which can carry what the
+      // person said (see chatErrorLogFields).
+      const detail = { ...chatErrorLogFields(err), url: agentApiUrl }
+      if (isStaleRefusal(err.message)) log.info("Chat turn refused as stale", detail)
+      else log.error("Chat error", detail)
     },
     // The second half of marking the id, with the effect below. A short reply can arrive in one
     // read, and React may never commit the passing "streaming" status, so the effect would not see
     // it. The id would stay fresh, and fresh reads nothing, so this thread would come back empty
     // after a restart. A reply with parts means the agent admitted the turn; a turn refused before
     // streaming finishes with none, and stays fresh (spec D1).
+    // The SDK also fires this on a failed request, with `isError: true` and empty parts, which is
+    // why the parts check exists. `!isError` would be the wrong test: a stream that fails midway has
+    // `isError` too, its parts are there, and the agent has already stored the turn.
     onFinish: ({ message }) => {
-      if (message.parts.length > 0) conversationStore.markConversationOnAgent()
+      if (message.parts.length > 0) markOnAgent()
     },
   })
 
@@ -365,8 +386,8 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
   // now on. A turn that fails before this leaves the id fresh, and nothing is read (spec D1). Not
   // left to onFinish alone: the app can be killed mid-reply, and the flag persists.
   useEffect(() => {
-    if (status === "streaming") conversationStore.markConversationOnAgent()
-  }, [status, conversationStore])
+    if (status === "streaming") markOnAgent()
+  }, [status, markOnAgent])
 
   // A re-read of this conversation landed. A new conversation never comes through here: its id is a
   // new key, and its history arrives as the mount's `messages`. So this skips the mount's readAt. It
@@ -376,8 +397,13 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
   useEffect(() => {
     if (appliedReadAt.current === readAt) return
     appliedReadAt.current = readAt
-    if (!isLoading) setMessages(history)
-  }, [readAt, history, isLoading, setMessages])
+    // CHANGED 2026-11-06 (final review): clears the error too. A row about a turn left on screen
+    // would outlive the list it was about, and the agent holds that turn or this read wouldn't land.
+    if (!isLoading) {
+      setMessages(history)
+      clearError()
+    }
+  }, [readAt, history, isLoading, setMessages, clearError])
 
   const isStale = error ? isStaleRefusal(error.message) : false
 
@@ -387,7 +413,18 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
   // Keyed on `error` alone so one refusal acts once: `messages` and `input` move on every render, and
   // a second run would put the words back a second time.
   useEffect(() => {
-    if (!isStale) return
+    if (!error) return
+
+    // ADDED 2026-11-06 (final review): any other failure leaves the turn in the list, and a re-read
+    // must not replace it. The transport records the id, but only once the SDK has the headers, so
+    // a failure there (no token, say) would leave these words open to the next focus. Harmless when
+    // the transport did get there: it is a set.
+    if (!isStale) {
+      const turn = turnOf(messages)
+      if (turn?.role === "user") chatState.current.sentIds.add(turn.id)
+      return
+    }
+
     const words = lastUserWords(messages)
     // Anything typed since the send stays, after the returned words. Overwriting it would lose words
     // to the very path that exists to save them.
@@ -398,13 +435,24 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
   }, [error])
 
   // Auto-scroll to bottom when new messages arrive
+  // CHANGED 2026-11-06 (final review): only for a new last message or a turn in progress. Bottom tabs
+  // stay mounted and every focus re-reads, so scrolling on any new array moved someone reading back
+  // to the end at each tab switch. The turn matters because a growing reply keeps its id, and its
+  // last chunk can land in the commit that ends the turn, hence the falling edge as well. A re-read
+  // never lands during a turn (the read effect above), so this can't catch one.
+  const scrolledToId = useRef<string | undefined>(undefined)
+  const turnWasRunning = useRef(false)
   useEffect(() => {
-    if (messages.length > 0) {
+    const lastId = messages[messages.length - 1]?.id
+    const follow = lastId !== scrolledToId.current || isLoading || turnWasRunning.current
+    scrolledToId.current = lastId
+    turnWasRunning.current = isLoading
+    if (lastId !== undefined && follow) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true })
       }, 100)
     }
-  }, [messages])
+  }, [messages, isLoading])
 
   const handleSend = useCallback(() => {
     if (!input.trim()) return
@@ -505,7 +553,11 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
             <View style={themed($emptyState)}>
               <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.textDim} />
               <Text style={themed($emptyStateText)} tx="agentScreen:emptyState" />
-              <Text style={themed($emptyStateHint)} tx="agentScreen:emptyStateHint" />
+              {/* CHANGED 2026-11-06 (final review): not over a thread that failed to load. There
+                  may be a thread, and the row below says so. */}
+              {!historyFailed && (
+                <Text style={themed($emptyStateHint)} tx="agentScreen:emptyStateHint" />
+              )}
             </View>
           ) : (
             messages.map((message, messageIndex) => (

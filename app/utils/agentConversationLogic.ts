@@ -40,7 +40,12 @@ export type OpenOutcome =
   | { kind: "keep" }
   /** Nothing to show and nothing known: the error row with a retry. The composer waits. */
   | { kind: "failed" }
-  /** An empty thread with a live composer. `minted` says the id is new as of this open. */
+  /**
+   * A thread the agent has taken no turn on, with a live composer. Only a minted one (`minted`: the
+   * id is new as of this open) is known to be empty. A persisted fresh id can have a failed turn's
+   * words on screen, so the hook leaves the chat alone when that id is already showing.
+   * CHANGED 2026-11-06 (final review): this used to call every fresh outcome empty.
+   */
   | { kind: "fresh"; id: string; minted: boolean }
   /** This is the thread. `historyFailed` draws the error with the id still adopted. */
   | { kind: "thread"; id: string; history: UIMessage[]; historyFailed: boolean }

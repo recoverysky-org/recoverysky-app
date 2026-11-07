@@ -1,10 +1,11 @@
 /**
- * What a Sky chat request carries, and which of the agent's refusals mean the
- * thread on screen is stale.
+ * What a Sky chat request carries, which of the agent's refusals mean the thread
+ * on screen is stale, and what a log line may say about a failed request.
  *
  * PURE MODULE: a type-only `ai` import and no `@/` runtime imports, so vitest can
  * import it (see CLAUDE.md "Test Runner Split"). AgentScreen's transport calls
- * these from `prepareSendMessagesRequest` and from its error effect.
+ * these from `prepareSendMessagesRequest`, and the screen from its error effect and
+ * its `onError`.
  *
  * ADDED 2026-11-06 (spec 2026-11-06-agent-chat-turn-only-design.md, D2, D8). The
  * agent now holds the history and builds each turn's context from it, so the app
@@ -16,8 +17,12 @@ import type { UIMessage } from "ai"
 /**
  * The body of `POST /api/v1/chat`. Named by the wire, hence the snake case.
  *
- * `messages` is the turn alone, or empty when there is none. The agent reads the
- * last message either way, so this also parses on an older agent (spec D10).
+ * `messages` is the turn alone, and an older agent parses that too, since it reads the
+ * last message either way (spec D10). It is empty only when there is no turn, which the
+ * SDK is not expected to send: it hands over the list with the message it is sending in
+ * it. The agent's schema has `.min(1)` on `messages`, so an empty one would be refused
+ * as an invalid body.
+ * CHANGED 2026-11-06 (final review): this used to say an empty list parses as well.
  */
 export interface ChatRequestBody {
   conversation_id: string
@@ -103,6 +108,58 @@ const STALE_REFUSALS: ReadonlySet<string> = new Set([
   "conversation_archived",
   "Access denied",
 ])
+
+/**
+ * The `error` field the agent's chat route answers with: its status, in words. A closed list, so a
+ * body from anything else in the way logs no reason at all.
+ */
+const AGENT_REASONS: ReadonlySet<string> = new Set([
+  "Bad Request",
+  "Unauthorized",
+  "Forbidden",
+  "Not Found",
+  "Conflict",
+  "Too Many Requests",
+  "Processing Error",
+  "Internal Server Error",
+  "Service Unavailable",
+])
+
+/** The agent's machine codes are snake case. A person's words all but never are. */
+const AGENT_CODE = /^[a-z][a-z0-9]*(_[a-z0-9]+)+$/
+
+export interface ChatErrorLogFields {
+  errorName: string
+  bodyLength: number
+  reason?: string
+  code?: string
+}
+
+/**
+ * What a log line may say about a failed chat request: the status, in words, and never the body.
+ *
+ * ADDED 2026-11-06 (final review). The SDK gives no status, only an Error whose `message` is the raw
+ * response body, and that body can carry what the person said. A 400 from the agent's chat route
+ * has `details`, its zod `issues`. Zod 4 leaves the input out of those by default, but that is the
+ * validator's default and not a promise, and a proxy in the way can answer with anything. So fields
+ * come out by name, each from a closed shape, and anything else logs as a length.
+ */
+export function chatErrorLogFields(error: { name: string; message: string }): ChatErrorLogFields {
+  const fields: ChatErrorLogFields = { errorName: error.name, bodyLength: error.message.length }
+  let body: unknown
+  try {
+    body = JSON.parse(error.message)
+  } catch {
+    return fields
+  }
+  if (typeof body !== "object" || body === null) return fields
+  const { error: reason, message: code } = body as { error?: unknown; message?: unknown }
+  if (typeof reason === "string" && AGENT_REASONS.has(reason)) fields.reason = reason
+  if (typeof code === "string" && (STALE_REFUSALS.has(code) || AGENT_CODE.test(code))) {
+    fields.code = code
+  }
+  return fields
+}
 
 /**
  * Whether a chat error is one of the refusals above. The SDK surfaces a non-2xx

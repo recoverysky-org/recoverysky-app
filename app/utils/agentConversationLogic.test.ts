@@ -253,6 +253,20 @@ describe("openConversation", () => {
       expect(deps.listNewest).toHaveBeenCalledTimes(1)
     })
 
+    it("keeps the screen when the check passes and the listing then fails", async () => {
+      const deps = setup({ listings: [unavailable], reads: [ok([message("u-1")])] })
+      const out = await openConversation(sent("u-1"), deps)
+      expect(out).toEqual({ kind: "keep" })
+      expect(deps.mintId).not.toHaveBeenCalled()
+    })
+
+    it("mints when the check passes and the agent then lists nothing", async () => {
+      // How an archive on another device arrives once every turn here is stored.
+      const deps = setup({ listings: [ok(null)], reads: [ok([message("u-1")])] })
+      const out = await openConversation(sent("u-1"), deps)
+      expect(out).toEqual({ kind: "fresh", id: "minted", minted: true })
+    })
+
     it("has nothing to check when there is no id", async () => {
       const deps = setup({ listings: [ok(null)] })
       const out = await openConversation({ ...nothingOnScreen, sentIds: new Set(["u-1"]) }, deps)

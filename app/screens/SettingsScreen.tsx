@@ -468,6 +468,12 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     )
   }
 
+  // ADDED 2026-11-06 (final review): step 3 below can wait 5 s after OK with nothing on screen, so a
+  // person can tap through the confirmation again, and a second handler would race the first's
+  // database reset and reload. A ref and no spinner: the wait is bounded, and this is not
+  // state anything draws. Reset only when the reload failed and the app is still here.
+  const deletingRef = useRef(false)
+
   const handleDeleteUserData = () => {
     Alert.alert(
       translate("settingsScreen:deleteUserData"),
@@ -478,6 +484,9 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
           text: translate("common:ok"),
           style: "destructive",
           onPress: async () => {
+            if (deletingRef.current) return
+            deletingRef.current = true
+
             try {
               trackEvent("data_deleted")
 
@@ -500,7 +509,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
                 if (!archived)
                   logger.error("Delete User Data: Sky's conversations were not archived")
               }
-              conversationStore.forgetConversation()
 
               // 4. Reset ProfileStore (volatile + props, persists to SQLite)
               profileStore.reset()
@@ -517,6 +525,13 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               // Even if some steps fail, ensure auth is cleared
               authStore.logout()
             }
+
+            // 3b. Forget Sky's conversation on this device. The archive stays in step 3.
+            // CHANGED 2026-11-06 (final review): moved out of step 3, OUTSIDE the steps 1-7 try like
+            // 6b and 7b. A throw at step 1 skipped it, and then the catch's authStore.logout(), like
+            // step 7's logout(), wrote the root snapshot back to MMKV with the old id in it. After
+            // those writes, this one writes the snapshot again without the id. Never throws.
+            conversationStore.forgetConversation()
 
             // 6b. Support contacts (sponsor name and number) live in their own
             // keychain item, which clearAllSecureData does not touch.
@@ -561,7 +576,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
             } catch (e) {
               logger.error("Delete User Data: local database reset failed", { error: String(e) })
             }
-            await reloadApp()
+            // Its onError is the one way out of here with the app still running: every step above
+            // catches its own failure or never throws, and a reload that works ends this runtime.
+            await reloadApp(() => {
+              deletingRef.current = false
+            })
           },
         },
       ],

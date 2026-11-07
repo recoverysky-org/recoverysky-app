@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Alert } from "react-native"
+import { Alert, ScrollView } from "react-native"
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 import type { UIMessage } from "ai"
 
@@ -49,6 +49,7 @@ type ChatOptions = {
     sendMessages(options: Record<string, unknown>): Promise<ReadableStream>
   }
   onError?: (error: Error) => void
+  onFinish?: (event: { message: UIMessage; isError?: boolean }) => void
 }
 
 let mockChatOptions: ChatOptions
@@ -111,6 +112,11 @@ jest.mock("@/hooks/useVoiceInput", () => ({
   }),
 }))
 
+// The real hook warns once per run with no i18next instance, and answers the key anyway.
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}))
+
 jest.mock("@/i18n", () => ({
   translate: (key: string, params?: Record<string, string>) =>
     params ? `${key} ${JSON.stringify(params)}` : key,
@@ -142,9 +148,16 @@ jest.mock("@/services/api", () => ({
   },
 }))
 
+const mockLog = { warn: jest.fn(), debug: jest.fn(), info: jest.fn(), error: jest.fn() }
+// Forwarded, not handed over: the screen calls child() as it is imported, ahead of this const.
 jest.mock("@/utils/logger", () => ({
   logger: {
-    child: () => ({ warn: jest.fn(), debug: jest.fn(), info: jest.fn(), error: jest.fn() }),
+    child: () => ({
+      warn: (...args: unknown[]) => mockLog.warn(...args),
+      debug: (...args: unknown[]) => mockLog.debug(...args),
+      info: (...args: unknown[]) => mockLog.info(...args),
+      error: (...args: unknown[]) => mockLog.error(...args),
+    }),
   },
 }))
 
@@ -154,6 +167,7 @@ const mockProfile = {
   setAiConsentAccepted: jest.fn(),
 }
 const mockConversationStore = {
+  conversationId: "conversation-1" as string | null,
   markConversationOnAgent: jest.fn(),
   collapseToolResult: jest.fn(),
 }
@@ -197,9 +211,27 @@ function mountScreen() {
   return render(<AgentScreen {...screenProps} />)
 }
 
+/**
+ * The real SDK's last status change can land a task after the last thing a test waits for, and
+ * outside waitFor that update warns. Let it finish inside act.
+ */
+async function settleRealChat() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
+
 describe("AgentScreen", () => {
+  // Test output stays pristine: an update outside act is a state change no test is looking at.
+  const consoleError = jest.spyOn(console, "error")
+
+  afterEach(() => {
+    expect(consoleError).not.toHaveBeenCalled()
+  })
+
   beforeEach(() => {
     jest.clearAllMocks()
+    mockConversationStore.conversationId = CONVERSATION_ID
     mockUseChatImpl = mockFakeUseChat
     mockChat.messages = []
     mockChat.status = "ready"
@@ -344,6 +376,7 @@ describe("AgentScreen", () => {
       fireEvent.press(screen.getByLabelText("agentScreen:sendMessage"))
 
       await waitFor(() => expect(mockConversation.reopenStale).toHaveBeenCalledTimes(1))
+      await settleRealChat()
       expect(screen.getByDisplayValue("my words")).toBeTruthy()
       expect(screen.queryByText(REFUSAL_BODY)).toBeNull()
       const body = JSON.parse(mockExpoFetch.mock.calls[0][1].body)
@@ -394,6 +427,7 @@ describe("AgentScreen", () => {
 
       await waitFor(() => expect(screen.getByText("Sky's reply")).toBeTruthy())
       await waitFor(() => expect(mockConversation.chatState.current.busy).toBe(false))
+      await settleRealChat()
       expect(screen.getByText("my words")).toBeTruthy()
       // One read holds the whole reply here, and "streaming" was never committed, so this also pins
       // the onFinish path: left fresh, this thread would come back empty after a restart.
@@ -409,12 +443,175 @@ describe("AgentScreen", () => {
       fireEvent.press(screen.getByLabelText("agentScreen:sendMessage"))
 
       await waitFor(() => expect(screen.getByText("<html>502</html>")).toBeTruthy())
+      await settleRealChat()
       expect(screen.getByText("my words")).toBeTruthy()
       expect(mockConversation.reopenStale).not.toHaveBeenCalled()
       // The id is what stops a later focus from replacing this list (spec D1).
       expect(mockConversation.chatState.current.sentIds.size).toBe(1)
       // A turn that never streamed leaves the id fresh.
       expect(mockConversationStore.markConversationOnAgent).not.toHaveBeenCalled()
+    })
+
+    // The transport awaits the headers before it calls prepareSendMessagesRequest, so a failure
+    // there never reaches the line that records the id.
+    it("keeps a re-read off a turn whose headers failed before the request", async () => {
+      mockAgentHeaders.mockRejectedValue(new Error("no token"))
+      const screen = mountScreen()
+
+      fireEvent.changeText(screen.getByPlaceholderText("agentScreen:inputPlaceholder"), "my words")
+      fireEvent.press(screen.getByLabelText("agentScreen:sendMessage"))
+
+      await waitFor(() => expect(screen.getByText("no token")).toBeTruthy())
+      await settleRealChat()
+      expect(mockExpoFetch).not.toHaveBeenCalled()
+      expect(screen.getByText("my words")).toBeTruthy()
+      expect(mockConversation.chatState.current.sentIds.size).toBe(1)
+    })
+
+    // Not a mock's belief about the SDK: it fires onFinish after a failed request too, which is why
+    // the screen looks at the reply's parts.
+    it("leaves the id fresh when a failed request runs onFinish with no parts", async () => {
+      mockExpoFetch.mockResolvedValue(new Response("<html>502</html>", { status: 502 }))
+      const seen: Array<{ isError?: boolean; parts: number }> = []
+      const realUseChat = jest.requireActual<{ useChat: typeof mockUseChatImpl }>(
+        "@ai-sdk/react",
+      ).useChat
+      mockUseChatImpl = (options) =>
+        realUseChat({
+          ...options,
+          onFinish: (event) => {
+            seen.push({ isError: event.isError, parts: event.message.parts.length })
+            options.onFinish?.(event)
+          },
+        })
+      const screen = mountScreen()
+
+      fireEvent.changeText(screen.getByPlaceholderText("agentScreen:inputPlaceholder"), "my words")
+      fireEvent.press(screen.getByLabelText("agentScreen:sendMessage"))
+
+      await waitFor(() => expect(seen).toEqual([{ isError: true, parts: 0 }]))
+      await settleRealChat()
+      expect(mockConversationStore.markConversationOnAgent).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("marking the id on the agent", () => {
+    const reply = assistantMessage("reply", [{ type: "text", text: "Sky's reply" }])
+
+    it("marks on a finished reply with parts", () => {
+      mountScreen()
+      mockChatOptions.onFinish?.({ message: reply })
+      expect(mockConversationStore.markConversationOnAgent).toHaveBeenCalledTimes(1)
+    })
+
+    // A mid-stream failure: the agent admitted the turn before it broke, so `!isError` would be wrong.
+    it("marks on a reply that failed mid-stream", () => {
+      mountScreen()
+      mockChatOptions.onFinish?.({ message: reply, isError: true })
+      expect(mockConversationStore.markConversationOnAgent).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not mark on a reply with no parts", () => {
+      mountScreen()
+      mockChatOptions.onFinish?.({ message: assistantMessage("empty", []), isError: true })
+      expect(mockConversationStore.markConversationOnAgent).not.toHaveBeenCalled()
+    })
+
+    // A stream can outlive a sign-out, and the flag it would clear belongs to a newly minted id.
+    it("does not mark when the store has moved to another id by the time the reply ends", () => {
+      mountScreen()
+      mockConversationStore.conversationId = "minted-since"
+      mockChatOptions.onFinish?.({ message: reply })
+      expect(mockConversationStore.markConversationOnAgent).not.toHaveBeenCalled()
+    })
+
+    it("does not mark when the store has moved to another id by the time streaming starts", () => {
+      mountScreen()
+      mockConversationStore.conversationId = "minted-since"
+      update(() => {
+        mockChat.status = "streaming"
+      })
+      expect(mockConversationStore.markConversationOnAgent).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("logging a chat error", () => {
+    const WORDS = "my private words"
+    const logged = () =>
+      JSON.stringify([
+        ...mockLog.info.mock.calls,
+        ...mockLog.error.mock.calls,
+        ...mockLog.warn.mock.calls,
+      ])
+
+    it("logs a stale refusal at info, not error", () => {
+      mountScreen()
+      mockChatOptions.onError?.(new Error(REFUSAL_BODY))
+      expect(mockLog.info).toHaveBeenCalledTimes(1)
+      expect(mockLog.error).not.toHaveBeenCalled()
+      expect(logged()).toContain("conversation_archived")
+    })
+
+    it("logs any other error at error", () => {
+      mountScreen()
+      mockChatOptions.onError?.(new Error("<html>502</html>"))
+      expect(mockLog.error).toHaveBeenCalledTimes(1)
+      expect(mockLog.info).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      [
+        "a validation echo",
+        JSON.stringify({ error: "Bad Request", details: [{ received: WORDS }] }),
+      ],
+      ["a proxy page", `<html>${WORDS}</html>`],
+      ["a message that is a sentence", JSON.stringify({ error: "Oops", message: WORDS })],
+    ])("logs nothing of what was said from %s", (_name, body) => {
+      mountScreen()
+      mockChatOptions.onError?.(new Error(body))
+      expect(mockLog.error).toHaveBeenCalledTimes(1)
+      expect(logged()).not.toContain(WORDS)
+    })
+  })
+
+  describe("recording a turn that failed", () => {
+    const failWith = (message: string) =>
+      update(() => {
+        mockChat.status = "error"
+        mockChat.error = new Error(message)
+      })
+
+    it("records the person's turn on a failure that is not stale", () => {
+      mountScreen()
+      update(() => {
+        mockChat.messages = [
+          userMessage("failed", "my words"),
+          assistantMessage("partial", [{ type: "text", text: "half a rep" }]),
+        ]
+      })
+      failWith("<html>502</html>")
+      expect([...mockConversation.chatState.current.sentIds]).toEqual(["failed"])
+    })
+
+    it("records nothing for a turn that is not the person's words", () => {
+      mountScreen()
+      update(() => {
+        mockChat.messages = [
+          assistantMessage("card", [{ type: "tool-x", state: "approval-responded" }]),
+        ]
+      })
+      failWith("<html>502</html>")
+      expect(mockConversation.chatState.current.sentIds.size).toBe(0)
+    })
+
+    // Its words go back in the composer and the list is read again, so the id must not hold it.
+    it("records nothing on a stale refusal", () => {
+      mountScreen()
+      update(() => {
+        mockChat.messages = [userMessage("refused", "my words")]
+      })
+      failWith(REFUSAL_BODY)
+      expect(mockConversation.chatState.current.sentIds.size).toBe(0)
     })
   })
 
@@ -580,6 +777,33 @@ describe("AgentScreen", () => {
       expect(mockChat.setMessages).toHaveBeenCalledWith(stored)
     })
 
+    // The error row was about a list this read has just replaced.
+    it("clears a chat error along with the list it was about", () => {
+      mountScreen()
+      update(() => {
+        mockChat.status = "error"
+        mockChat.error = new Error("<html>502</html>")
+      })
+      expect(mockChat.clearError).not.toHaveBeenCalled()
+
+      update(() => {
+        mockConversation.view = readyView({ history: stored, readAt: 2 })
+      })
+
+      expect(mockChat.clearError).toHaveBeenCalledTimes(1)
+    })
+
+    it("leaves the chat's error alone when it skips a read during a turn", () => {
+      mountScreen()
+      update(() => {
+        mockChat.status = "streaming"
+      })
+      update(() => {
+        mockConversation.view = readyView({ history: stored, readAt: 2 })
+      })
+      expect(mockChat.clearError).not.toHaveBeenCalled()
+    })
+
     it.each(["streaming", "submitted"] as const)("does not while %s", (status) => {
       mountScreen()
       update(() => {
@@ -608,6 +832,102 @@ describe("AgentScreen", () => {
         mockChat.status = "ready"
       })
       expect(mockChat.setMessages).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("following the end of the list", () => {
+    // jest's ScrollView mock shares one jest.fn across instances.
+    const scrollToEnd = () =>
+      (ScrollView.prototype as unknown as { scrollToEnd: jest.Mock }).scrollToEnd
+    const elapse = () =>
+      act(() => {
+        jest.advanceTimersByTime(100)
+      })
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it("scrolls to the end of the thread a mount opens on", () => {
+      mockChat.messages = [userMessage("m1", "stored words")]
+      mountScreen()
+      elapse()
+      expect(scrollToEnd()).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not scroll on an empty thread", () => {
+      mountScreen()
+      elapse()
+      expect(scrollToEnd()).not.toHaveBeenCalled()
+    })
+
+    // Bottom tabs stay mounted: each focus re-reads, and that must not move someone reading back.
+    it("does not scroll for a re-read with the same last message", () => {
+      mockChat.messages = [userMessage("m1", "stored words")]
+      mountScreen()
+      elapse()
+      scrollToEnd().mockClear()
+
+      update(() => {
+        mockChat.messages = [userMessage("m1", "stored words")]
+      })
+      elapse()
+
+      expect(scrollToEnd()).not.toHaveBeenCalled()
+    })
+
+    it("scrolls when a re-read brings a new last message", () => {
+      mockChat.messages = [userMessage("m1", "stored words")]
+      mountScreen()
+      elapse()
+      scrollToEnd().mockClear()
+
+      update(() => {
+        mockChat.messages = [userMessage("m1", "stored words"), userMessage("m2", "from elsewhere")]
+      })
+      elapse()
+
+      expect(scrollToEnd()).toHaveBeenCalledTimes(1)
+    })
+
+    // The id stays the same while a reply grows, so the id alone would leave it running off screen.
+    it("follows a reply as it grows, through to the last chunk", () => {
+      const partial = (text: string) => [
+        userMessage("m1", "my words"),
+        assistantMessage("reply", [{ type: "text", text }]),
+      ]
+      mockChat.messages = partial("a")
+      mockChat.status = "streaming"
+      mountScreen()
+      elapse()
+      scrollToEnd().mockClear()
+
+      update(() => {
+        mockChat.messages = partial("a longer reply")
+      })
+      elapse()
+      expect(scrollToEnd()).toHaveBeenCalledTimes(1)
+      scrollToEnd().mockClear()
+
+      // The last chunk can arrive in the same commit as "ready".
+      update(() => {
+        mockChat.messages = partial("a longer reply, finished")
+        mockChat.status = "ready"
+      })
+      elapse()
+      expect(scrollToEnd()).toHaveBeenCalledTimes(1)
+      scrollToEnd().mockClear()
+
+      // Settled: the next re-read is an ordinary one.
+      update(() => {
+        mockChat.messages = partial("a longer reply, finished")
+      })
+      elapse()
+      expect(scrollToEnd()).not.toHaveBeenCalled()
     })
   })
 
@@ -727,6 +1047,19 @@ describe("AgentScreen", () => {
       expect(mockConversation.retry).toHaveBeenCalledTimes(1)
     })
 
+    it("drops the hint over a failed history: it is a thread that would not load, not an empty one", () => {
+      mockConversation.view = { ...readyView(), historyFailed: true }
+      const screen = mountScreen()
+
+      expect(screen.getByText("agentScreen:loadFailed")).toBeTruthy()
+      expect(screen.queryByText("agentScreen:emptyStateHint")).toBeNull()
+    })
+
+    it("draws the hint on an empty thread that loaded", () => {
+      const screen = mountScreen()
+      expect(screen.getByText("agentScreen:emptyStateHint")).toBeTruthy()
+    })
+
     // The stale path relies on this: its re-read unmounts the chat.
     it("keeps the words in the composer through loading and a new chat", () => {
       const screen = mountScreen()
@@ -759,10 +1092,12 @@ describe("AgentScreen", () => {
       expect(screen).toBeTruthy()
     })
 
-    it("keeps the consent gate, and is not enabled until consent", () => {
+    it("keeps the consent gate, and is not enabled until consent", async () => {
       mockProfile.aiConsentAccepted = false
       const screen = mountScreen()
 
+      // The consent text arrives from the CMS after the mount.
+      expect(await screen.findByText("consent")).toBeTruthy()
       expect(screen.getByText("agentScreen:consentAccept")).toBeTruthy()
       expect(composer(screen)).toBeNull()
       expect(mockHookInput).toHaveBeenLastCalledWith({

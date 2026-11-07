@@ -43,6 +43,38 @@ interface MeetingResultsCardProps {
   onSelectMeeting?: (meeting: MeetingWithTrex) => void
 }
 
+/**
+ * Whether MeetingRow can draw this. It calls `language.toUpperCase()`, hands `name` and `fellowship`
+ * to Text as children (an object there throws) and gives `millis` to luxon (a non-number throws).
+ * A missing field is fine: the row draws what is there.
+ */
+function isDrawableMeeting(value: unknown): value is MeetingWithTrex {
+  if (typeof value !== "object" || value === null) return false
+  const { name, fellowship, language, millis } = value as Record<string, unknown>
+  return (
+    typeof name === "string" &&
+    (fellowship === undefined || fellowship === null || typeof fellowship === "string") &&
+    (language === undefined || language === null || typeof language === "string") &&
+    (millis === undefined || millis === null || typeof millis === "number")
+  )
+}
+
+/**
+ * The meetings in a tool result, from the first of its fields that is a list.
+ *
+ * ADDED 2026-11-06 (final review, spec D1: never a crash). The result is typed as what we expect,
+ * but it can be read back from the agent with nothing checked. A throw in render comes back on every
+ * open of a thread holding that row, with the tab dead and New conversation out of reach.
+ */
+function meetingsOfResult(result: unknown): MeetingWithTrex[] {
+  if (typeof result !== "object" || result === null) return []
+  const { meetings, results, data } = result as Record<string, unknown>
+  const list = [meetings, results, data].find((field) => Array.isArray(field)) as
+    | unknown[]
+    | undefined
+  return list?.filter(isDrawableMeeting) ?? []
+}
+
 export const MeetingResultsCard: FC<MeetingResultsCardProps> = ({
   result,
   isCollapsed,
@@ -54,10 +86,9 @@ export const MeetingResultsCard: FC<MeetingResultsCardProps> = ({
 
   // Extract meetings from various possible result structures (limit to 10)
   const MAX_DISPLAY = 10
-  const allMeetings = useMemo(() => {
-    if (!result) return []
-    return result.meetings ?? result.results ?? result.data ?? []
-  }, [result])
+  // CHANGED 2026-11-06 (final review): picks by Array.isArray rather than `??`, which threw on the
+  // `.slice` below for a field that was an object, and on `.length` further down for a number.
+  const allMeetings = useMemo(() => meetingsOfResult(result), [result])
   const meetings = allMeetings.slice(0, MAX_DISPLAY)
   const hasMore = allMeetings.length > MAX_DISPLAY
 
