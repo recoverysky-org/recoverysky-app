@@ -62,7 +62,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   archive). Its device pass is still open. Do not ingest the manual pages that
   describe this to production until the archive release is live and this code has
   shipped to a runtime that shows the tab (`TODO.md`, "The manual ingest").
-  (No tracker issue.)
+  (RS-055)
 - **Settings → Delete User Data starts Sky's conversation over, and erases
   nothing on the server.** In builds where the tab exists it archives the
   person's conversations before sign-out, waiting at most 5 seconds, so the next
