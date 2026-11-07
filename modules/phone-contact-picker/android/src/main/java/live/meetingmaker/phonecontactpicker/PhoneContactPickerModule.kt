@@ -59,13 +59,15 @@ class PhoneContactPickerModule : Module() {
       if (payload.requestCode != REQUEST_PICK_PHONE) return@OnActivityResult
       val promise = pending ?: return@OnActivityResult
       pending = null
-      val uri = payload.data?.data
-      // Back button, or a picker that returned nothing: a cancel, never an error.
-      if (payload.resultCode != Activity.RESULT_OK || uri == null) {
+      // Back button: a cancel, never an error.
+      // CHANGED 2026-11-06: a RESULT_OK with no URI used to resolve null too. Spec D2 says null
+      // means the person cancelled and nothing else does, and a silent null hid a real failure
+      // from the UI's error toast. It now rejects ERR_NO_NUMBER below.
+      if (payload.resultCode != Activity.RESULT_OK) {
         promise.resolve(null)
         return@OnActivityResult
       }
-      val picked = readPhoneRow(uri)
+      val picked = payload.data?.data?.let { readPhoneRow(it) }
       if (picked == null) promise.reject(NoNumberException()) else promise.resolve(picked)
     }
   }
@@ -81,9 +83,15 @@ class PhoneContactPickerModule : Module() {
         val name = cursor.getString(cursor.getColumnIndexOrThrow(Phone.DISPLAY_NAME))?.trim().orEmpty()
         if (number.isEmpty()) null else mapOf("name" to name, "number" to number)
       }
-    } catch (e: SecurityException) {
+    } catch (e: Exception) {
       // A picker app that did not grant read access on its result URI. Reported as "no
       // readable number" rather than asking for a permission (spec D2: we never ask).
+      // CHANGED 2026-11-06: broad on purpose, it used to catch SecurityException alone. This runs
+      // inside OnActivityResult, where nothing in Expo catches: getColumnIndexOrThrow on a
+      // provider missing a column, or any throw from a third-party provider, reaches
+      // ReactContext.handleException and ReactHostImpl destroys the React host. `pending` is
+      // already null by then, so the promise would be lost as well. Never log `e`: its message
+      // can carry the contact URI.
       null
     }
   }

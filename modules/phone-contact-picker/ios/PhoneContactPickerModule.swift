@@ -1,5 +1,6 @@
 import ContactsUI
 import ExpoModulesCore
+import UIKit
 
 // Support contacts spec D2: Apple's picker runs out of process; "the app using contact picker
 // view does not need access to the user's contacts and the user will not be prompted". Limiting
@@ -28,13 +29,25 @@ public class PhoneContactPickerModule: Module {
   // JS promise would hang. Both are touched only on the main queue.
   private var pending: Promise?
   private var pickerDelegate: PhonePickerDelegate?
+  // ADDED 2026-11-06: weak, so it reads nil when UIKit refused the present (nothing retains the
+  // picker then) and tells a real open pick from a stale `pending` at the in-progress check.
+  private weak var openPicker: CNContactPickerViewController?
 
   public func definition() -> ModuleDefinition {
     Name("PhoneContactPicker")
 
     AsyncFunction("pickPhoneContact") { (promise: Promise) in
-      if self.pending != nil {
-        throw InProgressException()
+      // ADDED 2026-11-06: ERR_IN_PROGRESS only for a picker that really is on screen. A `pending`
+      // left behind by a refused present or a dismiss no callback reported would otherwise reject
+      // every later pick until the app restarts, so it resolves as a cancel and this pick proceeds.
+      // Dropping the old delegate here also means its picker can never settle the new promise.
+      if let stale = self.pending {
+        if self.openPicker?.presentingViewController != nil {
+          throw InProgressException()
+        }
+        self.pending = nil
+        self.pickerDelegate = nil
+        stale.resolve(nil)
       }
       guard let presenter = self.appContext?.utilities?.currentViewController() else {
         throw NoPickerException()
@@ -50,6 +63,12 @@ public class PhoneContactPickerModule: Module {
       )
       self.pickerDelegate = delegate
       picker.delegate = delegate
+      // ADDED 2026-11-06: not known yet whether swipe-down reaches contactPickerDidCancel; that is
+      // unverified until the device pass, which is why this second path exists. Expo's file picker
+      // wires the same delegate (expo-file-system FilePickingHandler.swift). If both fire, finish()
+      // runs once: the first call clears `pending` and frees the delegate that makes the second.
+      picker.presentationController?.delegate = delegate
+      self.openPicker = picker
       self.pending = promise
       presenter.present(picker, animated: true)
     }.runOnQueue(.main)
@@ -59,7 +78,10 @@ public class PhoneContactPickerModule: Module {
     guard let promise = pending else { return }
     pending = nil
     pickerDelegate = nil
-    // Cancel (button or swipe-down) resolves null, never rejects.
+    openPicker = nil
+    // Cancel resolves null, never rejects.
+    // CHANGED 2026-11-06: this used to say "button or swipe-down" with no evidence for the swipe.
+    // Cancel means contactPickerDidCancel or presentationControllerDidDismiss, whichever fires.
     guard let property = property else {
       promise.resolve(nil)
       return
@@ -90,7 +112,8 @@ public class PhoneContactPickerModule: Module {
   }
 }
 
-private final class PhonePickerDelegate: NSObject, CNContactPickerDelegate {
+private final class PhonePickerDelegate: NSObject, CNContactPickerDelegate,
+  UIAdaptivePresentationControllerDelegate {
   private let onPick: (CNContactProperty) -> Void
   private let onCancel: () -> Void
 
@@ -104,6 +127,10 @@ private final class PhonePickerDelegate: NSObject, CNContactPickerDelegate {
   }
 
   func contactPickerDidCancel(_ picker: CNContactPickerViewController) {
+    onCancel()
+  }
+
+  func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
     onCancel()
   }
 }
