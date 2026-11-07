@@ -93,7 +93,7 @@ See [../replies/empty-account-after-sign-in.md](../replies/empty-account-after-s
 - `app/services/auth/useAuth0Wrapper.ts`
 - `app/screens/SettingsScreen.tsx` (`handleDeleteUserData`)
 - `app/i18n/en.ts` (`loginScreen`, `wrongAccountScreen`, `settingsScreen`)
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`, `identities-claim.js`
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`, `identities-claim.js`
 - `docs/support/reference/account-linking.md`, `device-owner.md`, `tools.md`
 - `api:src/routes/sync.ts` (log `Attendance sync push processed`)
 - `api:src/routes/auth0.ts` (`POST /auth0/link`)

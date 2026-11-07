@@ -99,6 +99,6 @@ See [../replies/wrong-account-screen.md](../replies/wrong-account-screen.md). Ex
 - `app/services/auth/useAuth0Wrapper.ts`
 - `app/services/auth/linkForeignIdentity.ts`
 - `app/i18n/en.ts` (`wrongAccountScreen`)
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`, `identities-claim.js`
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`, `identities-claim.js`
 - `docs/support/reference/device-owner.md`, `account-linking.md`, `tools.md`
 - `api:src/routes/auth0.ts` (`POST /auth0/link`)

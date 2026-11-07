@@ -1,11 +1,11 @@
 # Prod Auth0 rollout (meetingmaker): where it stands
 
 > **UPDATE 2026-09-30, later the same night: the tenant steps are DONE.** In order:
-> - The Firebase Actions were unbound (code in `auth0/retired/meetingmaker/`).
+> - The Firebase Actions were unbound (code in `../api/auth0/retired/meetingmaker/`).
 > - The Link Action was provisioned (its own M2M app, secrets written in memory).
 > - Both Actions were deployed.
 > - The Post Login order was set to Link → Identities claim.
-> - The `email` connection was created from `auth0/connections/email.json` and enabled for
+> - The `email` connection was created from `../api/auth0/connections/email.json` and enabled for
 >   RecoverySky App only. The Universal Login page was unchanged before/after.
 > - The `passwordless/otp` grant was added.
 >
@@ -42,7 +42,7 @@ Read-only checks with `AUTH0_MGMT_API_TOKEN_PROD`, 2026-09-30:
 | Post-user-registration Actions | `Create Firebase User API` | — |
 | Email provider | SMTP, enabled | none (slow default mailer) |
 
-**Neither Firebase Action is in `auth0/actions/meetingmaker/`.** That is drift: by the folder rule,
+**Neither Firebase Action is in `../api/auth0/actions/meetingmaker/`.** That is drift: by the folder rule,
 anything on the tenant should have a file there.
 - `Create Firebase User` (post-login, axios, secrets `PASSWORD` and `PREFIX`): on the first login
   of a user that isn't marked `app_metadata.user_created`, it posts the user to
@@ -56,8 +56,8 @@ anything on the tenant should have a file there.
 Each one is a prod write; Jenova approves each one.
 1. **Identities claim.** It's safe on its own: it only adds an ID-token claim for accounts with two
    or more identities, and older builds ignore it. The file
-   `auth0/actions/meetingmaker/identities-claim.js` is staged locally (untracked).
-   - Run `auth0/scripts/deploy-actions.sh meetingmaker --apply --prod`. Claude Code's safety check
+   `../api/auth0/actions/meetingmaker/identities-claim.js` is staged locally (untracked).
+   - Run `../api/auth0/scripts/deploy-actions.sh meetingmaker --apply --prod`. Claude Code's safety check
      blocks this when Claude runs it, so Jenova runs it with `!`.
    - Then commit the file and set the README's prod column.
 2. **Decide on the Firebase Actions** (see above), before any `email|` users exist on prod.
@@ -66,7 +66,7 @@ Each one is a prod write; Jenova approves each one.
      option.
 4. **Add the passwordless code grant** to the RecoverySky App client.
 5. **Link passwordless identity:**
-   - Run `node auth0/scripts/provision-link-client.mjs meetingmaker --apply --prod`, which creates
+   - Run `node ../api/auth0/scripts/provision-link-client.mjs meetingmaker --apply --prod`, which creates
      a dedicated M2M app with only `read:users` + `update:users` and writes its credentials into
      the Action's secrets.
    - Then run `deploy-actions.sh meetingmaker --apply --prod`, and in the dashboard drag the Link
@@ -82,7 +82,7 @@ When the Link Action links an `email|` account into a Google/Apple/password acco
 - **A RevenueCat purchase** made under the `email|` sub doesn't follow either.
 
 ## Tooling
-- `auth0/scripts/mgmt-auth.mjs` lets the deploy and provision scripts use
+- `../api/auth0/scripts/mgmt-auth.mjs` lets the deploy and provision scripts use
   `AUTH0_MGMT_API_TOKEN_PROD` / `_DEV` directly. It reads the tenant from the token's `aud`, and an
   expired token stops with the refresh steps.
 - This change is uncommitted as of writing.

@@ -378,7 +378,7 @@ short of Delete User Data. §6's "both are fine" was wrong for this case.
 
 **Decision: a fourth outcome, `relinked`.**
 
-- The identities claim (`auth0/actions/<tenant>/identities-claim.js`) gains a `sub` per entry
+- The identities claim (`../api/auth0/actions/<tenant>/identities-claim.js`) gains a `sub` per entry
   (`provider|user_id`, the id the identity had as a standalone user). It is in the signed ID
   token, so it is as trustworthy as `sub` itself.
 - `decideOwnership` returns `relinked` when `ownerSub !== sessionSub` but `ownerSub` is one of
@@ -421,7 +421,7 @@ local rows and unpushed outbox into the same account, instead of leaving that de
 wrong-account screen. Tightening this belongs in §2.5, the linking step, not here.
 
 **Prod dependency.** Until the prod tenant runs the identities Action with `sub`, a relinked
-device there still loops. The Action is on the prod ship gate already (auth0/README.md).
+device there still loops. The Action is on the prod ship gate already (../api/auth0/README.md).
 
 ## Non-goals
 

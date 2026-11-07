@@ -79,7 +79,7 @@ See [../replies/forgot-password-or-old-app.md](../replies/forgot-password-or-old
 - `app/screens/LoginScreen.tsx`, `app/screens/login/LoginSteps.tsx`, `app/screens/WrongAccountScreen.tsx`
 - `app/services/auth/useAuth0Wrapper.ts` (`loginWithProvider`, password connection)
 - `app/i18n/en.ts` (`loginScreen`, `wrongAccountScreen`)
-- `auth0/README.md` (Universal Login unchanged; password not randomised)
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`
+- `../api/auth0/README.md` (Universal Login unchanged; password not randomised)
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`
 - `docs/PROD_AUTH0_ROLLOUT.md`
 - `docs/support/reference/sign-in-methods.md`, `account-linking.md`, `tools.md`

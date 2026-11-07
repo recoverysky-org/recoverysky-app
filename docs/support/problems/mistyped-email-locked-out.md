@@ -125,4 +125,4 @@ See [../replies/mistyped-email-locked-out.md](../replies/mistyped-email-locked-o
 - `app/i18n/en.ts` (`verifyEmailScreen`)
 - `docs/support/reference/email-verification.md` (the D5 section), `tools.md`
 - `api:src/routes/auth0Email.ts` (`email_in_use`, `PASSWORD_CONNECTION`, PATCH body)
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`

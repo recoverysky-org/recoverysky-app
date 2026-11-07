@@ -62,6 +62,6 @@ Logs carry `hashUserId(sub)` only. **Never paste a user's email address or raw A
 - `docs/DIAGNOSTICS.md`
 - `app/utils/logger/hashUserId.ts`
 - `app/services/auth/emailVerifyLogic.ts`
-- `auth0/README.md`
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`
+- `../api/auth0/README.md`
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`
 - `docs/superpowers/plans/2026-10-02-support-knowledge-base.md` (decisions D1 to D6)

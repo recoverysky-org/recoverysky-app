@@ -16,7 +16,7 @@ Two tenants: `meetingmaker` (prod, domain `auth.recoverysky.app`, one client sha
 
 ### Tenant log event codes
 
-Monitoring, Logs. Open an event for `connection`, `user_id`, and `description` (on a failure the description is the reason). The codes below are the ones our tooling labels (`auth0/scripts/diagnose-linking.mjs`, `TYPE_LABELS`). For anything else use Auth0's official list of log event codes (Auth0 docs, "Log Event Type Codes").
+Monitoring, Logs. Open an event for `connection`, `user_id`, and `description` (on a failure the description is the reason). The codes below are the ones our tooling labels (`../api/auth0/scripts/diagnose-linking.mjs`, `TYPE_LABELS`). For anything else use Auth0's official list of log event codes (Auth0 docs, "Log Event Type Codes").
 
 | Code | Our label | Use it for |
 | --- | --- | --- |
@@ -220,10 +220,10 @@ Exceptions: Sentry and Umami do receive the raw sub (their UIs group by it, so i
 
 - `docs/DIAGNOSTICS.md`
 - `app/utils/logger/hashUserId.ts`
-- `auth0/README.md`
-- `auth0/scripts/diagnose-linking.mjs`
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`
-- `auth0/actions/meetingmaker/identities-claim.js`
+- `../api/auth0/README.md`
+- `../api/auth0/scripts/diagnose-linking.mjs`
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`
+- `../api/auth0/actions/meetingmaker/identities-claim.js`
 - `docs/PROD_AUTH0_ROLLOUT.md`
 - `app/components/VerifyEmailGate.tsx`
 - `app/services/api/emailVerifyProblem.ts`

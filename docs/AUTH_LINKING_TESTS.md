@@ -15,10 +15,10 @@ Happy paths only. Edge cases live in plan Task 18 Step 4
 
 ## Setup (once)
 
-- [ ] `auth0/scripts/wipe-dev-users.sh --delete` → the tenant has zero users.
+- [ ] `../api/auth0/scripts/wipe-dev-users.sh --delete` → the tenant has zero users.
 - [ ] Auth0 → Applications → RecoverySky Dev App → Connections: **Username-Password-Authentication**,
       **email**, **google-oauth2** enabled. Post-login order is Link passwordless identity → Identities claim
-      (`auth0/scripts/deploy-actions.sh bad-bitch-tenant` dry run prints it).
+      (`../api/auth0/scripts/deploy-actions.sh bad-bitch-tenant` dry run prints it).
 - [ ] Dev builds on a physical **iOS** device and an **Android** device, both pointed at the dev tenant.
 - [ ] Two real email addresses whose inboxes you can read on the phone. Each one is used on
       **both** devices: that's the point, since the same address must land in the same account.
@@ -59,7 +59,7 @@ Happy paths only. Edge cases live in plan Task 18 Step 4
 | What | Where |
 |---|---|
 | Which account you're in | the `Syncing Auth0 user to MST store` log line's `userId`: a hash of the sub. Compare hashes between steps, never raw subs. |
-| Users and their identities | `auth0/scripts/diagnose-linking.mjs` (or `wipe-dev-users.sh` with no flag) |
+| Users and their identities | `../api/auth0/scripts/diagnose-linking.mjs` (or `wipe-dev-users.sh` with no flag) |
 | The Action linked | `diagnose-linking.mjs` marks every email-code login that came back with a non-`email` sub `⇐ LINKED`, so after the link each later code login is marked too. The Action's own console line (`linked email identity into <provider> primary`) is only in the dashboard: Monitoring → Logs → the login → Action Details. |
 | Linked methods in the app | Settings → Account |
 
@@ -68,7 +68,7 @@ Happy paths only. Edge cases live in plan Task 18 Step 4
 At each **🔎 diag** row below, tell Claude "diag". Claude runs these read-only commands and reports
 pass/fail for that step, so you don't have to read logs on the phone:
 
-1. **Auth0 state:** `node auth0/scripts/diagnose-linking.mjs --since 30`. This lists users, their
+1. **Auth0 state:** `node ../api/auth0/scripts/diagnose-linking.mjs --since 30`. This lists users, their
    identities, and each identity's app log hash, plus the recent tenant log with each login's
    connection, sub, `⇐ LINKED` marker and Action results. It's dev-only (refuses any other tenant),
    uses the `AUTH_MGMT_*` client from `../api/.env`, and never prints the secret, the token or a full
@@ -104,7 +104,7 @@ A password (`auth0|`) identity and a code (`email|`) identity on the same addres
 
 ## Part 2: Google → email code, relinked owner, then sync
 
-Start with `auth0/scripts/wipe-dev-users.sh --delete`. The order matters: the email account must
+Start with `../api/auth0/scripts/wipe-dev-users.sh --delete`. The order matters: the email account must
 exist **before** the Google one, so the iOS device ends up owned by an `email|` sub that later gets
 linked into Google from the Android phone.
 

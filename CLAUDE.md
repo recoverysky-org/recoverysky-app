@@ -705,11 +705,11 @@ Three separate trust layers, easy to confuse:
    file and brick the database (RS-024). This is what makes ProfileStore's
    "volatile (encrypted SQLite)" tier actually encrypted.
    CHANGED 2026-09-30: the JWT half is dormant. No tenant Action issues
-   `https://recoverysky.app/metadata` (`auth0/actions/<tenant>/` is the source of
+   `https://recoverysky.app/metadata` (`../api/auth0/actions/<tenant>/` is the source of
    truth, and neither tenant folder has it), so EVERY device, signed in or not, runs on
    its locally generated key. The rekey-on-login path in `useAuth0Wrapper` has
    never run in production, so adding that Action is a new feature, not a
-   restore. See `auth0/README.md` "Not implemented".
+   restore. See `../api/auth0/README.md` "Not implemented".
 
 **Token freshness gate** (`installAuthGate`, installed in the `Api`
 constructor). A single async request transform awaits two refreshers and stamps
@@ -1200,13 +1200,16 @@ its subsystem:
 - `docs/store-listings/` — App Store / Play listing copy (`STORE_LISTING.*.txt`);
   `experiments/` holds Play store listing experiment variants
 - `EVENTS.md` — the app's event/pub-sub catalog
-- `auth0/` — source for the tenants' Auth0 Actions, one folder per tenant:
-  `actions/meetingmaker/` (prod, `auth.recoverysky.app`) and
-  `actions/bad-bitch-tenant/` (dev). A file in a tenant's folder = deployed and
+- **The tenants' Auth0 Actions are in the api repo** (`../api/auth0/`, moved
+  there 2026-11-07; this repo's `git log -- auth0` has their earlier history),
+  one folder per tenant: `actions/meetingmaker/` (prod, `auth.recoverysky.app`)
+  and `actions/bad-bitch-tenant/` (dev). A file in a tenant's folder = deployed and
   bound there; absent = doesn't exist there. The `identities` ID-token claim
-  behind Settings → Account's linked-method rows lives here. Prod shares one
-  client with every build, so deploy to dev first and promote by copying the file.
-  Deploy with `auth0/scripts/deploy-actions.sh <tenant> [--apply]` (idempotent, dry run by default).
+  behind Settings → Account's linked-method rows, and the `tier` access-token
+  claim, are set there; this app reads both, so a claim rename is a change in
+  both repos. Prod shares one client with every build, so deploy to dev first and
+  promote by copying the file. Deploy with
+  `../api/auth0/scripts/deploy-actions.sh <tenant> [--apply]` (idempotent, dry run by default).
   **Management API tokens (ADDED 2026-09-30):** Jenova's shell exports
   `AUTH0_MGMT_API_TOKEN_DEV` (bad-bitch-tenant) and `AUTH0_MGMT_API_TOKEN_PROD`
   (meetingmaker), so Claude can call `https://<tenant>.us.auth0.com/api/v2/`
@@ -1217,7 +1220,7 @@ its subsystem:
   Never print a token. Check a token's expiry by decoding only its `exp`
   field. Treat PROD as read-only unless Jenova approves the specific write.
   `deploy-actions.sh` and `provision-link-client.mjs` pick the token up by
-  themselves (`auth0/scripts/mgmt-auth.mjs`; the tenant comes from the
+  themselves (`../api/auth0/scripts/mgmt-auth.mjs`; the tenant comes from the
   token's `aud`). Set `ENV_FILE=` to use the `AUTH_MGMT_*` client instead.
 - `CONTRIBUTING.md`, `CHANGELOG.md`, `TODO.md`, `JOURNAL.md` — process, release
   history, backlog, running work log

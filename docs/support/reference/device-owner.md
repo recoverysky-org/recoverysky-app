@@ -186,6 +186,6 @@ Hash first, locally ([tools](tools.md#hash-an-auth0-sub-into-the-log-userid)). U
 - `app/db/OwnerRelinkMigrator.tsx`
 - `app/services/sync/index.ts`
 - `app/i18n/en.ts` (`wrongAccountScreen`, `settingsScreen`)
-- `auth0/actions/meetingmaker/identities-claim.js`
+- `../api/auth0/actions/meetingmaker/identities-claim.js`
 - `docs/DIAGNOSTICS.md`
 - `docs/superpowers/specs/2026-09-17-device-owner-and-wrong-account-recovery-design.md` (history only; code wins)

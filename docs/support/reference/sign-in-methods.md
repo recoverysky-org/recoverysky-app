@@ -52,7 +52,7 @@ Two caveats apply to the "Sub prefix" column:
 | Item | Value | Where it comes from |
 | --- | --- | --- |
 | Code length | 6 digits | App |
-| Code lifetime | 15 minutes on production since 2026-11-06 (900 s; was Auth0's default 180 s). Not in app code: `auth0/connections/email.json` records it | Auth0 |
+| Code lifetime | 15 minutes on production since 2026-11-06 (900 s; was Auth0's default 180 s). Not in app code: `../api/auth0/connections/email.json` records it | Auth0 |
 | Resend cooldown | 30 s, starts at each successful send; re-armed to the full 30 s after a rate-limit refusal | App (`RESEND_COOLDOWN_MS`) |
 | Auth0's own send limit | Stricter than the cooldown over an hour; a second refusal after waiting 30 s is normal | Auth0 |
 | SDK per-request timeout | 30 s (SDK default is 10 s) | App (`AUTH0_CONFIG.timeoutMs`) |
@@ -178,6 +178,6 @@ The passwordless sign-in, linking and email verification JS ships as an OTA on r
 - `app/app.tsx` (`performForcedLogout`)
 - `app/models/AuthenticationStore.ts`
 - `app/models/helpers/setupRootStore.ts`
-- `auth0/README.md`
+- `../api/auth0/README.md`
 - `docs/superpowers/specs/2026-09-12-passwordless-login-design.md` (history only; code wins)
 - `docs/PROD_AUTH0_ROLLOUT.md`

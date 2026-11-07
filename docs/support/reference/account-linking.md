@@ -22,7 +22,7 @@ After either path, Auth0 answers every login for the account with the **primary'
 
 ## Path (a): automatic linking on an email-code login
 
-Action file: `auth0/actions/meetingmaker/link-passwordless-identity.js` (identical in the dev folder `bad-bitch-tenant`). Deployed and bound on prod and dev. It runs first on the post-login flow; the Identities claim Action runs second.
+Action file: `../api/auth0/actions/meetingmaker/link-passwordless-identity.js` (identical in the dev folder `bad-bitch-tenant`). Deployed and bound on prod and dev. It runs first on the post-login flow; the Identities claim Action runs second.
 
 ### When it does nothing
 
@@ -268,9 +268,9 @@ Builds that have not applied the passwordless OTA still use Auth0 Universal Logi
 
 ## Sources
 
-- `auth0/actions/meetingmaker/link-passwordless-identity.js`
-- `auth0/actions/meetingmaker/identities-claim.js`
-- `auth0/README.md`
+- `../api/auth0/actions/meetingmaker/link-passwordless-identity.js`
+- `../api/auth0/actions/meetingmaker/identities-claim.js`
+- `../api/auth0/README.md`
 - `docs/PROD_AUTH0_ROLLOUT.md`
 - `docs/AUTH_LINKING_TESTS.md`
 - `app/services/auth/ownerLogic.ts` (`decideForeignLink`, `decideOwnership`)
