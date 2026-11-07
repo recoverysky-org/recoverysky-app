@@ -324,7 +324,7 @@ MST with MMKV persistence in `app/models/`:
   - Computed views: `displayName`, `cleanDays`, `isPremium`
 - **NetworkStore**: Online/offline tracking with `isOffline`, `hasInternet` computed. Fed by the NetInfo listener in `app/services/network/` (registered once in `app.tsx`; sole writer). `isOffline` keys off the interface state, not the reachability probe.
 - **ConfigStore**: Server-provided config fetched from `/config` endpoint. Fields: `apiUrl` / `agentUrl` / `socialUrl`, `authKey`, RevenueCat keys (3 separate: test, Apple, Google) with computed `revenueCatApiKey` view selecting by `__DEV__` and `Platform.OS`, `otlpApiKey`, Umami keys, `reviewEnabled`, `maintenanceMode` / `maintenanceMessage` / `maintenanceUntil`, `outageMode`, `latestVersion`, `mapStyleUrlLight` / `mapStyleUrlDark` (full MapTiler style URLs — the API key rides inside them and is deliberately **never** baked into the binary), `presenceRadiusM` (default 150 m; `devPresenceRadiusM` overrides it in dev builds only), `isLoaded` / `isLoading`. NOT persisted to MMKV (security). The raw /config payload IS cached in the encrypted SQLite `config_caches` table so warm cold-starts skip the fetch gate — maintenance fields are never applied from cache. See `applyServerConfig` and docs/superpowers/specs/2026-08-14-config-cache-cold-start-design.md. There are **no Zoom SDK fields** — the bundled SDK was removed in 4.5.0 (see "Zoom Integration").
-- **ConversationStore**: which conversation with Sky this device is on. Props (MMKV): `conversationId`, `conversationIsFresh`. Volatile: `collapsedToolResults`. CHANGED 2026-11-06: nothing of what was said is held here or anywhere on the device, see "AI Agent Integration".
+- **ConversationStore**: which conversation with Sky this device is on. Props (MMKV): `conversationId`, `conversationIsFresh`. Volatile: `collapsedToolResults`. CHANGED 2026-11-06: nothing of what was said is held here, and the app writes none of it to the device, see "AI Agent Integration".
 
 ```typescript
 // Access stores in components (wrap with observer())
@@ -1491,7 +1491,8 @@ The Sky Agent (`AgentScreen.tsx`) uses Vercel AI SDK with streaming:
 - Agent tab gated behind `isPremium` entitlement
 
 ADDED 2026-11-06 (spec `docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md`): **the
-agent holds the thread, and the phone keeps nothing of what was said.** The device pass is still open:
+agent holds the thread, and the app writes nothing of what was said.** Production phones keep their old
+chat rows until the wipe is decided (`TODO.md`). The device pass is still open:
 it waits on the agent release that ships both of the agent's designs (the spec's D10), so none of this
 has been seen working on a phone.
 - **Turn-only body.** `chatRequestBody()` (`app/utils/agentBodyLogic.ts`, vitest) sends

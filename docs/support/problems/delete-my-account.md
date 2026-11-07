@@ -46,7 +46,7 @@ Server data for an account is at least what the link sweep knows about: attendan
 ## Causes
 
 ### A. The user wants a fresh start on one phone
-Local data only. Delete User Data does it.
+Delete User Data does it. It is local data only, with one exception: in builds where the tab exists, Sky's thread is archived, so it also goes from their other phones at their next open, and it is not erased.
 
 ### B. The user wants the account and their data gone
 Needs the user (each phone), engineering (server rows, RevenueCat) and support (Auth0 user), in that order.
@@ -57,7 +57,7 @@ It was local only, with one exception: in builds where the tab exists, Sky's thr
 ## Solution
 
 ### Case A
-The user opens Settings, taps "Delete User Data" and confirms with "OK!". Warn first: it discards anything on that phone that was not backed up. On iPhone, for a Google or Apple account, they must go through the system "Sign In" message and not cancel it; a cancel leaves them signed in to the same account after the reload ([device owner](../reference/device-owner.md#delete-user-data)).
+The user opens Settings, taps "Delete User Data" and confirms with "OK!". Warn first: it discards anything on that phone that was not backed up. On iPhone, for a Google or Apple account, they must go through the system "Sign In" message and not cancel it; a cancel leaves them signed in to the same account after the reload ([device owner](../reference/device-owner.md#delete-user-data)). In builds where the tab exists, tell them Sky's thread also goes from their other phones at their next open, and it is not erased.
 
 ### Case B (and C when the user wants everything gone)
 1. **Confirm control** (Diagnose 2). No deletion of any kind without it.

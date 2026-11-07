@@ -43,7 +43,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   turn, a failed turn's words) stays through a tab switch but not a restart. The
   tab is hidden in production, so production users see none of this, and it
   needs the agent releases of both designs (per-turn context and the conversation
-  archive). Its device pass is still open. (No tracker issue.)
+  archive). Its device pass is still open. Do not ingest the manual pages that
+  describe this to production until the archive release is live and this code has
+  shipped to a runtime that shows the tab (`TODO.md`, "The manual ingest").
+  (No tracker issue.)
 - **Settings → Delete User Data starts Sky's conversation over, and erases
   nothing on the server.** In builds where the tab exists it archives the
   person's conversations before sign-out, waiting at most 5 seconds, so the next
@@ -52,6 +55,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   thread would have come back at the next sign-in. (No tracker issue.)
 
 ### Fixed
+- **Tapping through Settings → Delete User Data a second time while the first is
+  still running does nothing,** where it used to start a second delete racing the
+  first one's database reset and restart. (No tracker issue.)
 - **Sky's meeting card collapses to "Selected: …" when the meeting popup closes,**
   as it was always meant to. The old action looked for a part type the SDK never
   writes, so the card never collapsed. Rows from before this agent no longer

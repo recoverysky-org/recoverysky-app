@@ -71,4 +71,4 @@ Contact support@recoverysky.app and mention that your phone shows "This device i
 **A:** Not with their own account. One phone holds one account's records. On Android, they can tap "Just join meetings" to browse and join meetings as a guest, and they see none of your records. On iPhone, they need their own phone.
 
 **Q:** How do I switch accounts on this phone?
-**A:** Sign in as the phone's current account, then open Settings → "Account" and tap "Delete User Data", then "OK!". That clears this phone, but not your Cloud Backup. The next account to sign in becomes the phone's account.
+**A:** Sign in as the phone's current account, then open Settings → "Account" and tap "Delete User Data", then "OK!". That clears this phone, but not your Cloud Backup. Your conversation with Sky starts over on all your phones and is not erased. The next account to sign in becomes the phone's account.

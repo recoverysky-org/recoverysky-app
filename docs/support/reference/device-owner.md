@@ -129,15 +129,17 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 
 1. RevenueCat logout (`logOut`; the SDK goes back to its own random customer id).
 2. Push opt-out and notification user logout.
-3. Sky's conversations. In builds where the Sky tab exists (a valid `EXPO_PUBLIC_AGENT_URL`), archive them on the agent (`POST /api/v1/conversations/archive`), bounded at 5 seconds: no app shows them again, and nothing is erased. A failure logs ERROR `Delete User Data: Sky's conversations were not archived`, the delete carries on, and that thread comes back at the next sign-in. In every build, forget the conversation id this phone holds. Before sign-out, because the call needs the bearer.
+3. Sky's conversations. In builds where the Sky tab exists (a valid `EXPO_PUBLIC_AGENT_URL`), archive them on the agent (`POST /api/v1/conversations/archive`), bounded at 5 seconds: no app shows them again, and nothing is erased. A failure logs ERROR `Delete User Data: Sky's conversations were not archived`, the delete carries on, and that thread comes back at the next sign-in. Before sign-out, because the call needs the bearer.
 4. `profileStore.reset()`.
 5. Clear all MMKV storage (every persisted snapshot, including the auth store props, the owner record's MMKV copy, sync queue ownership and the local `emailVerify.*` records).
 6. Clear SecureStore auth credentials and the stored terms acceptance (`clearAllSecureData`: these two keys only).
 7. Auth0 `logout()` (clears the Auth0 browser session unless the login method is `email`, then the auth state). If anything in steps 1 to 7 throws, the handler falls back to `authStore.logout()`.
 
    Caveat: on iOS, if the user cancels the system "Sign In" dialog, `logout()` returns without throwing (log `Logout cancelled by user`) and clears no auth state, and it clears nothing if the SDK has no `user`. The handler still goes on to wipe the database and reload. Likely result: the SDK keychain session is restored on restart and adopted into the empty database, so the user reports "I deleted my data but I'm still signed in".
-8. Outside that try: `resetLocalDatabase({ clearOwner })`: close the database, delete the encrypted SQLite file and its `-wal`, `-shm` and `-journal`, clear the SQLite key, then clear `ownerSub` and `ownerEmail`. A failure logs ERROR `Delete User Data: local database reset failed`.
+8. Outside that try: forget the conversation id this phone holds, in every build, so a step that threw cannot leave it in the snapshot that sign-out writes back. Then `resetLocalDatabase({ clearOwner })`: close the database, delete the encrypted SQLite file and its `-wal`, `-shm` and `-journal`, clear the SQLite key, then clear `ownerSub` and `ownerEmail`. A failure logs ERROR `Delete User Data: local database reset failed`.
 9. `reloadApp()`.
+
+A second "OK!" while these steps run does nothing. If the reload fails and the app stays open, the person can run it again.
 
 **Effects**
 
@@ -149,7 +151,7 @@ Settings, Delete User Data. Confirmation: "Are you sure you want to delete all y
 | Legal agreements | Asked again at the next sign-in (terms key cleared). | Verified |
 | Verify-email skip count and local "verified" record | Reset (MMKV cleared), so a user mid-skip gets six more skips and the ID-token claim decides again. | Verified clear; consequence is inferred |
 | Device attestation (device JWT and App Attest key id) | **Not** cleared by `clearAllSecureData` (only the credentials and terms keys are). The install keeps its device trust. | Verified in `secureStorage.ts` |
-| Auth0 user (account, identities, email, verified flag) | **Untouched.** The handler makes no Auth0 or API call (step 3's archive goes to the agent). The user can sign in again with the same method. | Verified: no such call in the handler |
+| Auth0 user (account, identities, email, verified flag) | **Untouched.** The handler makes no call that changes the Auth0 user. Two calls reach our servers: step 2's `optOutNotifications()` (`POST /push-tokens/`, marking this phone's token off) and step 3's archive (the agent). The user can sign in again with the same method. | Verified: no such call in the handler |
 | Cloud backup (server attendance rows) | **This handler makes no call to the backup API** (step 3's archive goes to the agent and does not touch these rows), so rows already pushed stay on the server and a later sign-in with Cloud Backup on can pull them back. Reports are never deleted server-side. A "delete cloud backup" feature is not built. | Handler verified; the survival of server rows follows from there being no delete call, and was not checked on the API |
 | Subscription | RevenueCat is logged out locally. The entitlement belongs to the RevenueCat customer for the Auth0 user id, so it should return on sign-in. | Inferred, not tested |
 

@@ -7,7 +7,7 @@ tier: attendance
 aliases: ["two phones", "second device", tablet, "sync between devices", "favorites didn't move", "didn't come over"]
 ---
 <!-- sources: docs/BACKUP.md, app/screens/SettingsScreen.tsx, app/services/sync/attendanceSyncService.ts, app/services/sync/syncLogic.ts, app/db/feedbackCache.ts, app/services/api/index.ts, app/models/ProfileStore.ts, app/context/SubscriptionContext.tsx, app/hooks/useReminders.ts, app/i18n/en.ts, app/i18n/platformStrings.ts, app/screens/login/guestEntryLogic.ts, app.json, CLAUDE.md, app/hooks/useAgentConversation.ts, docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md -->
-You can use RecoverySky on more than one phone or tablet. Sign in with the same account on each one, and turn on "Back up attendance" on each one. Your attendance records and the reports you have sent then move between them through Cloud Backup. This needs the Attendance subscription. Your conversation with Sky also shows on each device, because Sky keeps it on RecoverySky's servers under your account. Nothing else you save in the app moves between devices.
+You can use RecoverySky on more than one phone or tablet. Sign in with the same account on each one, and turn on "Back up attendance" on each one. Your attendance records and the reports you have sent then move between them through Cloud Backup. This needs the Attendance subscription. With Premium, your conversation with Sky also shows on each device, because Sky keeps it on RecoverySky's servers under your account. Nothing else you save in the app moves between devices.
 
 ## How to set up a second device
 

@@ -67,12 +67,28 @@ tab is hidden in production, and each is a decision to make knowingly:
       records stay on this device unless you send a report or turn on cloud
       backup") and the AI consent text, which is CMS content, not in this repo.
       The `clear-this-phone` reply in `docs/support/replies/delete-my-account.md`
-      ("from this phone only") goes with them.
+      ("from this phone only") goes with them, and so do the replies that say
+      "It clears this phone only": `docs/support/replies/data-missing-after-new-phone.md`,
+      `wrong-account-screen.md` and `empty-account-after-sign-in.md`.
 - [ ] **The production wipe.** `ChatWipeRunner` runs only in a build with a valid
       agent URL, so in production it waits for the tab. The pass gates on the
       URL alone, not on premium or sign-in, so once the tab returns a lapsed or
       non-premium person's rows are deleted with no tab to see. Those rows are
       their only readable copy of chats from before the tab was hidden.
+- [ ] **The manual ingest.** Do not ingest `docs/manual/map.md`,
+      `backup-and-devices/new-phone.md`, `one-account-per-phone.md` or
+      `using-more-than-one-device.md` to production until the agent's archive
+      release is live and this code has shipped to a runtime that shows the tab.
+      CLAUDE.md's release procedure would otherwise ingest them at the next
+      release, and Sky would tell someone on an old binary that still shows the
+      tab to tap "New conversation" and that their chat lives on the server. The
+      ingest takes the whole folder, so this holds any ingest from a checkout
+      carrying these pages.
+- [ ] **The agent's A4 migration** must run exactly once, before a build with
+      this code reaches a device. It archives `base-identity` threads of 2
+      messages or fewer, and this app adopts whatever the listing answers, so a
+      device that gets here first opens on an older build's fragment, and a run
+      after this build is in use can archive a real short thread.
 - [ ] **The fellowship.** An imported Marijuana Anonymous profile sends `MA`,
       outside the agent's closed list (`AA`, `NA`, `CMA`, `RD`), so every turn
       answers 400.
