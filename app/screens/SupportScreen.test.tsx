@@ -1,3 +1,4 @@
+import { CommonActions, StackRouter } from "@react-navigation/native"
 import { fireEvent, render, waitFor } from "@testing-library/react-native"
 
 import { SupportScreen } from "./SupportScreen"
@@ -67,12 +68,49 @@ describe("SupportScreen", () => {
     mockRegion = "US"
   })
 
+  // CHANGED 2026-11-06: returns to the existing Main with { pop: true }. Without it the stack
+  // router pushes a second Main, and with it a second tab navigator, on top of Support.
   it("Find a live meeting goes to the Meetings tab's Online segment", () => {
     const { getByText } = render(<SupportScreen />)
     fireEvent.press(getByText(/support:findLiveMeeting/))
-    expect(mockNavigate).toHaveBeenCalledWith("Main", {
-      screen: "Meetings",
-      params: { segment: "live" },
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "Main",
+      { screen: "Meetings", params: { segment: "live" } },
+      { pop: true },
+    )
+  })
+
+  // ADDED 2026-11-06: the mocked call above cannot show what the option does, so the same call
+  // goes through the real router. Mirrors the app stack with Support open over Main.
+  it("Find a live meeting leaves one Main in the stack, the existing one", () => {
+    const { getByText } = render(<SupportScreen />)
+    fireEvent.press(getByText(/support:findLiveMeeting/))
+    const [name, params, options] = mockNavigate.mock.calls[0]
+
+    const routeNames = ["Main", "Support"]
+    const configs = { routeNames, routeParamList: {}, routeGetIdList: {} }
+    const router = StackRouter({})
+    const state = {
+      ...router.getInitialState(configs),
+      index: 1,
+      routes: [
+        { key: "main-existing", name: "Main" },
+        { key: "support-open", name: "Support" },
+      ],
+    }
+
+    const next = router.getStateForAction(
+      state,
+      CommonActions.navigate(name, params, options),
+      configs,
+    )
+
+    expect(next?.index).toBe(0)
+    expect(next?.routes).toHaveLength(1)
+    expect(next?.routes[0]).toMatchObject({
+      key: "main-existing",
+      name: "Main",
+      params: { screen: "Meetings", params: { segment: "live" } },
     })
   })
 

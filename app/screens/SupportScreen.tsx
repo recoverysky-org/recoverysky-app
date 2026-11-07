@@ -161,11 +161,15 @@ export const SupportScreen: FC = observer(function SupportScreen() {
         )}
         <View style={themed($section)}>
           <Pressable
+            // ADDED 2026-11-06: { pop: true } returns to the Main already under this screen. Since
+            // React Navigation 7, navigate() without it adds a new route for any name that is not
+            // the focused one, so this mounted a second tab navigator on top of Support.
             onPress={() =>
-              navigation.navigate("Main", {
-                screen: "Meetings",
-                params: { segment: "live" },
-              })
+              navigation.navigate(
+                "Main",
+                { screen: "Meetings", params: { segment: "live" } },
+                { pop: true },
+              )
             }
             accessibilityRole="button"
             accessibilityLabel={t("support:findLiveMeeting")}
