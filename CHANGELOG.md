@@ -22,6 +22,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.13.0] — 2026-11-07
+
 ### Added
 - **A Support card on Home and a Support screen.** A person picks up to three
   people (sponsor, support person, friend, family) from the phone's own contact
@@ -59,7 +61,6 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   sign-in opens empty, and the thread goes from their other phones at their next
   open. Production builds, with the tab hidden, make no call. Without this the
   thread would have come back at the next sign-in. (No tracker issue.)
-
 - **My Day's routine is "My Daily Routine", and it is ticked or not.** From
   The Daily Dash's my-day 0.6.0: Skip and Undo are gone from the routine rows
   (an item set aside earlier still reads "Set aside today" and taps to done);
@@ -106,8 +107,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   36), which is unreleased after API 0.10.0. Against today's API, sign-in and
   `getMe` fail to parse, so nothing carrying these packages, OTA included, can
   ship before that API release is live.
-- The local `phone-contact-picker` module, a native change: the next release is
-  a native release (bump `runtimeVersion` with `version` at release time).
+- The local `phone-contact-picker` module, a native change, so 4.13.0 is a
+  native release: `version` and `runtimeVersion` are both 4.13.0.
 
 ## [4.12.0] — 2026-11-05
 
