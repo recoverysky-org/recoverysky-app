@@ -11,6 +11,8 @@
 // for display; there is deliberately no logger import. A support contact's
 // number is personal data.
 
+import type { TxKeyPath } from "@/i18n"
+
 /** Spec D1: the list never holds more than three people. */
 export const MAX_SUPPORT_CONTACTS = 3
 
@@ -172,9 +174,9 @@ export function pickerErrorCodeFrom(nativeCode: unknown): PhoneContactPickerErro
   }
 }
 
-// CHANGED 2026-11-06 (Task 4): typed `string` until the `support:*` i18n keys
-// exist; Task 4 tightens the values to `TxKeyPath`.
-export const SUPPORT_ROLE_TX: Record<SupportRole, string> = {
+// ADDED 2026-11-06: typed as `TxKeyPath`, so a role key that no locale defines
+// fails `npm run compile`. The import is type-only and erased, so vitest stays fine.
+export const SUPPORT_ROLE_TX: Record<SupportRole, TxKeyPath> = {
   sponsor: "support:roleSponsor",
   support: "support:roleSupport",
   friend: "support:roleFriend",

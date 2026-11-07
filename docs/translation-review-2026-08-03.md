@@ -952,3 +952,18 @@ Reviewer notes worth acting on first:
   here.
 - The user's manual (`docs/manual/my-day/`) quotes the English labels; it is English-only, so a
   translation needs no manual change.
+
+## 2026-11-06 Support contacts (English placeholders)
+
+**Still English placeholders (need translating), 29 keys (8 locales × 29 keys)** in ar, de, es,
+fr, pt, ru, th, uk: the `support.*` namespace for the Support card on Home and the Support screen
+(spec `docs/superpowers/specs/2026-11-06-support-contacts-design.md`).
+
+Reviewer notes worth acting on first:
+- **Keep every `{{name}}` and `{{role}}` placeholder exactly.** `roleAndName` joins them as
+  "{{role}} · {{name}}", and the confirm and accessibility strings interpolate the name. A dropped
+  placeholder shows a raw `{{name}}` to the person's contacts.
+- **The role words come first.** `roleSponsor`, `roleSupport`, `roleFriend` and `roleFamily` are the
+  words a person reads when choosing who a contact is, so translate them before the rest.
+- `crisisLine` names the 988 Suicide & Crisis Lifeline, a US service. Keep the number and the
+  official service name as they are.
