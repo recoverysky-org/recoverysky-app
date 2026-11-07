@@ -11,6 +11,7 @@ import { NewsCard } from "@/components/NewsCard"
 import { NinetyInNinetyCard } from "@/components/NinetyInNinetyCard"
 import { RecoveryChartCard } from "@/components/RecoveryChartCard"
 import { Screen } from "@/components/Screen"
+import { SupportCardContainer } from "@/components/SupportCardContainer"
 import { Text } from "@/components/Text"
 import { type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
@@ -116,6 +117,10 @@ const HELP_CARDS: HelpCardDef[] = [
  * Leads with the user's own recovery data (clean time, chart, money saved,
  * 90-in-90); the "Getting Started" help cards trail at the bottom, all shown at
  * once and each individually dismissible.
+ *
+ * CHANGED 2026-11-06 (Support Contacts, spec D8): the Support card now sits right
+ * under the News block and above the clean time card, so reaching a sponsor comes
+ * before the statistics. It renders nothing on web (no contact picker there).
  */
 export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function HomeScreen(_props) {
   const { themed } = useAppTheme()
@@ -226,6 +231,11 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
           <NewsCard title={newsTitle} body={newsBody} />
         </View>
       )}
+
+      {/* Support card — ADDED 2026-11-06 (Support Contacts, spec D8): directly under
+          the News block and above the clean time card, so a person who needs their
+          sponsor reaches them before any statistics. Renders nothing on web. */}
+      <SupportCardContainer />
 
       {/* Clean Time Card */}
       <CleanTimeCard />
