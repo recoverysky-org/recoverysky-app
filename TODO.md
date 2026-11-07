@@ -84,6 +84,8 @@ tab is hidden in production, and each is a decision to make knowingly:
       tab to tap "New conversation" and that their chat lives on the server. The
       ingest takes the whole folder, so this holds any ingest from a checkout
       carrying these pages.
+      CLAUDE.md's two release steps carry a HOLD line pointing here (ADDED
+      2026-11-07); delete both when this item closes.
 - [ ] **The agent's A4 migration** must run exactly once, before a build with
       this code reaches a device. It archives `base-identity` threads of 2
       messages or fewer, and this app adopts whatever the listing answers, so a

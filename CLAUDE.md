@@ -134,6 +134,10 @@ npm run update
   manual ingest from the agent repo with the production `.env`:
   `pnpm manual:ingest ../app/docs/manual` (it refuses a non-localhost target
   without `--yes`; see "User's Manual").
+  ⚠️ HOLD (ADDED 2026-11-07): not while `TODO.md`'s "The manual ingest" item is
+  open. The ingest takes the whole folder, and four Sky pages there describe a
+  thread on the agent that no production build has yet. Delete this line when
+  that item closes.
 
 ### Native release (anything that changed `runtimeVersion`)
 
@@ -153,6 +157,8 @@ also run eas through `scripts/eas-prod.sh` (ADDED 2026-10-11, RS-060).
 Did this release touch `docs/manual/`? Then, once the store build is live, run
 the manual ingest from the agent repo with the production `.env`:
 `pnpm manual:ingest ../app/docs/manual` (see "User's Manual").
+⚠️ HOLD (ADDED 2026-11-07): not while `TODO.md`'s "The manual ingest" item is
+open (same reason as the OTA step above). Delete this line when it closes.
 
 Cloud builds need every dependency reachable from the internet. The private
 packages are vendored for exactly that reason (see "Linked Packages").
