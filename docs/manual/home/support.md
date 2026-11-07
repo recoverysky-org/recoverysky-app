@@ -20,7 +20,7 @@ The card then shows that person's role and name, with "Call" and "Text" buttons.
 
 To add more people, tap the card's title "Support" to open the Support screen, then tap "Add a support contact". The button goes away once you have three.
 
-On the Support screen, a person's row has a button for more options, with "Move up" (to put them first), "Change role" and "Remove". "Remove" asks "Remove {name} from your support contacts?" before it deletes anyone.
+On the Support screen, a person's row has a button for more options, with "Move up" (one place higher; the person at the top is the one on the Home card), "Change role" and "Remove". "Remove" asks "Remove {name} from your support contacts?" before it deletes anyone.
 
 ## Calling or texting
 
@@ -31,13 +31,13 @@ The Support screen also has:
 - "Find a live meeting now", which opens Meetings → "Online" so you can join a meeting that is running right now.
 - "988 Suicide & Crisis Lifeline", with a call button and a text button. This row shows only when your phone's region setting is the US or Canada.
 
-My Day's support prompts open this same Support screen.
+In My Day, the "Get support now" button on the card that says "You don't have to get through this alone" opens this same Support screen.
 
 ## Good to know
 
-**Only names are shown.** The card and the Support screen show a role and a name, never a phone number. A contact saved without a name on your phone shows only the role, such as "Sponsor".
+**Only names are shown.** The card and the Support screen show a role and a name, never their phone number. The only number shown is the 988 line. Once you tap "Call" or "Text", your phone's own calling or messaging screen shows the number. A contact saved without a name on your phone shows only the role, such as "Sponsor".
 
-**Where the number lives.** Each number stays on this phone, in its secure storage. It is never sent anywhere, and it is not part of "Back up attendance" in Cloud Backup. The contacts stay on this phone when you sign out. They are removed by Settings → "Account" → "Delete User Data", and by reinstalling the app.
+**Where the number lives.** Each number is kept in your phone's secure storage. RecoverySky never sends it to its servers or anywhere else, and it is not part of "Back up attendance" in Cloud Backup. A full backup of the phone itself, or moving to a new phone from that backup, can bring it along with the phone's other data. The contacts stay on this phone when you sign out. They are removed by Settings → "Account" → "Delete User Data", and by deleting the app and installing it again on the same phone.
 
 **RecoverySky never reads your contact list.** It only receives the one person and number you pick in the phone's picker, so it asks for no contacts permission.
 
@@ -45,7 +45,7 @@ My Day's support prompts open this same Support screen.
 
 ## If something's wrong
 
-- **The picker won't open**: you see "Couldn't open the contacts picker". Check that your phone's Contacts app opens, then tap "Choose" again.
+- **"Couldn't open the contacts picker"**: the picker could not open, or the person you picked has no phone number the app can read. Check that your phone's Contacts app opens and that the contact has a number, then tap "Choose" again.
 - **"That contact is already in your list"**: that phone number is already one of your three. Pick a different person or number.
 - **"Couldn't open the phone app"**: your phone has no calling or messaging app that can take the number, as on some tablets. Dial the number from another phone or app.
 - **The card is missing**: it is hidden on the web, and on a phone that has not yet been updated to a version with Support.
@@ -58,7 +58,7 @@ Contact support@recoverysky.app and mention that you're using the Support card, 
 **A:** On the Home tab, tap "Choose" on the "Support" card, pick your sponsor from your contacts and tap their number, then answer "Who is this?" with "Sponsor". After that, "Call" on the card opens your phone's calling app.
 
 **Q:** Is my sponsor's phone number private?
-**A:** Yes. The number stays on this phone. It is never sent to RecoverySky or anywhere else, and the app never reads your contact list. The card only shows a name.
+**A:** Yes. RecoverySky never sends the number to its servers or anywhere else, and the app never reads your contact list. The card only shows a name. The number is kept on your phone, so a full backup of the phone itself can carry it to a new phone along with the phone's other data.
 
 **Q:** Where is the crisis line?
 **A:** Tap the "Support" title on Home to open the Support screen. In the US and Canada, it has a "988 Suicide & Crisis Lifeline" row with a call button and a text button.

@@ -978,7 +978,7 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   the injected `resetSupportContacts` prop calling `SupportStore.clear()`, which
   also empties the in-memory list because that Reset reopens in place with no
   reload; the dev purge; the fresh-install clear in `app.tsx` keyed on
-  `restoredState`. `addContact` stores `""` when the name is only digits and
+  `restoredState`. SecureStore's default accessibility means an iOS device backup or transfer carries the contacts, like MMKV, so the fresh-install clear does not fire on a restore. `addContact` stores `""` when the name is only digits and
   punctuation (Android's `Phone.DISPLAY_NAME` holds the number for a nameless
   contact); don't remove that. `useSupportDial` is the one dial path (open,
   track on success, toast on failure). The local module wraps Apple's and
