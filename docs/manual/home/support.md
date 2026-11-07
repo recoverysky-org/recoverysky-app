@@ -5,7 +5,7 @@ screen: Home → "Support"
 platforms: [ios, android]
 aliases: [sponsor, "call my sponsor", "support person", "988", "crisis line", "support contacts"]
 ---
-<!-- sources: app/components/SupportCard.tsx, app/screens/SupportScreen.tsx, app/i18n/en.ts, app/screens/SettingsScreen.tsx, docs/superpowers/specs/2026-11-06-support-contacts-design.md -->
+<!-- sources: app/components/SupportCard.tsx, app/components/SupportCardContainer.tsx, app/screens/SupportScreen.tsx, app/services/support/supportLoader.ts, app/i18n/en.ts, app/screens/SettingsScreen.tsx, docs/superpowers/specs/2026-11-06-support-contacts-design.md -->
 "Support" is a card on the Home tab that puts your sponsor or another support person one tap from a call or a text. You choose the people from your phone's own contacts, up to three. It is free, on iPhone and Android, and it does not appear on the web.
 
 ## How to add your sponsor or support person
@@ -24,10 +24,10 @@ On the Support screen, a person's row has a button for more options, with "Move 
 
 ## Calling or texting
 
-You're on the Home tab or the Support screen. Tap "Call" or "Text" next to a person. RecoverySky opens your phone's own calling or messaging app with their number ready, so you press the phone's own button to place the call or send the text.
+On the Home tab, tap "Call" or "Text" on the card. On the Support screen, tap the call button or the text button next to a person. RecoverySky opens your phone's own calling or messaging app with their number ready, so you press the phone's own button to place the call or send the text.
 
 The Support screen also has:
-- Your contacts, up to three, each with "Call" and "Text".
+- Your contacts, up to three, each with a call button and a text button.
 - "Find a live meeting now", which opens Meetings → "Online" so you can join a meeting that is running right now.
 - "988 Suicide & Crisis Lifeline", with a call button and a text button. This row shows only when your phone's region setting is the US or Canada.
 
@@ -35,7 +35,7 @@ In My Day, the "Get support now" button on the card that says "You don't have to
 
 ## Good to know
 
-**Only names are shown.** The card and the Support screen show a role and a name, never their phone number. The only number shown is the 988 line. Once you tap "Call" or "Text", your phone's own calling or messaging screen shows the number. A contact saved without a name on your phone shows only the role, such as "Sponsor".
+**Only names are shown.** The card and the Support screen show a role and a name, never their phone number. The only number shown is the 988 line. Once you tap to call or text, your phone's own calling or messaging screen shows the number. A contact saved without a name on your phone shows only the role, such as "Sponsor".
 
 **Where the number lives.** Each number is kept in your phone's secure storage. RecoverySky never sends it to its servers or anywhere else, and it is not part of "Back up attendance" in Cloud Backup. A full backup of the phone itself, or moving to a new phone from that backup, can bring it along with the phone's other data. The contacts stay on this phone when you sign out. They are removed by Settings → "Account" → "Delete User Data", and by deleting the app and installing it again on the same phone.
 
@@ -49,6 +49,7 @@ In My Day, the "Get support now" button on the card that says "You don't have to
 - **"That contact is already in your list"**: that phone number is already one of your three. Pick a different person or number.
 - **"Couldn't open the phone app"**: your phone has no calling or messaging app that can take the number, as on some tablets. Dial the number from another phone or app.
 - **The card is missing**: it is hidden on the web, and on a phone that has not yet been updated to a version with Support.
+- **The card or your contacts are missing just after your phone starts up**: the card and the contacts on the Support screen stay hidden until the phone has been unlocked, because they can't be read before then. Unlock the phone and come back to RecoverySky.
 
 Contact support@recoverysky.app and mention that you're using the Support card, what you tapped and which message you saw.
 

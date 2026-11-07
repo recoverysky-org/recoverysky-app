@@ -25,8 +25,14 @@ describe("support contacts permission policy (spec D2)", () => {
     const hits = files(dir).filter((p) => FORBIDDEN.test(readFileSync(p, "utf8")))
     expect(hits).toEqual([])
   })
-  it("app.json and plugins/ carry no contacts permission or usage string", () => {
-    const targets = [path.join(repo, "app.json"), ...files(path.join(repo, "plugins"))]
+  // CHANGED 2026-11-06 (final review M-4): app.config.ts too. It appends the iOS privacy manifest
+  // and the local plugins, so an iOS key added there is exactly what this test exists to catch.
+  it("app.json, app.config.ts and plugins/ carry no contacts permission or usage string", () => {
+    const targets = [
+      path.join(repo, "app.json"),
+      path.join(repo, "app.config.ts"),
+      ...files(path.join(repo, "plugins")),
+    ]
     const hits = targets.filter((p) => FORBIDDEN.test(readFileSync(p, "utf8")))
     expect(hits).toEqual([])
   })

@@ -965,5 +965,5 @@ Reviewer notes worth acting on first:
   placeholder shows a raw `{{name}}` to the person's contacts.
 - **The role words come first.** `roleSponsor`, `roleSupport`, `roleFriend` and `roleFamily` are the
   words a person reads when choosing who a contact is, so translate them before the rest.
-- `crisisLine` names the 988 Suicide & Crisis Lifeline, a US service. Keep the number and the
+- `crisisLine` names the 988 Suicide & Crisis Lifeline, a US and Canada service. Keep the number and the
   official service name as they are.

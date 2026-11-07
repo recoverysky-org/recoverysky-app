@@ -53,7 +53,7 @@ class PhoneContactPickerModule : Module() {
     // ADDED 2026-11-06: main queue, not Expo's default modules queue. OnActivityResult is
     // delivered on the main thread, so running the call there too means `pending` is never
     // touched from two threads, and the activity is started from the UI thread. (expo-sharing
-    // uses the default queue for the same shape; the brief's code did too.)
+    // uses the default queue for the same shape.)
 
     OnActivityResult { _, payload ->
       if (payload.requestCode != REQUEST_PICK_PHONE) return@OnActivityResult
