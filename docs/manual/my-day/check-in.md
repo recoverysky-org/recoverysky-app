@@ -6,12 +6,12 @@ platforms: [ios, android]
 tier: premium
 aliases: ["check in", "check-in", "how I feel", "mood", "wellness", "feeling low", "record my day"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.5.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx -->
 "Check in" is a short set of questions about how you are feeling. You can check in as often as you like, from the "Record My Day" panel of the My Day tab, which needs the Premium subscription, on iPhone and Android.
 
 ## How to check in
 
-You're in My Day → "My Day", on the "Record My Day" panel. It has a button for each check-in on offer, named for it.
+You're in My Day → "My Day", on the "Record My Day" panel. Under "Check in throughout your day" it has a button for each check-in on offer, named for it.
 
 1. Tap the check-in's button.
 2. The first question asks how you feel, from 1 to 5. Tap one answer.

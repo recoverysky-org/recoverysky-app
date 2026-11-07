@@ -72,9 +72,9 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.285",
-    "@daily-dash/client": "file:vendor/daily-dash-client-0.4.0.tgz",
-    "@daily-dash/my-day": "file:vendor/daily-dash-my-day-0.5.0.tgz",
-    "@daily-dash/sdk": "file:vendor/daily-dash-sdk-0.2.0.tgz",
+    "@daily-dash/client": "file:vendor/daily-dash-client-0.5.0.tgz",
+    "@daily-dash/my-day": "file:vendor/daily-dash-my-day-0.6.0.tgz",
+    "@daily-dash/sdk": "file:vendor/daily-dash-sdk-0.3.0.tgz",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.0",
@@ -195,9 +195,9 @@
     "@ai-sdk/react": {
       "react": "$react"
     },
-    "@daily-dash/client": "file:vendor/daily-dash-client-0.4.0.tgz",
-    "@daily-dash/my-day": "file:vendor/daily-dash-my-day-0.5.0.tgz",
-    "@daily-dash/sdk": "file:vendor/daily-dash-sdk-0.2.0.tgz",
+    "@daily-dash/client": "file:vendor/daily-dash-client-0.5.0.tgz",
+    "@daily-dash/my-day": "file:vendor/daily-dash-my-day-0.6.0.tgz",
+    "@daily-dash/sdk": "file:vendor/daily-dash-sdk-0.3.0.tgz",
     "@jenova-marie/ts-rust-result": "file:vendor/jenova-marie-ts-rust-result-2.2.18.tgz",
     "@trex-ts/core": "file:vendor/trex-ts-core-1.5.6.tgz"
   },

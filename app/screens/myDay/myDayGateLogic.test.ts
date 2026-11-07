@@ -7,6 +7,9 @@ const signedIn = {
   accountId: "a",
   accountHash: "h",
   product: "recoverysky",
+  // client 0.5.0 (2026-11-07): the signed-in state carries whether the
+  // subscription has Sky. The gate doesn't read it.
+  assistantAccess: true,
 } as const
 describe("decideMyDayGateView (spec §4.5 'the tab's own gate')", () => {
   it("ready only when signed in and the database is open", () => {

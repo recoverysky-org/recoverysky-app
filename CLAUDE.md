@@ -1742,7 +1742,12 @@ store build: the Daily Dash API release after 0.9.0 live at
 `api.the-daily-dash.com` (my-day 0.5.0 reads `sky` fields on today and
 check-ins that 0.9.0 does not serve), this app's Auth0 client in that API's
 `AUTH0_RECOVERYSKY_CLIENT_IDS` allow-list (Infisical), and the URL in the EAS
-production environment. Before the manual ingest: the agent repo's
+production environment. CHANGED 2026-11-07 (my-day 0.6.0 / client 0.5.0 /
+sdk 0.3.0): the next release, OTA included, needs the Daily Dash API release
+after 0.10.0 live first. That client and sdk require `assistantAccess` on the
+exchange and `GET /v1/me` (a missing field fails the parse, so sign-in breaks)
+and call `POST /v1/auth/entitlement`, and my-day's Hide calls
+`POST /v1/routine/items/{id}/hide` (API migration 36). Before the manual ingest: the agent repo's
 `feat/manual-my-day-area` merged to its `prod`, since the agent's closed area
 list needs `my-day`.
 

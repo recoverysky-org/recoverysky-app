@@ -197,7 +197,7 @@ const de: Translations = {
         rating: "Last night: {{n}}",
       },
       routine: {
-        title: "Your Routine",
+        title: "My Daily Routine",
         empty: "Start with a routine someone has already thought about, or build your own.",
       },
       buckets: {
@@ -215,6 +215,8 @@ const de: Translations = {
       week: "{{n}} this week",
       record: {
         title: "Record My Day",
+        checkInLabel: "Check in throughout your day",
+        nightLabel: "End of day review",
       },
       checkIn: {
         needsConnection: "Check-ins need a connection the first time.",
@@ -411,18 +413,15 @@ const de: Translations = {
       saveProblem: "That didn't save. Try again.",
     },
     routine: {
-      title: "Your Routine",
+      title: "My Daily Routine",
       loading: "Getting your routine ready…",
       failed: "Your routine didn't load. Check your connection and try again.",
       retry: "Try again",
       start: "Start your routine",
       edit: "Edit routine",
+      editLabel: "Edit ✎",
       ringDone: "Mark {{title}} not done",
       ringNotDone: "Mark {{title}} done",
-      skip: "Skip",
-      undo: "Undo",
-      skipName: "Skip {{title}}",
-      undoName: "Undo skipping {{title}}",
       pending: "Saved on this device. It will send when you're online.",
       saveProblem: "This didn't save on your device. Try again.",
       longRoutine: "That's a full day. Would a shorter list feel lighter?",
@@ -435,7 +434,7 @@ const de: Translations = {
       addGlyph: "+",
       addToName: "Add to {{part}}",
       copyGlyph: "⧉",
-      switchOffGlyph: "✕",
+      switchOffGlyph: "⏻",
       editGlyph: "✎",
       emptyBucket: "Nothing here yet",
       moveUpName: "Move {{title}} up",
@@ -447,8 +446,10 @@ const de: Translations = {
       editName: "Edit {{title}}",
       switchedOff: {
         title: "Switched off",
-        action: "Switch on",
+        onGlyph: "⏻",
         name: "Switch on {{title}}",
+        hideGlyph: "🗑",
+        hideName: "Hide {{title}}",
       },
       templates: {
         title: "Start from a template",
@@ -488,9 +489,10 @@ const de: Translations = {
         empty: "Want to build a morning that holds? Sky can help, three questions.",
         stale: "Nothing on your routine got a tick this week. Want to go over it with Sky?",
       },
-      editAction: "Sky",
       help: "Help from Sky",
+      askForHelp: "Ask Sky",
       helpGlyph: "?",
+      sparkleGlyph: "✦",
     },
     screen: {
       back: "Back",

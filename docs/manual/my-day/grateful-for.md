@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: premium
 aliases: ["gratitude", "gratitude list", "grateful", "thankful", "good thing today", "gratitude journal", "record my day"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.5.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx -->
 "Grateful for" is your gratitude list for the day, at the top of the "Record My Day" panel on the My Day tab's main screen. Add as many good things as you like. My Day needs the Premium subscription, on iPhone and Android.
 
 ## How to add to your gratitude list

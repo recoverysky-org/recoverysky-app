@@ -91,6 +91,8 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
       week: (n) => s("today.week", { n }),
       record: {
         title: s("today.record.title"),
+        checkInLabel: s("today.record.checkInLabel"),
+        nightLabel: s("today.record.nightLabel"),
       },
       checkIn: {
         needsConnection: s("today.checkIn.needsConnection"),
@@ -304,13 +306,10 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
       retry: s("routine.retry"),
       start: s("routine.start"),
       edit: s("routine.edit"),
+      editLabel: s("routine.editLabel"),
       // One function, two sentences: the done state flips the verb's object, which word
       // order in other languages may not express as a single template.
       ring: (title, done) => s(done ? "routine.ringDone" : "routine.ringNotDone", { title }),
-      skip: s("routine.skip"),
-      undo: s("routine.undo"),
-      skipName: (title) => s("routine.skipName", { title }),
-      undoName: (title) => s("routine.undoName", { title }),
       pending: s("routine.pending"),
       saveProblem: s("routine.saveProblem"),
       longRoutine: s("routine.longRoutine"),
@@ -334,8 +333,10 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
       editName: (title) => s("routine.editName", { title }),
       switchedOff: {
         title: s("routine.switchedOff.title"),
-        action: s("routine.switchedOff.action"),
+        onGlyph: s("routine.switchedOff.onGlyph"),
         name: (title) => s("routine.switchedOff.name", { title }),
+        hideGlyph: s("routine.switchedOff.hideGlyph"),
+        hideName: (title) => s("routine.switchedOff.hideName", { title }),
       },
       templates: {
         title: s("routine.templates.title"),
@@ -378,9 +379,10 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
         empty: s("sky.schedule.empty"),
         stale: s("sky.schedule.stale"),
       },
-      editAction: s("sky.editAction"),
       help: s("sky.help"),
+      askForHelp: s("sky.askForHelp"),
       helpGlyph: s("sky.helpGlyph"),
+      sparkleGlyph: s("sky.sparkleGlyph"),
     },
     screen: {
       back: s("screen.back"),

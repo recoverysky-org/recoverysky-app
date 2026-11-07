@@ -6,12 +6,12 @@ platforms: [ios, android]
 tier: premium
 aliases: ["rate your day", "your night", "evening", "nightly review", "past nights", "rating", "pillars", "sky suggests", "record my day"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.5.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx -->
 "Rate your day" is a short evening review. You rate each part of your day from 1 to 5, note what you did, and end with something you're grateful for. "Past nights" shows the nights you rated. It is in the My Day tab, which needs the Premium subscription, on iPhone and Android.
 
 ## How to rate your day
 
-You're in My Day → "My Day", on the "Record My Day" panel.
+You're in My Day → "My Day", on the "Record My Day" panel, under "End of day review".
 
 1. Tap "Rate your day".
 2. Each step is one part of your day and shows where you are, for example "2 of 6". Answer "How was this part of your day?" by tapping 1 to 5. "A five: …" and "A one: …" describe the two ends.

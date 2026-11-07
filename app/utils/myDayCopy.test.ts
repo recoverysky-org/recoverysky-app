@@ -30,8 +30,6 @@ const SAMPLE_ARGS: Record<string, unknown[][]> = {
     ["Walk", true],
     ["Walk", false],
   ],
-  "routine.skipName": [["Walk"]],
-  "routine.undoName": [["Walk"]],
   "routine.addToName": [["Morning"]],
   "routine.moveUpName": [["Walk"]],
   "routine.moveDownName": [["Walk"]],
@@ -39,6 +37,7 @@ const SAMPLE_ARGS: Record<string, unknown[][]> = {
   "routine.copyName": [["Walk"]],
   "routine.switchOffName": [["Walk"]],
   "routine.switchedOff.name": [["Walk"]],
+  "routine.switchedOff.hideName": [["Walk"]],
   "routine.templates.adds": [[1], [4]],
 }
 

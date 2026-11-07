@@ -982,3 +982,21 @@ Reviewer notes worth acting on first:
   `searchMeetings`, so the sentence has to read with an untranslated word in it.
 - **`newConversationConfirm` asks, it does not warn.** The conversation is put away, not deleted, and
   nothing about the wording should suggest a loss. The action is no longer styled as destructive.
+
+## 2026-11-07 My Day 0.6.0 (English placeholders)
+
+**Still English placeholders (need translating), 56 strings (8 locales × 7 keys)** in ar, de, es,
+fr, pt, ru, th, uk, from `@daily-dash/my-day` 0.6.0: `myDay.today.record.checkInLabel`,
+`today.record.nightLabel`, `routine.editLabel`, `routine.switchedOff.hideName`, `sky.askForHelp`,
+and the renamed `today.routine.title` and `routine.title` (now "My Daily Routine", was "Your
+Routine"). The 0.6.0 bump also added four glyph keys (`routine.switchedOff.onGlyph` and `hideGlyph`,
+`sky.sparkleGlyph`, and `routine.switchOffGlyph` changed to ⏻). They are symbols, not words, so
+leave them as they are. It removed `routine.skip`, `undo`, `skipName`, `undoName`,
+`routine.switchedOff.action` and `sky.editAction`, so drop those from any open translation work.
+
+Reviewer notes worth acting on first:
+- **Keep `{{title}}` exactly** in `hideName` ("Hide {{title}}"). A screen reader reads it on the
+  trash button of a switched-off routine item.
+- **`routine.editLabel` is "Edit ✎"**: keep the pencil after the word. The button is small, so keep
+  the word short.
+- **`sky.askForHelp` is "Ask Sky"**, a header button after a sparkle glyph. Keep "Sky" as the name.

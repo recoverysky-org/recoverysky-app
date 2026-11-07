@@ -51,6 +51,8 @@
   expect: my-day/routine
 - q: how do I skip something on my routine today
   expect: my-day/routine
+- q: how do I get rid of a switched off routine item
+  expect: my-day/routine
 - q: can I use a ready-made routine template
   expect: my-day/routine
 - q: how do I take an item off my routine
