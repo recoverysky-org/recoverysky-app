@@ -1,13 +1,11 @@
-// Jest for now, a .tsx with no JSX: the store still imports `@/` modules for its old message
-// members, which vitest cannot resolve (CLAUDE.md "Test Runner Split"). Task 7 removes those
-// members and moves this file to vitest, so nothing below the mock may lean on a jest-only API.
+// CHANGED 2026-11-06 (spec D4): moved from jest to vitest once the store lost its message members,
+// and with them every runtime `@/` import, which vitest cannot resolve (CLAUDE.md "Test Runner
+// Split"). No mocks: the store is plain MST now, so a `@/` import creeping back fails this whole file.
 import { autorun } from "mobx"
 import { getSnapshot } from "mobx-state-tree"
+import { describe, expect, it } from "vitest"
 
 import { ConversationStoreModel } from "./ConversationStore"
-
-// The one mock. The real module opens the encrypted database's repositories at import.
-jest.mock("@/db/repositories", () => ({ chatMessageRepo: {} }))
 
 describe("ConversationStore: the thread the agent holds (spec D1)", () => {
   it("starts with no id and not fresh", () => {
@@ -26,12 +24,17 @@ describe("ConversationStore: the thread the agent holds (spec D1)", () => {
     expect(b.conversationIsFresh).toBe(true)
   })
 
-  // An installed app's MMKV snapshot has only the old props, and Task 7 drops those from the
-  // model. MST ignores what a model does not declare, so this one must simply load.
-  it("reads an old snapshot without its dropped props", () => {
+  // An installed app's MMKV snapshot has only the old props, and the model no longer declares them.
+  // MST ignores what a model does not declare, so this one must load, and the next snapshot written
+  // back to MMKV must not carry them: the snapshot holds the id and the flag, nothing else.
+  it("reads an old snapshot and drops its old props", () => {
     const store = ConversationStoreModel.create({ lastSyncedAt: 5, messageCount: 2 } as never)
     expect(store.conversationId).toBeNull()
     expect(store.conversationIsFresh).toBe(false)
+    const snapshot = getSnapshot(store)
+    expect(snapshot).not.toHaveProperty("lastSyncedAt")
+    expect(snapshot).not.toHaveProperty("messageCount")
+    expect(Object.keys(snapshot).sort()).toEqual(["conversationId", "conversationIsFresh"])
   })
 
   it("adopting and marking clear the flag", () => {

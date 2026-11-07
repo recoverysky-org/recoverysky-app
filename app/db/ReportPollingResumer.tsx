@@ -13,7 +13,7 @@
  * Place inside DatabaseProvider:
  * <DatabaseProvider>
  *   <ProfileHydrator />
- *   <ChatHydrator />
+ *   <ChatWipeRunner />
  *   <ReportPollingResumer />
  *   ...
  * </DatabaseProvider>

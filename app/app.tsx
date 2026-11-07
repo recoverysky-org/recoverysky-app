@@ -55,11 +55,13 @@ import {
   DatabaseLoadingOverlay,
   openDbEarly,
   ProfileHydrator,
-  ChatHydrator,
   ReportPollingResumer,
   SyncResumer,
   BackupPassRunner,
 } from "./db"
+// Imported directly, not via the db barrel (ADDED 2026-11-06): it reads ./repositories, which reach
+// the barrel through models/ProfileStore, so a re-export would close a cycle (depcruise no-circular).
+import { ChatWipeRunner } from "./db/ChatWipeRunner"
 // Imported directly, not via the db barrel: it reads @/models, and the barrel
 // is on the models → api → db import path (depcruise no-circular).
 import { OwnerRelinkMigrator } from "./db/OwnerRelinkMigrator"
@@ -1335,7 +1337,7 @@ export function App() {
                   resetSupportContacts={resetSupportContacts}
                 >
                   <ProfileHydrator />
-                  <ChatHydrator />
+                  <ChatWipeRunner />
                   {/* Before ReportPollingResumer: its rewrite must land first (spec 2 §7). */}
                   <OwnerRelinkMigrator />
                   <ReportPollingResumer />

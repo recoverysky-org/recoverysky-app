@@ -27,12 +27,14 @@ export { openDbEarly } from "./earlyOpen"
 export { DatabaseProvider, useDatabase, useDatabaseReady } from "./DatabaseProvider"
 export { DatabaseLoadingOverlay } from "./DatabaseLoadingOverlay"
 export { ProfileHydrator } from "./ProfileHydrator"
-export { ChatHydrator } from "./ChatHydrator"
 export { ReportPollingResumer } from "./ReportPollingResumer"
 // TimerSessionResumer is deliberately NOT re-exported (CHANGED 2026-10-11):
 // it reads @/models for guest mode, and re-exporting it here closes a
 // models → api → db barrel cycle (depcruise no-circular). app.tsx imports it
 // directly, like OwnerRelinkMigrator.
+// ChatWipeRunner is deliberately NOT re-exported either (ADDED 2026-11-06): it reads ./repositories,
+// and repositories → models/ProfileStore → this barrel would close a cycle through it. app.tsx imports
+// it directly.
 export { SyncResumer } from "./SyncResumer"
 export { BackupPassRunner } from "./BackupPassRunner"
 export {
