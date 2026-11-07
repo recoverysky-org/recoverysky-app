@@ -5,6 +5,7 @@ import { ConfigStoreModel } from "./ConfigStore"
 import { ConversationStoreModel } from "./ConversationStore"
 import { NetworkStoreModel } from "./NetworkStore"
 import { ProfileStoreModel } from "./ProfileStore"
+import { SupportStoreModel } from "./SupportStore"
 
 /**
  * A RootStore model.
@@ -15,6 +16,9 @@ export const RootStoreModel = types.model("RootStore").props({
   conversationStore: types.optional(ConversationStoreModel, {}),
   profileStore: types.optional(ProfileStoreModel, {}),
   networkStore: types.optional(NetworkStoreModel, {}),
+  // ADDED 2026-11-06 (support contacts spec D4): SupportStore has no props, so
+  // this entry snapshots as {} and no contact can reach the MMKV root snapshot.
+  supportStore: types.optional(SupportStoreModel, {}),
 })
 
 /**

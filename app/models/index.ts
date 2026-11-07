@@ -7,6 +7,7 @@ export * from "./ConfigStore"
 export * from "./ConversationStore"
 export * from "./ProfileStore"
 export * from "./NetworkStore"
+export * from "./SupportStore"
 
 // Helpers
 export * from "./helpers/getRootStore"

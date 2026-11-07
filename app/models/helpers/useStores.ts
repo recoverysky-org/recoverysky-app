@@ -45,3 +45,8 @@ export function useNetworkStore() {
 export function useConversationStore() {
   return useStores().conversationStore
 }
+
+// ADDED 2026-11-06 (support contacts)
+export function useSupportStore() {
+  return useStores().supportStore
+}

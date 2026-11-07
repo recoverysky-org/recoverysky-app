@@ -120,6 +120,7 @@ import {
 import { registerTestPushDevMenu } from "./services/notifications/devTestPush"
 import { pushRegistrationUserId } from "./services/notifications/pushRegistrationLogic"
 import { initRatingEngine } from "./services/rating"
+import { clearSupportContacts } from "./services/support"
 import { initAttendanceSync } from "./services/sync"
 import { initializeUmami, setTrackingUserId, trackEvent } from "./services/tracking"
 import { ThemeProvider } from "./theme/context"
@@ -511,7 +512,16 @@ export function App() {
         )
 
         // setupRootStore logs its own params/results
-        await setupRootStore(_rootStore)
+        const { restoredState } = await setupRootStore(_rootStore)
+
+        // ADDED 2026-11-06 (support contacts spec D4): the keychain outlives an
+        // uninstall on iOS, MMKV does not. No persisted root snapshot means a
+        // fresh install (or a Delete User Data reload), so a previous
+        // installer's sponsor must not greet whoever opens the app next. A rare
+        // MMKV read failure also lands here; clearing is the safe direction.
+        // Runs BEFORE hydrate.
+        if (!restoredState) await clearSupportContacts()
+        await _rootStore.supportStore.hydrate()
 
         // ADDED 2026-10-11: guests never see or write the device's hearts /
         // stars / join counts (spec 2026-09-27). Read live on every access, so
