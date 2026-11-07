@@ -36,7 +36,7 @@ Background: [device owner: Delete User Data](../reference/device-owner.md#delete
 
 | Action | Deletes | Does not delete |
 | --- | --- | --- |
-| Settings, "Delete User Data" (user, in the app) | This phone's local data: attendance, reports, reminders, profile, settings, conversation history; the phone's owner record. Signs out. | Anything on our servers. The Auth0 account. The subscription. Other phones. The confirmation it shows does not mention servers, but the handler makes no server call (`handleDeleteUserData`). |
+| Settings, "Delete User Data" (user, in the app) | This phone's local data: attendance, reports, reminders, profile, settings, conversation history; the phone's owner record. Signs out. | Anything on our servers. The Auth0 account. The subscription. Other phones. The confirmation it shows does not mention servers. The handler also archives the person's Sky conversations in builds where the tab exists, which hides them from the app and erases nothing (`handleDeleteUserData`). |
 | Auth0 user delete (support, `DELETE /api/v2/users/{sub}`) | The sign-in account, its linked identities and login history. Irreversible. | Server rows, the RevenueCat customer, any store subscription. |
 | Server rows | Nothing deletes them today. There is no account-deletion route in the API (`/auth0` has only `profile`, `link` and the email-verify routes). `DELETE /sync/backup` exists but answers 404 unless `SYNC_BACKUP_DELETE_ENABLED=true` (tabled 2026-09-30, off), the app never calls it, and it would remove only attendance not yet in a report, never reports. | |
 | RevenueCat customer | Nothing support can run. | |

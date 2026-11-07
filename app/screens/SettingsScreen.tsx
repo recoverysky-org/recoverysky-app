@@ -51,6 +51,7 @@ import {
 import type { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { setPendingMeetingId } from "@/navigators/navigationUtilities"
 import { api } from "@/services/api"
+import { agentConversationsClient } from "@/services/api/agentConversations"
 import { describeAccount } from "@/services/auth/accountMethodsLogic"
 import { clearAllSecureData } from "@/services/auth/secureStorage"
 import { useAuth0Wrapper } from "@/services/auth/useAuth0Wrapper"
@@ -65,6 +66,7 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
+import { isValidAgentUrl } from "@/utils/agentTabLogic"
 import { checkForUpdates } from "@/utils/checkForUpdates"
 import { ACTIVE_FELLOWSHIPS } from "@/utils/fellowships"
 import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
@@ -486,8 +488,19 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
               optOutNotifications()
               logoutNotificationUser()
 
-              // 3. Clear AI conversation history (SQLite)
-              conversationStore.clearHistory()
+              // 3. Start Sky's conversation over. CHANGED 2026-11-06 (turn-only spec D7):
+              // the thread lives on the agent now, so a local reset alone would show it
+              // again at the next sign-in. Before sign-out because it needs the bearer;
+              // bounded because the person's delete must never wait on the agent.
+              // This archives and erases nothing, see the spec's "Privacy".
+              if (isValidAgentUrl(process.env.EXPO_PUBLIC_AGENT_URL)) {
+                const archived = await agentConversationsClient(configStore.agentUrl).archive({
+                  timeoutMs: 5000,
+                })
+                if (!archived)
+                  logger.error("Delete User Data: Sky's conversations were not archived")
+              }
+              conversationStore.forgetConversation()
 
               // 4. Reset ProfileStore (volatile + props, persists to SQLite)
               profileStore.reset()
