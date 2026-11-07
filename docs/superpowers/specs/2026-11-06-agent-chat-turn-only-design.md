@@ -66,7 +66,7 @@ the turn, and read the history back from the agent, as the Daily Dash app alread
     The agent stores every admitted turn under the client's message id (agent R2), so the screen keeps
     the ids it sent on this conversation. Before a focus re-read may change anything, each must be in
     the mounted conversation's stored messages. If one is not, or that read fails, the screen stays
-    exactly as it is and nothing is listed. Once all are found the set empties and the open continues.
+    exactly as it is and nothing is listed. Once all are found the open continues, and the set empties when that open replaces the thread (a listing that then fails keeps the screen and the set; one more read next focus).
     No wire marker is needed, since the id itself says whether the agent kept the turn. These replies do
     not survive a restart: the agent has no row for them and the device keeps nothing (accepted).
   - **Failures.** With nothing on screen, a listing that fails (offline, `503`) shows the screen's error
@@ -150,7 +150,7 @@ the turn, and read the history back from the agent, as the Daily Dash app alread
   `409 conversation_archived` (New conversation on another device, agent A2) and `403` "Access denied"
   (the owner was relinked) all mean the thread in memory is stale, and a retry would repeat them. The
   screen drops the id if the thread is gone, re-lists and re-reads (D1, D3), draws no error row, and
-  **puts the person's words back in the composer**, since the re-read replaces the list they were in.
+  **puts the person's words back in the composer**, since the re-read replaces the list they were in. Only the last message's words return: an earlier turn that exists only on screen, such as an unstored crisis reply, goes with the list (accepted, builder's call 2026-11-06; it takes a refused turn and an archive elsewhere together).
   The SDK surfaces a non-2xx answer as an error whose `message` is the response body, so the classifier
   in `agentBodyLogic.ts` parses that JSON and is vitest-covered; a body that is not JSON (a proxy's 502
   page) is not stale. A message at the agent's refused crisis level gets the crisis resources from the
