@@ -7,6 +7,12 @@
  * see `useNearbySchedules.fetchMeetings`). All of the mode /
  * fetch / permission machinery lives in `useNearbySchedules`; this file is the
  * presentation layer and the analytics call sites.
+ * CHANGED 2026-11-07 (ZIP search): the center is now either a GPS fix or a
+ * typed ZIP / postal code's point, picked with the header's GPS | ZIP control
+ * (`useInPersonSearchMode`). ZIP mode, the default for anyone who had not
+ * allowed location, never prompts, never reads the position and never renders
+ * the map's location puck; every former `locationEnabled` read below now goes
+ * through `searchMode`, `gpsAllowed` or `hasCenter` (see `deriveSearchFlags`).
  *
  * PRIVACY: nothing here may put a coordinate, a `distance_m`, or a directions
  * URL into `trackEvent` or a log call. Every event fired below carries a
@@ -60,6 +66,7 @@ import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useMeetingFilters } from "@/context/MeetingFiltersContext"
 import { isInPersonVenue } from "@/context/meetingPools"
 import { feedbackCache, type FeedbackRecord } from "@/db"
+import { useInPersonSearchMode } from "@/hooks/useInPersonSearchMode"
 import { useLocationGate } from "@/hooks/useLocationGate"
 import { useNearbySchedules } from "@/hooks/useNearbySchedules"
 import { meetingHasReminder, useReminderLookup } from "@/hooks/useReminders"
@@ -82,6 +89,11 @@ import {
   type ShortTime,
 } from "@/utils/filterLogic"
 import { shouldShowMapToggle } from "@/utils/inPersonMapLogic"
+import {
+  deriveSearchFlags,
+  shouldRunVisitGate,
+  type InPersonSearchMode,
+} from "@/utils/inPersonSearchLogic"
 import { logger } from "@/utils/logger"
 import { matchesLanguage } from "@/utils/meetingFiltersLogic"
 import {
@@ -308,9 +320,6 @@ interface InPersonContentProps {
  * and keeping every store read on this side means one component to reason
  * about when asking why something did or didn't re-render.
  */
-// ADDED 2026-11-07 (ZIP search): placeholder handler for the header's new props.
-const noop = () => {}
-
 export const InPersonContent: FC<InPersonContentProps> = observer(function InPersonContent({
   active,
   visible,
@@ -327,6 +336,31 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const profileStore = useProfileStore()
   const { runGate } = useLocationGate()
   const { fellowship, language, setLanguage, reportMeetings } = useMeetingFilters()
+  /**
+   * ADDED 2026-11-07 (ZIP search): the GPS | ZIP choice, the typed postal code
+   * and its looked-up point (spec 2026-11-07-in-person-zip-search-design.md).
+   * Renamed to `searchMode` here because `mode` in this file is already the
+   * nearby hook's display mode ("nearby" / "fallback" / "locating").
+   * `searchMode` is null until the segment is first active (the hook decides
+   * the starting mode on that latch), and every read below treats null as
+   * "not decided yet": no gate, no center.
+   *
+   * PRIVACY: `zipCenter` is a postal code's centroid, not the person's
+   * position, but it is still never logged or tracked here. It is read only
+   * for `!== null`; the point itself goes straight to useNearbySchedules.
+   */
+  const {
+    mode: searchMode,
+    setMode: setSearchMode,
+    zipInput,
+    setZipInput,
+    submitZip,
+    retryZip,
+    zipStatus,
+    zipCenter,
+    zipCode,
+  } = useInPersonSearchMode(active)
+  const hasZipCenter = zipCenter !== null
 
   /**
    * True once the gate has run for the current visit; reset on leaving the
@@ -364,6 +398,18 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * `locationEnabled` stays in the deps because the body reads it (and must
    * read a fresh value on a genuine visit) — the ref is what makes that read
    * non-triggering.
+   *
+   * CHANGED 2026-11-07 (ZIP search): the gate runs only in GPS mode
+   * (`shouldRunVisitGate`: GPS and location not yet enabled). In ZIP mode the
+   * visit never prompts, which is the whole point of ZIP being the default.
+   * The visit waits for the mode: on the first visit of a mount `searchMode`
+   * is still null for one commit (useInPersonSearchMode decides it in an
+   * effect on the `active` latch), and marking the visit as gated during that
+   * commit would skip the gate for someone whose stored mode is GPS with
+   * location since turned off. `searchMode` is in the deps for that reason
+   * only; once the visit is marked, a later mode switch re-runs this and
+   * returns at the ref check, so it can never throw a prompt by itself. The
+   * GPS switch's own prompt is `handleSelectSearchMode`'s.
    */
   useEffect(() => {
     if (!visible) {
@@ -371,11 +417,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
       gateRanForVisitRef.current = false
       return
     }
+    if (searchMode === null) return
     if (gateRanForVisitRef.current) return
     gateRanForVisitRef.current = true
-    if (profileStore.locationEnabled) return
+    if (!shouldRunVisitGate({ mode: searchMode, locationEnabled: profileStore.locationEnabled }))
+      return
     void runGate()
-  }, [visible, profileStore.locationEnabled, runGate])
+  }, [visible, searchMode, profileStore.locationEnabled, runGate])
 
   /**
    * ADDED 2026-08-08 (TODO M1): re-run the gate when the app returns to the
@@ -402,6 +450,11 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * race it runs the gate, which yields an "open device settings" alert — the
    * same one the next visit would show. Harmless either way, which is why this
    * is documented rather than synchronized.
+   *
+   * CHANGED 2026-11-07 (ZIP search): same rule as the visit gate above, GPS
+   * mode only. In ZIP mode a resume never runs the gate. `searchMode` is read
+   * from the render closure, so it is a dep: a mode switch re-subscribes,
+   * which only resets the local `appState` to the current (active) state.
    */
   useEffect(() => {
     if (!visible) return
@@ -413,7 +466,11 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         // Read through the store rather than closing over a rendered value:
         // this callback outlives the render that created it, and app.tsx's
         // resume sync may write `locationEnabled` on this very transition.
-        if (!profileStore.locationEnabled) void runGate()
+        if (
+          shouldRunVisitGate({ mode: searchMode, locationEnabled: profileStore.locationEnabled })
+        ) {
+          void runGate()
+        }
       }
       appState = nextState
     })
@@ -421,7 +478,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     return () => {
       subscription.remove()
     }
-  }, [visible, profileStore, runGate])
+  }, [visible, searchMode, profileStore, runGate])
 
   const {
     mode,
@@ -442,9 +499,53 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // a local — see this file's header.
     // CHANGED 2026-11-07 (ZIP search): renamed from `getCoords` in the hook.
     getSearchCenter,
-    // CHANGED 2026-11-07 (ZIP search): GPS mode pinned until the screen is
-    // wired to useInPersonSearchMode (plan Task 6), so behaviour is unchanged.
-  } = useNearbySchedules(active, fellowship, { mode: "gps", zipCenter: null })
+    // ADDED 2026-11-07 (ZIP search): GPS mode holds a usable fix. State only,
+    // never the coordinate, so `hasCenter` below can gate on it.
+    hasFix,
+    // CHANGED 2026-11-07 (ZIP search): the real mode and ZIP point from
+    // useInPersonSearchMode (it was pinned to GPS until this was wired).
+  } = useNearbySchedules(active, fellowship, { mode: searchMode, zipCenter })
+
+  /**
+   * ADDED 2026-11-07 (ZIP search): the two values every former
+   * `profileStore.locationEnabled` read in the search path now goes through
+   * (spec "Every `locationEnabled` read in the search path becomes
+   * mode-aware"). `gpsAllowed` (GPS mode and location on) drives the
+   * re-acquire edge below; `hasCenter` (a fix in GPS mode, a looked-up point
+   * in ZIP mode) drives the row filter, the map toggle and
+   * `effectiveViewMode`. So a ZIP-mode person with location off in Settings
+   * gets a full list and map, and nothing GPS-shaped runs for them.
+   */
+  const { gpsAllowed, hasCenter } = deriveSearchFlags({
+    mode: searchMode,
+    locationEnabled: profileStore.locationEnabled,
+    hasFix,
+    hasZipCenter,
+  })
+
+  /**
+   * ADDED 2026-11-07 (ZIP search): `<InPersonMapView>`'s key. The map fits its
+   * camera once per mount, so a new ZIP or a mode switch must remount it to
+   * re-fit: the key is the code in ZIP mode and "gps" in GPS mode.
+   *
+   * Lagged one commit through state ON PURPOSE. `getSearchCenter` reads refs
+   * that useNearbySchedules syncs in its own effects (`modeRef`,
+   * `zipCenterRef`), and React runs a child's mount effects (and its render's
+   * `useMemo`) BEFORE the parent's effects in the same commit. A map keyed
+   * directly on `searchMode` / `zipCode` would therefore remount in the very
+   * commit the new mode or point arrives, read the OLD center (the GPS fix
+   * after a switch to ZIP, the previous ZIP's point after a new code), fit on
+   * it and latch. Setting the key from an effect declared here, after the
+   * hook call, runs after the hook's ref effects, so the remount happens one
+   * commit later with the refs already current. The puck needs no lag:
+   * `showUserLocation` follows `searchMode` directly, so it comes down in the
+   * same commit as a switch to ZIP.
+   */
+  const desiredMapKey = searchMode === "zip" ? (zipCode ?? "zip") : "gps"
+  const [mapKey, setMapKey] = useState(desiredMapKey)
+  useEffect(() => {
+    setMapKey(desiredMapKey)
+  }, [desiredMapKey])
 
   /**
    * ADDED 2026-08-09 (whole-branch review, C2): re-acquire when the location
@@ -473,14 +574,45 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * is true" into an edge (false→true): without it this would also fire on
    * every render where it's already true, including the very first one,
    * duplicating the driver effect's own initial acquire.
+   *
+   * CHANGED 2026-11-07 (ZIP search): fires only in GPS mode (`gpsAllowed` is
+   * GPS mode AND location on). In ZIP mode "I'm Here" sets `locationEnabled`
+   * true as a self-heal (InPersonPopup.handleImHere), and the old condition
+   * would have turned that tap into a GPS fix for the search, the one thing
+   * ZIP mode promises not to take. The ref still tracks `locationEnabled`
+   * itself in every mode, so a later switch to GPS with location already on
+   * sees no stale edge (the nearby hook's own zip → gps re-run takes that
+   * fix). `gpsAllowed` joins the deps because the body reads it.
    */
   const wasLocationEnabledRef = useRef(profileStore.locationEnabled)
   useEffect(() => {
-    if (profileStore.locationEnabled && !wasLocationEnabledRef.current) {
+    if (gpsAllowed && !wasLocationEnabledRef.current) {
       void requestLocation()
     }
     wasLocationEnabledRef.current = profileStore.locationEnabled
-  }, [profileStore.locationEnabled, requestLocation])
+  }, [gpsAllowed, profileStore.locationEnabled, requestLocation])
+
+  /**
+   * ADDED 2026-11-07 (ZIP search): the header's GPS | ZIP pick. Switching to
+   * GPS with location off runs the location gate once (in-app confirm, OS
+   * prompt, or open device settings). The gate is the only prompt path, so
+   * `setSearchMode` itself never asks. Granted → the gate writes
+   * `locationEnabled = true` and the re-acquire edge above takes the fix and
+   * fetches. Declined → the segment stays on GPS under today's disabled banner
+   * (spec "Switching modes": bouncing back to ZIP would hide what happened to
+   * the choice). Switching to ZIP never prompts.
+   *
+   * A handler, not an effect: `locationEnabled` is read at tap time through
+   * the store, so the "dependency and guard" trap of the visit gate cannot
+   * arise here. SegmentedPill never calls this for the half already selected.
+   */
+  const handleSelectSearchMode = useCallback(
+    (next: InPersonSearchMode) => {
+      setSearchMode(next)
+      if (next === "gps" && !profileStore.locationEnabled) void runGate()
+    },
+    [setSearchMode, profileStore, runGate],
+  )
 
   const [dayModalVisible, setDayModalVisible] = useState(false)
   const [radiusModalVisible, setRadiusModalVisible] = useState(false)
@@ -587,13 +719,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // same degrade the style-URL and platform checks already perform for a map
   // that isn't available; a map with no position to center on is exactly as
   // unavailable.
+  // CHANGED 2026-11-07 (ZIP search): `hasCenter` in place of
+  // `locationEnabled`. ZIP mode needs no location at all, so the map shows
+  // once a looked-up point exists even with location off; GPS mode now waits
+  // for the fix itself rather than only the toggle, so a persisted "map" shows
+  // the list's spinner until the fix lands, then the map.
   const effectiveViewMode: InPersonViewMode =
-    viewMode === "map" &&
-    showMapToggle &&
-    active &&
-    visible &&
-    !mapFailedThisSession &&
-    profileStore.locationEnabled
+    viewMode === "map" && showMapToggle && active && visible && !mapFailedThisSession && hasCenter
       ? "map"
       : "list"
 
@@ -805,6 +937,10 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // of stale rows. Enforced at the screen, not threaded into
   // `useNearbySchedules` or the pure `nearbyLogic` module — same "app-level
   // gate sits above the data" rule the banner fix above already follows.
+  // CHANGED 2026-11-07 (ZIP search): the gate is `hasCenter`, not
+  // `locationEnabled`. In ZIP mode the list comes from the ZIP's point and
+  // must show with location off; in GPS mode it still empties when the toggle
+  // goes off (no fix → no center), the case the paragraph above is about.
   //
   // CHANGED 2026-09-06: the user's Distance / Start pick is applied here too.
   // `useNearbySchedules` hands over a nearest-first list; re-sorting at this
@@ -814,7 +950,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // since 2026-09-09 (it used to carry a distance-less day list), and the
   // pill is hidden for it.
   const visibleMeetings = useMemo(() => {
-    if (!profileStore.locationEnabled) return []
+    if (!hasCenter) return []
     // CHANGED 2026-09-26: + shared language filter, client-side like shortTime.
     // Applied unconditionally rather than only inside the shortTime-narrowed
     // branch — `shortTime === DEFAULT_SHORT_TIME` ("Any", the per-visit
@@ -831,7 +967,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // `localIsoDow` is the weekday reader the rest of this segment uses; Date.now()
     // is never 0, so the null branch is unreachable and the fallback is inert.
     return sortInPerson(filtered, sortOrder, isAnyDay, localIsoDow(Date.now()) ?? 1)
-  }, [meetings, shortTime, language, profileStore.locationEnabled, mode, sortOrder, isAnyDay])
+  }, [meetings, shortTime, language, hasCenter, mode, sortOrder, isAnyDay])
 
   // Reports this segment's day list (post-fellowship, pre-language — matches
   // what the hook fetched for the current fellowship) so the shared filter
@@ -896,9 +1032,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * - location off, OS will still prompt → re-request permission
    * - location permanently denied → `requestLocation()` would resolve without
    *   ever showing a dialog, so send the user to the OS Settings page instead.
+   *
+   * CHANGED 2026-11-07 (ZIP search): the first branch is GPS mode only. In ZIP
+   * mode the only banner is "nearbyFailed" (nearbyLogic.resolveBannerReason),
+   * so a tap there retries the fetch and never runs the gate.
    */
   const handleBannerPress = useCallback(() => {
-    if (!profileStore.locationEnabled) {
+    if (searchMode === "gps" && !profileStore.locationEnabled) {
       void runGate()
       return
     }
@@ -920,7 +1060,15 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // user just sees the banner do nothing, which is the same outcome as a
     // silent failure — matches the guarded Linking calls in InPersonPopup.
     Linking.openSettings().catch(() => {})
-  }, [profileStore.locationEnabled, runGate, bannerReason, canAskAgain, refresh, requestLocation])
+  }, [
+    searchMode,
+    profileStore.locationEnabled,
+    runGate,
+    bannerReason,
+    canAskAgain,
+    refresh,
+    requestLocation,
+  ])
 
   const handleClosePopup = useCallback(() => setSelectedMeeting(null), [])
 
@@ -1004,10 +1152,25 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   const ItemSeparatorComponent = useCallback(() => <View style={themed($separator)} />, [themed])
 
   const ListEmptyComponent = useCallback(() => {
+    // ADDED 2026-11-07 (ZIP search): ZIP mode with no looked-up point yet (an
+    // empty box, or only codes that were not found) has nothing to search
+    // from, so this outranks every other copy. Not tappable: the box is right
+    // above it in the header, and spec "The control" says this replaces the
+    // location banner rather than routing anywhere.
+    if (searchMode === "zip" && !hasZipCenter) {
+      return (
+        <View style={themed($emptyContainer)}>
+          <Text style={themed($emptyText)} tx="inPersonScreen:emptyNeedsZip" />
+        </View>
+      )
+    }
     // Highest priority: without location there is no list at all, so no other
     // empty-state copy can be true. Tappable, so the user has a route back in
     // without hunting through Settings.
-    if (!profileStore.locationEnabled) {
+    // CHANGED 2026-11-07 (ZIP search): GPS mode only. In ZIP mode location is
+    // not needed, so "turn on location" would be false copy and its tap would
+    // run the gate the mode promises never to run.
+    if (searchMode === "gps" && !profileStore.locationEnabled) {
       return (
         <Pressable
           style={themed($emptyContainer)}
@@ -1168,6 +1331,8 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     handleOpenShortTimeModal,
     bannerReason,
     handleBannerPress,
+    searchMode,
+    hasZipCenter,
     profileStore.locationEnabled,
     runGate,
     languageEmptied,
@@ -1215,7 +1380,10 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // condition from `shouldShowMapToggle`'s style-URL kill switch — that one
   // answers "is a map configured", this one answers "is there anything to
   // put on it".
-  const showMapToggleNow = showMapToggle && profileStore.locationEnabled
+  // CHANGED 2026-11-07 (ZIP search): "anything to put on it" is `hasCenter`
+  // now (a fix in GPS mode, a looked-up point in ZIP mode), the same condition
+  // as `effectiveViewMode`, so the toggle shows exactly when the map could.
+  const showMapToggleNow = showMapToggle && hasCenter
 
   // The map has no order and fallback mode has no rows to order (see the
   // prop comment on InPersonListHeaderProps.showSortToggle).
@@ -1252,7 +1420,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               // the app-level gate, not the OS permission state `bannerReason`
               // already encodes, and it overrides the banner copy the same way
               // in both branches.
-              locationDisabled={!profileStore.locationEnabled}
+              // CHANGED 2026-11-07 (ZIP search): GPS mode only. ZIP mode needs
+              // no location, so the "turn on location" banner never shows there.
+              locationDisabled={searchMode === "gps" && !profileStore.locationEnabled}
               showSpinner={showSpinner}
               isRefetching={isRefetching}
               onOpenDay={handleOpenDayModal}
@@ -1264,6 +1434,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               resultCount={visibleMeetings.length}
               // See showMapToggleNow definition above — always true here since
               // effectiveViewMode can only be "map" when location is on.
+              // CHANGED 2026-11-07 (ZIP search): "when this mode has a center".
               showMapToggle={showMapToggleNow}
               viewMode={effectiveViewMode}
               // See mapToggleDisabled definition above — always false here
@@ -1273,22 +1444,28 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               showSortToggle={showSortToggle}
               sortOrder={sortOrder}
               onSelectSort={handleSelectSort}
-              // ADDED 2026-11-07 (ZIP search): inert until the next task wires
-              // useInPersonSearchMode. searchMode null hides the control, so
-              // behaviour is unchanged and no dead pill shows meanwhile.
-              searchMode={null}
-              onSelectSearchMode={noop}
-              zipInput=""
-              onChangeZipInput={noop}
-              onSubmitZip={noop}
-              zipStatus="empty"
-              onRetryZip={noop}
+              // ADDED 2026-11-07 (ZIP search): the GPS | ZIP control and the
+              // postal code box, from useInPersonSearchMode. searchMode null
+              // (not decided yet) hides the control.
+              searchMode={searchMode}
+              onSelectSearchMode={handleSelectSearchMode}
+              zipInput={zipInput}
+              onChangeZipInput={setZipInput}
+              onSubmitZip={submitZip}
+              zipStatus={zipStatus}
+              onRetryZip={retryZip}
             />
           </View>
           <InPersonMapView
+            // ADDED 2026-11-07 (ZIP search): a new ZIP or a mode switch
+            // remounts the map so it re-fits; lagged one commit, see `mapKey`.
+            key={mapKey}
             meetings={visibleMeetings}
             mapStyleUrl={mapStyleUrl}
             getSearchCenter={getSearchCenter}
+            // ADDED 2026-11-07 (ZIP search): no puck in ZIP mode. The puck is a
+            // native location consumer, and ZIP mode never reads the position.
+            showUserLocation={searchMode === "gps"}
             radiusKm={radiusKm}
             onVenuePress={handleVenuePress}
             onMapFailed={handleMapFailed}
@@ -1307,7 +1484,8 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               shortTimeLabel={shortTimeLabel}
               bannerReason={bannerReason}
               canAskAgain={canAskAgain}
-              locationDisabled={!profileStore.locationEnabled}
+              // CHANGED 2026-11-07 (ZIP search): GPS mode only, as above.
+              locationDisabled={searchMode === "gps" && !profileStore.locationEnabled}
               showSpinner={showSpinner}
               isRefetching={isRefetching}
               onOpenDay={handleOpenDayModal}
@@ -1323,16 +1501,16 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               showSortToggle={showSortToggle}
               sortOrder={sortOrder}
               onSelectSort={handleSelectSort}
-              // ADDED 2026-11-07 (ZIP search): inert until the next task wires
-              // useInPersonSearchMode. searchMode null hides the control, so
-              // behaviour is unchanged and no dead pill shows meanwhile.
-              searchMode={null}
-              onSelectSearchMode={noop}
-              zipInput=""
-              onChangeZipInput={noop}
-              onSubmitZip={noop}
-              zipStatus="empty"
-              onRetryZip={noop}
+              // ADDED 2026-11-07 (ZIP search): the GPS | ZIP control and the
+              // postal code box, from useInPersonSearchMode. searchMode null
+              // (not decided yet) hides the control.
+              searchMode={searchMode}
+              onSelectSearchMode={handleSelectSearchMode}
+              zipInput={zipInput}
+              onChangeZipInput={setZipInput}
+              onSubmitZip={submitZip}
+              zipStatus={zipStatus}
+              onRetryZip={retryZip}
             />
           }
           ItemSeparatorComponent={ItemSeparatorComponent}
@@ -1380,6 +1558,9 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         visible={selectedMeeting !== null}
         meeting={selectedMeeting}
         onClose={handleClosePopup}
+        // ADDED 2026-11-07 (ZIP search): "I'm Here" explains itself before the
+        // OS prompt in ZIP mode (plan Task 7 consumes this).
+        searchMode={searchMode}
       />
 
       {/* Venue chooser — a pin holding more than one of the day's meetings.

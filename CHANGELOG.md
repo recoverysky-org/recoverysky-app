@@ -22,6 +22,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Changed
+- **In-Person opens on a ZIP or postal code search and asks for location only
+  when you choose GPS.** A "GPS | ZIP" control sits above Radius, with a "ZIP or
+  postal code" box in ZIP mode (US ZIPs and Canadian postal codes). A first
+  visit no longer starts with a location prompt, the list and map work in ZIP
+  mode with location off, and the map shows no location dot there. People who
+  already allowed location stay on GPS. Switching to GPS runs the usual location
+  prompt; declining it leaves GPS selected under the "turn on location" banner.
+
 ### Fixed
 - **Settings → Delete User Data now turns this phone's push notifications off
   on the server.** The opt-out was sent without being waited for, and the
@@ -29,6 +38,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   it failed on the phone and the server kept the token enabled: a person who
   deleted their data could still get reminders. The delete now waits for it, at
   most 5 seconds, and an opt-out that has started always finishes. (RS-062)
+
+### Docs
+- (manual) The map's Meetings line: In-Person defaults to "ZIP" ("ZIP or postal
+  code"), and "GPS" asks for Location.
 
 ## [4.13.0] — 2026-11-07
 

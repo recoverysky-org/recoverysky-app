@@ -25,6 +25,12 @@
  * app's foreground-only `expo-location` lifecycle. That is real coordinate
  * traffic through JS this file must not introduce; `NativeUserLocation` is
  * the one that keeps the puck fully native-side.
+ * CHANGED 2026-11-07 (ZIP search): the puck renders only when
+ * `showUserLocation` is true, which the screen sets in GPS mode alone. In ZIP
+ * mode the center is a postal code's point, not the person, and mounting
+ * `NativeUserLocation` there would start a native location consumer in the
+ * one mode that promises never to read the position (spec "Distances, sort
+ * and the map").
  * The tile provider (MapTiler) necessarily sees the viewport; that egress is
  * accepted and documented in the 2026-08-07 map-view spec.
  *
@@ -90,7 +96,15 @@ export interface InPersonMapViewProps {
   /** Theme-appropriate style URL from ConfigStore (never "" — caller gates) */
   mapStyleUrl: string
   /** Accessor for the user's fix — a function, NOT a value, so coords never sit in props/state */
+  // CHANGED 2026-11-07 (ZIP search): or the ZIP's point in ZIP mode; still an
+  // accessor, for the same reason.
   getSearchCenter: () => { lat: number; lon: number } | null
+  /**
+   * ADDED 2026-11-07 (ZIP search): render the native location puck. True in
+   * GPS mode only. Not a "visible" flag on the puck: false unmounts
+   * `NativeUserLocation`, so its native location subscription never starts.
+   */
+  showUserLocation: boolean
   radiusKm: number
   /** Pin tapped → meeting ids at that venue (caller resolves + opens popup/chooser) */
   onVenuePress: (meetingIds: string[]) => void
@@ -136,6 +150,7 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
   meetings,
   mapStyleUrl,
   getSearchCenter,
+  showUserLocation,
   radiusKm,
   onVenuePress,
   onMapFailed,
@@ -392,8 +407,11 @@ export const InPersonMapView: FC<InPersonMapViewProps> = ({
           src/components/user-location/UserLocationNativeComponent.ts): a
           codegen'd Fabric host component whose props are just `mode` /
           `androidPreferredFramesPerSecond`, no coordinate ever crosses the
-          bridge. */}
-      <NativeUserLocation />
+          bridge.
+          CHANGED 2026-11-07 (ZIP search): mounted only when
+          `showUserLocation` (GPS mode). Not mounting it is what keeps its
+          native location subscription off in ZIP mode. */}
+      {showUserLocation && <NativeUserLocation />}
     </MapLibreMap>
   )
 }

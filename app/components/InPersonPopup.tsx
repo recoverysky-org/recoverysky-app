@@ -100,6 +100,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
+import type { InPersonSearchMode } from "@/utils/inPersonSearchLogic"
 import { buildDirectionsUrl, composeAddress, formatDistance } from "@/utils/nearbyLogic"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 
@@ -125,6 +126,13 @@ interface InPersonPopupProps {
   visible: boolean
   meeting: MeetingWithTrex | null
   onClose: () => void
+  /**
+   * ADDED 2026-11-07 (ZIP search): the In-Person segment's GPS | ZIP choice
+   * (null while it is not decided yet). Not read yet: plan Task 7 uses it so
+   * "I'm Here" in ZIP mode explains its one-off location check before the OS
+   * prompt. Optional so a caller without a search mode keeps today's popup.
+   */
+  searchMode?: InPersonSearchMode | null
 }
 
 export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonPopup({
