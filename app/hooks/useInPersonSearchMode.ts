@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { useProfileStore } from "@/models"
 import { api } from "@/services/api"
+import type { PostalLookupResult } from "@/services/api/postalLookupLogic"
 import { trackEvent } from "@/services/tracking"
 import {
   decideStartingSearchMode,
@@ -25,6 +26,8 @@ import {
   parseStoredZip,
   serializeStoredZip,
   type InPersonSearchMode,
+  type NormalizedPostal,
+  type PostalCountry,
   type ZipAnswer,
 } from "@/utils/inPersonSearchLogic"
 import { loadString, saveString } from "@/utils/storage"
@@ -55,16 +58,18 @@ interface Restored {
   input: string
   center: ZipCenter | null
   code: string | null
+  country: PostalCountry | null
   status: ZipStatus
 }
 
 function restoreZip(): Restored {
   const stored = parseStoredZip(loadString(ZIP_KEY))
-  if (!stored) return { input: "", center: null, code: null, status: "empty" }
+  if (!stored) return { input: "", center: null, code: null, country: null, status: "empty" }
   return {
     input: displayCode(stored.country, stored.code),
     center: { lat: stored.lat, lon: stored.lon },
     code: stored.code,
+    country: stored.country,
     status: "found",
   }
 }
@@ -82,7 +87,22 @@ export function useInPersonSearchMode(active: boolean) {
   const [zipCode, setZipCode] = useState<string | null>(restored.code)
 
   // Session memo of found / not-found answers, keyed by canonical code.
-  const memoRef = useRef<Map<string, ZipAnswer>>(new Map())
+  // Seeded with the restored answer: submit/retry on the unchanged restored
+  // code must not refetch (spec: editing the box is the only thing that looks
+  // a code up again).
+  const [memo] = useState(() => {
+    const m = new Map<string, ZipAnswer>()
+    if (restored.center && restored.code) {
+      m.set(restored.code, {
+        found: true,
+        lat: restored.center.lat,
+        lon: restored.center.lon,
+        country: restored.country ?? "US",
+      })
+    }
+    return m
+  })
+  const memoRef = useRef(memo)
   // Latched once the API answers 404 for the route (older server): no more tries.
   const unavailableRef = useRef(false)
   // The canonical code whose request is on the wire, so the same code is not sent twice.
@@ -90,6 +110,10 @@ export function useInPersonSearchMode(active: boolean) {
   // The canonical code of the most recent lookup started or applied; a response
   // for any other code is stale and dropped (it may still be memoised).
   const newestRef = useRef<string | null>(null)
+  // At most one lookup is in flight; a newer valid code replaces the pending
+  // one (spec rule). It runs, through decideZipLookup again, when the wire settles.
+  const queuedRef = useRef<string | null>(null)
+  const dispatchRef = useRef<(n: NormalizedPostal | null) => void>(() => undefined)
   // Guards against setting state after unmount (a lookup can outlive the screen).
   const mountedRef = useRef(true)
   useEffect(() => {
@@ -140,64 +164,88 @@ export function useInPersonSearchMode(active: boolean) {
     if (trackIt) trackEvent("inperson_zip_lookup", { result: status })
   }, [])
 
-  const runLookup = useCallback(
-    (text: string) => {
-      const normalized = normalizePostalInput(text)
+  /** The wire settled (any outcome): free the slot, then run the queued code, if any. */
+  const settle = useCallback(
+    (code: string, result: PostalLookupResult) => {
+      if (inFlightRef.current === code) inFlightRef.current = null
+      if (!mountedRef.current) return
+      if (result.kind === "ok") {
+        // Memoise even if superseded: the answer is still true for that code.
+        memoRef.current.set(code, result.answer)
+        applyAnswer(code, result.answer, true)
+      } else if (result.kind === "unavailable") {
+        // A 404 describes the route, not the code, so the latch holds even for
+        // a superseded code; only the status and tracking depend on newest.
+        unavailableRef.current = true
+        if (newestRef.current === code) {
+          setZipStatus("unavailable")
+          trackEvent("inperson_zip_lookup", { result: "unavailable" })
+        }
+      } else if (newestRef.current === code) {
+        // No automatic retry: the person taps retry.
+        setZipStatus("failed")
+        trackEvent("inperson_zip_lookup", { result: "failed" })
+      }
+      const queued = queuedRef.current
+      queuedRef.current = null
+      if (queued) dispatchRef.current(normalizePostalInput(queued))
+    },
+    [applyAnswer],
+  )
+
+  const dispatch = useCallback(
+    (normalized: NormalizedPostal | null) => {
       const decision = decideZipLookup({
         normalized,
         memo: memoRef.current,
         unavailable: unavailableRef.current,
         inFlightCode: inFlightRef.current,
       })
+      if (decision.action === "invalid") {
+        // Only reachable from submit / retry; typing never gets here with a bad shape.
+        setZipStatus("invalid")
+        return
+      }
+      if (!normalized) return
+      const code = normalized.code
+      // Anything but a queued fetch supersedes the pending code.
+      queuedRef.current = null
+      newestRef.current = code
       switch (decision.action) {
-        case "invalid":
-          // Only reachable from submit / retry; typing never gets here with a bad shape.
-          setZipStatus("invalid")
-          return
         case "unavailable":
-          newestRef.current = normalized?.code ?? null
           setZipStatus("unavailable")
           return
         case "memo":
           // A memo hit is applied like a fresh answer but is not tracked (no network).
-          newestRef.current = normalized?.code ?? null
-          if (normalized) applyAnswer(normalized.code, decision.answer, false)
+          applyAnswer(code, decision.answer, false)
           return
         case "in-flight":
           // Same code already on the wire: let that response land for it.
-          newestRef.current = normalized?.code ?? null
+          setZipStatus("looking")
           return
         case "fetch": {
-          const code = decision.code
-          newestRef.current = code
-          inFlightRef.current = code
           setZipStatus("looking")
-          void api.lookupPostalCode(code).then((result) => {
-            if (inFlightRef.current === code) inFlightRef.current = null
-            if (!mountedRef.current) return
-            if (result.kind === "ok") {
-              // Memoise even if superseded: the answer is still true for that code.
-              memoRef.current.set(code, result.answer)
-              applyAnswer(code, result.answer, true)
-              return
-            }
-            if (newestRef.current !== code) return
-            if (result.kind === "unavailable") {
-              unavailableRef.current = true
-              setZipStatus("unavailable")
-              trackEvent("inperson_zip_lookup", { result: "unavailable" })
-            } else {
-              // No automatic retry: the person taps retry.
-              setZipStatus("failed")
-              trackEvent("inperson_zip_lookup", { result: "failed" })
-            }
-          })
+          if (inFlightRef.current !== null) {
+            // Another code is on the wire: wait for it, replacing any earlier queued code.
+            queuedRef.current = code
+            return
+          }
+          inFlightRef.current = code
+          void api.lookupPostalCode(code).then(
+            (result) => settle(code, result),
+            () => settle(code, { kind: "failed", problem: "error" }),
+          )
           return
         }
       }
     },
-    [applyAnswer],
+    [applyAnswer, settle],
   )
+  useEffect(() => {
+    dispatchRef.current = dispatch
+  }, [dispatch])
+
+  const runLookup = useCallback((text: string) => dispatch(normalizePostalInput(text)), [dispatch])
 
   const setZipInput = useCallback(
     (text: string) => {
@@ -210,6 +258,7 @@ export function useInPersonSearchMode(active: boolean) {
       // The centre stays; newest is cleared so a late response for the earlier
       // code cannot flip the status under text that no longer matches it.
       newestRef.current = null
+      queuedRef.current = null
       setZipStatus("empty")
     },
     [runLookup],
