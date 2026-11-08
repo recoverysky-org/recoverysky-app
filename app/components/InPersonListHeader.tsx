@@ -18,8 +18,11 @@ import { useTranslation } from "react-i18next"
 import { MapListToggle, type InPersonViewMode } from "@/components/MapListToggle"
 import { SegmentedPill } from "@/components/SegmentedPill"
 import { Text } from "@/components/Text"
+import { TextField } from "@/components/TextField"
+import type { ZipStatus } from "@/hooks/useInPersonSearchMode"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import type { InPersonSearchMode } from "@/utils/inPersonSearchLogic"
 import type { InPersonSortOrder, NearbyBannerReason } from "@/utils/nearbyLogic"
 
 // ============================================================================
@@ -107,6 +110,22 @@ export interface InPersonListHeaderProps {
   showSortToggle: boolean
   sortOrder: InPersonSortOrder
   onSelectSort: (order: InPersonSortOrder) => void
+  /**
+   * ADDED 2026-11-07 (ZIP search): which center the search uses. Null while the
+   * remembered choice is still loading, in which case neither the box nor a
+   * selected half shows.
+   */
+  searchMode: InPersonSearchMode | null
+  onSelectSearchMode: (mode: InPersonSearchMode) => void
+  /** The text in the postal code box (zip mode only). */
+  zipInput: string
+  onChangeZipInput: (text: string) => void
+  /** Keyboard "search" key; the hook decides whether the text is submittable. */
+  onSubmitZip: () => void
+  /** Drives the inline message under the box; see ZipStatus. */
+  zipStatus: ZipStatus
+  /** Tap on the "failed" message. */
+  onRetryZip: () => void
 }
 
 export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
@@ -132,6 +151,13 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
     showSortToggle,
     sortOrder,
     onSelectSort,
+    searchMode,
+    onSelectSearchMode,
+    zipInput,
+    onChangeZipInput,
+    onSubmitZip,
+    zipStatus,
+    onRetryZip,
   }) {
     const { t } = useTranslation()
     const { themed, theme } = useAppTheme()
@@ -179,6 +205,21 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
               ? t("accessibility:doubleTapToAllowLocation")
               : t("accessibility:doubleTapToOpenSettings")
             : undefined
+
+    // ADDED 2026-11-07 (ZIP search): the inline message under the box. Only the
+    // four problem statuses speak; "found", "empty" and "looking" are silent
+    // (the spinner already covers "looking"). "failed" is the one tappable
+    // message, since a transport failure is worth retrying and the rest are not.
+    const zipMessage =
+      zipStatus === "invalid"
+        ? t("inPersonScreen:zipInvalid")
+        : zipStatus === "notFound"
+          ? t("inPersonScreen:zipNotFound")
+          : zipStatus === "unavailable"
+            ? t("inPersonScreen:zipUnavailable")
+            : zipStatus === "failed"
+              ? t("inPersonScreen:zipFailed")
+              : ""
 
     return (
       <View>
@@ -260,6 +301,61 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           matching Search's grid where the two "when" filters sit together.
           Day ("Mon") and Time (one-word buckets) are short enough for half
           width; Radius is the "where" question and leads on its own. */}
+        {/* ADDED 2026-11-07 (ZIP search): the GPS | ZIP control sits above
+          Radius, with the postal code box under it in zip mode. It is the same
+          SegmentedPill the sort and list/map controls use (tablist + tab +
+          selected state come with it). Nothing is selected while the saved
+          choice is loading (`searchMode` null), and the pill is hidden then so
+          a half is never shown selected wrongly. */}
+        {searchMode !== null && (
+          <View style={themed($searchModeRow)}>
+            <SegmentedPill<InPersonSearchMode>
+              value={searchMode}
+              accessibilityLabel={t("inPersonScreen:searchModeLabel")}
+              options={[
+                {
+                  value: "gps",
+                  label: t("inPersonScreen:searchModeGps"),
+                  icon: "navigate-outline",
+                },
+                { value: "zip", label: t("inPersonScreen:searchModeZip"), icon: "mail-outline" },
+              ]}
+              onSelect={onSelectSearchMode}
+            />
+            {searchMode === "zip" && (
+              <TextField
+                value={zipInput}
+                onChangeText={onChangeZipInput}
+                onSubmitEditing={onSubmitZip}
+                placeholder={t("inPersonScreen:zipPlaceholder")}
+                accessibilityLabel={t("inPersonScreen:zipPlaceholder")}
+                // One box for both countries, so the default keyboard (Canadian
+                // codes have letters). Capitals because the codes are shown and
+                // matched upper case; no autocorrect, it mangles codes.
+                autoCapitalize="characters"
+                autoCorrect={false}
+                autoComplete="postal-code"
+                returnKeyType="search"
+                // ZIP+4 is 10 characters, the longest accepted shape.
+                maxLength={10}
+                status={zipStatus === "invalid" || zipStatus === "notFound" ? "error" : undefined}
+              />
+            )}
+            {searchMode === "zip" && zipMessage !== "" && (
+              <TouchableOpacity
+                testID="zip-message"
+                onPress={zipStatus === "failed" ? onRetryZip : undefined}
+                disabled={zipStatus !== "failed"}
+                accessibilityRole={zipStatus === "failed" ? "button" : undefined}
+                accessibilityLabel={zipMessage}
+                accessibilityLiveRegion="polite"
+              >
+                <Text style={themed($zipMessage)}>{zipMessage}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         <View style={themed($selectorColumn)}>
           <TouchableOpacity
             style={themed($selectorButton)}
@@ -432,6 +528,20 @@ const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $headerTitleGroup: ViewStyle = {
   flexShrink: 1,
 }
+
+// ADDED 2026-11-07 (ZIP search): the control row. Left-aligned pill, then the
+// box and its message stacked under it.
+const $searchModeRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  alignItems: "flex-start",
+  gap: spacing.sm,
+  marginTop: spacing.sm,
+  alignSelf: "stretch",
+})
+
+const $zipMessage: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 13,
+  color: colors.error,
+})
 
 // CHANGED 2026-09-27: was `$selectorRow` (one row of three cells); now a
 // column so each selector is its own full-width row. `alignItems: "stretch"`

@@ -1000,3 +1000,20 @@ Reviewer notes worth acting on first:
 - **`routine.editLabel` is "Edit ✎"**: keep the pencil after the word. The button is small, so keep
   the word short.
 - **`sky.askForHelp` is "Ask Sky"**, a header button after a sparkle glyph. Keep "Sky" as the name.
+
+## 2026-11-07 In-Person ZIP search (English placeholders)
+
+**Still English placeholders (need translating), 96 strings (8 locales × 12 keys)** in ar, de, es,
+fr, pt, ru, th, uk: `inPersonScreen.searchModeLabel`, `searchModeGps`, `searchModeZip`,
+`zipPlaceholder`, `zipInvalid`, `zipNotFound`, `zipUnavailable`, `zipFailed`, `emptyNeedsZip`,
+`imHereLocationTitle`, `imHereLocationMessage` and `imHereLocationContinue`, for the In-Person
+GPS | ZIP control and the "I'm Here" location notice (spec
+`docs/superpowers/specs/2026-11-07-in-person-zip-search-design.md`).
+
+Reviewer notes worth acting on first:
+- **`searchModeGps` / `searchModeZip` are the two halves of a small pill.** Keep each to one short
+  word or abbreviation; "ZIP" may need the local term for a postal code.
+- **`zipInvalid` shows a Canadian example, `K1A 0B1`.** Keep the example unchanged.
+- **`zipFailed` is a tappable message** that retries the lookup; keep the "tap to try again" cue.
+- **`imHereLocationMessage` keeps the quoted name** of the "I'm Here" button exactly as that
+  button is labelled in the locale.

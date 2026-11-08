@@ -40,6 +40,13 @@ const baseProps: InPersonListHeaderProps = {
   showSortToggle: false,
   sortOrder: "distance",
   onSelectSort: jest.fn(),
+  searchMode: "zip",
+  onSelectSearchMode: jest.fn(),
+  zipInput: "",
+  onChangeZipInput: jest.fn(),
+  onSubmitZip: jest.fn(),
+  zipStatus: "empty",
+  onRetryZip: jest.fn(),
 }
 
 describe("InPersonListHeader result-count slot", () => {
@@ -130,5 +137,76 @@ describe("InPersonListHeader sort pill", () => {
     expect(onSelectSort).not.toHaveBeenCalled()
     fireEvent.press(screen.getByLabelText("Start"))
     expect(onSelectSort).toHaveBeenCalledWith("start")
+  })
+})
+
+// ADDED 2026-11-07 (ZIP search): the GPS | ZIP control and the postal code box.
+describe("InPersonListHeader GPS | ZIP control", () => {
+  it("renders both choices as tabs with the active one selected", () => {
+    render(<InPersonListHeader {...baseProps} searchMode="zip" />)
+    const zip = screen.getByRole("tab", { name: "ZIP" })
+    const gps = screen.getByRole("tab", { name: "GPS" })
+    expect(zip.props.accessibilityState.selected).toBe(true)
+    expect(gps.props.accessibilityState.selected).toBe(false)
+  })
+
+  it("names the tablist for screen readers", () => {
+    render(<InPersonListHeader {...baseProps} />)
+    expect(screen.getByLabelText("Search by")).toBeTruthy()
+  })
+
+  it("reports a press on GPS", () => {
+    const onSelectSearchMode = jest.fn()
+    render(<InPersonListHeader {...baseProps} onSelectSearchMode={onSelectSearchMode} />)
+    fireEvent.press(screen.getByRole("tab", { name: "GPS" }))
+    expect(onSelectSearchMode).toHaveBeenCalledWith("gps")
+  })
+
+  it("shows the box in zip mode only", () => {
+    const { rerender } = render(<InPersonListHeader {...baseProps} searchMode="zip" />)
+    expect(screen.getByPlaceholderText("ZIP or postal code")).toBeTruthy()
+    rerender(<InPersonListHeader {...baseProps} searchMode="gps" />)
+    expect(screen.queryByPlaceholderText("ZIP or postal code")).toBeNull()
+    rerender(<InPersonListHeader {...baseProps} searchMode={null} />)
+    expect(screen.queryByPlaceholderText("ZIP or postal code")).toBeNull()
+  })
+
+  it("reports typing and submitting", () => {
+    const onChangeZipInput = jest.fn()
+    const onSubmitZip = jest.fn()
+    render(
+      <InPersonListHeader
+        {...baseProps}
+        onChangeZipInput={onChangeZipInput}
+        onSubmitZip={onSubmitZip}
+      />,
+    )
+    const box = screen.getByPlaceholderText("ZIP or postal code")
+    fireEvent.changeText(box, "90210")
+    expect(onChangeZipInput).toHaveBeenCalledWith("90210")
+    fireEvent(box, "submitEditing")
+    expect(onSubmitZip).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ["invalid", "Enter a 5-digit ZIP or a postal code like K1A 0B1."],
+    ["notFound", "We couldn't find that ZIP or postal code."],
+    ["unavailable", "ZIP search isn't available right now."],
+    ["failed", "Couldn't look that up. Tap to try again."],
+  ] as const)("shows the message for %s", (zipStatus, message) => {
+    render(<InPersonListHeader {...baseProps} zipStatus={zipStatus} />)
+    expect(screen.getByText(message)).toBeTruthy()
+  })
+
+  it.each(["found", "empty", "looking"] as const)("shows no message for %s", (zipStatus) => {
+    render(<InPersonListHeader {...baseProps} zipStatus={zipStatus} />)
+    expect(screen.queryByTestId("zip-message")).toBeNull()
+  })
+
+  it("retries when the failed message is pressed", () => {
+    const onRetryZip = jest.fn()
+    render(<InPersonListHeader {...baseProps} zipStatus="failed" onRetryZip={onRetryZip} />)
+    fireEvent.press(screen.getByText("Couldn't look that up. Tap to try again."))
+    expect(onRetryZip).toHaveBeenCalledTimes(1)
   })
 })

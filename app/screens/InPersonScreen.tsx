@@ -308,6 +308,9 @@ interface InPersonContentProps {
  * and keeping every store read on this side means one component to reason
  * about when asking why something did or didn't re-render.
  */
+// ADDED 2026-11-07 (ZIP search): placeholder handler for the header's new props.
+const noop = () => {}
+
 export const InPersonContent: FC<InPersonContentProps> = observer(function InPersonContent({
   active,
   visible,
@@ -1270,6 +1273,16 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               showSortToggle={showSortToggle}
               sortOrder={sortOrder}
               onSelectSort={handleSelectSort}
+              // ADDED 2026-11-07 (ZIP search): inert until the next task wires
+              // useInPersonSearchMode. searchMode null hides the control, so
+              // behaviour is unchanged and no dead pill shows meanwhile.
+              searchMode={null}
+              onSelectSearchMode={noop}
+              zipInput=""
+              onChangeZipInput={noop}
+              onSubmitZip={noop}
+              zipStatus="empty"
+              onRetryZip={noop}
             />
           </View>
           <InPersonMapView
@@ -1310,6 +1323,16 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               showSortToggle={showSortToggle}
               sortOrder={sortOrder}
               onSelectSort={handleSelectSort}
+              // ADDED 2026-11-07 (ZIP search): inert until the next task wires
+              // useInPersonSearchMode. searchMode null hides the control, so
+              // behaviour is unchanged and no dead pill shows meanwhile.
+              searchMode={null}
+              onSelectSearchMode={noop}
+              zipInput=""
+              onChangeZipInput={noop}
+              onSubmitZip={noop}
+              zipStatus="empty"
+              onRetryZip={noop}
             />
           }
           ItemSeparatorComponent={ItemSeparatorComponent}

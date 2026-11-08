@@ -1385,6 +1385,19 @@ const es: Translations = {
     mapUnavailable: "Couldn't load the map — showing the list instead",
     venueMeetings: "Meetings at this location",
     mapA11yLabel: "Map of nearby in-person meetings",
+    searchModeLabel: "Search by",
+    searchModeGps: "GPS",
+    searchModeZip: "ZIP",
+    zipPlaceholder: "ZIP or postal code",
+    zipInvalid: "Enter a 5-digit ZIP or a postal code like K1A 0B1.",
+    zipNotFound: "We couldn't find that ZIP or postal code.",
+    zipUnavailable: "ZIP search isn't available right now.",
+    zipFailed: "Couldn't look that up. Tap to try again.",
+    emptyNeedsZip: "Enter a ZIP or postal code to see meetings near it.",
+    imHereLocationTitle: "Check you're here",
+    imHereLocationMessage:
+      "\"I'm Here\" uses your location once, to check you're at this meeting. Your search stays on your ZIP.",
+    imHereLocationContinue: "Continue",
   },
   // ADDED 2026-11-06: support contacts (spec 2026-11-06-support-contacts-design.md).
   // Names are interpolated, numbers never are (spec D1).
