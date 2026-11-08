@@ -23,7 +23,7 @@ export interface NormalizedPostal {
    * sends, memoises and dedupes by. US: the five digits (same as `code`).
    * Canada: the FSA, the first three characters. The api's postal table holds
    * Canadian FSAs only (GeoNames publishes no full Canadian codes); its
-   * `normalizePostalCode` (api src/mcp/postal.ts) keys "K1A 0B1" as "K1A". So
+   * `normalizePostalCode` (api src/services/postal.ts) keys "K1A 0B1" as "K1A". So
    * "K1A 0B1" and "K1A 0B2" are one lookup with one answer, and sending only
    * the FSA tells the server less than the full code would. `code` stays the
    * full form for display and MMKV.

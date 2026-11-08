@@ -24,6 +24,8 @@ interface MapListToggleProps {
  * until 2026-09-07). Standalone (not inlined in the header) so jest can
  * exercise it without mocking the MapLibre native module the map side of the
  * toggle implies.
+ * CHANGED 2026-11-08 (Jenova): it now starts the GPS | ZIP row above Radius
+ * (InPersonListHeader), not the controls row; the sort pill keeps that row.
  *
  * CHANGED 2026-08-12 (Jenova): was a single bare 22px glyph showing only the
  * destination — tap the map icon to get a map. Users were not finding it. Two

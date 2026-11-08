@@ -128,7 +128,7 @@ describe("decideZipLookup", () => {
   })
 
   // ADDED 2026-11-08: the api resolves Canada by FSA only (its table holds
-  // FSAs; api src/mcp/postal.ts `normalizePostalCode` keys "K1A 0B1" as
+  // FSAs; api src/services/postal.ts `normalizePostalCode` keys "K1A 0B1" as
   // "K1A"), so the app keys, dedupes and sends by the same FSA.
   describe("Canada, keyed by FSA as the api is", () => {
     const full = { country: "CA" as const, code: "K1A0B1", key: "K1A" }
