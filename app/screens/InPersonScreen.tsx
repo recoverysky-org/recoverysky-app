@@ -22,6 +22,9 @@
  * into its coords ref — which it passes STRAIGHT THROUGH to InPersonMapView
  * as `getSearchCenter` and never calls itself; the fix must not be read into
  * a variable, a prop value, state, or an event here.
+ * CHANGED 2026-11-07 (ZIP search): the hook's accessor is now itself named
+ * `getSearchCenter` (it returns the current search mode's center, the fix or
+ * the ZIP point); the pass-straight-through rule above is unchanged.
  */
 
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -434,8 +437,11 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
     // PRIVACY: passed straight through to InPersonMapView's `getSearchCenter`
     // and never called in this file. Calling it here would put a coordinate in
     // a local — see this file's header.
-    getCoords,
-  } = useNearbySchedules(active, fellowship)
+    // CHANGED 2026-11-07 (ZIP search): renamed from `getCoords` in the hook.
+    getSearchCenter,
+    // CHANGED 2026-11-07 (ZIP search): GPS mode pinned until the screen is
+    // wired to useInPersonSearchMode (plan Task 6), so behaviour is unchanged.
+  } = useNearbySchedules(active, fellowship, { mode: "gps", zipCenter: null })
 
   /**
    * ADDED 2026-08-09 (whole-branch review, C2): re-acquire when the location
@@ -1269,7 +1275,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           <InPersonMapView
             meetings={visibleMeetings}
             mapStyleUrl={mapStyleUrl}
-            getSearchCenter={getCoords}
+            getSearchCenter={getSearchCenter}
             radiusKm={radiusKm}
             onVenuePress={handleVenuePress}
             onMapFailed={handleMapFailed}

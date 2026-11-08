@@ -81,6 +81,83 @@ describe("resolveBannerReason", () => {
   })
 })
 
+// ADDED 2026-11-07 (ZIP search): in ZIP mode the search center is a looked-up
+// postal-code point, never a GPS fix, so permission and fix state are
+// irrelevant to the mode and must never surface a location banner.
+describe("resolveMode in ZIP mode", () => {
+  const zip = {
+    active: true,
+    permission: "undetermined",
+    fix: "pending",
+    nearbyFetchFailed: false,
+    searchMode: "zip",
+    hasZipCenter: true,
+  } as const
+
+  it("is locating before activation", () => {
+    expect(resolveMode({ ...zip, active: false })).toBe("locating")
+  })
+  it("falls back when no ZIP point has been looked up yet", () => {
+    expect(resolveMode({ ...zip, hasZipCenter: false })).toBe("fallback")
+  })
+  it("falls back when the nearby fetch failed from the ZIP point", () => {
+    expect(resolveMode({ ...zip, nearbyFetchFailed: true })).toBe("fallback")
+  })
+  it("is nearby with a ZIP point and a healthy fetch", () => {
+    expect(resolveMode(zip)).toBe("nearby")
+  })
+  it("ignores a GPS denial", () => {
+    expect(resolveMode({ ...zip, permission: "denied" })).toBe("nearby")
+  })
+  it("ignores a failed GPS fix", () => {
+    expect(resolveMode({ ...zip, permission: "granted", fix: "failed" })).toBe("nearby")
+  })
+})
+
+describe("resolveMode before the search mode is known", () => {
+  it("is locating while searchMode is null", () => {
+    expect(
+      resolveMode({
+        active: true,
+        permission: "granted",
+        fix: "acquired",
+        nearbyFetchFailed: false,
+        searchMode: null,
+      }),
+    ).toBe("locating")
+  })
+})
+
+describe("resolveBannerReason in ZIP mode", () => {
+  const zip = {
+    active: true,
+    permission: "granted",
+    fix: "acquired",
+    nearbyFetchFailed: false,
+    searchMode: "zip",
+    hasZipCenter: true,
+  } as const
+
+  it("reports a failed nearby fetch from the ZIP point", () => {
+    expect(resolveBannerReason({ ...zip, nearbyFetchFailed: true })).toBe("nearbyFailed")
+  })
+  it("shows no banner when the fetch is healthy", () => {
+    expect(resolveBannerReason(zip)).toBeNull()
+  })
+  it("shows no banner when there is no ZIP point (the box prompts instead)", () => {
+    expect(resolveBannerReason({ ...zip, hasZipCenter: false })).toBeNull()
+    expect(resolveBannerReason({ ...zip, hasZipCenter: false, nearbyFetchFailed: true })).toBeNull()
+  })
+  it("never reports a GPS denial", () => {
+    expect(resolveBannerReason({ ...zip, permission: "denied" })).toBeNull()
+    expect(resolveBannerReason({ ...zip, permission: "denied", hasZipCenter: false })).toBeNull()
+  })
+  it("never reports a failed GPS fix", () => {
+    expect(resolveBannerReason({ ...zip, fix: "failed" })).toBeNull()
+    expect(resolveBannerReason({ ...zip, fix: "failed", hasZipCenter: false })).toBeNull()
+  })
+})
+
 describe("isNearlySamePosition", () => {
   const here = { lat: 45.52, lon: -122.68 }
 

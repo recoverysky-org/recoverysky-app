@@ -8,6 +8,9 @@
 
 // Relative, not `@/` — vitest has no alias (CLAUDE.md "Test Runner Split").
 import { sortByFeedback, type FeedbackSortable } from "./feedbackSort"
+// Type-only, so erased at runtime: the module keeps zero runtime imports
+// beyond `./feedbackSort` (ADDED 2026-11-07, ZIP search).
+import type { InPersonSearchMode } from "./inPersonSearchLogic"
 
 export type NearbyMode = "locating" | "nearby" | "fallback"
 
@@ -18,6 +21,20 @@ export interface NearbyModeInput {
   fix: "pending" | "acquired" | "failed"
   /** The /schedules/nearby fetch failed after retry */
   nearbyFetchFailed: boolean
+  /**
+   * ADDED 2026-11-07 (ZIP search): where the search center comes from. `null`
+   * means the mode has not been decided yet (it is decided on the segment's
+   * first activation), which reads as `locating`. ABSENT (`undefined`) means
+   * a caller that predates ZIP search, and behaves exactly as GPS did before
+   * it, so the older cases need no edit.
+   */
+  searchMode?: InPersonSearchMode | null
+  /**
+   * ADDED 2026-11-07 (ZIP search): ZIP mode has a looked-up postal-code point
+   * to search from. Read only in ZIP mode. A boolean on purpose: the point is
+   * never an input to a decision here, only whether one exists.
+   */
+  hasZipCenter?: boolean
 }
 
 /**
@@ -37,6 +54,17 @@ export interface NearbyModeInput {
  */
 export function resolveMode(input: NearbyModeInput): NearbyMode {
   if (!input.active) return "locating"
+  // ADDED 2026-11-07 (ZIP search): `=== null` and not a falsy check, because
+  // an absent `searchMode` must keep the pre-ZIP behaviour below.
+  if (input.searchMode === null) return "locating"
+  // ZIP mode reads no position, so permission and fix state say nothing about
+  // it: a person who denied location still gets a full list from their ZIP.
+  // No point yet is `fallback` (the screen's empty-box prompt), never
+  // `locating`, because nothing is in flight that would end the wait.
+  if (input.searchMode === "zip") {
+    if (!input.hasZipCenter) return "fallback"
+    return input.nearbyFetchFailed ? "fallback" : "nearby"
+  }
   if (input.permission === "undetermined") return "locating"
   if (input.permission === "denied") return "fallback"
   if (input.fix === "pending") return "locating"
@@ -71,6 +99,13 @@ export type NearbyBannerReason =
  */
 export function resolveBannerReason(input: NearbyModeInput): NearbyBannerReason | null {
   if (resolveMode(input) !== "fallback") return null
+  // ADDED 2026-11-07 (ZIP search): ZIP mode never shows a location banner
+  // ("denied" / "fixFailed" would ask for a permission this mode promises not
+  // to use). Only a failed fetch from a real ZIP point earns the retry banner;
+  // with no point the screen's ZIP box is the prompt, so no banner.
+  if (input.searchMode === "zip") {
+    return input.hasZipCenter && input.nearbyFetchFailed ? "nearbyFailed" : null
+  }
   if (input.permission === "denied") return "denied"
   if (input.nearbyFetchFailed) return "nearbyFailed"
   return "fixFailed"

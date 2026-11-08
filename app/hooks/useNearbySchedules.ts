@@ -84,6 +84,21 @@
  * our style URL). Accepted explicitly in the 2026-08-07 map-view spec's
  * privacy section; the browse-path scrubbing above is unchanged.
  *
+ * AMENDED 2026-11-07 (ZIP search, spec
+ * docs/superpowers/specs/2026-11-07-in-person-zip-search-design.md "Privacy"):
+ * the hook now takes a search mode. In ZIP mode it reads NO position at all:
+ * `acquireLocation` returns before `requestForegroundPermissionsAsync`,
+ * `getLastKnownPositionAsync` or `getCurrentPositionAsync`, a fix that lands
+ * after a switch to ZIP writes nothing (no `coordsRef` write, no fetch, no
+ * state change), and the switch itself clears `coordsRef`. ZIP mode has no
+ * fix. Its center, `search.zipCenter`, is a postal code's centroid read from
+ * MMKV (`inperson.zip`, owned by useInPersonSearchMode) — a place the person
+ * typed, not the person's position — and it goes out on the same
+ * `/schedules/nearby` `lat`/`lon` params, scrubbed by the same rules above.
+ * It is still never logged. `getCoords()` is renamed `getSearchCenter()`
+ * and returns whichever center applies: the fix in GPS mode, the ZIP point
+ * in ZIP mode.
+ *
  * The persisted radius (MMKV) is a display *preference*, not location data —
  * persisting it is correct and carries no positional information.
  *
@@ -105,6 +120,7 @@ import { useConfigStore, useProfileStore } from "@/models"
 import { api, LiveSchedule } from "@/services/api"
 import { isRetryableProblem } from "@/services/api/contentRetryLogic"
 import { sortByFeedback } from "@/utils/feedbackSort"
+import type { InPersonSearchMode } from "@/utils/inPersonSearchLogic"
 import { shouldRevokeLocationFlag } from "@/utils/locationGateLogic"
 import { logger } from "@/utils/logger"
 import {
@@ -211,8 +227,18 @@ export interface UseNearbySchedulesResult {
    * Read the current fix. Null until one is acquired, and null again after a
    * denial (see acquireLocation). Deliberately a function rather than a value:
    * see the PRIVACY note on the implementation.
+   * CHANGED 2026-11-07 (ZIP search): renamed from `getCoords`, because it now
+   * returns the search CENTER — the fix in GPS mode, the looked-up ZIP point
+   * in ZIP mode (null until one exists), and null while the mode is unknown.
    */
-  getCoords: () => { lat: number; lon: number } | null
+  getSearchCenter: () => { lat: number; lon: number } | null
+  /**
+   * ADDED 2026-11-07 (ZIP search): GPS mode holds a usable fix. Derived from
+   * state only (mode, permission, fix status), never from the coordinate, so
+   * a consumer can gate on "this mode has a center" without reading one.
+   * False in ZIP mode and while the mode is null.
+   */
+  hasFix: boolean
 }
 
 /**
@@ -221,8 +247,17 @@ export interface UseNearbySchedulesResult {
  *   happen before this flips.
  * @param fellowship - The Meetings filter bar's fellowship (MeetingFiltersContext).
  *   A fetch param for /schedules/nearby. Changing it refetches.
+ * @param search - ADDED 2026-11-07 (ZIP search): `mode` is the GPS/ZIP choice
+ *   (null until useInPersonSearchMode decides it on first activation; nothing
+ *   runs while it is null), `zipCenter` the looked-up point ZIP mode searches
+ *   from. Only primitives are read from it (`mode`, `zipCenter.lat/lon`), so a
+ *   caller may pass a fresh object every render.
  */
-export function useNearbySchedules(active: boolean, fellowship: string): UseNearbySchedulesResult {
+export function useNearbySchedules(
+  active: boolean,
+  fellowship: string,
+  search: { mode: InPersonSearchMode | null; zipCenter: { lat: number; lon: number } | null },
+): UseNearbySchedulesResult {
   const configStore = useConfigStore()
   const profileStore = useProfileStore()
 
@@ -274,6 +309,34 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
   const fetchSeqRef = useRef(0)
   const fixSeqRef = useRef(0)
 
+  // ADDED 2026-11-07 (ZIP search). Primitives, so the caller's per-render
+  // `search` object never changes a callback's identity by itself.
+  const searchMode = search.mode
+  const zipLat = search.zipCenter?.lat ?? null
+  const zipLon = search.zipCenter?.lon ?? null
+  const hasZipCenter = zipLat !== null && zipLon !== null
+  /**
+   * Mirrors `search.mode` for async code. `acquireLocation`'s `isCurrent()`
+   * reads it after every await, which is what makes a fix that lands after a
+   * switch to ZIP write nothing. Updated by the mode effect below.
+   */
+  const modeRef = useRef<InPersonSearchMode | null>(searchMode)
+  /**
+   * Mirrors the ZIP point for `getSearchCenter`, which must keep one identity
+   * (InPersonMapView keeps the accessor out of its dep lists on purpose).
+   * PRIVACY: the code's centroid, not the person's position; ref-only here
+   * for the same reasons as `coordsRef`, and never logged.
+   */
+  const zipCenterRef = useRef<{ lat: number; lon: number } | null>(null)
+  /**
+   * Bumped on every real mode switch. An acquire→fetch chain started under one
+   * mode skips its fetch once this has moved, because the new mode's driver
+   * run already owns the fetch (see `fetchIfMounted`).
+   */
+  const modeGenRef = useRef(0)
+  /** The mode the driver effect last acted on, to spot a zip → gps switch. */
+  const drivenModeRef = useRef<InPersonSearchMode | null>(null)
+
   useEffect(() => {
     // Re-arm on mount: React 18 StrictMode mounts, unmounts, then remounts in
     // dev, so a plain `useRef(true)` alone would leave this false forever.
@@ -283,6 +346,51 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
     }
   }, [])
 
+  // ADDED 2026-11-07 (ZIP search): keep the refs in step with the inputs and
+  // make a mode switch stop using the old center at once. Declared BEFORE the
+  // driver effect so the refs are current when it runs in the same commit.
+  useEffect(() => {
+    zipCenterRef.current = zipLat !== null && zipLon !== null ? { lat: zipLat, lon: zipLon } : null
+  }, [zipLat, zipLon])
+
+  useEffect(() => {
+    const previous = modeRef.current
+    modeRef.current = searchMode
+    // null → mode is the first decision, not a switch: nothing to undo.
+    if (previous === null || previous === searchMode) return
+
+    modeGenRef.current++
+    // Supersede any fix in flight. `isCurrent()` also requires GPS mode, so
+    // this is belt and braces for gps → zip, and on a fast zip → gps it keeps
+    // the OLD acquire from committing over the one the driver starts now.
+    fixSeqRef.current++
+    // The superseded acquire's `finally` will not clear this (it is no longer
+    // current), and a stuck flag would make the driver skip every ZIP fetch.
+    acquiringRef.current = false
+    // Ignore any fetch in flight from the old center (a GPS-center list must
+    // not land after the switch to ZIP, nor a ZIP-center one after the switch
+    // back). Its `finally` will not clear the spinner, so clear it here.
+    fetchSeqRef.current++
+    setIsLoading(false)
+    // Rows and a failure from the old center describe a search that is no
+    // longer the one on screen (every `distance_m` is relative to it).
+    setMeetings([])
+    setNearbyFetchFailed(false)
+    if (searchMode === "zip") {
+      // PRIVACY: ZIP mode holds no fix. `fix` goes back to "pending" so a
+      // later switch to GPS starts from "locating" rather than claiming a fix
+      // whose coordinate is gone.
+      coordsRef.current = null
+      setFix("pending")
+    } else {
+      // zip → gps: the permission state is from the last GPS visit, which may
+      // be long gone. Left as "denied" it would flash the denied banner until
+      // the acquire the driver starts now settles; "undetermined" reads as
+      // `locating` instead, and that acquire writes the real answer.
+      setPermission("undetermined")
+    }
+  }, [searchMode])
+
   // Locale measurement system is fixed for the process lifetime; resolve once.
   const useMiles = useMemo(() => getLocales()[0]?.measurementSystem === "us", [])
 
@@ -291,10 +399,17 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
    * fix. Never rejects — callers get a boolean and the state reflects the rest.
    */
   const acquireLocation = useCallback(async (): Promise<boolean> => {
+    // ADDED 2026-11-07 (ZIP search): the privacy invariant. Outside GPS mode
+    // (ZIP, or the mode not decided yet) this touches no location API and no
+    // state, and does not even claim the fix sequence.
+    if (modeRef.current !== "gps") return false
     const seq = ++fixSeqRef.current
     // A superseded acquire (user hit refresh again) must not write coords or
     // flip state, and neither may any acquire that outlives the component.
-    const isCurrent = () => mountedRef.current && fixSeqRef.current === seq
+    // CHANGED 2026-11-07 (ZIP search): nor one that outlives GPS mode — a fix
+    // landing after a switch to ZIP must write nothing.
+    const isCurrent = () =>
+      mountedRef.current && fixSeqRef.current === seq && modeRef.current === "gps"
 
     acquiringRef.current = true
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
@@ -450,6 +565,9 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
   /**
    * One fetch function; the path is decided by whether we hold coordinates.
    * Mirrors ListingsScreen's maintenance gate and venue self-verification.
+   * CHANGED 2026-11-07 (ZIP search): "coordinates" now means the search
+   * center of the current mode — the fix in GPS mode, the ZIP point in ZIP
+   * mode. The mode and the ZIP point are deps, so a new point refetches.
    */
   const fetchMeetings = useCallback(async () => {
     // Skip the API call entirely while server-side maintenance is on, exactly
@@ -488,7 +606,18 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
     setError(null)
 
     try {
-      const coords = coordsRef.current
+      // ADDED 2026-11-07 (ZIP search): ZIP mode searches from the looked-up
+      // point and never from `coordsRef` (cleared on the switch anyway). A
+      // null mode has no center; the driver never calls this then.
+      const currentMode = modeRef.current
+      const coords =
+        currentMode === "zip"
+          ? zipLat !== null && zipLon !== null
+            ? { lat: zipLat, lon: zipLon }
+            : null
+          : currentMode === "gps"
+            ? coordsRef.current
+            : null
       // CHANGED 2026-08-04: no position now means no request at all. This
       // used to fall through to the day-browse fetch below, which returns
       // every in-person meeting on the server for the day — a list of rooms
@@ -501,7 +630,12 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
       // failed" now end in an empty list with a tappable remedy.
       if (!coords) {
         setMeetings([])
-        log.debug("No position — skipping in-person fetch", { iso_dow: selectedDay })
+        // CHANGED 2026-11-07 (ZIP search): carries `mode` too, so "no center"
+        // in ZIP mode (no code entered yet) reads apart from a missing fix.
+        log.debug("No position — skipping in-person fetch", {
+          iso_dow: selectedDay,
+          mode: currentMode ?? "unset",
+        })
         return
       }
 
@@ -582,7 +716,10 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
     } finally {
       if (isCurrent()) setIsLoading(false)
     }
-  }, [maintenanceMode, fellowship, radiusKm, selectedDay])
+    // `searchMode` is read through `modeRef` (async-safe) but listed so a
+    // switch changes this callback's identity and the driver refetches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maintenanceMode, fellowship, radiusKm, selectedDay, searchMode, zipLat, zipLon])
 
   // Keep the newest fetch closure reachable from async callbacks that were
   // created earlier (the initial acquire chain, refresh, requestLocation).
@@ -606,25 +743,45 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
    * fix, and `acquireLocation` self-guards only its own state writes. Without
    * this, a segment the user navigated away from would still fire a real
    * network request whose result nobody can read.
+   *
+   * CHANGED 2026-11-07 (ZIP search): takes the mode generation its chain
+   * started under and skips the fetch once a mode switch has moved it. The
+   * invariant above still holds: the switch clears `acquiringRef`, so the
+   * driver fetches for the new mode itself. Without this, a GPS fix landing
+   * after a switch to ZIP would still trigger a fetch.
    */
-  const fetchIfMounted = useCallback(async () => {
+  const fetchIfMounted = useCallback(async (gen: number) => {
     if (!mountedRef.current) return
+    if (modeGenRef.current !== gen) return
     await fetchLatestRef.current()
   }, [])
 
   /** First activation: prompt + fix, then fetch whichever path that produced. */
+  // CHANGED 2026-11-07 (ZIP search): the prompt + fix runs only in GPS mode.
+  // ZIP mode goes straight to the fetch from its point. Also re-run by the
+  // driver on a zip → gps switch.
   const startInitialLoad = useCallback(async () => {
-    await acquireLocation()
-    await fetchIfMounted()
+    const gen = modeGenRef.current
+    if (modeRef.current === "gps") await acquireLocation()
+    await fetchIfMounted(gen)
   }, [acquireLocation, fetchIfMounted])
 
   // The single driver: first activation kicks the location chain, and every
   // later change to day / radius / fellowship / maintenance refetches (each
   // one changes `fetchMeetings`'s identity). Nothing runs before `active`.
+  // CHANGED 2026-11-07 (ZIP search): also waits while the mode is null, and
+  // treats a zip → gps switch like a first activation, so the GPS chain (gate
+  // short-circuit, prompt, fix) runs again from scratch. gps → zip needs no
+  // special case: `fetchMeetings` changed identity with the mode, and the
+  // mode effect cleared `acquiringRef`, so the plain refetch below runs.
   useEffect(() => {
     if (!active) return
+    if (searchMode === null) return
 
-    if (!startedRef.current) {
+    const switchedToGps = searchMode === "gps" && drivenModeRef.current === "zip"
+    drivenModeRef.current = searchMode
+
+    if (!startedRef.current || switchedToGps) {
       startedRef.current = true
       void startInitialLoad()
       return
@@ -639,7 +796,7 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
     if (acquiringRef.current) return
 
     void fetchMeetings()
-  }, [active, fetchMeetings, startInitialLoad])
+  }, [active, searchMode, fetchMeetings, startInitialLoad])
 
   const setRadiusKm = useCallback((km: number) => {
     // Persist first so a crash between the two still leaves the preference
@@ -649,9 +806,12 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
   }, [])
 
   /** Pull-to-refresh: re-fix location when we're allowed to, then refetch. */
+  // CHANGED 2026-11-07 (ZIP search): re-fixes only in GPS mode. In ZIP mode a
+  // pull refetches from the same point and reads no position.
   const refresh = useCallback(async () => {
-    if (permission === "granted") await acquireLocation()
-    await fetchIfMounted()
+    const gen = modeGenRef.current
+    if (modeRef.current === "gps" && permission === "granted") await acquireLocation()
+    await fetchIfMounted(gen)
   }, [permission, acquireLocation, fetchIfMounted])
 
   /**
@@ -659,9 +819,13 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
    * this resolves without a prompt, which is why the caller checks
    * `canAskAgain` and routes to `Linking.openSettings()` itself.
    */
+  // CHANGED 2026-11-07 (ZIP search): in ZIP mode `acquireLocation` returns at
+  // once, so this only refetches; the mode-gen check drops the fetch if the
+  // mode switched while the permission dialog was open.
   const requestLocation = useCallback(async () => {
+    const gen = modeGenRef.current
     await acquireLocation()
-    await fetchIfMounted()
+    await fetchIfMounted(gen)
   }, [acquireLocation, fetchIfMounted])
 
   /**
@@ -669,10 +833,26 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
    * function returning the ref's current value — deliberately not state and
    * not the raw ref — so coordinates still never appear in a serializable
    * snapshot and no consumer can subscribe to position changes.
+   * CHANGED 2026-11-07 (ZIP search): renamed from `getCoords`; returns the
+   * current mode's center (the fix in GPS mode, the ZIP point in ZIP mode).
+   * Still a stable, ref-backed function for the same reasons.
    */
-  const getCoords = useCallback(() => coordsRef.current, [])
+  const getSearchCenter = useCallback(() => {
+    if (modeRef.current === "zip") return zipCenterRef.current
+    if (modeRef.current === "gps") return coordsRef.current
+    return null
+  }, [])
 
-  const modeInput = { active, permission, fix, nearbyFetchFailed }
+  // ADDED 2026-11-07 (ZIP search): state-only on purpose (see the result
+  // type). In GPS mode, coordsRef is non-null exactly when permission is
+  // granted and fix is "acquired": every path that clears the ref (denial,
+  // the Settings toggle short circuit, a failed fix, the switch to ZIP) also
+  // moves one of those two states off.
+  const hasFix = searchMode === "gps" && permission === "granted" && fix === "acquired"
+
+  // CHANGED 2026-11-07 (ZIP search): carries the mode and whether ZIP mode
+  // has a point, so resolveMode ignores GPS state in ZIP mode.
+  const modeInput = { active, permission, fix, nearbyFetchFailed, searchMode, hasZipCenter }
   const mode = resolveMode(modeInput)
   // Only fallback mode shows a banner. Which reason it carries is a pure
   // decision, so it lives in nearbyLogic where vitest can reach it.
@@ -692,6 +872,7 @@ export function useNearbySchedules(active: boolean, fellowship: string): UseNear
     refresh,
     requestLocation,
     canAskAgain,
-    getCoords,
+    getSearchCenter,
+    hasFix,
   }
 }
