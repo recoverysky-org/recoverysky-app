@@ -535,9 +535,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
    * directly on `searchMode` / `zipCode` would therefore remount in the very
    * commit the new mode or point arrives, read the OLD center (the GPS fix
    * after a switch to ZIP, the previous ZIP's point after a new code), fit on
-   * it and latch. Setting the key from an effect declared here, after the
-   * hook call, runs after the hook's ref effects, so the remount happens one
-   * commit later with the refs already current. The puck needs no lag:
+   * it and latch. Setting the key from an effect instead delays the remount
+   * to the re-render that the setState schedules, which React runs only after
+   * this commit's passive effects (the hook's ref effects included) have all
+   * flushed, so the new map reads refs that are already current. (Not a
+   * matter of where this effect is declared: any setState from a passive
+   * effect lands after the whole flush.) It also keeps the remounted map from
+   * fitting on the real GPS fix after a switch to ZIP. The puck needs no lag:
    * `showUserLocation` follows `searchMode` directly, so it comes down in the
    * same commit as a switch to ZIP.
    */
@@ -1348,8 +1352,18 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // count-slot indicator instead, in both list and map modes — the old rows
   // and count stay put until the new response lands, so without this the
   // user got no signal at all that a reload was in flight.
-  const showSpinner = mode === "locating" || (isLoading && meetings.length === 0)
-  const isRefetching = isLoading && meetings.length > 0 && !isPullRefreshing
+  // CHANGED 2026-11-07 (ZIP search): a ZIP lookup in flight counts as loading
+  // too (spec "The control": "While it looks up, the existing spinner
+  // shows"). The lookup runs in useInPersonSearchMode before the nearby hook
+  // has a new point to fetch from, so `isLoading` alone is false for its
+  // whole round trip and the screen showed nothing. With no rows it is the
+  // big spinner (which also holds back the "Enter a ZIP" empty copy); over
+  // rows from an earlier code it is the header's refetch indicator, since
+  // "not found" keeps those rows (InPersonListHeader's zipMessage comment
+  // relies on this: it stays silent for "looking").
+  const zipLooking = searchMode === "zip" && zipStatus === "looking"
+  const showSpinner = mode === "locating" || ((isLoading || zipLooking) && meetings.length === 0)
+  const isRefetching = (isLoading || zipLooking) && meetings.length > 0 && !isPullRefreshing
 
   // Wraps the hook's `refresh` so the native pull spinner tracks the gesture's
   // own request end-to-end (location re-fix + fetch), not the hook's shared

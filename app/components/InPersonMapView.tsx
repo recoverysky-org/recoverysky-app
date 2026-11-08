@@ -13,6 +13,10 @@
  * one-shot fit effect below), so the fix may be read on more than one render —
  * but only until the first successful fit, and it still never lands in a
  * variable that outlives the read: no state, no ref, no prop, no telemetry.
+ * CHANGED 2026-11-07 (ZIP search): `getSearchCenter` now returns the search
+ * mode's center: the GPS fix in GPS mode (the coordsRef read above), the
+ * typed code's centroid in ZIP mode. Both get the same handling: camera fit
+ * only, never stored, logged or tracked.
  * The puck is MapLibre's
  * `NativeUserLocation` — a codegen'd Fabric host component
  * (`MLRNNativeUserLocation`) whose only props are `mode` and

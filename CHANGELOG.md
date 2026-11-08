@@ -40,8 +40,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   most 5 seconds, and an opt-out that has started always finishes. (RS-062)
 
 ### Docs
-- (manual) The map's Meetings line: In-Person defaults to "ZIP" ("ZIP or postal
-  code"), and "GPS" asks for Location.
+- (manual) The map's Meetings line: In-Person searches by "ZIP or postal code"
+  ("ZIP") or, with Location permission, "GPS".
 
 ## [4.13.0] — 2026-11-07
 
