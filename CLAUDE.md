@@ -138,6 +138,11 @@ npm run update
   open. The ingest takes the whole folder, and four Sky pages there describe a
   thread on the agent that no production build has yet. Delete this line when
   that item closes.
+- ⚠️ HOLD (ADDED 2026-11-08): no release while In-Person ZIP search is in
+  `[Unreleased]` and the api's `GET /geo/postal-code` is not live in production.
+  ZIP is the default for fresh installs and for anyone without location, and
+  against a missing route every code shows "ZIP search isn't available right
+  now." Delete this line when the route ships.
 
 ### Native release (anything that changed `runtimeVersion`)
 
@@ -159,6 +164,12 @@ the manual ingest from the agent repo with the production `.env`:
 `pnpm manual:ingest ../app/docs/manual` (see "User's Manual").
 ⚠️ HOLD (ADDED 2026-11-07): not while `TODO.md`'s "The manual ingest" item is
 open (same reason as the OTA step above). Delete this line when it closes.
+
+⚠️ HOLD (ADDED 2026-11-08): no release while In-Person ZIP search is in
+`[Unreleased]` and the api's `GET /geo/postal-code` is not live in production
+(same reason as the OTA list above: ZIP is the default, and against a missing
+route every code shows "ZIP search isn't available right now."). Delete this
+line when the route ships.
 
 Cloud builds need every dependency reachable from the internet. The private
 packages are vendored for exactly that reason (see "Linked Packages").
@@ -843,6 +854,9 @@ so any new API-dependent feature needs one too:
 - `SchedulePopup.handleCellPress()` — blocks reminder edits, since reminders
   depend on server-side push scheduling.
 - Settings → Import row.
+- `useInPersonSearchMode`'s postal code lookup (ADDED 2026-11-08) — sends
+  nothing and shows the tap-to-retry "failed" row; nothing is memoised or
+  latched, so a retry after maintenance ends looks the code up.
 
 `MAINTENANCE_UPDATE` was removed on purpose; the regular foreground OTA check
 covers that case. Read `maintenanceMode` from MobX (outside React:
@@ -986,7 +1000,9 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   searches by a typed US ZIP / Canadian postal code by default, and GPS only on
   request. Pure decisions (code shapes, `decideStartingSearchMode`: stored mode
   wins, else GPS if `locationEnabled`, else ZIP; `decideZipLookup`;
-  `deriveSearchFlags`; `shouldRunVisitGate`; `shouldExplainImHere`) are in
+  `shouldAutoLookup`: typing looks up only a complete code, never a bare
+  Canadian FSA, which submit still accepts; `deriveSearchFlags`;
+  `shouldRunVisitGate`; `shouldExplainImHere`) are in
   `app/utils/inPersonSearchLogic.ts` (vitest). `useInPersonSearchMode` holds the
   mode and text (MMKV `inperson.searchMode` / `inperson.zip`) and the lookup, with
   one request on the wire at a time. `useNearbySchedules` never touches location
@@ -1110,15 +1126,15 @@ The In-Person segment's list/map toggle, built on
   the MapTiler API key is never baked into the binary.
 - **Privacy:** the map reads `useNearbySchedules`' `coordsRef` through
   `getSearchCenter` — the one sanctioned new consumer — for the camera fit only,
-  converted straight to a bounding box, never stored or logged. CHANGED
-  2026-11-07 (ZIP search): `getSearchCenter` returns the mode's center (the GPS
-  fix, or the typed code's centroid in ZIP mode), and the map gets
-  `showUserLocation={mode === "gps"}`, so ZIP mode has no puck and starts no
-  native location subscription. The puck is
+  converted straight to a bounding box, never stored or logged. The puck is
   MapLibre's `NativeUserLocation` (native-side subscription, no coordinate ever
   reaches JS). **Do not swap in the sibling `UserLocation` component**: it puts
   every fix into React state and keeps its own continuous native subscription
   alive independent of our foreground-only `expo-location` lifecycle.
+  CHANGED 2026-11-07 (ZIP search): `getSearchCenter` returns the mode's center
+  (the GPS fix, or the typed code's centroid in ZIP mode), and the map gets
+  `showUserLocation={mode === "gps"}`, so ZIP mode has no puck and starts no
+  native location subscription.
 - Tile egress means MapTiler necessarily sees the viewport; that's accepted and
   documented in the spec.
 
