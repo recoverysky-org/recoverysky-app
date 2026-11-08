@@ -108,7 +108,7 @@ These are the review checklist for every page.
 
 ## The map (`map.md`)
 
-About 350 words, never more than 600, written **to Sky** ("you" is Sky), pasted into her
+About 350 words, never more than 750, written **to Sky** ("you" is Sky), pasted into her
 prompt as one section. It must not contain a line starting with `## ` or `# ` (that would
 open a new prompt section), and it follows rules 2–10 above. It lists what exists so she
 searches only for details: the tabs and what is in each, the subscriptions by their

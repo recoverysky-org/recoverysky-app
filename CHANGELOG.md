@@ -45,8 +45,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   most 5 seconds, and an opt-out that has started always finishes. (RS-062)
 
 ### Docs
-- (manual) The map's Meetings line: In-Person searches by "ZIP or postal code"
-  ("ZIP") or, with Location permission, "GPS".
+- (manual) The map's Meetings line: In-Person searches around a "ZIP or postal
+  code" by default, "GPS" asks for the Location permission (people who allowed
+  location stay on it), and on "ZIP" "I'm Here" explains before its one location
+  check. The map's cap is now 750 words (agent `MAX_MAP_WORDS`), and the README
+  says so.
 
 ## [4.13.0] — 2026-11-07
 

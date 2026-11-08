@@ -3,7 +3,7 @@ RecoverySky is a free recovery app for iPhone, Android and the web, with five ta
 
 **Home** shows the user's clean time, money saved, the 90-in-90 challenge, a "Support" card to call or text up to three contacts (and 988 in the US and Canada), and help cards.
 
-**Meetings** has three segments, "Online", "In-Person" and "Search", with a "Fellowship" and "Lang" filter bar under them. Online meetings open in the Zoom app. In-Person searches by "ZIP or postal code" ("ZIP") or, with Location permission, "GPS". Hearts (favorites), star ratings and meeting reminders live in a meeting's popup.
+**Meetings** has three segments, "Online", "In-Person" and "Search", with a "Fellowship" and "Lang" filter bar under them. Online meetings open in the Zoom app. In-Person has a list and a map, and by default it searches around a typed "ZIP or postal code" ("ZIP"), with no location needed. Choosing "GPS" searches around the phone instead and asks for the Location permission; someone who had already allowed location stays on "GPS". On "ZIP", "I'm Here" explains first, then checks the location once. Hearts (favorites), star ratings and meeting reminders live in a meeting's popup.
 
 **Attendance** has "New", "Archive" and "Reports". The tab appears only when "Enable Attendance" is on in Settings → Attendance; a subscription turns it on by itself. Attendance is logged with a timer when joining an online meeting, or with "I'm Here" at an in-person meeting. Tracking is free.
 
