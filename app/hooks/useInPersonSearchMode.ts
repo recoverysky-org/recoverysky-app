@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import { useProfileStore } from "@/models"
+import { useConfigStore, useProfileStore } from "@/models"
 import { api } from "@/services/api"
 import type { PostalLookupResult } from "@/services/api/postalLookupLogic"
 import { trackEvent } from "@/services/tracking"
@@ -25,6 +25,7 @@ import {
   normalizePostalInput,
   parseStoredZip,
   serializeStoredZip,
+  shouldAutoLookup,
   type InPersonSearchMode,
   type NormalizedPostal,
   type PostalCountry,
@@ -76,6 +77,13 @@ function restoreZip(): Restored {
 
 export function useInPersonSearchMode(active: boolean) {
   const profileStore = useProfileStore()
+  // ADDED 2026-11-08 (ZIP search): for the maintenance guard on the lookup.
+  // Read at the moment a lookup would be sent (see the "fetch" branch), not
+  // during render: a queued code is dispatched from `settle` through
+  // `dispatchRef`, which can run before the next render, so a render-time
+  // snapshot could be stale. Nothing re-runs a lookup when maintenance ends,
+  // so no MobX subscription is needed: the "failed" row's tap-to-retry does it.
+  const configStore = useConfigStore()
 
   // Read once at mount; lazy so MMKV is hit a single time.
   const [restored] = useState(restoreZip)
@@ -203,6 +211,12 @@ export function useInPersonSearchMode(active: boolean) {
       })
       if (decision.action === "invalid") {
         // Only reachable from submit / retry; typing never gets here with a bad shape.
+        // CHANGED 2026-11-08 (ZIP search): also forget the newest and queued
+        // codes, as `setZipInput` does for partial text. Otherwise a response
+        // still on the wire for an earlier code would land on top of "invalid"
+        // under text that no longer matches it (and a queued one would be sent).
+        newestRef.current = null
+        queuedRef.current = null
         setZipStatus("invalid")
         return
       }
@@ -224,6 +238,17 @@ export function useInPersonSearchMode(active: boolean) {
           setZipStatus("looking")
           return
         case "fetch": {
+          // ADDED 2026-11-08 (ZIP search): an API-dependent feature needs its
+          // own maintenance guard (CLAUDE.md "Maintenance Mode"). While the
+          // server is in maintenance, nothing is sent: the status goes to
+          // "failed", whose tap-to-retry recovers once maintenance ends, and the
+          // MaintenanceBanner explains why. Nothing is memoised or latched (no
+          // answer came back, and the route is not known missing), and nothing
+          // is queued, so the in-flight code's response, if any, is stale now.
+          if (configStore.maintenanceMode) {
+            setZipStatus("failed")
+            return
+          }
           setZipStatus("looking")
           if (inFlightRef.current !== null) {
             // Another code is on the wire: wait for it, replacing any earlier queued code.
@@ -239,7 +264,7 @@ export function useInPersonSearchMode(active: boolean) {
         }
       }
     },
-    [applyAnswer, settle],
+    [applyAnswer, configStore, settle],
   )
   useEffect(() => {
     dispatchRef.current = dispatch
@@ -250,20 +275,30 @@ export function useInPersonSearchMode(active: boolean) {
   const setZipInput = useCallback(
     (text: string) => {
       setZipInputState(text)
-      if (normalizePostalInput(text)) {
-        runLookup(text)
+      // CHANGED 2026-11-08 (ZIP search): typing looks up only a complete code
+      // (`shouldAutoLookup`: a US ZIP or a full six-character Canadian code).
+      // It used to look up any accepted shape, so a bare FSA ("K1A") fired at
+      // three characters: two lookups for every Canadian typing a full code,
+      // and in a saved map view the FSA's found point closed the keyboard
+      // mid-code. A bare FSA is still looked up by submit / retry below.
+      const normalized = normalizePostalInput(text)
+      if (shouldAutoLookup(normalized)) {
+        dispatch(normalized)
         return
       }
       // Partial or blank text: no lookup and no invalid-message while typing.
       // The centre stays; newest is cleared so a late response for the earlier
       // code cannot flip the status under text that no longer matches it.
+      // CHANGED 2026-11-08 (ZIP search): a bare FSA counts as partial here.
       newestRef.current = null
       queuedRef.current = null
       setZipStatus("empty")
     },
-    [runLookup],
+    [dispatch],
   )
 
+  // Submit and retry take any accepted shape, a bare FSA included: pressing
+  // the keyboard's Search key on "K1A" means that FSA (ADDED 2026-11-08).
   const submitZip = useCallback(() => runLookup(zipInput), [runLookup, zipInput])
   const retryZip = useCallback(() => runLookup(zipInput), [runLookup, zipInput])
 

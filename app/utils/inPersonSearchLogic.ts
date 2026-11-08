@@ -43,6 +43,21 @@ export function normalizePostalInput(raw: string): NormalizedPostal | null {
   return null
 }
 
+/**
+ * Whether typing alone should look a code up. ADDED 2026-11-08 (ZIP search):
+ * only a complete code does — a US ZIP, or a full six-character Canadian
+ * code. A bare FSA ("K1A") is an accepted shape, but while typing it is
+ * almost always the first half of a full code: looking it up at three
+ * characters sent two lookups for every Canadian, and in a saved map view the
+ * FSA's found point closed the keyboard mid-code. Submit and retry still
+ * accept a bare FSA (the hook sends them to `decideZipLookup` without this
+ * check), so someone who means the FSA presses the keyboard's Search key.
+ */
+export function shouldAutoLookup(normalized: NormalizedPostal | null): boolean {
+  if (!normalized) return false
+  return normalized.country === "US" || normalized.code.length === 6
+}
+
 export function parseSearchMode(raw: string | null | undefined): InPersonSearchMode | null {
   return raw === "gps" || raw === "zip" ? raw : null
 }

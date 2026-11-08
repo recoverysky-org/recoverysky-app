@@ -8,6 +8,7 @@ import {
   parseSearchMode,
   parseStoredZip,
   serializeStoredZip,
+  shouldAutoLookup,
   shouldExplainImHere,
   shouldRunVisitGate,
   type ZipAnswer,
@@ -156,5 +157,32 @@ describe("shouldExplainImHere", () => {
     expect(shouldExplainImHere({ mode: "zip", osGranted: true })).toBe(false)
     expect(shouldExplainImHere({ mode: "gps", osGranted: false })).toBe(false)
     expect(shouldExplainImHere({ mode: null, osGranted: false })).toBe(false)
+  })
+})
+
+describe("shouldAutoLookup", () => {
+  it("looks up a complete US ZIP as it is typed", () => {
+    expect(shouldAutoLookup({ country: "US", code: "80203" })).toBe(true)
+  })
+  it("looks up a full six-character Canadian code", () => {
+    expect(shouldAutoLookup({ country: "CA", code: "K1A0B1" })).toBe(true)
+  })
+  it("waits on a bare FSA, which is usually the first half of a full code", () => {
+    expect(shouldAutoLookup({ country: "CA", code: "K1A" })).toBe(false)
+  })
+  it("never looks up a shape it does not accept", () => {
+    expect(shouldAutoLookup(null)).toBe(false)
+  })
+  it("agrees with normalizePostalInput as the person types a Canadian code", () => {
+    const steps = ["K", "K1", "K1A", "K1A ", "K1A 0", "K1A 0B", "K1A 0B1"]
+    expect(steps.map((t) => shouldAutoLookup(normalizePostalInput(t)))).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ])
   })
 })

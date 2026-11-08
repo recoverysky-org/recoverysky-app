@@ -1529,6 +1529,17 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
           }
           ItemSeparatorComponent={ItemSeparatorComponent}
           ListEmptyComponent={showSpinner ? null : ListEmptyComponent}
+          // ADDED 2026-11-08 (ZIP search): the postal code box lives in this
+          // list's header, and a complete code looks itself up while the
+          // keyboard is still up. With the default ("never") the first tap on
+          // a result row, a header control or the retry row only dismissed
+          // the keyboard, and the person had to tap again. "handled" lets a
+          // tap that lands on a touchable go through; a tap on empty space
+          // still closes the keyboard. The keyboard is deliberately NOT
+          // dismissed on "found": the person may still be correcting the
+          // code. The map branch above renders the header in plain Views,
+          // with no scroll container to swallow a tap, so it needs nothing.
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={themed($listContent)}
           refreshControl={
             <RefreshControl
@@ -1573,7 +1584,12 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
         meeting={selectedMeeting}
         onClose={handleClosePopup}
         // ADDED 2026-11-07 (ZIP search): "I'm Here" explains itself before the
-        // OS prompt in ZIP mode (plan Task 7 consumes this).
+        // OS prompt in ZIP mode. InPersonPopup.handleImHere reads it: in ZIP
+        // mode without an OS grant (`shouldExplainImHere`) it first says that
+        // "I'm Here" checks the phone's location once, to confirm the person
+        // is at the meeting, and that nothing is kept; only then does the
+        // presence check ask the OS. CHANGED 2026-11-08 (ZIP search): this
+        // used to say only that a later plan task would consume the prop.
         searchMode={searchMode}
       />
 

@@ -341,18 +341,35 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
                 status={zipStatus === "invalid" || zipStatus === "notFound" ? "error" : undefined}
               />
             )}
-            {searchMode === "zip" && zipMessage !== "" && (
-              <TouchableOpacity
-                testID="zip-message"
-                onPress={zipStatus === "failed" ? onRetryZip : undefined}
-                disabled={zipStatus !== "failed"}
-                accessibilityRole={zipStatus === "failed" ? "button" : undefined}
-                accessibilityLabel={zipMessage}
-                accessibilityLiveRegion="polite"
-              >
-                <Text style={themed($zipMessage)}>{zipMessage}</Text>
-              </TouchableOpacity>
-            )}
+            {/* CHANGED 2026-11-08 (ZIP search): only "failed" is a touchable.
+              The informational messages (invalid / notFound / unavailable)
+              used to render in the same TouchableOpacity, disabled, and
+              VoiceOver announced them "dimmed", which reads as a broken
+              control. They are a plain View now; both carry the live region,
+              so TalkBack still reads a new message as it appears. */}
+            {searchMode === "zip" &&
+              zipMessage !== "" &&
+              (zipStatus === "failed" ? (
+                <TouchableOpacity
+                  testID="zip-message"
+                  onPress={onRetryZip}
+                  accessibilityRole="button"
+                  accessibilityLabel={zipMessage}
+                  accessibilityLiveRegion="polite"
+                >
+                  <Text style={themed($zipMessage)}>{zipMessage}</Text>
+                </TouchableOpacity>
+              ) : (
+                <View
+                  testID="zip-message"
+                  accessible
+                  accessibilityRole="text"
+                  accessibilityLabel={zipMessage}
+                  accessibilityLiveRegion="polite"
+                >
+                  <Text style={themed($zipMessage)}>{zipMessage}</Text>
+                </View>
+              ))}
           </View>
         )}
 

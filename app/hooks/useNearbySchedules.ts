@@ -649,6 +649,14 @@ export function useNearbySchedules(
       // doubled every rejection during the 401 storms that got devices
       // banned at the edge.
       if (result.kind !== "ok" && isRetryableProblem(result.kind)) {
+        // ADDED 2026-11-08 (ZIP search): a superseded fetch never retries.
+        // `params` carries the center this fetch started with, and a switch
+        // gps → zip while the first attempt was out (the mode effect bumps
+        // `fetchSeqRef`) would otherwise put the real coordinates on the wire
+        // AFTER the person chose ZIP — the one thing ZIP mode promises not to
+        // do. A stale day/radius/fellowship fetch has no reason to retry either:
+        // its result is dropped below anyway.
+        if (!isCurrent()) return
         // PRIVACY: log the scalars individually — never spread `params`,
         // which carries lat/lon.
         log.warn("Nearby fetch failed; retrying once", {

@@ -209,4 +209,23 @@ describe("InPersonListHeader GPS | ZIP control", () => {
     fireEvent.press(screen.getByText("Couldn't look that up. Tap to try again."))
     expect(onRetryZip).toHaveBeenCalledTimes(1)
   })
+
+  // A disabled touchable is announced "dimmed" by VoiceOver, which reads as a
+  // broken control; the three informational messages are plain text.
+  it.each([
+    ["invalid", "Enter a 5-digit ZIP or a postal code like K1A 0B1."],
+    ["notFound", "We couldn't find that ZIP or postal code."],
+    ["unavailable", "ZIP search isn't available right now."],
+  ] as const)("announces the %s message as text, not a dimmed button", (zipStatus, message) => {
+    render(<InPersonListHeader {...baseProps} zipStatus={zipStatus} />)
+    expect(screen.getByTestId("zip-message").props.accessibilityState?.disabled).toBeFalsy()
+    expect(screen.queryByRole("button", { name: message })).toBeNull()
+  })
+
+  it("makes the failed message a button", () => {
+    render(<InPersonListHeader {...baseProps} zipStatus="failed" />)
+    expect(
+      screen.getByRole("button", { name: "Couldn't look that up. Tap to try again." }),
+    ).toBeTruthy()
+  })
 })
