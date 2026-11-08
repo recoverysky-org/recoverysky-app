@@ -43,6 +43,9 @@ export const LicensesScreen: FC = function LicensesScreen() {
         </Pressable>
       </View>
       <ScrollView style={$scroll} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
+        {/* ADDED 2026-11-07 (ZIP search): GeoNames CC BY 4.0 requires a visible credit
+            for the postal code data the API serves behind the ZIP search. */}
+        <Text style={themed($credit)} tx="settingsScreen:postalDataCredit" />
         {/* The OSS licence blob is thousands of lines of monospace legalese.
             Leave it readable, but don't make a screen reader recite the whole
             thing as one element — the ScrollView keeps it navigable by line. */}
@@ -79,6 +82,13 @@ const $scroll: ViewStyle = {
   paddingHorizontal: 20,
   paddingTop: 20,
 }
+
+const $credit: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
+  fontSize: 14,
+  lineHeight: 20,
+  color: colors.text,
+  marginBottom: spacing.md,
+})
 
 const $body: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,

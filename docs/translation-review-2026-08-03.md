@@ -1017,3 +1017,11 @@ Reviewer notes worth acting on first:
 - **`zipFailed` is a tappable message** that retries the lookup; keep the "tap to try again" cue.
 - **`imHereLocationMessage` keeps the quoted name** of the "I'm Here" button exactly as that
   button is labelled in the locale.
+
+## 2026-11-07 GeoNames credit (English placeholder)
+
+**Still English placeholder, 8 strings (8 locales x 1 key)** in ar, de, es, fr, pt, ru, th, uk:
+`settingsScreen.postalDataCredit`, the postal code data credit on the Licenses screen.
+
+- **Keep "GeoNames", "www.geonames.org", "CC BY 4.0" and the (c) sign unchanged.** They are the
+  attribution the licence requires; translate only "Postal code data" and "licensed under".

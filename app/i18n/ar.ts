@@ -862,6 +862,7 @@ const ar: Translations = {
     aiConsent: "موافقة الذكاء الاصطناعي",
     thirdPartyLicenses: "تراخيص الطرف الثالث",
     thirdPartyLicensesTitle: "تراخيص المصادر المفتوحة",
+    postalDataCredit: "Postal code data © GeoNames (www.geonames.org), licensed under CC BY 4.0.",
     close: "إغلاق",
   },
   onboarding: {

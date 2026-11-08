@@ -869,6 +869,7 @@ const uk: Translations = {
     aiConsent: "Згода на ШІ",
     thirdPartyLicenses: "Ліцензії сторонніх компонентів",
     thirdPartyLicensesTitle: "Ліцензії відкритого коду",
+    postalDataCredit: "Postal code data © GeoNames (www.geonames.org), licensed under CC BY 4.0.",
     close: "Закрити",
   },
   onboarding: {

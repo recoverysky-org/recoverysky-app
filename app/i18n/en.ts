@@ -903,6 +903,7 @@ const en = {
     aiConsent: "AI Consent",
     thirdPartyLicenses: "Third-Party Licenses",
     thirdPartyLicensesTitle: "Open Source Licenses",
+    postalDataCredit: "Postal code data © GeoNames (www.geonames.org), licensed under CC BY 4.0.",
     close: "Close",
   },
   // Onboarding

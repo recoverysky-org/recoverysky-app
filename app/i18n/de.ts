@@ -874,6 +874,7 @@ const de: Translations = {
     aiConsent: "KI-Einwilligung",
     thirdPartyLicenses: "Drittanbieter-Lizenzen",
     thirdPartyLicensesTitle: "Open-Source-Lizenzen",
+    postalDataCredit: "Postal code data © GeoNames (www.geonames.org), licensed under CC BY 4.0.",
     close: "Schließen",
   },
   onboarding: {

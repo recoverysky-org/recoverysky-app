@@ -870,6 +870,7 @@ const ru: Translations = {
     aiConsent: "Согласие на ИИ",
     thirdPartyLicenses: "Лицензии сторонних компонентов",
     thirdPartyLicensesTitle: "Лицензии открытого кода",
+    postalDataCredit: "Postal code data © GeoNames (www.geonames.org), licensed under CC BY 4.0.",
     close: "Закрыть",
   },
   onboarding: {

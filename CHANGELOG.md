@@ -22,6 +22,11 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+### Added
+- **A GeoNames credit on the Licenses screen.** The ZIP and postal code search
+  uses GeoNames data (CC BY 4.0), which asks for a visible credit; it now sits
+  above the open source licenses (Settings → Third-Party Licenses).
+
 ### Changed
 - **In-Person opens on a ZIP or postal code search and asks for location only
   when you choose GPS.** A "GPS | ZIP" control sits above Radius, with a "ZIP or

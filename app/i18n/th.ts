@@ -865,6 +865,7 @@ const th: Translations = {
     aiConsent: "ความยินยอม AI",
     thirdPartyLicenses: "สัญญาอนุญาตของบุคคลที่สาม",
     thirdPartyLicensesTitle: "สัญญาอนุญาตโอเพนซอร์ส",
+    postalDataCredit: "Postal code data © GeoNames (www.geonames.org), licensed under CC BY 4.0.",
     close: "ปิด",
   },
   onboarding: {

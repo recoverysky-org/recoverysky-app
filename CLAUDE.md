@@ -447,6 +447,12 @@ surface and its native location consumer must not sit alive inside a hidden view
 Collapsing the two either mounts a GL surface for a segment the user never opened
 or tears down fetch state on every tab tap.
 
+ADDED 2026-11-07 (ZIP search): In-Person opens in ZIP mode unless the person
+already allowed location (see "Smaller Subsystems"). The location gate and the
+resume-from-Settings listener run **only in GPS mode**, and wait for the mode to
+be decided; picking GPS with location off runs the gate once.
+`InPersonScreen.test.tsx` pins "no gate in ZIP mode".
+
 **Modals** (app-stack level): Import (Firebase data import from Settings), Licenses (OSS licenses), Terms.
 
 **Support** (signed-in and onboarded only) sits in the same app stack but is a plain card. CHANGED 2026-11-06: a native iOS modal covers the root view, and `ToastProvider` renders in the root RN tree, so every toast Support fires drew behind the modal; `supportPolicy.test.ts` pins this.
@@ -483,7 +489,8 @@ than per person:
   (`profileStore.guestOnboardingCompleted`, once per install);
 - the Meetings tab's filter and view choices, which the device owner shares
   (MMKV `meetings.fellowship`, `meetings.language`, `inperson.radius`,
-  `inperson.viewMode`, `inperson.sortOrder`);
+  `inperson.viewMode`, `inperson.sortOrder`, `inperson.searchMode`,
+  `inperson.zip`);
 - the location permission choice (`profileStore.locationEnabled`, plus the
   OS grant);
 - that the legal agreements were accepted (SecureStore `terms_accepted_v2`,
@@ -974,6 +981,21 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   used to force-route to the `live` segment and silently drop in-person
   deep-links. `returnTo` now carries the segment (see "Navigation").
 
+  ADDED 2026-11-07 (ZIP search), spec
+  `docs/superpowers/specs/2026-11-07-in-person-zip-search-design.md`: the segment
+  searches by a typed US ZIP / Canadian postal code by default, and GPS only on
+  request. Pure decisions (code shapes, `decideStartingSearchMode`: stored mode
+  wins, else GPS if `locationEnabled`, else ZIP; `decideZipLookup`;
+  `deriveSearchFlags`; `shouldRunVisitGate`; `shouldExplainImHere`) are in
+  `app/utils/inPersonSearchLogic.ts` (vitest). `useInPersonSearchMode` holds the
+  mode and text (MMKV `inperson.searchMode` / `inperson.zip`) and the lookup, with
+  one request on the wire at a time. `useNearbySchedules` never touches location
+  in ZIP mode. The lookup is `api.lookupPostalCode` → `GET /geo/postal-code`
+  (`postalLookupLogic.ts`); `postal_code` is in `SENSITIVE_QUERY_KEYS`, and a
+  code or its point is never logged or tracked. **Release order: the API first,
+  then the app OTA.** A 404 means the route is missing, and the app latches
+  "unavailable" for the session. GeoNames is credited on the Licenses screen.
+
 - **Support contacts** (`app/services/support/`, `modules/phone-contact-picker/`)
   — ADDED 2026-11-06, spec `docs/superpowers/specs/2026-11-06-support-contacts-design.md`.
   Up to three people for the Home Support card and the Support screen. **Names
@@ -1052,6 +1074,10 @@ Location. Spec: `docs/superpowers/specs/2026-08-08-settings-permissions-section-
   the confirm branch's Promise never settles.
 - **`usePresenceCheck` → `presenceLogic.ts`** — the GPS presence check behind
   "I'm Here" (see the In-Person segment note above).
+- CHANGED 2026-11-07 (ZIP search): `InPersonScreen` reads `locationEnabled`
+  through the search mode (`deriveSearchFlags`, `shouldRunVisitGate` in
+  `inPersonSearchLogic.ts`), so ZIP mode never shows this gate. "I'm Here" in
+  ZIP mode without an OS grant shows a short note, then the one-off OS prompt.
 
 **The trap, hit twice:** never make `profileStore.locationEnabled` both an
 effect's dependency and that same effect's early-return guard. The Meetings tab
@@ -1084,7 +1110,11 @@ The In-Person segment's list/map toggle, built on
   the MapTiler API key is never baked into the binary.
 - **Privacy:** the map reads `useNearbySchedules`' `coordsRef` through
   `getSearchCenter` — the one sanctioned new consumer — for the camera fit only,
-  converted straight to a bounding box, never stored or logged. The puck is
+  converted straight to a bounding box, never stored or logged. CHANGED
+  2026-11-07 (ZIP search): `getSearchCenter` returns the mode's center (the GPS
+  fix, or the typed code's centroid in ZIP mode), and the map gets
+  `showUserLocation={mode === "gps"}`, so ZIP mode has no puck and starts no
+  native location subscription. The puck is
   MapLibre's `NativeUserLocation` (native-side subscription, no coordinate ever
   reaches JS). **Do not swap in the sibling `UserLocation` component**: it puts
   every fix into React state and keeps its own continuous native subscription
