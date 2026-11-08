@@ -141,6 +141,41 @@ tab is hidden in production, and each is a decision to make knowingly:
 
 ---
 
+## 💜 Sky on meetings-mcp: the app's side (JS-only — NOT runtimeVersion-gated)
+
+Queued 2026-11-07. Sky is moving from her own `findMeetings` / `getLiveMeetings`
+tools to the api's meetings-mcp server (agent spec in `../agent`; the server's
+side is api `docs/superpowers/specs/2026-11-07-meetings-mcp-favorites-design.md`).
+The agent switch ships ahead of this work, since there are no active users yet;
+until then Sky's meeting answers show her words and no meetings: she never
+writes meeting data, since the cards carry it.
+
+- [ ] **Rework `components/agent/ToolResultRenderer.tsx`** (already broken
+      today). Meeting cards are keyed to the old tool names (`findMeetings`,
+      `getLiveMeetings`, `findMeetingsByFellowship`) and read `MeetingWithTrex`.
+      After the switch, meeting results arrive as `dynamic-tool` parts named
+      after meetings-mcp's tools (`find_meetings_now`, `find_meetings_on_day`,
+      `find_meetings_nearby`, `get_meeting`, `find_favorite_meetings`) in its
+      `Meeting` shape (`docs/mcp-tools.md` in the api: `startsAt` as a
+      RenderedInstant, `url`, `address`, `favorite`). Map that shape onto
+      `MeetingRow`, show the heart on `favorite: true`, and make sure the
+      reminder tools' approval cards (`create_reminder`, `update_reminder`,
+      `delete_reminder`, not `readOnlyHint`) and their results draw. Older
+      stored conversations still hold `tool-findMeetings` parts.
+      **Critical:** every meeting a tool returned draws as a card, and tapping
+      one opens that meeting's schedule card in the app. Sky never puts a
+      meeting in her text (no time, no link, no list), so the cards are the
+      only way a meeting she offers reaches the person. Until they draw,
+      reminder proposals also wait on an approval card nobody sees, and the
+      next message closes them as declined (accepted).
+- [ ] **Send favorites and location with each turn** (`utils/agentBodyLogic.ts`
+      `chatRequestBody`): `favorite_meeting_ids` (the loved meeting ids from
+      `feedbackCache`, at most 500), and `location` as `{ lat, lon }` when the
+      app has a position, else `{ postal_code }` when it has one. Field names
+      follow the agent spec; check them against it before building.
+
+---
+
 ## ⏳ Adaptive layouts for large screens (HARD DEADLINE ~Aug 2027)
 
 Queued 2026-08-10, when `targetSdkVersion` went 35 → 36 to meet Play's
