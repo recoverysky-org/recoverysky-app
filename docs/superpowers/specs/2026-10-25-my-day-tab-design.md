@@ -1,6 +1,7 @@
 # The My Day tab: hosting `@daily-dash/my-day` in RecoverySky — design
 
-**Date:** 2026-10-25, builder-check answers folded in 2026-11-04 · **Status:** **approved by the product owner
+**Status (2026-11-08):** Implemented. Shipped in v4.12.0 (`466df20`); follow-ons are in TODO.md "My Day follow-ons".
+**Date:** 2026-10-25, builder-check answers folded in 2026-11-04 · **Status when written:** **approved by the product owner
 2026-11-04**; brainstormed with her on 2026-10-25, her rulings are marked **[Owner]**, the implementer's
 proposals **[My call]** · **Plans:** `docs/superpowers/plans/2026-11-04-my-day-tab.md` (this repository, §4 and
 §7) and `docs/superpowers/plans/2026-11-04-my-day-recoverysky-host.md` in the Daily Dash repository (§5) · **Repositories:** this one

@@ -1,7 +1,8 @@
 # Attendance Cloud Backup & Multi-Device Sync — Client Design
 
 **Date:** 2026-07-09
-**Status:** Approved (brainstorming complete)
+**Status (2026-11-08):** Implemented. First shipped in v4.5.0-10 (`166178f`, `app/services/sync/syncLogic.ts`); see `docs/BACKUP.md` and CLAUDE.md "Attendance Cloud Backup & Sync".
+**Status when written:** Approved (brainstorming complete)
 **API reference:** the server `/sync` endpoints, documented in the API repo's
 attendance-sync doc (`POST /sync/attendance`, `GET /sync/attendance`,
 `GET /sync/reports`). Server design spec:

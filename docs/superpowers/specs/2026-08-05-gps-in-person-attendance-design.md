@@ -1,7 +1,8 @@
 # GPS-Verified In-Person Attendance — Design
 
 **Date:** 2026-08-05
-**Status:** Approved (design); implementation plan pending
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`74c5d67`, `presenceLogic.ts` / `usePresenceCheck`).
+**Status when written:** Approved (design); implementation plan pending
 
 ## Goal
 

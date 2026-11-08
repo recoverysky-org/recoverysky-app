@@ -1,6 +1,8 @@
 # In-Person search by ZIP — design
 
-Date: 2026-11-07. Status: design, approved for planning once Jenova has read it.
+**Status (2026-11-08):** Built: app on `root` (`0e2b8f6`..`2dae044`), api route on api `prod` (`d2312a8`..`1d4c358`); neither pushed. Releases are on HOLD until `GET /geo/postal-code` is live (CLAUDE.md "Releasing"); the device pass has not run.
+
+Date: 2026-11-07. Status when written: design, approved for planning once Jenova has read it.
 Repos: `api` (lookup route + its data file) and `app` (the segment). Jenova's rulings are marked **(Jenova)**; everything marked
 **(call)** is Claude's, made in the brainstorm and open to her correction.
 

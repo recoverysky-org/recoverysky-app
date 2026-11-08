@@ -2,7 +2,8 @@
 
 **Date:** 2026-09-10 (revised the same day after review — see "Review findings" at the end; API
 deltas folded in after `api` v1.7.0 deployed)
-**Status:** API half **shipped** (`api` v1.7.0, deployed 2026-09-10, verified: an opaque bearer on
+**Status (2026-11-08):** Both halves shipped: the api in v1.7.0, the app in v4.10.1 (`77c3925`, `isUsableAccessToken`).
+**Status when written:** API half **shipped** (`api` v1.7.0, deployed 2026-09-10, verified: an opaque bearer on
 `GET /reminders` answers `401 {"code":"token_malformed"}`). App half implemented 2026-09-10
 (plan: docs/superpowers/plans/2026-09-10-opaque-access-token-app-half.md); awaiting the manual
 checklist and OTA.

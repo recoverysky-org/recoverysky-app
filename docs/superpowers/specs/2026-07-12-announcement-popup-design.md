@@ -1,7 +1,8 @@
 # Announcement Popup — Design Spec
 
 **Date:** 2026-07-12
-**Status:** Approved (pending user review of this document)
+**Status (2026-11-08):** Implemented. First shipped in v4.5.0-10 (`9d81128`, `app/config/announcements.ts`, `AnnouncementGate`).
+**Status when written:** Approved (pending user review of this document)
 **Type:** JS-only feature — ships via OTA, **no `runtimeVersion` bump**.
 
 ## Goal

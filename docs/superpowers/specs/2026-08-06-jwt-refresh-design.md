@@ -1,7 +1,8 @@
 # Proactive JWT Refresh — Design
 
 **Date:** 2026-08-06
-**Status:** Approved, ready for implementation planning
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`d34214c`, `tokenFreshnessLogic.ts`); deferred items are in TODO.md "Token freshness gate".
+**Status when written:** Approved, ready for implementation planning
 **Scope:** `app/services/api/`, `app/services/auth/`, `app/services/attestation/`, `app/app.tsx`, `app/models/AuthenticationStore.ts`
 
 ## Problem

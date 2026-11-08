@@ -1,7 +1,8 @@
 # First-use coach marks (contextual tutorial) — design
 
 **Date:** 2026-09-25
-**Status:** Approved design, awaiting implementation plan. JS-only → OTA (no
+**Status (2026-11-08):** Plan written (`docs/superpowers/plans/2026-09-25-first-use-coach-marks.md`, `314bf71`); not started, no code (`app/config/coachMoments.ts` does not exist).
+**Status when written:** Approved design, awaiting implementation plan. JS-only → OTA (no
 `runtimeVersion` bump; no new native dependency).
 
 ## Goal

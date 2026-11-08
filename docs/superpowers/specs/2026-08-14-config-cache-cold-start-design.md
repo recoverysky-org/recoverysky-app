@@ -1,7 +1,8 @@
 # Config Cache: First-Launch-Only `/config` Gate
 
 **Date:** 2026-08-14
-**Status:** Approved design, pending implementation plan
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0-3 (`3840d08`, the `config_caches` table).
+**Status when written:** Approved design, pending implementation plan
 
 ## Problem
 

@@ -1,7 +1,8 @@
 # In-Person Meetings: Map View (List/Map Toggle) — Design Spec
 
 **Date:** 2026-08-07
-**Status:** Approved via brainstorming session 2026-08-07.
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`1548821`, `InPersonMapView`); see CLAUDE.md "In-Person Map".
+**Status when written:** Approved via brainstorming session 2026-08-07.
 **Supersedes:** `2026-08-03-in-person-map-design.md` (draft, never approved).
 That draft proposed `react-native-maps` with a phased rollout (Phase 1
 single-pin popup map, Phase 2 browse map gated on an explicit privacy

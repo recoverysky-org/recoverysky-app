@@ -1,7 +1,8 @@
 # Attendance Duration Slider — Design
 
 **Date:** 2026-08-09
-**Status:** Approved for planning
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`4d8afdb`, `MinuteSlider`).
+**Status when written:** Approved for planning
 
 ## Goal
 

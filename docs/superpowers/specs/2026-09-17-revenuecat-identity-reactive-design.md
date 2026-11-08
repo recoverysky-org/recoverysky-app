@@ -1,7 +1,8 @@
 # RevenueCat identity: reactive, per-identity synced, no device ids — design
 
 **Date:** 2026-09-17
-**Status:** Approved, implementing. JS-only → OTA.
+**Status (2026-11-08):** Implemented. First shipped in v4.10.1-5 (`884a4a2`, `rcIdentityLogic.ts`).
+**Status when written:** Approved, implementing. JS-only → OTA.
 **Prerequisite (done 2026-09-17):** RevenueCat → Project settings → *Handling multiple
 app user IDs* = **Transfer to new App User ID** (verified by Jenova; it is also the default).
 

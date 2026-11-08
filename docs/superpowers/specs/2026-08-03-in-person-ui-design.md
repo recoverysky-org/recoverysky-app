@@ -1,7 +1,8 @@
 # In-Person Meetings: UI & Near-Me Search — Design Spec
 
 **Date:** 2026-08-03
-**Status:** Approved
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`0a5efbb`, `InPersonPopup`); deferred items are in TODO.md "In-Person UI: deferred items".
+**Status when written:** Approved
 **Scope:** Surface the in-person meeting pool (data layer shipped 2026-08-02) as a
 new third segment on the Meetings tab, built around location-based nearest-first
 search, with in-person meeting detail, directions, contacts, reminders, and

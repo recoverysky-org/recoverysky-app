@@ -1,7 +1,8 @@
 # App Attest assertions, device JWT persistence, and attestation degrade
 
 **Date:** 2026-09-09
-**Status:** Approved design, awaiting implementation plan
+**Status (2026-11-08):** Implemented. First shipped in v4.9.0 (`8fb59aa`, `establishDeviceToken`, `deviceTokenLogic.ts`).
+**Status when written:** Approved design, awaiting implementation plan
 **Repos touched:** `common` (schema), `api` (routes, verification, storage), `app` (credential lifecycle, retry, UX)
 
 ## Why

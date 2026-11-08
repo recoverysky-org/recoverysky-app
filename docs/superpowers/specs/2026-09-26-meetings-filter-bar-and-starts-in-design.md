@@ -1,7 +1,9 @@
 # Meetings filter bar + Live "Starts In" — design
 
 Date: 2026-09-26
-Status: approved in brainstorming, awaiting written-spec review
+Status (2026-11-08): Implemented. First shipped in v4.10.1-13 (`0f43a17`, `meetingFiltersLogic.ts`, `atNextLogic.ts`); Starts In is still `__DEV__`-only (`startsInVisible`).
+
+Status when written: approved in brainstorming, awaiting written-spec review
 Scope: app repo only. The `/schedules/at_next` endpoint is built separately in
 the api repo; this spec records the contract the app codes against.
 

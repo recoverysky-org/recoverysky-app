@@ -1,6 +1,7 @@
 # Attendance Flow Panel — unify the external-Zoom timer + topic/host capture
 
-**Status:** Design approved (2026-06-29). Implementation NOT started.
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`b72dcb7`, `TopicPanelOverlay` / `useTopicPanel`).
+**Status when written:** Design approved (2026-06-29). Implementation NOT started.
 
 ## Context & problem
 

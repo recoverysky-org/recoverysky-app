@@ -1,7 +1,8 @@
 # Location Permission Drift & Presence Telemetry — Design
 
 **Date:** 2026-08-12
-**Status:** Draft, awaiting approval
+**Status (2026-11-08):** Implemented, both fixes. Shipped in v4.8.0-1: the toggle reconciles with the OS on every refusal (`46d7621`) and the failed "I'm Here" outcomes record `inperson_presence_failed` (`c72cdbd`).
+**Status when written:** Draft, awaiting approval
 
 ## Goal
 

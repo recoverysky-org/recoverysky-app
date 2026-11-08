@@ -1,7 +1,8 @@
 # Network-Aware Maintenance & Offline States — Design
 
 **Date:** 2026-09-06
-**Status:** Approved design, pending implementation plan
+**Status (2026-11-08):** Implemented. First shipped in v4.9.0 (`9820da9`, `connectivityLogic.ts`); see CLAUDE.md "Maintenance Mode".
+**Status when written:** Approved design, pending implementation plan
 **Release train:** NATIVE — adds `@react-native-community/netinfo` (new native
 module → `runtimeVersion` bump). Ships with the next store release, not an OTA.
 

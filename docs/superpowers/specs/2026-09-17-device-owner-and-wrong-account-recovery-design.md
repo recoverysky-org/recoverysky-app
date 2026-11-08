@@ -1,7 +1,8 @@
 # Device owner record, wrong-account recovery, and identity linking
 
 **Date:** 2026-09-17
-**Status:** Spec approved; not started. Depends on spec 1
+**Status (2026-11-08):** Implemented. Shipped in OTA v4.10.1-16 (`b80f2dd`, `ownerLogic.ts`, `WrongAccountScreen`).
+**Status when written:** Spec approved; not started. Depends on spec 1
 (`2026-09-12-passwordless-login-design.md`) — reuses its code step, its `loginMethod` field and
 its owner-aware login button — so it lives on the same feature branch and ships after it.
 Blocked, like spec 1, on Auth0 tenant access.

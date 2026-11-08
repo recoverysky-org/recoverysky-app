@@ -1,7 +1,8 @@
 # Next native build (4.11.0): native dependency refresh + Android login recovery
 
 **Date:** 2026-09-12
-**Status:** Spec approved for the TODO queue; not started. Every item here changes the
+**Status (2026-11-08):** Mostly shipped in v4.11.0 (`74e49b1`). Two items are still open in TODO.md "Next native build": the JSI `SharedObject` teardown crash during OTA reload, and the React Native upgrade (still 0.81.5).
+**Status when written:** Spec approved for the TODO queue; not started. Every item here changes the
 native shape of the app, so none of it can ride an OTA — it all ships together in the
 next store build (see "Release" below). Queued in `TODO.md` under "Next native build".
 **Repos touched:** `app` only. No API change; the Auth0 tenant is untouched.

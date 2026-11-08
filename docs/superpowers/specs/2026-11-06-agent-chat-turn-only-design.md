@@ -1,6 +1,8 @@
 # Sky's chat sends the turn only: the agent owns the history
 
-Status: design, drafted 2026-11-06 from a brainstorm with Jenova. Not planned, not built. Builds
+Status (2026-11-08): Built and planned. In the v4.13.0 tag (`1a668aa`); the Sky tab is hidden in production, and the device pass and the gates before it returns are in TODO.md.
+
+Status when written: design, drafted 2026-11-06 from a brainstorm with Jenova. Not planned, not built. Builds
 after the agent's side ships (`recoverysky-org/agent/docs/superpowers/specs/2026-11-06-sky-context-per-turn-design.md`,
 the authority on what the agent does with a turn: its wire section and rulings R1 to R3 and R13) and
 its archive route ships (`recoverysky-org/agent/docs/superpowers/specs/2026-11-06-conversation-archive-design.md`,

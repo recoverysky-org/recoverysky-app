@@ -1,7 +1,8 @@
 # In-Person Meetings: App Data Layer — Design Spec
 
 **Date:** 2026-08-02
-**Status:** Approved
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`0b4cc80`, `useNearbySchedules` / `nearbyLogic.ts`).
+**Status when written:** Approved
 **Scope:** Pull in-person meeting data into app memory alongside online meetings.
 UI/UX for displaying, joining, and attending in-person meetings is **explicitly
 deferred** to a follow-up design. No visible behavior changes in this piece.

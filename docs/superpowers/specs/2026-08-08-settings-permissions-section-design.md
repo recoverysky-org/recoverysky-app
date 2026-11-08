@@ -1,7 +1,8 @@
 # Settings → Permissions Section — Design
 
 **Date:** 2026-08-08
-**Status:** Approved for planning
+**Status (2026-11-08):** Implemented. First shipped in v4.8.0 (`6ecd4b5`, `PermissionsSection`); deferred items are in TODO.md "Settings → Permissions / location gate".
+**Status when written:** Approved for planning
 
 ## Goal
 

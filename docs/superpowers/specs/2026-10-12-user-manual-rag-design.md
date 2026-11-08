@@ -1,6 +1,8 @@
 # The RecoverySky User's Manual: a RAG corpus so Sky knows her own app
 
-Status: design approved in conversation 2026-10-12 (Jenova); spec awaiting review. No code yet.
+Status (2026-11-08): In progress. The skeleton merged in `50e24f2` (first in v4.12.0) and 12 pages are written; the rest is TODO.md "Finish the user's manual". The production ingest is on HOLD (CLAUDE.md "Releasing").
+
+Status when written: design approved in conversation 2026-10-12 (Jenova); spec awaiting review. No code yet.
 Spans two repos: the corpus and its discipline live here (app), the ingest, store, tools and
 prompt change live in `../agent`. The implementation plan splits its tasks by repo.
 

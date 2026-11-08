@@ -1,6 +1,8 @@
 # Legacy email verification (password accounts with a bad address)
 
-Written 2026-09-30. Status: approved 2026-10-01 (sections 3–5 revised the same day after review). Ships in the **same OTA** as passwordless
+**Status (2026-11-08):** Implemented. Shipped in OTA v4.10.1-16 (`8e1192c`, `emailVerifyLogic.ts`, `VerifyEmailGate`).
+
+Written 2026-09-30. Status when written: approved 2026-10-01 (sections 3–5 revised the same day after review). Ships in the **same OTA** as passwordless
 sign-in (spec `2026-09-12-passwordless-login-design.md`); the API half deploys first.
 
 ## 1. Problem

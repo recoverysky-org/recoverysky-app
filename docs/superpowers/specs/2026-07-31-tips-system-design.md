@@ -1,7 +1,8 @@
 # Tips System — Design Spec
 
 **Date:** 2026-07-31
-**Status:** Approved design, pre-implementation
+**Status (2026-11-08):** Not started. No plan and no code; Home's `HELP_CARDS` Getting Started stack is still in place.
+**Status when written:** Approved design, pre-implementation
 **Scope:** App-side implementation + the server API contract the app requires.
 Server implementation itself is API-repo work and is out of scope here.
 

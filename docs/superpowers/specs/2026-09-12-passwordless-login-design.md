@@ -1,7 +1,8 @@
 # Passwordless email login with direct-to-provider Apple and Google
 
 **Date:** 2026-09-12
-**Status:** Spec approved; not started. Blocked on Auth0 tenant access (MFA lockout as of this
+**Status (2026-11-08):** Implemented. Shipped in OTA v4.10.1-16 (`f48ae09`, `LoginSteps`).
+**Status when written:** Spec approved; not started. Blocked on Auth0 tenant access (MFA lockout as of this
 date). Develop on a feature branch or worktree; ship only after the tenant runbook (§3) is fully
 executed. JS-only on the app side — no `runtimeVersion` bump.
 **Repos touched:** `app` (login screen, auth wrapper, i18n). Auth0 tenant configuration (dashboard,
