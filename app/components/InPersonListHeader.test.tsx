@@ -108,6 +108,37 @@ describe("InPersonListHeader controls row", () => {
     expect(screen.getByLabelText("Distance")).toBeTruthy()
   })
 
+  // ADDED 2026-11-08 (Jenova): the list/map pill starts the GPS | ZIP row.
+  it("keeps the list/map pill in ZIP mode with no point yet, disabled with a hint to enter a ZIP", () => {
+    render(
+      <InPersonListHeader
+        {...baseProps}
+        searchMode="zip"
+        showMapToggle
+        viewMode="list"
+        mapToggleDisabled
+        mapToggleNeedsZip
+      />,
+    )
+    const map = screen.getByLabelText("Map")
+    expect(map.props.accessibilityState?.disabled).toBe(true)
+    expect(map.props.accessibilityHint).toBe("Enter a ZIP or postal code to see meetings near it.")
+    // Same row as the GPS | ZIP pill and the box.
+    expect(screen.getByLabelText("ZIP")).toBeTruthy()
+    expect(screen.getByPlaceholderText("ZIP or postal code")).toBeTruthy()
+  })
+
+  it("still says 'offline' when the map is disabled for being offline", () => {
+    render(<InPersonListHeader {...baseProps} showMapToggle viewMode="list" mapToggleDisabled />)
+    expect(screen.getByLabelText("Map").props.accessibilityHint).toBe("Map is unavailable offline")
+  })
+
+  it("shows the list/map pill even before the search mode is decided", () => {
+    render(<InPersonListHeader {...baseProps} searchMode={null} showMapToggle />)
+    expect(screen.getByLabelText("Map")).toBeTruthy()
+    expect(screen.queryByLabelText("GPS")).toBeNull()
+  })
+
   it("flips the view when the inactive list/map half is pressed", () => {
     const onToggleView = jest.fn()
     render(<InPersonListHeader {...baseProps} showMapToggle onToggleView={onToggleView} />)

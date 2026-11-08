@@ -29,8 +29,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ### Changed
 - **In-Person opens on a ZIP or postal code search and asks for location only
-  when you choose GPS.** A "GPS | ZIP" control sits above Radius, with a "ZIP or
-  postal code" box in ZIP mode (US ZIPs and Canadian postal codes). A first
+  when you choose GPS.** One row above Radius holds the list/map pill, a
+  "GPS | ZIP" control and, in ZIP mode, a "ZIP or postal code" box (US ZIPs and
+  Canadian postal codes) that wraps to its own line on a narrow phone. In ZIP
+  mode the list/map pill stays visible, disabled until a code is found. A first
   visit no longer starts with a location prompt, the list and map work in ZIP
   mode with location off, and the map shows no location dot there. People who
   already allowed location stay on GPS. Switching to GPS runs the usual location

@@ -1387,7 +1387,11 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // showing — is exactly what this variable already encodes. Leaving map
   // mode must always be possible, so a user who goes offline mid-browse on
   // the map is never stranded there with no way back to the list.
-  const mapToggleDisabled = effectiveViewMode === "list" && networkStore.isOffline
+  // CHANGED 2026-11-08 (ZIP search, Jenova): also disabled while the list is
+  // up and this mode has no center yet (ZIP mode before a code is looked up,
+  // see showMapToggleNow below). Still list-only, so the map can always be
+  // left.
+  const mapToggleDisabled = effectiveViewMode === "list" && (networkStore.isOffline || !hasCenter)
 
   // ADDED 2026-08-08: with location off there are no meetings to plot and no
   // idea where the user is, so a map has nothing to show. This is a separate
@@ -1397,7 +1401,13 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
   // CHANGED 2026-11-07 (ZIP search): "anything to put on it" is `hasCenter`
   // now (a fix in GPS mode, a looked-up point in ZIP mode), the same condition
   // as `effectiveViewMode`, so the toggle shows exactly when the map could.
-  const showMapToggleNow = showMapToggle && hasCenter
+  // CHANGED 2026-11-08 (Jenova): in ZIP mode the toggle stays visible even
+  // with no point yet, disabled (hint: enter a ZIP), so picking "ZIP" no
+  // longer makes the list/map pill vanish from the row it starts. GPS mode
+  // keeps the 2026-08-08 rule (hidden until there is a fix): there the
+  // locating spinner or the location banner already says what's missing.
+  const showMapToggleNow = showMapToggle && (hasCenter || searchMode === "zip")
+  const mapToggleNeedsZip = searchMode === "zip" && !hasCenter
 
   // The map has no order and fallback mode has no rows to order (see the
   // prop comment on InPersonListHeaderProps.showSortToggle).
@@ -1454,6 +1464,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               // See mapToggleDisabled definition above — always false here
               // since effectiveViewMode is narrowed to "map" in this branch.
               mapToggleDisabled={mapToggleDisabled}
+              mapToggleNeedsZip={mapToggleNeedsZip}
               onToggleView={handleToggleView}
               showSortToggle={showSortToggle}
               sortOrder={sortOrder}
@@ -1511,6 +1522,7 @@ export const InPersonContent: FC<InPersonContentProps> = observer(function InPer
               viewMode={effectiveViewMode}
               // See mapToggleDisabled definition above.
               mapToggleDisabled={mapToggleDisabled}
+              mapToggleNeedsZip={mapToggleNeedsZip}
               onToggleView={handleToggleView}
               showSortToggle={showSortToggle}
               sortOrder={sortOrder}

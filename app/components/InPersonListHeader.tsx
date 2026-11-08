@@ -93,11 +93,17 @@ export interface InPersonListHeaderProps {
    */
   resultCount: number
   /** Render the list/map toggle (config kill switch + platform rule). Sits in
-   * the controls row under the filter grid, left of the sort pill. */
+   * the controls row under the filter grid, left of the sort pill.
+   * CHANGED 2026-11-08 (Jenova): it now starts the GPS | ZIP row instead. */
   showMapToggle: boolean
   viewMode: InPersonViewMode
   /** Offline → disabled (spec Error handling #3) */
   mapToggleDisabled: boolean
+  /**
+   * ADDED 2026-11-08 (ZIP search): the toggle is disabled because ZIP mode has
+   * no point yet (not because we're offline), so its hint says to enter a ZIP.
+   */
+  mapToggleNeedsZip?: boolean
   onToggleView: () => void
   /**
    * ADDED 2026-09-06: the Distance / Start sort pill, right half of the
@@ -147,6 +153,7 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
     showMapToggle,
     viewMode,
     mapToggleDisabled,
+    mapToggleNeedsZip = false,
     onToggleView,
     showSortToggle,
     sortOrder,
@@ -306,24 +313,43 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           SegmentedPill the sort and list/map controls use (tablist + tab +
           selected state come with it). Nothing is selected while the saved
           choice is loading (`searchMode` null), and the pill is hidden then so
-          a half is never shown selected wrongly. */}
-        {searchMode !== null && (
+          a half is never shown selected wrongly.
+          CHANGED 2026-11-08 (Jenova): one row now holds the list/map pill,
+          then GPS | ZIP, then the box, wrapping on a narrow phone so the box
+          drops to its own full-width line. The box used to sit in a column
+          aligned "flex-start", which sized it to its content: empty, it
+          collapsed to a sliver nobody could tap or type into. It now grows
+          to fill the row (min 140dp) and wraps rather than shrinking. The
+          list/map pill moved here from the controls row so the "where" and
+          "how to see it" controls sit together above the filters. */}
+        {(searchMode !== null || showMapToggle) && (
           <View style={themed($searchModeRow)}>
-            <SegmentedPill<InPersonSearchMode>
-              value={searchMode}
-              accessibilityLabel={t("inPersonScreen:searchModeLabel")}
-              options={[
-                {
-                  value: "gps",
-                  label: t("inPersonScreen:searchModeGps"),
-                  icon: "navigate-outline",
-                },
-                { value: "zip", label: t("inPersonScreen:searchModeZip"), icon: "mail-outline" },
-              ]}
-              onSelect={onSelectSearchMode}
-            />
+            {showMapToggle && (
+              <MapListToggle
+                viewMode={viewMode}
+                disabled={mapToggleDisabled}
+                disabledHint={mapToggleNeedsZip ? t("inPersonScreen:emptyNeedsZip") : undefined}
+                onToggle={onToggleView}
+              />
+            )}
+            {searchMode !== null && (
+              <SegmentedPill<InPersonSearchMode>
+                value={searchMode}
+                accessibilityLabel={t("inPersonScreen:searchModeLabel")}
+                options={[
+                  {
+                    value: "gps",
+                    label: t("inPersonScreen:searchModeGps"),
+                    icon: "navigate-outline",
+                  },
+                  { value: "zip", label: t("inPersonScreen:searchModeZip"), icon: "mail-outline" },
+                ]}
+                onSelect={onSelectSearchMode}
+              />
+            )}
             {searchMode === "zip" && (
               <TextField
+                containerStyle={$zipField}
                 value={zipInput}
                 onChangeText={onChangeZipInput}
                 onSubmitEditing={onSubmitZip}
@@ -341,35 +367,37 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
                 status={zipStatus === "invalid" || zipStatus === "notFound" ? "error" : undefined}
               />
             )}
-            {/* CHANGED 2026-11-08 (ZIP search): only "failed" is a touchable.
+          </View>
+        )}
+        {/* CHANGED 2026-11-08 (ZIP search): only "failed" is a touchable.
               The informational messages (invalid / notFound / unavailable)
               used to render in the same TouchableOpacity, disabled, and
               VoiceOver announced them "dimmed", which reads as a broken
               control. They are a plain View now; both carry the live region,
               so TalkBack still reads a new message as it appears. */}
-            {searchMode === "zip" &&
-              zipMessage !== "" &&
-              (zipStatus === "failed" ? (
-                <TouchableOpacity
-                  testID="zip-message"
-                  onPress={onRetryZip}
-                  accessibilityRole="button"
-                  accessibilityLabel={zipMessage}
-                  accessibilityLiveRegion="polite"
-                >
-                  <Text style={themed($zipMessage)}>{zipMessage}</Text>
-                </TouchableOpacity>
-              ) : (
-                <View
-                  testID="zip-message"
-                  accessible
-                  accessibilityRole="text"
-                  accessibilityLabel={zipMessage}
-                  accessibilityLiveRegion="polite"
-                >
-                  <Text style={themed($zipMessage)}>{zipMessage}</Text>
-                </View>
-              ))}
+        {searchMode === "zip" && zipMessage !== "" && (
+          <View style={themed($zipMessageBlock)}>
+            {zipStatus === "failed" ? (
+              <TouchableOpacity
+                testID="zip-message"
+                onPress={onRetryZip}
+                accessibilityRole="button"
+                accessibilityLabel={zipMessage}
+                accessibilityLiveRegion="polite"
+              >
+                <Text style={themed($zipMessage)}>{zipMessage}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View
+                testID="zip-message"
+                accessible
+                accessibilityRole="text"
+                accessibilityLabel={zipMessage}
+                accessibilityLiveRegion="polite"
+              >
+                <Text style={themed($zipMessage)}>{zipMessage}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -447,35 +475,27 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
           horizontal inset, so their outer edges line up with the rows.
           CHANGED 2026-09-27 (later): Radius full width, then Day | Time
           ($whenRow) — same inset, so the pills still line up. */}
-        {(showMapToggle || showSortToggle) && (
+        {/* CHANGED 2026-11-08 (Jenova): the list/map pill moved up to the
+          GPS | ZIP row, so this row holds the sort pill alone, still on the
+          right where it has always sat. */}
+        {showSortToggle && (
           <View style={themed($controlsRow)}>
-            <View>
-              {showMapToggle && (
-                <MapListToggle
-                  viewMode={viewMode}
-                  disabled={mapToggleDisabled}
-                  onToggle={onToggleView}
-                />
-              )}
-            </View>
-            {showSortToggle && (
-              <SegmentedPill<InPersonSortOrder>
-                value={sortOrder}
-                // The visible "Sort by" label is gone, so this is the only
-                // place a screen-reader user hears what the halves choose
-                // between. Keep it.
-                accessibilityLabel={t("inPersonScreen:sortBy")}
-                options={[
-                  {
-                    value: "distance",
-                    label: t("inPersonScreen:sortDistance"),
-                    icon: "navigate-outline",
-                  },
-                  { value: "start", label: t("inPersonScreen:sortStart"), icon: "time-outline" },
-                ]}
-                onSelect={onSelectSort}
-              />
-            )}
+            <SegmentedPill<InPersonSortOrder>
+              value={sortOrder}
+              // The visible "Sort by" label is gone, so this is the only
+              // place a screen-reader user hears what the halves choose
+              // between. Keep it.
+              accessibilityLabel={t("inPersonScreen:sortBy")}
+              options={[
+                {
+                  value: "distance",
+                  label: t("inPersonScreen:sortDistance"),
+                  icon: "navigate-outline",
+                },
+                { value: "start", label: t("inPersonScreen:sortStart"), icon: "time-outline" },
+              ]}
+              onSelect={onSelectSort}
+            />
           </View>
         )}
 
@@ -548,11 +568,32 @@ const $headerTitleGroup: ViewStyle = {
 
 // ADDED 2026-11-07 (ZIP search): the control row. Left-aligned pill, then the
 // box and its message stacked under it.
+// CHANGED 2026-11-08 (Jenova): a wrapping row — list/map pill, GPS | ZIP
+// pill, then the box. `flexWrap` lets the box drop to its own line on a
+// narrow phone instead of being squeezed.
 const $searchModeRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  alignItems: "flex-start",
+  flexDirection: "row",
+  flexWrap: "wrap",
+  alignItems: "center",
   gap: spacing.sm,
   marginTop: spacing.sm,
   alignSelf: "stretch",
+})
+
+// ADDED 2026-11-08: the box takes the rest of the row and never less than
+// 140dp (room for "K1A 0B1" or a ZIP+4 at 16pt plus padding). With less than
+// that left beside the pills, the row wraps and the box spans the next line.
+const $zipField: ViewStyle = {
+  flexGrow: 1,
+  flexShrink: 1,
+  flexBasis: 140,
+  minWidth: 140,
+}
+
+// ADDED 2026-11-08: the message sits under the row, not inside it, so a long
+// message never pushes the box onto another line.
+const $zipMessageBlock: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginTop: spacing.xs,
 })
 
 const $zipMessage: ThemedStyle<TextStyle> = ({ colors }) => ({
@@ -584,10 +625,13 @@ const $selectorColumn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 // CHANGED 2026-09-30 (Jenova): horizontal inset removed — see $header above.
 // The pills still line up with the selector rows because both now inherit the
 // one inset from the list's content container (or the map branch's wrapper).
+// CHANGED 2026-11-08 (Jenova): sort pill only now (list/map moved up to the
+// GPS | ZIP row), so it is pushed to the right with `flex-end` rather than by
+// an empty left spacer.
 const $controlsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   alignItems: "center",
-  justifyContent: "space-between",
+  justifyContent: "flex-end",
   marginBottom: spacing.sm,
 })
 

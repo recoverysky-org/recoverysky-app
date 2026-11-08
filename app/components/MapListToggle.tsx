@@ -9,6 +9,12 @@ interface MapListToggleProps {
   viewMode: InPersonViewMode
   /** Offline → disabled (spec Error handling #3: blank tiles beat nobody) */
   disabled?: boolean
+  /**
+   * ADDED 2026-11-08 (ZIP search): what a screen reader hears on the disabled
+   * half. Defaults to the offline hint; In-Person passes "enter a ZIP" while
+   * ZIP mode has no point yet, the other reason the map can't open.
+   */
+  disabledHint?: string
   onToggle: () => void
 }
 
@@ -42,8 +48,14 @@ interface MapListToggleProps {
  * doesn't render. Do not "fix" this into `onSelect(mode)` without checking
  * InPersonScreen's `handleToggleView`, which is written as a flip.
  */
-export const MapListToggle: FC<MapListToggleProps> = ({ viewMode, disabled, onToggle }) => {
+export const MapListToggle: FC<MapListToggleProps> = ({
+  viewMode,
+  disabled,
+  disabledHint,
+  onToggle,
+}) => {
   const { t } = useTranslation()
+  const hint = disabledHint ?? t("inPersonScreen:mapOffline")
 
   return (
     <SegmentedPill<InPersonViewMode>
@@ -52,20 +64,22 @@ export const MapListToggle: FC<MapListToggleProps> = ({ viewMode, disabled, onTo
       // mapToggleDisabled in InPersonScreen), so flagging both halves is safe:
       // SegmentedPill never disables the active one, and leaving map mode
       // must always be possible.
+      // CHANGED 2026-11-08 (ZIP search): also while the list is up in ZIP mode
+      // with no point yet. Still list-only, so the reasoning above holds.
       options={[
         {
           value: "list",
           label: t("inPersonScreen:viewList"),
           icon: "list-outline",
           disabled,
-          disabledHint: t("inPersonScreen:mapOffline"),
+          disabledHint: hint,
         },
         {
           value: "map",
           label: t("inPersonScreen:viewMap"),
           icon: "map-outline",
           disabled,
-          disabledHint: t("inPersonScreen:mapOffline"),
+          disabledHint: hint,
         },
       ]}
       // SegmentedPill only fires for the inactive half, so every call is a flip.
