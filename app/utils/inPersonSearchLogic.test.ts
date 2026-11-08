@@ -16,20 +16,28 @@ import {
 
 describe("normalizePostalInput", () => {
   it("accepts a five-digit US ZIP", () => {
-    expect(normalizePostalInput("80203")).toEqual({ country: "US", code: "80203" })
+    expect(normalizePostalInput("80203")).toEqual({ country: "US", code: "80203", key: "80203" })
   })
   it("drops the ZIP+4 suffix, hyphenated or not", () => {
-    expect(normalizePostalInput("80203-1234")).toEqual({ country: "US", code: "80203" })
-    expect(normalizePostalInput("802031234")).toEqual({ country: "US", code: "80203" })
+    expect(normalizePostalInput("80203-1234")).toEqual({
+      country: "US",
+      code: "80203",
+      key: "80203",
+    })
+    expect(normalizePostalInput("802031234")).toEqual({
+      country: "US",
+      code: "80203",
+      key: "80203",
+    })
   })
   it("canonicalises a Canadian postal code", () => {
-    const k = { country: "CA", code: "K1A0B1" }
+    const k = { country: "CA", code: "K1A0B1", key: "K1A" }
     expect(normalizePostalInput(" k1a 0b1 ")).toEqual(k)
     expect(normalizePostalInput("K1A-0B1")).toEqual(k)
     expect(normalizePostalInput("k1a0b1")).toEqual(k)
   })
   it("accepts a bare FSA", () => {
-    expect(normalizePostalInput("k1a")).toEqual({ country: "CA", code: "K1A" })
+    expect(normalizePostalInput("k1a")).toEqual({ country: "CA", code: "K1A", key: "K1A" })
   })
   it.each(["", "1234", "123456", "ABCDE", "K1A 0B", "D1A 0B1", "W1A", "K1O 0B1"])(
     "rejects %j",
@@ -80,7 +88,7 @@ describe("stored ZIP", () => {
 })
 
 describe("decideZipLookup", () => {
-  const us = { country: "US" as const, code: "80203" }
+  const us = { country: "US" as const, code: "80203", key: "80203" }
   const found: ZipAnswer = { found: true, lat: 1, lon: 2, country: "US" }
   const miss: ZipAnswer = { found: false }
   const base = {
@@ -117,6 +125,31 @@ describe("decideZipLookup", () => {
   })
   it("fetches otherwise", () => {
     expect(decideZipLookup(base)).toEqual({ action: "fetch", code: "80203" })
+  })
+
+  // ADDED 2026-11-08: the api resolves Canada by FSA only (its table holds
+  // FSAs; api src/mcp/postal.ts `normalizePostalCode` keys "K1A 0B1" as
+  // "K1A"), so the app keys, dedupes and sends by the same FSA.
+  describe("Canada, keyed by FSA as the api is", () => {
+    const full = { country: "CA" as const, code: "K1A0B1", key: "K1A" }
+    const caFound: ZipAnswer = { found: true, lat: 45.4, lon: -75.7, country: "CA" }
+    it("sends only the FSA", () => {
+      expect(decideZipLookup({ ...base, normalized: full })).toEqual({
+        action: "fetch",
+        code: "K1A",
+      })
+    })
+    it("answers another code in the same FSA from the memo", () => {
+      const other = { country: "CA" as const, code: "K1A0B2", key: "K1A" }
+      expect(
+        decideZipLookup({ ...base, normalized: other, memo: new Map([["K1A", caFound]]) }),
+      ).toEqual({ action: "memo", answer: caFound })
+    })
+    it("treats the same FSA on the wire as in flight", () => {
+      expect(decideZipLookup({ ...base, normalized: full, inFlightCode: "K1A" })).toEqual({
+        action: "in-flight",
+      })
+    })
   })
 })
 
@@ -162,13 +195,13 @@ describe("shouldExplainImHere", () => {
 
 describe("shouldAutoLookup", () => {
   it("looks up a complete US ZIP as it is typed", () => {
-    expect(shouldAutoLookup({ country: "US", code: "80203" })).toBe(true)
+    expect(shouldAutoLookup({ country: "US", code: "80203", key: "80203" })).toBe(true)
   })
   it("looks up a full six-character Canadian code", () => {
-    expect(shouldAutoLookup({ country: "CA", code: "K1A0B1" })).toBe(true)
+    expect(shouldAutoLookup({ country: "CA", code: "K1A0B1", key: "K1A" })).toBe(true)
   })
   it("waits on a bare FSA, which is usually the first half of a full code", () => {
-    expect(shouldAutoLookup({ country: "CA", code: "K1A" })).toBe(false)
+    expect(shouldAutoLookup({ country: "CA", code: "K1A", key: "K1A" })).toBe(false)
   })
   it("never looks up a shape it does not accept", () => {
     expect(shouldAutoLookup(null)).toBe(false)

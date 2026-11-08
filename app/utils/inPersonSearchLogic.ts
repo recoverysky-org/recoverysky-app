@@ -18,6 +18,17 @@ export interface NormalizedPostal {
   country: PostalCountry
   /** Canonical wire form: US five digits; CA uppercase, no space ("K1A0B1" or "K1A"). */
   code: string
+  /**
+   * ADDED 2026-11-08: what the api looks the code up by, and so what the app
+   * sends, memoises and dedupes by. US: the five digits (same as `code`).
+   * Canada: the FSA, the first three characters. The api's postal table holds
+   * Canadian FSAs only (GeoNames publishes no full Canadian codes); its
+   * `normalizePostalCode` (api src/mcp/postal.ts) keys "K1A 0B1" as "K1A". So
+   * "K1A 0B1" and "K1A 0B2" are one lookup with one answer, and sending only
+   * the FSA tells the server less than the full code would. `code` stays the
+   * full form for display and MMKV.
+   */
+  key: string
 }
 
 // First letter: the Canada Post letters that start a real FSA. The other
@@ -34,11 +45,12 @@ export function normalizePostalInput(raw: string): NormalizedPostal | null {
   // hyphen from Canadian candidates only after the US shape has been tried.
   const compact = raw.replace(/\s+/g, "").toUpperCase()
   const us = US_RE.exec(compact)
-  if (us) return { country: "US", code: us[1] }
+  if (us) return { country: "US", code: us[1], key: us[1] }
   const ca = CA_RE.exec(compact.replace(/-/g, ""))
   if (ca) {
-    // Keep the full six characters when given, else the bare FSA.
-    return { country: "CA", code: compact.replace(/-/g, "") }
+    // Keep the full six characters when given, else the bare FSA. The key is
+    // always the FSA (capture group 1), see `NormalizedPostal.key`.
+    return { country: "CA", code: compact.replace(/-/g, ""), key: ca[1] }
   }
   return null
 }
@@ -132,10 +144,12 @@ export function decideZipLookup(input: {
   const { normalized, memo, unavailable, inFlightCode } = input
   if (!normalized) return { action: "invalid" }
   if (unavailable) return { action: "unavailable" }
-  const answer = memo.get(normalized.code)
+  // CHANGED 2026-11-08: keyed by `key`, not `code`, matching the api (Canada
+  // by FSA). `inFlightCode` and the memo hold keys, and the fetch sends one.
+  const answer = memo.get(normalized.key)
   if (answer) return { action: "memo", answer }
-  if (inFlightCode === normalized.code) return { action: "in-flight" }
-  return { action: "fetch", code: normalized.code }
+  if (inFlightCode === normalized.key) return { action: "in-flight" }
+  return { action: "fetch", code: normalized.key }
 }
 
 /**

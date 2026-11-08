@@ -31,7 +31,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - **In-Person opens on a ZIP or postal code search and asks for location only
   when you choose GPS.** One row above Radius holds the list/map pill, a
   "GPS | ZIP" control and, in ZIP mode, a "ZIP or postal code" box (US ZIPs and
-  Canadian postal codes) that wraps to its own line on a narrow phone. In ZIP
+  Canadian postal codes) that wraps to its own line on a narrow phone. A
+  Canadian code is looked up, and sent, by its first three characters, as the
+  server resolves it, so "K1A 0B1" and "K1A 0B2" are one lookup. In ZIP
   mode the list/map pill stays visible, disabled until a code is found. A first
   visit no longer starts with a location prompt, the list and map work in ZIP
   mode with location off, and the map shows no location dot there. People who

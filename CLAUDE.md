@@ -1001,7 +1001,7 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   request. Pure decisions (code shapes, `decideStartingSearchMode`: stored mode
   wins, else GPS if `locationEnabled`, else ZIP; `decideZipLookup`;
   `shouldAutoLookup`: typing looks up only a complete code, never a bare
-  Canadian FSA, which submit still accepts; `deriveSearchFlags`;
+  Canadian FSA, which submit still accepts; a Canadian code is keyed and sent by its FSA, as the api resolves it (`NormalizedPostal.key`); `deriveSearchFlags`;
   `shouldRunVisitGate`; `shouldExplainImHere`) are in
   `app/utils/inPersonSearchLogic.ts` (vitest). `useInPersonSearchMode` holds the
   mode and text (MMKV `inperson.searchMode` / `inperson.zip`) and the lookup, with

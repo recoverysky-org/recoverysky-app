@@ -369,14 +369,17 @@ export const InPersonListHeader: FC<InPersonListHeaderProps> = observer(
             )}
           </View>
         )}
-        {/* CHANGED 2026-11-08 (ZIP search): only "failed" is a touchable.
+        {searchMode === "zip" && zipMessage !== "" && (
+          <View style={themed($zipMessageBlock)}>
+            {/* CHANGED 2026-11-08 (ZIP search): only "failed" is a touchable.
               The informational messages (invalid / notFound / unavailable)
               used to render in the same TouchableOpacity, disabled, and
               VoiceOver announced them "dimmed", which reads as a broken
               control. They are a plain View now; both carry the live region,
-              so TalkBack still reads a new message as it appears. */}
-        {searchMode === "zip" && zipMessage !== "" && (
-          <View style={themed($zipMessageBlock)}>
+              so TalkBack still reads a new message as it appears.
+              CHANGED 2026-11-08 (Jenova): the message now sits under the
+              GPS | ZIP row, not inside it, so a long message never pushes the
+              box onto another line. */}
             {zipStatus === "failed" ? (
               <TouchableOpacity
                 testID="zip-message"
@@ -567,7 +570,8 @@ const $headerTitleGroup: ViewStyle = {
 }
 
 // ADDED 2026-11-07 (ZIP search): the control row. Left-aligned pill, then the
-// box and its message stacked under it.
+// box and its message stacked under it. (The message has since moved out of
+// the row, into $zipMessageBlock below it; see the next note.)
 // CHANGED 2026-11-08 (Jenova): a wrapping row — list/map pill, GPS | ZIP
 // pill, then the box. `flexWrap` lets the box drop to its own line on a
 // narrow phone instead of being squeezed.

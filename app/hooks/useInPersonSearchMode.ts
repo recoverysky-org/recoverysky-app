@@ -92,7 +92,12 @@ export function useInPersonSearchMode(active: boolean) {
   const [zipInput, setZipInputState] = useState(restored.input)
   const [zipStatus, setZipStatus] = useState<ZipStatus>(restored.status)
   const [zipCenter, setZipCenter] = useState<ZipCenter | null>(restored.center)
-  const [zipCode, setZipCode] = useState<string | null>(restored.code)
+  // CHANGED 2026-11-08: the lookup key (US ZIP; Canadian FSA), not the full
+  // code, so the map (keyed on it) does not remount for a new code that is the
+  // same point. See NormalizedPostal.key.
+  const [zipCode, setZipCode] = useState<string | null>(() =>
+    restored.code ? (normalizePostalInput(restored.code)?.key ?? restored.code) : null,
+  )
 
   // Session memo of found / not-found answers, keyed by canonical code.
   // Seeded with the restored answer: submit/retry on the unchanged restored
@@ -100,8 +105,10 @@ export function useInPersonSearchMode(active: boolean) {
   // a code up again).
   const [memo] = useState(() => {
     const m = new Map<string, ZipAnswer>()
-    if (restored.center && restored.code) {
-      m.set(restored.code, {
+    // CHANGED 2026-11-08: keyed by the lookup key, like every memo entry.
+    const restoredKey = restored.code ? normalizePostalInput(restored.code)?.key : undefined
+    if (restored.center && restoredKey) {
+      m.set(restoredKey, {
         found: true,
         lat: restored.center.lat,
         lon: restored.center.lon,
@@ -111,6 +118,11 @@ export function useInPersonSearchMode(active: boolean) {
     return m
   })
   const memoRef = useRef(memo)
+  // CHANGED 2026-11-08: the memo, `inFlightRef` and `newestRef` hold lookup
+  // KEYS (NormalizedPostal.key: US ZIP, Canadian FSA), matching how the api
+  // resolves codes. `newestCodeRef` keeps the newest full code, which is what
+  // MMKV stores and the box shows after a restart. `queuedRef` holds a full
+  // code too; it is normalised again when it runs.
   // Latched once the API answers 404 for the route (older server): no more tries.
   const unavailableRef = useRef(false)
   // The canonical code whose request is on the wire, so the same code is not sent twice.
@@ -118,6 +130,7 @@ export function useInPersonSearchMode(active: boolean) {
   // The canonical code of the most recent lookup started or applied; a response
   // for any other code is stale and dropped (it may still be memoised).
   const newestRef = useRef<string | null>(null)
+  const newestCodeRef = useRef<string | null>(null)
   // At most one lookup is in flight; a newer valid code replaces the pending
   // one (spec rule). It runs, through decideZipLookup again, when the wire settles.
   const queuedRef = useRef<string | null>(null)
@@ -157,9 +170,15 @@ export function useInPersonSearchMode(active: boolean) {
     if (!mountedRef.current || newestRef.current !== code) return
     let status: ZipStatus
     if (answer.found) {
+      // `code` is the lookup key; store the full code the person typed.
       saveString(
         ZIP_KEY,
-        serializeStoredZip({ code, country: answer.country, lat: answer.lat, lon: answer.lon }),
+        serializeStoredZip({
+          code: newestCodeRef.current ?? code,
+          country: answer.country,
+          lat: answer.lat,
+          lon: answer.lon,
+        }),
       )
       setZipCenter({ lat: answer.lat, lon: answer.lon })
       setZipCode(code)
@@ -221,10 +240,13 @@ export function useInPersonSearchMode(active: boolean) {
         return
       }
       if (!normalized) return
-      const code = normalized.code
+      // CHANGED 2026-11-08: everything below is keyed by the lookup key (a
+      // Canadian code by its FSA), which is also all that is sent.
+      const code = normalized.key
       // Anything but a queued fetch supersedes the pending code.
       queuedRef.current = null
       newestRef.current = code
+      newestCodeRef.current = normalized.code
       switch (decision.action) {
         case "unavailable":
           setZipStatus("unavailable")
@@ -252,7 +274,8 @@ export function useInPersonSearchMode(active: boolean) {
           setZipStatus("looking")
           if (inFlightRef.current !== null) {
             // Another code is on the wire: wait for it, replacing any earlier queued code.
-            queuedRef.current = code
+            // The full code, so newestCodeRef is right when it runs.
+            queuedRef.current = normalized.code
             return
           }
           inFlightRef.current = code
