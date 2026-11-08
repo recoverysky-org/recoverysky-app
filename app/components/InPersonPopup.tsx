@@ -73,6 +73,7 @@ import {
   Animated,
 } from "react-native"
 import { getLocales } from "expo-localization"
+import * as Location from "expo-location"
 import { Ionicons } from "@expo/vector-icons"
 import { useIsFocused } from "@react-navigation/native"
 import { DateTime, FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
@@ -100,7 +101,7 @@ import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
-import type { InPersonSearchMode } from "@/utils/inPersonSearchLogic"
+import { shouldExplainImHere, type InPersonSearchMode } from "@/utils/inPersonSearchLogic"
 import { buildDirectionsUrl, composeAddress, formatDistance } from "@/utils/nearbyLogic"
 import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 
@@ -128,9 +129,9 @@ interface InPersonPopupProps {
   onClose: () => void
   /**
    * ADDED 2026-11-07 (ZIP search): the In-Person segment's GPS | ZIP choice
-   * (null while it is not decided yet). Not read yet: plan Task 7 uses it so
-   * "I'm Here" in ZIP mode explains its one-off location check before the OS
-   * prompt. Optional so a caller without a search mode keeps today's popup.
+   * (null while it is not decided yet). Read by handleImHere so "I'm Here" in
+   * ZIP mode explains its one-off location check before the OS prompt.
+   * Optional so a caller without a search mode keeps today's popup.
    */
   searchMode?: InPersonSearchMode | null
 }
@@ -139,6 +140,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   visible,
   meeting,
   onClose,
+  searchMode = null,
 }) {
   const { t } = useTranslation()
   const { themed, theme } = useAppTheme()
@@ -427,6 +429,8 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // like different products.
 
   const { check, isChecking } = usePresenceCheck()
+  // True while the ZIP-mode location note is open (see handleImHere).
+  const explainingRef = useRef(false)
   const [timerVisible, setTimerVisible] = useState(false)
   const [verifiedPresence, setVerifiedPresence] = useState<PersistedPresence | null>(null)
 
@@ -463,7 +467,59 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     // a guest never persisting a timer session, and SchedulePopup gates
     // inside its handler the same way.
     if (!canLogAttendance({ attendanceEnabled: profileStore.attendanceEnabled, isGuest })) return
-    if (!meeting || isChecking) return
+    if (!meeting || isChecking || explainingRef.current) return
+
+    // ADDED 2026-11-07 (ZIP search): in ZIP mode the person never chose GPS, so
+    // without an OS grant the system location prompt would arrive out of the
+    // blue. Say first that "I'm Here" checks the phone's location once, to
+    // confirm they are at the meeting, and that nothing is kept. The grant is
+    // only READ (never prompted) and a rejection counts as not granted.
+    // ORDER MATTERS: this must run before the locationEnabled self-heal below,
+    // or a Cancel would still have flipped the setting on. Cancel returns here,
+    // before the self-heal and before check().
+    let osGranted = false
+    try {
+      osGranted = (await Location.getForegroundPermissionsAsync()).granted
+    } catch {
+      osGranted = false
+    }
+    if (shouldExplainImHere({ mode: searchMode, osGranted })) {
+      // explainingRef stops a double-tap stacking a second dialog while the
+      // first is open (isChecking only flips once check() starts).
+      explainingRef.current = true
+      let proceed = false
+      try {
+        const title = translate("inPersonScreen:imHereLocationTitle")
+        const message = translate("inPersonScreen:imHereLocationMessage")
+        if (Platform.OS === "web") {
+          // react-native-web's Alert is a no-op, so the Promise below would
+          // never settle; window.confirm is the same fallback useLocationGate uses.
+          proceed = window.confirm(`${title}\n\n${message}`)
+        } else {
+          proceed = await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              title,
+              message,
+              [
+                {
+                  text: translate("common:cancel"),
+                  style: "cancel",
+                  onPress: () => resolve(false),
+                },
+                {
+                  text: translate("inPersonScreen:imHereLocationContinue"),
+                  onPress: () => resolve(true),
+                },
+              ],
+              { cancelable: true, onDismiss: () => resolve(false) },
+            )
+          })
+        }
+      } finally {
+        explainingRef.current = false
+      }
+      if (!proceed) return
+    }
 
     // Self-heal, deliberately silent. The only way to reach this with the
     // toggle off is to turn it off in Settings without leaving the In-Person
@@ -583,7 +639,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     }
     // The popup stays open in every rejection case above so the user can
     // retry without re-navigating.
-  }, [meeting, isChecking, check, useMiles, profileStore, isGuest])
+  }, [meeting, isChecking, check, useMiles, profileStore, isGuest, searchMode])
 
   // Copy wrinkle accepted, not fixed: formatDistance renders the 150 m radius
   // as "0.1 mi" for US users, which reads oddly for a threshold. It's the same
