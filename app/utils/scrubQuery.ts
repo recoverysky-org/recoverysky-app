@@ -45,6 +45,12 @@ export const SENSITIVE_QUERY_KEYS = new Set([
   // to log or persist coordinates. Do not remove without removing the caller.
   "lat",
   "lon",
+  // CHANGED 2026-11-07 (ZIP search): GET /geo/postal-code carries the typed
+  // ZIP / postal code in the query string, and Sentry's XHR breadcrumbs record
+  // that URL. A postal code locates the user to a few blocks, so it is as
+  // sensitive as lat/lon. The native breadcrumb scrub reads this same set via
+  // scrubQueryString, so one entry covers both paths.
+  "postal_code",
 ])
 
 /**

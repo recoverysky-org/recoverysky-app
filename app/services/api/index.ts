@@ -32,6 +32,7 @@ import {
 import { fetchWithContentRetry } from "./contentRetryLogic"
 import { emailVerifyProblemFrom, type EmailVerifyProblem } from "./emailVerifyProblem"
 import { classifyNewsPayload, type NewsPayloadOutcome } from "./newsLogic"
+import { toPostalLookupResult, type PostalLookupResult } from "./postalLookupLogic"
 import {
   makeTraceContext,
   traceIdFromTraceparent,
@@ -1173,6 +1174,32 @@ export class Api {
       schedules: response.data.schedules,
       count: response.data.count,
     }
+  }
+
+  /**
+   * Look up a typed US ZIP / Canadian postal code, for the In-Person ZIP search.
+   * ADDED 2026-11-07 (ZIP search). `GET /geo/postal-code?postal_code=<code>`
+   * answers `{ found, lat, lon, country }`; a 404 means the route does not exist
+   * on this API yet (`unavailable`), which is not the same as "no such code".
+   *
+   * PRIVACY: never log the code or the point it resolves to: logs ship to Loki.
+   * Only the result kind is logged.
+   */
+  async lookupPostalCode(code: string): Promise<PostalLookupResult> {
+    const response = await this.recoverySkyApi.get<unknown>("/geo/postal-code", {
+      postal_code: code,
+    })
+    const problem = response.ok ? null : getGeneralApiProblem(response)
+    const result = toPostalLookupResult({
+      ok: response.ok,
+      problemKind: response.ok ? null : (problem?.kind ?? "unknown"),
+      data: response.data,
+    })
+    log.debug("Postal lookup", {
+      result: result.kind,
+      problem: result.kind === "failed" ? result.problem : undefined,
+    })
+    return result
   }
 
   /**

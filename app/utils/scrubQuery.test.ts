@@ -42,6 +42,12 @@ describe("scrubUrl", () => {
     )
   })
 
+  it("scrubs a postal code from the ZIP lookup", () => {
+    const result = scrubUrl("https://api.recoverysky.org/geo/postal-code?postal_code=K1A0B1")
+    expect(result).not.toContain("K1A0B1")
+    expect(result).toBe("https://api.recoverysky.org/geo/postal-code?postal_code=%5BFiltered%5D")
+  })
+
   it("scrubs a Zoom passcode", () => {
     const result = scrubUrl("https://zoom.us/j/123456789?pwd=SuperSecret&un=am9l")
     expect(result).not.toContain("SuperSecret")
