@@ -33,10 +33,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   them to the meeting server for that message alone and stores none of them.
   The Sky tab is still hidden in production builds.
 - **Sky shows your routine as a card.** When Sky looks at your day (the Daily
-  Dash's `get_today`), the chat draws your routine in My Day's look: "My Daily
-  Routine" and the day, then each part of the day with every item's ring, time
-  and "Done · 4 this week", set-aside items dimmed. "Open My Day" goes to the My
-  Day tab, and is left out for an account without it. The card shows the ticks
+  Dash's `get_today`), the chat draws your routine, summary first: "My Daily
+  Routine", the day and "3 of 6 done" with a bar, then each part of the day as
+  a line of chips (done ones tinted with a check, set-aside ones dimmed). "Show
+  details" opens each item into a row with its time and "Done · 4 this week",
+  in My Day's words; "Hide details" closes it. "Open My Day" goes to the My Day
+  tab, and is left out for an account without it. The card shows the ticks
   as they were when Sky looked, and nothing on it can be ticked yet. Each
   message to Sky now says the app draws this card (`cards: ["routine"]`), and
   only then does the agent's matching rule (`daily-dash-tools/2`) tell Sky the

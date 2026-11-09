@@ -171,15 +171,15 @@ writes meeting data, since the cards carry it.
       `{ deleted, id }`) also want a confirmation rather than the finished badge.
 - [x] **Routine card for the Daily Dash's `get_today`** (done 2026-11-08).
       `todayOfToolOutput` (`utils/agentRoutineLogic.ts`) reads the Today from
-      the call's `structuredContent`, and `RoutineResultsCard` draws it in My
-      Day's look, display only, with "Open My Day" while the tab exists. The
+      the call's `structuredContent`, and `RoutineResultsCard` draws it summary
+      first (count, bar, chips; "Show details" for rows), display only, with
+      "Open My Day" while the tab exists. The
       agent's `ROUTINE_CARD_RULE` (`daily-dash-tools/2`, agent `[Unreleased]`)
       stops Sky reading it out, only for a body whose `cards` names "routine"
       (`SKY_CARDS`), so the app and the agent ship in either order.
-      Device pass (with the Sky tab's): scroll a thread holding several
-      routine cards on an Android 12+ phone, since each card mounts its own
-      Dimezis blur inside the chat's ScrollView (review 2026-11-08); fall back
-      to the translucent pane (`"none"`) for this surface if it stutters.
+      Device pass (with the Sky tab's): a long routine's chips wrap, and at the
+      largest text size the part-of-the-day column widens and no label breaks
+      mid-word (the labels are English placeholders in every locale for now).
 - [ ] **Tick a routine item from Sky's card.** Next, by Jenova's call
       (2026-11-08): the Daily Dash MCP server has no tick tool ("it does not
       tick, retire or reorder items"); the API's `PUT` / `DELETE

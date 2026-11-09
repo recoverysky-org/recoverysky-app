@@ -1052,6 +1052,10 @@ const th: Translations = {
     showMeetingsAgain: "Shows the meetings again",
     // ADDED 2026-11-08: the routine card's link to the My Day tab (RoutineResultsCard)
     openMyDay: "Open My Day",
+    // ADDED 2026-11-08: the routine card's count, and its toggle between chips and rows
+    routineProgress: "{{done}} of {{total}} done",
+    showRoutineDetails: "Show details",
+    hideRoutineDetails: "Hide details",
     newConversation: "New conversation",
     newConversationConfirm:
       "Start a new conversation with Sky? You can't go back to this one from the app.",

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { routineBucketsOf, routineDayHeading, todayOfToolOutput } from "./agentRoutineLogic"
+import {
+  routineBucketsOf,
+  routineDayHeading,
+  routineProgressOf,
+  todayOfToolOutput,
+} from "./agentRoutineLogic"
 
 /** A routine item as the Daily Dash API's Today answers it (sdk `zTodayItem`) */
 const item = (overrides: Record<string, unknown> = {}) => ({
@@ -234,5 +239,44 @@ describe("routineDayHeading", () => {
   it("shows anything that is not a calendar date as it came", () => {
     expect(routineDayHeading("2026-13-01", words)).toBe("2026-13-01")
     expect(routineDayHeading("soon", words)).toBe("soon")
+  })
+})
+
+describe("routineProgressOf", () => {
+  const items = (marks: Array<"done" | "skipped" | "open">) =>
+    todayOfToolOutput(
+      envelope(
+        today(
+          marks.map((mark, i) =>
+            item({ id: `i${i}`, tick: mark === "open" ? null : { status: mark, at: null } }),
+          ),
+        ),
+      ),
+    )!.items
+
+  // The card's "3 of 6 done": a set-aside item is in the total and not done, as My Day reads it.
+  it("counts done items over every item, set aside ones included", () => {
+    expect(routineProgressOf(items(["done", "done", "open", "skipped", "open", "done"]))).toEqual({
+      done: 3,
+      total: 6,
+      percent: 50,
+    })
+  })
+
+  it("is nought of nought for no routine", () => {
+    expect(routineProgressOf([])).toEqual({ done: 0, total: 0, percent: 0 })
+  })
+
+  // The bar's share. Rounded, but never full until all are done, nor empty once one is.
+  it("rounds the share, and keeps a part-done bar off both ends", () => {
+    const of = (done: number, total: number) =>
+      routineProgressOf(items([...Array(done).fill("done"), ...Array(total - done).fill("open")]))
+        .percent
+    expect(of(1, 3)).toBe(33)
+    expect(of(2, 3)).toBe(67)
+    expect(of(0, 5)).toBe(0)
+    expect(of(5, 5)).toBe(100)
+    expect(of(199, 200)).toBe(99)
+    expect(of(1, 201)).toBe(1)
   })
 })

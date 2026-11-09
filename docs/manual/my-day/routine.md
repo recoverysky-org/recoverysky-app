@@ -50,7 +50,7 @@ Templates need a connection.
 
 **A long list.** If you see "That's a full day. Would a shorter list feel lighter?", that is a gentle suggestion. Nothing is removed.
 
-**Your routine in a chat with Sky.** When you ask Sky about your day, the chat shows your routine as a card: "My Daily Routine", the day, and each item with its time and "Done", "Set aside today" or "Not yet". The card shows how things stood when Sky looked, and its items cannot be ticked there; tick them on "My Day". "Open My Day" at the bottom of the card goes to the My Day tab.
+**Your routine in a chat with Sky.** When you ask Sky about your day, the chat shows your routine as a card: "My Daily Routine", the day, how many are done (for example "3 of 6 done"), and each part of the day with its items. Done items have a check; items set aside are dimmed. "Show details" lists each item with its time and "Done", "Set aside today" or "Not yet"; "Hide details" closes the list. The card shows how things stood when Sky looked, and its items cannot be ticked there; tick them on "My Day". "Open My Day" at the bottom of the card goes to the My Day tab.
 
 **Where your routine lives.** On this phone, encrypted, and on The Daily Dash's server for your account. Settings → "Account" → "Delete User Data" deletes it from this phone; what was already sent stays on The Daily Dash's server.
 

@@ -1067,3 +1067,11 @@ ADDED 2026-11-08 (same change, after review), **16 more strings (8 locales x 2 k
   is still the English placeholder "My Day" in every locale; the two must stay the same words.
 - The rest of the card uses the `myDay` namespace's own words (the routine title, parts of the day,
   "Done", "Set aside today", "Not yet", "{{n}} this week"), already queued with My Day.
+
+ADDED 2026-11-08 (the card became summary first), **24 more strings (8 locales x 3 keys)**:
+- `agentScreen.routineProgress`, the count beside the card's title ("{{done}} of {{total}} done").
+  Keep both placeholders; `total` counts every item, the set-aside ones included. It sits on one
+  line with "My Daily Routine", so keep it short.
+- `agentScreen.showRoutineDetails` / `agentScreen.hideRoutineDetails`, the toggle that opens the
+  chips into rows with times and closes them again ("Show details", "Hide details"). A screen
+  reader also says whether it is open, so the words need not.

@@ -4,7 +4,8 @@
  * PURE MODULE: no runtime `@/` imports (only the relative `./agentToolAnswerLogic`), so vitest can
  * import it (see CLAUDE.md "Test Runner Split").
  * ToolResultRenderer asks `todayOfToolOutput` whether a finished tool call is a today answer, and
- * RoutineResultsCard draws it, grouped by `routineBucketsOf`, under `routineDayHeading`.
+ * RoutineResultsCard draws it, grouped by `routineBucketsOf`, under `routineDayHeading`, with its
+ * `routineProgressOf` count.
  *
  * ADDED 2026-11-08. Sky reads the person's day through the Daily Dash MCP server's `get_today`
  * (the-daily-dash-app `packages/mcp/src/tools/today.ts`), which answers the Daily Dash API's
@@ -139,6 +140,25 @@ export function routineBucketsOf(items: readonly SkyRoutineItem[]): RoutineBucke
     items: items.filter((entry) => !isKnownBucket(entry.bucket)),
   }
   return [...known, other].filter((group) => group.items.length > 0)
+}
+
+/**
+ * The card's "3 of 6 done" (ADDED 2026-11-08, summary card): items done over every item. A set-aside
+ * item is in the total and not done, as My Day's rings read it: set aside is not done.
+ *
+ * `percent` is the bar's share, rounded, but kept between 1 and 99 while some are done and some are
+ * not (review 2026-11-08): rounding alone drew a full bar at 199 of 200 and an empty one at 1 of 201.
+ */
+export function routineProgressOf(items: readonly SkyRoutineItem[]): {
+  done: number
+  total: number
+  percent: number
+} {
+  const done = items.filter((entry) => entry.mark === "done").length
+  const total = items.length
+  if (total === 0 || done === 0) return { done, total, percent: 0 }
+  if (done === total) return { done, total, percent: 100 }
+  return { done, total, percent: Math.min(99, Math.max(1, Math.round((done / total) * 100))) }
 }
 
 /**

@@ -1613,7 +1613,8 @@ has been seen working on a phone.
   "Selected: …" badge reopens the card (`expandToolResult`): a card holds every meeting the call
   returned.
 - **Routine card** (ADDED 2026-11-08). A `get_today` answer from the Daily Dash MCP server (its
-  `structuredContent` is the API's Today) draws the person's routine in My Day's look
+  `structuredContent` is the API's Today) draws the person's routine, summary first: the count and a
+  bar, chips per part of the day, and "Show details" for rows with times and week counts
   (`RoutineResultsCard`; parsing in `todayOfToolOutput`, `app/utils/agentRoutineLogic.ts`, vitest),
   decided by shape like the meeting cards. Every turn's body says this build draws it
   (`cards: SKY_CARDS`, `["routine"]`, `agentBodyLogic.ts`), and only then does the agent's
@@ -1621,9 +1622,10 @@ has been seen working on a phone.
   routine, so she never lists it: the card is how the items reach the person. Declared, because the
   agent cannot tell this app from the Daily Dash app by the bearer (older Daily Dash builds sign in
   to My Day with this app's Auth0 client); a body without it keeps Sky's words, so either repo can
-  ship first. Remove `"routine"` only with the card. Built here from `MyDayHost`'s pieces
-  (`buildMyDayTheme`, `coldStartMyDayPhoto`, `MyDayBlur`, `useMyDayCopy`), not from the package: its
-  `RoutineCard` needs the Daily Dash client, which exists only inside the My Day tab. Display only
+  ship first. Remove `"routine"` only with the card. In the chat's own look (the meeting cards'
+  frame; CHANGED 2026-11-08, Jenova chose this over My Day's glass look), with My Day's words
+  (`useMyDayCopy`). Built here, not taken from the package: its `RoutineCard` needs the Daily Dash
+  client, which exists only inside the My Day tab. Display only
   (ticking from the card is next): the ticks are the answer's, so an old card keeps its day's. It
   never collapses. "Open My Day" shows only while the tab navigator has a `MyDay` route
   (`useNavigationState` in `AgentScreen`), so it follows the `myday` gate exactly. The two cards

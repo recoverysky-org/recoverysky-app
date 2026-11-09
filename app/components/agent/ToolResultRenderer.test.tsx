@@ -16,11 +16,10 @@ jest.mock("expo-localization", () => ({
   getLocales: () => [{ measurementSystem: "us" }],
 }))
 
-// My Day's own English words, as in RoutineResultsCard.test.tsx; the photo is a bundled JPEG.
+// My Day's own English words, as in RoutineResultsCard.test.tsx.
 jest.mock("@/hooks/useMyDayCopy", () => ({
   useMyDayCopy: () => jest.requireActual("@daily-dash/my-day/copy").defaultMyDayCopy,
 }))
-jest.mock("@/theme/myDayPhotos", () => ({ coldStartMyDayPhoto: () => ({ uri: "photo" }) }))
 
 let mockStore: ReturnType<typeof ConversationStoreModel.create>
 jest.mock("@/models", () => ({
