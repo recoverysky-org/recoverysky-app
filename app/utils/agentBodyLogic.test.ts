@@ -1,7 +1,15 @@
 import type { UIMessage } from "ai"
 import { describe, expect, it } from "vitest"
 
-import { chatErrorLogFields, chatRequestBody, isStaleRefusal, turnOf } from "./agentBodyLogic"
+import {
+  chatErrorLogFields,
+  chatRequestBody,
+  FAVORITE_ID_MAX_CHARS,
+  FAVORITE_IDS_MAX,
+  favoriteMeetingIds,
+  isStaleRefusal,
+  turnOf,
+} from "./agentBodyLogic"
 
 const user = (id: string): UIMessage => ({
   id,
@@ -120,6 +128,78 @@ describe("chatRequestBody", () => {
     const messages = [user("u1"), assistant("partial")]
     chatRequestBody("conv-1", messages, "UTC", undefined)
     expect(messages.map((message) => message.id)).toEqual(["u1", "partial"])
+  })
+
+  it("carries the favorite meeting ids", () => {
+    const body = chatRequestBody("conv-1", [user("u1")], "UTC", undefined, ["m1", "m2"])
+    expect(body.favorite_meeting_ids).toEqual(["m1", "m2"])
+  })
+
+  // The agent's spec: every turn sends them, an answered card's included.
+  it("carries them on an answered card too", () => {
+    const body = chatRequestBody("conv-1", [user("u1"), answeredCard("a1")], "UTC", undefined, [
+      "m1",
+    ])
+    expect(body.favorite_meeting_ids).toEqual(["m1"])
+  })
+
+  it.each([[[]], [undefined]])("omits favorites when there are none (%j)", (ids) => {
+    const body = chatRequestBody("conv-1", [user("u1")], "UTC", undefined, ids)
+    expect(body).not.toHaveProperty("favorite_meeting_ids")
+  })
+})
+
+describe("favoriteMeetingIds", () => {
+  const record = (mid: string, loves: boolean, lastJoin = 0) => ({ mid, loves, lastJoin })
+
+  it("answers the hearted meetings alone", () => {
+    expect(
+      favoriteMeetingIds([record("m1", true), record("m2", false), record("m3", true)]),
+    ).toEqual(["m1", "m3"])
+  })
+
+  it("answers nothing for no records", () => {
+    expect(favoriteMeetingIds([])).toEqual([])
+  })
+
+  // The order says nothing about when a heart was tapped or a meeting joined.
+  it("sorts the ids", () => {
+    expect(
+      favoriteMeetingIds([record("m3", true, 30), record("m1", true, 10), record("m2", true, 20)]),
+    ).toEqual(["m1", "m2", "m3"])
+  })
+
+  it("lists an id once", () => {
+    expect(favoriteMeetingIds([record("m1", true), record("m1", true)])).toEqual(["m1"])
+  })
+
+  // The agent drops these anyway (its meetingsContext.ts) and logs a warning per turn.
+  it("leaves out an id the agent would drop", () => {
+    const tooLong = "x".repeat(FAVORITE_ID_MAX_CHARS + 1)
+    const longest = "y".repeat(FAVORITE_ID_MAX_CHARS)
+    expect(
+      favoriteMeetingIds([record("", true), record(tooLong, true), record(longest, true)]),
+    ).toEqual([longest])
+  })
+
+  it(`keeps at most ${FAVORITE_IDS_MAX}, the most recently joined`, () => {
+    const records = Array.from({ length: FAVORITE_IDS_MAX + 2 }, (_, index) =>
+      record(`m${String(index).padStart(4, "0")}`, true, index),
+    )
+    const ids = favoriteMeetingIds(records)
+    expect(ids).toHaveLength(FAVORITE_IDS_MAX)
+    // The two never or least recently joined are the ones left out.
+    expect(ids).not.toContain("m0000")
+    expect(ids).not.toContain("m0001")
+    expect(ids).toEqual([...ids].sort())
+  })
+
+  it("reads a junk join time as never joined", () => {
+    const records = [
+      ...Array.from({ length: FAVORITE_IDS_MAX }, (_, index) => record(`k${index}`, true, 5)),
+      record("junk", true, Number.NaN),
+    ]
+    expect(favoriteMeetingIds(records)).not.toContain("junk")
   })
 })
 

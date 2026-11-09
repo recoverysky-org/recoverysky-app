@@ -179,6 +179,12 @@ jest.mock("@/models", () => ({
   useAuthenticationStore: () => ({ isAuthenticated: mockAuthenticated }),
 }))
 
+// The feedback cache's records, by meeting id. Reset per test in beforeEach.
+let mockFeedback = new Map<string, { mid: string; loves: boolean; lastJoin: number }>()
+jest.mock("@/db", () => ({
+  feedbackCache: { getAll: () => new Map(mockFeedback) },
+}))
+
 const CONVERSATION_ID = "conversation-1"
 
 function readyView(overrides: Partial<{ id: string; history: UIMessage[]; readAt: number }> = {}) {
@@ -238,6 +244,7 @@ describe("AgentScreen", () => {
     mockChat.error = undefined
     mockConversation.view = readyView()
     mockConversation.chatState = { current: { busy: false, sentIds: new Set() } }
+    mockFeedback = new Map()
     mockProfile.aiConsentAccepted = true
     mockProfile.fellowship = "AA"
     mockAuthenticated = true
@@ -698,6 +705,29 @@ describe("AgentScreen", () => {
       await sendThroughTransport([userMessage("turn", "my words")], firstTransport)
 
       expect(JSON.parse(mockExpoFetch.mock.calls[0][1].body).fellowship).toBe("NA")
+    })
+
+    // Read at send time, like the fellowship: a heart tapped after the mount counts.
+    it("sends the hearted meetings of the moment", async () => {
+      mountScreen()
+      mockFeedback.set("m2", { mid: "m2", loves: true, lastJoin: 0 })
+      mockFeedback.set("m1", { mid: "m1", loves: true, lastJoin: 0 })
+      mockFeedback.set("m3", { mid: "m3", loves: false, lastJoin: 0 })
+
+      await sendThroughTransport([userMessage("turn", "my words")])
+
+      const body = JSON.parse(mockExpoFetch.mock.calls[0][1].body)
+      expect(body.favorite_meeting_ids).toEqual(["m1", "m2"])
+    })
+
+    it("sends no favorites key without a heart", async () => {
+      mountScreen()
+
+      await sendThroughTransport([userMessage("turn", "my words")])
+
+      expect(JSON.parse(mockExpoFetch.mock.calls[0][1].body)).not.toHaveProperty(
+        "favorite_meeting_ids",
+      )
     })
 
     it("hands useChat the conversation id and the history", () => {

@@ -168,11 +168,14 @@ writes meeting data, since the cards carry it.
       only way a meeting she offers reaches the person. Until they draw,
       reminder proposals also wait on an approval card nobody sees, and the
       next message closes them as declined (accepted).
-- [ ] **Send favorites and location with each turn** (`utils/agentBodyLogic.ts`
-      `chatRequestBody`): `favorite_meeting_ids` (the loved meeting ids from
-      `feedbackCache`, at most 500), and `location` as `{ lat, lon }` when the
-      app has a position, else `{ postal_code }` when it has one. Field names
-      follow the agent spec; check them against it before building.
+- [x] **Send favorites with each turn** (done 2026-11-08):
+      `favorite_meeting_ids`, the loved meeting ids from `feedbackCache` (at
+      most 500), via `favoriteMeetingIds` in `utils/agentBodyLogic.ts`. The
+      field name matches the agent spec.
+- [ ] **Send location with each turn** (`utils/agentBodyLogic.ts`
+      `chatRequestBody`): `location` as `{ lat, lon }` when the app has a
+      position, else `{ postal_code }` when it has one (agent spec "The chat
+      request").
 
 ---
 

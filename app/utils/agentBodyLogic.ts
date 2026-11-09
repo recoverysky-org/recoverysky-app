@@ -10,6 +10,11 @@
  * ADDED 2026-11-06 (spec 2026-11-06-agent-chat-turn-only-design.md, D2, D8). The
  * agent now holds the history and builds each turn's context from it, so the app
  * says which conversation a turn belongs to and sends only that turn.
+ *
+ * ADDED 2026-11-08 (agent spec 2026-11-07-sky-on-meetings-mcp-design.md, "The chat
+ * request"): each turn also carries the person's favorite meeting ids, so meetings-mcp
+ * can mark them and list them first. The agent hands them to meetings-mcp for that
+ * turn alone and stores none of them; it logs only their count.
  */
 
 import type { UIMessage } from "ai"
@@ -29,6 +34,58 @@ export interface ChatRequestBody {
   messages: UIMessage[]
   timezone: string
   fellowship?: string
+  /**
+   * ADDED 2026-11-08: the hearted meetings, from `favoriteMeetingIds`. Left out when there
+   * are none, which the agent reads exactly as an empty list. An agent older than v0.14.0
+   * ignores the key (its body schema is `.passthrough()`), so it never refuses a turn.
+   */
+  favorite_meeting_ids?: string[]
+}
+
+/**
+ * The most favorites a turn carries. The agent keeps the first 500 and drops the rest with a
+ * warning (its `meetingsContext.ts`); meetings-mcp caps its set there too.
+ */
+export const FAVORITE_IDS_MAX = 500
+
+/** The agent drops a longer id, and an empty one, as malformed (its `meetingsContext.ts`). */
+export const FAVORITE_ID_MAX_CHARS = 64
+
+/** The fields `favoriteMeetingIds` reads. A feedback cache record satisfies it. */
+export interface FavoriteRecordLike {
+  mid: string
+  loves: boolean
+  lastJoin: number
+}
+
+/**
+ * The ids of the meetings the person has hearted, for `favorite_meeting_ids`.
+ *
+ * Every loved meeting id goes, not one per schedule: meetings-mcp expands each id to its whole
+ * schedule anyway (api spec 2026-11-07-meetings-mcp-favorites-design.md, "favorite meeting id
+ * → its schedule → every meeting id in that schedule"), and the cache cannot tell schedules
+ * apart. Ids the agent would drop are left out here, so a turn logs no "Meeting context
+ * dropped" warning.
+ *
+ * Sorted, so the list carries the set alone: nothing about when a heart was tapped or a
+ * meeting joined. Past the cap (a clubhouse's schedules can hold many ids), the most recently
+ * joined are kept, since those are the meetings the person goes to; a join time that is not
+ * a finite number counts as never joined.
+ */
+export function favoriteMeetingIds(records: Iterable<FavoriteRecordLike>): string[] {
+  const lastJoinByMid = new Map<string, number>()
+  for (const { mid, loves, lastJoin } of records) {
+    if (!loves || mid.length === 0 || mid.length > FAVORITE_ID_MAX_CHARS) continue
+    const joined = Number.isFinite(lastJoin) ? lastJoin : 0
+    lastJoinByMid.set(mid, Math.max(lastJoinByMid.get(mid) ?? 0, joined))
+  }
+  let mids = [...lastJoinByMid.keys()]
+  if (mids.length > FAVORITE_IDS_MAX) {
+    mids = mids
+      .sort((a, b) => lastJoinByMid.get(b)! - lastJoinByMid.get(a)! || (a < b ? -1 : 1))
+      .slice(0, FAVORITE_IDS_MAX)
+  }
+  return mids.sort()
 }
 
 /**
@@ -73,12 +130,17 @@ export function turnOf(messages: readonly UIMessage[]): UIMessage | null {
  * The request body for this conversation's turn. An empty `fellowship` is left out
  * rather than sent as `""`: the agent's schema takes the key as optional but its value
  * as one of a closed list, so `""` would refuse the whole turn as an invalid body.
+ *
+ * CHANGED 2026-11-08: `favoriteIds` (from `favoriteMeetingIds`) rides on every turn, an
+ * answered card's included, as the agent spec asks. None is left out rather than sent as
+ * `[]`, so a person with no hearts sends the body they sent before.
  */
 export function chatRequestBody(
   conversationId: string,
   messages: readonly UIMessage[],
   timezone: string,
   fellowship: string | undefined,
+  favoriteIds: readonly string[] = [],
 ): ChatRequestBody {
   const turn = turnOf(messages)
   return {
@@ -86,6 +148,7 @@ export function chatRequestBody(
     messages: turn ? [turn] : [],
     timezone,
     ...(fellowship ? { fellowship } : {}),
+    ...(favoriteIds.length > 0 ? { favorite_meeting_ids: [...favoriteIds] } : {}),
   }
 }
 

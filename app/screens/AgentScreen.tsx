@@ -31,6 +31,7 @@ import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
+import { feedbackCache } from "@/db"
 import { useAgentConversation, type AgentChatState } from "@/hooks/useAgentConversation"
 import { useVoiceInput } from "@/hooks/useVoiceInput"
 import { translate, getCurrentLanguage } from "@/i18n"
@@ -46,7 +47,13 @@ import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
-import { chatErrorLogFields, chatRequestBody, isStaleRefusal, turnOf } from "@/utils/agentBodyLogic"
+import {
+  chatErrorLogFields,
+  chatRequestBody,
+  favoriteMeetingIds,
+  isStaleRefusal,
+  turnOf,
+} from "@/utils/agentBodyLogic"
 import { classifyToolPart } from "@/utils/agentToolPartLogic"
 import { logger } from "@/utils/logger"
 
@@ -324,7 +331,15 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
           // never gets here. The error effect below records that one.
           const turn = turnOf(messages)
           if (turn?.role === "user") chatState.current.sentIds.add(turn.id)
-          return { body: chatRequestBody(id, messages, timezone, fellowshipRef.current) }
+          // ADDED 2026-11-08 (agent spec 2026-11-07-sky-on-meetings-mcp-design.md): the hearted
+          // meetings, so meetings-mcp marks them and lists them first. Read from the cache at send
+          // time, like the fellowship above, so a heart tapped since the last turn counts. The
+          // cache answers nothing before it has loaded and while guest mode suppresses it, and
+          // that turn goes without favorites. The ids go in the body only: never log them.
+          const favorites = favoriteMeetingIds(feedbackCache.getAll().values())
+          return {
+            body: chatRequestBody(id, messages, timezone, fellowshipRef.current, favorites),
+          }
         },
       }),
     [agentApiUrl, chatState, timezone],
