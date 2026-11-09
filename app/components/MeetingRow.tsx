@@ -28,13 +28,12 @@
  * omission test.
  */
 
-import { FC, useMemo } from "react"
+import { useMemo } from "react"
 import { View, ViewStyle, TextStyle, Pressable } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { FELLOWSHIP_COLORS, Fellowship } from "@recoverysky-org/common/browser"
 
 import { Text } from "@/components/Text"
-import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { translate } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -47,9 +46,29 @@ const FAVORITE_COLOR = "#ef4444"
 const STAR_COLOR = "#fbbf24"
 const ZOOM_BLUE = "#2D8CFF"
 
-interface MeetingRowProps {
+/**
+ * The fields the row draws, and nothing else.
+ *
+ * ADDED 2026-11-08: the row read `MeetingWithTrex` whole, though it draws only these. Sky's cards
+ * (`components/agent/MeetingResultsCard.tsx`) get meetings-mcp's Meeting shape, which has these
+ * fields and none of the schedule, password or verification fields a `MeetingWithTrex` requires;
+ * faking them would hand a popup a meeting it cannot join. Every `MeetingWithTrex` is one of these.
+ */
+export interface MeetingRowData {
+  name: string
+  fellowship?: string | null
+  language?: string | null
+  /** Start, UTC millis. 0 draws "24h"; a non-finite value draws no time and no day */
+  millis: number
+  venueName?: string | null
+  city?: string | null
+  hybrid?: boolean | null
+  external?: boolean
+}
+
+interface MeetingRowProps<M extends MeetingRowData> {
   /** Meeting data with millis, feedback, and (for venues) venue fields */
-  meeting: MeetingWithTrex
+  meeting: M
   /** User's rating (0-5 stars) — overrides meeting.feedback.rates for live updates */
   rating?: number
   /** Whether user has favorited — overrides meeting.feedback.loves for live updates */
@@ -86,8 +105,12 @@ interface MeetingRowProps {
    * `localIsoDow`.
    */
   showDay?: boolean
-  /** Callback when row is pressed */
-  onPress?: (meeting: MeetingWithTrex) => void
+  /**
+   * Callback when row is pressed, with the caller's own meeting.
+   * CHANGED 2026-11-08: generic over the meeting, so a list of `MeetingWithTrex` still gets its
+   * own type back while Sky's cards pass a `MeetingRowData`.
+   */
+  onPress?: (meeting: M) => void
 }
 
 /**
@@ -100,7 +123,7 @@ interface MeetingRowProps {
  *   onPress={(m) => openPopup(m)}
  * />
  */
-export const MeetingRow: FC<MeetingRowProps> = ({
+export function MeetingRow<M extends MeetingRowData>({
   meeting,
   rating = 0,
   isFavorite = false,
@@ -109,7 +132,7 @@ export const MeetingRow: FC<MeetingRowProps> = ({
   venueTag,
   showDay = false,
   onPress,
-}) => {
+}: MeetingRowProps<M>) {
   const { themed, theme } = useAppTheme()
 
   const startTime = useMemo(
