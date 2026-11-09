@@ -12,7 +12,7 @@
  * on screen is 988, a public crisis line.
  */
 import { FC, useState } from "react"
-import { Alert, Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
+import { Pressable, ScrollView, TextStyle, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useNavigation, type NavigationProp } from "@react-navigation/native"
 import { observer } from "mobx-react-lite"
@@ -23,8 +23,8 @@ import { OptionSheet, type OptionSheetOption } from "@/components/OptionSheet"
 import { SupportContactRow } from "@/components/SupportContactRow"
 import { Text } from "@/components/Text"
 import { useAddSupportContact } from "@/hooks/useAddSupportContact"
+import { useRemoveSupportContact } from "@/hooks/useRemoveSupportContact"
 import { useSupportDial } from "@/hooks/useSupportDial"
-import { translate } from "@/i18n"
 import { useSupportStore } from "@/models"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
 import { getDeviceRegion } from "@/services/support/deviceRegion"
@@ -35,7 +35,6 @@ import {
   decideCrisisLine,
   type SupportRole,
 } from "@/services/support/supportContactsLogic"
-import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -64,6 +63,8 @@ export const SupportScreen: FC = observer(function SupportScreen() {
   const store = useSupportStore()
   const dial = useSupportDial()
   const { choose, roleSheet } = useAddSupportContact()
+  // CHANGED 2026-11-08: the confirm-then-remove dialog moved into a hook the Home card shares.
+  const confirmRemove = useRemoveSupportContact()
   const [sheet, setSheet] = useState<SheetState>(null)
 
   const pickerAvailable = isPhoneContactPickerAvailable()
@@ -74,29 +75,6 @@ export const SupportScreen: FC = observer(function SupportScreen() {
   // The sheet remembers an index; a contact list that shrank under an open sheet
   // must not make a choice land on a different person.
   const sheetContact = sheet !== null ? (contacts[sheet.index] ?? null) : null
-
-  const confirmRemove = (index: number) => {
-    const contact = contacts[index]
-    if (!contact) return
-    // A blank name (an Android contact with no name) falls back to the role's word.
-    const name =
-      contact.name.trim() !== "" ? contact.name : translate(SUPPORT_ROLE_TX[contact.role])
-    Alert.alert(
-      translate("support:removeConfirmTitle"),
-      translate("support:removeConfirmMessage", { name }),
-      [
-        { text: translate("common:cancel"), style: "cancel" },
-        {
-          text: translate("support:remove"),
-          style: "destructive",
-          onPress: () => {
-            store.remove(index)
-            trackEvent("support_contact_removed")
-          },
-        },
-      ],
-    )
-  }
 
   const onMoreSelect = (key: string) => {
     if (sheet === null) return
@@ -146,17 +124,16 @@ export const SupportScreen: FC = observer(function SupportScreen() {
                 onMore={() => setSheet({ kind: "more", index })}
               />
             ))}
-            {store.canAdd && (
-              <Pressable
-                onPress={() => void choose()}
-                accessibilityRole="button"
-                accessibilityLabel={t("support:addContact")}
-                style={themed($rowButton)}
-              >
-                <Ionicons name="add-circle-outline" size={24} color={theme.colors.tint} />
-                <Text style={themed($rowText)} tx="support:addContact" />
-              </Pressable>
-            )}
+            {/* CHANGED 2026-11-08: always shown; the three-contact cap that hid it is gone. */}
+            <Pressable
+              onPress={() => void choose()}
+              accessibilityRole="button"
+              accessibilityLabel={t("support:addContact")}
+              style={themed($rowButton)}
+            >
+              <Ionicons name="add-circle-outline" size={24} color={theme.colors.tint} />
+              <Text style={themed($rowText)} tx="support:addContact" />
+            </Pressable>
           </View>
         )}
         <View style={themed($section)}>

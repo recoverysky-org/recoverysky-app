@@ -1014,7 +1014,9 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
 
 - **Support contacts** (`app/services/support/`, `modules/phone-contact-picker/`)
   — ADDED 2026-11-06, spec `docs/superpowers/specs/2026-11-06-support-contacts-design.md`.
-  Up to three people for the Home Support card and the Support screen. **Names
+  The people (no cap since 2026-11-08) for the Home Support card and the Support
+  screen. The card lists them all, with + and a pencil (edit mode: a trash per
+  row, then Done) in its header. **Names
   only**: the card, rows and sheets take `{ roleTx, name }`, never a contact, and
   a number is read from the store only inside a press handler, to `openDial`.
   Stored in SecureStore `support_contacts_v1`; `SupportStore` has no props.
@@ -1061,6 +1063,10 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
   glyph each render when their data is present and are absent when it isn't.
   Add new per-venue chrome the same way — a `venueType` branch here is the
   thing the consolidation was undoing.
+  CHANGED 2026-11-08: it takes a `MeetingRowData` (the eight fields it draws)
+  and is generic, so `onPress` hands each caller its own type back. Sky's cards
+  pass meetings-mcp meetings, which have no schedule; don't widen it back to
+  `MeetingWithTrex`, and don't fake one for it.
 
 ### Permissions & the Location Gate
 
@@ -1553,7 +1559,10 @@ has been seen working on a phone.
 - **Turn-only body.** `chatRequestBody()` (`app/utils/agentBodyLogic.ts`, vitest) sends
   `conversation_id`, one message (`turnOf`: the newest that is the person's or an answered card, never
   a partial reply the SDK kept after a failed stream), `timezone` and `fellowship`. A retry resends the
-  same message id, and the agent stores it once.
+  same message id, and the agent stores it once. ADDED 2026-11-08: and `favorite_meeting_ids`, the
+  hearted meeting ids (`favoriteMeetingIds`: read from `feedbackCache` at send time, sorted, at most
+  500, the most recently joined past that), left out when there are none. meetings-mcp marks and
+  lists favorites first from them; the agent stores none and logs only their count. Never log them.
 - **Agent-held thread.** `useAgentConversation` runs the pure `openConversation`
   (`app/utils/agentConversationLogic.ts`, vitest) each time the tab takes focus with a session and AI
   consent, not only on mount, because bottom tabs stay mounted. It lists the newest `base-identity`
@@ -1586,6 +1595,16 @@ has been seen working on a phone.
 - **`ChatWipeRunner`** (`app/db/`) deletes the rows earlier builds kept, once. It gates on the agent URL
   so an OTA does not delete a production person's only readable copy of old chats behind a hidden tab.
   Don't drop that gate to finish the cleanup.
+- **Meeting cards** (ADDED 2026-11-08). Sky never writes a meeting in her words (the agent's cards
+  rule), so the cards are the only way a meeting she offers reaches the person. Her meeting tools are
+  meetings-mcp's, through the agent's MCP bridge: a result is a `dynamic-tool` part whose output is
+  the MCP envelope `{ isError, content: [{ type: "text", text }] }`, the text holding the api's JSON
+  (`../api/docs/mcp-tools.md`). `ToolResultRenderer` decides by that shape, not by tool name:
+  `meetingsOfToolOutput` (`app/utils/agentMeetingsLogic.ts`, vitest) reads `meetings` or `meeting`
+  out of it, and every meeting draws through `MeetingRow` with no cap. A tap looks the schedule up by
+  id in the meeting's own pool (`useSkyMeetingPopup`, `GET /schedules/meeting/{mid}`) and opens
+  SchedulePopup online or InPersonPopup for a venue. The reminder tools' approval cards are not built
+  yet (`TODO.md`).
 
 ## My Day (Daily Dash)
 
@@ -1801,7 +1820,8 @@ exchange and `GET /v1/me` (a missing field fails the parse, so sign-in breaks)
 and call `POST /v1/auth/entitlement`, and my-day's Hide calls
 `POST /v1/routine/items/{id}/hide` (API migration 36). Before the manual ingest: the agent repo's
 `feat/manual-my-day-area` merged to its `prod`, since the agent's closed area
-list needs `my-day`.
+list needs `my-day`. DONE 2026-11-08 (agent `519b4b1`): the manual dry run is
+clean against it.
 
 ## Attendance Cloud Backup & Sync
 

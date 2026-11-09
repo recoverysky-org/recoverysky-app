@@ -22,7 +22,6 @@ import { flow, Instance, SnapshotIn, SnapshotOut, types } from "mobx-state-tree"
 
 import {
   addContact,
-  canAddContact,
   moveUp as moveContactUp,
   removeContact,
   setRole as setContactRole,
@@ -47,9 +46,6 @@ export const SupportStoreModel = types
     /** The first contact, the one a one-tap "call my person" goes to. */
     get primary(): SupportContact | null {
       return self.contacts[0] ?? null
-    },
-    get canAdd(): boolean {
-      return canAddContact(self.contacts)
     },
   }))
   .actions((self) => {

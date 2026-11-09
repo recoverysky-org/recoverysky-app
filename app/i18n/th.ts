@@ -1047,6 +1047,9 @@ const th: Translations = {
     usingTool: "กำลังใช้ {{toolName}}...",
     toolFinished: "{{toolName}} finished",
     selected: "เลือกแล้ว: {{name}}",
+    meetingOpenFailed: "That meeting didn't open. Check your connection and try again.",
+    meetingNotScheduled: "That meeting isn't on the schedule right now.",
+    showMeetingsAgain: "Shows the meetings again",
     newConversation: "New conversation",
     newConversationConfirm:
       "Start a new conversation with Sky? You can't go back to this one from the app.",
@@ -1377,8 +1380,10 @@ const th: Translations = {
   // Names are interpolated, numbers never are (spec D1).
   support: {
     cardTitle: "Support",
-    emptyTitle: "Add your sponsor or support person",
-    choose: "Choose",
+    emptyIntro:
+      "Add your recovery contacts here for easy access: your sponsor, or others you meet in the fellowship. Save them in your phone's Contacts first, then tap + to add them here.",
+    emptyPrivacy:
+      "RecoverySky never has full access to your contacts. It sees only the people you pick, and it never shares them or sends them anywhere. This is simply a convenience for your recovery.",
     call: "Call",
     text: "Text",
     roleAndName: "{{role}} · {{name}}",
@@ -1402,6 +1407,9 @@ const th: Translations = {
     callA11y: "Call {{name}}",
     textA11y: "Text {{name}}",
     moreA11y: "More options for {{name}}",
+    editA11y: "Edit support contacts",
+    done: "Done",
+    removeA11y: "Remove {{name}}",
     openSupportA11y: "Open Support",
     crisisCallA11y: "Call 988",
     crisisTextA11y: "Text 988",

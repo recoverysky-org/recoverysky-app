@@ -968,6 +968,21 @@ Reviewer notes worth acting on first:
 - `crisisLine` names the 988 Suicide & Crisis Lifeline, a US and Canada service. Keep the number and the
   official service name as they are.
 
+## 2026-11-08 Support card edit mode (English placeholders)
+
+**Still English placeholders (need translating), 40 strings (8 locales × 5 keys)** in ar, de, es,
+fr, pt, ru, th, uk: `support.emptyIntro`, `emptyPrivacy`, `editA11y`, `done` and `removeA11y`, for
+the Home Support card's empty state and its edit mode. They replace the removed `emptyTitle` and
+`choose`, so drop those from any open translation work.
+
+Reviewer notes worth acting on first:
+- **Keep the "+" in `emptyIntro`.** It names the add button in the card's header, which is a plus
+  sign with no word on it.
+- **`emptyPrivacy` is a promise about the app**, so keep its meaning exact: RecoverySky sees only the
+  people the person picks, and never shares them or sends them anywhere. Don't strengthen it to
+  "never leaves your phone": a full backup of the phone can carry them, as the manual says.
+- **Keep `{{name}}` exactly** in `removeA11y`; a screen reader reads it on each row's trash button.
+
 ## 2026-11-06 Sky's chat thread (English placeholders)
 
 **Still English placeholders (need translating), 48 strings (8 locales × 6 keys)** in ar, de, es, fr,
@@ -1025,3 +1040,11 @@ Reviewer notes worth acting on first:
 
 - **Keep "GeoNames", "www.geonames.org", "CC BY 4.0" and the (c) sign unchanged.** They are the
   attribution the licence requires; translate only "Postal code data" and "licensed under".
+
+## 2026-11-08 Sky meeting card that did not open (English placeholder)
+
+**Still English placeholder, 8 strings (8 locales x 1 key)** in ar, de, es, fr, pt, ru, th, uk:
+`agentScreen.meetingOpenFailed`, the toast when a meeting tapped on one of Sky's cards could not be
+looked up ("That meeting didn't open. Check your connection and try again.").
+
+- **It is a short toast.** Keep it to two brief sentences, the second telling the person what to do.

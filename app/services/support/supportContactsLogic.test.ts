@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest"
 
 import {
   addContact,
-  canAddContact,
   decideCrisisLine,
   defaultRoleFor,
   dialableNumber,
   dialUrl,
   digitsOf,
-  MAX_SUPPORT_CONTACTS,
   moveUp,
   parseStoredContacts,
   pickerErrorCodeFrom,
@@ -122,14 +120,10 @@ describe("dialUrl", () => {
   })
 })
 
-describe("defaultRoleFor / canAddContact", () => {
+describe("defaultRoleFor", () => {
   it("is sponsor for the first contact and support person after", () => {
     expect(defaultRoleFor([])).toBe("sponsor")
     expect(defaultRoleFor([julie])).toBe("support")
-  })
-  it("allows adding below three contacts only", () => {
-    expect(canAddContact([julie, marco])).toBe(true)
-    expect(canAddContact([julie, marco, sam])).toBe(false)
   })
 })
 
@@ -174,10 +168,13 @@ describe("addContact", () => {
       kind: "duplicate",
     })
   })
-  it("refuses a fourth contact", () => {
-    expect(
-      addContact([julie, marco, sam], { name: "Ada", number: "5550100004" }, "family"),
-    ).toEqual({ kind: "full" })
+  // CHANGED 2026-11-08: was "refuses a fourth contact"; the three-contact cap is gone.
+  it("adds a fourth contact and beyond", () => {
+    const r = addContact([julie, marco, sam], { name: "Ada", number: "5550100004" }, "family")
+    expect(r).toEqual({
+      kind: "ok",
+      contacts: [julie, marco, sam, { role: "family", name: "Ada", number: "5550100004" }],
+    })
   })
   it("refuses a pick with no digits", () => {
     expect(addContact([], { name: "Nobody", number: " " }, "sponsor")).toEqual({ kind: "invalid" })
@@ -235,9 +232,14 @@ describe("parseStoredContacts (fail closed)", () => {
     )
     expect(parseStoredContacts(JSON.stringify([{ role: "sponsor", name: "x" }]))).toEqual([])
   })
-  it("keeps at most three", () => {
-    const four = [julie, marco, sam, { ...sam, name: "Ada", number: "5550100004" }]
-    expect(parseStoredContacts(JSON.stringify(four))).toHaveLength(MAX_SUPPORT_CONTACTS)
+  // CHANGED 2026-11-08: was "keeps at most three"; every stored contact is kept now.
+  it("keeps every stored contact", () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({
+      role: "friend" as const,
+      name: `Friend ${i}`,
+      number: `55501000${String(i).padStart(2, "0")}`,
+    }))
+    expect(parseStoredContacts(JSON.stringify(many))).toEqual(many)
   })
 })
 

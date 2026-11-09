@@ -26,8 +26,23 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - **A GeoNames credit on the Licenses screen.** The ZIP and postal code search
   uses GeoNames data (CC BY 4.0), which asks for a visible credit; it now sits
   above the open source licenses (Settings → Third-Party Licenses).
+- **Sky knows your favorite meetings.** Each message to Sky now carries the ids
+  of the meetings you have hearted (at most 500), so the meeting server can mark
+  them and list them first when she looks meetings up. They are read when the
+  message is sent, so a heart tapped mid-conversation counts. The agent passes
+  them to the meeting server for that message alone and stores none of them.
+  The Sky tab is still hidden in production builds.
 
 ### Changed
+- **The Home Support card lists everyone, with + and edit in its header.** It
+  showed only the first contact (and "Add your sponsor or support person" with
+  "Choose" before anyone was added). Now every contact has its own call and text
+  buttons, + adds through the phone's contact picker as before, and the pencil
+  puts a trash button next to each person (with the same "Remove {name}…?"
+  confirm as the Support screen) until Done. With nobody added, the card
+  explains that people come from the phone's Contacts and that RecoverySky sees
+  only the people picked. The three-contact limit is gone, on the card and the
+  Support screen. No tracker issue.
 - **In-Person opens on a ZIP or postal code search and asks for location only
   when you choose GPS.** One row above Radius holds the list/map pill, a
   "GPS | ZIP" control and, in ZIP mode, a "ZIP or postal code" box (US ZIPs and
@@ -47,13 +62,29 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   it failed on the phone and the server kept the token enabled: a person who
   deleted their data could still get reminders. The delete now waits for it, at
   most 5 seconds, and an opt-out that has started always finishes. (RS-062)
+- **Meetings Sky finds show as cards again.** Since Sky moved to the meeting
+  server's tools, her meeting answers drew a "completed" badge and no meetings,
+  and her words name none by design, so a meeting she offered never reached the
+  person. The card knew only her retired tools' names, and read a shape no tool
+  sent. Every meeting a tool returns now draws as a meeting row (hearts on
+  favorites, distance for in-person, the weekday when the list spans days),
+  with no cap at ten. Tapping one looks its schedule up and opens the meeting's
+  own popup: the schedule popup online, the In-Person popup for a venue. A
+  lookup that fails says "That meeting didn't open." Old conversations' cards
+  from the retired tools show the finished badge. The Sky tab is still hidden
+  in production builds.
 
 ### Docs
+- (manual) Support: adding with +, removing from the pencil's edit mode, no limit on
+  how many people, and the map line no longer says "up to three".
 - (manual) The map's Meetings line: In-Person searches around a "ZIP or postal
   code" by default, "GPS" asks for the Location permission (people who allowed
   location stay on it), and on "ZIP" "I'm Here" explains before its one location
   check. The map's cap is now 750 words (agent `MAX_MAP_WORDS`), and the README
   says so.
+- (manual) The map's "Where data lives": each message to Sky also carries the
+  hearted meetings, so she can list favorites first, and Sky's server does not
+  keep the list.
 
 ## [4.13.0] — 2026-11-07
 

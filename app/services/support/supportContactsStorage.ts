@@ -2,7 +2,9 @@
  * Keychain storage for the support contacts. ADDED 2026-11-06 (support contacts
  * spec D1, D4).
  *
- * ONE SecureStore key holds a JSON array of at most 3 `{ role, name, number }`.
+ * ONE SecureStore key holds a JSON array of `{ role, name, number }`.
+ * CHANGED 2026-11-08: no longer at most 3; the list has no cap (see
+ * parseStoredContacts for why one key still holds it).
  * It is never an MST prop, MMKV value, SQLite row, cloud-backup field, log
  * attribute or analytics event: a contact is a person in recovery's sponsor, and
  * the number is theirs to keep on this phone alone.

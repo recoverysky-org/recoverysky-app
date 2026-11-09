@@ -1,6 +1,7 @@
-// Pure decisions for Support Contacts (spec D1/D3/D4/D5): up to three people
-// (sponsor first) the user can call or text from the Home card and Support
-// screen.
+// Pure decisions for Support Contacts (spec D1/D3/D4/D5): the people (sponsor
+// first) the user can call or text from the Home card and Support screen.
+// CHANGED 2026-11-08 (Jenova): no longer "up to three". A person may add as many
+// as they wish; the Home card lists them all.
 //
 // ADDED 2026-11-06: this module is pure on purpose. Vitest cannot resolve the
 // `@/` alias, so it keeps ZERO runtime `@/` imports (type-only imports are
@@ -12,9 +13,6 @@
 // number is personal data.
 
 import type { TxKeyPath } from "@/i18n"
-
-/** Spec D1: the list never holds more than three people. */
-export const MAX_SUPPORT_CONTACTS = 3
 
 export const SUPPORT_ROLES = ["sponsor", "support", "friend", "family"] as const
 export type SupportRole = (typeof SUPPORT_ROLES)[number]
@@ -31,9 +29,9 @@ export interface PickedPhoneContact {
   number: string
 }
 
+// CHANGED 2026-11-08: the "full" kind is gone with the three-contact cap.
 export type AddResult =
   | { kind: "ok"; contacts: SupportContact[] }
-  | { kind: "full" }
   | { kind: "duplicate" }
   | { kind: "invalid" }
 
@@ -75,10 +73,6 @@ export function defaultRoleFor(contacts: readonly SupportContact[]): SupportRole
   return contacts.length === 0 ? "sponsor" : "support"
 }
 
-export function canAddContact(contacts: readonly SupportContact[]): boolean {
-  return contacts.length < MAX_SUPPORT_CONTACTS
-}
-
 /**
  * Adds a picked phone contact. The number is stored trimmed but otherwise
  * verbatim (the user sees what their address book holds); the duplicate check
@@ -108,7 +102,6 @@ export function addContact(
   // dial (1-800-FLOWERS) would have been saved and then failed in the moment it was needed.
   if (dialableNumber(number) === null) return { kind: "invalid" }
   const key = digitsOf(number)
-  if (!canAddContact(contacts)) return { kind: "full" }
   if (contacts.some((c) => digitsOf(c.number) === key)) return { kind: "duplicate" }
   return { kind: "ok", contacts: [...contacts, { role, name, number }] }
 }
@@ -160,8 +153,12 @@ function isStoredContact(value: unknown): value is SupportContact {
 /**
  * Fails closed: anything malformed (null, bad JSON, a non-array, any element
  * with a missing field or unknown role) yields []. One bad row discards the
- * lot rather than showing a half-trusted list on a crisis surface. At most
- * three are kept. Elements are rebuilt so stray extra fields never survive.
+ * lot rather than showing a half-trusted list on a crisis surface. Elements
+ * are rebuilt so stray extra fields never survive.
+ * CHANGED 2026-11-08: every stored contact is kept; the three-contact cap is gone.
+ * There is no size cap either: expo-secure-store's 2048-byte figure is a JS-side
+ * console warning only (neither the iOS keychain nor the Android encryptor
+ * enforces one), and a long list is still a few kilobytes.
  */
 export function parseStoredContacts(json: string | null): SupportContact[] {
   if (json === null) return []
@@ -172,9 +169,7 @@ export function parseStoredContacts(json: string | null): SupportContact[] {
     return []
   }
   if (!Array.isArray(parsed) || !parsed.every(isStoredContact)) return []
-  return parsed
-    .slice(0, MAX_SUPPORT_CONTACTS)
-    .map(({ role, name, number }) => ({ role, name, number }))
+  return parsed.map(({ role, name, number }) => ({ role, name, number }))
 }
 
 /**

@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite"
 import { OptionSheet } from "@/components/OptionSheet"
 import { SupportCard } from "@/components/SupportCard"
 import { useAddSupportContact } from "@/hooks/useAddSupportContact"
+import { useRemoveSupportContact } from "@/hooks/useRemoveSupportContact"
 import { useSupportDial } from "@/hooks/useSupportDial"
 import { useSupportStore } from "@/models"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
@@ -30,6 +31,11 @@ import { SUPPORT_ROLE_TX, type DialKind } from "@/services/support/supportContac
  * hydrated, which on a running app means the keychain could not be read. "Add your
  * sponsor" there would be untrue for someone who has one, and it renders again by
  * itself (observer) when a later read succeeds.
+ *
+ * CHANGED 2026-11-08: the card lists every contact, so the container hands it the
+ * whole list (names only) and dials by index, reading the number from the store
+ * inside the press handler as before. Edit mode's trash goes through
+ * useRemoveSupportContact, the same confirm the Support screen's Remove uses.
  */
 
 export const SupportCardContainer: FC = observer(function SupportCardContainer() {
@@ -37,23 +43,25 @@ export const SupportCardContainer: FC = observer(function SupportCardContainer()
   const navigation = useNavigation<NavigationProp<AppStackParamList>>()
   const dialNumber = useSupportDial()
   const { choose, roleSheet } = useAddSupportContact()
+  const confirmRemove = useRemoveSupportContact()
 
   if (!isPhoneContactPickerAvailable() || !store.hydrated) return null
 
-  const primary = store.primary
-
-  const dial = async (kind: DialKind) => {
-    if (primary === null) return
-    await dialNumber(kind, primary.number, kind === "call" ? "support_call" : "support_text")
+  // The number is read here, at press time, and goes to the dialer alone.
+  const dial = async (kind: DialKind, index: number) => {
+    const contact = store.contacts[index]
+    if (!contact) return
+    await dialNumber(kind, contact.number, kind === "call" ? "support_call" : "support_text")
   }
 
   return (
     <>
       <SupportCard
-        primary={primary ? { roleTx: SUPPORT_ROLE_TX[primary.role], name: primary.name } : null}
-        onChoose={() => void choose()}
-        onCall={() => void dial("call")}
-        onText={() => void dial("text")}
+        contacts={store.contacts.map((c) => ({ roleTx: SUPPORT_ROLE_TX[c.role], name: c.name }))}
+        onAdd={() => void choose()}
+        onCall={(index) => void dial("call", index)}
+        onText={(index) => void dial("text", index)}
+        onRemove={confirmRemove}
         onOpenSupport={() => navigation.navigate("Support")}
       />
       <OptionSheet titleTx="support:roleSheetTitle" {...roleSheet} />

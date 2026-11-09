@@ -1,4 +1,5 @@
-import { act, render } from "@testing-library/react-native"
+import { Alert } from "react-native"
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native"
 
 import { SupportStoreModel, type SupportStore } from "@/models/SupportStore"
 
@@ -25,12 +26,14 @@ jest.mock("@/services/support/phoneContactPicker", () => ({
   pickPhoneContact: jest.fn(),
   PhoneContactPickerError: class extends Error {},
 }))
-jest.mock("@/services/support/dial", () => ({ openDial: jest.fn() }))
+jest.mock("@/services/support/dial", () => ({ openDial: jest.fn(async () => true) }))
 const storage = jest.requireMock<{ loadSupportContacts: jest.Mock }>(
   "@/services/support/supportContactsStorage",
 )
+const dialModule = jest.requireMock<{ openDial: jest.Mock }>("@/services/support/dial")
 
 const julie = { role: "sponsor", name: "Julie J.", number: "+15550100001" }
+const marco = { role: "support", name: "Marco", number: "5550100002" }
 
 // ADDED 2026-11-06 (final review I-3): "Add your sponsor" over a list we could not read is a dead
 // end in a crisis and invites the edit that used to overwrite it.
@@ -61,6 +64,40 @@ describe("SupportCardContainer while the contacts are unread", () => {
   it("shows the empty card once a read says there is nobody", async () => {
     storage.loadSupportContacts.mockResolvedValueOnce([])
     await mockStore.current!.hydrate()
-    expect(render(<SupportCardContainer />).getByText(/support:emptyTitle/)).toBeTruthy()
+    // CHANGED 2026-11-08: the empty card's words are the intro, not "Add your sponsor".
+    expect(render(<SupportCardContainer />).getByText(/support:emptyIntro/)).toBeTruthy()
+  })
+})
+
+// ADDED 2026-11-08: the card lists every contact and edits from its header.
+describe("SupportCardContainer with contacts", () => {
+  beforeEach(async () => {
+    storage.loadSupportContacts.mockReset()
+    dialModule.openDial.mockClear()
+    mockStore.current = SupportStoreModel.create({})
+    storage.loadSupportContacts.mockResolvedValueOnce([julie, marco])
+    await mockStore.current!.hydrate()
+  })
+  afterEach(() => jest.restoreAllMocks())
+
+  it("dials the pressed row's number, read from the store", async () => {
+    const view = render(<SupportCardContainer />)
+    fireEvent.press(view.getAllByLabelText(/support:callA11y/)[1])
+    await waitFor(() => expect(dialModule.openDial).toHaveBeenCalledWith("call", marco.number))
+  })
+
+  it("edit's trash asks first, and removes that contact only on confirm", () => {
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {})
+    const view = render(<SupportCardContainer />)
+    fireEvent.press(view.getByLabelText(/support:editA11y/))
+    fireEvent.press(view.getAllByLabelText(/support:removeA11y/)[0])
+
+    expect(alert).toHaveBeenCalledTimes(1)
+    expect(mockStore.current!.contacts).toHaveLength(2)
+    const buttons = alert.mock.calls[0][2] as { style?: string; onPress?: () => void }[]
+    act(() => buttons.find((b) => b.style === "destructive")!.onPress!())
+
+    expect(mockStore.current!.contacts).toEqual([marco])
+    expect(view.getAllByText(/support:roleAndName/)).toHaveLength(1)
   })
 })

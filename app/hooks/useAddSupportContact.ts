@@ -91,8 +91,9 @@ export function useAddSupportContact(): {
       } else if (result === "duplicate") {
         showToast({ tx: "support:duplicate", type: "error" })
       } else {
-        // "full" or "invalid": the Choose button is hidden when full, so these
-        // are races or odd picks; the picker toast is the closest honest words.
+        // "invalid": a pick whose number cannot be dialled; the picker toast is
+        // the closest honest words.
+        // CHANGED 2026-11-08: "full" is gone with the three-contact cap.
         showToast({ tx: "support:couldntOpenPicker", type: "error" })
       }
     },

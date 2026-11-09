@@ -23,7 +23,6 @@ const mockStore = {
     { role: "support", name: "Marco", number: "5550100002" },
   ],
   primary: { role: "sponsor", name: "Julie J.", number: "+15550100001" },
-  canAdd: true,
   add: jest.fn(),
   remove: jest.fn(),
   moveUp: jest.fn(),

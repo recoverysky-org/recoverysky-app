@@ -92,6 +92,9 @@ there; the screen stays registered regardless.
 Friend, Family (translatable, no free text). After a pick, a small sheet asks for the role,
 defaulting to Sponsor for the first contact and Support person afterwards. Reordering is "Move
 up" on the row's overflow, no drag. The primary is simply the first row.
+CHANGED 2026-11-08 (Jenova): no cap. A person adds as many contacts as they wish, and the Home
+card lists them all, with + (add) and a pencil (edit mode: a trash button per row, then Done) in
+its header, and an explanation of the card in place of "Add your sponsor" while it is empty.
 
 Rules for the pick, all in one pure module: a number already in the list (compared after
 stripping everything but digits and a leading `+`; the normalised form is internal and never
@@ -105,7 +108,9 @@ pause, and a number it cannot read (vanity letters, a misplaced `+`) is refused 
 those characters into the digits rang a longer, wrong number with no error.
 
 **D4. Storage: SecureStore, and nowhere else.** One key, `support_contacts_v1`, holding a JSON
-array of up to three `{ role, name, number }` (well under SecureStore's 2 KB limit). Never in an
+array of up to three `{ role, name, number }` (well under SecureStore's 2 KB limit). CHANGED
+2026-11-08: with the cap gone (D3) the array has no fixed length. The 2 KB figure is
+expo-secure-store's JS-side console warning only; neither native side enforces it. Never in an
 MST snapshot or MMKV, never in SQLite, never in cloud backup or any API call, never in logs or
 analytics. It is the device owner's data like everything else local: it **survives logout** and
 is cleared by Settings → Delete User Data (its own step beside the existing SecureStore step),

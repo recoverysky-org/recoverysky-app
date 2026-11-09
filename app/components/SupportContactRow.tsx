@@ -1,5 +1,5 @@
 import { FC } from "react"
-import { Pressable, View, ViewStyle } from "react-native"
+import { Pressable, StyleProp, View, ViewStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
@@ -13,7 +13,15 @@ interface SupportContactRowProps {
   name: string
   onCall: () => void
   onText: () => void
-  onMore: () => void
+  /** The Support screen's More menu. The Home card passes none and shows no More button. */
+  onMore?: () => void
+  /**
+   * Edit mode (the Home card's pencil): when set, the row shows one trash button in place of
+   * Call, Text and More, so a tap while editing can only ever remove, never dial.
+   */
+  onRemove?: () => void
+  /** Overrides the row's own box, for the Home card where the row sits inside a card. */
+  style?: StyleProp<ViewStyle>
   testID?: string
 }
 
@@ -32,6 +40,10 @@ interface SupportContactRowProps {
  *
  * Accessibility: each of the three buttons has a role, a translated label and
  * a 48 dp target, so a screen reader reaches Call, Text and More directly.
+ *
+ * CHANGED 2026-11-08: the Home card now lists every contact with this row, so
+ * More is optional (the card has its own edit mode instead) and `onRemove`
+ * switches the row to its edit look: the name and a trash button.
  */
 export const SupportContactRow: FC<SupportContactRowProps> = ({
   roleTx,
@@ -39,6 +51,8 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
   onCall,
   onText,
   onMore,
+  onRemove,
+  style,
   testID,
 }) => {
   const { t } = useTranslation()
@@ -50,7 +64,7 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
   const labelName = trimmed || role
 
   return (
-    <View style={themed($row)} testID={testID}>
+    <View style={[themed($row), style]} testID={testID}>
       <View style={$textColumn}>
         {trimmed ? (
           <Text tx="support:roleAndName" txOptions={{ role, name: trimmed }} numberOfLines={1} />
@@ -58,30 +72,45 @@ export const SupportContactRow: FC<SupportContactRowProps> = ({
           <Text tx={roleTx} numberOfLines={1} />
         )}
       </View>
-      <Pressable
-        style={themed($button)}
-        onPress={onCall}
-        accessibilityRole="button"
-        accessibilityLabel={t("support:callA11y", { name: labelName })}
-      >
-        <Ionicons name="call" size={22} color={theme.colors.tint} />
-      </Pressable>
-      <Pressable
-        style={themed($button)}
-        onPress={onText}
-        accessibilityRole="button"
-        accessibilityLabel={t("support:textA11y", { name: labelName })}
-      >
-        <Ionicons name="chatbubble" size={22} color={theme.colors.tint} />
-      </Pressable>
-      <Pressable
-        style={themed($button)}
-        onPress={onMore}
-        accessibilityRole="button"
-        accessibilityLabel={t("support:moreA11y", { name: labelName })}
-      >
-        <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
-      </Pressable>
+      {onRemove ? (
+        <Pressable
+          style={themed($button)}
+          onPress={onRemove}
+          accessibilityRole="button"
+          accessibilityLabel={t("support:removeA11y", { name: labelName })}
+        >
+          <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
+        </Pressable>
+      ) : (
+        <>
+          <Pressable
+            style={themed($button)}
+            onPress={onCall}
+            accessibilityRole="button"
+            accessibilityLabel={t("support:callA11y", { name: labelName })}
+          >
+            <Ionicons name="call" size={22} color={theme.colors.tint} />
+          </Pressable>
+          <Pressable
+            style={themed($button)}
+            onPress={onText}
+            accessibilityRole="button"
+            accessibilityLabel={t("support:textA11y", { name: labelName })}
+          >
+            <Ionicons name="chatbubble" size={22} color={theme.colors.tint} />
+          </Pressable>
+          {onMore && (
+            <Pressable
+              style={themed($button)}
+              onPress={onMore}
+              accessibilityRole="button"
+              accessibilityLabel={t("support:moreA11y", { name: labelName })}
+            >
+              <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+            </Pressable>
+          )}
+        </>
+      )}
     </View>
   )
 }

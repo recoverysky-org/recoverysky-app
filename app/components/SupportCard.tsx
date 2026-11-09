@@ -1,25 +1,34 @@
-import { FC } from "react"
+import { FC, useEffect, useState } from "react"
 import { Pressable, TextStyle, View, ViewStyle } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 
-import { Button } from "@/components/Button"
+import { SupportContactRow } from "@/components/SupportContactRow"
 import { Text } from "@/components/Text"
 import type { TxKeyPath } from "@/i18n"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+/** One contact as the card sees it: a role key and a display name, never a number. */
+export interface SupportCardContact {
+  roleTx: TxKeyPath
+  name: string
+}
+
 interface SupportCardProps {
-  /** The first contact, by role key and display name. Null when the list is empty. */
-  primary: { roleTx: TxKeyPath; name: string } | null
-  onChoose: () => void
-  onCall: () => void
-  onText: () => void
+  /** Every contact, in the person's order. Empty shows the intro. */
+  contacts: SupportCardContact[]
+  onAdd: () => void
+  onCall: (index: number) => void
+  onText: (index: number) => void
+  /** Asked from edit mode's trash button. The container confirms before it removes anyone. */
+  onRemove: (index: number) => void
   onOpenSupport: () => void
 }
 
 /**
- * Home's Support card: the primary contact with Call and Text, or a Choose
- * button when there is none. ADDED 2026-11-06 (Support Contacts, spec D8).
+ * Home's Support card: the person's support contacts, each with Call and Text.
+ * ADDED 2026-11-06 (Support Contacts, spec D8).
  *
  * NAMES ONLY (spec D1): takes `{ roleTx, name }`, never a `SupportContact`, so
  * no number can reach its text, its accessibility labels or a log. Presentational
@@ -32,73 +41,103 @@ interface SupportCardProps {
  * A blank name (a contact stored with only digits as its name) shows the role
  * alone, and the buttons' labels use the role text in the name slot, the same
  * fallback as SupportContactRow ("Call Sponsor").
+ *
+ * CHANGED 2026-11-08 (Jenova): the card showed only the first contact, with big
+ * Call and Text buttons, or "Add your sponsor or support person" and Choose. It
+ * now lists every contact (there is no cap any more), and the header carries
+ * + (add, the same picker flow) and a pencil (edit). Edit mode puts a trash
+ * button on each row in place of Call and Text, and the header shows Done. With
+ * nobody added, the card explains what it is for and that the app sees only the
+ * people picked, instead of a bare call to action.
+ *
+ * Edit mode is local UI state, not the store's: it is nobody's business but this
+ * card's, and it ends by itself when the last contact is removed, so the next add
+ * does not land in edit mode.
  */
 export const SupportCard: FC<SupportCardProps> = ({
-  primary,
-  onChoose,
+  contacts,
+  onAdd,
   onCall,
   onText,
+  onRemove,
   onOpenSupport,
 }) => {
   const { t } = useTranslation()
-  const { themed } = useAppTheme()
+  const { themed, theme } = useAppTheme()
+  const [editing, setEditing] = useState(false)
 
-  const role = primary ? t(primary.roleTx) : ""
-  const trimmed = primary ? primary.name.trim() : ""
-  const labelName = trimmed || role
+  const hasContacts = contacts.length > 0
+  // Derived as well as reset below, so the render that removes the last contact is
+  // already out of edit mode (no frame with Done over an empty card).
+  const isEditing = editing && hasContacts
+
+  useEffect(() => {
+    if (!hasContacts) setEditing(false)
+  }, [hasContacts])
 
   return (
     <View style={themed($card)}>
-      <Pressable
-        onPress={onOpenSupport}
-        accessibilityRole="button"
-        accessibilityLabel={t("support:openSupportA11y")}
-        style={$titleTarget}
-      >
-        <Text style={themed($title)} tx="support:cardTitle" />
-      </Pressable>
+      <View style={$header}>
+        <Pressable
+          onPress={onOpenSupport}
+          accessibilityRole="button"
+          accessibilityLabel={t("support:openSupportA11y")}
+          style={$titleTarget}
+        >
+          <Text style={themed($title)} tx="support:cardTitle" />
+        </Pressable>
 
-      {primary === null ? (
-        <>
-          <Text style={themed($line)} tx="support:emptyTitle" />
-          <Button
-            tx="support:choose"
-            preset="filled"
-            onPress={onChoose}
+        {isEditing ? (
+          <Pressable
+            onPress={() => setEditing(false)}
             accessibilityRole="button"
-            accessibilityLabel={t("support:choose")}
+            accessibilityLabel={t("support:done")}
+            style={$doneButton}
+          >
+            <Text style={themed($doneText)} tx="support:done" />
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              onPress={onAdd}
+              accessibilityRole="button"
+              accessibilityLabel={t("support:addContact")}
+              style={$iconButton}
+            >
+              <Ionicons name="add" size={26} color={theme.colors.tint} />
+            </Pressable>
+            {/* Nothing to edit until someone is added. */}
+            {hasContacts && (
+              <Pressable
+                onPress={() => setEditing(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t("support:editA11y")}
+                style={$iconButton}
+              >
+                <Ionicons name="pencil" size={20} color={theme.colors.tint} />
+              </Pressable>
+            )}
+          </>
+        )}
+      </View>
+
+      {hasContacts ? (
+        contacts.map((contact, index) => (
+          <SupportContactRow
+            key={`${contact.roleTx}-${index}`}
+            testID={`support-card-contact-${index}`}
+            roleTx={contact.roleTx}
+            name={contact.name}
+            onCall={() => onCall(index)}
+            onText={() => onText(index)}
+            onRemove={isEditing ? () => onRemove(index) : undefined}
+            style={$cardRow}
           />
-        </>
+        ))
       ) : (
         <>
-          {trimmed ? (
-            <Text
-              style={themed($line)}
-              tx="support:roleAndName"
-              txOptions={{ role, name: trimmed }}
-              numberOfLines={1}
-            />
-          ) : (
-            <Text style={themed($line)} tx={primary.roleTx} numberOfLines={1} />
-          )}
-          <View style={themed($buttons)}>
-            <Button
-              tx="support:call"
-              preset="filled"
-              style={$buttonFlex}
-              onPress={onCall}
-              accessibilityRole="button"
-              accessibilityLabel={t("support:callA11y", { name: labelName })}
-            />
-            <Button
-              tx="support:text"
-              preset="default"
-              style={$buttonFlex}
-              onPress={onText}
-              accessibilityRole="button"
-              accessibilityLabel={t("support:textA11y", { name: labelName })}
-            />
-          </View>
+          <Text style={themed($intro)} tx="support:emptyIntro" />
+          <Text style={themed($privacy)} tx="support:emptyPrivacy" />
         </>
       )}
     </View>
@@ -115,8 +154,11 @@ const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   borderColor: colors.tint,
 })
 
-// 48 dp minimum touch target (repo a11y standard).
-const $titleTarget: ViewStyle = { minHeight: 48, justifyContent: "center" }
+const $header: ViewStyle = { flexDirection: "row", alignItems: "center" }
+
+// 48 dp minimum touch target (repo a11y standard). It takes the rest of the header row, as the
+// title did when it was the card's whole first line.
+const $titleTarget: ViewStyle = { flex: 1, minHeight: 48, justifyContent: "center" }
 
 const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
   fontSize: 13,
@@ -125,13 +167,41 @@ const $title: ThemedStyle<TextStyle> = ({ colors }) => ({
   textTransform: "uppercase",
 })
 
-const $line: ThemedStyle<TextStyle> = ({ spacing }) => ({
+const $iconButton: ViewStyle = {
+  width: 48,
+  height: 48,
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $doneButton: ViewStyle = {
+  minWidth: 48,
+  minHeight: 48,
+  paddingHorizontal: 8,
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $doneText: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 16,
+  fontWeight: "600",
+  color: colors.tint,
+})
+
+// The row draws its own card-coloured box for the Support screen; inside this card it only needs
+// its content, flush with the card's padding.
+const $cardRow: ViewStyle = {
+  backgroundColor: "transparent",
+  paddingLeft: 0,
+  paddingRight: 0,
+}
+
+const $intro: ThemedStyle<TextStyle> = ({ spacing }) => ({
   marginBottom: spacing.sm,
 })
 
-const $buttons: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  gap: spacing.sm,
+const $privacy: ThemedStyle<TextStyle> = ({ colors }) => ({
+  fontSize: 14,
+  lineHeight: 20,
+  color: colors.textDim,
 })
-
-const $buttonFlex: ViewStyle = { flex: 1 }
