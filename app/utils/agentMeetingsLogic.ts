@@ -1,7 +1,9 @@
 /**
  * The meetings in a Sky tool result, for the Sky tab's meeting cards.
  *
- * PURE MODULE: type-only imports, so vitest can import it (see CLAUDE.md "Test Runner Split").
+ * PURE MODULE: type-only `@/` imports, so vitest can import it (see CLAUDE.md "Test Runner Split").
+ * CHANGED 2026-11-08 (routine card): it now imports `./agentToolAnswerLogic` at runtime, a relative
+ * import, which vitest resolves.
  * ToolResultRenderer asks `meetingsOfToolOutput` whether a finished tool call holds meetings, and
  * MeetingResultsCard draws each one through MeetingRow with `toRowMeeting`.
  *
@@ -27,6 +29,8 @@
  */
 
 import type { MeetingRowData } from "@/components/MeetingRow"
+
+import { isRecord, toolAnswerOf } from "./agentToolAnswerLogic"
 
 /** A meeting from a Sky tool result, checked and normalised for a card */
 export interface SkyMeeting {
@@ -64,9 +68,6 @@ export interface SkyMeeting {
 const MAX_ID_CHARS = 64
 
 const VENUES: ReadonlySet<string> = new Set(["online", "in_person"])
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const stringOrNull = (value: unknown): string | null =>
   typeof value === "string" && value.length > 0 ? value : null
@@ -118,29 +119,6 @@ function toSkyMeeting(value: unknown): SkyMeeting | null {
 }
 
 /**
- * The answer a tool call gave: `structuredContent` when a server sends it (the bridge keeps it),
- * else the JSON in the first text part. Null for a refusal (`isError`: Sky's words carry it, and a
- * card would claim there were no meetings), for text that is not a JSON object, and for any output
- * that is not an MCP result at all.
- */
-function answerOf(output: unknown): Record<string, unknown> | null {
-  if (!isRecord(output) || output.isError === true) return null
-  if (isRecord(output.structuredContent)) return output.structuredContent
-  if (!Array.isArray(output.content)) return null
-  const text = output.content.find(
-    (part): part is { type: "text"; text: string } =>
-      isRecord(part) && part.type === "text" && typeof part.text === "string",
-  )
-  if (!text) return null
-  try {
-    const parsed: unknown = JSON.parse(text.text)
-    return isRecord(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
-
-/**
  * The meetings a finished tool call returned, in the server's order (favorites first, as it
  * listed them), or null when the result is not a meeting answer.
  *
@@ -154,7 +132,8 @@ function answerOf(output: unknown): Record<string, unknown> | null {
  * - A meeting listed twice is kept once, the first time, as the row's key is the id.
  */
 export function meetingsOfToolOutput(output: unknown): SkyMeeting[] | null {
-  const answer = answerOf(output)
+  // CHANGED 2026-11-08 (routine card): the reader moved to agentToolAnswerLogic, shared.
+  const answer = toolAnswerOf(output)
   if (answer === null) return null
 
   let listed: unknown[]
