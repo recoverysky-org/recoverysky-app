@@ -1048,3 +1048,11 @@ Reviewer notes worth acting on first:
 looked up ("That meeting didn't open. Check your connection and try again.").
 
 - **It is a short toast.** Keep it to two brief sentences, the second telling the person what to do.
+
+ADDED 2026-11-08 (same change, after review), **16 more strings (8 locales x 2 keys)**:
+- `agentScreen.meetingNotScheduled`, the toast when the meeting tapped is in no active schedule
+  ("That meeting isn't on the schedule right now."). It is not about the connection: trying again
+  will not help, so it must not suggest it.
+- `agentScreen.showMeetingsAgain`, a screen reader's hint on the collapsed "Selected: …" badge,
+  which opens the card of meetings again ("Shows the meetings again"). A hint describes what a tap
+  does, so the iOS convention is a verb in the third person with no subject.

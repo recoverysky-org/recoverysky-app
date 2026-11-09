@@ -126,15 +126,63 @@ jest.mock("@/i18n", () => ({
 // A stand-in that shows what the screen hands it. The real one needs the meeting row's tree, and
 // what it does with a part is its own business. createElement, not JSX: babel's dev JSX adds a
 // constant the jest-hoist plugin tries to hoist out of the factory, and it fails on it.
+// ADDED 2026-11-08: and a tap, which hands the screen a card's meeting as the real card does.
+const mockCardMeeting = { id: "m1", name: "Sunrise Serenity", venue: "online" }
 jest.mock("@/components/agent", () => {
   const { createElement } = jest.requireActual<typeof import("react")>("react")
-  const { Text } = jest.requireActual<typeof import("react-native")>("react-native")
+  const { Pressable, Text, View } =
+    jest.requireActual<typeof import("react-native")>("react-native")
   return {
-    ToolResultRenderer: ({ part }: { part: unknown }) =>
-      createElement(Text, { testID: "tool-result" }, JSON.stringify(part)),
+    ToolResultRenderer: ({
+      part,
+      onSelectMeeting,
+    }: {
+      part: { toolCallId: string }
+      onSelectMeeting: (meeting: unknown, toolCallId: string) => void
+    }) =>
+      createElement(
+        View,
+        null,
+        createElement(Text, { testID: "tool-result" }, JSON.stringify(part)),
+        createElement(Pressable, {
+          testID: "tool-result-select",
+          onPress: () => onSelectMeeting(mockCardMeeting, part.toolCallId),
+        }),
+      ),
   }
 })
-jest.mock("@/components/SchedulePopup", () => ({ SchedulePopup: () => null }))
+
+// Each popup draws the meeting's name while it is visible, and closes on a press.
+function mockPopup(testID: string) {
+  const { createElement } = jest.requireActual<typeof import("react")>("react")
+  const { Pressable, Text } = jest.requireActual<typeof import("react-native")>("react-native")
+  return ({
+    visible,
+    meeting,
+    onClose,
+  }: {
+    visible: boolean
+    meeting: { name: string } | null
+    onClose: () => void
+  }) =>
+    visible && meeting
+      ? createElement(
+          Pressable,
+          { testID, onPress: onClose },
+          createElement(Text, null, meeting.name),
+        )
+      : null
+}
+jest.mock("@/components/SchedulePopup", () => ({ SchedulePopup: mockPopup("schedule-popup") }))
+jest.mock("@/components/InPersonPopup", () => ({ InPersonPopup: mockPopup("in-person-popup") }))
+
+// The lookup is the hook's own test's business (useSkyMeetingPopup.test.tsx).
+const mockPopupHook = {
+  popup: null as null | { venue: string; meeting: { name: string }; toolCallId: string },
+  openMeeting: jest.fn(),
+  closePopup: jest.fn(),
+}
+jest.mock("@/hooks/useSkyMeetingPopup", () => ({ useSkyMeetingPopup: () => mockPopupHook }))
 
 const mockTrackEvent = jest.fn()
 jest.mock("@/services/tracking", () => ({ trackEvent: (event: string) => mockTrackEvent(event) }))
@@ -245,6 +293,7 @@ describe("AgentScreen", () => {
     mockConversation.view = readyView()
     mockConversation.chatState = { current: { busy: false, sentIds: new Set() } }
     mockFeedback = new Map()
+    mockPopupHook.popup = null
     mockProfile.aiConsentAccepted = true
     mockProfile.fellowship = "AA"
     mockAuthenticated = true
@@ -1010,6 +1059,61 @@ describe("AgentScreen", () => {
         toolCallId: "call-1",
         toolName: "searchMeetings",
         result: { meetings: [] },
+      })
+    })
+
+    // ADDED 2026-11-08: a card's meeting opens in the app's own popup, the one for its venue.
+    describe("meeting cards", () => {
+      const withCard = () => {
+        mockChat.messages = [
+          assistantMessage("stored", [{ ...part("output-available"), output: { meetings: [] } }]),
+        ]
+      }
+      const sunrise = { name: "Sunrise Serenity" }
+
+      it("opens the tapped meeting with the card's tool call", () => {
+        withCard()
+        const screen = mountScreen()
+
+        fireEvent.press(screen.getByTestId("tool-result-select"))
+
+        expect(mockPopupHook.openMeeting).toHaveBeenCalledWith(mockCardMeeting, "call-1")
+      })
+
+      it("shows the schedule popup for an online meeting", () => {
+        mockPopupHook.popup = { venue: "online", meeting: sunrise, toolCallId: "call-1" }
+        const screen = mountScreen()
+
+        expect(screen.getByTestId("schedule-popup")).toBeTruthy()
+        expect(screen.queryByTestId("in-person-popup")).toBeNull()
+      })
+
+      it("shows the in-person popup for an in-person meeting", () => {
+        mockPopupHook.popup = { venue: "in_person", meeting: sunrise, toolCallId: "call-1" }
+        const screen = mountScreen()
+
+        expect(screen.getByTestId("in-person-popup")).toBeTruthy()
+        expect(screen.queryByTestId("schedule-popup")).toBeNull()
+      })
+
+      it("shows no popup until one is open", () => {
+        const screen = mountScreen()
+
+        expect(screen.queryByTestId("schedule-popup")).toBeNull()
+        expect(screen.queryByTestId("in-person-popup")).toBeNull()
+      })
+
+      it("collapses the card to the meeting's name when its popup closes", () => {
+        mockPopupHook.popup = { venue: "in_person", meeting: sunrise, toolCallId: "call-7" }
+        const screen = mountScreen()
+
+        fireEvent.press(screen.getByTestId("in-person-popup"))
+
+        expect(mockConversationStore.collapseToolResult).toHaveBeenCalledWith(
+          "call-7",
+          `agentScreen:selected ${JSON.stringify({ name: "Sunrise Serenity" })}`,
+        )
+        expect(mockPopupHook.closePopup).toHaveBeenCalled()
       })
     })
 

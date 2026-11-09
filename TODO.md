@@ -150,24 +150,25 @@ The agent switch ships ahead of this work, since there are no active users yet;
 until then Sky's meeting answers show her words and no meetings: she never
 writes meeting data, since the cards carry it.
 
-- [ ] **Rework `components/agent/ToolResultRenderer.tsx`** (already broken
-      today). Meeting cards are keyed to the old tool names (`findMeetings`,
-      `getLiveMeetings`, `findMeetingsByFellowship`) and read `MeetingWithTrex`.
-      After the switch, meeting results arrive as `dynamic-tool` parts named
-      after meetings-mcp's tools (`find_meetings_now`, `find_meetings_on_day`,
-      `find_meetings_nearby`, `get_meeting`, `find_favorite_meetings`) in its
-      `Meeting` shape (`docs/mcp-tools.md` in the api: `startsAt` as a
-      RenderedInstant, `url`, `address`, `favorite`). Map that shape onto
-      `MeetingRow`, show the heart on `favorite: true`, and make sure the
-      reminder tools' approval cards (`create_reminder`, `update_reminder`,
-      `delete_reminder`, not `readOnlyHint`) and their results draw. Older
-      stored conversations still hold `tool-findMeetings` parts.
-      **Critical:** every meeting a tool returned draws as a card, and tapping
-      one opens that meeting's schedule card in the app. Sky never puts a
-      meeting in her text (no time, no link, no list), so the cards are the
-      only way a meeting she offers reaches the person. Until they draw,
-      reminder proposals also wait on an approval card nobody sees, and the
-      next message closes them as declined (accepted).
+- [x] **Meeting cards for meetings-mcp** (done 2026-11-08). `ToolResultRenderer`
+      decides by the answer's shape (`meetingsOfToolOutput`,
+      `utils/agentMeetingsLogic.ts`): any finished tool call whose MCP envelope
+      holds meetings-mcp `Meeting`s draws them all through `MeetingRow` (no cap;
+      hearts from `favorite`, distance, the weekday when the list spans days).
+      A tap looks the schedule up by id in the meeting's own pool
+      (`useSkyMeetingPopup`) and opens SchedulePopup online or InPersonPopup for
+      a venue. Old threads' `tool-findMeetings` parts draw the finished badge.
+      Open from the review: a row shows nothing while its lookup runs (a
+      second tap is ignored, but nothing says the first registered); a
+      pending state wants a prop through ToolResultRenderer to the row.
+- [ ] **Approval cards for the reminder tools.** `create_reminder`,
+      `update_reminder` and `delete_reminder` (not `readOnlyHint`) arrive as
+      `dynamic-tool` parts in `approval-requested`, which
+      `utils/agentToolPartLogic.ts` draws as nothing ("This screen has no
+      approval cards", spec D8). Until a card draws, a reminder Sky proposes
+      waits on a card nobody sees, and the next message closes it as declined
+      (accepted in the agent spec). Their results (`{ reminder }`,
+      `{ deleted, id }`) also want a confirmation rather than the finished badge.
 - [x] **Send favorites with each turn** (done 2026-11-08):
       `favorite_meeting_ids`, the loved meeting ids from `feedbackCache` (at
       most 500), via `favoriteMeetingIds` in `utils/agentBodyLogic.ts`. The

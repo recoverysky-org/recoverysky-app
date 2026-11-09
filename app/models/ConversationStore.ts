@@ -66,6 +66,19 @@ export const ConversationStoreModel = types
     },
 
     /**
+     * ADDED 2026-11-08: open a collapsed card again, from a tap on its badge. A card holds every
+     * meeting a call returned, and the agent tells Sky each one reaches the person as a card they can
+     * tap ("offer both cards"), so looking at one must not hide the others for good.
+     */
+    expandToolResult(toolCallId: string) {
+      if (!self.collapsedToolResults.has(toolCallId)) return
+      // A new Map on every write: see the volatile's comment.
+      const next = new Map(self.collapsedToolResults)
+      next.delete(toolCallId)
+      self.collapsedToolResults = next
+    },
+
+    /**
      * ADDED 2026-11-06 (spec D1, D6): a thread minted on this device. Fresh until its first turn
      * streams. Tool call ids belong to the thread being left, so the map goes with it.
      */

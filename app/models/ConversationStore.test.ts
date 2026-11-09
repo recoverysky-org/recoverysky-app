@@ -117,4 +117,32 @@ describe("ConversationStore: collapsed tool results (spec D5)", () => {
     expect(JSON.stringify(getSnapshot(store))).not.toContain("Noon Group")
     expect(getSnapshot(store)).not.toHaveProperty("collapsedToolResults")
   })
+
+  // A tap on the badge opens the card again: a card holds every meeting the call returned, and the
+  // agent tells Sky each one reaches the person as a card they can tap.
+  it("expands one card again, in a new map, and tells an observer", () => {
+    const store = ConversationStoreModel.create({})
+    store.collapseToolResult("call-1", "Selected: Noon Group")
+    store.collapseToolResult("call-2", "Selected: Evening Group")
+    const before = store.collapsedToolResults
+    const seen: Array<string | undefined> = []
+    const stop = autorun(() => {
+      seen.push(store.getCollapseState("call-1")?.summary)
+    })
+
+    store.expandToolResult("call-1")
+    stop()
+
+    expect(store.collapsedToolResults).not.toBe(before)
+    expect(seen).toEqual(["Selected: Noon Group", undefined])
+    expect(store.getCollapseState("call-2")).toEqual({ summary: "Selected: Evening Group" })
+  })
+
+  it("leaves the map alone when the card is not collapsed", () => {
+    const store = ConversationStoreModel.create({})
+    store.collapseToolResult("call-1", "Selected: Noon Group")
+    const before = store.collapsedToolResults
+    store.expandToolResult("call-9")
+    expect(store.collapsedToolResults).toBe(before)
+  })
 })

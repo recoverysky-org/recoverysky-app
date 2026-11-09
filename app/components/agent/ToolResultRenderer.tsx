@@ -1,19 +1,27 @@
 /**
  * ToolResultRenderer Component
  *
- * Dispatches tool-result parts to the appropriate renderer based on toolName.
+ * Draws a finished tool call: a meeting card when its answer holds meetings, else a finished badge.
  * Handles collapse state and selection callbacks.
+ *
+ * CHANGED 2026-11-08: decided by the answer's shape (`meetingsOfToolOutput`,
+ * `utils/agentMeetingsLogic.ts`), not by tool name. The name list held only the retired tools
+ * (`searchMeetings`, `findMeetings`, `getLiveMeetings`, ...), so once Sky moved to meetings-mcp
+ * (`find_meetings_now`, `get_meeting`, ...) every meeting answer drew a "completed" badge and no
+ * meeting at all, while Sky's words, by design, name none: the cards are the only way a meeting
+ * she offers reaches the person.
  */
-import { FC, useCallback } from "react"
+import { FC, useCallback, useMemo } from "react"
 import { View, ViewStyle, TextStyle } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { observer } from "mobx-react-lite"
+import { useTranslation } from "react-i18next"
 
 import { Text } from "@/components/Text"
-import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useConversationStore } from "@/models"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
+import { meetingsOfToolOutput, type SkyMeeting } from "@/utils/agentMeetingsLogic"
 
 import { MeetingResultsCard } from "./MeetingResultsCard"
 
@@ -32,25 +40,13 @@ interface ToolResultRendererProps {
   part: ToolResultPart
   /** Parent message ID */
   messageId: string
-  /** Called when user selects a meeting from results */
-  onSelectMeeting: (meeting: MeetingWithTrex, toolCallId: string) => void
+  /** Called when user selects a meeting from results, with the call it came from */
+  onSelectMeeting: (meeting: SkyMeeting, toolCallId: string) => void
 }
-
-/** Tool names that render as meeting results */
-const MEETING_TOOLS = new Set([
-  "searchMeetings",
-  "search_meetings",
-  "getLiveMeetings",
-  "get_live_meetings",
-  "findMeetings",
-  "find_meetings",
-  "findMeetingsByFellowship",
-  "find_meetings_by_fellowship",
-])
 
 /**
  * ToolResultRenderer dispatches tool results to specialized renderers.
- * Unrecognized tools render as a default badge.
+ * A result that holds no meetings renders as a finished badge.
  *
  * CHANGED 2026-11-06 (spec D5): an observer, because the collapse state now lives in the store's
  * volatile map. As a plain component it read the map once and the card would never redraw when
@@ -59,38 +55,51 @@ const MEETING_TOOLS = new Set([
 export const ToolResultRenderer: FC<ToolResultRendererProps> = observer(
   function ToolResultRenderer({ part, onSelectMeeting }) {
     const { themed, theme } = useAppTheme()
+    const { t } = useTranslation()
     const conversationStore = useConversationStore()
 
     // Get collapse state for this tool call
     const collapseState = conversationStore.getCollapseState(part.toolCallId)
     const isCollapsed = collapseState !== null
 
+    // Parsed once per result: the text part is JSON, read on every redraw of the thread otherwise.
+    const meetings = useMemo(() => meetingsOfToolOutput(part.result), [part.result])
+
     // Handle meeting selection
     const handleSelectMeeting = useCallback(
-      (meeting: MeetingWithTrex) => {
+      (meeting: SkyMeeting) => {
         onSelectMeeting(meeting, part.toolCallId)
       },
       [onSelectMeeting, part.toolCallId],
     )
 
-    // Render meeting tools with MeetingResultsCard
-    if (MEETING_TOOLS.has(part.toolName)) {
+    // ADDED 2026-11-08: a tap on the collapsed badge opens the card again (see expandToolResult).
+    const handleExpand = useCallback(
+      () => conversationStore.expandToolResult(part.toolCallId),
+      [conversationStore, part.toolCallId],
+    )
+
+    if (meetings !== null) {
       return (
         <MeetingResultsCard
-          toolCallId={part.toolCallId}
-          result={part.result as Record<string, unknown>}
+          meetings={meetings}
           isCollapsed={isCollapsed}
           collapsedSummary={collapseState?.summary}
           onSelectMeeting={handleSelectMeeting}
+          onExpand={handleExpand}
         />
       )
     }
 
-    // Default: render a simple badge for unrecognized tools
+    // Any other tool, a refusal, or a retired tool's answer from an old thread.
+    // CHANGED 2026-11-08: the screen's own translated words ("{{toolName}} finished"), the badge
+    // AgentScreen draws for a finished call with no output; this one said "completed" in English.
     return (
       <View style={themed($defaultBadge)}>
         <Ionicons name="checkmark-done" size={14} color={theme.colors.textDim} />
-        <Text style={themed($defaultText)}>{part.toolName} completed</Text>
+        <Text style={themed($defaultText)}>
+          {t("agentScreen:toolFinished", { toolName: part.toolName })}
+        </Text>
       </View>
     )
   },

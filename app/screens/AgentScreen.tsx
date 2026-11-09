@@ -26,13 +26,14 @@ import { fetch as expoFetch } from "expo/fetch"
 import { observer } from "mobx-react-lite"
 
 import { ToolResultRenderer } from "@/components/agent"
+import { InPersonPopup } from "@/components/InPersonPopup"
 import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
-import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { feedbackCache } from "@/db"
 import { useAgentConversation, type AgentChatState } from "@/hooks/useAgentConversation"
+import { useSkyMeetingPopup } from "@/hooks/useSkyMeetingPopup"
 import { useVoiceInput } from "@/hooks/useVoiceInput"
 import { translate, getCurrentLanguage } from "@/i18n"
 import {
@@ -290,8 +291,10 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
   const scrollViewRef = useRef<ScrollView>(null)
 
   // State for meeting popup (shown when user taps a meeting from tool results)
-  const [selectedMeeting, setSelectedMeeting] = useState<MeetingWithTrex | null>(null)
-  const [activeToolCallId, setActiveToolCallId] = useState<string | null>(null)
+  // CHANGED 2026-11-08: the hook looks the tapped meeting's schedule up by id. A card's meeting is
+  // meetings-mcp's Meeting, and this state used to hold it cast to `MeetingWithTrex`, a shape no
+  // tool sent, so the popup had no schedule to join or remind from.
+  const { popup, openMeeting, closePopup } = useSkyMeetingPopup()
 
   // State for FAB menu
   const [fabMenuOpen, setFabMenuOpen] = useState(false)
@@ -490,23 +493,19 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
     )
   }, [onStartNew])
 
-  // Handle meeting selection from tool results
-  const handleSelectMeeting = useCallback((meeting: MeetingWithTrex, toolCallId: string) => {
-    setSelectedMeeting(meeting)
-    setActiveToolCallId(toolCallId)
-  }, [])
+  // Handle meeting selection from tool results: the popup opens once the schedule is found
+  const handleSelectMeeting = openMeeting
 
   // Handle popup close - collapse the tool result
   const handleClosePopup = useCallback(() => {
-    if (selectedMeeting && activeToolCallId) {
+    if (popup) {
       conversationStore.collapseToolResult(
-        activeToolCallId,
-        translate("agentScreen:selected", { name: selectedMeeting.name }),
+        popup.toolCallId,
+        translate("agentScreen:selected", { name: popup.meeting.name }),
       )
     }
-    setSelectedMeeting(null)
-    setActiveToolCallId(null)
-  }, [selectedMeeting, activeToolCallId, conversationStore])
+    closePopup()
+  }, [popup, closePopup, conversationStore])
 
   // Voice input - language derived from current app locale
   const voiceLanguage = getCurrentLanguage() === "es" ? "es-MX" : "en-US"
@@ -794,10 +793,17 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
         </View>
       )}
 
-      {/* Meeting Detail Popup - shown when user taps a meeting from tool results */}
+      {/* Meeting Detail Popup - shown when user taps a meeting from tool results.
+          ADDED 2026-11-08: an in-person card opens the In-Person popup, which has the address,
+          directions and "I'm Here"; SchedulePopup has none of those for a venue. */}
       <SchedulePopup
-        visible={selectedMeeting !== null}
-        meeting={selectedMeeting}
+        visible={popup?.venue === "online"}
+        meeting={popup?.venue === "online" ? popup.meeting : null}
+        onClose={handleClosePopup}
+      />
+      <InPersonPopup
+        visible={popup?.venue === "in_person"}
+        meeting={popup?.venue === "in_person" ? popup.meeting : null}
         onClose={handleClosePopup}
       />
     </Screen>

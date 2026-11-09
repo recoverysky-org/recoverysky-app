@@ -70,9 +70,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   favorites, distance for in-person, the weekday when the list spans days),
   with no cap at ten. Tapping one looks its schedule up and opens the meeting's
   own popup: the schedule popup online, the In-Person popup for a venue. A
-  lookup that fails says "That meeting didn't open." Old conversations' cards
-  from the retired tools show the finished badge. The Sky tab is still hidden
-  in production builds.
+  lookup that fails says "That meeting didn't open.", and a meeting that is in
+  no active schedule says "That meeting isn't on the schedule right now." and
+  is not asked for again. A lookup that lands after the person left the Sky
+  tab opens nothing. A card that collapsed to "Selected: …" when its meeting
+  closed opens again on a tap, so its other meetings stay in reach. Old
+  conversations' cards from the retired tools show the finished badge. The Sky
+  tab is still hidden in production builds.
 
 ### Docs
 - (manual) Support: adding with +, removing from the pencil's edit mode, no limit on

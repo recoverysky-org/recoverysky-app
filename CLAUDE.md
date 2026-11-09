@@ -1604,7 +1604,13 @@ has been seen working on a phone.
   out of it, and every meeting draws through `MeetingRow` with no cap. A tap looks the schedule up by
   id in the meeting's own pool (`useSkyMeetingPopup`, `GET /schedules/meeting/{mid}`) and opens
   SchedulePopup online or InPersonPopup for a venue. The reminder tools' approval cards are not built
-  yet (`TODO.md`).
+  yet (`TODO.md`). Rules the review added: a lookup in flight is dropped when the tab blurs (bottom
+  tabs stay mounted, and an answer on a hidden screen opened and closed the popup there, collapsing
+  the card); a 404, an empty answer or the wrong pool is remembered per meeting and pool and says
+  "not on the schedule", never "check your connection", so a dead card sends one request, not one
+  per tap (CrowdSec); a favorite whose `occurrences` came back empty sends none. The collapsed
+  "Selected: …" badge reopens the card (`expandToolResult`): a card holds every meeting the call
+  returned.
 
 ## My Day (Daily Dash)
 
