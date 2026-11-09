@@ -1050,6 +1050,8 @@ const th: Translations = {
     meetingOpenFailed: "That meeting didn't open. Check your connection and try again.",
     meetingNotScheduled: "That meeting isn't on the schedule right now.",
     showMeetingsAgain: "Shows the meetings again",
+    // ADDED 2026-11-08: the routine card's link to the My Day tab (RoutineResultsCard)
+    openMyDay: "Open My Day",
     newConversation: "New conversation",
     newConversationConfirm:
       "Start a new conversation with Sky? You can't go back to this one from the app.",

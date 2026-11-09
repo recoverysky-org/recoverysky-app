@@ -16,6 +16,12 @@ jest.mock("expo-localization", () => ({
   getLocales: () => [{ measurementSystem: "us" }],
 }))
 
+// My Day's own English words, as in RoutineResultsCard.test.tsx; the photo is a bundled JPEG.
+jest.mock("@/hooks/useMyDayCopy", () => ({
+  useMyDayCopy: () => jest.requireActual("@daily-dash/my-day/copy").defaultMyDayCopy,
+}))
+jest.mock("@/theme/myDayPhotos", () => ({ coldStartMyDayPhoto: () => ({ uri: "photo" }) }))
+
 let mockStore: ReturnType<typeof ConversationStoreModel.create>
 jest.mock("@/models", () => ({
   useConversationStore: () => mockStore,
@@ -138,5 +144,77 @@ describe("ToolResultRenderer", () => {
     })
 
     expect(screen.getByText("Sunrise Serenity")).toBeTruthy()
+  })
+
+  // The Daily Dash MCP server sends the API's JSON as structuredContent and as the text part.
+  describe("a get_today answer", () => {
+    const todayAnswer = {
+      asOf: { date: "2026-11-08", timezone: "America/Chicago" },
+      recordable: true,
+      routine: {
+        weekStart: "2026-11-02",
+        items: [
+          {
+            id: "r1",
+            title: "Call my sponsor",
+            bucket: "afternoon",
+            timeOfDay: "12:30",
+            sortOrder: 0,
+            tick: null,
+            weekDone: 2,
+          },
+        ],
+        warnings: [],
+      },
+      steering: null,
+      tonight: { date: "2026-11-08", exists: false },
+      word: null,
+      quote: null,
+      sky: { schedule: null },
+    }
+    const todayPart = partOf("get_today", {
+      ...envelope(todayAnswer),
+      structuredContent: todayAnswer,
+    })
+
+    it("draws the routine card, not a finished badge", () => {
+      render(<ToolResultRenderer part={todayPart} messageId="reply" onSelectMeeting={jest.fn()} />)
+
+      expect(screen.getByText("My Daily Routine")).toBeTruthy()
+      expect(screen.getByText("Call my sponsor")).toBeTruthy()
+      expect(screen.queryByText(/agentScreen:toolFinished/)).toBeNull()
+    })
+
+    it("hands the My Day link the screen's callback", () => {
+      const onOpenMyDay = jest.fn()
+      render(
+        <ToolResultRenderer
+          part={todayPart}
+          messageId="reply"
+          onSelectMeeting={jest.fn()}
+          onOpenMyDay={onOpenMyDay}
+        />,
+      )
+
+      fireEvent.press(screen.getByRole("button", { name: "agentScreen:openMyDay" }))
+      expect(onOpenMyDay).toHaveBeenCalledTimes(1)
+    })
+
+    // A collapse is for a card a person picked from; a routine card is never picked, so a stale
+    // entry for its call id must not hide it.
+    it("ignores the collapse map", () => {
+      mockStore.collapseToolResult("call-1", "Selected: something")
+      render(<ToolResultRenderer part={todayPart} messageId="reply" onSelectMeeting={jest.fn()} />)
+
+      expect(screen.getByText("Call my sponsor")).toBeTruthy()
+    })
+
+    it("draws a refused get_today as the finished badge", () => {
+      const refused = partOf("get_today", envelope("The Daily Dash could not be reached", true))
+      render(<ToolResultRenderer part={refused} messageId="reply" onSelectMeeting={jest.fn()} />)
+
+      expect(screen.queryByText("My Daily Routine")).toBeNull()
+      expect(screen.getByText(/agentScreen:toolFinished/)).toBeTruthy()
+    })
   })
 })

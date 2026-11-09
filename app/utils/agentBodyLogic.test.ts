@@ -88,7 +88,18 @@ describe("chatRequestBody", () => {
       messages: [newest],
       timezone: "America/Denver",
       fellowship: "AA",
+      cards: ["routine"],
     })
+  })
+
+  // The agent adds its routine card rule only when the body says the card draws (agent
+  // `drawsRoutineCard`): the bearer's client cannot tell this app from the Daily Dash app.
+  it("says on every turn which result cards this build draws", () => {
+    const card = assistant("card")
+    expect(chatRequestBody("conv-1", [user("u1")], "UTC", undefined).cards).toEqual(["routine"])
+    expect(chatRequestBody("conv-1", [user("u1"), card], "UTC", undefined, ["m1"]).cards).toEqual([
+      "routine",
+    ])
   })
 
   it("skips a trailing partial reply", () => {

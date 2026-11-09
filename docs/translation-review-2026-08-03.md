@@ -1056,3 +1056,14 @@ ADDED 2026-11-08 (same change, after review), **16 more strings (8 locales x 2 k
 - `agentScreen.showMeetingsAgain`, a screen reader's hint on the collapsed "Selected: …" badge,
   which opens the card of meetings again ("Shows the meetings again"). A hint describes what a tap
   does, so the iOS convention is a verb in the third person with no subject.
+
+## 2026-11-08 Sky routine card (English placeholder)
+
+**Still English placeholder, 8 strings (8 locales x 1 key)** in ar, de, es, fr, pt, ru, th, uk:
+`agentScreen.openMyDay`, the link at the foot of Sky's routine card that opens the My Day tab
+("Open My Day").
+
+- **"My Day" is the tab's name.** Translate it exactly as `mainNavigator.myDayTab` is translated, which
+  is still the English placeholder "My Day" in every locale; the two must stay the same words.
+- The rest of the card uses the `myDay` namespace's own words (the routine title, parts of the day,
+  "Done", "Set aside today", "Not yet", "{{n}} this week"), already queued with My Day.

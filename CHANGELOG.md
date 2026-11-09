@@ -32,6 +32,18 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   message is sent, so a heart tapped mid-conversation counts. The agent passes
   them to the meeting server for that message alone and stores none of them.
   The Sky tab is still hidden in production builds.
+- **Sky shows your routine as a card.** When Sky looks at your day (the Daily
+  Dash's `get_today`), the chat draws your routine in My Day's look: "My Daily
+  Routine" and the day, then each part of the day with every item's ring, time
+  and "Done · 4 this week", set-aside items dimmed. "Open My Day" goes to the My
+  Day tab, and is left out for an account without it. The card shows the ticks
+  as they were when Sky looked, and nothing on it can be ticked yet. Each
+  message to Sky now says the app draws this card (`cards: ["routine"]`), and
+  only then does the agent's matching rule (`daily-dash-tools/2`) tell Sky the
+  card carries the routine, so she no longer reads it out. The Daily Dash app,
+  and older builds of this one, say nothing and keep her words, so the app and
+  the agent can ship in either order. The Sky tab is still hidden in
+  production builds.
 
 ### Changed
 - **The Home Support card lists everyone, with + and edit in its header.** It

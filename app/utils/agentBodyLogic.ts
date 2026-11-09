@@ -40,7 +40,22 @@ export interface ChatRequestBody {
    * ignores the key (its body schema is `.passthrough()`), so it never refuses a turn.
    */
   favorite_meeting_ids?: string[]
+  /**
+   * ADDED 2026-11-08: the result cards this build draws (`SKY_CARDS`). The agent adds its routine
+   * card rule ("the card shows the routine, never list it") only when this names "routine"
+   * (agent `drawsRoutineCard`). An agent before that change ignores the key (`.passthrough()`).
+   */
+  cards: readonly string[]
 }
+
+/**
+ * The result cards this build draws, sent on every turn. "routine": a `get_today` answer draws as
+ * RoutineResultsCard. Said by the app because the agent cannot tell from the bearer which app the
+ * turn came from: older Daily Dash builds sign in to My Day with this app's own Auth0 client, and
+ * Sky there must keep saying the routine. Fixed per build, so the agent's cached prompt holds.
+ * Remove an entry only with the card it names. ADDED 2026-11-08 (review).
+ */
+export const SKY_CARDS: readonly string[] = ["routine"]
 
 /**
  * The most favorites a turn carries. The agent keeps the first 500 and drops the rest with a
@@ -134,6 +149,7 @@ export function turnOf(messages: readonly UIMessage[]): UIMessage | null {
  * CHANGED 2026-11-08: `favoriteIds` (from `favoriteMeetingIds`) rides on every turn, an
  * answered card's included, as the agent spec asks. None is left out rather than sent as
  * `[]`, so a person with no hearts sends the body they sent before.
+ * CHANGED 2026-11-08: and `cards` (`SKY_CARDS`), the same on every turn.
  */
 export function chatRequestBody(
   conversationId: string,
@@ -149,6 +165,7 @@ export function chatRequestBody(
     timezone,
     ...(fellowship ? { fellowship } : {}),
     ...(favoriteIds.length > 0 ? { favorite_meeting_ids: [...favoriteIds] } : {}),
+    cards: SKY_CARDS,
   }
 }
 

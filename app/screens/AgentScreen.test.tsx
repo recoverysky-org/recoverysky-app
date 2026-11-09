@@ -136,9 +136,11 @@ jest.mock("@/components/agent", () => {
     ToolResultRenderer: ({
       part,
       onSelectMeeting,
+      onOpenMyDay,
     }: {
       part: { toolCallId: string }
       onSelectMeeting: (meeting: unknown, toolCallId: string) => void
+      onOpenMyDay?: () => void
     }) =>
       createElement(
         View,
@@ -148,6 +150,10 @@ jest.mock("@/components/agent", () => {
           testID: "tool-result-select",
           onPress: () => onSelectMeeting(mockCardMeeting, part.toolCallId),
         }),
+        // The routine card's link, drawn only when the screen hands one down
+        onOpenMyDay
+          ? createElement(Pressable, { testID: "tool-result-open-my-day", onPress: onOpenMyDay })
+          : null,
       ),
   }
 })
@@ -175,6 +181,18 @@ function mockPopup(testID: string) {
 }
 jest.mock("@/components/SchedulePopup", () => ({ SchedulePopup: mockPopup("schedule-popup") }))
 jest.mock("@/components/InPersonPopup", () => ({ InPersonPopup: mockPopup("in-person-popup") }))
+
+// The tab navigator's routes: whether a My Day tab is there for the routine card's link.
+// Subscribed like the real hook, which re-renders its caller when the navigator's state changes
+// (the screen is a memoised observer, so a re-render with the same props never reaches it).
+let mockRouteNames: string[] = ["Home", "Meetings", "Agent", "Settings"]
+jest.mock("@react-navigation/native", () => ({
+  ...jest.requireActual("@react-navigation/native"),
+  useNavigationState: (select: (state: { routeNames: string[] }) => unknown) => {
+    mockUseSubscribed()
+    return select({ routeNames: mockRouteNames })
+  },
+}))
 
 // The lookup is the hook's own test's business (useSkyMeetingPopup.test.tsx).
 const mockPopupHook = {
@@ -256,8 +274,9 @@ function assistantMessage(id: string, parts: unknown[]): UIMessage {
 
 const REFUSAL_BODY = JSON.stringify({ error: "Conflict", message: "conversation_archived" })
 
+const mockNavigate = jest.fn()
 const screenProps = {
-  navigation: { goBack: jest.fn() },
+  navigation: { goBack: jest.fn(), navigate: mockNavigate },
   route: { key: "Agent", name: "Agent" },
 } as unknown as Parameters<typeof AgentScreen>[0]
 
@@ -769,6 +788,15 @@ describe("AgentScreen", () => {
       expect(body.favorite_meeting_ids).toEqual(["m1", "m2"])
     })
 
+    // The agent's routine card rule waits on this (agent `drawsRoutineCard`).
+    it("tells the agent the routine card draws", async () => {
+      mountScreen()
+
+      await sendThroughTransport([userMessage("turn", "my words")])
+
+      expect(JSON.parse(mockExpoFetch.mock.calls[0][1].body).cards).toEqual(["routine"])
+    })
+
     it("sends no favorites key without a heart", async () => {
       mountScreen()
 
@@ -1059,6 +1087,51 @@ describe("AgentScreen", () => {
         toolCallId: "call-1",
         toolName: "searchMeetings",
         result: { meetings: [] },
+      })
+    })
+
+    // ADDED 2026-11-08: the routine card's "Open My Day" link goes to the My Day tab, keeping the
+    // person's place there, and only while the tab navigator has a My Day tab (the `myday` gate).
+    describe("the routine card's My Day link", () => {
+      const withCard = () => {
+        mockChat.messages = [
+          assistantMessage("stored", [{ ...part("output-available"), output: { routine: {} } }]),
+        ]
+      }
+      afterEach(() => {
+        mockRouteNames = ["Home", "Meetings", "Agent", "Settings"]
+      })
+
+      it("opens the My Day tab while it is there, naming no screen in it", () => {
+        mockRouteNames = ["Home", "Meetings", "MyDay", "Agent", "Settings"]
+        withCard()
+        const screen = mountScreen()
+
+        fireEvent.press(screen.getByTestId("tool-result-open-my-day"))
+
+        // A screen named here would stack a second Today over the person's place in My Day.
+        expect(mockNavigate).toHaveBeenCalledWith("MyDay")
+      })
+
+      // The `myday` entitlement can land after a cold start, registering the tab later.
+      it("offers the link once the tab is registered", () => {
+        withCard()
+        const screen = mountScreen()
+        expect(screen.queryByTestId("tool-result-open-my-day")).toBeNull()
+
+        update(() => {
+          mockRouteNames = ["Home", "Meetings", "MyDay", "Agent", "Settings"]
+        })
+
+        expect(screen.getByTestId("tool-result-open-my-day")).toBeTruthy()
+      })
+
+      it("hands down no link without a My Day tab", () => {
+        withCard()
+        const screen = mountScreen()
+
+        expect(screen.getByTestId("tool-result")).toBeTruthy()
+        expect(screen.queryByTestId("tool-result-open-my-day")).toBeNull()
       })
     })
 

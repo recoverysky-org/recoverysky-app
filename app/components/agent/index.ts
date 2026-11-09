@@ -5,4 +5,5 @@
  */
 export { CollapsedResultBadge } from "./CollapsedResultBadge"
 export { MeetingResultsCard } from "./MeetingResultsCard"
+export { RoutineResultsCard } from "./RoutineResultsCard"
 export { ToolResultRenderer } from "./ToolResultRenderer"

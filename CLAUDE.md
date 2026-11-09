@@ -1558,7 +1558,8 @@ it waits on the agent release that ships both of the agent's designs (the spec's
 has been seen working on a phone.
 - **Turn-only body.** `chatRequestBody()` (`app/utils/agentBodyLogic.ts`, vitest) sends
   `conversation_id`, one message (`turnOf`: the newest that is the person's or an answered card, never
-  a partial reply the SDK kept after a failed stream), `timezone` and `fellowship`. A retry resends the
+  a partial reply the SDK kept after a failed stream), `timezone` and `fellowship`, and (ADDED
+  2026-11-08) `cards`, the result cards this build draws (`SKY_CARDS`, see "Routine card"). A retry resends the
   same message id, and the agent stores it once. ADDED 2026-11-08: and `favorite_meeting_ids`, the
   hearted meeting ids (`favoriteMeetingIds`: read from `feedbackCache` at send time, sorted, at most
   500, the most recently joined past that), left out when there are none. meetings-mcp marks and
@@ -1611,6 +1612,22 @@ has been seen working on a phone.
   per tap (CrowdSec); a favorite whose `occurrences` came back empty sends none. The collapsed
   "Selected: …" badge reopens the card (`expandToolResult`): a card holds every meeting the call
   returned.
+- **Routine card** (ADDED 2026-11-08). A `get_today` answer from the Daily Dash MCP server (its
+  `structuredContent` is the API's Today) draws the person's routine in My Day's look
+  (`RoutineResultsCard`; parsing in `todayOfToolOutput`, `app/utils/agentRoutineLogic.ts`, vitest),
+  decided by shape like the meeting cards. Every turn's body says this build draws it
+  (`cards: SKY_CARDS`, `["routine"]`, `agentBodyLogic.ts`), and only then does the agent's
+  `ROUTINE_CARD_RULE` (`daily-dash-tools/2`, agent `drawsRoutineCard`) tell Sky the card carries the
+  routine, so she never lists it: the card is how the items reach the person. Declared, because the
+  agent cannot tell this app from the Daily Dash app by the bearer (older Daily Dash builds sign in
+  to My Day with this app's Auth0 client); a body without it keeps Sky's words, so either repo can
+  ship first. Remove `"routine"` only with the card. Built here from `MyDayHost`'s pieces
+  (`buildMyDayTheme`, `coldStartMyDayPhoto`, `MyDayBlur`, `useMyDayCopy`), not from the package: its
+  `RoutineCard` needs the Daily Dash client, which exists only inside the My Day tab. Display only
+  (ticking from the card is next): the ticks are the answer's, so an old card keeps its day's. It
+  never collapses. "Open My Day" shows only while the tab navigator has a `MyDay` route
+  (`useNavigationState` in `AgentScreen`), so it follows the `myday` gate exactly. The two cards
+  share `toolAnswerOf` (`app/utils/agentToolAnswerLogic.ts`).
 
 ## My Day (Daily Dash)
 

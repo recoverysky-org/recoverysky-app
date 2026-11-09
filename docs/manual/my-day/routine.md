@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: premium
 aliases: ["routine", "daily routine", "your routine", "habits", "tick off", "edit routine", "templates", "start from a template", "skip an item", "switch off", "switch on", "hide an item", "delete an item", "morning routine", "reorder", "drag", "copy an item"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx, app/components/agent/RoutineResultsCard.tsx, app/screens/AgentScreen.tsx -->
 "My Daily Routine" is the list of things you mean to do each day, grouped by part of the day: "Morning", "Afternoon", "Evening" and "Any time". You tick items off on "My Day" and change the list in the routine editor. It is in the My Day tab, which needs the Premium subscription, on iPhone and Android.
 
 ## How to tick off your routine
@@ -49,6 +49,8 @@ Templates need a connection.
 **Saving.** Ticks and changes show at once. If a change could not be sent, it says "Saved on this device. It will send when you're online." Adding a template is the one change that needs a connection.
 
 **A long list.** If you see "That's a full day. Would a shorter list feel lighter?", that is a gentle suggestion. Nothing is removed.
+
+**Your routine in a chat with Sky.** When you ask Sky about your day, the chat shows your routine as a card: "My Daily Routine", the day, and each item with its time and "Done", "Set aside today" or "Not yet". The card shows how things stood when Sky looked, and its items cannot be ticked there; tick them on "My Day". "Open My Day" at the bottom of the card goes to the My Day tab.
 
 **Where your routine lives.** On this phone, encrypted, and on The Daily Dash's server for your account. Settings → "Account" → "Delete User Data" deletes it from this phone; what was already sent stays on The Daily Dash's server.
 

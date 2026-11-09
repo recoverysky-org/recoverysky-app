@@ -21,6 +21,7 @@ import {
 } from "react-native"
 import { useChat } from "@ai-sdk/react"
 import { Ionicons } from "@expo/vector-icons"
+import { useNavigationState } from "@react-navigation/native"
 import { DefaultChatTransport, type UIMessage } from "ai"
 import { fetch as expoFetch } from "expo/fetch"
 import { observer } from "mobx-react-lite"
@@ -156,6 +157,18 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   // Local state for input (AI SDK v6 manages input internally)
   const [input, setInput] = useState("")
 
+  // ADDED 2026-11-08 (routine card): the routine card's "Open My Day" link, only while the tab
+  // navigator holds a My Day tab. Read from the navigator's own routes rather than re-deciding
+  // `decideMyDayTabVisible`, so the link follows the tab's gate exactly (the `myday` entitlement
+  // landing after a cold start included). Without the tab, the card shows with no link.
+  const myDayTabShown = useNavigationState((state) => state?.routeNames?.includes("MyDay") ?? false)
+  // The tab itself, as a tab press would: My Day keeps the person's place. Naming `MyDayToday`
+  // pushed a second Today onto the stack whenever another My Day screen was on top (React
+  // Navigation 7's navigate reuses only the current route), and `pop: true` would drop an open
+  // editor's draft. A tab never opened yet starts on Today, its initial route. (review 2026-11-08)
+  const openMyDay = useCallback(() => navigation.navigate("MyDay"), [navigation])
+  const onOpenMyDay = myDayTabShown ? openMyDay : undefined
+
   // Spec D1: no read before consent, and none without a session.
   const { view, chatState, retry, reopenStale, startNew } = useAgentConversation({
     agentUrl: configStore.agentUrl,
@@ -225,6 +238,7 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
         onRetry={retry}
         onStale={reopenStale}
         onStartNew={startNew}
+        onOpenMyDay={onOpenMyDay}
       />
     )
   }
@@ -264,6 +278,8 @@ interface AgentChatProps {
   /** The thread in memory is stale: the outer shell reads it again, which unmounts this chat. */
   onStale: () => void
   onStartNew: () => void
+  /** Opens the My Day tab from a routine card; undefined when there is no My Day tab */
+  onOpenMyDay?: () => void
 }
 
 /**
@@ -283,6 +299,7 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
   onRetry,
   onStale,
   onStartNew,
+  onOpenMyDay,
 }) {
   const { themed, theme } = useAppTheme()
   const configStore = useConfigStore()
@@ -630,6 +647,7 @@ const AgentChat: FC<AgentChatProps> = observer(function AgentChat({
                           }}
                           messageId={message.id}
                           onSelectMeeting={handleSelectMeeting}
+                          onOpenMyDay={onOpenMyDay}
                         />
                       )
                     }
