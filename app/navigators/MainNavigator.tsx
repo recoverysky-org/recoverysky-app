@@ -70,12 +70,20 @@ export const MainNavigator = observer(function MainNavigator() {
   // CHANGED 2026-11-07: no `__DEV__` escape any more. Dev builds need the
   // entitlement too, the same rule as My Day below. Later the same day the
   // entitlement became RevenueCat's `skyagent` rather than premium.
-  const agentTabVisible = decideAgentTabVisible({
-    // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
-    // these at bundle time only for that exact form.
-    agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
-    hasSkyAgent,
-  })
+  // CHANGED 2026-11-17 (Jenova): hidden for everyone, whatever the entitlement
+  // or the build's agent URL, dev builds included. The gate below still runs, so
+  // re-enabling the tab is just setting `skyAgentTabEnabled` back to true. A local
+  // const like `socialTabVisible`, not an env var: dev builds carry the URL in
+  // .env, and the point is that no `skyagent` account sees the tab anywhere.
+  const skyAgentTabEnabled = false
+  const agentTabVisible =
+    skyAgentTabEnabled &&
+    decideAgentTabVisible({
+      // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
+      // these at bundle time only for that exact form.
+      agentUrlEnv: process.env.EXPO_PUBLIC_AGENT_URL,
+      hasSkyAgent,
+    })
   // ADDED 2026-11-04: My Day tab (Daily Dash). Premium accounts only; the gate
   // lives in myDayTabLogic.ts (signed in, not a guest, premium, a Daily Dash
   // URL in the build, and a platform it supports).

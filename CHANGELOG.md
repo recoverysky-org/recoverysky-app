@@ -48,6 +48,10 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   production builds.
 
 ### Changed
+- **The Sky Agent tab is hidden for everyone.** It no longer shows for an
+  account with the `skyagent` entitlement, in any build, dev builds included.
+  Production already hid it (no agent URL in the build); this also turns it off
+  where the URL is set. A local switch in the main tab navigator brings it back.
 - **The Home Support card lists everyone, with + and edit in its header.** It
   showed only the first contact (and "Add your sponsor or support person" with
   "Choose" before anyone was added). Now every contact has its own call and text
