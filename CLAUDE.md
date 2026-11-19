@@ -138,11 +138,6 @@ npm run update
   open. The ingest takes the whole folder, and four Sky pages there describe a
   thread on the agent that no production build has yet. Delete this line when
   that item closes.
-- ⚠️ HOLD (ADDED 2026-11-08): no release while In-Person ZIP search is in
-  `[Unreleased]` and the api's `GET /geo/postal-code` is not live in production.
-  ZIP is the default for fresh installs and for anyone without location, and
-  against a missing route every code shows "ZIP search isn't available right
-  now." Delete this line when the route ships.
 
 ### Native release (anything that changed `runtimeVersion`)
 
@@ -164,12 +159,6 @@ the manual ingest from the agent repo with the production `.env`:
 `pnpm manual:ingest ../app/docs/manual` (see "User's Manual").
 ⚠️ HOLD (ADDED 2026-11-07): not while `TODO.md`'s "The manual ingest" item is
 open (same reason as the OTA step above). Delete this line when it closes.
-
-⚠️ HOLD (ADDED 2026-11-08): no release while In-Person ZIP search is in
-`[Unreleased]` and the api's `GET /geo/postal-code` is not live in production
-(same reason as the OTA list above: ZIP is the default, and against a missing
-route every code shows "ZIP search isn't available right now."). Delete this
-line when the route ships.
 
 Cloud builds need every dependency reachable from the internet. The private
 packages are vendored for exactly that reason (see "Linked Packages").
