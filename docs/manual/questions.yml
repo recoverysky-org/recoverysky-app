@@ -35,6 +35,10 @@
   expect: backup-and-devices/if-backup-isnt-working
 - q: my day says premium feature
   expect: my-day/today
+- q: my day says free until a date
+  expect: my-day/today
+- q: my free my day has ended
+  expect: my-day/today
 - q: I don't see the my day tab
   expect: my-day/today
 - q: what is my day

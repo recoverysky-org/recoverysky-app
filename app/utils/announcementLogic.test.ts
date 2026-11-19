@@ -23,6 +23,7 @@ const base = {
   platform: "android",
   nativeVersion: "4.10.1" as string | null,
   shownThisSession: [] as string[],
+  myDayGiftActive: false,
 }
 
 const NAG: Announcement = {
@@ -105,6 +106,30 @@ describe("compareVersions", () => {
 
   it("treats missing parts as zero", () => {
     expect(compareVersions("4.11", "4.11.0")).toBe(0)
+  })
+})
+
+describe("selectPendingAnnouncement — the My Day gift audience", () => {
+  const GIFT: Announcement = {
+    id: "gift",
+    titleTx: "x" as never,
+    bodyTx: "y" as never,
+    audience: "myDayGift",
+  }
+
+  it("shows the gift entry only while the account is on the gift", () => {
+    const s = { ...base, announcements: [GIFT] as const }
+    expect(selectPendingAnnouncement(s)).toBeNull()
+    expect(selectPendingAnnouncement({ ...s, myDayGiftActive: true })?.id).toBe("gift")
+  })
+
+  it("skips it for everyone else instead of blocking the entries after it", () => {
+    expect(selectPendingAnnouncement({ ...base, announcements: [GIFT, A] as const })?.id).toBe("a")
+  })
+
+  it("shows it once", () => {
+    const s = { ...base, announcements: [GIFT] as const, myDayGiftActive: true }
+    expect(selectPendingAnnouncement({ ...s, seenIds: ["gift"] })).toBeNull()
   })
 })
 

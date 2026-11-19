@@ -34,7 +34,8 @@ export interface AnnouncementCta {
    * here needs a matching branch in AnnouncementGate.handleCta — a target with
    * no branch silently marks the announcement seen and navigates nowhere.
    */
-  target: "cloudBackupSettings" | "inPersonMeetings"
+  // CHANGED 2026-11-19: "myDay" (the My Day gift's "Open My Day") added.
+  target: "cloudBackupSettings" | "inPersonMeetings" | "myDay"
 }
 
 export interface Announcement {
@@ -59,6 +60,13 @@ export interface Announcement {
    * appended after it waits behind it until it expires: keep these short-lived.
    */
   repeatUntilNativeVersion?: string
+  /**
+   * ADDED 2026-11-19: show only to accounts in this group. "myDayGift" is an account on the My Day
+   * gift while it lasts (`useMyDayGift`, `myDayGiftLogic.ts`), so subscribers never see it. The
+   * body may use `{{date}}`, the gift's end date, which the gate passes as the body's options.
+   * Without one, every account in the other gates sees the entry.
+   */
+  audience?: "myDayGift"
 }
 
 export const ANNOUNCEMENTS: readonly Announcement[] = [
@@ -85,6 +93,22 @@ export const ANNOUNCEMENTS: readonly Announcement[] = [
       // from InPersonPopup are premium.) So every viewer gets the button.
       requiresAttendance: false,
       target: "inPersonMeetings",
+    },
+  },
+  // ADDED 2026-11-19 (Jenova): existing accounts get My Day free until one date, a RevenueCat
+  // promotional grant. Shown once, only while this account is on the gift; the body names the end
+  // date. A later gift needs a new id (and strings), or people who saw this one never see it.
+  {
+    id: "my-day-gift-2026-11",
+    titleTx: "announcements:myDayGiftTitle",
+    bodyTx: "announcements:myDayGiftBody",
+    icon: "gift-outline",
+    audience: "myDayGift",
+    cta: {
+      labelTx: "announcements:myDayGiftCta",
+      // The audience already means the account has My Day.
+      requiresAttendance: false,
+      target: "myDay",
     },
   },
 ] as const

@@ -1268,6 +1268,17 @@ const fr: Translations = {
     myDayPremiumMessage:
       "My Day est disponible avec un abonnement Premium. Essaie-le gratuitement pendant 7 jours.",
   },
+  // ADDED 2026-11-19: the My Day gift's bar, "ends soon" alert and ended copy (useMyDayGift).
+  myDayGift: {
+    bar: "My Day est gratuit jusqu'au {{date}}",
+    endingTitle: "La période gratuite de My Day se termine bientôt",
+    endingMessage:
+      "Ton My Day gratuit se termine le {{date}}. Abonne-toi pour continuer à l'utiliser. Tout ce que tu as ajouté est conservé dans tous les cas.",
+    endedTitle: "Ton My Day gratuit est terminé",
+    endedMessage:
+      "Tout ce que tu as ajouté est conservé. Abonne-toi à Premium pour reprendre là où tu en étais. Essaie-le gratuitement pendant 7 jours.",
+    notNow: "Pas maintenant",
+  },
   accessibility: {
     doubleTapToView: "Touchez deux fois pour voir les détails",
     doubleTapToJoin: "Touchez deux fois pour rejoindre la réunion",
@@ -1332,6 +1343,11 @@ const fr: Translations = {
     inPersonBody:
       "L'onglet Réunions comporte désormais une section En personne. Trouvez des réunions près de chez vous sous forme de liste ou sur la carte, obtenez l'itinéraire et appuyez sur « Je suis ici » à votre arrivée pour enregistrer votre présence. La localisation vous sera demandée à la première ouverture.",
     inPersonCta: "Trouver une réunion près de moi",
+    // ADDED 2026-11-19: the My Day gift (free until one date for existing accounts), shown once.
+    myDayGiftTitle: "My Day est gratuit pour toi",
+    myDayGiftBody:
+      "Jusqu'au {{date}}, My Day est à toi gratuitement : crée une routine quotidienne, tiens ta liste de gratitude et évalue ta journée chaque soir. À la fin de la période gratuite, tout ce que tu as ajouté est conservé.",
+    myDayGiftCta: "Ouvrir My Day",
     dismiss: "Compris",
   },
   inPersonPopup: {

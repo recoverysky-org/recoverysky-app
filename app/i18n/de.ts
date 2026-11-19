@@ -1266,6 +1266,17 @@ const de: Translations = {
     myDayPremiumMessage:
       "My Day ist mit einem Premium-Abonnement verfügbar. Teste es 7 Tage kostenlos.",
   },
+  // ADDED 2026-11-19: the My Day gift's bar, "ends soon" alert and ended copy (useMyDayGift).
+  myDayGift: {
+    bar: "My Day ist bis zum {{date}} kostenlos",
+    endingTitle: "Die kostenlose Zeit von My Day endet bald",
+    endingMessage:
+      "Dein kostenloses My Day endet am {{date}}. Abonniere, um es weiter zu nutzen. Alles, was du eingetragen hast, bleibt so oder so erhalten.",
+    endedTitle: "Dein kostenloses My Day ist beendet",
+    endedMessage:
+      "Alles, was du eingetragen hast, bleibt erhalten. Abonniere Premium, um dort weiterzumachen, wo du aufgehört hast. Teste es 7 Tage kostenlos.",
+    notNow: "Nicht jetzt",
+  },
   accessibility: {
     doubleTapToView: "Doppeltippen, um Details anzuzeigen",
     doubleTapToJoin: "Doppeltippen, um dem Meeting beizutreten",
@@ -1330,6 +1341,11 @@ const de: Translations = {
     inPersonBody:
       "Der Tab „Meetings“ hat jetzt den Bereich „Vor Ort“. Finde Meetings in deiner Nähe als Liste oder auf der Karte, lass dir den Weg anzeigen und tippe bei der Ankunft auf „Ich bin hier“, um deine Teilnahme zu erfassen. Beim ersten Öffnen wirst du nach dem Standort gefragt.",
     inPersonCta: "Meeting in der Nähe finden",
+    // ADDED 2026-11-19: the My Day gift (free until one date for existing accounts), shown once.
+    myDayGiftTitle: "My Day ist für dich kostenlos",
+    myDayGiftBody:
+      "Bis zum {{date}} gehört dir My Day kostenlos: Leg eine tägliche Routine an, führe deine Dankbarkeitsliste und bewerte jeden Abend deinen Tag. Wenn die kostenlose Zeit endet, bleibt alles erhalten, was du eingetragen hast.",
+    myDayGiftCta: "My Day öffnen",
     dismiss: "Verstanden",
   },
   inPersonPopup: {

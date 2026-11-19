@@ -32,6 +32,7 @@ import { observer } from "mobx-react-lite"
 import { Text } from "@/components/Text"
 import { ANNOUNCEMENTS, type Announcement } from "@/config/announcements"
 import { useSubscription } from "@/context/SubscriptionContext"
+import { useMyDayGift } from "@/hooks/useMyDayGift"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { loadTimerSession } from "@/services/attendance"
@@ -54,6 +55,9 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
   const authStore = useAuthenticationStore()
   const configStore = useConfigStore()
   const { hasAttendance } = useSubscription()
+  // ADDED 2026-11-19: the My Day gift's announcement (`audience: "myDayGift"`) and its end date.
+  const { phase: giftPhase, endDate: giftEndDate } = useMyDayGift()
+  const myDayGiftActive = giftPhase === "active"
   const { themed, theme } = useAppTheme()
 
   const [active, setActive] = useState<Announcement | null>(null)
@@ -83,6 +87,7 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       platform: Platform.OS,
       nativeVersion: Application.nativeApplicationVersion,
       shownThisSession,
+      myDayGiftActive,
     })
     if (pending && claimOverlay("announcement")) {
       // A repeating notice counts as shown the moment it appears, not on
@@ -91,7 +96,9 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       if (pending.repeatUntilNativeVersion) shownThisSession.push(pending.id)
       setActive(pending)
     }
-  }, [active, profileStore, authStore, configStore, overlay])
+    // `myDayGiftActive` is a dep so the gift's entry shows once RevenueCat answers, not on the next
+    // foreground.
+  }, [active, profileStore, authStore, configStore, overlay, myDayGiftActive])
 
   useEffect(() => {
     evaluate()
@@ -127,6 +134,10 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
       // defaults to "live" when none is supplied, so omitting it would land the
       // user on Live and show them nothing the announcement just described.
       navigate("Meetings", { segment: "inperson" })
+    } else if (active.cta.target === "myDay") {
+      // ADDED 2026-11-19: the My Day gift's "Open My Day". The tab exists for every signed-in
+      // account, and the audience means this one has the entitlement, so it opens My Day itself.
+      navigate("MyDay")
     }
     releaseOverlay("announcement")
     setActive(null)
@@ -153,7 +164,8 @@ export const AnnouncementGate: FC = observer(function AnnouncementGate() {
             <Text style={themed($title)} tx={active.titleTx} />
           </View>
 
-          <Text style={themed($body)} tx={active.bodyTx} />
+          {/* ADDED 2026-11-19: `{{date}}` is the My Day gift's end; other bodies ignore it. */}
+          <Text style={themed($body)} tx={active.bodyTx} txOptions={{ date: giftEndDate }} />
 
           {showCta && active.cta && (
             <Pressable onPress={handleCta} style={themed($ctaButton)} accessibilityRole="button">

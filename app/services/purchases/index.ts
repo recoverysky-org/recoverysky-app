@@ -46,3 +46,12 @@ export {
   shouldSyncForIdentity,
   syncFlagKey,
 } from "./rcIdentityLogic"
+export {
+  GIFT_WARN_DAYS,
+  giftKey,
+  myDayGiftDaysLeft,
+  myDayGiftPhase,
+  shouldWarnGiftEnding,
+  type MyDayGift,
+  type MyDayGiftPhase,
+} from "./myDayGiftLogic"

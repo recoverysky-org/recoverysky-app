@@ -1243,6 +1243,17 @@ const th: Translations = {
     premiumFeatureTitle: "ฟีเจอร์พรีเมียม",
     myDayPremiumMessage: "My Day ใช้งานได้กับสมาชิกพรีเมียม ทดลองใช้ฟรี 7 วัน",
   },
+  // ADDED 2026-11-19: the My Day gift's bar, "ends soon" alert and ended copy (useMyDayGift).
+  myDayGift: {
+    bar: "My Day ฟรีถึง {{date}}",
+    endingTitle: "ช่วงใช้ฟรีของ My Day ใกล้สิ้นสุดแล้ว",
+    endingMessage:
+      "My Day ฟรีของคุณจะสิ้นสุดในวันที่ {{date}} สมัครสมาชิกเพื่อใช้งานต่อ ทุกอย่างที่คุณเพิ่มไว้จะถูกเก็บไว้ไม่ว่าอย่างไร",
+    endedTitle: "ช่วงใช้ฟรีของ My Day สิ้นสุดแล้ว",
+    endedMessage:
+      "ทุกอย่างที่คุณเพิ่มไว้ยังถูกเก็บไว้ สมัครพรีเมียมเพื่อใช้งานต่อจากที่ค้างไว้ ทดลองใช้ฟรี 7 วัน",
+    notNow: "ไม่ใช่ตอนนี้",
+  },
   accessibility: {
     doubleTapToView: "แตะสองครั้งเพื่อดูรายละเอียด",
     doubleTapToJoin: "แตะสองครั้งเพื่อเข้าร่วมการประชุม",
@@ -1307,6 +1318,11 @@ const th: Translations = {
     inPersonBody:
       "แท็บประชุมมีส่วน “แบบพบหน้า” แล้ว ค้นหาการประชุมใกล้คุณในรูปแบบรายการหรือบนแผนที่ ดูเส้นทาง และแตะ “ฉันอยู่ที่นี่” เมื่อไปถึงเพื่อบันทึกการเข้าร่วมของคุณ ระบบจะขอสิทธิ์ตำแหน่งที่ตั้งเมื่อคุณเปิดครั้งแรก",
     inPersonCta: "ค้นหาการประชุมใกล้ฉัน",
+    // ADDED 2026-11-19: the My Day gift (free until one date for existing accounts), shown once.
+    myDayGiftTitle: "My Day ฟรีสำหรับคุณ",
+    myDayGiftBody:
+      "ใช้ My Day ได้ฟรีจนถึง {{date}}: สร้างกิจวัตรประจำวัน จดสิ่งที่คุณรู้สึกขอบคุณ และให้คะแนนวันของคุณทุกเย็น เมื่อช่วงใช้ฟรีสิ้นสุด ทุกอย่างที่คุณเพิ่มไว้จะยังถูกเก็บไว้",
+    myDayGiftCta: "เปิด My Day",
     dismiss: "รับทราบ",
   },
   inPersonPopup: {

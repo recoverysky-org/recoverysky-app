@@ -1683,7 +1683,19 @@ Feature" alert (`useMyDayPaywallPrompt`) and goes to the tab after a purchase;
 `shouldPromptOnMyDayTap` / `decideMyDayTabView` (`myDayTabViewLogic.ts`, vitest)
 decide. `decideMyDayTabVisible` is still the driver's gate, so the session and the
 client exist exactly while the entitlement holds. Never mount `MyDayNavigator`
-without it. A gate that does not hold starts nothing for any
+without it. ADDED 2026-11-19 (Jenova): **the My Day gift.** Existing
+accounts get `myday` free until one shared date (a RevenueCat promotional grant
+with an end time, granted from RevenueCat, not the app). `decideMyDayGift`
+(`app/services/purchases/myDayGiftLogic.ts`, vitest) reads it into
+`subscriptionInfo.myDayGift`: PROMOTIONAL with an end, no paid Premium beside it
+(RevenueCat reports the latest-expiring product per entitlement, so a subscriber's
+`myday` can show the promotion), and not a comp ending more than 45 days out.
+`useMyDayGift` adds the phase, days left and the end date; its readers are the
+"my-day-gift-2026-11" announcement (`audience: "myDayGift"`), the bar under
+`MyDayNavigator` in `MyDayTab`, `MyDayGiftEndingAlert` (MainNavigator, once per
+gift in the last 3 days, MMKV `myDayGift.endingWarnedFor`, through `overlayGate`)
+and the ended copy in the tab alert and locked page. A later gift needs a new
+announcement id. A gate that does not hold starts nothing for any
 session status (`decideDailyDashAction`), so a free, guest or signed-out person
 never has a session built or a Daily Dash account minted.
 

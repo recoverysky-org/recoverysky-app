@@ -1302,6 +1302,17 @@ const en = {
     premiumFeatureTitle: "Premium Feature",
     myDayPremiumMessage: "My Day is available with a Premium subscription. Try it free for 7 days.",
   },
+  // ADDED 2026-11-19: the My Day gift's bar, "ends soon" alert and ended copy (useMyDayGift).
+  myDayGift: {
+    bar: "My Day is free until {{date}}",
+    endingTitle: "My Day's Free Time Ends Soon",
+    endingMessage:
+      "Your free My Day ends on {{date}}. Subscribe to keep using it. Everything you added is kept either way.",
+    endedTitle: "Your Free My Day Has Ended",
+    endedMessage:
+      "Everything you added is kept. Subscribe to Premium to pick up where you left off. Try it free for 7 days.",
+    notNow: "Not now",
+  },
   accessibility: {
     doubleTapToView: "Double-tap to view details",
     doubleTapToJoin: "Double-tap to join meeting",
@@ -1379,6 +1390,11 @@ const en = {
     inPersonBody:
       "The Meetings tab now has an In-Person segment. Find meetings near you as a list or on a map, get directions, and tap “I'm Here” when you arrive to log your attendance. You'll be asked for location the first time you open it.",
     inPersonCta: "Find a Meeting Near Me",
+    // ADDED 2026-11-19: the My Day gift (free until one date for existing accounts), shown once.
+    myDayGiftTitle: "My Day Is Free for You",
+    myDayGiftBody:
+      "Until {{date}}, My Day is yours free: build a daily routine, keep a gratitude list, and rate your day each evening. When the free time ends, everything you added is kept.",
+    myDayGiftCta: "Open My Day",
     dismiss: "Got it",
   },
   inPersonPopup: {

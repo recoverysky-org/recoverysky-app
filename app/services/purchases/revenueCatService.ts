@@ -24,6 +24,7 @@ import { logger } from "@/utils/logger"
 
 import { BILLING_UNRESPONSIVE_ERROR, raceStoreCall } from "./billingHealthLogic"
 import { REVENUECAT_CONFIG, ENTITLEMENTS, type EntitlementId } from "./config"
+import { decideMyDayGift, type MyDayGift } from "./myDayGiftLogic"
 
 const log = logger.child({ module: "RevenueCatService" })
 
@@ -65,6 +66,11 @@ export interface SubscriptionInfo {
   isInTrial: boolean
   /** URL to manage subscription (App Store/Google Play) */
   managementUrl: string | null
+  /**
+   * ADDED 2026-11-19: My Day given free until a date (a promotional `myday` grant), active or
+   * ended; null for everyone else, subscribers included. See `myDayGiftLogic.ts`.
+   */
+  myDayGift: MyDayGift | null
 }
 
 /**
@@ -208,6 +214,12 @@ export async function getSubscriptionInfo(): Promise<Result<SubscriptionInfo>> {
         premiumEntitlement?.productIdentifier ?? attendanceEntitlement?.productIdentifier ?? null,
       isInTrial: (premiumEntitlement?.periodType ?? attendanceEntitlement?.periodType) === "TRIAL",
       managementUrl: customerInfo.managementURL ?? null,
+      // `entitlements.all`, not `.active`: an ended gift is what lets My Day say the free time is
+      // over instead of the plain Premium pitch.
+      myDayGift: decideMyDayGift(
+        { myDay: customerInfo.entitlements.all[ENTITLEMENTS.MY_DAY], premium: premiumEntitlement },
+        new Date(),
+      ),
     }
 
     return { ok: true, value: info }

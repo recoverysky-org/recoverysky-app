@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: premium
 aliases: ["my day", "today", "daily routine", "today's quote", "where to focus today", "favourite quote", "daily dash", "my day missing", "my day tab"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/screens/myDay/MyDayTab.tsx, app/hooks/useMyDayPaywallPrompt.ts, app/navigators/MainNavigator.tsx, app/navigators/myDayNavigation.ts, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/screens/myDay/MyDayTab.tsx, app/hooks/useMyDayPaywallPrompt.ts, app/navigators/MainNavigator.tsx, app/navigators/myDayNavigation.ts, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx, app/hooks/useMyDayGift.ts, app/services/purchases/myDayGiftLogic.ts, app/screens/myDay/MyDayGiftEndingAlert.tsx, app/config/announcements.ts -->
 "My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
 
 ## How to open My Day
@@ -38,6 +38,8 @@ Grateful for, your routine and Rate your day each have their own page in this ma
 
 **Premium only.** Without Premium the tab is still there, but it offers "See Premium" instead of opening My Day. If Premium ends, My Day locks and nothing is deleted. It opens again, with your data, when Premium is active again.
 
+**Free until a date.** An account can be given My Day free until a set date. The app says so once, with "My Day Is Free for You" and "Open My Day". While it lasts, a line under My Day reads "My Day is free until" the date, with "See Premium". In the last three days, "My Day's Free Time Ends Soon" shows once. After the date, tapping "My Day" shows "Your Free My Day Has Ended": everything you added is kept, and My Day opens again with it when you subscribe.
+
 **Where your data lives.** On this phone, encrypted, and on The Daily Dash's server for your account. A change shows at once. If you are offline, it says "Saved on this device. It will send when you're online."
 
 **Signing out.** Signing out keeps My Day's data on this phone. When you sign back in with the same account, My Day opens on the same data.
@@ -66,6 +68,9 @@ Contact support@recoverysky.app and mention what the My Day tab shows and since 
 
 **Q:** I don't see My Day.
 **A:** The tab shows when you are signed in, and not in guest mode or on the web. If it says "Premium Feature" when you tap it, My Day needs Premium: check that Settings → "Subscription" says "Premium". If it doesn't and you subscribed, tap "Restore Purchases" there.
+
+**Q:** My Day says it's free until a date. What happens then?
+**A:** On that date My Day locks, and nothing you added is deleted. Subscribe with "See Premium" and it opens again with your routine and entries. If you already pay for Premium, My Day keeps going and the app never shows the free date.
 
 **Q:** Who can see what I put in My Day?
 **A:** It is kept on this phone, encrypted, and on The Daily Dash's server for your account.

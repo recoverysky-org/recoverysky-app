@@ -16,6 +16,7 @@ import { AgentScreen } from "@/screens/AgentScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
+import { MyDayGiftEndingAlert } from "@/screens/myDay/MyDayGiftEndingAlert"
 import { MyDayTab } from "@/screens/myDay/MyDayTab"
 import { shouldPromptOnMyDayTap } from "@/screens/myDay/myDayTabViewLogic"
 import { SettingsScreen } from "@/screens/SettingsScreen"
@@ -118,101 +119,78 @@ export const MainNavigator = observer(function MainNavigator() {
   const timerLocked = isTimerSessionActive()
 
   return (
-    <Tab.Navigator
-      initialRouteName="Home"
-      // Tab switching is refused while an attendance timer is running. Leaving
-      // the tab unmounts the popup that hosts the timer modal (RN Modal returns
-      // null once hidden), which runs useAttendanceTimer's cleanup and destroys
-      // the clock — nothing re-surfaces it until a cold start, so the user
-      // silently loses the meeting they are sitting in. Save and Cancel both
-      // call clearTimerSession(), so those are the only ways out and the lock
-      // cannot strand anyone. preventDefault() is the supported way to refuse a
-      // tab press; the greyed tabBarStyle below is the matching affordance.
-      // NOTE: this covers taps only. Programmatic navigation (notification
-      // taps -> navTo) bypasses tabPress entirely and is gated separately in
-      // app.tsx's handleNotificationData — fixing one without the other leaves
-      // the more likely path open.
-      screenListeners={{
-        tabPress: (e) => {
-          if (isTimerSessionActive()) e.preventDefault()
-        },
-      }}
-      screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          height: bottom + 70,
-          paddingBottom: bottom + 10,
-          paddingTop: 10,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          // Reads as disabled while the timer holds the lock. Observed at
-          // render (not inside the listener) so this component re-renders when
-          // the flag flips.
-          opacity: timerLocked ? 0.4 : 1,
-        },
-        tabBarActiveTintColor: colors.tint,
-        tabBarInactiveTintColor: colors.textDim,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: "spaceGroteskMedium",
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: t("mainNavigator:homeTab"),
-          tabBarIcon: ({ focused }) => (
-            <Icon icon="components" color={focused ? colors.tint : colors.textDim} size={24} />
-          ),
+    <>
+      <Tab.Navigator
+        initialRouteName="Home"
+        // Tab switching is refused while an attendance timer is running. Leaving
+        // the tab unmounts the popup that hosts the timer modal (RN Modal returns
+        // null once hidden), which runs useAttendanceTimer's cleanup and destroys
+        // the clock — nothing re-surfaces it until a cold start, so the user
+        // silently loses the meeting they are sitting in. Save and Cancel both
+        // call clearTimerSession(), so those are the only ways out and the lock
+        // cannot strand anyone. preventDefault() is the supported way to refuse a
+        // tab press; the greyed tabBarStyle below is the matching affordance.
+        // NOTE: this covers taps only. Programmatic navigation (notification
+        // taps -> navTo) bypasses tabPress entirely and is gated separately in
+        // app.tsx's handleNotificationData — fixing one without the other leaves
+        // the more likely path open.
+        screenListeners={{
+          tabPress: (e) => {
+            if (isTimerSessionActive()) e.preventDefault()
+          },
         }}
-      />
-      <Tab.Screen
-        name="Meetings"
-        component={MeetingsScreen}
-        options={{
-          tabBarLabel: t("mainNavigator:meetingsTab"),
-          tabBarAccessibilityLabel:
-            liveMeetings.length > 0
-              ? `${t("mainNavigator:meetingsTab")}, ${liveMeetings.length} live`
-              : t("mainNavigator:meetingsTab"),
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.iconContainer}>
-              <Ionicons name="videocam" size={24} color={focused ? colors.tint : colors.textDim} />
-              {liveMeetings.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.tint }]} accessible={false}>
-                  <Text style={styles.badgeText}>
-                    {liveMeetings.length > 99 ? "99+" : liveMeetings.length}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
+        screenOptions={{
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+          tabBarStyle: {
+            height: bottom + 70,
+            paddingBottom: bottom + 10,
+            paddingTop: 10,
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            // Reads as disabled while the timer holds the lock. Observed at
+            // render (not inside the listener) so this component re-renders when
+            // the flag flips.
+            opacity: timerLocked ? 0.4 : 1,
+          },
+          tabBarActiveTintColor: colors.tint,
+          tabBarInactiveTintColor: colors.textDim,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontFamily: "spaceGroteskMedium",
+          },
         }}
-      />
-      {profileStore.attendanceEnabled && (
+      >
         <Tab.Screen
-          name="Attendance"
-          component={AttendanceScreen}
+          name="Home"
+          component={HomeScreen}
           options={{
-            tabBarLabel: t("mainNavigator:attendanceTab"),
+            tabBarLabel: t("mainNavigator:homeTab"),
+            tabBarIcon: ({ focused }) => (
+              <Icon icon="components" color={focused ? colors.tint : colors.textDim} size={24} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Meetings"
+          component={MeetingsScreen}
+          options={{
+            tabBarLabel: t("mainNavigator:meetingsTab"),
             tabBarAccessibilityLabel:
-              validUnproducedCount > 0
-                ? `${t("mainNavigator:attendanceTab")}, ${validUnproducedCount} new`
-                : t("mainNavigator:attendanceTab"),
+              liveMeetings.length > 0
+                ? `${t("mainNavigator:meetingsTab")}, ${liveMeetings.length} live`
+                : t("mainNavigator:meetingsTab"),
             tabBarIcon: ({ focused }) => (
               <View style={styles.iconContainer}>
                 <Ionicons
-                  name="clipboard"
+                  name="videocam"
                   size={24}
                   color={focused ? colors.tint : colors.textDim}
                 />
-                {validUnproducedCount > 0 && (
+                {liveMeetings.length > 0 && (
                   <View style={[styles.badge, { backgroundColor: colors.tint }]} accessible={false}>
                     <Text style={styles.badgeText}>
-                      {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
+                      {liveMeetings.length > 99 ? "99+" : liveMeetings.length}
                     </Text>
                   </View>
                 )}
@@ -220,8 +198,39 @@ export const MainNavigator = observer(function MainNavigator() {
             ),
           }}
         />
-      )}
-      {/* ADDED 2026-11-04: premium only. Order from spec D6: Home, Meetings,
+        {profileStore.attendanceEnabled && (
+          <Tab.Screen
+            name="Attendance"
+            component={AttendanceScreen}
+            options={{
+              tabBarLabel: t("mainNavigator:attendanceTab"),
+              tabBarAccessibilityLabel:
+                validUnproducedCount > 0
+                  ? `${t("mainNavigator:attendanceTab")}, ${validUnproducedCount} new`
+                  : t("mainNavigator:attendanceTab"),
+              tabBarIcon: ({ focused }) => (
+                <View style={styles.iconContainer}>
+                  <Ionicons
+                    name="clipboard"
+                    size={24}
+                    color={focused ? colors.tint : colors.textDim}
+                  />
+                  {validUnproducedCount > 0 && (
+                    <View
+                      style={[styles.badge, { backgroundColor: colors.tint }]}
+                      accessible={false}
+                    >
+                      <Text style={styles.badgeText}>
+                        {validUnproducedCount > 99 ? "99+" : validUnproducedCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ),
+            }}
+          />
+        )}
+        {/* ADDED 2026-11-04: premium only. Order from spec D6: Home, Meetings,
           Attendance, My Day, Sky, Settings. MyDayNavigator mounts the Daily
           Dash client, so the client exists exactly while this tab does.
           CHANGED 2026-11-19 (Jenova): shown without the entitlement. A tap
@@ -232,69 +241,76 @@ export const MainNavigator = observer(function MainNavigator() {
           RevenueCat has answered (`shouldPromptOnMyDayTap`): the tab opens on a
           spinner instead, so a subscriber is never asked to pay. A tap while a
           timer holds the tab bar was already refused by screenListeners. */}
-      {myDayTabShown && (
+        {myDayTabShown && (
+          <Tab.Screen
+            name="MyDay"
+            component={MyDayTab}
+            listeners={({ navigation }) => ({
+              tabPress: (e) => {
+                if (isTimerSessionActive()) return
+                const inputs = {
+                  hasMyDay,
+                  answered: subscriptionInfo !== null,
+                  loading: isSubscriptionLoading,
+                }
+                if (!shouldPromptOnMyDayTap(inputs)) return
+                e.preventDefault()
+                promptMyDayPaywall(() => navigation.navigate("MyDay"))
+              },
+            })}
+            options={{
+              tabBarLabel: t("mainNavigator:myDayTab"),
+              tabBarIcon: ({ focused }) => (
+                // CHANGED 2026-11-05 (Jenova): `today`, a calendar page with the day marked, filled
+                // like the other Ionicons tabs. `sunny-outline` was the bar's only outline glyph and
+                // read thin at 24 pt.
+                <Ionicons name="today" size={24} color={focused ? colors.tint : colors.textDim} />
+              ),
+            }}
+          />
+        )}
+        {agentTabVisible && (
+          <Tab.Screen
+            name="Agent"
+            component={AgentScreen}
+            options={{
+              tabBarLabel: t("mainNavigator:agentTab"),
+              tabBarIcon: ({ focused }) => (
+                <Ionicons
+                  name="sparkles"
+                  size={24}
+                  color={focused ? colors.tint : colors.textDim}
+                />
+              ),
+            }}
+          />
+        )}
+        {socialTabVisible && (
+          <Tab.Screen
+            name="Social"
+            component={SocialScreen}
+            options={{
+              tabBarLabel: t("mainNavigator:socialTab"),
+              tabBarIcon: ({ focused }) => (
+                <Ionicons name="people" size={24} color={focused ? colors.tint : colors.textDim} />
+              ),
+            }}
+          />
+        )}
         <Tab.Screen
-          name="MyDay"
-          component={MyDayTab}
-          listeners={({ navigation }) => ({
-            tabPress: (e) => {
-              if (isTimerSessionActive()) return
-              const inputs = {
-                hasMyDay,
-                answered: subscriptionInfo !== null,
-                loading: isSubscriptionLoading,
-              }
-              if (!shouldPromptOnMyDayTap(inputs)) return
-              e.preventDefault()
-              promptMyDayPaywall(() => navigation.navigate("MyDay"))
-            },
-          })}
+          name="Settings"
+          component={SettingsScreen}
           options={{
-            tabBarLabel: t("mainNavigator:myDayTab"),
+            tabBarLabel: t("mainNavigator:settingsTab"),
             tabBarIcon: ({ focused }) => (
-              // CHANGED 2026-11-05 (Jenova): `today`, a calendar page with the day marked, filled
-              // like the other Ionicons tabs. `sunny-outline` was the bar's only outline glyph and
-              // read thin at 24 pt.
-              <Ionicons name="today" size={24} color={focused ? colors.tint : colors.textDim} />
+              <Icon icon="settings" color={focused ? colors.tint : colors.textDim} size={24} />
             ),
           }}
         />
-      )}
-      {agentTabVisible && (
-        <Tab.Screen
-          name="Agent"
-          component={AgentScreen}
-          options={{
-            tabBarLabel: t("mainNavigator:agentTab"),
-            tabBarIcon: ({ focused }) => (
-              <Ionicons name="sparkles" size={24} color={focused ? colors.tint : colors.textDim} />
-            ),
-          }}
-        />
-      )}
-      {socialTabVisible && (
-        <Tab.Screen
-          name="Social"
-          component={SocialScreen}
-          options={{
-            tabBarLabel: t("mainNavigator:socialTab"),
-            tabBarIcon: ({ focused }) => (
-              <Ionicons name="people" size={24} color={focused ? colors.tint : colors.textDim} />
-            ),
-          }}
-        />
-      )}
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarLabel: t("mainNavigator:settingsTab"),
-          tabBarIcon: ({ focused }) => (
-            <Icon icon="settings" color={focused ? colors.tint : colors.textDim} size={24} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+      </Tab.Navigator>
+      {/* ADDED 2026-11-19: "My Day's Free Time Ends Soon", once per gift (MyDayGiftEndingAlert). */}
+      <MyDayGiftEndingAlert />
+    </>
   )
 })
 

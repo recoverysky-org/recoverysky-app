@@ -1235,6 +1235,17 @@ const ar: Translations = {
     premiumFeatureTitle: "ميزة مميزة",
     myDayPremiumMessage: "My Day متاح مع اشتراك مميز. جرّبه مجانًا لمدة 7 أيام.",
   },
+  // ADDED 2026-11-19: the My Day gift's bar, "ends soon" alert and ended copy (useMyDayGift).
+  myDayGift: {
+    bar: "My Day مجاني حتى {{date}}",
+    endingTitle: "الفترة المجانية لـ My Day تنتهي قريبًا",
+    endingMessage:
+      "تنتهي فترة My Day المجانية في {{date}}. اشترك لمواصلة استخدامه. يبقى كل ما أضفته محفوظًا في جميع الأحوال.",
+    endedTitle: "انتهت فترة My Day المجانية",
+    endedMessage:
+      "كل ما أضفته محفوظ. اشترك في الاشتراك المميز لتكمل من حيث توقفت. جرّبه مجانًا لمدة 7 أيام.",
+    notNow: "ليس الآن",
+  },
   accessibility: {
     doubleTapToView: "انقر مرتين لعرض التفاصيل",
     doubleTapToJoin: "انقر مرتين للانضمام إلى الاجتماع",
@@ -1303,6 +1314,11 @@ const ar: Translations = {
     inPersonBody:
       "أصبح في تبويب الاجتماعات قسم «حضوريًا». اعثر على اجتماعات قريبة منك في قائمة أو على الخريطة، واحصل على الاتجاهات، واضغط «أنا هنا» عند وصولك لتسجيل حضورك. سيُطلب منك إذن الموقع في أول مرة تفتحه.",
     inPersonCta: "ابحث عن اجتماع قريب",
+    // ADDED 2026-11-19: the My Day gift (free until one date for existing accounts), shown once.
+    myDayGiftTitle: "My Day مجاني لك",
+    myDayGiftBody:
+      "حتى {{date}}، يمكنك استخدام My Day مجانًا: أنشئ روتينًا يوميًا، ودوّن ما تشعر بالامتنان له، وقيّم يومك كل مساء. عندما تنتهي الفترة المجانية، يبقى كل ما أضفته محفوظًا.",
+    myDayGiftCta: "افتح My Day",
     dismiss: "حسنًا",
   },
   inPersonPopup: {

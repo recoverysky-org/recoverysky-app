@@ -24,6 +24,12 @@ export interface AnnouncementGateState {
   platform: string
   nativeVersion: string | null
   shownThisSession: readonly string[]
+  /**
+   * ADDED 2026-11-19: this account is on the My Day gift and it has not ended
+   * (`audience: "myDayGift"`). False until RevenueCat answers, which only delays the entry: the
+   * gate re-checks when this flips.
+   */
+  myDayGiftActive: boolean
 }
 
 /**
@@ -74,6 +80,8 @@ export function selectPendingAnnouncement(state: AnnouncementGateState): Announc
   return (
     state.announcements.find((a) => {
       if (!isAnnouncementEligible(a, state.platform, state.nativeVersion)) return false
+      // ADDED 2026-11-19: skipped, not stopped at, like a platform mismatch.
+      if (a.audience === "myDayGift" && !state.myDayGiftActive) return false
       if (a.repeatUntilNativeVersion) return !state.shownThisSession.includes(a.id)
       return !state.seenIds.includes(a.id)
     }) ?? null

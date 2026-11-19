@@ -1119,3 +1119,17 @@ sentence, "Try it free for 7 days.", for the subscription's 7-day free trial. "I
 subscription), not reminders or My Day, and the register should match the locale's other strings
 (French and German use the informal "tu" / "du").
 
+## 2026-11-19 The My Day gift (first-pass translations)
+
+**72 strings (8 locales × 9 keys) to check** in ar, de, es, fr, pt, ru, th, uk, first-pass
+translations, not English placeholders: `announcements.myDayGiftTitle` / `myDayGiftBody` /
+`myDayGiftCta`, and the new `myDayGift` namespace (`bar`, `endingTitle`, `endingMessage`,
+`endedTitle`, `endedMessage`, `notNow`). They tell an account given My Day free until a date about
+the gift, its end and what happens after.
+- **`{{date}}` is a day and month in the locale's own format** ("19 de diciembre", "19. Dezember",
+  "19 декабря"), so check the words around it read naturally: "hasta el", "bis zum", "до".
+- **"Everything you added is kept"** is a promise that matters to the reader: nothing is deleted
+  when the free time ends. Keep it plain and certain.
+- Keep "My Day" as the feature's name, and the register of each locale's other strings (French and
+  German informal, Russian and Ukrainian formal).
+

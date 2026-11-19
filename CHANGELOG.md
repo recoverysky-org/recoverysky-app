@@ -23,6 +23,15 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Added
+- **The app tells people about a free My Day.** Existing accounts are being
+  given My Day free until one shared date (a RevenueCat promotional grant of
+  `myday`). An account on it sees, once, "My Day Is Free for You" with the end
+  date and "Open My Day"; a bar under My Day reads "My Day is free until" the
+  date, with "See Premium"; in the last three days "My Day's Free Time Ends
+  Soon" shows once; and after the date the tab's alert and locked page say
+  "Your Free My Day Has Ended" and that what they added is kept. People paying
+  for Premium, and comps with no end or one more than 45 days out, never see
+  any of it. Grant the entitlement only once this build is live.
 - **My Day opens on a welcome page the first time.** It explains what My Day is
   and why a daily routine helps in recovery, and "Get started" goes on to Today.
   It shows once per phone; dev builds show it on every cold start.
@@ -146,6 +155,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   tab is still hidden in production builds.
 
 ### Docs
+- **(manual)** `today.md`: "Free until a date", the free My Day's messages and
+  what happens when it ends; two new questions.
 - **(manual)** `today.md`, `map.md`: the My Day tab shows without Premium and
   offers "See Premium"; a new question for "my day says premium feature".
   The quoted alert carries the 7-day free trial line.
