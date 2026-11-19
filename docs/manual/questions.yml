@@ -66,10 +66,12 @@
 - q: the add button for my gratitude list won't work
   expect: my-day/grateful-for
 - q: how do I call my sponsor from the app
-  expect: home/support
+  expect: my-day/support
 - q: is my sponsor's phone number private
-  expect: home/support
+  expect: my-day/support
 - q: where is the crisis line
-  expect: home/support
+  expect: my-day/support
 - q: how do I add a support person
-  expect: home/support
+  expect: my-day/support
+- q: where did the support card on home go
+  expect: my-day/support

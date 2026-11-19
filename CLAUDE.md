@@ -1023,6 +1023,13 @@ In `app/screens/onboarding/OnboardingImport.tsx`:
 
 - **Support contacts** (`app/services/support/`, `modules/phone-contact-picker/`)
   — ADDED 2026-11-06, spec `docs/superpowers/specs/2026-11-06-support-contacts-design.md`.
+  CHANGED 2026-11-19 (Jenova): contacts are hidden for everyone, behind two
+  flags in `app/services/support/supportVisibility.ts`: `SUPPORT_HOME_CARD_ENABLED`
+  (the Home card) and `SUPPORT_CONTACTS_ENABLED` (the Support screen's rows and
+  "Add a support contact"; its jest tests mock it on). Storage, the loader and the
+  four clears are untouched. The Support screen keeps "Find a live meeting now"
+  and 988 and is reached only through My Day's `openCrisisPath`. The manual page
+  is now `my-day/support`; bringing contacts back means rewriting it.
   The people (no cap since 2026-11-08) for the Home Support card and the Support
   screen. The card lists them all, with + and a pencil (edit mode: a trash per
   row, then Done) in its header. **Names

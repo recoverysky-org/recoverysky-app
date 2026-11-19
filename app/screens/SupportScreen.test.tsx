@@ -45,10 +45,31 @@ jest.mock("@/services/support/dial", () => ({
   openDial: (...args: unknown[]) => mockOpenDial(...args),
 }))
 
+// ADDED 2026-11-19: the contacts are hidden in the app for now (supportVisibility.ts). The tests
+// below exercise the contact list as it works when shown, so they turn it on; the last test pins
+// what the hidden state draws. A getter, because the screen reads the flag at render.
+let mockContactsEnabled = true
+jest.mock("@/services/support/supportVisibility", () => ({
+  get SUPPORT_CONTACTS_ENABLED() {
+    return mockContactsEnabled
+  },
+  SUPPORT_HOME_CARD_ENABLED: false,
+}))
+
 describe("SupportScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockOpenDial.mockResolvedValue(true)
+    mockContactsEnabled = true
+  })
+
+  it("hides the contacts and Add while they are switched off, keeping the meeting and 988 rows", () => {
+    mockContactsEnabled = false
+    const { queryAllByText, queryByText, getByText } = render(<SupportScreen />)
+    expect(queryAllByText(/support:roleAndName/)).toHaveLength(0)
+    expect(queryByText(/^support:addContact/)).toBeNull()
+    expect(getByText(/^support:findLiveMeeting/)).toBeTruthy()
+    expect(getByText(/^support:crisisLine/)).toBeTruthy()
   })
 
   it("lists contacts by name and never renders a number (spec D1)", () => {

@@ -17,6 +17,7 @@ import { type TxKeyPath } from "@/i18n"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { MainTabScreenProps } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
+import { SUPPORT_HOME_CARD_ENABLED } from "@/services/support/supportVisibility"
 import { useAppTheme } from "@/theme/context"
 import { $styles } from "@/theme/styles"
 import type { ThemedStyle } from "@/theme/types"
@@ -234,8 +235,10 @@ export const HomeScreen: FC<MainTabScreenProps<"Home">> = observer(function Home
 
       {/* Support card — ADDED 2026-11-06 (Support Contacts, spec D8): directly under
           the News block and above the clean time card, so a person who needs their
-          sponsor reaches them before any statistics. Renders nothing on web. */}
-      <SupportCardContainer />
+          sponsor reaches them before any statistics. Renders nothing on web.
+          CHANGED 2026-11-19 (Jenova): hidden for everyone behind
+          SUPPORT_HOME_CARD_ENABLED (services/support/supportVisibility.ts). */}
+      {SUPPORT_HOME_CARD_ENABLED && <SupportCardContainer />}
 
       {/* Clean Time Card */}
       <CleanTimeCard />

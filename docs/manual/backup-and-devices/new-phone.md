@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: attendance
 aliases: ["new phone", transfer, "switch phones", "restored from backup", "lost my records", "data is gone", "records are gone"]
 ---
-<!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, app/services/dailyDash/resetDailyDashLocalData.ts, app/db/DatabaseProvider.tsx, app/services/support/supportContactsStorage.ts, docs/manual/home/support.md, app/hooks/useAgentConversation.ts, docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md -->
+<!-- sources: docs/support/problems/data-missing-after-new-phone.md, docs/support/replies/data-missing-after-new-phone.md, docs/BACKUP.md, app/i18n/en.ts, app/db/DatabaseLoadingOverlay.tsx, app/db/resetLocalDatabase.ts, app/screens/SettingsScreen.tsx, app/screens/onboarding/OnboardingImport.tsx, docs/support/reference/device-owner.md, app/models/ProfileStore.ts, app/db/feedbackCache.ts, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, app/services/dailyDash/resetDailyDashLocalData.ts, app/db/DatabaseProvider.tsx, app/services/support/supportContactsStorage.ts, docs/manual/my-day/support.md, app/hooks/useAgentConversation.ts, docs/superpowers/specs/2026-11-06-agent-chat-turn-only-design.md -->
 Your attendance records live only on your phone unless Cloud Backup is on. Moving to a new phone takes two steps: turn on Cloud Backup on the old phone and let it finish, then sign in on the new phone with the same account and turn on Cloud Backup there. Your attendance records and the reports you have sent come back. Cloud Backup needs the Attendance subscription.
 
 ## Before you switch
@@ -45,7 +45,6 @@ These do not come back. Set them up again on the new phone:
 
 - Favorites (hearts) and star ratings.
 - Meeting reminders.
-- Your Support contacts. They are not in Cloud Backup, so a phone set up fresh starts with none. Add them again from the "Support" card on Home. A full restore of the whole phone from its own backup can bring them along.
 - Your clean date and fellowship. Enter them again in Settings → "Recovery".
 - Your settings, such as theme and language.
 

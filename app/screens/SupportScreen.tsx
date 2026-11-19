@@ -3,6 +3,9 @@
  * 988 crisis line where it applies.
  * ADDED 2026-11-06 (Support Contacts, spec D6). Opened from the Home Support card
  * and from My Day's crisis path.
+ * CHANGED 2026-11-19 (Jenova): the Home card and this screen's contacts are hidden
+ * for now (`supportVisibility.ts`), so the screen shows "Find a live meeting now"
+ * and 988, and opens only from My Day.
  * CHANGED 2026-11-06 (final review I-1): an app-stack card, no longer a native modal,
  * because a modal covers the root view and hid this screen's toasts on iOS (see
  * AppNavigator.tsx). The header and close button are still this screen's own.
@@ -35,6 +38,7 @@ import {
   decideCrisisLine,
   type SupportRole,
 } from "@/services/support/supportContactsLogic"
+import { SUPPORT_CONTACTS_ENABLED } from "@/services/support/supportVisibility"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
@@ -111,7 +115,9 @@ export const SupportScreen: FC = observer(function SupportScreen() {
         {/* CHANGED 2026-11-06 (final review I-3): hidden while the keychain could not be read, so
             nobody edits a list we do not have. The meeting and crisis rows below never depend on
             it. The screen is an observer, so this returns by itself when a later read succeeds. */}
-        {pickerAvailable && store.hydrated && (
+        {/* CHANGED 2026-11-19 (Jenova): and hidden for everyone while
+            SUPPORT_CONTACTS_ENABLED is false. Nothing is deleted. */}
+        {SUPPORT_CONTACTS_ENABLED && pickerAvailable && store.hydrated && (
           <View style={themed($section)}>
             {contacts.map((contact, index) => (
               <SupportContactRow

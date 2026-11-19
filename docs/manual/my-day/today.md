@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: premium
 aliases: ["my day", "today", "daily routine", "today's quote", "where to focus today", "favourite quote", "daily dash", "my day missing", "my day tab"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/navigators/myDayNavigation.ts, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
 "My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
 
 ## How to open My Day
@@ -24,7 +24,7 @@ The tab shows only when all of these are true: you are signed in, you have Premi
 
 You're in My Day → "My Day". The date is at the top. Below it, cards in this order:
 
-- **"You don't have to get through this alone"** shows first, only when last night's check-in says things are hard. "Get support now" opens Meetings → "Online", where live meetings are listed.
+- **"You don't have to get through this alone"** shows first, only when last night's check-in says things are hard. "Get support now" opens the "Support" screen: "Find a live meeting now", and the 988 line in the US and Canada.
 - **"Today's quote"** shows the day's quote and who said it, on days that have one. Tap "♡ Favourite" to keep it; it then reads "♥ Favourited". Tap it again to remove the favourite.
 - **"Where to focus today"** lists the parts of your life worth some care today, each with how you rated it last night, for example "Last night: 2".
 - **"My Daily Routine"**: tick off your routine, by part of the day. "Edit ✎" in its heading opens the routine editor.

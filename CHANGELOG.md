@@ -51,6 +51,13 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   production builds.
 
 ### Changed
+- **Support contacts are hidden.** The Home tab's Support card is gone, and the
+  Support screen no longer lists people or offers "Add a support contact", for
+  everyone, behind two switches in `services/support/supportVisibility.ts`.
+  Nothing is deleted: saved contacts stay in secure storage, and Delete User
+  Data still clears them. The Support screen keeps "Find a live meeting now"
+  and 988, and opens only from My Day: "Need support now?" under each step of
+  Rate your day, or "Get support now" on a hard day.
 - **"Tap times to set reminders" is easier to see.** Under the schedule grid in
   both meeting popups, the hint was small grey text; it now has a bell and the
   grid's tint, a size up, so people find reminders.
@@ -125,6 +132,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   tab is still hidden in production builds.
 
 ### Docs
+- **(manual)** Support moved from `home/support` to `my-day/support` and now
+  describes the Support screen without contacts, reached from My Day;
+  `map.md`, `new-phone.md` (contacts no longer listed) and `questions.yml`
+  follow.
+  `today.md`: "Get support now" opens the Support screen, not Meetings →
+  "Online" (it changed on 2026-11-06 and the page never caught up).
 - **(manual)** `map.md`: "See Premium" in the reminder alert and under the
   Attendance tab's Send Report opens the subscription offer where you are.
 - (manual) Support: adding with +, removing from the pencil's edit mode, no limit on
