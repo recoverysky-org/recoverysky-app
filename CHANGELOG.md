@@ -22,6 +22,12 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 
 ## [Unreleased]
 
+## [4.14.0] — 2026-11-19
+
+4.13.0 was built (EAS) but never submitted to either store; 4.14.0 is the first
+store release since 4.12.0 and carries everything under `[4.13.0]` below as well
+as this section. Android `versionCode` 41400000.
+
 ### Added
 - **The app tells people about a free My Day.** Existing accounts are being
   given My Day free until one shared date (a RevenueCat promotional grant of
