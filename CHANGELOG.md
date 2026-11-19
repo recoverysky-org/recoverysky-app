@@ -82,6 +82,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   prompt; declining it leaves GPS selected under the "turn on location" banner.
 
 ### Fixed
+- **My Day's buttons no longer flash grey when pressed.** "Try again", "Reset
+  My Day's local data" and "Restore" on My Day's connection and data screens
+  dimmed to RecoverySky's grey on a tap; they now dim in My Day's own colour.
 - **Settings → Delete User Data now turns this phone's push notifications off
   on the server.** The opt-out was sent without being waited for, and the
   notification logout right after it cleared the token it was about to send, so

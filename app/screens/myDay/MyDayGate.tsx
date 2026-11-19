@@ -62,9 +62,12 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
 
   // The app's "filled" preset paints RecoverySky's palette (Button.tsx), and the gate must read as
   // part of the My Day tab, so its buttons wear My Day's tint and type instead.
+  // CHANGED 2026-11-18: and its pressed state. The filled preset's pressed grey (neutral400) used
+  // to flash RecoverySky's palette on every tap; the button now dims by My Day's pressed opacity.
   const buttonLook = useMemo(
     () => ({
       button: { backgroundColor: theme.colors.tint },
+      pressed: { backgroundColor: theme.colors.tint, opacity: theme.surface.pressedOpacity },
       text: { color: theme.colors.onTint, fontFamily: theme.typography.primary.semiBold },
     }),
     [theme],
@@ -163,6 +166,7 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
             preset="filled"
             onPress={driver.retry}
             style={buttonStyle}
+            pressedStyle={buttonLook.pressed}
             textStyle={buttonLook.text}
             accessibilityRole="button"
             accessibilityLabel={translate("myDayGate:tryAgain")}
@@ -182,6 +186,7 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
             preset="filled"
             onPress={confirmReset}
             style={buttonStyle}
+            pressedStyle={buttonLook.pressed}
             textStyle={buttonLook.text}
             accessibilityRole="button"
             accessibilityLabel={translate("myDayGate:resetData")}
@@ -200,6 +205,7 @@ export const MyDayGate: FC<MyDayGateProps> = ({ children }) => {
                 preset="filled"
                 onPress={() => void restore()}
                 style={buttonStyle}
+                pressedStyle={buttonLook.pressed}
                 textStyle={buttonLook.text}
                 accessibilityRole="button"
                 accessibilityLabel={translate("myDayGate:restore")}
