@@ -23,6 +23,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 ## [Unreleased]
 
 ### Added
+- **My Day opens on a welcome page the first time.** It explains what My Day is
+  and why a daily routine helps in recovery, and "Get started" goes on to Today.
+  It shows once per phone; dev builds show it on every cold start.
 - **A GeoNames credit on the Licenses screen.** The ZIP and postal code search
   uses GeoNames data (CC BY 4.0), which asks for a visible credit; it now sits
   above the open source licenses (Settings → Third-Party Licenses).
@@ -122,6 +125,7 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   no longer mention check-ins. Rate your day's night view gains "Done". My Daily
   Routine's templates section follows the card's new name and drops "Show
   templates".
+- (manual) My Day: Today's "Good to know" describes the first-visit welcome page.
 
 ### Build
 - **My Day 0.8.0** (`@daily-dash/my-day`, vendored, by way of 0.7.0; client

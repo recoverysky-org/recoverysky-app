@@ -39,8 +39,9 @@ import type { MyDayScreenProps, MyDayStackParamList } from "./navigationTypes"
 
 const Stack = createNativeStackNavigator<MyDayStackParamList>()
 
+// ADDED 2026-11-18: `welcome` shows My Day's welcome page in front of Today on the first visit.
 const MyDayTodayRoute: FC<MyDayScreenProps<"MyDayToday">> = ({ navigation }) => (
-  <MyDayFrame navigation={navigation}>
+  <MyDayFrame navigation={navigation} welcome>
     <TodayScreen />
   </MyDayFrame>
 )

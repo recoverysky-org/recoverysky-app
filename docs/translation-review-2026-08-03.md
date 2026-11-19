@@ -1083,3 +1083,15 @@ fr, pt, ru, th, uk, from `@daily-dash/my-day` 0.8.0: the renamed `myDay.routine.
 (now "Start with templates", was "Start from a template"), the heading of the routine editor's
 templates card. 0.8.0 removed `routine.templates.show` ("Show templates"), so drop it from any open
 translation work.
+
+## 2026-11-18 My Day welcome (English placeholders)
+
+**Still English placeholders (need translating), 56 strings (8 locales × 7 keys)** in ar, de, es,
+fr, pt, ru, th, uk: the new `myDayWelcome` namespace (`title`, `whatTitle`, `whatBody`, `whyTitle`,
+`whyBody`, `supportBody`, `getStarted`), the page shown in front of My Day's Today on the first visit.
+
+Reviewer notes worth acting on first:
+- **Keep "My Day" as the feature's name**, as everywhere else in the app.
+- **The tone is warm and plain**, not clinical: it speaks to someone in early recovery. "Sponsor"
+  should be the word the fellowships use in the target language.
+- **`getStarted` is a button**, so keep it short.

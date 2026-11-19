@@ -1793,6 +1793,14 @@ carry account details. It wears My Day's look, and its words are the
   the native version and the EAS Update channel (`getDailyDashClientIdentity`).
   Analytics go through `trackEvent` (Umami).
 
+**Welcome page** (ADDED 2026-11-18, spec `docs/superpowers/specs/2026-11-18-my-day-welcome-design.md`).
+The first visit opens on `MyDayWelcome` (what My Day is, why a routine helps, Get started), drawn by
+`MyDayWelcomeGate` inside `MyDayHost` and outside `MyDayGate`, on the Today route only
+(`MyDayFrame`'s `welcome` prop). Get started writes MMKV `myDay.welcomeSeen`, never the showing, so
+someone who leaves mid-read sees it again; `__DEV__` shows it on every mount (TestFlight behaves as
+production). Decision in `myDayWelcomeLogic.ts` (vitest). Its words are the `myDayWelcome`
+namespace, not under `myDay`, which mirrors the package's copy and fails its parity test on extras.
+
 **Look.**
 - `buildMyDayTheme()` (`app/utils/myDayTheme.ts`, vitest) lays the app's tint
   pair (`tint`, `tintInactive`) over `dailyDashDark` when the app is dark,

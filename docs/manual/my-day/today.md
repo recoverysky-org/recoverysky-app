@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: premium
 aliases: ["my day", "today", "daily routine", "today's quote", "where to focus today", "favourite quote", "daily dash", "my day missing", "my day tab"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
 "My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
 
 ## How to open My Day
@@ -33,6 +33,8 @@ You're in My Day → "My Day". The date is at the top. Below it, cards in this o
 Grateful for, your routine and Rate your day each have their own page in this manual.
 
 ## Good to know
+
+**First visit.** The first time you open My Day, it opens on "Welcome to My Day", a page about what My Day is and why a routine helps. Tap "Get started" to go on to My Day. It shows once on this phone.
 
 **Premium only.** Without Premium there is no My Day tab. If Premium ends, the tab disappears and nothing is deleted. It comes back, with your data, when Premium is active again.
 

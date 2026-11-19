@@ -512,6 +512,22 @@ const ar: Translations = {
     restore: "Restore",
     restoreFailed: "Restore didn't work. Check your connection and try again.",
   },
+  // ADDED 2026-11-18: My Day's welcome page (MyDayWelcome.tsx), shown in front of Today on the
+  // first visit. English placeholder (translation review 2026-11-18). Its own namespace, not
+  // under `myDay`: that one mirrors the package's MyDayCopy leaf for leaf and myDayCopy.test.ts
+  // fails on anything extra.
+  myDayWelcome: {
+    title: "Welcome to My Day",
+    whatTitle: "What My Day is",
+    whatBody:
+      "My Day is a quiet place to shape your day. Build your own daily routine and tick things off as you go, morning to night. At the end of the day, rate your day and write down what you're grateful for. Past nights let you look back and see how far you've come.",
+    whyTitle: "Why a routine helps",
+    whyBody:
+      "Early recovery can leave a lot of empty hours, and empty hours are where old habits wait. A simple routine gives each day a shape: when you wake, when you eat, when you go to a meeting, when you call someone, when you rest. Small things done every day add up. They take decisions off your plate on hard days and give you something to come back to when you slip.",
+    supportBody:
+      "My Day doesn't replace your meetings, your sponsor or your support people. It helps you make room for them.",
+    getStarted: "Get started",
+  },
   homeScreen: {
     title: "الرئيسية",
     placeholder: "محتوى لوحة المعلومات قريباً",
