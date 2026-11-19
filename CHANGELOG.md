@@ -48,6 +48,14 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   production builds.
 
 ### Changed
+- **My Day no longer offers Check in.** The Record My Day panel drops "Check in
+  throughout your day" and its buttons (my-day 0.7.0 shows them only when the
+  host asks, and RecoverySky doesn't, as in the Daily Dash app). A saved night
+  now has "Done" in its header to leave it.
+- **My Day's routine editor always shows the templates first.** The card, now
+  "Start with templates", sits at the top and stays open, whether or not the
+  routine has items, and after one is added; "Show templates" is gone (my-day
+  0.8.0).
 - **The Sky Agent tab is hidden for everyone.** It no longer shows for an
   account with the `skyagent` entitlement, in any build, dev builds included.
   Production already hid it (no agent URL in the build); this also turns it off
@@ -107,6 +115,16 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
 - (manual) The map's "Where data lives": each message to Sky also carries the
   hearted meetings, so she can list favorites first, and Sky's server does not
   keep the list.
+- (manual) My Day: the "Check in" page is gone, and the main screen and the map
+  no longer mention check-ins. Rate your day's night view gains "Done". My Daily
+  Routine's templates section follows the card's new name and drops "Show
+  templates".
+
+### Build
+- **My Day 0.8.0** (`@daily-dash/my-day`, vendored, by way of 0.7.0; client
+  0.5.0 and sdk 0.3.0 unchanged). JS only and no new peers. 0.8.0 removes
+  `routine.templates.show` and renames `routine.templates.title`, both in all
+  nine locales; the other eight still carry English.
 
 ## [4.13.0] — 2026-11-07
 

@@ -1075,3 +1075,11 @@ ADDED 2026-11-08 (the card became summary first), **24 more strings (8 locales x
 - `agentScreen.showRoutineDetails` / `agentScreen.hideRoutineDetails`, the toggle that opens the
   chips into rows with times and closes them again ("Show details", "Hide details"). A screen
   reader also says whether it is open, so the words need not.
+
+## 2026-11-18 My Day 0.8.0 (English placeholder)
+
+**Still an English placeholder (needs translating), 8 strings (8 locales × 1 key)** in ar, de, es,
+fr, pt, ru, th, uk, from `@daily-dash/my-day` 0.8.0: the renamed `myDay.routine.templates.title`
+(now "Start with templates", was "Start from a template"), the heading of the routine editor's
+templates card. 0.8.0 removed `routine.templates.show` ("Show templates"), so drop it from any open
+translation work.

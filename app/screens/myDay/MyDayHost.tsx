@@ -15,6 +15,10 @@
  *
  * No `capabilities`: `reminders` stays off and `sky` arrives later (spec §1), and the package
  * treats every capability as off when none is given.
+ * CHANGED 2026-11-17 (my-day 0.7.0): that now includes `checkIn`, so the Record My Day panel
+ * offers no Check in and the `MyDayCheckIn` route has no way in. Jenova chose to follow the Daily
+ * Dash app, which doesn't pass it either. Pass `capabilities={{ checkIn: true }}` (memoised) to
+ * bring it back, along with the manual's check-in page.
  */
 import { FC, ReactNode, useMemo } from "react"
 import * as Application from "expo-application"

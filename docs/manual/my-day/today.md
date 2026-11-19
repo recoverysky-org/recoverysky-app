@@ -6,8 +6,8 @@ platforms: [ios, android]
 tier: premium
 aliases: ["my day", "today", "daily routine", "today's quote", "where to focus today", "favourite quote", "daily dash", "my day missing", "my day tab"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx -->
-"My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list, a check-in and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
+"My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
 
 ## How to open My Day
 
@@ -28,9 +28,9 @@ You're in My Day → "My Day". The date is at the top. Below it, cards in this o
 - **"Today's quote"** shows the day's quote and who said it, on days that have one. Tap "♡ Favourite" to keep it; it then reads "♥ Favourited". Tap it again to remove the favourite.
 - **"Where to focus today"** lists the parts of your life worth some care today, each with how you rated it last night, for example "Last night: 2".
 - **"My Daily Routine"**: tick off your routine, by part of the day. "Edit ✎" in its heading opens the routine editor.
-- **"Record My Day"**: one panel for the day's record. "Grateful for" is at its top, where you add the good things in your day. Under it, one button to a row: under "Check in throughout your day", a button for each check-in on offer, named for it; under "End of day review", "Rate your day" in the evening, or "See your night" once you have rated; and "Past nights".
+- **"Record My Day"**: one panel for the day's record. "Grateful for" is at its top, where you add the good things in your day. Under it, one button to a row: under "End of day review", "Rate your day" in the evening, or "See your night" once you have rated; and "Past nights".
 
-Grateful for, check-ins, your routine and Rate your day each have their own page in this manual.
+Grateful for, your routine and Rate your day each have their own page in this manual.
 
 ## Good to know
 

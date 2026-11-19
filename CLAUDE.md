@@ -1637,7 +1637,7 @@ ADDED 2026-11-04. Spec `docs/superpowers/specs/2026-10-25-my-day-tab-design.md`;
 plan `docs/superpowers/plans/2026-11-04-my-day-tab.md` (its "Where this plan
 departs from the spec" lists the rulings). The premium **My Day** tab hosts The
 Daily Dash's `@daily-dash/my-day` screens (the My Day screen with its Record My
-Day panel, Check in, Your Routine and its editor, Rate your day with Past
+Day panel, Check in (unreachable since my-day 0.7.0, see "Not built"), Your Routine and its editor, Rate your day with Past
 nights, Grateful for) over the person's existing Auth0 session. Its data lives in the Daily Dash client's own encrypted SQLite on the
 phone and on the Daily Dash API, never in our database or our API. This app is
 the package's second host; the Daily Dash repo's `apps/app` is the reference.
@@ -1829,7 +1829,9 @@ English placeholders for now.
 `capabilities`, so My Day shows nothing of Sky (the "Sky suggests" chips on Rate
 your day go through the Daily Dash API and work). `reminders` is off, because
 the client cannot register a push token, so "Remind me later" would promise
-nothing. Web is hidden; lifting that needs COEP/COOP headers for expo-sqlite's
+nothing. CHANGED 2026-11-17 (my-day 0.7.0): `checkIn` is off too, so the Record My Day
+panel offers no Check in and its route has no way in (Jenova followed the Daily Dash app);
+`capabilities={{ checkIn: true }}` in `MyDayHost` brings it back, with the manual page. Web is hidden; lifting that needs COEP/COOP headers for expo-sqlite's
 OPFS worker and `wasm` in Metro's `assetExts`. All queued in `TODO.md`.
 
 **Release prerequisites.** expo-blur is native, so the first build with the tab

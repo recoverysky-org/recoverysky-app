@@ -41,12 +41,6 @@
   expect: my-day/today
 - q: what happens to my day if I sign out
   expect: my-day/today
-- q: how do I check in on how I'm feeling
-  expect: my-day/check-in
-- q: can I stop a check-in halfway
-  expect: my-day/check-in
-- q: why does the check in ask about self-harm
-  expect: my-day/check-in
 - q: how do I add something to my daily routine
   expect: my-day/routine
 - q: how do I skip something on my routine today

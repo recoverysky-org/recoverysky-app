@@ -6,7 +6,7 @@ platforms: [ios, android]
 tier: premium
 aliases: ["rate your day", "your night", "evening", "nightly review", "past nights", "rating", "pillars", "sky suggests", "record my day"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
 "Rate your day" is a short evening review. You rate each part of your day from 1 to 5, note what you did, and end with something you're grateful for. "Past nights" shows the nights you rated. It is in the My Day tab, which needs the Premium subscription, on iPhone and Android.
 
 ## How to rate your day
@@ -30,6 +30,8 @@ You're in My Day, looking at "Your night" for a day you rated. Open it from the 
 - "Grateful for: …" with tonight's line.
 - "Worth some care tomorrow: …" naming the parts that asked for care.
 - If tonight's ratings say things are hard: "You don't have to get through this alone" with "Get support now".
+
+"Done", at the right of the night's heading, takes you back to where you opened it.
 
 "Edit" and "Delete" show while the night can still be changed. "Delete" asks "Delete this night? Your ratings and line go with it." Tap "Delete", or "Keep it".
 

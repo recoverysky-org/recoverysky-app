@@ -4,9 +4,9 @@ area: my-day
 screen: My Day → "My Daily Routine"
 platforms: [ios, android]
 tier: premium
-aliases: ["routine", "daily routine", "your routine", "habits", "tick off", "edit routine", "templates", "start from a template", "skip an item", "switch off", "switch on", "hide an item", "delete an item", "morning routine", "reorder", "drag", "copy an item"]
+aliases: ["routine", "daily routine", "your routine", "habits", "tick off", "edit routine", "templates", "start with templates", "start from a template", "skip an item", "switch off", "switch on", "hide an item", "delete an item", "morning routine", "reorder", "drag", "copy an item"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.6.0.tgz, app/screens/SettingsScreen.tsx, app/components/agent/RoutineResultsCard.tsx, app/screens/AgentScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx, app/components/agent/RoutineResultsCard.tsx, app/screens/AgentScreen.tsx -->
 "My Daily Routine" is the list of things you mean to do each day, grouped by part of the day: "Morning", "Afternoon", "Evening" and "Any time". You tick items off on "My Day" and change the list in the routine editor. It is in the My Day tab, which needs the Premium subscription, on iPhone and Android.
 
 ## How to tick off your routine
@@ -34,7 +34,7 @@ With a screen reader, the buttons read "Edit …", "Copy …", "Switch off …",
 
 ## How to start from a template
 
-You're in the routine editor, on "Start from a template". It is open by itself when your routine is empty; otherwise tap "Show templates".
+You're in the routine editor, on "Start with templates", at the top. It is always open, whether or not your routine has items yet, and it stays open after you add one.
 
 1. Tap a template's name to see its items by part of the day.
 2. Tap "Add these to my routine". It says how many items it adds, for example "Adds 3 items after your own."
@@ -82,4 +82,4 @@ Contact support@recoverysky.app and mention what the routine screen says and whi
 **A:** Tap "🗑" (Hide) on it. It leaves the list for good, and what you did with it stays.
 
 **Q:** Can I use a ready-made routine?
-**A:** Yes. In the routine editor, open "Start from a template", pick one and tap "Add these to my routine". Its items go after your own.
+**A:** Yes. In the routine editor, under "Start with templates" at the top, pick one and tap "Add these to my routine". Its items go after your own.

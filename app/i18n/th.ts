@@ -448,8 +448,7 @@ const th: Translations = {
         hideName: "Hide {{title}}",
       },
       templates: {
-        title: "Start from a template",
-        show: "Show templates",
+        title: "Start with templates",
         loading: "Getting templates…",
         needsConnection: "Templates need a connection. Check yours and try again.",
         apply: "Add these to my routine",

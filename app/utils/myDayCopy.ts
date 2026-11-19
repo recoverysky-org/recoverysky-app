@@ -340,7 +340,6 @@ export function buildMyDayCopy(t: Translate): MyDayCopy {
       },
       templates: {
         title: s("routine.templates.title"),
-        show: s("routine.templates.show"),
         loading: s("routine.templates.loading"),
         needsConnection: s("routine.templates.needsConnection"),
         apply: s("routine.templates.apply"),
