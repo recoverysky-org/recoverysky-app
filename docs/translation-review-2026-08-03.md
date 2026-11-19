@@ -1095,3 +1095,14 @@ Reviewer notes worth acting on first:
 - **The tone is warm and plain**, not clinical: it speaks to someone in early recovery. "Sponsor"
   should be the word the fellowships use in the target language.
 - **`getStarted` is a button**, so keep it short.
+
+## 2026-11-19 See Premium (first-pass translations)
+
+**8 strings (8 locales × 1 key) to check** in ar, de, es, fr, pt, ru, th, uk: `subscription.seePremium`
+("See Premium"), a first-pass translation, not an English placeholder. It is the button in the
+reminder grid's "Premium Feature" alert and the link under the Attendance tab's Send Report, and it
+opens the subscription offer in place. It replaced `reminderEditor.goToSettings` ("Subscription")
+and `attendanceScreen.goToSettings` ("Go to Subscriptions in Settings"), which are gone, so drop
+them from any open translation work.
+- **Keep it short:** it is an alert button. "Premium" should match the word the locale already uses
+  in `reminderEditor.premiumMessage`.

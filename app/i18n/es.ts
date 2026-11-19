@@ -680,7 +680,6 @@ const es: Translations = {
     credit: "crédito",
     minutes: "min",
     subscribeRequired: "Para producir informes de asistencia, debes suscribirte.",
-    goToSettings: "Ir a Suscripciones en Ajustes",
     // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
     sendFailed: "Failed to send report",
     sendFailedSignIn: "Please sign in again to send this report",
@@ -1131,7 +1130,6 @@ const es: Translations = {
     overlapMessage: "Esto se superpone con un recordatorio existente",
     premiumTitle: "Función Premium",
     premiumMessage: "Los recordatorios están disponibles con una suscripción Premium.",
-    goToSettings: "Suscripción",
   },
   cleanTime: {
     yourRecovery: "Tu Recuperación",
@@ -1257,6 +1255,8 @@ const es: Translations = {
       "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
     billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
+    // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
+    seePremium: "Ver Premium",
   },
   accessibility: {
     doubleTapToView: "Toca dos veces para ver detalles",

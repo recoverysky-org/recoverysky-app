@@ -685,7 +685,6 @@ const fr: Translations = {
     credit: "crédit",
     minutes: "min",
     subscribeRequired: "Pour produire des rapports de présence, tu dois t'abonner.",
-    goToSettings: "Aller aux abonnements dans les Réglages",
     // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
     sendFailed: "Failed to send report",
     sendFailedSignIn: "Please sign in again to send this report",
@@ -1136,7 +1135,6 @@ const fr: Translations = {
     overlapMessage: "Ceci chevauche un rappel existant",
     premiumTitle: "Fonction Premium",
     premiumMessage: "Les rappels sont disponibles avec un abonnement Premium.",
-    goToSettings: "Abonnement",
   },
   cleanTime: {
     yourRecovery: "Ton rétablissement",
@@ -1262,6 +1260,8 @@ const fr: Translations = {
       "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
     billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
+    // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
+    seePremium: "Voir Premium",
   },
   accessibility: {
     doubleTapToView: "Touchez deux fois pour voir les détails",

@@ -675,7 +675,6 @@ const ar: Translations = {
     credit: "رصيد",
     minutes: "د",
     subscribeRequired: "لإنشاء تقارير الحضور، يجب أن تشترك.",
-    goToSettings: "الذهاب للاشتراكات في الإعدادات",
     // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
     sendFailed: "Failed to send report",
     sendFailedSignIn: "Please sign in again to send this report",
@@ -1106,7 +1105,6 @@ const ar: Translations = {
     overlapMessage: "هذا يتداخل مع تذكير موجود",
     premiumTitle: "ميزة مميزة",
     premiumMessage: "التذكيرات متاحة مع اشتراك مميز.",
-    goToSettings: "الاشتراك",
   },
   cleanTime: {
     yourRecovery: "تعافيك",
@@ -1231,6 +1229,8 @@ const ar: Translations = {
       "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
     billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
+    // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
+    seePremium: "عرض الاشتراك المميز",
   },
   accessibility: {
     doubleTapToView: "انقر مرتين لعرض التفاصيل",

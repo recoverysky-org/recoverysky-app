@@ -679,7 +679,6 @@ const uk: Translations = {
     credit: "залік",
     minutes: "хв",
     subscribeRequired: "Для створення звітів про відвідування потрібна підписка.",
-    goToSettings: "Перейти до підписок у Налаштуваннях",
     // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
     sendFailed: "Failed to send report",
     sendFailedSignIn: "Please sign in again to send this report",
@@ -1123,7 +1122,6 @@ const uk: Translations = {
     overlapMessage: "Це перетинається з наявним нагадуванням",
     premiumTitle: "Преміум-функція",
     premiumMessage: "Нагадування доступні з підпискою Преміум.",
-    goToSettings: "Підписка",
   },
   cleanTime: {
     yourRecovery: "Твоє одужання",
@@ -1249,6 +1247,8 @@ const uk: Translations = {
       "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
     billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
+    // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
+    seePremium: "Переглянути Преміум",
   },
   accessibility: {
     doubleTapToView: "Торкніться двічі, щоб переглянути деталі",

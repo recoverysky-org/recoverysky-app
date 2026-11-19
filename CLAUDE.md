@@ -872,6 +872,15 @@ In `app/services/purchases/`:
 - **revenueCatService.ts**: SDK init, entitlement checks, offering-aware paywall presentation, purchase/restore flows
 - **SubscriptionContext** (`app/context/`): Wraps the app, initializes RC with `configStore.revenueCatApiKey`, listens for customer info updates, auto-enables attendance on first subscription. **Identity is a MobX reaction on the auth store, not a prop** (CHANGED 2026-09-17): the Auth0 `userId` when signed in, otherwise no id at all so the SDK runs on its own `$RCAnonymousID` that `logIn()` later aliases. **The device id is never a RevenueCat identity** — the old render-time prop left the SDK on the device id after sign-in and stranded 81 active subscriptions on device-id customers (2026-09-17 export). Store receipts are synced once **per identity per install** (`rc_purchases_synced.<sub>`), which is also what moves a stranded subscription over (Restore Behavior = Transfer, verified 2026-09-17). Decisions in the vitest-covered `rcIdentityLogic.ts`; spec `docs/superpowers/specs/2026-09-17-revenuecat-identity-reactive-design.md`. Don't reintroduce an `appUserId` prop.
 
+**In-place paywall** (ADDED 2026-11-19): every purchase path goes through `usePaywallPurchase()`
+(`app/hooks/`, jest-covered): Settings' Upgrade and Notifications gate, the reminder alert's "See
+Premium" in SchedulePopup / InPersonPopup, and the Attendance tab's "See Premium". `purchase(source)`
+opens the paywall where the person is, then the cloud-backup offer or "Welcome to Premium!", and
+resolves only after that dialog is tapped, so a caller can open its own Modal next (the reminder
+editor). Nothing sets Settings' `returnTo` any more; `useSubscriptionReturn` and the `returnTo`
+branch of `handleUpgrade` serve only a destination persisted by an older build, and can go in a
+cleanup. The reminder alert stays in front of the paywall on purpose (Jenova, 2026-11-19).
+
 Key pattern: `__DEV__` uses the `test_` RC API key (Test Store). Production uses platform-specific `appl_`/`goog_` keys. Both use the project's current offering. `__DEV__` is false in TestFlight builds.
 
 ### Push Notifications (expo-notifications)

@@ -680,7 +680,6 @@ const ru: Translations = {
     credit: "зачёт",
     minutes: "мин",
     subscribeRequired: "Для создания отчётов о посещении необходимо оформить подписку.",
-    goToSettings: "Перейти к подпискам в Настройках",
     // English placeholder — queue for native-speaker review (docs/translation-review-2026-08-03.md)
     sendFailed: "Failed to send report",
     sendFailedSignIn: "Please sign in again to send this report",
@@ -1123,7 +1122,6 @@ const ru: Translations = {
     overlapMessage: "Это пересекается с существующим напоминанием",
     premiumTitle: "Премиум-функция",
     premiumMessage: "Напоминания доступны с подпиской Премиум.",
-    goToSettings: "Подписка",
   },
   cleanTime: {
     yourRecovery: "Твоё выздоровление",
@@ -1248,6 +1246,8 @@ const ru: Translations = {
       "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
     billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
+    // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
+    seePremium: "Посмотреть Премиум",
   },
   accessibility: {
     doubleTapToView: "Коснитесь дважды, чтобы посмотреть подробности",

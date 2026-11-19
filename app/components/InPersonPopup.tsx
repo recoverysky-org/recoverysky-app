@@ -88,6 +88,7 @@ import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
+import { usePaywallPurchase } from "@/hooks/usePaywallPurchase"
 import { usePresenceCheck } from "@/hooks/usePresenceCheck"
 import { useReminders } from "@/hooks/useReminders"
 import { useTopicPanel } from "@/hooks/useTopicPanel"
@@ -96,6 +97,7 @@ import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/model
 import { navigate } from "@/navigators/navigationUtilities"
 import type { PersistedPresence } from "@/services/attendance"
 import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
+import { ENTITLEMENTS, hasEntitlement } from "@/services/purchases"
 import { trackEvent } from "@/services/tracking"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
@@ -103,7 +105,6 @@ import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { shouldExplainImHere, type InPersonSearchMode } from "@/utils/inPersonSearchLogic"
 import { buildDirectionsUrl, composeAddress, formatDistance } from "@/utils/nearbyLogic"
-import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 
 // No module-level logger here anymore: usePresenceCheck and InPersonTimerModal
 // own every log call in this feature (see their headers for the PRIVACY
@@ -154,6 +155,7 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
   // popup re-renders if the flag flips.
   const isGuest = authStore.isGuest
   const { isPremium } = useSubscription()
+  const { purchase } = usePaywallPurchase()
   const isFocused = useIsFocused()
 
   // Auto-close when parent screen loses focus (e.g. navigating to Settings
@@ -178,6 +180,19 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
     checkOverlap,
   } = useReminders(visible ? meeting : null, meeting?.sid ?? "")
 
+  // Open the reminder editor on a grid cell: the existing reminder there, or a
+  // new one. ADDED 2026-11-19, split out of handleCellPress so a purchase made
+  // from the premium alert can open the cell the person tapped.
+  const openReminderEditor = useCallback(
+    (id: string, dayIndex: number, rowIndex: number) => {
+      const existing = findExistingReminder(id, dayIndex)
+      setEditingReminder(existing)
+      setSelectedCell({ row: rowIndex, col: dayIndex })
+      setReminderEditorVisible(true)
+    },
+    [findExistingReminder],
+  )
+
   // Handle schedule grid cell tap → open reminder editor (premium only)
   const handleCellPress = useCallback(
     (_millis: number, id: string, dayIndex: number, rowIndex: number) => {
@@ -191,51 +206,37 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
         return
       }
 
+      // CHANGED 2026-11-19 (Jenova): "See Premium" opens the paywall here, over
+      // this popup, instead of closing it and sending the person to Settings →
+      // Subscription with a returnTo. The alert stays in front of the paywall on
+      // purpose: the paywall itself never says why it appeared, and a stray tap
+      // on the grid should cost a dismissed alert, not a full-screen sheet.
+      // After a purchase the editor opens on the cell they tapped.
+      // usePaywallPurchase resolves only once its success or backup dialog is
+      // tapped, so the editor's Modal never presents over a live dialog.
       if (!isPremium) {
         Alert.alert(t("reminderEditor:premiumTitle"), t("reminderEditor:premiumMessage"), [
           { text: t("reminderEditor:cancel"), style: "cancel" },
           {
-            text: t("reminderEditor:goToSettings"),
+            text: t("subscription:seePremium"),
             onPress: () => {
-              onClose()
-              navigate(
-                "Settings" as never,
-                {
-                  section: "subscription",
-                  // CHANGED 2026-08-03: was a hand-assembled
-                  // `Meetings:meetingId:<id>`, copied verbatim from
-                  // SchedulePopup per the plan. That form has no way to say
-                  // "in-person", and SettingsScreen.navigateReturn() read it as
-                  // live — so after paying, the user was dropped on the Live
-                  // segment, which deliberately discards in-person records, and
-                  // this popup never reopened. Build it with the helper rather
-                  // than by hand; that is exactly how the wrong form got here.
-                  returnTo: buildMeetingReturnTo("inperson", meeting!.id),
-                } as never,
-              )
+              void purchase("reminder").then(async (bought) => {
+                // An Attendance-only plan is a purchase too, and does not
+                // unlock reminders, so read the Premium entitlement again;
+                // `isPremium` in this closure still holds the pre-purchase value.
+                if (bought && (await hasEntitlement(ENTITLEMENTS.PREMIUM))) {
+                  openReminderEditor(id, dayIndex, rowIndex)
+                }
+              })
             },
           },
         ])
         return
       }
 
-      const existing = findExistingReminder(id, dayIndex)
-      setEditingReminder(existing)
-      setSelectedCell({ row: rowIndex, col: dayIndex })
-      setReminderEditorVisible(true)
+      openReminderEditor(id, dayIndex, rowIndex)
     },
-    // `meeting` is intentionally absent from this array (eslint flags it —
-    // do not silence with an eslint-disable, and do not add it back without
-    // re-reading this comment). It is not stale: `findExistingReminder` IS
-    // in the deps, and its own hook (useReminders.ts) declares its deps as
-    // `[reminders, meeting?.id, meeting?.scheduleData]` — so whenever the
-    // popup's `meeting` prop changes, `findExistingReminder` is re-created,
-    // which transitively re-creates this callback too. That means the
-    // `meeting!.id` read inside the `returnTo` closure below can never go
-    // stale. Copied from SchedulePopup.tsx's identical handleCellPress,
-    // which relies on the same mechanism (and carries the same eslint
-    // warning) — verified against useReminders.ts before porting here.
-    [isPremium, configStore, findExistingReminder, t, onClose],
+    [isPremium, configStore, purchase, openReminderEditor, t],
   )
 
   const scheduleGridData = useMemo(() => meeting?.scheduleData ?? [], [meeting?.scheduleData])

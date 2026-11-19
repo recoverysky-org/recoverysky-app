@@ -32,6 +32,7 @@ import { useSubscription } from "@/context/SubscriptionContext"
 import { reminderRepo, reminderEvents } from "@/db"
 import { resetLocalDatabase } from "@/db/resetLocalDatabase"
 import { RESTORE_BACKUP_PROMPT_COPY, useCloudBackupPrompt } from "@/hooks/useCloudBackupPrompt"
+import { usePaywallPurchase } from "@/hooks/usePaywallPurchase"
 import { usePermissionToggles } from "@/hooks/usePermissionToggles"
 import { useSubscriptionReturn } from "@/hooks/useSubscriptionReturn"
 import {
@@ -215,6 +216,7 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   // MST Stores - reactive!
   const profileStore = useProfileStore()
   const { promptCloudBackup } = useCloudBackupPrompt()
+  const { purchase } = usePaywallPurchase()
   const authStore = useAuthenticationStore()
   // Sessions of the old device-id login had no sign-in method to show (userId
   // was the device id there), so they skipped straight to the fallback row below.
@@ -326,7 +328,6 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
     isLoading: isSubscriptionLoading,
     billingUnresponsive,
     subscriptionInfo,
-    showPaywall,
     restore,
     logout: logoutSubscription,
   } = useSubscription()
@@ -677,21 +678,11 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
   // useCallback. MOVED 2026-09-14 to useCloudBackupPrompt so the Restore
   // Purchases handlers (here and in onboarding) can share it. Same contract:
   // awaits the tap, re-reads the entitlement, returns whether it showed.
-
-  /**
-   * Post-purchase success dialog for a purchase that ends on Settings. The
-   * backup prompt supersedes it when it applies (it carries the same success
-   * title), so this is the plain message users who can't act on backup get.
-   */
-  const showPurchaseSuccessAlert = useCallback(async () => {
-    const prompted = await promptCloudBackup()
-    if (prompted) return
-
-    Alert.alert(
-      translate("settingsScreen:subscriptionSuccess"),
-      translate("settingsScreen:subscriptionSuccessMessage"),
-    )
-  }, [promptCloudBackup])
+  //
+  // The purchase follow-up (`showPurchaseSuccessAlert`: the backup offer, else
+  // "Welcome to Premium!") MOVED 2026-11-19 to usePaywallPurchase, when the
+  // reminder and Attendance upsells started opening the paywall in place
+  // instead of sending people here. Both buttons below now go through it.
 
   /**
    * Premium gate on the Notifications row. Not the Subscribe button — this is a
@@ -700,48 +691,36 @@ export const SettingsScreen: FC<MainTabScreenProps<"Settings">> = observer(funct
    *
    * CHANGED 2026-08-08: was a bare `void showPaywall()` that ignored the result
    * entirely, so buying from this gate confirmed nothing and never offered
-   * cloud backup. Moved below `showPurchaseSuccessAlert` (from just above
-   * `handleSyncToggle`) purely so it can depend on it without a TDZ error.
+   * cloud backup.
+   * CHANGED 2026-11-19: through usePaywallPurchase. `notifications_paywall_tapped`
+   * stays so existing Umami views keep counting; the hook adds
+   * `upgrade_tapped` with `source: "notifications"`.
    */
   const handleNotificationsPaywall = useCallback(async () => {
     trackEvent("notifications_paywall_tapped")
-    const purchased = await showPaywall()
-    if (!purchased) return
-    trackEvent("upgrade_purchased")
-    await showPurchaseSuccessAlert()
-  }, [showPaywall, showPurchaseSuccessAlert])
+    await purchase("notifications")
+  }, [purchase])
 
   const handleUpgrade = async () => {
-    trackEvent("upgrade_tapped")
-    const purchased = await showPaywall()
+    const purchased = await purchase("settings")
     if (purchased) {
-      trackEvent("upgrade_purchased")
       // Consume (not peek) — the destination is single-use, so a later upgrade
       // from Settings itself doesn't re-navigate somewhere stale.
       const returnTo = subscriptionReturn.consume()
-      if (returnTo) {
-        // CHANGED 2026-08-08: this path used to skip the backup prompt on the
-        // reasoning that a user who hit the paywall from elsewhere (a meeting
-        // popup, the Attendance tab) is owed the thing they paid for, not a
-        // dialog in front of it. That made the nudge unreachable in practice —
-        // EVERY in-app route to Subscribe (AttendanceScreen, SchedulePopup,
-        // InPersonPopup) sets `returnTo`, so only a user who walked to the
-        // Settings tab by hand ever saw it. Opting into cloud backup is the
-        // one-time decision that decides whether their attendance history
-        // survives losing the phone, so it now always gets asked.
-        //
-        // PROMPT BEFORE NAVIGATING, and await the tap. Alert is a native dialog
-        // and `navigateReturn` may open an RN Modal (the meeting popups); firing
-        // both in the same tick risks iOS refusing to present one over the
-        // other, which would silently drop the prompt again. Asking here — on
-        // the screen that already presents this Alert reliably — then leaving is
-        // the safe order. `promptCloudBackup` no-ops for buyers it doesn't
-        // apply to, so those users still go straight through.
-        await promptCloudBackup()
-        navigateReturn(returnTo)
-      } else {
-        await showPurchaseSuccessAlert()
-      }
+      // CHANGED 2026-08-08: the returnTo path used to skip the backup prompt;
+      // every purchase now gets asked, because opting into cloud backup decides
+      // whether attendance history survives losing the phone.
+      //
+      // NAVIGATE ONLY AFTER THE DIALOG IS TAPPED. `purchase` resolves after the
+      // backup offer or the success dialog closes, and `navigateReturn` may open
+      // an RN Modal (the meeting popups); presenting both in the same tick
+      // risks iOS refusing one of them.
+      //
+      // CHANGED 2026-11-19: nothing in the app sets `returnTo` any more (the
+      // reminder and Attendance upsells open the paywall where they are), so
+      // this only serves a destination persisted by an older build. Remove it
+      // with useSubscriptionReturn in a later cleanup.
+      if (returnTo) navigateReturn(returnTo)
     }
   }
 

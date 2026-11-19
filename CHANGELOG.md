@@ -51,6 +51,17 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   production builds.
 
 ### Changed
+- **The paywall opens where you are.** Tapping a reminder time without Premium
+  still explains "Reminders are available with a Premium subscription.", but
+  its button is now "See Premium" and opens the paywall over the meeting popup,
+  instead of closing the popup and going to Settings → Subscription. After a
+  purchase the reminder editor opens on the time that was tapped. The Attendance
+  tab's "Go to Subscriptions in Settings" link under Send Report is also "See
+  Premium" now and opens the paywall in place; Send Report appears once the
+  purchase goes through. Every purchase, wherever it starts, gets the same
+  follow-up Settings gave: the Cloud Backup offer, or "Welcome to Premium!".
+  Umami's `upgrade_tapped` / `upgrade_purchased` now carry a `source`
+  (`settings`, `notifications`, `attendance`, `reminder`).
 - **My Day no longer offers Check in.** The Record My Day panel drops "Check in
   throughout your day" and its buttons (my-day 0.7.0 shows them only when the
   host asks, and RecoverySky doesn't, as in the Daily Dash app). A saved night
@@ -111,6 +122,8 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   tab is still hidden in production builds.
 
 ### Docs
+- **(manual)** `map.md`: "See Premium" in the reminder alert and under the
+  Attendance tab's Send Report opens the subscription offer where you are.
 - (manual) Support: adding with +, removing from the pencil's edit mode, no limit on
   how many people, and the map line no longer says "up to three".
 - (manual) The map's Meetings line: In-Person searches around a "ZIP or postal

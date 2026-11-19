@@ -47,6 +47,7 @@ import {
   type AttendanceRecord,
   type AttendanceReportRecord,
 } from "@/db"
+import { usePaywallPurchase } from "@/hooks/usePaywallPurchase"
 import { useReportSender } from "@/hooks/useReportSender"
 import { translate } from "@/i18n"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
@@ -83,7 +84,7 @@ interface NewListHeaderProps {
   hasAttendance: boolean
   selectedCount: number
   isSending: boolean
-  onNavigateSubscription: () => void
+  onSubscribe: () => void
   onSendReport: () => void
 }
 
@@ -92,7 +93,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
   hasAttendance,
   selectedCount,
   isSending,
-  onNavigateSubscription,
+  onSubscribe,
   onSendReport,
 }) {
   const { themed, theme } = useAppTheme()
@@ -185,11 +186,11 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
         <View style={themed($subscribePrompt)}>
           <Text style={themed($subscribeText)} tx="attendanceScreen:subscribeRequired" />
           <TouchableOpacity
-            onPress={onNavigateSubscription}
+            onPress={onSubscribe}
             accessibilityRole="link"
-            accessibilityLabel={translate("attendanceScreen:goToSettings")}
+            accessibilityLabel={translate("subscription:seePremium")}
           >
-            <Text style={themed($subscribeLink)} tx="attendanceScreen:goToSettings" />
+            <Text style={themed($subscribeLink)} tx="subscription:seePremium" />
           </TouchableOpacity>
         </View>
       )}
@@ -201,9 +202,7 @@ const NewListHeader: FC<NewListHeaderProps> = observer(function NewListHeader({
 // NewContent - Unproduced attendance records
 // ============================================================================
 
-const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function NewContent({
-  onNavigateSubscription,
-}) {
+const NewContent: FC<{ onSubscribe: () => void }> = observer(function NewContent({ onSubscribe }) {
   const { themed, theme } = useAppTheme()
   const { hasAttendance } = useSubscription()
   const profileStore = useProfileStore()
@@ -385,7 +384,7 @@ const NewContent: FC<{ onNavigateSubscription: () => void }> = observer(function
             hasAttendance={hasAttendance}
             selectedCount={selectedIds.size}
             isSending={isSending}
-            onNavigateSubscription={onNavigateSubscription}
+            onSubscribe={onSubscribe}
             onSendReport={handleSendReport}
           />
         }
@@ -928,6 +927,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
   function AttendanceScreen({ navigation }) {
     const { themed, theme } = useAppTheme()
     const toast = useToast()
+    const { purchase } = usePaywallPurchase()
     const route = useRoute<RouteProp<MainTabParamList, "Attendance">>()
     const authStore = useAuthenticationStore()
 
@@ -1018,9 +1018,13 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
       navigation.navigate("Settings", { section: "attendance" })
     }, [navigation])
 
-    const handleNavigateSubscription = useCallback(() => {
-      navigation.navigate("Settings", { section: "subscription", returnTo: "Attendance:new" })
-    }, [navigation])
+    // "See Premium" under Send Report. CHANGED 2026-11-19 (Jenova): opens the
+    // paywall here instead of sending the person to Settings → Subscription with
+    // a returnTo. Nothing to do after a purchase: `hasAttendance` updates when
+    // the context reloads customer info, and Send Report takes the link's place.
+    const handleSubscribe = useCallback(() => {
+      void purchase("attendance")
+    }, [purchase])
 
     const handleSectionChange = useCallback((index: number) => {
       const keys: AttendanceSection[] = ["new", "archive", "reports"]
@@ -1057,7 +1061,7 @@ export const AttendanceScreen: FC<MainTabScreenProps<"Attendance">> = observer(
 
         {/* Content Views - all mounted, inactive ones hidden */}
         <View style={[$content, activeSection === "new" ? $contentVisible : $contentHidden]}>
-          <NewContent onNavigateSubscription={handleNavigateSubscription} />
+          <NewContent onSubscribe={handleSubscribe} />
         </View>
         <View style={[$content, activeSection === "archive" ? $contentVisible : $contentHidden]}>
           <ArchiveContent />

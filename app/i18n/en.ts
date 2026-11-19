@@ -708,7 +708,6 @@ const en = {
     credit: "credit",
     minutes: "min",
     subscribeRequired: "To produce attendance reports, you must subscribe.",
-    goToSettings: "Go to Subscriptions in Settings",
     // Report-send toasts. ADDED 2026-09-10 — these were hardcoded English in
     // useReportSender. sendFailedSignIn is shown when the API answered 401;
     // the forced logout usually swaps to Login in the same tick, so it is a
@@ -1172,7 +1171,6 @@ const en = {
     overlapMessage: "This overlaps with an existing reminder",
     premiumTitle: "Premium Feature",
     premiumMessage: "Reminders are available with a Premium subscription.",
-    goToSettings: "Subscription",
   },
   cleanTime: {
     yourRecovery: "Your Recovery",
@@ -1297,6 +1295,9 @@ const en = {
       "App Store billing isn't responding on this device. Please restart your device, then come back to Settings to confirm your subscription — if it doesn't show, tap Restore Purchases.",
     billingUnresponsiveStatusAndroid: "Google Play not responding — restart device",
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
+    // ADDED 2026-11-19: opens the paywall in place (the reminder alert in the meeting popups, and the
+    // Attendance tab under Send Report); replaced reminderEditor/attendanceScreen goToSettings.
+    seePremium: "See Premium",
   },
   accessibility: {
     doubleTapToView: "Double-tap to view details",

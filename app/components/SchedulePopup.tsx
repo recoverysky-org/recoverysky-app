@@ -48,11 +48,13 @@ import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
 import type { MeetingWithTrex } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { attendanceEvents, feedbackCache, type FeedbackRecord, type ReminderRecord } from "@/db"
+import { usePaywallPurchase } from "@/hooks/usePaywallPurchase"
 import { useReminders } from "@/hooks/useReminders"
 import { useTopicPanel } from "@/hooks/useTopicPanel"
 import { useAuthenticationStore, useConfigStore, useProfileStore } from "@/models"
 import { navigate } from "@/navigators/navigationUtilities"
 import { canLogAttendance } from "@/services/attendance/attendanceGateLogic"
+import { ENTITLEMENTS, hasEntitlement } from "@/services/purchases"
 import { maybePresentRatingPrompt } from "@/services/rating"
 import { trackEvent } from "@/services/tracking"
 import { useZoomMeeting, extractZoomMeetingNumber, buildExternalZoomUrl } from "@/services/zoom"
@@ -61,7 +63,6 @@ import type { ThemedStyle } from "@/theme/types"
 import { decideScheduleLove, decideScheduleRating } from "@/utils/favoriteLogic"
 import { formatMillisToLocalTime } from "@/utils/formatTime"
 import { logger } from "@/utils/logger"
-import { buildMeetingReturnTo } from "@/utils/returnToLogic"
 import { load, save } from "@/utils/storage"
 
 const log = logger.child({ module: "SchedulePopup" })
@@ -157,6 +158,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
   }, [visible, presentRatingAfterClose])
   const { isJoining } = useZoomMeeting()
   const { isPremium } = useSubscription()
+  const { purchase } = usePaywallPurchase()
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
   // External Zoom timer modal state
@@ -206,6 +208,19 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
     checkOverlap,
   } = useReminders(visible ? meeting : null, meeting?.sid ?? "")
 
+  // Open the reminder editor on a grid cell: the existing reminder there, or a
+  // new one. ADDED 2026-11-19, split out of handleCellPress so a purchase made
+  // from the premium alert can open the cell the person tapped.
+  const openReminderEditor = useCallback(
+    (id: string, dayIndex: number, rowIndex: number) => {
+      const existing = findExistingReminder(id, dayIndex)
+      setEditingReminder(existing)
+      setSelectedCell({ row: rowIndex, col: dayIndex })
+      setReminderEditorVisible(true)
+    },
+    [findExistingReminder],
+  )
+
   // Handle schedule grid cell tap → open reminder editor (premium only)
   const handleCellPress = useCallback(
     (_millis: number, id: string, dayIndex: number, rowIndex: number) => {
@@ -219,38 +234,37 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
         return
       }
 
+      // CHANGED 2026-11-19 (Jenova): "See Premium" opens the paywall here, over
+      // this popup, instead of closing it and sending the person to Settings →
+      // Subscription with a returnTo. The alert stays in front of the paywall on
+      // purpose: the paywall itself never says why it appeared, and a stray tap
+      // on the grid should cost a dismissed alert, not a full-screen sheet.
+      // After a purchase the editor opens on the cell they tapped.
+      // usePaywallPurchase resolves only once its success or backup dialog is
+      // tapped, so the editor's Modal never presents over a live dialog.
       if (!isPremium) {
         Alert.alert(t("reminderEditor:premiumTitle"), t("reminderEditor:premiumMessage"), [
           { text: t("reminderEditor:cancel"), style: "cancel" },
           {
-            text: t("reminderEditor:goToSettings"),
+            text: t("subscription:seePremium"),
             onPress: () => {
-              onClose()
-              navigate(
-                "Settings" as never,
-                {
-                  section: "subscription",
-                  // CHANGED 2026-08-03: was a hand-assembled
-                  // `Meetings:meetingId:<id>` (the legacy form, which
-                  // parseReturnTo still accepts for strings already persisted
-                  // in MMKV). Emitting the explicit form via the helper keeps
-                  // every producer on one grammar — hand-assembly is how the
-                  // in-person popup ended up sending a live-only string.
-                  returnTo: buildMeetingReturnTo("live", meeting!.id),
-                } as never,
-              )
+              void purchase("reminder").then(async (bought) => {
+                // An Attendance-only plan is a purchase too, and does not
+                // unlock reminders, so read the Premium entitlement again;
+                // `isPremium` in this closure still holds the pre-purchase value.
+                if (bought && (await hasEntitlement(ENTITLEMENTS.PREMIUM))) {
+                  openReminderEditor(id, dayIndex, rowIndex)
+                }
+              })
             },
           },
         ])
         return
       }
 
-      const existing = findExistingReminder(id, dayIndex)
-      setEditingReminder(existing)
-      setSelectedCell({ row: rowIndex, col: dayIndex })
-      setReminderEditorVisible(true)
+      openReminderEditor(id, dayIndex, rowIndex)
     },
-    [isPremium, configStore, findExistingReminder, t, onClose],
+    [isPremium, configStore, purchase, openReminderEditor, t],
   )
 
   // Local feedback state - initialized from cache, updated on interactions
