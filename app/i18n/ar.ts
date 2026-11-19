@@ -1104,7 +1104,7 @@ const ar: Translations = {
     reminderTime: "وقت التذكير",
     overlapMessage: "هذا يتداخل مع تذكير موجود",
     premiumTitle: "ميزة مميزة",
-    premiumMessage: "التذكيرات متاحة مع اشتراك مميز.",
+    premiumMessage: "التذكيرات متاحة مع اشتراك مميز. جرّبه مجانًا لمدة 7 أيام.",
   },
   cleanTime: {
     yourRecovery: "تعافيك",
@@ -1231,6 +1231,9 @@ const ar: Translations = {
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
     // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
     seePremium: "عرض الاشتراك المميز",
+    // ADDED 2026-11-19: My Day tab alert / locked page. Queued for review.
+    premiumFeatureTitle: "ميزة مميزة",
+    myDayPremiumMessage: "My Day متاح مع اشتراك مميز. جرّبه مجانًا لمدة 7 أيام.",
   },
   accessibility: {
     doubleTapToView: "انقر مرتين لعرض التفاصيل",

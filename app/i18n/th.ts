@@ -1112,7 +1112,7 @@ const th: Translations = {
     reminderTime: "เวลาเตือน",
     overlapMessage: "ซ้อนทับกับการเตือนที่มีอยู่แล้ว",
     premiumTitle: "ฟีเจอร์พรีเมียม",
-    premiumMessage: "การเตือนใช้งานได้กับสมาชิกพรีเมียม",
+    premiumMessage: "การเตือนใช้งานได้กับสมาชิกพรีเมียม ทดลองใช้ฟรี 7 วัน",
   },
   cleanTime: {
     yourRecovery: "การฟื้นตัวของคุณ",
@@ -1239,6 +1239,9 @@ const th: Translations = {
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
     // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
     seePremium: "ดูพรีเมียม",
+    // ADDED 2026-11-19: My Day tab alert / locked page. Queued for review.
+    premiumFeatureTitle: "ฟีเจอร์พรีเมียม",
+    myDayPremiumMessage: "My Day ใช้งานได้กับสมาชิกพรีเมียม ทดลองใช้ฟรี 7 วัน",
   },
   accessibility: {
     doubleTapToView: "แตะสองครั้งเพื่อดูรายละเอียด",

@@ -36,12 +36,27 @@ export interface MyDayTabInputs {
   platform: string
 }
 
-export function decideMyDayTabVisible(i: MyDayTabInputs): boolean {
+/**
+ * Whether the My Day tab's icon is in the tab bar. ADDED 2026-11-19 (Jenova): it shows without
+ * the `myday` entitlement, as an upsell. A tap without it opens the "Premium Feature" alert and
+ * the paywall instead of the tab (`useMyDayPaywallPrompt`), and the tab's screen renders
+ * `MyDayLocked`, never the package, so no Daily Dash client mounts for an account without it.
+ */
+export function decideMyDayTabShown(i: Omit<MyDayTabInputs, "hasMyDay">): boolean {
   return (
     i.isAuthenticated &&
     !i.isGuest &&
-    i.hasMyDay &&
     isValidDailyDashUrl(i.dailyDashUrlEnv) &&
     i.platform !== "web"
   )
+}
+
+/**
+ * Whether My Day itself is open to this account: the tab shows and the `myday` entitlement holds.
+ * CHANGED 2026-11-19: no longer what puts the icon in the tab bar (`decideMyDayTabShown` does). It
+ * is still the gate `DailyDashProvider` feeds the sign-in driver, and what mounts
+ * `MyDayNavigator`, so the session and the client exist exactly while it holds.
+ */
+export function decideMyDayTabVisible(i: MyDayTabInputs): boolean {
+  return decideMyDayTabShown(i) && i.hasMyDay
 }

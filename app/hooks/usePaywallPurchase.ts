@@ -27,7 +27,7 @@ import { trackEvent } from "@/services/tracking"
 import { useCloudBackupPrompt } from "./useCloudBackupPrompt"
 
 /** Where the paywall was opened from; sent with the Umami events so upsells can be compared. */
-export type PaywallSource = "settings" | "notifications" | "attendance" | "reminder"
+export type PaywallSource = "settings" | "notifications" | "attendance" | "reminder" | "myday"
 
 export function usePaywallPurchase() {
   const { showPaywall } = useSubscription()

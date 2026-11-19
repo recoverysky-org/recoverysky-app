@@ -1170,7 +1170,7 @@ const en = {
     reminderTime: "Reminder time",
     overlapMessage: "This overlaps with an existing reminder",
     premiumTitle: "Premium Feature",
-    premiumMessage: "Reminders are available with a Premium subscription.",
+    premiumMessage: "Reminders are available with a Premium subscription. Try it free for 7 days.",
   },
   cleanTime: {
     yourRecovery: "Your Recovery",
@@ -1298,6 +1298,9 @@ const en = {
     // ADDED 2026-11-19: opens the paywall in place (the reminder alert in the meeting popups, and the
     // Attendance tab under Send Report); replaced reminderEditor/attendanceScreen goToSettings.
     seePremium: "See Premium",
+    // ADDED 2026-11-19: the My Day tab's "Premium Feature" alert and locked page (MyDayTab).
+    premiumFeatureTitle: "Premium Feature",
+    myDayPremiumMessage: "My Day is available with a Premium subscription. Try it free for 7 days.",
   },
   accessibility: {
     doubleTapToView: "Double-tap to view details",

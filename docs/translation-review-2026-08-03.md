@@ -1106,3 +1106,16 @@ and `attendanceScreen.goToSettings` ("Go to Subscriptions in Settings"), which a
 them from any open translation work.
 - **Keep it short:** it is an alert button. "Premium" should match the word the locale already uses
   in `reminderEditor.premiumMessage`.
+
+ADDED 2026-11-19, **16 more strings (8 locales × 2 keys)**, first-pass translations to check:
+`subscription.premiumFeatureTitle` ("Premium Feature", copied from each locale's
+`reminderEditor.premiumTitle`) and `subscription.myDayPremiumMessage` ("My Day is available with a
+Premium subscription."), the alert and locked page for the My Day tab without Premium. Keep
+"My Day" as the feature's name, as everywhere else.
+
+ADDED 2026-11-19 (later), **16 changed strings (8 locales × 2 keys)**, first-pass translations to
+check: `reminderEditor.premiumMessage` and `subscription.myDayPremiumMessage` each gained a second
+sentence, "Try it free for 7 days.", for the subscription's 7-day free trial. "It" is Premium (the
+subscription), not reminders or My Day, and the register should match the locale's other strings
+(French and German use the informal "tu" / "du").
+

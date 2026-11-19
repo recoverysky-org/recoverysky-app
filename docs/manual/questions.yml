@@ -33,6 +33,8 @@
   expect: backup-and-devices/if-backup-isnt-working
 - q: why don't I see the cloud backup section in settings
   expect: backup-and-devices/if-backup-isnt-working
+- q: my day says premium feature
+  expect: my-day/today
 - q: I don't see the my day tab
   expect: my-day/today
 - q: what is my day

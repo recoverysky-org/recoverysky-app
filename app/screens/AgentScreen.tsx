@@ -32,6 +32,7 @@ import { SchedulePopup } from "@/components/SchedulePopup"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { TextField } from "@/components/TextField"
+import { useSubscription } from "@/context/SubscriptionContext"
 import { feedbackCache } from "@/db"
 import { useAgentConversation, type AgentChatState } from "@/hooks/useAgentConversation"
 import { useSkyMeetingPopup } from "@/hooks/useSkyMeetingPopup"
@@ -161,7 +162,14 @@ export const AgentScreen: FC<MainTabScreenProps<"Agent">> = observer(function Ag
   // navigator holds a My Day tab. Read from the navigator's own routes rather than re-deciding
   // `decideMyDayTabVisible`, so the link follows the tab's gate exactly (the `myday` entitlement
   // landing after a cold start included). Without the tab, the card shows with no link.
-  const myDayTabShown = useNavigationState((state) => state?.routeNames?.includes("MyDay") ?? false)
+  // CHANGED 2026-11-19: the tab now shows without the entitlement (an upsell), so the route alone
+  // no longer means the account has My Day; the link also needs `hasMyDay`. Without it a tap
+  // would land on the tab's locked page.
+  const { hasMyDay } = useSubscription()
+  const myDayRouteExists = useNavigationState(
+    (state) => state?.routeNames?.includes("MyDay") ?? false,
+  )
+  const myDayTabShown = myDayRouteExists && hasMyDay
   // The tab itself, as a tab press would: My Day keeps the person's place. Naming `MyDayToday`
   // pushed a second Today onto the stack whenever another My Day screen was on top (React
   // Navigation 7's navigate reuses only the current route), and `pop: true` would drop an open

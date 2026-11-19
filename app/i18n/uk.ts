@@ -1121,7 +1121,7 @@ const uk: Translations = {
     reminderTime: "Час нагадування",
     overlapMessage: "Це перетинається з наявним нагадуванням",
     premiumTitle: "Преміум-функція",
-    premiumMessage: "Нагадування доступні з підпискою Преміум.",
+    premiumMessage: "Нагадування доступні з підпискою Преміум. Спробуйте безкоштовно 7 днів.",
   },
   cleanTime: {
     yourRecovery: "Твоє одужання",
@@ -1249,6 +1249,9 @@ const uk: Translations = {
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
     // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
     seePremium: "Переглянути Преміум",
+    // ADDED 2026-11-19: My Day tab alert / locked page. Queued for review.
+    premiumFeatureTitle: "Преміум-функція",
+    myDayPremiumMessage: "My Day доступний з підпискою Преміум. Спробуйте безкоштовно 7 днів.",
   },
   accessibility: {
     doubleTapToView: "Торкніться двічі, щоб переглянути деталі",

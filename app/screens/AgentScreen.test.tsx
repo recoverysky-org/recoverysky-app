@@ -194,6 +194,13 @@ jest.mock("@react-navigation/native", () => ({
   },
 }))
 
+// ADDED 2026-11-19: the My Day tab now shows without the `myday` entitlement (an upsell), so the
+// screen reads the entitlement too. The real context imports RevenueCat's native module.
+let mockHasMyDay = true
+jest.mock("@/context/SubscriptionContext", () => ({
+  useSubscription: () => ({ hasMyDay: mockHasMyDay }),
+}))
+
 // The lookup is the hook's own test's business (useSkyMeetingPopup.test.tsx).
 const mockPopupHook = {
   popup: null as null | { venue: string; meeting: { name: string }; toolCallId: string },
@@ -1100,6 +1107,19 @@ describe("AgentScreen", () => {
       }
       afterEach(() => {
         mockRouteNames = ["Home", "Meetings", "Agent", "Settings"]
+        mockHasMyDay = true
+      })
+
+      // ADDED 2026-11-19: the tab is there for an account without My Day too, as an upsell; the
+      // link would only land on its locked page.
+      it("hands down no link while the tab is there without the myday entitlement", () => {
+        mockRouteNames = ["Home", "Meetings", "MyDay", "Agent", "Settings"]
+        mockHasMyDay = false
+        withCard()
+        const screen = mountScreen()
+
+        expect(screen.getByTestId("tool-result")).toBeTruthy()
+        expect(screen.queryByTestId("tool-result-open-my-day")).toBeNull()
       })
 
       it("opens the My Day tab while it is there, naming no screen in it", () => {

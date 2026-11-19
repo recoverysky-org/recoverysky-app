@@ -379,7 +379,7 @@ CHANGED 2026-09-18 (spec `2026-09-17-device-owner-and-wrong-account-recovery-des
 
 CHANGED 2026-10-11 (spec `2026-09-27-guest-mode-design.md`): Guest sits between WrongAccount and Login. The whole order is now one pure function, `decideAppRoute()` (`app/navigators/appRouteLogic.ts`, vitest-covered), and `AppNavigator` keys both the registered screen and `initialRouteName` on its result, so the two can no longer drift apart. A real session outranks a stale guest flag, WrongAccount outranks Guest so a refused session is never hidden behind guest browsing, and Guest is returned only on Android, so a stray persisted flag on iOS lands on Login.
 
-**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), My Day (`myday` entitlement, see below), Settings. `agentTabVisible` (Agent) is `decideAgentTabVisible()` (`app/utils/agentTabLogic.ts`, vitest-covered): a valid `EXPO_PUBLIC_AGENT_URL` in the build **and** the `skyagent` entitlement (no dev escape since 2026-11-07). It keys on the env var, not `configStore.agentUrl`, because the store falls back to a default URL and is never empty — remove the var from the build's env (eas.json + EAS production env for OTAs) to hide the tab. CHANGED 2026-10-11 (Jenova): production carries no `EXPO_PUBLIC_AGENT_URL` (removed from `eas.json` and the EAS production environment), so the tab is hidden for every production user, in store builds and OTAs. Dev builds read `.env` and show it to an account with `skyagent`. To bring it back, add the var to both places; `npm run check:env` checks they agree. CHANGED 2026-10-11 (later): the env var alone did not hold. OTA 4.11.0-1 still showed the tab, with the local dev agent URL, because the release shell leaked `.env` (RS-060, now fixed). Since 4.11.0-2 the tab is also gated on `__DEV__` in `MainNavigator.tsx`, so bringing it back also means removing that `__DEV__ &&`. CHANGED 2026-10-11 (Jenova, later): that `__DEV__` gate is removed again. With production eas commands stripping local values and the bundle tripwire behind them, the env var alone hides the tab, so bringing it back is just the var in `eas.json` and EAS. CHANGED 2026-11-07 (Jenova): the `__DEV__` escape is gone, and the tab reads RevenueCat's own `skyagent` entitlement (`hasSkyAgent`), not premium. The gate is the URL **and** `skyagent`, in dev builds too (a dev build gets entitlements from RevenueCat's Test Store), the same rule as My Day's `myday`. CHANGED 2026-11-17 (Jenova): the tab is hidden for everyone regardless of entitlement or URL, behind a local `skyAgentTabEnabled = false` in `MainNavigator.tsx` that sits in front of `decideAgentTabVisible()`; set it back to true to bring the tab back. `socialTabVisible` (Community/Social) is still **hard-disabled behind a local `const … = false`** pending SPA-side fixes; re-enable with `__DEV__ || isPremium`.
+**Main tabs** (`MainNavigator.tsx`): Home, Meetings, Attendance (conditional on `profileStore.attendanceEnabled`), My Day (icon for every signed-in account, opens with the `myday` entitlement, see below), Settings. `agentTabVisible` (Agent) is `decideAgentTabVisible()` (`app/utils/agentTabLogic.ts`, vitest-covered): a valid `EXPO_PUBLIC_AGENT_URL` in the build **and** the `skyagent` entitlement (no dev escape since 2026-11-07). It keys on the env var, not `configStore.agentUrl`, because the store falls back to a default URL and is never empty — remove the var from the build's env (eas.json + EAS production env for OTAs) to hide the tab. CHANGED 2026-10-11 (Jenova): production carries no `EXPO_PUBLIC_AGENT_URL` (removed from `eas.json` and the EAS production environment), so the tab is hidden for every production user, in store builds and OTAs. Dev builds read `.env` and show it to an account with `skyagent`. To bring it back, add the var to both places; `npm run check:env` checks they agree. CHANGED 2026-10-11 (later): the env var alone did not hold. OTA 4.11.0-1 still showed the tab, with the local dev agent URL, because the release shell leaked `.env` (RS-060, now fixed). Since 4.11.0-2 the tab is also gated on `__DEV__` in `MainNavigator.tsx`, so bringing it back also means removing that `__DEV__ &&`. CHANGED 2026-10-11 (Jenova, later): that `__DEV__` gate is removed again. With production eas commands stripping local values and the bundle tripwire behind them, the env var alone hides the tab, so bringing it back is just the var in `eas.json` and EAS. CHANGED 2026-11-07 (Jenova): the `__DEV__` escape is gone, and the tab reads RevenueCat's own `skyagent` entitlement (`hasSkyAgent`), not premium. The gate is the URL **and** `skyagent`, in dev builds too (a dev build gets entitlements from RevenueCat's Test Store), the same rule as My Day's `myday`. CHANGED 2026-11-17 (Jenova): the tab is hidden for everyone regardless of entitlement or URL, behind a local `skyAgentTabEnabled = false` in `MainNavigator.tsx` that sits in front of `decideAgentTabVisible()`; set it back to true to bring the tab back. `socialTabVisible` (Community/Social) is still **hard-disabled behind a local `const … = false`** pending SPA-side fixes; re-enable with `__DEV__ || isPremium`.
 
 ADDED 2026-11-04: **My Day** sits between Attendance and Agent (spec D6 order:
 Home, Meetings, Attendance, My Day, Sky, Settings). `myDayTabVisible` is
@@ -389,7 +389,12 @@ signed in, not a guest, the `myday` entitlement (`hasMyDay`; CHANGED 2026-11-07,
 `"web"`. Like the Agent tab (since 2026-11-07) it has **no `__DEV__` escape**: a dev build
 without premium has no Daily Dash account to show. `DailyDashProvider` computes
 the same decision from the same inputs, so the Daily Dash session is driven
-exactly while the tab exists. See "My Day (Daily Dash)".
+exactly while the tab exists. See "My Day (Daily Dash)". CHANGED 2026-11-19
+(Jenova): the tab's icon shows without `myday` (`decideMyDayTabShown`), as an
+upsell; the session still follows `decideMyDayTabVisible`, and the tab's screen
+(`MyDayTab`) mounts the package only with the entitlement. Sky's "Open My Day"
+link reads `hasMyDay` as well as the route, since the route alone no longer
+means the account has My Day.
 
 **Meetings tab segments** (`MeetingsScreen.tsx`): Online | In-Person | Search,
 with segment keys `live` / `inperson` / `listings`. The labels were renamed and
@@ -1669,7 +1674,16 @@ Playfair Display fonts. `jest.config.js`'s `transformIgnorePatterns` lists
 
 **One gate, two readers.** `decideMyDayTabVisible()` (see "Navigation" → "Main
 tabs") registers the tab in `MainNavigator` and is the gate `DailyDashProvider`
-feeds the sign-in driver. A gate that does not hold starts nothing for any
+feeds the sign-in driver. CHANGED 2026-11-19 (Jenova): the tab's icon now shows
+without the entitlement (`decideMyDayTabShown`, the same rule minus `hasMyDay`),
+and `MyDayTab` (`app/screens/myDay/`) is the tab's screen: `MyDayNavigator` only
+with the entitlement, a spinner until RevenueCat first answers, else a locked
+page with "See Premium". A tap without the entitlement shows the "Premium
+Feature" alert (`useMyDayPaywallPrompt`) and goes to the tab after a purchase;
+`shouldPromptOnMyDayTap` / `decideMyDayTabView` (`myDayTabViewLogic.ts`, vitest)
+decide. `decideMyDayTabVisible` is still the driver's gate, so the session and the
+client exist exactly while the entitlement holds. Never mount `MyDayNavigator`
+without it. A gate that does not hold starts nothing for any
 session status (`decideDailyDashAction`), so a free, guest or signed-out person
 never has a session built or a Daily Dash account minted.
 

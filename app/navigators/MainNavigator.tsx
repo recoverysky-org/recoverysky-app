@@ -10,19 +10,21 @@ import { Text } from "@/components/Text"
 import { useMeetings } from "@/context/MeetingContext"
 import { useSubscription } from "@/context/SubscriptionContext"
 import { useAttendanceBadge } from "@/hooks/useAttendanceBadge"
+import { useMyDayPaywallPrompt } from "@/hooks/useMyDayPaywallPrompt"
 import { useAuthenticationStore, useProfileStore } from "@/models"
 import { AgentScreen } from "@/screens/AgentScreen"
 import { AttendanceScreen } from "@/screens/AttendanceScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { MeetingsScreen } from "@/screens/MeetingsScreen"
+import { MyDayTab } from "@/screens/myDay/MyDayTab"
+import { shouldPromptOnMyDayTap } from "@/screens/myDay/myDayTabViewLogic"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { SocialScreen } from "@/screens/SocialScreen"
 import { isTimerSessionActive } from "@/services/attendance"
 import { useAppTheme } from "@/theme/context"
 import { decideAgentTabVisible } from "@/utils/agentTabLogic"
-import { decideMyDayTabVisible } from "@/utils/myDayTabLogic"
+import { decideMyDayTabShown } from "@/utils/myDayTabLogic"
 
-import { MyDayNavigator } from "./MyDayNavigator"
 import type { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
@@ -48,7 +50,13 @@ export const MainNavigator = observer(function MainNavigator() {
   const authStore = useAuthenticationStore()
   // CHANGED 2026-11-07: each tab reads its own RevenueCat entitlement
   // (`skyagent`, `myday`) instead of `isPremium`.
-  const { hasSkyAgent, hasMyDay } = useSubscription()
+  const {
+    hasSkyAgent,
+    hasMyDay,
+    isLoading: isSubscriptionLoading,
+    subscriptionInfo,
+  } = useSubscription()
+  const { prompt: promptMyDayPaywall } = useMyDayPaywallPrompt()
   // Agent tab stays hidden until ready for release.
   // CHANGED 2026-10-10: no longer a hard `false`. Shown when the build carries
   // a valid EXPO_PUBLIC_AGENT_URL and the user passes the entitlement gate
@@ -89,10 +97,13 @@ export const MainNavigator = observer(function MainNavigator() {
   // URL in the build, and a platform it supports).
   // CHANGED 2026-11-07: the `myday` entitlement replaces premium. DailyDashProvider
   // passes the same input, so the session runs exactly while this tab exists.
-  const myDayTabVisible = decideMyDayTabVisible({
+  // CHANGED 2026-11-19 (Jenova): the icon shows without the entitlement, as an
+  // upsell (`decideMyDayTabShown`). The session still follows the entitlement:
+  // DailyDashProvider keeps `decideMyDayTabVisible`, and the tab's screen
+  // (`MyDayTab`) mounts the package only while the entitlement holds.
+  const myDayTabShown = decideMyDayTabShown({
     isAuthenticated: authStore.isAuthenticated,
     isGuest: authStore.isGuest,
-    hasMyDay,
     // Must stay a direct `process.env.EXPO_PUBLIC_*` access: Expo inlines
     // these at bundle time only for that exact form.
     dailyDashUrlEnv: process.env.EXPO_PUBLIC_DAILY_DASH_API_URL,
@@ -212,11 +223,32 @@ export const MainNavigator = observer(function MainNavigator() {
       )}
       {/* ADDED 2026-11-04: premium only. Order from spec D6: Home, Meetings,
           Attendance, My Day, Sky, Settings. MyDayNavigator mounts the Daily
-          Dash client, so the client exists exactly while this tab does. */}
-      {myDayTabVisible && (
+          Dash client, so the client exists exactly while this tab does.
+          CHANGED 2026-11-19 (Jenova): shown without the entitlement. A tap
+          without it shows "Premium Feature" with See Premium (the paywall in
+          place) instead of switching tabs, and goes to the tab after a
+          purchase. MyDayTab draws the package only with the entitlement, so the
+          Daily Dash client still exists exactly while it holds. No alert before
+          RevenueCat has answered (`shouldPromptOnMyDayTap`): the tab opens on a
+          spinner instead, so a subscriber is never asked to pay. A tap while a
+          timer holds the tab bar was already refused by screenListeners. */}
+      {myDayTabShown && (
         <Tab.Screen
           name="MyDay"
-          component={MyDayNavigator}
+          component={MyDayTab}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              if (isTimerSessionActive()) return
+              const inputs = {
+                hasMyDay,
+                answered: subscriptionInfo !== null,
+                loading: isSubscriptionLoading,
+              }
+              if (!shouldPromptOnMyDayTap(inputs)) return
+              e.preventDefault()
+              promptMyDayPaywall(() => navigation.navigate("MyDay"))
+            },
+          })}
           options={{
             tabBarLabel: t("mainNavigator:myDayTab"),
             tabBarIcon: ({ focused }) => (

@@ -1133,7 +1133,8 @@ const de: Translations = {
     reminderTime: "Erinnerungszeit",
     overlapMessage: "Dies überschneidet sich mit einer bestehenden Erinnerung",
     premiumTitle: "Premium-Funktion",
-    premiumMessage: "Erinnerungen sind mit einem Premium-Abonnement verfügbar.",
+    premiumMessage:
+      "Erinnerungen sind mit einem Premium-Abonnement verfügbar. Teste es 7 Tage kostenlos.",
   },
   cleanTime: {
     yourRecovery: "Deine Genesung",
@@ -1260,6 +1261,10 @@ const de: Translations = {
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
     // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
     seePremium: "Premium ansehen",
+    // ADDED 2026-11-19: My Day tab alert / locked page. Queued for review.
+    premiumFeatureTitle: "Premium-Funktion",
+    myDayPremiumMessage:
+      "My Day ist mit einem Premium-Abonnement verfügbar. Teste es 7 Tage kostenlos.",
   },
   accessibility: {
     doubleTapToView: "Doppeltippen, um Details anzuzeigen",

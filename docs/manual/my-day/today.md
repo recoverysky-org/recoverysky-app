@@ -6,19 +6,19 @@ platforms: [ios, android]
 tier: premium
 aliases: ["my day", "today", "daily routine", "today's quote", "where to focus today", "favourite quote", "daily dash", "my day missing", "my day tab"]
 ---
-<!-- sources: app/navigators/MyDayNavigator.tsx, app/navigators/myDayNavigation.ts, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
+<!-- sources: app/navigators/MyDayNavigator.tsx, app/screens/myDay/MyDayTab.tsx, app/hooks/useMyDayPaywallPrompt.ts, app/navigators/MainNavigator.tsx, app/navigators/myDayNavigation.ts, app/i18n/en.ts, app/screens/myDay/MyDayGate.tsx, app/screens/myDay/MyDayWelcome.tsx, docs/superpowers/specs/2026-10-25-my-day-tab-design.md, vendor/daily-dash-my-day-0.8.0.tgz, app/screens/SettingsScreen.tsx -->
 "My Day" is a tab for your day in recovery: a quote, where to focus, your routine, and a "Record My Day" panel with your gratitude list and "Rate your day" in the evening. It needs the Premium subscription and works on iPhone and Android. My Day is made by The Daily Dash. What you enter is kept on this phone and on The Daily Dash's server for your account.
 
 ## How to open My Day
 
-You need to be signed in, with the Premium subscription.
+You need to be signed in, with the Premium subscription. Without Premium, tapping "My Day" shows "Premium Feature": "My Day is available with a Premium subscription. Try it free for 7 days." Tap "See Premium" to see the subscription offer right there; once you subscribe, My Day opens.
 
 1. Tap "My Day" in the tab bar along the bottom.
 2. The tab opens on its main screen, titled "My Day" with the date under it. While it loads, it says "Getting your day ready…".
 
 The first time, or after you sign in again, the tab may say "Getting My Day ready…" for a moment while it connects your account. There is no second sign-in: My Day uses the account you are already signed in with.
 
-The tab shows only when all of these are true: you are signed in, you have Premium, and you are not using guest mode. It does not show on the web.
+The tab shows when you are signed in and not using guest mode, with or without Premium. It does not show on the web.
 
 ## What you'll see on My Day
 
@@ -36,7 +36,7 @@ Grateful for, your routine and Rate your day each have their own page in this ma
 
 **First visit.** The first time you open My Day, it opens on "Welcome to My Day", a page about what My Day is and why a routine helps. Tap "Get started" to go on to My Day. It shows once on this phone.
 
-**Premium only.** Without Premium there is no My Day tab. If Premium ends, the tab disappears and nothing is deleted. It comes back, with your data, when Premium is active again.
+**Premium only.** Without Premium the tab is still there, but it offers "See Premium" instead of opening My Day. If Premium ends, My Day locks and nothing is deleted. It opens again, with your data, when Premium is active again.
 
 **Where your data lives.** On this phone, encrypted, and on The Daily Dash's server for your account. A change shows at once. If you are offline, it says "Saved on this device. It will send when you're online."
 
@@ -65,7 +65,7 @@ Contact support@recoverysky.app and mention what the My Day tab shows and since 
 ## Questions people ask
 
 **Q:** I don't see My Day.
-**A:** The tab shows only when you are signed in with the Premium subscription, and not in guest mode or on the web. Check that Settings → "Subscription" says "Premium". If it doesn't and you subscribed, tap "Restore Purchases" there.
+**A:** The tab shows when you are signed in, and not in guest mode or on the web. If it says "Premium Feature" when you tap it, My Day needs Premium: check that Settings → "Subscription" says "Premium". If it doesn't and you subscribed, tap "Restore Purchases" there.
 
 **Q:** Who can see what I put in My Day?
 **A:** It is kept on this phone, encrypted, and on The Daily Dash's server for your account.

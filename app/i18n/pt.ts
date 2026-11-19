@@ -1126,7 +1126,8 @@ const pt: Translations = {
     reminderTime: "Horário do lembrete",
     overlapMessage: "Isso se sobrepõe a um lembrete existente",
     premiumTitle: "Recurso Premium",
-    premiumMessage: "Os lembretes estão disponíveis com uma assinatura Premium.",
+    premiumMessage:
+      "Os lembretes estão disponíveis com uma assinatura Premium. Experimente grátis por 7 dias.",
   },
   cleanTime: {
     yourRecovery: "Sua Recuperação",
@@ -1254,6 +1255,10 @@ const pt: Translations = {
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
     // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
     seePremium: "Ver Premium",
+    // ADDED 2026-11-19: My Day tab alert / locked page. Queued for review.
+    premiumFeatureTitle: "Recurso Premium",
+    myDayPremiumMessage:
+      "O My Day está disponível com uma assinatura Premium. Experimente grátis por 7 dias.",
   },
   accessibility: {
     doubleTapToView: "Toque duas vezes para ver detalhes",

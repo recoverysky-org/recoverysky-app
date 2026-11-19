@@ -1121,7 +1121,7 @@ const ru: Translations = {
     reminderTime: "Время напоминания",
     overlapMessage: "Это пересекается с существующим напоминанием",
     premiumTitle: "Премиум-функция",
-    premiumMessage: "Напоминания доступны с подпиской Премиум.",
+    premiumMessage: "Напоминания доступны с подпиской Премиум. Попробуйте бесплатно 7 дней.",
   },
   cleanTime: {
     yourRecovery: "Твоё выздоровление",
@@ -1248,6 +1248,9 @@ const ru: Translations = {
     billingUnresponsiveStatusIos: "App Store not responding — restart device",
     // ADDED 2026-11-19: the in-place paywall link (reminder alert, Attendance). Queued for review.
     seePremium: "Посмотреть Премиум",
+    // ADDED 2026-11-19: My Day tab alert / locked page. Queued for review.
+    premiumFeatureTitle: "Премиум-функция",
+    myDayPremiumMessage: "My Day доступен с подпиской Премиум. Попробуйте бесплатно 7 дней.",
   },
   accessibility: {
     doubleTapToView: "Коснитесь дважды, чтобы посмотреть подробности",

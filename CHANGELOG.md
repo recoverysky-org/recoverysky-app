@@ -51,6 +51,20 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   production builds.
 
 ### Changed
+- **The My Day tab shows without Premium.** Every signed-in account (not guest
+  mode, not the web) sees the tab. Without the `myday` entitlement a tap shows
+  "Premium Feature" ("My Day is available with a Premium subscription. Try it
+  free for 7 days.") with
+  "See Premium", which opens the paywall in place and goes to My Day after a
+  purchase that includes it. Reaching the tab another way without it (a lapsed
+  subscription) shows a locked page with the same button. The Daily Dash
+  session still starts only with the entitlement, and a tap before RevenueCat
+  answers at launch opens the tab on a spinner rather than asking a subscriber
+  to pay. Sky's "Open My Day" link still needs the entitlement.
+- **The Premium alerts mention the 7-day free trial.** The reminder grid's
+  "Premium Feature" alert (online and in-person popups) and My Day's alert and
+  locked page now end "Try it free for 7 days.", so the offer is clear before
+  the paywall opens.
 - **Support contacts are hidden.** The Home tab's Support card is gone, and the
   Support screen no longer lists people or offers "Add a support contact", for
   everyone, behind two switches in `services/support/supportVisibility.ts`.
@@ -132,6 +146,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   tab is still hidden in production builds.
 
 ### Docs
+- **(manual)** `today.md`, `map.md`: the My Day tab shows without Premium and
+  offers "See Premium"; a new question for "my day says premium feature".
+  The quoted alert carries the 7-day free trial line.
 - **(manual)** Support moved from `home/support` to `my-day/support` and now
   describes the Support screen without contacts, reached from My Day;
   `map.md`, `new-phone.md` (contacts no longer listed) and `questions.yml`
