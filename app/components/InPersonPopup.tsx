@@ -82,6 +82,7 @@ import { useTranslation } from "react-i18next"
 
 import { InPersonTimerModal } from "@/components/InPersonTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
+import { ReminderHint } from "@/components/ReminderHint"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
@@ -1033,7 +1034,9 @@ export const InPersonPopup: FC<InPersonPopupProps> = observer(function InPersonP
               onCellPress={isGuest ? undefined : handleCellPress}
               reminderCells={isGuest ? undefined : reminderCells}
             />
-            {!isGuest && <Text style={themed($reminderHint)} tx="inPersonPopup:tapTimesHint" />}
+            {!isGuest && (
+              <ReminderHint tx="inPersonPopup:tapTimesHint" style={themed($reminderHintSpacing)} />
+            )}
 
             {/* "I'm Here" — only surfaced when attendance tracking is on.
                 Tapping it takes a fresh GPS fix (usePresenceCheck) and only
@@ -1413,11 +1416,8 @@ const $contactLinkText: ThemedStyle<TextStyle> = ({ colors }) => ({
   color: colors.tint,
 })
 
-const $reminderHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 11,
-  color: colors.textDim,
-  textAlign: "center",
-  marginTop: spacing.xs,
+// The hint's gap before "I'm Here", as the old 11pt hint had.
+const $reminderHintSpacing: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.md,
 })
 

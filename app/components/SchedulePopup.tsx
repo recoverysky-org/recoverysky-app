@@ -42,6 +42,7 @@ import { useTranslation } from "react-i18next"
 import { ExternalZoomEducationModal } from "@/components/ExternalZoomEducationModal"
 import { ExternalZoomTimerModal } from "@/components/ExternalZoomTimerModal"
 import { ReminderEditorModal } from "@/components/ReminderEditorModal"
+import { ReminderHint } from "@/components/ReminderHint"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
 import { Text } from "@/components/Text"
 import { TopicPanelOverlay } from "@/components/TopicPanelOverlay"
@@ -813,7 +814,7 @@ export const SchedulePopup: FC<SchedulePopupProps> = observer(function ScheduleP
             reminderCells={isGuest ? undefined : reminderCells}
           />
 
-          {!isGuest && <Text style={themed($reminderHint)} tx="liveScreen:tapTimesHint" />}
+          {!isGuest && <ReminderHint tx="liveScreen:tapTimesHint" />}
 
           {/* Slide-in topic panel. Rendered inside $content (not as its own
               Modal) so iOS doesn't have to present a second native modal
@@ -963,13 +964,6 @@ const $readMore: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   fontSize: 13,
   color: colors.tint,
   marginBottom: spacing.sm,
-})
-
-const $reminderHint: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
-  fontSize: 11,
-  color: colors.textDim,
-  textAlign: "center",
-  marginTop: spacing.xs,
 })
 
 const $tagsRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({

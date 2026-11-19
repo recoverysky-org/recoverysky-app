@@ -51,6 +51,9 @@ Categories used: `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Sec
   production builds.
 
 ### Changed
+- **"Tap times to set reminders" is easier to see.** Under the schedule grid in
+  both meeting popups, the hint was small grey text; it now has a bell and the
+  grid's tint, a size up, so people find reminders.
 - **The paywall opens where you are.** Tapping a reminder time without Premium
   still explains "Reminders are available with a Premium subscription.", but
   its button is now "See Premium" and opens the paywall over the meeting popup,
